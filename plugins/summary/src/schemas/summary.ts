@@ -2,21 +2,15 @@ import { z } from "@brains/utils";
 
 /**
  * Individual log entry within a summary
+ * Simplified to essential fields - details are in natural prose
  */
 export const summaryLogEntrySchema = z.object({
   title: z.string().describe("Brief topic or phase description"),
-  content: z.string().describe("The summary content for this entry"),
+  content: z
+    .string()
+    .describe("Natural summary prose including all relevant details"),
   created: z.string().datetime().describe("When this entry was created"),
   updated: z.string().datetime().describe("When this entry was last updated"),
-  windowStart: z.number().describe("Start index of message window (1-based)"),
-  windowEnd: z.number().describe("End index of message window (1-based)"),
-  keyPoints: z.array(z.string()).optional().describe("Key points discussed"),
-  decisions: z.array(z.string()).optional().describe("Decisions made"),
-  actionItems: z
-    .array(z.string())
-    .optional()
-    .describe("Action items identified"),
-  participants: z.array(z.string()).optional().describe("Active participants"),
 });
 
 export type SummaryLogEntry = z.infer<typeof summaryLogEntrySchema>;
@@ -82,28 +76,3 @@ export const summaryConfigSchema = z.object({
 });
 
 export type SummaryConfig = z.infer<typeof summaryConfigSchema>;
-
-/**
- * AI decision result schema for digest analysis
- */
-export const aiDecisionResultSchema = z.object({
-  decision: z.enum(["update", "new"]),
-  entryIndex: z.number().optional(),
-  title: z.string(),
-  reasoning: z.string(),
-});
-
-export type AiDecisionResult = z.infer<typeof aiDecisionResultSchema>;
-
-/**
- * AI summary generation result schema
- */
-export const aiSummaryResultSchema = z.object({
-  content: z.string(),
-  keyPoints: z.array(z.string()).optional(),
-  decisions: z.array(z.string()).optional(),
-  actionItems: z.array(z.string()).optional(),
-  participants: z.array(z.string()).optional(),
-});
-
-export type AiSummaryResult = z.infer<typeof aiSummaryResultSchema>;

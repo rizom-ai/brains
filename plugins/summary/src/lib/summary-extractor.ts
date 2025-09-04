@@ -3,12 +3,21 @@ import type {
   ServicePluginContext,
   ConversationDigestPayload,
 } from "@brains/plugins";
-import type {
-  SummaryLogEntry,
-  AiDecisionResult,
-  AiSummaryResult,
-} from "../schemas/summary";
+import type { SummaryLogEntry } from "../schemas/summary";
 import { SummaryAdapter } from "../adapters/summary-adapter";
+import { z } from "@brains/utils";
+
+/**
+ * Simple schema for AI response
+ */
+const aiResponseSchema = z.object({
+  action: z.enum(["update", "new"]),
+  index: z.number().optional(),
+  title: z.string(),
+  summary: z.string(),
+});
+
+type AiResponse = z.infer<typeof aiResponseSchema>;
 
 /**
  * Decision on how to handle a new digest
@@ -20,7 +29,7 @@ export type DigestDecision =
 
 /**
  * Service for extracting summaries from conversation digests using AI
- * Implements singleton pattern for consistent state management
+ * Simplified to use a single AI call for both decision and content
  */
 export class SummaryExtractor {
   private static instance: SummaryExtractor | null = null;
@@ -65,7 +74,7 @@ export class SummaryExtractor {
   }
 
   /**
-   * Analyze digest and existing summary to decide how to update
+   * Analyze digest and create/update summary with a single AI call
    */
   public async analyzeDigest(
     digest: ConversationDigestPayload,
@@ -82,171 +91,87 @@ export class SummaryExtractor {
       ? this.adapter.getRecentEntries(existingContent, 3)
       : [];
 
-    // Prepare the messages for AI analysis
-    const messagesText = digest.messages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n\n");
+    // Format recent entries for context
+    const recentContext =
+      recentEntries.length > 0
+        ? `Recent summary entries (newest first):
+${recentEntries
+  .map((e, i) => `${i + 1}. [${e.created}] ${e.title}\n   ${e.content}`)
+  .join("\n\n")}`
+        : "No existing summaries for this conversation.";
 
-    // Prepare recent summaries for context
-    const recentSummariesText = recentEntries
-      .map((e, i) => `Entry ${i + 1} (${e.title}):\n${e.content}`)
-      .join("\n\n---\n\n");
+    // Format messages for AI
+    const messagesText = digest.messages
+      .map((m) => `[${m.role}]: ${m.content}`)
+      .join("\n");
+
+    // Single AI prompt for both decision and content generation
+    const prompt = `Analyze this conversation digest and create or update a summary entry.
+
+${recentContext}
+
+New messages (${digest.windowStart} to ${digest.windowEnd}):
+${messagesText}
+
+Instructions:
+1. Determine if this continues an existing topic or is a new topic
+2. If it continues the most recent topic, set action to "update" with index 0
+3. If it's a new topic, set action to "new"
+4. Write a natural summary paragraph that includes key points, decisions, and action items as appropriate
+
+Respond with a JSON object with these fields:
+- action: "update" or "new"
+- index: 0 if updating most recent (omit for new)
+- title: Brief topic description
+- summary: Natural paragraph summarizing the conversation`;
 
     try {
-      // First, analyze if we should update an existing entry or create new
-      const decisionPrompt = `You are analyzing a conversation to create or update a summary log.
-
-${
-  recentEntries.length > 0
-    ? `Recent summary entries (newest first):
-${recentSummariesText}
-
-`
-    : ""
-}New messages (${digest.windowStart}-${digest.windowEnd}):
-${messagesText}
-
-Analyze the new messages and determine:
-1. Do they continue discussing the same topic as any of the recent entries?
-2. Or do they represent a new topic/phase of conversation?
-
-If continuing an existing topic, specify which entry index (0 = most recent).
-If new topic, suggest a title for the new entry.
-
-Return JSON with:
-{
-  "decision": "update" or "new",
-  "entryIndex": (number, only if decision is "update"),
-  "title": "Brief topic title",
-  "reasoning": "Why you made this decision"
-}`;
-
-      const decisionResult =
-        await this.context.generateContent<AiDecisionResult>({
-          templateName: "digest-decision",
-          prompt: decisionPrompt,
-          conversationHistory: digest.conversationId,
-        });
-
-      this.logger.debug("AI decision", decisionResult);
-
-      // Now generate the actual summary content
-      const summaryPrompt = `Create a ${decisionResult.decision === "update" ? "continuation summary" : "new summary"} for these messages.
-
-Messages (${digest.windowStart}-${digest.windowEnd}):
-${messagesText}
-
-${
-  decisionResult.decision === "update" &&
-  decisionResult.entryIndex !== undefined &&
-  decisionResult.entryIndex >= 0 &&
-  decisionResult.entryIndex < recentEntries.length
-    ? `Existing summary to update:
-${recentEntries[decisionResult.entryIndex]?.content ?? ""}`
-    : ""
-}
-
-Provide a concise chronological summary (2-3 paragraphs) that:
-- Captures the main discussion points
-- Notes any decisions made
-- Identifies action items
-- Maintains narrative flow
-
-Also extract:
-- Key points (as array of strings)
-- Decisions (as array of strings, if any)
-- Action items (as array of strings, if any)
-- Active participants (as array of unique names)
-
-Return JSON with:
-{
-  "content": "The summary text",
-  "keyPoints": ["point1", "point2"],
-  "decisions": ["decision1"],
-  "actionItems": ["action1"],
-  "participants": ["name1", "name2"]
-}`;
-
-      const summaryResult = await this.context.generateContent<AiSummaryResult>(
-        {
-          templateName: "summary-content",
-          prompt: summaryPrompt,
-          conversationHistory: digest.conversationId,
+      const response = await this.context.generateContent<AiResponse>({
+        prompt,
+        templateName: "summary-ai-response",
+        data: {
+          schema: aiResponseSchema,
         },
-      );
+      });
 
-      // Create the log entry
+      const now = new Date().toISOString();
       const entry: SummaryLogEntry = {
-        title: decisionResult.title,
-        content: summaryResult.content,
-        created: digest.timestamp,
-        updated: digest.timestamp,
-        windowStart: digest.windowStart,
-        windowEnd: digest.windowEnd,
-        keyPoints: summaryResult.keyPoints,
-        decisions: summaryResult.decisions,
-        actionItems: summaryResult.actionItems,
-        participants: summaryResult.participants,
+        title: response.title,
+        content: response.summary,
+        created: now,
+        updated: now,
       };
 
-      // Return the decision
-      if (!existingContent) {
-        return { action: "create", entry };
-      } else if (
-        decisionResult.decision === "update" &&
-        decisionResult.entryIndex !== undefined &&
-        decisionResult.entryIndex >= 0
+      // Return the appropriate decision based on AI response
+      if (
+        response.action === "update" &&
+        response.index === 0 &&
+        recentEntries.length > 0
       ) {
-        return {
-          action: "update",
-          entryIndex: decisionResult.entryIndex,
-          entry,
-        };
-      } else {
-        return { action: "append", entry };
+        return { action: "update", entryIndex: 0, entry };
       }
+
+      // Default to creating/appending a new entry
+      return existingContent
+        ? { action: "append", entry }
+        : { action: "create", entry };
     } catch (error) {
-      this.logger.error("Failed to analyze digest", {
-        conversationId: digest.conversationId,
+      this.logger.error("Failed to generate summary", {
         error: error instanceof Error ? error.message : String(error),
       });
-      throw error;
-    }
-  }
 
-  /**
-   * Apply the decision to create or update the summary
-   */
-  public applyDecision(
-    decision: DigestDecision,
-    existingContent: string | null,
-    conversationId: string,
-  ): string {
-    switch (decision.action) {
-      case "create":
-        return this.adapter.addOrUpdateEntry(
-          null,
-          decision.entry,
-          conversationId,
-          false,
-        );
+      // Fallback: create a basic entry
+      const now = new Date().toISOString();
+      const entry: SummaryLogEntry = {
+        title: `Messages ${digest.windowStart}-${digest.windowEnd}`,
+        content: `Conversation from messages ${digest.windowStart} to ${digest.windowEnd}. ${digest.messages.length} messages exchanged.`,
+        created: now,
+        updated: now,
+      };
 
-      case "update":
-        return this.adapter.addOrUpdateEntry(
-          existingContent,
-          decision.entry,
-          conversationId,
-          true,
-          decision.entryIndex,
-        );
-
-      case "append":
-        return this.adapter.addOrUpdateEntry(
-          existingContent,
-          decision.entry,
-          conversationId,
-          false,
-        );
+      return existingContent
+        ? { action: "append", entry }
+        : { action: "create", entry };
     }
   }
 }

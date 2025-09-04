@@ -1,9 +1,6 @@
 import type { EntityAdapter } from "@brains/plugins";
-import {
-  StructuredContentFormatter,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import { summarySchema, summaryLogEntrySchema } from "../schemas/summary";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { summarySchema } from "../schemas/summary";
 import type {
   SummaryEntity,
   SummaryBody,
@@ -12,112 +9,23 @@ import type {
 import type { z } from "@brains/utils";
 
 /**
- * Adapter for summary entities with log-based structure
- * Entries are prepended (newest first) for easier updates
+ * Adapter for summary entities with simplified log-based structure
+ * Entries are prepended (newest first) for optimization
  */
 export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
   public readonly entityType = "summary";
   public readonly schema = summarySchema;
 
   /**
-   * Create a formatter for individual log entries
-   */
-  private createEntryFormatter(
-    title: string,
-  ): StructuredContentFormatter<
-    Omit<SummaryLogEntry, "title" | "created" | "updated">
-  > {
-    // We handle title, created, and updated in the wrapper
-    // The formatter handles the actual content fields
-    const entryWithoutMeta = summaryLogEntrySchema.omit({
-      title: true,
-      created: true,
-      updated: true,
-    });
-
-    return new StructuredContentFormatter(entryWithoutMeta, {
-      title,
-      mappings: [
-        {
-          key: "content",
-          label: "Content",
-          type: "string",
-        },
-        {
-          key: "windowStart",
-          label: "Window Start",
-          type: "number",
-        },
-        {
-          key: "windowEnd",
-          label: "Window End",
-          type: "number",
-        },
-        {
-          key: "keyPoints",
-          label: "Key Points",
-          type: "array",
-          itemType: "string",
-        },
-        {
-          key: "decisions",
-          label: "Decisions",
-          type: "array",
-          itemType: "string",
-        },
-        {
-          key: "actionItems",
-          label: "Action Items",
-          type: "array",
-          itemType: "string",
-        },
-        {
-          key: "participants",
-          label: "Participants",
-          type: "array",
-          itemType: "string",
-        },
-      ],
-    });
-  }
-
-  /**
    * Format a single log entry to markdown
    */
-  private formatEntry(entry: SummaryLogEntry): string[] {
-    const lines: string[] = [];
+  private formatEntry(entry: SummaryLogEntry): string {
+    const header =
+      entry.created === entry.updated
+        ? `### [${entry.created}] ${entry.title}`
+        : `### [${entry.created} - Updated ${entry.updated}] ${entry.title}`;
 
-    // Timestamp header
-    if (entry.created === entry.updated) {
-      lines.push(`### [${entry.created}] ${entry.title}`);
-    } else {
-      lines.push(
-        `### [${entry.created} - Updated ${entry.updated}] ${entry.title}`,
-      );
-    }
-    lines.push("");
-
-    // Use formatter for the entry content
-    const formatter = this.createEntryFormatter(entry.title);
-    const entryData = {
-      content: entry.content,
-      windowStart: entry.windowStart,
-      windowEnd: entry.windowEnd,
-      keyPoints: entry.keyPoints,
-      decisions: entry.decisions,
-      actionItems: entry.actionItems,
-      participants: entry.participants,
-    };
-
-    // Format the entry but skip the title (first line and blank line)
-    const formattedEntry = formatter.format(entryData);
-    const entryLines = formattedEntry.split("\n").slice(2); // Skip "# Title" and blank line
-    lines.push(...entryLines);
-
-    lines.push("---");
-    lines.push("");
-
-    return lines;
+    return `${header}\n\n${entry.content}\n\n---\n`;
   }
 
   /**
@@ -140,7 +48,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
 
     // Add each log entry (already in newest-first order)
     for (const entry of body.entries) {
-      lines.push(...this.formatEntry(entry));
+      lines.push(this.formatEntry(entry));
     }
 
     return lines.join("\n");
@@ -149,59 +57,45 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
   /**
    * Parse a single entry from markdown section
    */
-  private parseEntry(section: string): SummaryLogEntry | null {
-    // Parse header line: [timestamp] title or [timestamp - Updated timestamp] title
-    const headerEndIndex = section.indexOf("]");
-    if (headerEndIndex === -1) return null;
+  private parseEntry(section: string): SummaryLogEntry {
+    const lines = section.split("\n");
+    const headerLine = lines[0] ?? "";
 
-    const timestampPart = section.substring(0, headerEndIndex);
-    const titleLine = section.substring(headerEndIndex + 1).split("\n")[0];
-    const title = titleLine?.trim() ?? "";
-
-    let created: string;
-    let updated: string;
-
-    if (timestampPart.includes(" - Updated ")) {
-      const [createdPart, updatedPart] = timestampPart.split(" - Updated ");
-      created = createdPart?.trim() ?? new Date().toISOString();
-      updated = updatedPart?.trim() ?? created;
-    } else {
-      created = timestampPart.trim();
-      updated = created;
-    }
-
-    // Extract the entry content (everything after the title until ---)
-    const entryContentStart = section.indexOf("\n", headerEndIndex) + 1;
-    const entryContentEnd = section.indexOf("\n---");
-    const entryContent = section.substring(
-      entryContentStart,
-      entryContentEnd === -1 ? undefined : entryContentEnd,
-    );
-
-    // Parse the entry content with formatter
-    // Add back the title header for the formatter to parse
-    const formatter = this.createEntryFormatter(title);
-    const entryWithTitle = `# ${title}\n${entryContent}`;
-
-    try {
-      const parsedEntry = formatter.parse(entryWithTitle);
+    // Extract timestamp and title from header
+    const match = headerLine.match(/\[(.*?)\] (.*)$/);
+    if (!match) {
       return {
-        title,
-        created,
-        updated,
-        ...parsedEntry,
-      };
-    } catch {
-      // Fallback: create a basic entry if parsing fails
-      return {
-        title,
-        content: entryContent.trim(),
-        created,
-        updated,
-        windowStart: 0,
-        windowEnd: 0,
+        title: "",
+        content: section.trim(),
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
       };
     }
+
+    const [, timestamp = "", title = ""] = match;
+
+    // Check for update timestamp
+    let created = timestamp;
+    let updated = timestamp;
+    if (timestamp.includes(" - Updated ")) {
+      const parts = timestamp.split(" - Updated ");
+      created = parts[0] ?? timestamp;
+      updated = parts[1] ?? timestamp;
+    }
+
+    // Extract content (everything after header until ---)
+    const content = lines
+      .slice(1)
+      .join("\n")
+      .replace(/\n---\s*$/, "")
+      .trim();
+
+    return {
+      title,
+      content,
+      created,
+      updated,
+    };
   }
 
   /**
@@ -234,11 +128,13 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
       };
     }
 
-    const entrySections = logSection.split(/^### \[/m).slice(1); // Skip content before first entry
+    // Split by ### but keep the delimiter
+    const entrySections = logSection.split(/^###\s+/m).slice(1); // Skip content before first entry
 
     for (const section of entrySections) {
+      // Add back the header start for parsing
       const entry = this.parseEntry(section);
-      if (entry) {
+      if (entry.title) {
         entries.push(entry);
       }
     }
@@ -340,7 +236,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
       body = {
         conversationId,
         entries: [newEntry],
-        totalMessages: newEntry.windowEnd,
+        totalMessages: 0, // Will be updated by caller
         lastUpdated: newEntry.created,
       };
     } else {
@@ -358,33 +254,12 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
           ...existingEntry,
           content: `${existingEntry.content}\n\nUPDATE: ${newEntry.content}`,
           updated: newEntry.created, // Set updated timestamp
-          windowEnd: newEntry.windowEnd, // Update window end
-          // Merge arrays if they exist
-          keyPoints: [
-            ...(existingEntry.keyPoints ?? []),
-            ...(newEntry.keyPoints ?? []),
-          ],
-          decisions: [
-            ...(existingEntry.decisions ?? []),
-            ...(newEntry.decisions ?? []),
-          ],
-          actionItems: [
-            ...(existingEntry.actionItems ?? []),
-            ...(newEntry.actionItems ?? []),
-          ],
-          participants: Array.from(
-            new Set([
-              ...(existingEntry.participants ?? []),
-              ...(newEntry.participants ?? []),
-            ]),
-          ),
         };
       } else {
         // Prepend new entry (newest first)
         body.entries.unshift(newEntry);
       }
 
-      body.totalMessages = Math.max(body.totalMessages, newEntry.windowEnd);
       body.lastUpdated = newEntry.created;
     }
 

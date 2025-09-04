@@ -4,16 +4,18 @@ import type {
   ConversationDigestPayload,
 } from "@brains/plugins";
 import { SummaryExtractor } from "../lib/summary-extractor";
+import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity } from "../schemas/summary";
 
 /**
  * Handler for conversation digest events
  * Processes digests and updates summary entities
- * Implements singleton pattern for consistent state management
+ * Simplified to work with natural language summaries
  */
 export class DigestHandler {
   private static instance: DigestHandler | null = null;
   private extractor: SummaryExtractor;
+  private adapter: SummaryAdapter;
 
   /**
    * Get singleton instance
@@ -51,6 +53,7 @@ export class DigestHandler {
     private readonly logger: Logger,
   ) {
     this.extractor = SummaryExtractor.createFresh(context, logger);
+    this.adapter = new SummaryAdapter();
   }
 
   /**
@@ -71,8 +74,8 @@ export class DigestHandler {
       try {
         existingEntity =
           await this.context.entityService.getEntity<SummaryEntity>(
-            summaryId,
             "summary",
+            summaryId,
           );
       } catch {
         // Entity doesn't exist yet, that's fine
@@ -86,11 +89,40 @@ export class DigestHandler {
       );
 
       // Apply the decision to create/update the summary
-      const updatedContent = this.extractor.applyDecision(
-        decision,
-        existingEntity?.content ?? null,
-        digest.conversationId,
-      );
+      let updatedContent: string;
+      if (decision.action === "create") {
+        // Create new summary with first entry
+        updatedContent = this.adapter.addOrUpdateEntry(
+          null,
+          decision.entry,
+          digest.conversationId,
+          false,
+        );
+      } else if (decision.action === "update") {
+        // Update existing entry
+        updatedContent = this.adapter.addOrUpdateEntry(
+          existingEntity?.content ?? null,
+          decision.entry,
+          digest.conversationId,
+          true,
+          decision.entryIndex,
+        );
+      } else {
+        // Append new entry
+        updatedContent = this.adapter.addOrUpdateEntry(
+          existingEntity?.content ?? null,
+          decision.entry,
+          digest.conversationId,
+          false,
+        );
+      }
+
+      // Parse the content to get metadata
+      const body = this.adapter.parseSummaryContent(updatedContent);
+
+      // Update totalMessages with the window end (approximate total)
+      body.totalMessages = digest.windowEnd;
+      updatedContent = this.adapter.createSummaryContent(body);
 
       // Save the updated summary
       const summaryEntity: SummaryEntity = {
@@ -101,7 +133,7 @@ export class DigestHandler {
         updated: digest.timestamp,
         metadata: {
           conversationId: digest.conversationId,
-          entryCount: updatedContent.split("### [").length - 1, // Count entries
+          entryCount: body.entries.length,
           totalMessages: digest.windowEnd,
           lastUpdated: digest.timestamp,
         },

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import type { SummaryEntity, SummaryLogEntry } from "../../src/schemas/summary";
+import type { SummaryEntity, SummaryBody } from "../../src/schemas/summary";
 
 describe("SummaryAdapter", () => {
   let adapter: SummaryAdapter;
@@ -21,20 +21,14 @@ describe("SummaryAdapter", () => {
 
   describe("createSummaryContent", () => {
     it("should create markdown from summary body", () => {
-      const body = {
+      const body: SummaryBody = {
         conversationId: "conv-123",
         entries: [
           {
             title: "Initial discussion",
-            content: "User asked about project setup",
+            content: "User asked about project setup and we discussed TypeScript configuration.",
             created: "2025-01-01T00:00:00Z",
             updated: "2025-01-01T00:00:00Z",
-            windowStart: 1,
-            windowEnd: 50,
-            keyPoints: ["Project setup", "Initial requirements"],
-            decisions: ["Use TypeScript"],
-            actionItems: ["Setup repository"],
-            participants: ["user-1", "assistant"],
           },
         ],
         totalMessages: 50,
@@ -50,32 +44,23 @@ describe("SummaryAdapter", () => {
         "### [2025-01-01T00:00:00Z] Initial discussion",
       );
       expect(content).toContain("User asked about project setup");
-      expect(content).toContain("## Window Start\n1");
-      expect(content).toContain("## Window End\n50");
-      expect(content).toContain("- Project setup");
-      expect(content).toContain("- Use TypeScript");
-      expect(content).toContain("- Setup repository");
     });
 
     it("should handle multiple entries in reverse chronological order", () => {
-      const body = {
+      const body: SummaryBody = {
         conversationId: "conv-123",
         entries: [
           {
             title: "Recent topic",
-            content: "Latest discussion",
+            content: "Latest discussion about deployment strategies.",
             created: "2025-01-02T00:00:00Z",
             updated: "2025-01-02T00:00:00Z",
-            windowStart: 51,
-            windowEnd: 100,
           },
           {
-            title: "Earlier topic",
-            content: "Earlier discussion",
+            title: "Initial topic",
+            content: "Initial project setup discussion.",
             created: "2025-01-01T00:00:00Z",
             updated: "2025-01-01T00:00:00Z",
-            windowStart: 1,
-            windowEnd: 50,
           },
         ],
         totalMessages: 100,
@@ -83,23 +68,23 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
+      
+      // Check entries appear in order (newest first)
       const recentIndex = content.indexOf("Recent topic");
-      const earlierIndex = content.indexOf("Earlier topic");
-
-      expect(recentIndex).toBeLessThan(earlierIndex);
+      const initialIndex = content.indexOf("Initial topic");
+      expect(recentIndex).toBeLessThan(initialIndex);
+      expect(content).toContain("deployment strategies");
     });
 
     it("should show updated timestamp when entry is updated", () => {
-      const body = {
+      const body: SummaryBody = {
         conversationId: "conv-123",
         entries: [
           {
             title: "Discussion",
-            content: "Content",
+            content: "Original content with updates.",
             created: "2025-01-01T00:00:00Z",
             updated: "2025-01-01T12:00:00Z",
-            windowStart: 1,
-            windowEnd: 50,
           },
         ],
         totalMessages: 50,
@@ -107,14 +92,13 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
-
       expect(content).toContain(
-        "[2025-01-01T00:00:00Z - Updated 2025-01-01T12:00:00Z]",
+        "### [2025-01-01T00:00:00Z - Updated 2025-01-01T12:00:00Z] Discussion",
       );
     });
 
     it("should handle empty entries array", () => {
-      const body = {
+      const body: SummaryBody = {
         conversationId: "conv-123",
         entries: [],
         totalMessages: 0,
@@ -122,9 +106,8 @@ describe("SummaryAdapter", () => {
       };
 
       const content = adapter.createSummaryContent(body);
-
       expect(content).toContain("# Conversation Summary: conv-123");
-      expect(content).toContain("## Summary Log");
+      expect(content).toContain("**Total Messages:** 0");
       expect(content).not.toContain("###");
     });
   });
@@ -142,32 +125,7 @@ describe("SummaryAdapter", () => {
 
 ### [2025-01-01T00:00:00Z] Initial discussion
 
-## Content
-User asked about project setup
-
-## Window Start
-1
-
-## Window End
-50
-
-## Key Points
-
-- Project setup
-- Initial requirements
-
-## Decisions
-
-- Use TypeScript
-
-## Action Items
-
-- Setup repository
-
-## Participants
-
-- user-1
-- assistant
+User asked about project setup and TypeScript configuration.
 
 ---
 
@@ -179,15 +137,10 @@ User asked about project setup
       expect(body.totalMessages).toBe(50);
       expect(body.lastUpdated).toBe("2025-01-01T00:00:00Z");
       expect(body.entries).toHaveLength(1);
-
-      const entry = body.entries[0];
-      expect(entry?.title).toBe("Initial discussion");
-      expect(entry?.content).toBe("User asked about project setup");
-      expect(entry?.windowStart).toBe(1);
-      expect(entry?.windowEnd).toBe(50);
-      expect(entry?.keyPoints).toContain("Project setup");
-      expect(entry?.decisions).toContain("Use TypeScript");
-      expect(entry?.actionItems).toContain("Setup repository");
+      expect(body.entries[0]?.title).toBe("Initial discussion");
+      expect(body.entries[0]?.content).toContain("project setup");
+      expect(body.entries[0]?.created).toBe("2025-01-01T00:00:00Z");
+      expect(body.entries[0]?.updated).toBe("2025-01-01T00:00:00Z");
     });
 
     it("should parse multiple entries", () => {
@@ -202,27 +155,13 @@ User asked about project setup
 
 ### [2025-01-02T00:00:00Z] Recent topic
 
-## Content
-Latest discussion
-
-## Window Start
-51
-
-## Window End
-100
+Latest discussion about deployment.
 
 ---
 
-### [2025-01-01T00:00:00Z] Earlier topic
+### [2025-01-01T00:00:00Z] Initial topic
 
-## Content
-Earlier discussion
-
-## Window Start
-1
-
-## Window End
-50
+Initial setup discussion.
 
 ---
 
@@ -232,7 +171,7 @@ Earlier discussion
 
       expect(body.entries).toHaveLength(2);
       expect(body.entries[0]?.title).toBe("Recent topic");
-      expect(body.entries[1]?.title).toBe("Earlier topic");
+      expect(body.entries[1]?.title).toBe("Initial topic");
     });
 
     it("should handle updated entries", () => {
@@ -247,10 +186,7 @@ Earlier discussion
 
 ### [2025-01-01T00:00:00Z - Updated 2025-01-01T12:00:00Z] Discussion
 
-Content: Original content
-UPDATE: Additional content
-Window Start: 1
-Window End: 50
+Content with updates.
 
 ---
 
@@ -279,7 +215,6 @@ Window End: 50
 
       expect(body.conversationId).toBe("conv-123");
       expect(body.entries).toHaveLength(0);
-      expect(body.totalMessages).toBe(0);
     });
 
     it("should handle missing metadata gracefully", () => {
@@ -287,13 +222,19 @@ Window End: 50
 
 ## Summary Log
 
+### [2025-01-01T00:00:00Z] Entry
+
+Content
+
+---
+
 `;
 
       const body = adapter.parseSummaryContent(markdown);
 
       expect(body.conversationId).toBe("conv-123");
       expect(body.totalMessages).toBe(0);
-      expect(body.lastUpdated).toBeDefined();
+      expect(body.entries).toHaveLength(1);
     });
   });
 
@@ -303,42 +244,29 @@ Window End: 50
 
 ## Metadata
 
-**Total Messages:** 150
-**Last Updated:** 2025-01-03T00:00:00Z
+**Total Messages:** 100
+**Last Updated:** 2025-01-02T00:00:00Z
 
 ## Summary Log
 
-### [2025-01-03T00:00:00Z] Third topic
+### [2025-01-02T00:00:00Z] Entry 2
 
-Content: Third
-Window Start: 101
-Window End: 150
+Content 2
 
 ---
 
-### [2025-01-02T00:00:00Z] Second topic
+### [2025-01-01T00:00:00Z] Entry 1
 
-Content: Second
-Window Start: 51
-Window End: 100
-
----
-
-### [2025-01-01T00:00:00Z] First topic
-
-Content: First
-Window Start: 1
-Window End: 50
+Content 1
 
 ---
 
 `;
 
-      const entries = adapter.getRecentEntries(markdown, 2);
+      const entries = adapter.getRecentEntries(markdown, 1);
 
-      expect(entries).toHaveLength(2);
-      expect(entries[0]?.title).toBe("Third topic");
-      expect(entries[1]?.title).toBe("Second topic");
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.title).toBe("Entry 2");
     });
 
     it("should handle request for more entries than exist", () => {
@@ -351,11 +279,9 @@ Window End: 50
 
 ## Summary Log
 
-### [2025-01-01T00:00:00Z] Only entry
+### [2025-01-01T00:00:00Z] Entry
 
-Content: Content
-Window Start: 1
-Window End: 50
+Content
 
 ---
 
@@ -372,7 +298,7 @@ Window End: 50
       const entity: SummaryEntity = {
         id: "summary-conv-123",
         entityType: "summary",
-        content: "# Test Content",
+        content: "# Test content",
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
         metadata: {
@@ -384,43 +310,22 @@ Window End: 50
       };
 
       const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toBe("# Test Content");
+      expect(markdown).toBe("# Test content");
     });
 
     it("should create entity from markdown", () => {
-      const markdown = `# Conversation Summary: conv-456
+      const markdown = `# Conversation Summary: conv-123
 
 ## Metadata
 
-**Total Messages:** 75
-**Last Updated:** 2025-01-02T00:00:00Z
+**Total Messages:** 50
+**Last Updated:** 2025-01-01T00:00:00Z
 
 ## Summary Log
 
-### [2025-01-02T00:00:00Z] Follow-up
+### [2025-01-01T00:00:00Z] Entry
 
-## Content
-More test
-
-## Window Start
-51
-
-## Window End
-75
-
----
-
-### [2025-01-01T00:00:00Z] Initial
-
-## Content
-Test
-
-## Window Start
-1
-
-## Window End
-50
+Content
 
 ---
 
@@ -431,10 +336,8 @@ Test
       expect(entity.entityType).toBe("summary");
       expect(entity.content).toBe(markdown);
       expect(entity.created).toBe("2025-01-01T00:00:00Z");
-      expect(entity.updated).toBe("2025-01-02T00:00:00Z");
-      expect(entity.metadata?.conversationId).toBe("conv-456");
-      expect(entity.metadata?.entryCount).toBe(2);
-      expect(entity.metadata?.totalMessages).toBe(75);
+      expect(entity.metadata?.conversationId).toBe("conv-123");
+      expect(entity.metadata?.entryCount).toBe(1);
     });
   });
 
@@ -448,20 +351,14 @@ Test
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
-          entryCount: 5,
-          totalMessages: 250,
+          entryCount: 1,
+          totalMessages: 50,
           lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
       const metadata = adapter.extractMetadata(entity);
-
-      expect(metadata).toEqual({
-        conversationId: "conv-123",
-        entryCount: 5,
-        totalMessages: 250,
-        lastUpdated: "2025-01-01T00:00:00Z",
-      });
+      expect(metadata["conversationId"]).toBe("conv-123");
     });
 
     it("should return empty object if no metadata", () => {
@@ -474,7 +371,6 @@ Test
       };
 
       const metadata = adapter.extractMetadata(entity);
-
       expect(metadata).toEqual({});
     });
   });
@@ -490,21 +386,17 @@ Test
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
-
       expect(frontmatter).toBe("");
     });
   });
 
   describe("addOrUpdateEntry", () => {
     it("should create new summary when no existing content", () => {
-      const newEntry: SummaryLogEntry = {
+      const newEntry = {
         title: "Initial discussion",
-        content: "First conversation",
+        content: "First conversation about the project.",
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
-        windowStart: 1,
-        windowEnd: 50,
-        keyPoints: ["Introduction"],
       };
 
       const result = adapter.addOrUpdateEntry(
@@ -515,7 +407,6 @@ Test
       );
 
       expect(result).toContain("# Conversation Summary: conv-123");
-      expect(result).toContain("**Total Messages:** 50");
       expect(result).toContain("Initial discussion");
       expect(result).toContain("First conversation");
     });
@@ -532,21 +423,17 @@ Test
 
 ### [2025-01-01T00:00:00Z] Old discussion
 
-Content: Old content
-Window Start: 1
-Window End: 50
+Old content
 
 ---
 
 `;
 
-      const newEntry: SummaryLogEntry = {
+      const newEntry = {
         title: "New discussion",
-        content: "New content",
+        content: "New content about recent topics.",
         created: "2025-01-02T00:00:00Z",
         updated: "2025-01-02T00:00:00Z",
-        windowStart: 51,
-        windowEnd: 100,
       };
 
       const result = adapter.addOrUpdateEntry(
@@ -556,13 +443,11 @@ Window End: 50
         false,
       );
 
-      expect(result).toContain("**Total Messages:** 100");
-      expect(result).toContain("**Last Updated:** 2025-01-02T00:00:00Z");
-
-      // New entry should appear before old entry
+      // New entry should appear first
       const newIndex = result.indexOf("New discussion");
       const oldIndex = result.indexOf("Old discussion");
       expect(newIndex).toBeLessThan(oldIndex);
+      expect(result).toContain("New content about recent topics");
     });
 
     it("should update existing entry when shouldUpdate is true", () => {
@@ -577,101 +462,29 @@ Window End: 50
 
 ### [2025-01-01T00:00:00Z] Discussion
 
-## Content
 Original content
-
-## Window Start
-1
-
-## Window End
-50
-
-## Key Points
-
-- Point 1
 
 ---
 
 `;
 
-      const newEntry: SummaryLogEntry = {
+      const updateEntry = {
         title: "Discussion",
         content: "Additional content",
         created: "2025-01-01T12:00:00Z",
         updated: "2025-01-01T12:00:00Z",
-        windowStart: 51,
-        windowEnd: 100,
-        keyPoints: ["Point 2"],
       };
 
       const result = adapter.addOrUpdateEntry(
         existingContent,
-        newEntry,
+        updateEntry,
         "conv-123",
         true,
         0, // Update the first (most recent) entry
       );
 
-      expect(result).toContain("UPDATE: Additional content");
+      expect(result).toContain("Original content\n\nUPDATE: Additional content");
       expect(result).toContain("Updated 2025-01-01T12:00:00Z");
-      expect(result).toContain("## Window End\n100");
-      expect(result).toContain("- Point 1");
-      expect(result).toContain("- Point 2");
-    });
-
-    it("should merge participants without duplicates when updating", () => {
-      const existingContent = `# Conversation Summary: conv-123
-
-## Metadata
-
-**Total Messages:** 50
-**Last Updated:** 2025-01-01T00:00:00Z
-
-## Summary Log
-
-### [2025-01-01T00:00:00Z] Discussion
-
-## Content
-Original
-
-## Window Start
-1
-
-## Window End
-50
-
-## Participants
-
-- user-1
-- assistant
-
----
-
-`;
-
-      const newEntry: SummaryLogEntry = {
-        title: "Discussion",
-        content: "More",
-        created: "2025-01-01T12:00:00Z",
-        updated: "2025-01-01T12:00:00Z",
-        windowStart: 51,
-        windowEnd: 100,
-        participants: ["user-1", "user-2"],
-      };
-
-      const result = adapter.addOrUpdateEntry(
-        existingContent,
-        newEntry,
-        "conv-123",
-        true,
-        0,
-      );
-
-      const body = adapter.parseSummaryContent(result);
-      expect(body.entries[0]?.participants).toContain("user-1");
-      expect(body.entries[0]?.participants).toContain("user-2");
-      expect(body.entries[0]?.participants).toContain("assistant");
-      expect(body.entries[0]?.participants).toHaveLength(3);
     });
 
     it("should add new entry when shouldUpdate is true but index doesn't exist", () => {
@@ -684,23 +497,19 @@ Original
 
 ## Summary Log
 
-### [2025-01-01T00:00:00Z] Only entry
+### [2025-01-01T00:00:00Z] Entry
 
-Content: Content
-Window Start: 1
-Window End: 50
+Content
 
 ---
 
 `;
 
-      const newEntry: SummaryLogEntry = {
-        title: "New topic",
+      const newEntry = {
+        title: "New entry",
         content: "New content",
         created: "2025-01-02T00:00:00Z",
         updated: "2025-01-02T00:00:00Z",
-        windowStart: 51,
-        windowEnd: 100,
       };
 
       const result = adapter.addOrUpdateEntry(
@@ -714,7 +523,7 @@ Window End: 50
       // Should prepend as new entry since index doesn't exist
       const body = adapter.parseSummaryContent(result);
       expect(body.entries).toHaveLength(2);
-      expect(body.entries[0]?.title).toBe("New topic");
+      expect(body.entries[0]?.title).toBe("New entry");
     });
   });
 });

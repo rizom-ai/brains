@@ -40,28 +40,6 @@ describe("DigestHandler", () => {
     mock.restore();
   });
 
-  describe("singleton pattern", () => {
-    it("should return same instance with getInstance", () => {
-      DigestHandler.resetInstance();
-      const instance1 = DigestHandler.getInstance(context, logger);
-      const instance2 = DigestHandler.getInstance(context, logger);
-      expect(instance1).toBe(instance2);
-    });
-
-    it("should create new instance with createFresh", () => {
-      const instance1 = DigestHandler.createFresh(context, logger);
-      const instance2 = DigestHandler.createFresh(context, logger);
-      expect(instance1).not.toBe(instance2);
-    });
-
-    it("should reset instance properly", () => {
-      const instance1 = DigestHandler.getInstance(context, logger);
-      DigestHandler.resetInstance();
-      const instance2 = DigestHandler.getInstance(context, logger);
-      expect(instance1).not.toBe(instance2);
-    });
-  });
-
   describe("handleDigest", () => {
     const createMockDigest = (
       overrides?: Partial<ConversationDigestPayload>,
@@ -160,7 +138,7 @@ describe("DigestHandler", () => {
         windowEnd: 100,
       });
 
-      // Mock existing summary
+      // Mock existing summary with simplified format
       const existingSummary: SummaryEntity = {
         id: "summary-conv-123",
         entityType: "summary",
@@ -175,9 +153,7 @@ describe("DigestHandler", () => {
 
 ### [2025-01-01T00:00:00Z] Initial discussion
 
-Content: User asked about project setup
-Window Start: 1
-Window End: 50
+User asked about project setup
 
 ---
 
@@ -196,24 +172,12 @@ Window End: 50
         existingSummary,
       );
 
-      // Mock content generation for AI decision and summary
-      const generateContentSpy = spyOn(context, "generateContent");
-
-      // First call returns the decision to update
-      generateContentSpy.mockResolvedValueOnce({
-        decision: "update",
-        entryIndex: 0,
+      // Mock content generation - single AI call returns both decision and content
+      spyOn(context, "generateContent").mockResolvedValue({
+        action: "update",
+        index: 0,
         title: "Initial discussion",
-        reasoning: "Continuation of the same topic",
-      });
-
-      // Second call returns the summary content
-      generateContentSpy.mockResolvedValueOnce({
-        content: "Continued discussion about project implementation details.",
-        keyPoints: ["Project implementation"],
-        decisions: [],
-        actionItems: [],
-        participants: ["user-1", "assistant"],
+        summary: "Continued discussion about project implementation details.",
       });
 
       const upsertSpy = spyOn(

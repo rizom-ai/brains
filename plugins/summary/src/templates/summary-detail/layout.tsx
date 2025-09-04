@@ -1,6 +1,10 @@
 import type { JSX } from "preact";
 import type { SummaryDetailData } from "./schema";
 
+/**
+ * Layout that renders structured entries
+ * Each entry has simple 4-field structure with natural prose content
+ */
 export const SummaryDetailLayout = ({
   conversationId,
   entries,
@@ -40,71 +44,12 @@ export const SummaryDetailLayout = ({
                     Updated {new Date(entry.updated).toLocaleDateString()}
                   </time>
                 )}
-                <span>
-                  Messages {entry.windowStart}-{entry.windowEnd}
-                </span>
               </div>
             </header>
 
-            <div className="prose prose-theme max-w-none mb-4">
+            <div className="prose prose-theme max-w-none">
               <p>{entry.content}</p>
             </div>
-
-            {(entry.keyPoints ??
-              entry.decisions ??
-              entry.actionItems ??
-              entry.participants) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                {entry.keyPoints && entry.keyPoints.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-2">Key Points</h3>
-                    <ul className="list-disc list-inside text-sm text-theme-muted space-y-1">
-                      {entry.keyPoints.map((point, i) => (
-                        <li key={i}>{point}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {entry.decisions && entry.decisions.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-2">Decisions</h3>
-                    <ul className="list-disc list-inside text-sm text-theme-muted space-y-1">
-                      {entry.decisions.map((decision, i) => (
-                        <li key={i}>{decision}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {entry.actionItems && entry.actionItems.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-2">Action Items</h3>
-                    <ul className="list-disc list-inside text-sm text-theme-muted space-y-1">
-                      {entry.actionItems.map((item, i) => (
-                        <li key={i}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {entry.participants && entry.participants.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-2">Participants</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {entry.participants.map((participant) => (
-                        <span
-                          key={participant}
-                          className="px-2 py-1 text-xs bg-theme rounded-full text-theme-muted"
-                        >
-                          {participant}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </article>
         ))}
       </div>

@@ -20,7 +20,7 @@ const entityFetchQuerySchema = z.object({
 
 /**
  * DataSource for fetching and transforming summary entities
- * Handles both list and detail views for summaries
+ * Uses the SummaryAdapter to parse markdown content into structured data
  */
 export class SummaryDataSource implements DataSource {
   public readonly id = "summary:entities";
@@ -40,7 +40,6 @@ export class SummaryDataSource implements DataSource {
 
   /**
    * Fetch raw summary entities based on query
-   * Returns validated entity or entity array
    */
   async fetch<T>(query: unknown): Promise<T> {
     // Parse and validate query parameters
@@ -89,18 +88,17 @@ export class SummaryDataSource implements DataSource {
   }
 
   /**
-   * Transform raw data for template rendering
-   * Supports both list and detail views
+   * Transform raw data using adapter for template rendering
    */
   async transform<T>(data: unknown, templateId?: string): Promise<T> {
-    // Handle detail view transformation
+    // Handle detail view - parse and return structured entries
     if (templateId === "summary-detail") {
       const entity = data as SummaryEntity;
       const body = this.adapter.parseSummaryContent(entity.content);
 
       const detailData: SummaryDetailData = {
         conversationId: body.conversationId,
-        entries: body.entries,
+        entries: body.entries, // Return parsed entries
         totalMessages: body.totalMessages,
         lastUpdated: body.lastUpdated,
         entryCount: body.entries.length,
@@ -109,7 +107,7 @@ export class SummaryDataSource implements DataSource {
       return detailData as T;
     }
 
-    // Handle list view transformation
+    // Handle list view - extract basic info
     if (templateId === "summary-list") {
       const entities = Array.isArray(data) ? data : [data];
       const summaries = entities as SummaryEntity[];

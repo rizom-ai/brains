@@ -17,13 +17,13 @@ The implementation diverged from the original plan in several key ways:
 
 ### Original Vision vs Current Reality
 
-| Aspect | Original Plan | Current Implementation | 
-|--------|--------------|------------------------|
-| Entry Fields | 4 (title, content, created, updated) | 10 fields |
-| Markdown Format | Simple readable text | Complex structured sections |
-| AI Processing | Single summarization | Decision + content generation |
-| Code Complexity | Simple string operations | StructuredContentFormatter with field mappings |
-| Lines of Code | ~800 estimated | 2,152 actual |
+| Aspect          | Original Plan                        | Current Implementation                         |
+| --------------- | ------------------------------------ | ---------------------------------------------- |
+| Entry Fields    | 4 (title, content, created, updated) | 10 fields                                      |
+| Markdown Format | Simple readable text                 | Complex structured sections                    |
+| AI Processing   | Single summarization                 | Decision + content generation                  |
+| Code Complexity | Simple string operations             | StructuredContentFormatter with field mappings |
+| Lines of Code   | ~800 estimated                       | 2,152 actual                                   |
 
 ## Simplified Design
 
@@ -37,14 +37,15 @@ The implementation diverged from the original plan in several key ways:
 ### Schema Simplification
 
 #### Before (Current - Overcomplicated)
+
 ```typescript
 export const summaryLogEntrySchema = z.object({
   title: z.string(),
   content: z.string(),
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  windowStart: z.number(),        // REMOVE
-  windowEnd: z.number(),          // REMOVE
+  windowStart: z.number(), // REMOVE
+  windowEnd: z.number(), // REMOVE
   keyPoints: z.array(z.string()), // REMOVE
   decisions: z.array(z.string()), // REMOVE
   actionItems: z.array(z.string()), // REMOVE
@@ -53,10 +54,13 @@ export const summaryLogEntrySchema = z.object({
 ```
 
 #### After (Simplified)
+
 ```typescript
 export const summaryLogEntrySchema = z.object({
   title: z.string().describe("Brief topic or phase description"),
-  content: z.string().describe("Natural summary prose including all relevant details"),
+  content: z
+    .string()
+    .describe("Natural summary prose including all relevant details"),
   created: z.string().datetime().describe("When this entry was created"),
   updated: z.string().datetime().describe("When this entry was last updated"),
 });
@@ -65,37 +69,45 @@ export const summaryLogEntrySchema = z.object({
 ### Markdown Format Simplification
 
 #### Before (Complex Structure)
+
 ```markdown
 ### [2025-01-01T00:00:00Z] Test Entry
 
 ## Content
+
 Test content
 
 ## Window Start
+
 1
 
-## Window End  
+## Window End
+
 50
 
 ## Key Points
+
 - Point 1
 - Point 2
 
 ## Decisions
+
 - Decision 1
 
 ## Action Items
+
 - Action 1
 
 ---
 ```
 
 #### After (Natural Prose)
+
 ```markdown
 ### [2025-01-01T00:00:00Z] Test Entry
 
-Discussion about project architecture. Team evaluated microservices 
-vs monolith approaches. Key decision: adopt microservices with 
+Discussion about project architecture. Team evaluated microservices
+vs monolith approaches. Key decision: adopt microservices with
 Kubernetes. Action items: prepare infrastructure cost breakdown,
 submit headcount request for 2 senior engineers.
 
@@ -107,18 +119,20 @@ submit headcount request for 2 senior engineers.
 ### 1. SummaryAdapter Simplification
 
 **Remove:**
+
 - StructuredContentFormatter usage
 - Field mapping logic
 - Complex parsing with formatters
 
 **Replace with:**
+
 ```typescript
 // Simple markdown generation
 private formatEntry(entry: SummaryLogEntry): string {
-  const header = entry.created === entry.updated 
+  const header = entry.created === entry.updated
     ? `### [${entry.created}] ${entry.title}`
     : `### [${entry.created} - Updated ${entry.updated}] ${entry.title}`;
-  
+
   return `${header}\n\n${entry.content}\n\n---\n`;
 }
 
@@ -127,18 +141,18 @@ private parseEntry(section: string): SummaryLogEntry {
   const lines = section.split('\n');
   const headerLine = lines[0];
   const content = lines.slice(2).join('\n').replace(/\n---$/, '').trim();
-  
+
   // Extract timestamp and title from header
   const match = headerLine.match(/\[(.*?)\] (.*)$/);
   const [timestamp, title] = match ? [match[1], match[2]] : ['', ''];
-  
+
   // Check for update timestamp
   let created = timestamp;
   let updated = timestamp;
   if (timestamp.includes(' - Updated ')) {
     [created, updated] = timestamp.split(' - Updated ');
   }
-  
+
   return { title, content, created, updated };
 }
 ```
@@ -146,11 +160,13 @@ private parseEntry(section: string): SummaryLogEntry {
 ### 2. AI Processing Simplification
 
 **Remove:**
+
 - aiDecisionResultSchema
-- aiSummaryResultSchema  
+- aiSummaryResultSchema
 - Two-phase AI processing
 
 **Replace with:**
+
 ```typescript
 // Single AI call with simple prompt
 const prompt = `
@@ -159,10 +175,10 @@ Analyze this conversation digest. Either:
 2. Create a new entry if it's a new topic
 
 Recent entries:
-${recentEntries.map(e => `- ${e.title}: ${e.content}`).join('\n')}
+${recentEntries.map((e) => `- ${e.title}: ${e.content}`).join("\n")}
 
 New messages:
-${digest.messages.map(m => `${m.role}: ${m.content}`).join('\n')}
+${digest.messages.map((m) => `${m.role}: ${m.content}`).join("\n")}
 
 Respond with:
 - action: "update" or "new"
@@ -176,7 +192,7 @@ decisions, action items, or key points as you see fit.
 
 // Simple response parsing
 const response = await context.generateContent(prompt);
-const lines = response.split('\n');
+const lines = response.split("\n");
 // ... basic parsing logic
 ```
 
@@ -185,6 +201,7 @@ const lines = response.split('\n');
 **Keep:** The DataSource pattern for consistency
 
 **Simplify:**
+
 ```typescript
 async transform<T>(data: unknown, templateId?: string): Promise<T> {
   if (templateId === "summary-detail") {
@@ -194,7 +211,7 @@ async transform<T>(data: unknown, templateId?: string): Promise<T> {
       content: entity.content, // Just pass markdown directly
     } as T;
   }
-  
+
   if (templateId === "summary-list") {
     const entities = Array.isArray(data) ? data : [data];
     return {
@@ -207,7 +224,7 @@ async transform<T>(data: unknown, templateId?: string): Promise<T> {
       })),
     } as T;
   }
-  
+
   return data as T;
 }
 ```
@@ -227,19 +244,20 @@ export const Layout = ({ content }: SummaryDetailData) => (
 
 ## File Changes Summary
 
-| File | Action | Lines Saved |
-|------|--------|-------------|
-| schemas/summary.ts | Remove 6 fields | ~30 |
-| adapters/summary-adapter.ts | Remove StructuredContentFormatter | ~200 |
-| lib/summary-extractor.ts | Simplify AI logic | ~150 |
-| datasources/summary-datasource.ts | Simplify transform | ~80 |
-| templates/*/layout.tsx | Simplify rendering | ~100 |
-| All test files | Update for simpler structure | ~300 |
-| **Total** | | **~860 lines removed** |
+| File                              | Action                            | Lines Saved            |
+| --------------------------------- | --------------------------------- | ---------------------- |
+| schemas/summary.ts                | Remove 6 fields                   | ~30                    |
+| adapters/summary-adapter.ts       | Remove StructuredContentFormatter | ~200                   |
+| lib/summary-extractor.ts          | Simplify AI logic                 | ~150                   |
+| datasources/summary-datasource.ts | Simplify transform                | ~80                    |
+| templates/\*/layout.tsx           | Simplify rendering                | ~100                   |
+| All test files                    | Update for simpler structure      | ~300                   |
+| **Total**                         |                                   | **~860 lines removed** |
 
 ## Implementation Checklist
 
 ### Phase 1: Schema Simplification
+
 - [ ] Update summaryLogEntrySchema to 4 fields only
 - [ ] Remove aiDecisionResultSchema
 - [ ] Remove aiSummaryResultSchema
@@ -247,6 +265,7 @@ export const Layout = ({ content }: SummaryDetailData) => (
 - [ ] Run typecheck to find all breaking changes
 
 ### Phase 2: Adapter Rewrite
+
 - [ ] Remove StructuredContentFormatter import
 - [ ] Rewrite createSummaryContent() with simple string concat
 - [ ] Rewrite parseSummaryContent() with simple regex/split
@@ -254,18 +273,21 @@ export const Layout = ({ content }: SummaryDetailData) => (
 - [ ] Test roundtrip integrity
 
 ### Phase 3: AI Simplification
+
 - [ ] Merge analyzeDigest() and generateSummary() logic
 - [ ] Single AI prompt for decision + content
 - [ ] Simple string parsing of AI response
 - [ ] Remove complex validation
 
 ### Phase 4: Component Updates
+
 - [ ] Simplify DataSource transform methods
 - [ ] Update template schemas
 - [ ] Simplify template layouts
 - [ ] Update all imports/types
 
 ### Phase 5: Test Updates
+
 - [ ] Update adapter tests for simple parsing
 - [ ] Update extractor tests for single AI call
 - [ ] Update handler tests for new flow
@@ -275,11 +297,13 @@ export const Layout = ({ content }: SummaryDetailData) => (
 ## Expected Outcomes
 
 ### Quantitative
+
 - **Code Reduction**: ~40% fewer lines (2,152 → ~1,300)
 - **Complexity**: Remove 6 unnecessary schema fields
 - **Dependencies**: Remove StructuredContentFormatter dependency
 
 ### Qualitative
+
 - **Readability**: Summaries are natural prose, not structured data
 - **Maintainability**: Simple string operations vs complex parsing
 - **Flexibility**: AI has freedom to write naturally
@@ -307,12 +331,12 @@ The simplification is successful when:
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| Loss of structured data | AI can still include these naturally in prose |
-| Existing summaries incompatible | Write migration script if needed |
-| Tests heavily coupled to structure | Rewrite tests to focus on behavior |
-| Templates expect structured data | Simplify templates to render markdown |
+| Risk                               | Mitigation                                    |
+| ---------------------------------- | --------------------------------------------- |
+| Loss of structured data            | AI can still include these naturally in prose |
+| Existing summaries incompatible    | Write migration script if needed              |
+| Tests heavily coupled to structure | Rewrite tests to focus on behavior            |
+| Templates expect structured data   | Simplify templates to render markdown         |
 
 ## Conclusion
 
