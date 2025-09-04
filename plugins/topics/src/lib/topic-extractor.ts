@@ -101,11 +101,15 @@ export class TopicExtractor {
 Analyze the following conversation and extract the main topics discussed.
 
 For each topic, provide:
-1. A clear, concise title (max 100 chars)
+1. A SHORT, CATEGORICAL title (15-40 chars max) - Use broad categories, not specific descriptions
+   Good examples: "Product Strategy", "Team Collaboration", "API Design", "User Feedback"
+   Bad examples: "Discussion about implementing new features for the dashboard", "How to improve team communication"
 2. A brief summary (2-3 sentences)
 3. The main content points discussed
-4. 5-10 relevant keywords
+4. 5-10 relevant keywords that are DIRECTLY related to the topic content
 5. A relevance score from 0 to 1 (based on depth of discussion, importance, and actionability)
+
+IMPORTANT: Create DISTINCT topics. Only group content that is truly about the same subject.
 
 Conversation:
 ${conversationText}

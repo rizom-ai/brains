@@ -17,7 +17,7 @@ export const topicsPluginConfigSchema = z.object({
   /**
    * Similarity threshold for automatic merging
    */
-  mergeSimilarityThreshold: z.number().min(0).max(1).default(0.6),
+  mergeSimilarityThreshold: z.number().min(0).max(1).default(0.85),
 
   /**
    * Enable automatic merging of similar topics

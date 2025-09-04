@@ -53,7 +53,7 @@ export class TopicProcessingHandler
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<TopicProcessingResult> {
-    const { topic, autoMerge = false, mergeSimilarityThreshold = 0.8 } = data;
+    const { topic, autoMerge = false, mergeSimilarityThreshold = 0.85 } = data;
 
     this.logger.info("Processing extracted topic", {
       jobId,

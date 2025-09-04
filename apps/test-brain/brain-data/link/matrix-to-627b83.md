@@ -1,8 +1,8 @@
 ---
-conversationId: 'matrix-!IiXnxQOIANAsMqSADH:rizom.ai'
-userId: '@yeehaa:rizom.ai'
+conversationId: "matrix-!IiXnxQOIANAsMqSADH:rizom.ai"
+userId: "@yeehaa:rizom.ai"
 messageId: aLDBCXSNlmTS
-timestamp: '2025-09-04T12:07:47.078Z'
+timestamp: "2025-09-04T12:07:47.078Z"
 ---
 
 # Rizom Collective
