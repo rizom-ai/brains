@@ -27,7 +27,7 @@ export class SummaryDataSource implements DataSource {
   public readonly name = "Summary Entity DataSource";
   public readonly description =
     "Fetches and transforms summary entities for rendering";
-  
+
   private adapter: SummaryAdapter;
 
   constructor(
@@ -55,7 +55,9 @@ export class SummaryDataSource implements DataSource {
       );
 
       if (!entity) {
-        throw new Error(`Summary not found for conversation: ${params.query.conversationId}`);
+        throw new Error(
+          `Summary not found for conversation: ${params.query.conversationId}`,
+        );
       }
 
       return entity as T;
@@ -95,7 +97,7 @@ export class SummaryDataSource implements DataSource {
     if (templateId === "summary-detail") {
       const entity = data as SummaryEntity;
       const body = this.adapter.parseSummaryContent(entity.content);
-      
+
       const detailData: SummaryDetailData = {
         conversationId: body.conversationId,
         entries: body.entries,

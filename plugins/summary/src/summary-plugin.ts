@@ -8,7 +8,11 @@ import {
 import type { MessageWithPayload } from "@brains/messaging-service";
 import { DigestHandler } from "./handlers/digest-handler";
 import type { SummaryEntity } from "./schemas/summary";
-import { summaryConfigSchema, summarySchema, type SummaryConfig } from "./schemas/summary";
+import {
+  summaryConfigSchema,
+  summarySchema,
+  type SummaryConfig,
+} from "./schemas/summary";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import { createSummaryTools } from "./tools/index";
 import { createSummaryCommands } from "./commands/index";
@@ -60,7 +64,10 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     logger.debug("Registered summary templates");
 
     // Register datasource for templates
-    const summaryDataSource = new SummaryDataSource(context.entityService, logger);
+    const summaryDataSource = new SummaryDataSource(
+      context.entityService,
+      logger,
+    );
     context.registerDataSource(summaryDataSource);
     logger.debug("Registered summary datasource");
 

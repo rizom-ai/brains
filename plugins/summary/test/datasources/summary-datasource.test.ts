@@ -21,7 +21,7 @@ describe("SummaryDataSource", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    
+
     // Create mock entity service
     mockEntityService = {
       getEntity: async () => null,
@@ -97,7 +97,10 @@ Test content
         },
       };
 
-      const getEntitySpy = spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
+      const getEntitySpy = spyOn(
+        mockEntityService,
+        "getEntity",
+      ).mockResolvedValue(mockSummary);
 
       const result = await datasource.fetch({
         entityType: "summary",
@@ -117,7 +120,10 @@ Test content
         updated: "2025-01-01T00:00:00Z",
       };
 
-      const getEntitySpy = spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
+      const getEntitySpy = spyOn(
+        mockEntityService,
+        "getEntity",
+      ).mockResolvedValue(mockSummary);
 
       const result = await datasource.fetch({
         entityType: "summary",
@@ -146,7 +152,10 @@ Test content
         },
       ];
 
-      const listEntitiesSpy = spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
+      const listEntitiesSpy = spyOn(
+        mockEntityService,
+        "listEntities",
+      ).mockResolvedValue(mockSummaries);
 
       const result = await datasource.fetch({
         entityType: "summary",
@@ -164,7 +173,7 @@ Test content
         datasource.fetch({
           entityType: "summary",
           query: { conversationId: "non-existent" },
-        })
+        }),
       ).rejects.toThrow("Summary not found for conversation: non-existent");
     });
 
@@ -175,7 +184,7 @@ Test content
         datasource.fetch({
           entityType: "summary",
           query: { id: "non-existent" },
-        })
+        }),
       ).rejects.toThrow("Summary not found: non-existent");
     });
   });
@@ -232,10 +241,10 @@ Initial discussion
 
     it("should transform for summary-detail template", async () => {
       const mockSummary = createMockSummary();
-      
+
       const result = await datasource.transform<SummaryDetailData>(
         mockSummary,
-        "summary-detail"
+        "summary-detail",
       );
 
       expect(result.conversationId).toBe("conv-123");
@@ -249,15 +258,15 @@ Initial discussion
 
     it("should transform for summary-list template", async () => {
       const mockSummaries = [createMockSummary()];
-      
+
       const result = await datasource.transform<SummaryListData>(
         mockSummaries,
-        "summary-list"
+        "summary-list",
       );
 
       expect(result.totalCount).toBe(1);
       expect(result.summaries).toHaveLength(1);
-      
+
       const summary = result.summaries[0];
       expect(summary?.id).toBe("summary-conv-123");
       expect(summary?.conversationId).toBe("conv-123");
@@ -270,10 +279,10 @@ Initial discussion
 
     it("should handle single entity for list view", async () => {
       const mockSummary = createMockSummary();
-      
+
       const result = await datasource.transform<SummaryListData>(
         mockSummary,
-        "summary-list"
+        "summary-list",
       );
 
       expect(result.totalCount).toBe(1);
@@ -282,9 +291,9 @@ Initial discussion
 
     it("should return data as-is for unknown template", async () => {
       const mockData = { test: "data" };
-      
+
       const result = await datasource.transform(mockData, "unknown-template");
-      
+
       expect(result).toEqual(mockData);
     });
 
@@ -308,7 +317,7 @@ Initial discussion
 
       const result = await datasource.transform<SummaryListData>(
         [mockSummary],
-        "summary-list"
+        "summary-list",
       );
 
       expect(result.summaries[0]?.latestEntry).toBe("No entries");
