@@ -67,8 +67,10 @@ export class TopicProcessingHandler
         message: `Checking for similar topics: ${topic.title}`,
       });
 
-      // Check if a similar topic already exists
-      const searchResults = await this.topicService.searchTopics(topic.title);
+      // Check if a similar topic already exists by searching both title and content
+      // This provides better matching than title alone
+      const searchQuery = `${topic.title} ${topic.summary} ${topic.keywords.slice(0, 3).join(' ')}`;
+      const searchResults = await this.topicService.searchTopics(searchQuery);
 
       let action: "created" | "merged";
       let topicId: string;

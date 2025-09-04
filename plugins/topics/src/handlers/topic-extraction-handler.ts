@@ -145,7 +145,9 @@ export class TopicExtractionHandler
           this.context.entityService,
           this.logger,
         );
-        const searchResults = await topicService.searchTopics(topic.title);
+        // Search by content as well as title for better matching
+        const searchQuery = `${topic.title} ${topic.summary} ${topic.keywords.slice(0, 3).join(' ')}`;
+        const searchResults = await topicService.searchTopics(searchQuery);
 
         if (
           this.config.autoMerge &&
