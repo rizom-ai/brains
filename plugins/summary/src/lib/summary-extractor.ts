@@ -114,13 +114,23 @@ New messages (${digest.windowStart} to ${digest.windowEnd}):
 ${messagesText}
 
 Instructions:
-1. Determine if this continues an existing topic or is a new topic
-2. If it continues the most recent topic, set action to "update" with index 0
-3. If it's a new topic, set action to "new"
-4. Write a natural summary paragraph that includes key points, decisions, and action items as appropriate
+1. Determine if this is a continuation of the most recent topic
+2. Set action to "update" ONLY if:
+   - The conversation is directly continuing the SAME specific discussion
+   - No new questions or subtopics have been introduced
+   - The messages are minor clarifications or immediate follow-ups
+3. Set action to "new" if:
+   - A new question has been asked (even if related to the general theme)
+   - The conversation explores a different aspect of the topic
+   - Any topic shift or new direction occurs
+   - More than a brief exchange has occurred since the last entry
+4. Write a natural summary paragraph that includes key points, decisions, and action items
+
+DEFAULT: Prefer "new" entries to maintain clear conversation history.
+Updates should be reserved for immediate clarifications within the same discussion.
 
 Respond with a JSON object with these fields:
-- action: "update" or "new"
+- action: "update" or "new" (lean toward "new" for better history)
 - index: 0 if updating most recent (omit for new)
 - title: Brief topic description
 - summary: Natural paragraph summarizing the conversation`;
@@ -143,6 +153,7 @@ Respond with a JSON object with these fields:
       };
 
       // Return the appropriate decision based on AI response
+      // Trust the AI's decision but only if there are existing entries to update
       if (
         response.action === "update" &&
         response.index === 0 &&
@@ -151,7 +162,7 @@ Respond with a JSON object with these fields:
         return { action: "update", entryIndex: 0, entry };
       }
 
-      // Default to creating/appending a new entry
+      // Default to creating/appending a new entry (prepending for newest-first order)
       return existingContent
         ? { action: "append", entry }
         : { action: "create", entry };

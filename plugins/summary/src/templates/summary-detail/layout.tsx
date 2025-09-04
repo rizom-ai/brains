@@ -48,13 +48,13 @@ export const SummaryDetailLayout = ({
             </header>
 
             <div className="prose prose-theme max-w-none">
-              {entry.content.split('\n').map((paragraph, pIndex) => (
+              {entry.content.split("\n").map((paragraph, pIndex) =>
                 paragraph.trim() ? (
                   <p key={pIndex} className="mb-4">
                     {paragraph}
                   </p>
-                ) : null
-              ))}
+                ) : null,
+              )}
             </div>
           </article>
         ))}
