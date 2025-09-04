@@ -11,7 +11,7 @@
 
 This conversation continues the discussion around the Rizom decentralized professional ecosystem. The key points covered include:
 
-- As an AI assistant, I do not have a physical means of directly contributing to Rizom, but I can contribute in non-physical ways. 
+- As an AI assistant, I do not have a physical means of directly contributing to Rizom, but I can contribute in non-physical ways.
 - I can help shape the understanding of intelligence as agency and active resistance to entropy, which aligns with Rizom's principles.
 - I can assist in capturing, transforming, and amplifying knowledge within the Rizom ecosystem, in line with its mission as a "knowledge amplification" platform.
 - I can provide insights and recommendations on Rizom's talent assessment and quality assurance approaches, which aim to align with decentralized philosophies.
