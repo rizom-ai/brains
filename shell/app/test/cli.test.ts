@@ -5,7 +5,6 @@ import type { AppConfig } from "../src/types";
 // Mock the App import to avoid circular dependencies in tests
 const mockApp = {
   run: mock(() => Promise.resolve()),
-  migrate: mock(() => Promise.resolve()),
 };
 
 void mock.module("../src/app", () => ({
@@ -36,7 +35,6 @@ describe("handleCLI", () => {
   beforeEach(() => {
     // Reset mocks
     mockApp.run.mockClear();
-    mockApp.migrate.mockClear();
     mockExit.mockClear();
     mockConsoleLog.mockClear();
     mockConsoleError.mockClear();
@@ -61,7 +59,6 @@ describe("handleCLI", () => {
     await handleCLI(testConfig);
 
     expect(mockApp.run).toHaveBeenCalledWith(testConfig);
-    expect(mockApp.migrate).not.toHaveBeenCalled();
   });
 
   it("should show help with --help flag", async () => {
@@ -105,17 +102,6 @@ describe("handleCLI", () => {
 
     expect(mockConsoleLog).toHaveBeenCalledWith("test-app v2.1.0");
     expect(mockExit).toHaveBeenCalledWith(0);
-  });
-
-  it("should run migrations with --migrate flag", async () => {
-    process.argv = ["bun", "brain.config.ts", "--migrate"];
-
-    await handleCLI(testConfig);
-
-    expect(mockConsoleLog).toHaveBeenCalledWith(
-      expect.stringContaining("Running migrations for test-app"),
-    );
-    expect(mockApp.migrate).toHaveBeenCalled();
   });
 
   it("should pass --cli flag through to app", async () => {

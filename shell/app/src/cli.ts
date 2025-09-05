@@ -22,13 +22,7 @@ export async function handleCLI(config: AppConfig): Promise<void> {
   const { App } = await import("./app");
 
   // Handle CLI commands
-  if (args.includes("--migrate")) {
-    console.log(`🔄 Running migrations for ${config.name}...`);
-    App.migrate().catch((error) => {
-      console.error("❌ Migration failed:", error);
-      process.exit(1);
-    });
-  } else if (args.includes("--help") || args.includes("-h")) {
+  if (args.includes("--help") || args.includes("-h")) {
     showHelp(config);
   } else if (args.includes("--version") || args.includes("-v")) {
     console.log(`${config.name} v${config.version}`);
@@ -54,7 +48,6 @@ Usage:
   bun brain.config.ts [options]
 
 Options:
-  --migrate, -m     Run database migrations
   --help, -h        Show this help message
   --version, -v     Show version information
   --cli             Enable CLI interface (passed to app)

@@ -26,8 +26,15 @@
     "eslint": "^8.57.0"
   },
   "files": [
-    "src"
+    "src",
+    "scripts"
   ],
+  "bin": {
+    "brain-migrate": "./scripts/migrate.ts",
+    "brain-migrate-entities": "./scripts/migrate-entities.ts",
+    "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",
+    "brain-migrate-conversations": "./scripts/migrate-conversations.ts"
+  },
   "keywords": [
     "brain",
     "app",

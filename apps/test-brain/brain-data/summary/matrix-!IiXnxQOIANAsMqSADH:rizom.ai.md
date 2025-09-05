@@ -12,7 +12,7 @@
 The conversation explored the key principles and advantages of Rizom's decentralized ecosystem architecture. Some of the core elements discussed include:
 
 - Enabling a self-organizing, distributed network of independent experts and collectives rather than a centralized hierarchy
-- Facilitating diverse roles, specializations, and interdependent relationships within the ecosystem 
+- Facilitating diverse roles, specializations, and interdependent relationships within the ecosystem
 - Designing incentive structures and governance models to align participant behaviors and motivations
 - Allowing for iterative, adaptive architecture that can evolve to meet changing needs
 
