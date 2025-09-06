@@ -88,6 +88,10 @@ export class EmbeddingService implements IEmbeddingService {
         `Loading embedding model: ${EmbeddingService.MODEL_NAME}`,
       );
 
+      // Ensure cache directory exists
+      const { mkdir } = await import("fs/promises");
+      await mkdir(this.cacheDir, { recursive: true });
+
       // Create the embedding model using configured cache directory
 
       this.model = await FlagEmbedding.init({

@@ -1,9 +1,12 @@
-import { Shell } from "@brains/core";
+import { Shell, getStandardConfigWithDirectories } from "@brains/core";
 import { Logger, LogLevel } from "@brains/utils";
+import { migrateEntities } from "@brains/entity-service/migrate";
+import { migrateJobQueue } from "@brains/job-queue";
+import { migrateConversations } from "@brains/conversation-service";
 import { appConfigSchema, type AppConfig } from "./types";
 
 export class App {
-  private shell: Shell;
+  private shell: Shell | null = null;
   private config: AppConfig;
   private shutdownHandlers: Array<() => void> = [];
   private isShuttingDown = false;
@@ -30,26 +33,86 @@ export class App {
     // Check if --cli flag is present
     this.hasCLI = process.argv.slice(2).includes("--cli");
 
+    // Store the shell if provided, otherwise we'll create it in initialize()
     if (shell) {
       this.shell = shell;
-    } else {
-      // Build shell config from app config
+    }
+  }
+
+  private async runMigrations(): Promise<void> {
+    const logger = Logger.getInstance();
+    logger.info("Running database migrations...");
+
+    try {
+      const config = await getStandardConfigWithDirectories();
+
+      // Run all migrations in sequence
+      logger.info("Running entity database migrations...");
+      await migrateEntities(
+        {
+          url: config.database.url,
+          ...(config.database.authToken && {
+            authToken: config.database.authToken,
+          }),
+        },
+        logger,
+      );
+
+      logger.info("Running job queue database migrations...");
+      await migrateJobQueue(
+        {
+          url: config.jobQueueDatabase.url,
+          ...(config.jobQueueDatabase.authToken && {
+            authToken: config.jobQueueDatabase.authToken,
+          }),
+        },
+        logger,
+      );
+
+      logger.info("Running conversation database migrations...");
+      await migrateConversations(
+        {
+          url: config.conversationDatabase.url,
+          ...(config.conversationDatabase.authToken && {
+            authToken: config.conversationDatabase.authToken,
+          }),
+        },
+        logger,
+      );
+
+      logger.info("✅ All database migrations completed successfully");
+    } catch (error) {
+      // Log but don't fail - databases might already be migrated
+      logger.warn(
+        "Migration failed (databases may already be migrated):",
+        error,
+      );
+    }
+  }
+
+  public async initialize(): Promise<void> {
+    console.log("🔧 App.initialize() called - running migrations...");
+    // Run migrations before creating shell
+    await this.runMigrations();
+
+    // Create shell if not provided in constructor
+    if (!this.shell) {
       const shellConfig: Parameters<typeof Shell.createFresh>[0] = {
-        plugins: config.plugins ?? [],
-        ...config.shellConfig, // Allow overriding for tests/advanced use
+        plugins: this.config.plugins ?? [],
+        ...this.config.shellConfig, // Allow overriding for tests/advanced use
       };
 
       // Apply simple app config (these override shellConfig if both are provided)
-      if (config.database) {
-        shellConfig.database = { url: config.database };
+      if (this.config.database) {
+        shellConfig.database = { url: this.config.database };
       }
 
       // Set feature flags (none currently)
       shellConfig.features = {};
 
-      if (config.aiApiKey) {
+      if (this.config.aiApiKey) {
         shellConfig.ai = {
-          apiKey: config.aiApiKey,
+          apiKey: this.config.aiApiKey,
           provider: "anthropic",
           model: "claude-3-haiku-20240307",
           temperature: 0.7,
@@ -58,29 +121,30 @@ export class App {
         };
       }
 
-      if (config.logLevel) {
-        shellConfig.logging = { level: config.logLevel, context: config.name };
+      if (this.config.logLevel) {
+        shellConfig.logging = {
+          level: this.config.logLevel,
+          context: this.config.name,
+        };
       }
 
-      if (config.permissions) {
-        shellConfig.permissions = config.permissions;
+      if (this.config.permissions) {
+        shellConfig.permissions = this.config.permissions;
       }
 
       this.shell = Shell.createFresh(shellConfig);
     }
-  }
 
-  public async initialize(): Promise<void> {
     // Register CLI interface if --cli flag is present
     if (this.hasCLI) {
-      const pluginManager = this.shell.getPluginManager();
+      const pluginManager = this.getShell().getPluginManager();
       const { CLIInterface } = await import("@brains/cli");
       const plugin = new CLIInterface(this.config.cliConfig);
       pluginManager.registerPlugin(plugin);
     }
 
     // Initialize shell (which will initialize all plugins including interfaces)
-    await this.shell.initialize();
+    await this.getShell().initialize();
   }
 
   public async start(): Promise<void> {
@@ -197,6 +261,9 @@ export class App {
   }
 
   public getShell(): Shell {
+    if (!this.shell) {
+      throw new Error("Shell not initialized. Call initialize() first.");
+    }
     return this.shell;
   }
 }

@@ -1,0 +1,16 @@
+# Simple working Dockerfile - just run with Bun, no compilation
+FROM oven/bun:1-debian
+
+WORKDIR /app
+
+# Copy everything
+COPY . .
+
+# Install dependencies
+RUN bun install
+
+# Expose port
+EXPOSE 3333
+
+# Run the app directly - let it handle its own database setup
+CMD ["bun", "run", "apps/test-brain/brain.config.ts"]

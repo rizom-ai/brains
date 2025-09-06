@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  brain:
+    build:
+      context: ../..
+      dockerfile: deploy/docker-v2/Dockerfile.simple
+    container_name: brain-test
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./data:/app/data
+      - ./brain-repo:/app/brain-repo
+      - ./website:/app/website
+    environment:
+      - DATABASE_URL=file:/app/data/brain.db
+      - DATA_DIR=/app/data
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-dummy-key-for-testing}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-dummy-key-for-testing}
+      - MATRIX_ACCESS_TOKEN=${MATRIX_ACCESS_TOKEN:-dummy-token-for-testing}
+    restart: unless-stopped

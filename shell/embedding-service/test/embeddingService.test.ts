@@ -28,6 +28,11 @@ void mock.module("node:os", () => ({
   tmpdir: (): string => "/tmp",
 }));
 
+// Mock fs/promises for mkdir
+void mock.module("fs/promises", () => ({
+  mkdir: mock(() => Promise.resolve()),
+}));
+
 describe("EmbeddingService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
 
