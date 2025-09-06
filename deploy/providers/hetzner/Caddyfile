@@ -1,6 +1,13 @@
 # Production site on root domain
 {$DOMAIN} {
-    reverse_proxy brain:8080
+    reverse_proxy brain:8080 {
+        # Preserve headers for proper asset resolution
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
     encode gzip
     
     header {
@@ -16,7 +23,14 @@
 
 # Preview site on subdomain
 preview.{$DOMAIN} {
-    reverse_proxy brain:4321
+    reverse_proxy brain:4321 {
+        # Preserve headers for proper asset resolution
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
     encode gzip
     
     header {

@@ -240,6 +240,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
   private createTailwindInput(): string {
     return `@import "tailwindcss";
+@source "./**/*.html";
 
 /* Theme Layer - CSS Custom Properties for theming */
 @layer theme {

@@ -203,26 +203,27 @@ resource "null_resource" "deploy_container" {
       "docker stop personal-brain-caddy || true",
       "docker rm personal-brain-caddy || true",
       
-      # Stop compose containers if they exist
+      # Change to deployment directory
       "cd /opt/personal-brain",
-      "docker compose down || true",
       
       # Get the UID/GID of the personal-brain user on the host
       "HOST_UID=$(id -u personal-brain)",
       "HOST_GID=$(id -g personal-brain)",
       
-      # Export environment variables for docker-compose
-      "export DOCKER_IMAGE='${var.docker_image}'",
-      "export HOST_UID=$HOST_UID",
-      "export HOST_GID=$HOST_GID",
-      "export DOMAIN='${var.domain}'",
+      # Create .env file for docker compose with all variables
+      "cat > /opt/personal-brain/.compose.env << EOF",
+      "DOCKER_IMAGE=${var.docker_image}",
+      "HOST_UID=$HOST_UID",
+      "HOST_GID=$HOST_GID",
+      "DOMAIN=${var.domain}",
+      "EOF",
       
       # Start containers with docker compose
       "echo 'Starting containers with docker compose...'",
-      "docker compose up -d",
+      "docker compose --env-file /opt/personal-brain/.compose.env up -d",
       
       # Show status
-      "docker compose ps"
+      "docker compose --env-file /opt/personal-brain/.compose.env ps"
     ]
   }
 }
