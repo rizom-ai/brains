@@ -3,8 +3,10 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker-v2/Dockerfile.simple
-    image: ${DOCKER_IMAGE:-personal-brain:latest}
-    container_name: ${CONTAINER_NAME:-personal-brain}
+      args:
+        APP_NAME: ${APP_NAME:-test-brain}
+    image: ${DOCKER_IMAGE:-personal-brain-${APP_NAME:-test-brain}:latest}
+    container_name: ${CONTAINER_NAME:-personal-brain-${APP_NAME:-test-brain}}
     ports:
       # MCP Server port
       - "${BRAIN_SERVER_PORT:-3333}:3333"
@@ -20,9 +22,9 @@ services:
       # Optional: For git-sync plugin (uncomment if using)
       # - ${BRAIN_REPO_VOLUME:-./brain-repo}:/app/brain-repo
     env_file:
-      # Load environment variables from .env.production file
-      # This file should be created from .env.production.example
-      - ${ENV_FILE:-.env.production}
+      # Load environment variables from app-specific .env.production file
+      # Default path: apps/${APP_NAME}/deploy/.env.production
+      - ${ENV_FILE:-../../apps/${APP_NAME:-test-brain}/deploy/.env.production}
     restart: ${RESTART_POLICY:-unless-stopped}
     networks:
       - brain-network

@@ -14,15 +14,13 @@ source "$SCRIPT_DIR/lib/platform.sh"
 set_error_trap cleanup_on_error
 
 # Global variables
-DOCKER_BUILD_DIR=""
 LOCAL_IMAGE_NAME=""
 REGISTRY_IMAGE_NAME=""
 
 # Cleanup function
 cleanup_on_error() {
-    if [ -n "$DOCKER_BUILD_DIR" ] && [ -d "$DOCKER_BUILD_DIR" ]; then
-        rm -rf "$DOCKER_BUILD_DIR"
-    fi
+    # No cleanup needed with simplified approach
+    :
 }
 
 # Usage
@@ -114,70 +112,27 @@ REGISTRY_IMAGE_NAME=$(get_docker_image_name "$APP_NAME" "$REGISTRY" "$TAG")
 build_image() {
     log_step "Building Docker image"
     
-    # Build release first
-    log_info "Building release binary..."
-    if ! "./scripts/build-release.sh" "$APP_NAME" linux-x64 --docker; then
-        log_error "Failed to build release"
+    # With the new simplified Dockerfile, we don't need to build releases
+    # or prepare complex build directories
+    log_info "Building Docker image for $APP_NAME..."
+    
+    # Build Docker image using the new simple Dockerfile
+    if ! docker build \
+        -f "deploy/docker-v2/Dockerfile.simple" \
+        --build-arg APP_NAME="$APP_NAME" \
+        -t "$LOCAL_IMAGE_NAME" \
+        . ; then
+        log_error "Docker build failed"
         return 1
     fi
     
-    # Find the release tarball
-    local release_tar=$(ls -t "$APP_DIR/dist/"*.tar.gz 2>/dev/null | head -1)
-    if [ ! -f "$release_tar" ]; then
-        log_error "No release tarball found"
-        return 1
-    fi
-    
-    # Prepare Docker build directory
-    DOCKER_BUILD_DIR=$(mktemp -d)
-    log_debug "Using build directory: $DOCKER_BUILD_DIR"
-    
-    # Extract release
-    tar -xzf "$release_tar" -C "$DOCKER_BUILD_DIR"
-    local release_dir=$(ls -d "$DOCKER_BUILD_DIR"/*/ | head -1)
-    
-    # Copy Docker files
-    cp "$release_dir/$APP_BINARY_NAME" "$DOCKER_BUILD_DIR/brain"
-    cp "$release_dir/package.json" "$DOCKER_BUILD_DIR/"
-    
-    # Use Docker-specific wrapper if exists
-    if [ -f "deploy/docker/brain-wrapper-docker.sh" ]; then
-        cp "deploy/docker/brain-wrapper-docker.sh" "$DOCKER_BUILD_DIR/brain-wrapper.sh"
-    else
-        cp "$release_dir/${APP_BINARY_NAME}-wrapper.sh" "$DOCKER_BUILD_DIR/brain-wrapper.sh"
-    fi
-    
-    # Copy .env.example
-    if [ -f "$APP_DIR/deploy/.env.production.example" ]; then
-        cp "$APP_DIR/deploy/.env.production.example" "$DOCKER_BUILD_DIR/.env.example"
-    fi
-    
-    # Copy migration files
-    if [ -f "shell/db/src/migrate.ts" ]; then
-        cp "shell/db/src/migrate.ts" "$DOCKER_BUILD_DIR/"
-        [ -d "shell/db/drizzle" ] && cp -r "shell/db/drizzle" "$DOCKER_BUILD_DIR/"
-    fi
-    
-    # Copy brain-data if it exists in the release
-    if [ -d "$release_dir/brain-data" ]; then
-        log_info "Including brain-data directory in Docker build..."
-        cp -r "$release_dir/brain-data" "$DOCKER_BUILD_DIR/"
-    fi
-    
-    # Build Docker image
-    build_docker_image \
-        "deploy/docker/Dockerfile.standalone" \
-        "$DOCKER_BUILD_DIR" \
-        "$LOCAL_IMAGE_NAME"
+    log_info "Docker image built: $LOCAL_IMAGE_NAME"
     
     # Tag for registry if needed
     if [ -n "$REGISTRY" ] && [ "$LOCAL_IMAGE_NAME" != "$REGISTRY_IMAGE_NAME" ]; then
+        log_info "Tagging for registry: $REGISTRY_IMAGE_NAME"
         docker tag "$LOCAL_IMAGE_NAME" "$REGISTRY_IMAGE_NAME"
     fi
-    
-    # Cleanup
-    rm -rf "$DOCKER_BUILD_DIR"
-    DOCKER_BUILD_DIR=""
 }
 
 # Deploy locally

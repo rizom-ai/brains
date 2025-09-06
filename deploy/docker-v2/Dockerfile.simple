@@ -1,6 +1,9 @@
 # Simple working Dockerfile - just run with Bun, no compilation
 FROM oven/bun:1.2.13-debian
 
+# Accept app name as build argument (defaults to test-brain)
+ARG APP_NAME=test-brain
+
 WORKDIR /app
 
 # Copy everything
@@ -12,9 +15,16 @@ RUN bun install
 # Build all packages
 RUN bun run build
 
-# Expose port
+# Create required directories with proper permissions
+RUN mkdir -p /app/data /app/cache /app/cache/embeddings /app/dist && \
+    chmod -R 777 /app/data /app/cache /app/dist
+
+# Expose port (can be overridden at runtime)
 EXPOSE 3333
+
+# Set the app name as environment variable for runtime
+ENV APP_NAME=${APP_NAME}
 
 # Run the app directly - let it handle its own database setup
 # Set JSX runtime for runtime execution
-CMD ["bun", "run", "--jsx-import-source=preact", "apps/test-brain/brain.config.ts"]
+CMD ["sh", "-c", "bun run --jsx-import-source=preact apps/${APP_NAME}/brain.config.ts"]
