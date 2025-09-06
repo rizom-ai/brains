@@ -67,3 +67,9 @@ variable "registry_token" {
   default     = ""
   sensitive   = true
 }
+
+variable "domain" {
+  description = "Domain name for HTTPS (e.g., brain.example.com)"
+  type        = string
+  default     = ""
+}

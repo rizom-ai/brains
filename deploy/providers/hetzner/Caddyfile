@@ -1,0 +1,37 @@
+# Production site on root domain
+{$DOMAIN} {
+    reverse_proxy brain:8080
+    encode gzip
+    
+    header {
+        # Security headers
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+# Preview site on subdomain
+preview.{$DOMAIN} {
+    reverse_proxy brain:4321
+    encode gzip
+    
+    header {
+        # Security headers
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+# MCP API endpoint (commented out until auth is configured)
+# api.{$DOMAIN} {
+#     reverse_proxy brain:3333
+#     # Add authentication middleware here
+# }

@@ -279,6 +279,13 @@ deploy_infrastructure() {
         exit 1
     fi
     
+    # Load domain from env file using docker run --env-file to parse it properly
+    # This avoids hacky grep/sed parsing and handles all edge cases
+    DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
+    if [ -n "$DOMAIN" ]; then
+        log_info "Domain configured: $DOMAIN"
+    fi
+    
     # Plan deployment
     log_info "Planning infrastructure..."
     cd "$TERRAFORM_DIR"
@@ -294,6 +301,7 @@ deploy_infrastructure() {
         -var="registry_user=$REGISTRY_USER" \
         -var="registry_token=$REGISTRY_TOKEN" \
         -var="env_file_path=$ENV_FILE" \
+        -var="domain=$DOMAIN" \
         -out=tfplan
     
     # Apply deployment
@@ -374,7 +382,13 @@ EOF
     
     log_info "✅ Application deployed successfully"
     log_info ""
-    log_info "Access your brain at: http://$server_ip:$APP_DEFAULT_PORT"
+    if [ -n "$DOMAIN" ]; then
+        log_info "Access your brain at:"
+        log_info "  Production: https://$DOMAIN"
+        log_info "  Preview: https://preview.$DOMAIN"
+    else
+        log_info "Access your brain at: http://$server_ip:$APP_DEFAULT_PORT"
+    fi
     log_info "SSH access: ssh deploy@$server_ip"
 }
 

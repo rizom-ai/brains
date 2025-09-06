@@ -147,9 +147,37 @@ resource "null_resource" "copy_env" {
   }
 }
 
-# Deploy Personal Brain container
-resource "null_resource" "deploy_container" {
+# Copy docker-compose files
+resource "null_resource" "copy_compose_files" {
   depends_on = [null_resource.copy_env]
+
+  connection {
+    type        = "ssh"
+    user        = "root"
+    host        = hcloud_server.main.ipv4_address
+    private_key = file(var.ssh_private_key_path)
+    timeout     = "2m"
+  }
+
+  # Copy docker-compose.yml
+  provisioner "file" {
+    source      = "${path.module}/../docker-compose.yml"
+    destination = "/opt/personal-brain/docker-compose.yml"
+  }
+
+  # Copy Caddyfile if domain is configured
+  provisioner "file" {
+    source      = "${path.module}/../Caddyfile"
+    destination = "/opt/personal-brain/Caddyfile"
+  }
+}
+
+# Deploy containers using docker-compose
+resource "null_resource" "deploy_container" {
+  depends_on = [
+    null_resource.copy_compose_files,
+    null_resource.pull_image
+  ]
 
   connection {
     type        = "ssh"
@@ -162,43 +190,44 @@ resource "null_resource" "deploy_container" {
   # Triggers to redeploy when image changes
   triggers = {
     docker_image = var.docker_image
+    domain = var.domain
     # Trigger redeployment when the image was pulled
     image_id = null_resource.pull_image[0].id
   }
 
   provisioner "remote-exec" {
     inline = [
-      # Stop existing container
+      # Stop and remove old containers (both standalone and compose)
       "docker stop personal-brain || true",
       "docker rm personal-brain || true",
+      "docker stop personal-brain-caddy || true",
+      "docker rm personal-brain-caddy || true",
       
-      # Verify image exists before trying to run it
-      "echo 'Checking for Docker image: ${var.docker_image}'",
-      "if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q '^${var.docker_image}$'; then echo 'ERROR: Image ${var.docker_image} not found!'; echo 'Available images:'; docker images; exit 1; fi",
+      # Stop compose containers if they exist
+      "cd /opt/personal-brain",
+      "docker compose down || true",
       
       # Get the UID/GID of the personal-brain user on the host
       "HOST_UID=$(id -u personal-brain)",
       "HOST_GID=$(id -g personal-brain)",
       
-      # Run new container with user mapping to match host user
-      "echo 'Starting container with image: ${var.docker_image}'",
-      "docker run -d \\",
-      "  --name personal-brain \\",
-      "  --restart unless-stopped \\",
-      "  --network personal-brain-net \\",
-      "  --user $HOST_UID:$HOST_GID \\",
-      "  -p ${var.app_port}:3333 \\",
-      "  -v /opt/personal-brain/data:/app/data \\",
-      "  -v /opt/personal-brain/brain-repo:/app/brain-repo \\",
-      "  -v /opt/personal-brain/website:/app/website \\",
-      "  -v /opt/personal-brain/matrix-storage:/app/.matrix-storage \\",
-      "  -v /opt/personal-brain/.env:/app/.env:ro \\",
-      "  ${var.docker_image}"
+      # Export environment variables for docker-compose
+      "export DOCKER_IMAGE='${var.docker_image}'",
+      "export HOST_UID=$HOST_UID",
+      "export HOST_GID=$HOST_GID",
+      "export DOMAIN='${var.domain}'",
+      
+      # Start containers with docker compose
+      "echo 'Starting containers with docker compose...'",
+      "docker compose up -d",
+      
+      # Show status
+      "docker compose ps"
     ]
   }
 }
 
 # Output the status
 output "container_status" {
-  value = "Docker container deployed. Access at http://${hcloud_server.main.ipv4_address}:${var.app_port}"
+  value = var.domain != "" ? "Containers deployed. Production: https://${var.domain}, Preview: https://preview.${var.domain}" : "Container deployed. Access at http://${hcloud_server.main.ipv4_address}:${var.app_port}"
 }

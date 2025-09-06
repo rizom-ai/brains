@@ -32,6 +32,22 @@ resource "hcloud_firewall" "main" {
     port      = var.app_port
     source_ips = ["0.0.0.0/0", "::/0"]
   }
+
+  # HTTP for ACME challenge and redirect
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "80"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
+
+  # HTTPS
+  rule {
+    direction = "in"
+    protocol  = "tcp"
+    port      = "443"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
 }
 
 resource "hcloud_server" "main" {
