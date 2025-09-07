@@ -36,14 +36,16 @@ export const RouteDefinitionSchema = z.object({
   sections: z.array(SectionDefinitionSchema),
   pluginId: z.string().optional(),
   sourceEntityType: z.string().optional(),
-  
+
   // NEW: Optional navigation metadata
-  navigation: z.object({
-    show: z.boolean().default(false),        // Display in navigation?
-    label: z.string().optional(),            // Override title for nav display
-    slot: z.enum(["footer"]).default("footer"), // Navigation slot (only footer for now)
-    priority: z.number().min(0).max(100).default(50), // Display order (0-100)
-  }).optional(),
+  navigation: z
+    .object({
+      show: z.boolean().default(false), // Display in navigation?
+      label: z.string().optional(), // Override title for nav display
+      slot: z.enum(["footer"]).default("footer"), // Navigation slot (only footer for now)
+      priority: z.number().min(0).max(100).default(50), // Display order (0-100)
+    })
+    .optional(),
 });
 ```
 
@@ -96,12 +98,14 @@ Recommended priority ranges for consistent ordering:
 
 ```typescript
 // plugins/site-builder/src/types/routes.ts
-export const NavigationMetadataSchema = z.object({
-  show: z.boolean().default(false),
-  label: z.string().optional(),
-  slot: z.enum(["footer"]).default("footer"),
-  priority: z.number().min(0).max(100).default(50),
-}).optional();
+export const NavigationMetadataSchema = z
+  .object({
+    show: z.boolean().default(false),
+    label: z.string().optional(),
+    slot: z.enum(["footer"]).default("footer"),
+    priority: z.number().min(0).max(100).default(50),
+  })
+  .optional();
 
 export const RouteDefinitionSchema = z.object({
   // ... existing fields ...
@@ -115,13 +119,13 @@ export const RouteDefinitionSchema = z.object({
 // plugins/site-builder/src/lib/route-registry.ts
 export class RouteRegistry {
   // ... existing methods ...
-  
+
   /**
    * Get navigation items for a specific slot
    */
   getNavigationItems(slot: "footer" = "footer"): NavigationItem[] {
     const items: NavigationItem[] = [];
-    
+
     for (const [path, route] of this.routes.entries()) {
       if (route.navigation?.show && route.navigation?.slot === slot) {
         items.push({
@@ -131,7 +135,7 @@ export class RouteRegistry {
         });
       }
     }
-    
+
     // Sort by priority (lower numbers first)
     return items.sort((a, b) => a.priority - b.priority);
   }
@@ -163,7 +167,7 @@ export interface FooterData {
 export const FooterLayout = ({ navigation, copyright }: FooterData): JSX.Element => {
   const currentYear = new Date().getFullYear();
   const defaultCopyright = `© ${currentYear} Personal Brain. All rights reserved.`;
-  
+
   return (
     <footer className="footer-section bg-gray-900 text-white py-12 mt-20">
       <div className="container mx-auto px-4">
@@ -172,7 +176,7 @@ export const FooterLayout = ({ navigation, copyright }: FooterData): JSX.Element
           <ul className="flex flex-wrap justify-center gap-6">
             {navigation.map((item) => (
               <li key={item.href}>
-                <a 
+                <a
                   href={item.href}
                   className="text-gray-300 hover:text-white transition-colors"
                 >
@@ -182,7 +186,7 @@ export const FooterLayout = ({ navigation, copyright }: FooterData): JSX.Element
             ))}
           </ul>
         </nav>
-        
+
         {/* Copyright */}
         <div className="text-center text-gray-400 text-sm">
           {copyright || defaultCopyright}
@@ -198,10 +202,12 @@ export const FooterLayout = ({ navigation, copyright }: FooterData): JSX.Element
 import { z } from "@brains/utils";
 
 export const FooterSchema = z.object({
-  navigation: z.array(z.object({
-    label: z.string(),
-    href: z.string(),
-  })),
+  navigation: z.array(
+    z.object({
+      label: z.string(),
+      href: z.string(),
+    }),
+  ),
   copyright: z.string().optional(),
 });
 
@@ -223,23 +229,23 @@ private async buildRoute(
   context: BuildContext,
 ): Promise<void> {
   // ... existing section rendering ...
-  
+
   // Get footer navigation
   const footerNavigation = context.routeRegistry
     .getNavigationItems("footer")
     .map(item => ({ label: item.label, href: item.href }));
-  
+
   // Render footer
-  const footerHtml = this.renderFooter({ 
-    navigation: footerNavigation 
+  const footerHtml = this.renderFooter({
+    navigation: footerNavigation
   });
-  
+
   // Combine sections with footer
   const fullContent = `
     ${renderedSections.join('\n')}
     ${footerHtml}
   `;
-  
+
   // ... rest of page generation ...
 }
 
@@ -383,12 +389,14 @@ navigation: z.object({
 ## Phase 4: Dynamic Features
 
 ### Client-Side Interactivity
+
 - Mobile hamburger menu
 - Dropdown menus
 - Active page highlighting
 - Smooth scroll
 
 ### User-Specific Navigation
+
 - Show/hide based on authentication
 - Role-based navigation items
 - Personalized menu items
@@ -396,6 +404,7 @@ navigation: z.object({
 ## Success Criteria
 
 ### Phase 1 (Footer Navigation)
+
 - [x] Routes can include navigation metadata
 - [x] Plugins can register navigation items
 - [x] Footer displays navigation from all plugins
@@ -403,16 +412,19 @@ navigation: z.object({
 - [x] Footer appears on all pages
 
 ### Phase 2
+
 - [ ] External links supported
 - [ ] Footer sections/grouping implemented
 - [ ] Social media links in footer
 
 ### Phase 3
+
 - [ ] Header navigation component
 - [ ] Multiple navigation slots working
 - [ ] Responsive mobile menu
 
 ### Phase 4
+
 - [ ] Interactive navigation features
 - [ ] User-specific navigation
 - [ ] Advanced navigation patterns
@@ -429,16 +441,19 @@ navigation: z.object({
 ## Alternative Approaches Considered
 
 ### Separate Navigation Registry
+
 - ❌ More complex
 - ❌ Duplicate data management
 - ❌ Synchronization issues
 
 ### Automatic Navigation Discovery
+
 - ❌ Less control
 - ❌ Includes unwanted pages
 - ❌ Can't control ordering
 
 ### Configuration Files
+
 - ❌ Static, not plugin-friendly
 - ❌ Manual maintenance
 - ❌ Out of sync with actual routes

@@ -15,7 +15,7 @@ Rizom's Transformative Products
 
 ## Description
 
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. Our product portfolio empowers individuals, teams, and organizations to navigate the complexities of the modern world and unlock their full potential.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. Our product portfolio empowers organizations to navigate the complexities of the modern landscape and unlock new frontiers of growth and resilience.
 
 ## Products
 
@@ -23,19 +23,19 @@ Rizom is a dynamic collective of experts in digital transformation, organization
 
 #### ID
 
-personal-brain
+practice-innovation
 
 #### Name
 
-Personal Brain
+Practice Innovation
 
 #### Tagline
 
-Your Limitless Cognitive Companion
+Accelerate your organization's transformation
 
 #### Description
 
-Rizom's flagship product, Personal Brain is an AI-powered knowledge management and task automation platform that helps you capture, connect, and curate all your ideas, notes, and workflows in one intuitive workspace.
+Our Practice Innovation offering guides leaders through the process of designing and implementing innovative practices that drive measurable impact.
 
 #### Status
 
@@ -51,23 +51,23 @@ Brain
 
 #### ID
 
-org-navigator
+ecosystem-architecture
 
 #### Name
 
-Org Navigator
+Ecosystem Architecture
 
 #### Tagline
 
-Visualize and Optimize Your Organization
+Build resilient, adaptive ecosystems
 
 #### Description
 
-Org Navigator is a powerful organizational design tool that maps your company's structures, roles, and relationships, providing data-driven insights to streamline operations and foster collaboration.
+Ecosystem Architecture helps organizations map, design, and cultivate thriving ecosystems that foster collaboration, innovation, and long-term sustainability.
 
 #### Status
 
-beta
+live
 
 #### Link
 
@@ -79,26 +79,26 @@ Network
 
 #### ID
 
-ecosystem-architect
+economy-of-garbage
 
 #### Name
 
-Ecosystem Architect
+Economy of Garbage
 
 #### Tagline
 
-Build Thriving Business Ecosystems
+Unlock value from waste and inefficiency
 
 #### Description
 
-Ecosystem Architect is a strategic planning platform that helps you design, launch, and manage dynamic business ecosystems, unlocking new avenues for growth, innovation, and value creation.
+Our Economy of Garbage solution transforms organizational waste and underutilized resources into new revenue streams and competitive advantages.
 
 #### Status
 
-alpha
+beta
 
 #### Link
 
 #### Icon
 
-Globe
+Wrench

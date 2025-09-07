@@ -20,6 +20,7 @@ import {
 import { siteContentAdapter } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
+import { NavigationDataSource } from "./datasources/navigation-datasource";
 import { createSiteBuilderTools } from "./tools";
 import { createSiteBuilderCommands } from "./commands";
 import type { SiteBuilderConfig } from "./config";
@@ -60,6 +61,14 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     // Initialize route registry with logger
     this._routeRegistry = new RouteRegistry(context.logger);
+
+    // Register NavigationDataSource
+    const navigationDataSource = new NavigationDataSource(
+      this._routeRegistry,
+      context.logger.child("NavigationDataSource"),
+    );
+    context.registerDataSource(navigationDataSource);
+    this.logger.debug("Registered NavigationDataSource");
 
     // Setup route message handlers
     this.setupRouteHandlers(context);

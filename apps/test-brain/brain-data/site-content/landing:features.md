@@ -15,25 +15,11 @@ Amplify Your Knowledge, Supercharge Your Potential
 
 ## Description
 
-Rizom Brains is a personal knowledge management system that helps you organize, search, secure, and gain insights from your information. Unlock the full power of your collective intelligence.
+Rizom Brains is a personal knowledge management system that helps you organize, search, and leverage your collective intelligence. Unlock the power of your mind and accelerate your growth.
 
 ## Feature Cards
 
 ### Feature Card 1
-
-#### Title
-
-Structured Knowledge
-
-#### Icon
-
-Database
-
-#### Description
-
-Effortlessly capture and link your ideas, notes, and files into a unified knowledge base.
-
-### Feature Card 2
 
 #### Title
 
@@ -45,7 +31,21 @@ Search
 
 #### Description
 
-Instantly find any information you need with advanced search and filtering capabilities.
+Quickly find the information you need with intelligent search that spans your entire knowledge base.
+
+### Feature Card 2
+
+#### Title
+
+Structured Knowledge
+
+#### Icon
+
+Database
+
+#### Description
+
+Organize your notes, files, and ideas into a seamless personal knowledge graph for effortless recall.
 
 ### Feature Card 3
 

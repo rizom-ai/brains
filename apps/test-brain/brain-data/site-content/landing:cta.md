@@ -11,7 +11,7 @@ Elevate Your Mind, Expand Your Possibilities
 
 ## Description
 
-Join the knowledge revolution and unlock your full potential with Rizom - the personal knowledge management system that transforms how you think, learn, and grow.
+Join the knowledge revolution and unlock your full potential with Rizom, the complete knowledge amplification ecosystem.
 
 ## Primary Button
 
@@ -27,8 +27,8 @@ Start Free Trial
 
 ### Text
 
-Learn More
+View Demo
 
 ### Link
 
-/about
+/demo

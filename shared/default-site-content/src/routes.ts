@@ -6,11 +6,22 @@ export const routes = [
     path: "/",
     title: "Home",
     description: "Welcome to your Personal Brain",
+    navigation: {
+      show: true,
+      label: "Home",
+      slot: "main",
+      priority: 10, // Core page - high priority
+    },
     sections: [
       { id: "hero", template: "hero" },
       { id: "features", template: "features" },
       { id: "products", template: "products" },
       { id: "cta", template: "cta" },
+      {
+        id: "footer",
+        template: "footer",
+        // No content needed - DataSource provides everything
+      },
     ],
   },
 ];

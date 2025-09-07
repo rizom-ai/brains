@@ -19,4 +19,4 @@ Get Started
 
 ## CTA Link
 
-/get-started
+#features

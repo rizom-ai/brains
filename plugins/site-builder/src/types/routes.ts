@@ -25,6 +25,18 @@ export const SectionDefinitionSchema = z.object({
 });
 
 /**
+ * Navigation metadata schema for route definitions
+ */
+export const NavigationMetadataSchema = z
+  .object({
+    show: z.boolean().default(false), // Display in navigation?
+    label: z.string().optional(), // Override title for nav display
+    slot: z.enum(["main"]), // Navigation slot type
+    priority: z.number().min(0).max(100).default(50), // Display order (0-100)
+  })
+  .optional();
+
+/**
  * Route definition schema
  */
 export const RouteDefinitionSchema = z.object({
@@ -35,11 +47,20 @@ export const RouteDefinitionSchema = z.object({
   sections: z.array(SectionDefinitionSchema), // Page sections
   pluginId: z.string().optional(), // Plugin that registered this route
   sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
+  navigation: NavigationMetadataSchema, // Optional navigation metadata
 });
 
 // Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
+export type NavigationMetadata = z.infer<typeof NavigationMetadataSchema>;
+
+// Navigation item interface for extracted navigation data
+export interface NavigationItem {
+  label: string;
+  href: string;
+  priority: number;
+}
 
 /**
  * Message payload schemas for route operations

@@ -55,6 +55,12 @@ export class DynamicRouteGenerator {
         path: `/${this.pluralize(entityType)}`,
         title: `${this.capitalize(entityType)}s`,
         description: `Browse all ${this.pluralize(entityType)}`,
+        navigation: {
+          show: true,
+          label: `${this.capitalize(entityType)}s`,
+          slot: "main",
+          priority: 40, // Plugin-registered pages priority
+        },
         sections: [
           {
             id: "list",

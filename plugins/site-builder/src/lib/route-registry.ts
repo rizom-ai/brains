@@ -1,4 +1,4 @@
-import type { RouteDefinition } from "../types/routes";
+import type { RouteDefinition, NavigationItem } from "../types/routes";
 import { RouteDefinitionSchema } from "../types/routes";
 import type { Logger } from "@brains/utils";
 
@@ -92,5 +92,25 @@ export class RouteRegistry {
    */
   size(): number {
     return this.routes.size;
+  }
+
+  /**
+   * Get navigation items for a specific slot
+   */
+  getNavigationItems(slot: "main"): NavigationItem[] {
+    const items: NavigationItem[] = [];
+
+    for (const [path, route] of this.routes.entries()) {
+      if (route.navigation?.show && route.navigation.slot === slot) {
+        items.push({
+          label: route.navigation.label ?? route.title,
+          href: path,
+          priority: route.navigation.priority ?? 50,
+        });
+      }
+    }
+
+    // Sort by priority (lower numbers first)
+    return items.sort((a, b) => a.priority - b.priority);
   }
 }
