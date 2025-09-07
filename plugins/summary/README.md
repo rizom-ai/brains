@@ -22,9 +22,11 @@ The Summary plugin automatically creates and maintains intelligent summaries of 
 Get the summary for a specific conversation.
 
 **Parameters:**
+
 - `conversationId` (string, required): The conversation to summarize
 
 **Returns:**
+
 - Summary entity with chronological log entries
 
 ### `summary:list`
@@ -32,9 +34,11 @@ Get the summary for a specific conversation.
 List all conversation summaries.
 
 **Parameters:**
+
 - `limit` (number, optional, default: 10): Maximum number of summaries
 
 **Returns:**
+
 - Array of summary entities with metadata
 
 ### `summary:digest`
@@ -42,9 +46,11 @@ List all conversation summaries.
 Generate a daily digest of all conversations.
 
 **Parameters:**
+
 - `date` (string, optional): Date for digest (defaults to today)
 
 **Returns:**
+
 - Combined summary of all conversations for the day
 
 ### `summary:search`
@@ -52,10 +58,12 @@ Generate a daily digest of all conversations.
 Search through conversation summaries.
 
 **Parameters:**
+
 - `query` (string, required): Search query
 - `limit` (number, optional, default: 20): Maximum results
 
 **Returns:**
+
 - Matching summary entries
 
 ## How It Works
@@ -64,7 +72,7 @@ Search through conversation summaries.
 
 1. **Digest Event**: Triggered every 10 messages in a conversation
 2. **Context Analysis**: AI reviews the last 2-3 summary entries
-3. **Smart Decision**: 
+3. **Smart Decision**:
    - **Update** if the topic continues (last 3 entries)
    - **Append** if it's a new topic or phase
 4. **Storage**: Saves as markdown entity with structured sections
@@ -75,6 +83,7 @@ Search through conversation summaries.
 # Summary: Project Planning Discussion
 
 ## Metadata
+
 - Conversation: conv_abc123
 - Last Updated: 2024-01-15T14:30:00Z
 - Message Count: 47
@@ -82,13 +91,17 @@ Search through conversation summaries.
 ## Log
 
 ### 2024-01-15T10:00:00Z - Project Kickoff
+
 Participants: Alice, Bob
+
 - Discussed initial project requirements
 - Set timeline for Q1 delivery
 - Assigned roles: Alice (frontend), Bob (backend)
 
 ### 2024-01-15T11:30:00Z - Technical Architecture (Updated)
+
 Participants: Alice, Bob, Charlie
+
 - Reviewed tech stack options
 - Decided on React + Node.js + PostgreSQL
 - Charlie joined to discuss DevOps setup
@@ -124,7 +137,7 @@ import { createSummaryPlugin } from "@brains/summary";
 
 const summaryPlugin = createSummaryPlugin({
   maxLogEntries: 50,
-  enableDailyDigest: true
+  enableDailyDigest: true,
 });
 
 // Summaries are created automatically as conversations happen
@@ -136,6 +149,7 @@ const summaryPlugin = createSummaryPlugin({
 ### With Matrix
 
 For Matrix rooms, summaries include:
+
 - Room name and participants
 - Formatted messages with proper attribution
 - Threaded conversation tracking

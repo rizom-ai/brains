@@ -23,6 +23,7 @@ Health checks provide runtime monitoring of service availability and performance
 ### What's Missing
 
 Core services lack health check methods:
+
 - EntityService (database operations)
 - JobQueueService (background processing)
 - ConversationService (message history)
@@ -33,16 +34,19 @@ Core services lack health check methods:
 ## Design Principles
 
 ### 1. Lightweight Checks
+
 - Health checks should be fast (<100ms)
 - Avoid expensive operations in basic health checks
 - Cache results when appropriate
 
 ### 2. Graceful Degradation
+
 - Services can be partially healthy
 - Distinguish between critical and non-critical failures
 - Allow system to operate with degraded components
 
 ### 3. Standardized Response
+
 ```typescript
 interface HealthStatus {
   status: "healthy" | "degraded" | "unhealthy";
@@ -53,6 +57,7 @@ interface HealthStatus {
 ```
 
 ### 4. Hierarchical Aggregation
+
 - Each service reports its own health
 - Shell aggregates service health
 - App provides overall system health
@@ -62,35 +67,36 @@ interface HealthStatus {
 ### Phase 1: Service-Level Health Checks
 
 #### EntityService
+
 ```typescript
 class EntityService {
   async getHealth(): Promise<HealthStatus> {
     try {
       // Check database connection
       await this.db.select().from(entities).limit(1);
-      
+
       // Check disk space for file storage
       const stats = await fs.statfs(this.dataDir);
       const freePercent = (stats.available / stats.size) * 100;
-      
+
       if (freePercent < 10) {
         return {
           status: "degraded",
           message: "Low disk space",
           details: { freePercent },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       }
-      
+
       return {
         status: "healthy",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return {
         status: "unhealthy",
         message: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -98,41 +104,42 @@ class EntityService {
 ```
 
 #### JobQueueService
+
 ```typescript
 class JobQueueService {
   async getHealth(): Promise<HealthStatus> {
     try {
       // Check database
       const jobCount = await this.getJobCount();
-      
+
       // Check worker status
       const workers = this.getActiveWorkers();
-      
+
       // Check for stalled jobs
       const stalledJobs = await this.getStalledJobs();
-      
+
       if (stalledJobs > 10) {
         return {
           status: "degraded",
           message: "High number of stalled jobs",
           details: { stalledJobs, workers: workers.length },
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       }
-      
+
       return {
         status: "healthy",
-        details: { 
+        details: {
           pendingJobs: jobCount,
-          activeWorkers: workers.length 
+          activeWorkers: workers.length,
         },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return {
         status: "unhealthy",
         message: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     }
   }
@@ -140,6 +147,7 @@ class JobQueueService {
 ```
 
 #### AIService
+
 ```typescript
 class AIService {
   private lastCheckTime = 0;
@@ -149,7 +157,7 @@ class AIService {
   async getHealth(): Promise<HealthStatus> {
     // Cache expensive API checks
     const now = Date.now();
-    if (this.cachedStatus && (now - this.lastCheckTime) < this.CACHE_DURATION) {
+    if (this.cachedStatus && now - this.lastCheckTime < this.CACHE_DURATION) {
       return this.cachedStatus;
     }
 
@@ -159,26 +167,26 @@ class AIService {
         return {
           status: "unhealthy",
           message: "API key not configured",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       }
-      
+
       // Optional: Test API with minimal request
       // const response = await this.client.models.list();
-      
+
       this.cachedStatus = {
         status: "healthy",
         details: { provider: "anthropic" },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
       this.lastCheckTime = now;
-      
+
       return this.cachedStatus;
     } catch (error) {
       this.cachedStatus = {
         status: "unhealthy",
         message: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
       this.lastCheckTime = now;
       return this.cachedStatus;
@@ -200,25 +208,25 @@ class Shell {
       conversation: await this.conversationService.getHealth(),
       content: await this.contentService.getHealth(),
     };
-    
+
     // Determine overall status
-    const statuses = Object.values(services).map(s => s.status);
+    const statuses = Object.values(services).map((s) => s.status);
     let overall: "healthy" | "degraded" | "unhealthy";
-    
-    if (statuses.every(s => s === "healthy")) {
+
+    if (statuses.every((s) => s === "healthy")) {
       overall = "healthy";
-    } else if (statuses.some(s => s === "unhealthy")) {
+    } else if (statuses.some((s) => s === "unhealthy")) {
       overall = "unhealthy";
     } else {
       overall = "degraded";
     }
-    
+
     return {
       status: overall,
       services,
       timestamp: new Date().toISOString(),
       version: this.version,
-      uptime: process.uptime()
+      uptime: process.uptime(),
     };
   }
 }
@@ -227,14 +235,15 @@ class Shell {
 ### Phase 3: HTTP Endpoints
 
 #### Unified Health Endpoint
+
 ```typescript
 // GET /health
 {
   "status": "degraded",
   "services": {
     "entity": { "status": "healthy" },
-    "jobQueue": { 
-      "status": "degraded", 
+    "jobQueue": {
+      "status": "degraded",
       "message": "High number of stalled jobs",
       "details": { "stalledJobs": 15 }
     },
@@ -250,6 +259,7 @@ class Shell {
 ```
 
 #### Liveness Probe
+
 ```typescript
 // GET /health/live
 // Simple check - is the process running?
@@ -260,6 +270,7 @@ class Shell {
 ```
 
 #### Readiness Probe
+
 ```typescript
 // GET /health/ready
 // Can the service handle requests?
@@ -272,11 +283,13 @@ class Shell {
 ## Health Check Levels
 
 ### Healthy
+
 - All checks passing
 - System fully operational
 - No degradation in performance
 
 ### Degraded
+
 - Some non-critical checks failing
 - System operational but with reduced capacity
 - Examples:
@@ -285,6 +298,7 @@ class Shell {
   - Slow response times
 
 ### Unhealthy
+
 - Critical checks failing
 - System cannot serve requests properly
 - Examples:
@@ -295,12 +309,14 @@ class Shell {
 ## Integration Points
 
 ### Docker
+
 ```dockerfile
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3333/health/live || exit 1
 ```
 
 ### Docker Compose
+
 ```yaml
 services:
   brain:
@@ -313,6 +329,7 @@ services:
 ```
 
 ### Kubernetes
+
 ```yaml
 livenessProbe:
   httpGet:
@@ -332,6 +349,7 @@ readinessProbe:
 ## Monitoring Integration
 
 ### Prometheus Metrics
+
 ```typescript
 // GET /metrics
 # HELP brain_health_status Current health status (1=healthy, 0.5=degraded, 0=unhealthy)
@@ -346,6 +364,7 @@ brain_service_health{service="ai"} 1
 ```
 
 ### Grafana Dashboard
+
 - Overall system health gauge
 - Per-service health status
 - Historical health trends
@@ -354,6 +373,7 @@ brain_service_health{service="ai"} 1
 ## Testing Strategy
 
 ### Unit Tests
+
 ```typescript
 describe("EntityService Health Check", () => {
   it("should return healthy when database is accessible", async () => {
@@ -361,17 +381,17 @@ describe("EntityService Health Check", () => {
     const health = await service.getHealth();
     expect(health.status).toBe("healthy");
   });
-  
+
   it("should return unhealthy when database fails", async () => {
     mockDb.select.mockRejectedValue(new Error("Connection failed"));
     const health = await service.getHealth();
     expect(health.status).toBe("unhealthy");
   });
-  
+
   it("should return degraded on low disk space", async () => {
-    mockFs.statfs.mockResolvedValue({ 
-      available: 1000, 
-      size: 100000 
+    mockFs.statfs.mockResolvedValue({
+      available: 1000,
+      size: 100000,
     });
     const health = await service.getHealth();
     expect(health.status).toBe("degraded");
@@ -380,11 +400,12 @@ describe("EntityService Health Check", () => {
 ```
 
 ### Integration Tests
+
 ```typescript
 describe("System Health Check", () => {
   it("should aggregate service health correctly", async () => {
     const response = await request(app).get("/health");
-    
+
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("status");
     expect(response.body).toHaveProperty("services");
@@ -394,6 +415,7 @@ describe("System Health Check", () => {
 ```
 
 ### Load Testing
+
 - Verify health checks remain fast under load
 - Ensure health checks don't impact normal operations
 - Test caching behavior
@@ -401,24 +423,28 @@ describe("System Health Check", () => {
 ## Implementation Timeline
 
 ### Week 1: Core Services
+
 - [ ] Implement EntityService.getHealth()
 - [ ] Implement JobQueueService.getHealth()
 - [ ] Implement ConversationService.getHealth()
 - [ ] Add unit tests
 
 ### Week 2: AI & Content Services
+
 - [ ] Implement AIService.getHealth()
 - [ ] Implement EmbeddingService.getHealth()
 - [ ] Implement ContentService.getHealth()
 - [ ] Add caching for expensive checks
 
 ### Week 3: Aggregation & Endpoints
+
 - [ ] Implement Shell.getHealth() aggregation
 - [ ] Add HTTP endpoints (/health, /health/live, /health/ready)
 - [ ] Add Prometheus metrics endpoint
 - [ ] Integration tests
 
 ### Week 4: Documentation & Deployment
+
 - [ ] Update Docker configurations
 - [ ] Create Kubernetes manifests
 - [ ] Document monitoring setup
