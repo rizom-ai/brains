@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-30
+Last Updated: 2025-01-07
 
 ## Vision
 
@@ -10,17 +10,17 @@ Build a robust, extensible knowledge management platform that serves as the foun
 
 Based on current progress, the following items are ready to be worked on:
 
-### Immediate Priorities (Foundation Complete)
+### Immediate Priorities
 
-1. **Link Plugin** - Web content capture with AI (Priority 1, planning complete)
-2. **Entity Service Batch Operations** - Performance optimization
-3. **Health Checks for All Services** - Production readiness
+1. **Entity Service Batch Operations** - Performance optimization
+2. **Health Checks for All Services** - Production readiness
+3. **Database Backup/Restore** - Data safety
 
 ### Secondary Priorities
 
-4. **Database Backup/Restore** - Data safety
-5. **Blog Plugin** - Long-form content management (planning complete)
-6. **Vector Search Optimization** - Performance improvement
+4. **Blog Plugin** - Long-form content management (planning complete)
+5. **Vector Search Optimization** - Performance improvement
+6. **Task Plugin** - Task and project management
 
 ## Current Status
 
@@ -42,13 +42,17 @@ Based on current progress, the following items are ready to be worked on:
 - **App Package**: Astro-style configuration with defineConfig and handleCLI
 - **Directory Sync Plugin**: Import/export entities to/from file system
 - **Git Sync Plugin**: Sync entities with Git repositories
-- **Site Builder Plugin**: Static site generation with Preact components
+- **Site Builder Plugin**: Static site generation with Preact components and Tailwind CSS v4
 - **Topics Plugin**: AI-powered topic extraction from entities
 - **System Plugin**: System information and health checks
+- **Link Plugin**: Web content capture with AI extraction and search ✅
+- **Summary Plugin**: AI-powered content summarization and daily digests
 - **Template Capabilities System**: Runtime detection of template capabilities
 - **Dynamic Route Generation**: Convention-based routes for entity types
 - **Entity DataSource Integration**: Plugin-specific DataSources for entity display
 - **Site Content Consolidation**: Removed preview/production distinction
+- **Docker Deployment**: Simplified Docker deployment with Dockerfile.simple
+- **Hetzner Cloud Provider**: Terraform-based deployment with automatic HTTPS via Caddy
 
 ### In Progress 🚧
 
@@ -91,12 +95,12 @@ Based on current progress, the following items are ready to be worked on:
 
 ## Phase 2: First Plugins (Q1-Q2 2025)
 
-### 2.1 Link Plugin (Priority 1) - **Planning Complete**
+### 2.1 Link Plugin ✅ **COMPLETED**
 
-- [ ] Web content capture with AI extraction
-- [ ] Structured content storage (like topics plugin)
-- [ ] AI-powered summarization and tagging
-- [ ] Simple list and search functionality
+- [x] Web content capture with AI extraction ✅
+- [x] Structured content storage (like topics plugin) ✅
+- [x] AI-powered summarization and tagging ✅
+- [x] Simple list and search functionality ✅
 
 ### 2.2 Blog Plugin (Priority 2) - **Planning Complete**
 

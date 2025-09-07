@@ -14,7 +14,7 @@ The Personal Brain application features a modular, plugin-based architecture bui
 
 ## Current Implementation State
 
-The codebase follows a 4-directory monorepo structure managed by Turborepo:
+The codebase follows a monorepo structure managed by Turborepo with packages organized by function:
 
 ### Shell Packages (Core Infrastructure)
 
@@ -48,15 +48,17 @@ The codebase follows a 4-directory monorepo structure managed by Turborepo:
 - **interfaces/cli**: Command-line interface using Ink
 - **interfaces/matrix**: Matrix bot interface (includes setup utility)
 - **interfaces/mcp**: MCP transport layer (stdio and HTTP)
-- **interfaces/webserver**: Static site server
 
 ### Plugin Packages (Feature Extensions)
 
-- **plugins/directory-sync**: File-based entity synchronization
-- **plugins/git-sync**: Version control integration
-- **plugins/site-builder**: Static site generation with Preact
-- **plugins/system**: System commands and conversation memory tools
-- **plugins/topics**: Topic extraction and management
+- **plugins/directory-sync**: Import/export entities to/from file system
+- **plugins/git-sync**: Sync entities with Git repositories
+- **plugins/link**: Web content capture with AI-powered extraction
+- **plugins/site-builder**: Static site generation with Preact and Tailwind CSS v4
+- **plugins/summary**: AI-powered content summarization and daily digests
+- **plugins/system**: System information and health checks
+- **plugins/topics**: AI-powered topic extraction from entities
+- **interfaces/webserver**: Static site server
 
 ### Application Packages
 

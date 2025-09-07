@@ -17,7 +17,14 @@ Base class for plugins that provide core functionality:
 - Message handlers for async operations
 - Job handlers for background processing
 
-**Examples:** SystemPlugin, DirectorySyncPlugin, GitSyncPlugin
+**Implemented Plugins:** 
+- SystemPlugin - System information and health checks
+- DirectorySyncPlugin - Import/export entities to/from file system
+- GitSyncPlugin - Sync entities with Git repositories
+- LinkPlugin - Web content capture with AI extraction
+- SiteBuilderPlugin - Static site generation with Preact/Tailwind
+- SummaryPlugin - Content summarization and daily digests
+- TopicsPlugin - AI-powered topic extraction
 
 ### InterfacePlugin
 
@@ -27,7 +34,9 @@ Base class for plugins that provide user interfaces:
 - Interface-specific configuration
 - Connection management
 
-**Examples:** MCPInterface, WebserverInterface
+**Implemented Interfaces:** 
+- MCPInterface - MCP server with stdio and HTTP transports
+- WebserverInterface - Static site HTTP server
 
 ### MessageInterfacePlugin
 
@@ -37,7 +46,9 @@ Specialized interface plugin for message-based interfaces:
 - Conversation context management
 - Command execution through message bus
 
-**Examples:** CLIInterface, MatrixInterface
+**Implemented Message Interfaces:**
+- CLIInterface - Interactive command-line interface using Ink
+- MatrixInterface - Matrix bot integration with setup utility
 
 ## Plugin Registration
 
