@@ -1,13 +1,5 @@
-# Production site on root domain
-{$DOMAIN} {
-    reverse_proxy brain:8080 {
-        # Preserve headers for proper asset resolution
-        header_up Host {host}
-        header_up X-Real-IP {remote}
-        header_up X-Forwarded-For {remote}
-        header_up X-Forwarded-Proto {scheme}
-    }
-    
+# Common configuration snippet
+(common) {
     encode gzip
     
     header {
@@ -21,27 +13,16 @@
     }
 }
 
+# Production site on root domain
+{$DOMAIN} {
+    reverse_proxy brain:8080
+    import common
+}
+
 # Preview site on subdomain
 preview.{$DOMAIN} {
-    reverse_proxy brain:4321 {
-        # Preserve headers for proper asset resolution
-        header_up Host {host}
-        header_up X-Real-IP {remote}
-        header_up X-Forwarded-For {remote}
-        header_up X-Forwarded-Proto {scheme}
-    }
-    
-    encode gzip
-    
-    header {
-        # Security headers
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Frame-Options "DENY"
-        X-Content-Type-Options "nosniff"
-        X-XSS-Protection "1; mode=block"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        -Server
-    }
+    reverse_proxy brain:4321
+    import common
 }
 
 # MCP API endpoint (commented out until auth is configured)

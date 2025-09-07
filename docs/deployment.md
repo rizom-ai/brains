@@ -12,15 +12,18 @@ This guide covers multiple deployment methods for your Personal Brain applicatio
 ## Prerequisites
 
 ### For Docker Deployment
+
 - Docker installed locally or on target server
 - Docker Compose v2 (included with modern Docker)
 
 ### For Hetzner Cloud
+
 - Hetzner Cloud account and API token
 - Terraform installed locally
 - SSH key for server access
 
 ### For Manual Deployment
+
 - A Linux server (Ubuntu 20.04+ or Debian 11+ recommended)
 - SSH access with sudo privileges
 - Git installed on your local machine
@@ -71,17 +74,20 @@ services:
 ### Setup
 
 1. **Configure Provider**:
+
 ```bash
 cp deploy/providers/hetzner/config.env.example deploy/providers/hetzner/config.env
 # Edit config.env with your Hetzner API token
 ```
 
 2. **Deploy**:
+
 ```bash
 bun run brain:deploy test-brain hetzner deploy
 ```
 
 3. **Features**:
+
 - Automatic HTTPS with Caddy reverse proxy
 - Terraform infrastructure as code
 - GitHub Container Registry support
@@ -91,6 +97,7 @@ bun run brain:deploy test-brain hetzner deploy
 ### Custom Domain
 
 Set in your app's `.env`:
+
 ```bash
 PRODUCTION_DOMAIN=yourdomain.com
 PREVIEW_DOMAIN=preview.yourdomain.com
@@ -99,8 +106,9 @@ PREVIEW_DOMAIN=preview.yourdomain.com
 ### Architecture
 
 The Hetzner deployment uses:
+
 - **Terraform** for infrastructure as code
-- **Docker Compose** for container orchestration  
+- **Docker Compose** for container orchestration
 - **Caddy** for automatic HTTPS with Let's Encrypt
 - **GitHub Container Registry** for image storage
 

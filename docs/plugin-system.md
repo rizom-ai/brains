@@ -17,7 +17,8 @@ Base class for plugins that provide core functionality:
 - Message handlers for async operations
 - Job handlers for background processing
 
-**Implemented Plugins:** 
+**Implemented Plugins:**
+
 - SystemPlugin - System information and health checks
 - DirectorySyncPlugin - Import/export entities to/from file system
 - GitSyncPlugin - Sync entities with Git repositories
@@ -34,7 +35,8 @@ Base class for plugins that provide user interfaces:
 - Interface-specific configuration
 - Connection management
 
-**Implemented Interfaces:** 
+**Implemented Interfaces:**
+
 - MCPInterface - MCP server with stdio and HTTP transports
 - WebserverInterface - Static site HTTP server
 
@@ -47,6 +49,7 @@ Specialized interface plugin for message-based interfaces:
 - Command execution through message bus
 
 **Implemented Message Interfaces:**
+
 - CLIInterface - Interactive command-line interface using Ink
 - MatrixInterface - Matrix bot integration with setup utility
 
