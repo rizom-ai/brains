@@ -35,6 +35,26 @@ export class MyPlugin extends CorePlugin {
 }
 ```
 
+### ServicePlugin
+
+Extended base class for plugins that need entity registration and advanced features:
+
+```typescript
+import { ServicePlugin } from "@brains/plugins";
+
+export class MyServicePlugin extends ServicePlugin {
+  constructor() {
+    super("my-service", packageJson, config, configSchema);
+  }
+
+  protected async onRegister(context: ServicePluginContext) {
+    // Register entity types, adapters, templates, datasources
+    context.registerEntityType("mytype", schema, adapter);
+    context.registerTemplates({ "my-template": template });
+  }
+}
+```
+
 ### InterfacePlugin
 
 Base class for plugins that provide user interfaces:

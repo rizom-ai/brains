@@ -19,7 +19,7 @@ Personal Brain provides:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yeehaa123/brains.git
+git clone https://github.com/rizom-ai/brains.git
 cd brains
 
 # Install dependencies
