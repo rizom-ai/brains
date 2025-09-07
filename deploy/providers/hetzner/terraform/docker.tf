@@ -61,7 +61,7 @@ resource "null_resource" "install_docker" {
       "useradd -r -m -d /opt/personal-brain -s /bin/false personal-brain || true",
       
       # Create data directories with correct ownership
-      "mkdir -p /opt/personal-brain/data /opt/personal-brain/brain-repo /opt/personal-brain/website /opt/personal-brain/matrix-storage",
+      "mkdir -p /opt/personal-brain/data /opt/personal-brain/brain-repo /opt/personal-brain/website /opt/personal-brain/matrix-storage /opt/personal-brain/brain-data",
       "chown -R personal-brain:personal-brain /opt/personal-brain",
       
       # Create docker network

@@ -14,6 +14,7 @@ services:
       - /opt/personal-brain/brain-repo:/app/brain-repo
       - /opt/personal-brain/website:/app/website
       - /opt/personal-brain/matrix-storage:/app/.matrix-storage
+      - /opt/personal-brain/brain-data:/app/brain-data
       - /opt/personal-brain/.env:/app/.env:ro
     user: "${HOST_UID}:${HOST_GID}"
 
