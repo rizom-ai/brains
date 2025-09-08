@@ -165,7 +165,7 @@ describe("SiteBuilderPlugin", () => {
             {
               id: "test",
               template: "test",
-              contentEntity: {
+              dataQuery: {
                 entityType: "site-content-preview",
                 template: "test",
                 query: { routeId: "home", sectionId: "test" },
@@ -200,7 +200,7 @@ describe("SiteBuilderPlugin", () => {
             {
               id: "missing",
               template: "non-existent",
-              contentEntity: {
+              dataQuery: {
                 entityType: "site-content-preview",
                 template: "non-existent",
               },
@@ -245,7 +245,7 @@ describe("SiteBuilderPlugin", () => {
             {
               id: "test",
               template: "test",
-              contentEntity: {
+              dataQuery: {
                 entityType: "site-content-preview",
                 template: "test",
               },

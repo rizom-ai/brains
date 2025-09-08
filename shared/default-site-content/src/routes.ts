@@ -20,7 +20,7 @@ export const routes = [
       {
         id: "footer",
         template: "footer",
-        contentEntity: {
+        dataQuery: {
           slot: "primary", // Query for primary navigation items
           // copyright will be undefined, letting the footer use its default
         },

@@ -241,12 +241,12 @@ export class SiteBuilder implements ISiteBuilder {
     const templateName = section.template;
 
     // Check if this section uses dynamic content (DataSource)
-    if (section.contentEntity) {
+    if (section.dataQuery) {
       // Use the context's resolveContent helper with DataSource params
       // DataSource will handle any necessary transformations internally
       const content = await this.context.resolveContent(templateName, {
         // Parameters for DataSource fetch
-        dataParams: section.contentEntity,
+        dataParams: section.dataQuery,
         // Static fallback content from section definition
         fallback: section.content,
       });

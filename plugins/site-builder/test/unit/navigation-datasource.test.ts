@@ -129,7 +129,7 @@ describe("NavigationDataSource", () => {
     routeRegistry.register({
       id: "secondary-item",
       path: "/secondary",
-      title: "Secondary Item", 
+      title: "Secondary Item",
       description: "Secondary navigation item",
       navigation: { show: true, slot: "secondary", priority: 10 },
       sections: [],
@@ -165,10 +165,7 @@ describe("NavigationDataSource", () => {
     }
 
     // Query with limit
-    const result = await dataSource.fetch(
-      { limit: 3 },
-      testNavigationSchema,
-    );
+    const result = await dataSource.fetch({ limit: 3 }, testNavigationSchema);
 
     expect(result.navigation).toHaveLength(3);
     expect(result.navigation[0]?.href).toBe("/item-1");

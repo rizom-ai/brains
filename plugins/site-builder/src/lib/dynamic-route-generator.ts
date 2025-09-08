@@ -65,7 +65,7 @@ export class DynamicRouteGenerator {
           {
             id: "list",
             template: listTemplateName,
-            contentEntity: {
+            dataQuery: {
               entityType,
               query: { limit: 100 }, // Reasonable default limit
             },
@@ -108,7 +108,7 @@ export class DynamicRouteGenerator {
               {
                 id: "detail",
                 template: detailTemplateName,
-                contentEntity: {
+                dataQuery: {
                   entityType,
                   query: { id: entity.id },
                 },

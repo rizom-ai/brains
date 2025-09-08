@@ -316,7 +316,7 @@ describe("PreactBuilder", () => {
             {
               id: "test",
               template: "test",
-              contentEntity: {
+              dataQuery: {
                 entityType: "site-content-preview",
                 template: "test",
                 query: { routeId: "landing", sectionId: "test" },
@@ -333,7 +333,7 @@ describe("PreactBuilder", () => {
       },
       getContent: async (_route, section) => {
         contentFetched = true;
-        expect(section.contentEntity).toBeDefined();
+        expect(section.dataQuery).toBeDefined();
         return mockContent;
       },
     };

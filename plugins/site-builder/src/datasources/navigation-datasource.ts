@@ -31,22 +31,17 @@ export class NavigationDataSource implements DataSource {
    * @param query - Query parameters for filtering navigation items
    * @param outputSchema - Schema for validating output format
    */
-  async fetch<T>(
-    query: unknown,
-    outputSchema: zType.ZodSchema<T>,
-  ): Promise<T> {
+  async fetch<T>(query: unknown, outputSchema: zType.ZodSchema<T>): Promise<T> {
     // Parse and validate query parameters
     const params = navigationQuerySchema.parse(query ?? {});
-    
+
     this.logger.debug("NavigationDataSource fetch called", { params });
 
     // Get navigation items for the specified slot
     const items = this.routeRegistry.getNavigationItems(params.slot);
 
     // Apply limit if specified
-    const limitedItems = params.limit 
-      ? items.slice(0, params.limit)
-      : items;
+    const limitedItems = params.limit ? items.slice(0, params.limit) : items;
 
     // Return navigation items array
     const navigationItems = limitedItems.map((item) => ({

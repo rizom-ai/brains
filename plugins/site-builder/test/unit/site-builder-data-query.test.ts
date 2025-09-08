@@ -5,7 +5,7 @@ import { createSilentLogger } from "@brains/utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
 
-describe("SiteBuilder contentEntity handling", () => {
+describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;
   let mockContext: Partial<ServicePluginContext>;
   let mockRouteRegistry: Partial<RouteRegistry>;
@@ -64,7 +64,7 @@ describe("SiteBuilder contentEntity handling", () => {
   });
 
   describe("getContentForSection", () => {
-    it("should use contentEntity params for dynamic content", async () => {
+    it("should use dataQuery params for dynamic content", async () => {
       const route: RouteDefinition = {
         id: "topics",
         path: "/topics",
@@ -74,7 +74,7 @@ describe("SiteBuilder contentEntity handling", () => {
           {
             id: "list",
             template: "topics:topic-list",
-            contentEntity: {
+            dataQuery: {
               entityType: "topic",
               query: { limit: 100 },
             },
@@ -125,7 +125,7 @@ describe("SiteBuilder contentEntity handling", () => {
           {
             id: "detail",
             template: "topics:topic-detail",
-            contentEntity: {
+            dataQuery: {
               entityType: "topic",
               query: { id: "test-topic" },
             },
@@ -169,7 +169,7 @@ describe("SiteBuilder contentEntity handling", () => {
       );
     });
 
-    it("should handle sections with static content and contentEntity", async () => {
+    it("should handle sections with static content and dataQuery", async () => {
       const route: RouteDefinition = {
         id: "mixed",
         path: "/mixed",
@@ -184,7 +184,7 @@ describe("SiteBuilder contentEntity handling", () => {
           {
             id: "dynamic",
             template: "topics:topic-list",
-            contentEntity: {
+            dataQuery: {
               entityType: "topic",
               query: { limit: 5 },
             },
@@ -228,7 +228,7 @@ describe("SiteBuilder contentEntity handling", () => {
         fallback: { title: "Static Hero" },
       });
 
-      // Verify dynamic content used contentEntity params
+      // Verify dynamic content used dataQuery params
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
         {
@@ -241,7 +241,7 @@ describe("SiteBuilder contentEntity handling", () => {
       );
     });
 
-    it("should handle contentEntity without query field", async () => {
+    it("should handle dataQuery without query field", async () => {
       const route: RouteDefinition = {
         id: "no-query",
         path: "/topics",
@@ -251,7 +251,7 @@ describe("SiteBuilder contentEntity handling", () => {
           {
             id: "list",
             template: "topics:topic-list",
-            contentEntity: {
+            dataQuery: {
               entityType: "topic",
               // No query field - should default to list format
             },
@@ -292,7 +292,7 @@ describe("SiteBuilder contentEntity handling", () => {
       );
     });
 
-    it("should handle contentEntity with additional query params", async () => {
+    it("should handle dataQuery with additional query params", async () => {
       const route: RouteDefinition = {
         id: "custom-query",
         path: "/topics/filtered",
@@ -302,7 +302,7 @@ describe("SiteBuilder contentEntity handling", () => {
           {
             id: "list",
             template: "topics:topic-list",
-            contentEntity: {
+            dataQuery: {
               entityType: "topic",
               query: {
                 limit: 10,

@@ -7,7 +7,7 @@ export const SectionDefinitionSchema = z.object({
   id: z.string(),
   template: z.string(), // Template name for rendering this section
   content: z.unknown().optional(), // Static content
-  contentEntity: z
+  dataQuery: z
     .object({
       entityType: z.string().optional(), // Entity type to fetch content from (for entity datasources)
       template: z.string().optional(), // Template for entity queries
@@ -29,7 +29,7 @@ export const SectionDefinitionSchema = z.object({
  * Navigation slot types
  */
 export const NavigationSlots = ["primary", "secondary"] as const;
-export type NavigationSlot = typeof NavigationSlots[number];
+export type NavigationSlot = (typeof NavigationSlots)[number];
 
 /**
  * Navigation metadata schema for route definitions

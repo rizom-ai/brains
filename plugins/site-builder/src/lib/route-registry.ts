@@ -1,4 +1,8 @@
-import type { RouteDefinition, NavigationItem, NavigationSlot } from "../types/routes";
+import type {
+  RouteDefinition,
+  NavigationItem,
+  NavigationSlot,
+} from "../types/routes";
 import { RouteDefinitionSchema } from "../types/routes";
 import type { Logger } from "@brains/utils";
 

@@ -238,7 +238,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
             {
               id: "recent-calculations",
               template: "calculation-history",
-              contentEntity: {
+              dataQuery: {
                 entityType: "calculation",
                 query: {
                   limit: 10,
