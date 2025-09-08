@@ -20,29 +20,31 @@ Add layout support to route definitions:
 - Default to "default" layout if not specified
 - Layouts wrap page content and provide consistent structure
 
-### 2. Default Layout Component
+### 2. Layout as Template Pattern
 
-Create `/shared/default-site-content/src/layouts/default/`:
+Create layouts using the existing template system:
 ```typescript
-interface DefaultLayoutProps {
-  children: JSX.Element | JSX.Element[]; // Page content sections
+// Layout is a template that receives:
+interface LayoutData {
+  sections: RenderedSection[]; // Pre-rendered content sections
   title: string;
   description: string;
 }
 
-// Layout includes:
-// - Page wrapper structure
-// - Automatic footer with navigation query
-// - Consistent styling and structure
+// Benefits:
+// - Layouts work like any other template
+// - Consistent with existing architecture
+// - Can use DataSources if needed
+// - Testable like other templates
 ```
 
 ### 3. PreactBuilder Modifications
 
-Update the builder to support layouts:
-- Separate content rendering from layout application
-- Render content sections
-- Apply layout wrapper around content
-- Layout handles footer internally with NavigationDataSource
+Simplified approach using template pattern:
+- Render content sections (footer removed from routes)
+- Pass sections to layout template
+- Layout template composes final page structure
+- No special layout logic in builder
 
 ### 4. Route Definition Updates
 
@@ -75,20 +77,28 @@ Simplify route definitions:
 2. Create layout type definitions
 3. Update route types
 
-### Phase 2: Layout Components
-1. Create layout component structure
-2. Implement DefaultLayout with footer
-3. Create layout registry/resolver
+### Phase 2: Create Layout Template
+1. Create layout as a template:
+   - Schema defines sections array and metadata
+   - Component composes sections and adds footer
+   - Register as template like any other
+2. Layout template internally:
+   - Renders content sections
+   - Adds footer with navigation data from DataSource
+   - Handles page structure
 
 ### Phase 3: Builder Integration
-1. Update PreactBuilder to detect layout
-2. Implement layout wrapping logic
-3. Ensure footer data resolution in layout
+1. Update PreactBuilder to:
+   - Render content sections (no footer in routes)
+   - Pass sections to layout template
+   - Layout template handles final composition
+2. Simple and clean - layout is just another template
 
 ### Phase 4: Migration
-1. Remove footer from existing routes
-2. Update dynamic route generator
-3. Test all routes with new layout system
+1. Remove footer from all route definitions
+2. Routes only define their actual content
+3. Footer automatically included via layout
+4. Test all routes with new layout system
 
 ## Benefits
 
