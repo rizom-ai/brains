@@ -55,32 +55,34 @@ describe("Site Builder Content Resolution", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(createTestConfig({
-      previewOutputDir: "/tmp/test-output",
-      workingDir: "/tmp/test-working",
-      templates: {
-        "static-template": staticTemplate,
-      },
-      routes: [
-        {
-          id: "test-page",
-          path: "/test",
-          title: "Test Page",
-          description: "Test page with static content",
-          layout: "default",
-          sections: [
-            {
-              id: "main",
-              template: "static-template",
-              content: {
-                title: "Static Title",
-                content: "This is static content",
-              },
-            },
-          ],
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        previewOutputDir: "/tmp/test-output",
+        workingDir: "/tmp/test-working",
+        templates: {
+          "static-template": staticTemplate,
         },
-      ],
-    }));
+        routes: [
+          {
+            id: "test-page",
+            path: "/test",
+            title: "Test Page",
+            description: "Test page with static content",
+            layout: "default",
+            sections: [
+              {
+                id: "main",
+                template: "static-template",
+                content: {
+                  title: "Static Title",
+                  content: "This is static content",
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    );
 
     const capabilities = await harness.installPlugin(plugin);
 
@@ -106,13 +108,15 @@ describe("Site Builder Content Resolution", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin(createTestConfig({
-      previewOutputDir: "/tmp/test-output",
-      workingDir: "/tmp/test-working",
-      templates: {
-        "datasource-template": dataSourceTemplate,
-      },
-    }));
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        previewOutputDir: "/tmp/test-output",
+        workingDir: "/tmp/test-working",
+        templates: {
+          "datasource-template": dataSourceTemplate,
+        },
+      }),
+    );
 
     await harness.installPlugin(plugin);
 
@@ -128,10 +132,12 @@ describe("Site Builder Content Resolution", () => {
   });
 
   it("should verify dashboard template references shell DataSource", async () => {
-    plugin = new SiteBuilderPlugin(createTestConfig({
-      previewOutputDir: "/tmp/test-output",
-      workingDir: "/tmp/test-working",
-    }));
+    plugin = new SiteBuilderPlugin(
+      createTestConfig({
+        previewOutputDir: "/tmp/test-output",
+        workingDir: "/tmp/test-working",
+      }),
+    );
 
     await harness.installPlugin(plugin);
 

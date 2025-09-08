@@ -46,7 +46,9 @@ export const siteBuilderConfigSchema = z.object({
     .array(RouteDefinitionSchema)
     .optional()
     .describe("Routes to register"),
-  layouts: z.record(z.any()).describe("Layout components (at least 'default' required)"),
+  layouts: z
+    .record(z.any())
+    .describe("Layout components (at least 'default' required)"),
 });
 
 export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {

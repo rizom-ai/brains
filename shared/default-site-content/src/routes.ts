@@ -17,14 +17,6 @@ export const routes = [
       { id: "features", template: "features" },
       { id: "products", template: "products" },
       { id: "cta", template: "cta" },
-      {
-        id: "footer",
-        template: "footer",
-        dataQuery: {
-          slot: "primary", // Query for primary navigation items
-          // copyright will be undefined, letting the footer use its default
-        },
-      },
     ],
   },
 ];

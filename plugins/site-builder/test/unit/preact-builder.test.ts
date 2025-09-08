@@ -93,7 +93,7 @@ describe("PreactBuilder", () => {
           path: "/",
           title: "Test Page",
           description: "Test Description",
-        layout: "default",
+          layout: "default",
           sections: [
             {
               id: "test-section",
@@ -177,7 +177,7 @@ describe("PreactBuilder", () => {
           path: "/about/team",
           title: "Team Page",
           description: "About our team",
-        layout: "default",
+          layout: "default",
           sections: [
             {
               id: "content",
@@ -242,7 +242,7 @@ describe("PreactBuilder", () => {
           path: "/",
           title: "Test",
           description: "Test",
-        layout: "default",
+          layout: "default",
           sections: [
             {
               id: "missing",
@@ -319,7 +319,7 @@ describe("PreactBuilder", () => {
           path: "/",
           title: "Test",
           description: "Test",
-        layout: "default",
+          layout: "default",
           sections: [
             {
               id: "test",

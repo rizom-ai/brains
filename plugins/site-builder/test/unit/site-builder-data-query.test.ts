@@ -71,7 +71,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics",
         title: "Topics",
         description: "All topics",
-          layout: "default",
+        layout: "default",
         sections: [
           {
             id: "list",
@@ -124,7 +124,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics/test-topic",
         title: "Test Topic",
         description: "Topic detail",
-          layout: "default",
+        layout: "default",
         sections: [
           {
             id: "detail",
@@ -180,7 +180,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/mixed",
         title: "Mixed Content",
         description: "Mixed content page",
-          layout: "default",
+        layout: "default",
         sections: [
           {
             id: "static",
@@ -254,7 +254,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics",
         title: "Topics",
         description: "All topics",
-          layout: "default",
+        layout: "default",
         sections: [
           {
             id: "list",
@@ -307,7 +307,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics/filtered",
         title: "Filtered Topics",
         description: "Filtered topics",
-          layout: "default",
+        layout: "default",
         sections: [
           {
             id: "list",

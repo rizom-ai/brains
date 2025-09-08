@@ -99,25 +99,31 @@ export class PreactBuilder implements StaticSiteBuilder {
     this.logger.debug(`Building route: ${route.path}`);
 
     // Create section components (filter out footer - it will be in layout)
-    const contentSections = route.sections.filter(s => s.template !== "footer");
-    const sectionComponents = await this.createSectionComponents(route, contentSections, context);
+    const contentSections = route.sections.filter(
+      (s) => s.template !== "footer",
+    );
+    const sectionComponents = await this.createSectionComponents(
+      route,
+      contentSections,
+      context,
+    );
 
     // Get the layout component (guaranteed to exist)
     const layoutName = route.layout || "default";
     const LayoutComponent = context.layouts[layoutName];
-    
+
     if (!LayoutComponent) {
       this.logger.error(`Layout not found: ${layoutName}`);
       throw new Error(`Layout not found: ${layoutName}`);
     }
-    
+
     // Use layout to compose the page with JSX sections
     const layoutProps = {
       sections: sectionComponents,
       title: route.title,
       description: route.description,
     };
-    
+
     const layoutVNode = LayoutComponent(layoutProps);
     const layoutHtml = render(layoutVNode);
 
@@ -186,11 +192,12 @@ export class PreactBuilder implements StaticSiteBuilder {
         );
 
         sectionComponents.push(component);
-        this.logger.debug(
-          `Created component for section ${section.id}`,
-        );
+        this.logger.debug(`Created component for section ${section.id}`);
       } catch (error) {
-        this.logger.error(`Failed to create section component ${section.id}:`, error);
+        this.logger.error(
+          `Failed to create section component ${section.id}:`,
+          error,
+        );
       }
     }
 

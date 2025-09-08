@@ -11,16 +11,18 @@ export const TestLayout: LayoutComponent = ({ sections }) => {
 /**
  * Create a test config with minimal required fields
  */
-export function createTestConfig(overrides?: Partial<SiteBuilderConfig>): SiteBuilderConfig {
+export function createTestConfig(
+  overrides?: Partial<SiteBuilderConfig>,
+): SiteBuilderConfig {
   const defaultConfig: SiteBuilderConfig = {
     previewOutputDir: "./dist/site-preview",
-    productionOutputDir: "./dist/site-production", 
+    productionOutputDir: "./dist/site-production",
     workingDir: "./.preact-work",
     layouts: {
       default: TestLayout,
     },
   };
-  
+
   return {
     ...defaultConfig,
     ...overrides,
