@@ -52,6 +52,7 @@ export const RouteDefinitionSchema = z.object({
   title: z.string(), // Route title
   description: z.string(), // Route description
   sections: z.array(SectionDefinitionSchema), // Page sections
+  layout: z.string().default("default"), // Layout to use for this route
   pluginId: z.string().optional(), // Plugin that registered this route
   sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
   navigation: NavigationMetadataSchema, // Optional navigation metadata

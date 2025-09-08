@@ -14,6 +14,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { h, type VNode } from "preact";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
+import { TestLayout } from "../test-helpers";
 
 describe("PreactBuilder", () => {
   let testDir: string;
@@ -92,6 +93,7 @@ describe("PreactBuilder", () => {
           path: "/",
           title: "Test Page",
           description: "Test Description",
+        layout: "default",
           sections: [
             {
               id: "test-section",
@@ -108,6 +110,7 @@ describe("PreactBuilder", () => {
         description: "Test Site Description",
       },
       getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
     };
 
     await builder.build(buildContext, () => {});
@@ -174,6 +177,7 @@ describe("PreactBuilder", () => {
           path: "/about/team",
           title: "Team Page",
           description: "About our team",
+        layout: "default",
           sections: [
             {
               id: "content",
@@ -190,6 +194,7 @@ describe("PreactBuilder", () => {
         description: "Test",
       },
       getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
     };
 
     await builder.build(buildContext, () => {});
@@ -237,6 +242,7 @@ describe("PreactBuilder", () => {
           path: "/",
           title: "Test",
           description: "Test",
+        layout: "default",
           sections: [
             {
               id: "missing",
@@ -253,6 +259,7 @@ describe("PreactBuilder", () => {
         description: "Test",
       },
       getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
     };
 
     // Should not throw
@@ -312,6 +319,7 @@ describe("PreactBuilder", () => {
           path: "/",
           title: "Test",
           description: "Test",
+        layout: "default",
           sections: [
             {
               id: "test",
@@ -336,6 +344,7 @@ describe("PreactBuilder", () => {
         expect(section.dataQuery).toBeDefined();
         return mockContent;
       },
+      layouts: { default: TestLayout },
     };
 
     await builder.build(buildContext, () => {});

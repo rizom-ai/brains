@@ -55,6 +55,7 @@ export class DynamicRouteGenerator {
         path: `/${this.pluralize(entityType)}`,
         title: `${this.capitalize(entityType)}s`,
         description: `Browse all ${this.pluralize(entityType)}`,
+        layout: "default",
         navigation: {
           show: true,
           label: `${this.capitalize(entityType)}s`,
@@ -104,6 +105,7 @@ export class DynamicRouteGenerator {
             path: `/${this.pluralize(entityType)}/${entity.id}`,
             title: `${this.capitalize(entityType)}: ${entity.id}`,
             description: `View ${entityType} details`,
+            layout: "default",
             sections: [
               {
                 id: "detail",

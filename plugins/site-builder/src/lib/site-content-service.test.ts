@@ -30,6 +30,7 @@ describe("SiteContentService", () => {
       path: "/",
       title: "Home",
       description: "Landing page",
+      layout: "default",
       sections: [
         { id: "hero", template: "site-builder:hero" },
         { id: "features", template: "site-builder:features" },
@@ -42,6 +43,7 @@ describe("SiteContentService", () => {
       path: "/about",
       title: "About",
       description: "About us page",
+      layout: "default",
       sections: [{ id: "main", template: "site-builder:content" }],
       pluginId: "site-builder",
     });

@@ -8,6 +8,7 @@ import type { RouteDefinition } from "../types/routes";
 import type { Logger } from "@brains/plugins";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
+import type { ComponentChildren } from "preact";
 import { join } from "path";
 import { promises as fs } from "fs";
 import { HydrationManager } from "../hydration/hydration-manager";
@@ -97,14 +98,34 @@ export class PreactBuilder implements StaticSiteBuilder {
   ): Promise<void> {
     this.logger.debug(`Building route: ${route.path}`);
 
-    // Render sections
-    const sections = await this.renderSections(route, route.sections, context);
+    // Create section components (filter out footer - it will be in layout)
+    const contentSections = route.sections.filter(s => s.template !== "footer");
+    const sectionComponents = await this.createSectionComponents(route, contentSections, context);
+
+    // Get the layout component (guaranteed to exist)
+    const layoutName = route.layout || "default";
+    const LayoutComponent = context.layouts[layoutName];
+    
+    if (!LayoutComponent) {
+      this.logger.error(`Layout not found: ${layoutName}`);
+      throw new Error(`Layout not found: ${layoutName}`);
+    }
+    
+    // Use layout to compose the page with JSX sections
+    const layoutProps = {
+      sections: sectionComponents,
+      title: route.title,
+      description: route.description,
+    };
+    
+    const layoutVNode = LayoutComponent(layoutProps);
+    const layoutHtml = render(layoutVNode);
 
     // Create full HTML page
     const html = this.createHTMLPage({
       title: route.title,
       description: route.description,
-      content: sections.join("\n"),
+      content: layoutHtml,
     });
 
     // Determine output path
@@ -121,12 +142,12 @@ export class PreactBuilder implements StaticSiteBuilder {
     await fs.writeFile(fullPath, html, "utf-8");
   }
 
-  private async renderSections(
+  private async createSectionComponents(
     route: RouteDefinition,
     sections: RouteDefinition["sections"],
     context: BuildContext,
-  ): Promise<string[]> {
-    const renderedSections: string[] = [];
+  ): Promise<ComponentChildren[]> {
+    const sectionComponents: ComponentChildren[] = [];
 
     for (const section of sections) {
       const template = context.getViewTemplate(section.template);
@@ -164,18 +185,16 @@ export class PreactBuilder implements StaticSiteBuilder {
           validatedContent as Record<string, unknown>,
         );
 
-        const html = render(component);
+        sectionComponents.push(component);
         this.logger.debug(
-          `Rendered HTML length for ${section.id}: ${html.length}`,
+          `Created component for section ${section.id}`,
         );
-
-        renderedSections.push(html);
       } catch (error) {
-        this.logger.error(`Failed to render section ${section.id}:`, error);
+        this.logger.error(`Failed to create section component ${section.id}:`, error);
       }
     }
 
-    return renderedSections;
+    return sectionComponents;
   }
 
   private createHTMLPage(options: {

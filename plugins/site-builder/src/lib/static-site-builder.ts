@@ -5,6 +5,7 @@ import type {
 } from "@brains/plugins";
 import type { RouteDefinition } from "../types/routes";
 import type { CSSProcessor } from "../css/css-processor";
+import type { LayoutComponent } from "../config";
 
 /**
  * Build context passed to static site builders
@@ -22,6 +23,7 @@ export interface BuildContext {
     section: RouteDefinition["sections"][0],
   ) => Promise<unknown>;
   getViewTemplate: (name: string) => ViewTemplate | undefined;
+  layouts: Record<string, LayoutComponent>;
 }
 
 /**

@@ -5,6 +5,7 @@ import type { PluginCapabilities } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
 import { h } from "preact";
+import { createTestConfig } from "../test-helpers";
 
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
@@ -20,21 +21,21 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should initialize with valid config", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
       workingDir: "/tmp/test-working",
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
     expect(plugin.id).toBe("site-builder");
   });
 
   it("should register successfully and provide capabilities", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 
@@ -62,13 +63,13 @@ describe("SiteBuilderPlugin", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
       templates: {
         "test-template": testTemplate,
       },
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 
@@ -81,7 +82,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should provide list_routes tool that shows configured routes", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
       routes: [
@@ -90,10 +91,11 @@ describe("SiteBuilderPlugin", () => {
           path: "/test",
           title: "Test Page",
           description: "Test Description",
+          layout: "default",
           sections: [{ id: "section1", template: "test" }],
         },
       ],
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 
@@ -119,10 +121,10 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should provide site builder tools", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 
@@ -151,7 +153,7 @@ describe("SiteBuilderPlugin", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
       templates: { test: testTemplate },
@@ -161,6 +163,7 @@ describe("SiteBuilderPlugin", () => {
           path: "/",
           title: "Home",
           description: "Home page",
+          layout: "default",
           sections: [
             {
               id: "test",
@@ -174,7 +177,7 @@ describe("SiteBuilderPlugin", () => {
           ],
         },
       ],
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 
@@ -187,7 +190,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should handle missing templates gracefully", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
       routes: [
@@ -196,6 +199,7 @@ describe("SiteBuilderPlugin", () => {
           path: "/",
           title: "Home",
           description: "Home page",
+          layout: "default",
           sections: [
             {
               id: "missing",
@@ -208,7 +212,7 @@ describe("SiteBuilderPlugin", () => {
           ],
         },
       ],
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 
@@ -232,7 +236,7 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("should set environment on routes", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       productionOutputDir: "/tmp/test-output-production",
       routes: [
@@ -241,6 +245,7 @@ describe("SiteBuilderPlugin", () => {
           path: "/",
           title: "Home",
           description: "Home page",
+          layout: "default",
           sections: [
             {
               id: "test",
@@ -253,7 +258,7 @@ describe("SiteBuilderPlugin", () => {
           ],
         },
       ],
-    });
+    }));
 
     capabilities = await harness.installPlugin(plugin);
 

@@ -4,6 +4,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import { createSilentLogger } from "@brains/utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
+import { TestLayout } from "../test-helpers";
 
 describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;
@@ -70,6 +71,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics",
         title: "Topics",
         description: "All topics",
+          layout: "default",
         sections: [
           {
             id: "list",
@@ -100,6 +102,7 @@ describe("SiteBuilder dataQuery handling", () => {
           title: "Test Site",
           description: "Test Description",
         },
+        layouts: { default: TestLayout },
       });
 
       // Verify resolveContent was called with correct params (no transformFormat)
@@ -121,6 +124,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics/test-topic",
         title: "Test Topic",
         description: "Topic detail",
+          layout: "default",
         sections: [
           {
             id: "detail",
@@ -151,6 +155,7 @@ describe("SiteBuilder dataQuery handling", () => {
             title: "Test Site",
             description: "Test Description",
           },
+          layouts: { default: TestLayout },
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution
@@ -175,6 +180,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/mixed",
         title: "Mixed Content",
         description: "Mixed content page",
+          layout: "default",
         sections: [
           {
             id: "static",
@@ -214,6 +220,7 @@ describe("SiteBuilder dataQuery handling", () => {
             title: "Test Site",
             description: "Test Description",
           },
+          layouts: { default: TestLayout },
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution
@@ -247,6 +254,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics",
         title: "Topics",
         description: "All topics",
+          layout: "default",
         sections: [
           {
             id: "list",
@@ -275,6 +283,7 @@ describe("SiteBuilder dataQuery handling", () => {
             title: "Test Site",
             description: "Test Description",
           },
+          layouts: { default: TestLayout },
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution
@@ -298,6 +307,7 @@ describe("SiteBuilder dataQuery handling", () => {
         path: "/topics/filtered",
         title: "Filtered Topics",
         description: "Filtered topics",
+          layout: "default",
         sections: [
           {
             id: "list",
@@ -331,6 +341,7 @@ describe("SiteBuilder dataQuery handling", () => {
             title: "Test Site",
             description: "Test Description",
           },
+          layouts: { default: TestLayout },
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution

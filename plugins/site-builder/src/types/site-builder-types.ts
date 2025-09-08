@@ -1,5 +1,6 @@
 import { z } from "@brains/utils";
 import type { ProgressCallback } from "@brains/plugins";
+import type { LayoutComponent } from "../config";
 
 /**
  * Site builder options schema
@@ -15,9 +16,13 @@ export const SiteBuilderOptionsSchema = z.object({
     description: z.string(),
     url: z.string().optional(),
   }),
+  layouts: z.record(z.any()),
 });
 
-export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema>;
+export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema> & {
+  // Override layouts type
+  layouts: Record<string, LayoutComponent>;
+};
 
 /**
  * Build result schema

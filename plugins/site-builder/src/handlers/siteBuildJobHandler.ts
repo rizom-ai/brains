@@ -1,6 +1,7 @@
 import type { JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
 import type { SiteBuilder } from "../lib/site-builder";
+import type { LayoutComponent } from "../config";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
@@ -16,6 +17,7 @@ export class SiteBuildJobHandler
   constructor(
     private logger: Logger,
     private siteBuilder: SiteBuilder,
+    private layouts: Record<string, LayoutComponent>,
   ) {}
 
   async process(
@@ -57,6 +59,7 @@ export class SiteBuildJobHandler
             title: "Personal Brain",
             description: "A knowledge management system",
           },
+          layouts: this.layouts,
         },
         buildProgressReporter.toCallback(),
       );

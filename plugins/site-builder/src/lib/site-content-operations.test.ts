@@ -30,6 +30,7 @@ describe("SiteContentOperations", () => {
       path: "/",
       title: "Home",
       description: "Landing page",
+      layout: "default",
       sections: [
         { id: "hero", template: "site-builder:hero" },
         { id: "features", template: "site-builder:features" },
@@ -42,6 +43,7 @@ describe("SiteContentOperations", () => {
       path: "/about",
       title: "About",
       description: "About us page",
+      layout: "default",
       sections: [{ id: "main", template: "site-builder:content" }],
       pluginId: "site-builder",
     });
@@ -51,6 +53,7 @@ describe("SiteContentOperations", () => {
       path: "/dashboard",
       title: "System Dashboard",
       description: "Monitor your Brain system statistics and activity",
+      layout: "default",
       sections: [{ id: "main", template: "site-builder:dashboard" }],
       pluginId: "site-builder",
     });
@@ -328,6 +331,7 @@ describe("SiteContentOperations", () => {
         path: "/static",
         title: "Static Page",
         description: "Page with static content",
+        layout: "default",
         sections: [
           {
             id: "static-section",

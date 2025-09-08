@@ -31,6 +31,7 @@ describe("NavigationDataSource", () => {
       path: "/",
       title: "Home",
       description: "Home page",
+      layout: "default",
       navigation: {
         show: true,
         label: "Home",
@@ -45,6 +46,7 @@ describe("NavigationDataSource", () => {
       path: "/links",
       title: "Links",
       description: "Links page",
+      layout: "default",
       navigation: {
         show: true,
         slot: "primary",
@@ -74,6 +76,7 @@ describe("NavigationDataSource", () => {
       path: "/public",
       title: "Public",
       description: "Public page",
+      layout: "default",
       navigation: {
         show: true,
         slot: "primary",
@@ -87,6 +90,7 @@ describe("NavigationDataSource", () => {
       path: "/private",
       title: "Private",
       description: "Private page",
+      layout: "default",
       navigation: {
         show: false, // This route should not appear
         slot: "primary",
@@ -100,6 +104,7 @@ describe("NavigationDataSource", () => {
       path: "/no-nav",
       title: "No Nav",
       description: "Page without navigation",
+      layout: "default",
       sections: [], // No navigation property at all
     };
 
@@ -122,6 +127,7 @@ describe("NavigationDataSource", () => {
       path: "/primary",
       title: "Primary Item",
       description: "Primary navigation item",
+      layout: "default",
       navigation: { show: true, slot: "primary", priority: 10 },
       sections: [],
     });
@@ -131,6 +137,7 @@ describe("NavigationDataSource", () => {
       path: "/secondary",
       title: "Secondary Item",
       description: "Secondary navigation item",
+      layout: "default",
       navigation: { show: true, slot: "secondary", priority: 10 },
       sections: [],
     });
@@ -159,6 +166,7 @@ describe("NavigationDataSource", () => {
         path: `/item-${i}`,
         title: `Item ${i}`,
         description: `Navigation item ${i}`,
+        layout: "default",
         navigation: { show: true, slot: "primary", priority: i * 10 },
         sections: [],
       });
@@ -180,6 +188,7 @@ describe("NavigationDataSource", () => {
       path: "/third",
       title: "Third",
       description: "Third page",
+      layout: "default",
       navigation: { show: true, slot: "primary", priority: 30 },
       sections: [],
     });
@@ -189,6 +198,7 @@ describe("NavigationDataSource", () => {
       path: "/first",
       title: "First",
       description: "First page",
+      layout: "default",
       navigation: { show: true, slot: "primary", priority: 10 },
       sections: [],
     });
@@ -198,6 +208,7 @@ describe("NavigationDataSource", () => {
       path: "/second",
       title: "Second",
       description: "Second page",
+      layout: "default",
       navigation: { show: true, slot: "primary", priority: 20 },
       sections: [],
     });

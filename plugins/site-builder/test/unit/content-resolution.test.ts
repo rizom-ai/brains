@@ -5,6 +5,7 @@ import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
 import { h } from "preact";
 import type { DataSource } from "@brains/datasource";
+import { createTestConfig } from "../test-helpers";
 
 // Test schemas
 const TestDataSchema = z.object({
@@ -54,7 +55,7 @@ describe("Site Builder Content Resolution", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       workingDir: "/tmp/test-working",
       templates: {
@@ -66,6 +67,7 @@ describe("Site Builder Content Resolution", () => {
           path: "/test",
           title: "Test Page",
           description: "Test page with static content",
+          layout: "default",
           sections: [
             {
               id: "main",
@@ -78,7 +80,7 @@ describe("Site Builder Content Resolution", () => {
           ],
         },
       ],
-    });
+    }));
 
     const capabilities = await harness.installPlugin(plugin);
 
@@ -104,13 +106,13 @@ describe("Site Builder Content Resolution", () => {
       },
     });
 
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       workingDir: "/tmp/test-working",
       templates: {
         "datasource-template": dataSourceTemplate,
       },
-    });
+    }));
 
     await harness.installPlugin(plugin);
 
@@ -126,10 +128,10 @@ describe("Site Builder Content Resolution", () => {
   });
 
   it("should verify dashboard template references shell DataSource", async () => {
-    plugin = new SiteBuilderPlugin({
+    plugin = new SiteBuilderPlugin(createTestConfig({
       previewOutputDir: "/tmp/test-output",
       workingDir: "/tmp/test-working",
-    });
+    }));
 
     await harness.installPlugin(plugin);
 

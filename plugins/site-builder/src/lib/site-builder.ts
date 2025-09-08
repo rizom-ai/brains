@@ -167,6 +167,7 @@ export class SiteBuilder implements ISiteBuilder {
         getViewTemplate: (name: string) => {
           return this.context.getViewTemplate(name);
         },
+        layouts: options.layouts,
       };
 
       // Run static site build

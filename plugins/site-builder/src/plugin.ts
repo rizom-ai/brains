@@ -23,7 +23,7 @@ import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import { createSiteBuilderTools } from "./tools";
 import { createSiteBuilderCommands } from "./commands";
-import type { SiteBuilderConfig } from "./config";
+import type { SiteBuilderConfig, LayoutComponent } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 import packageJson from "../package.json";
 
@@ -36,6 +36,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteContentService?: SiteContentService;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
+  private layouts: Record<string, LayoutComponent>;
 
   /**
    * Get the route registry, throwing if not initialized
@@ -47,8 +48,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     return this._routeRegistry;
   }
 
-  constructor(config: Partial<SiteBuilderConfig> = {}) {
+  constructor(config: SiteBuilderConfig) {
     super("site-builder", packageJson, config, siteBuilderConfigSchema);
+    // Store layouts from config (required)
+    this.layouts = config.layouts;
   }
 
   /**
@@ -91,6 +94,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       path: "/dashboard",
       title: "System Dashboard",
       description: "Monitor your Brain system statistics and activity",
+      layout: "default",
       sections: [
         {
           id: "main",
@@ -144,6 +148,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     const siteBuildHandler = new SiteBuildJobHandler(
       this.logger.child("SiteBuildJobHandler"),
       this.siteBuilder,
+      this.layouts,
     );
     context.registerJobHandler("site-build", siteBuildHandler);
     this.logger.debug("Registered site-build job handler");
@@ -293,6 +298,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 /**
  * Factory function to create the plugin
  */
-export function siteBuilderPlugin(config?: Partial<SiteBuilderConfig>): Plugin {
+export function siteBuilderPlugin(config: SiteBuilderConfig): Plugin {
   return new SiteBuilderPlugin(config);
 }

@@ -18,6 +18,7 @@ describe("RouteRegistry", () => {
         path: "/test",
         title: "Test",
         description: "Test route",
+        layout: "default",
         sections: [],
       };
 
@@ -34,6 +35,7 @@ describe("RouteRegistry", () => {
           path: "/",
           title: "Home",
           description: "Home page",
+          layout: "default",
           navigation: {
             show: true,
             label: "Home",
@@ -47,6 +49,7 @@ describe("RouteRegistry", () => {
           path: "/about",
           title: "About Us",
           description: "About page",
+          layout: "default",
           navigation: {
             show: true,
             slot: "primary",
@@ -59,6 +62,7 @@ describe("RouteRegistry", () => {
           path: "/hidden",
           title: "Hidden Page",
           description: "Not in nav",
+          layout: "default",
           navigation: {
             show: false,
             slot: "primary",
@@ -91,6 +95,7 @@ describe("RouteRegistry", () => {
           path: "/third",
           title: "Third",
           description: "Third page",
+          layout: "default",
           navigation: {
             show: true,
             slot: "primary",
@@ -103,6 +108,7 @@ describe("RouteRegistry", () => {
           path: "/first",
           title: "First",
           description: "First page",
+          layout: "default",
           navigation: {
             show: true,
             slot: "primary",
@@ -115,6 +121,7 @@ describe("RouteRegistry", () => {
           path: "/second",
           title: "Second",
           description: "Second page",
+          layout: "default",
           navigation: {
             show: true,
             slot: "primary",
@@ -140,6 +147,7 @@ describe("RouteRegistry", () => {
           path: "/main",
           title: "Main Item",
           description: "In main nav",
+          layout: "default",
           navigation: {
             show: true,
             slot: "primary",
@@ -153,6 +161,7 @@ describe("RouteRegistry", () => {
         //   path: "/other",
         //   title: "Other Item",
         //   description: "In other nav",
+        //   layout: "default",
         //   navigation: {
         //     show: true,
         //     slot: "sidebar",
@@ -175,6 +184,7 @@ describe("RouteRegistry", () => {
         path: "/test",
         title: "Test",
         description: "Test page",
+        layout: "default",
         navigation: {
           show: true,
           slot: "primary" as const,
