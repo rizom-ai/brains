@@ -299,3 +299,107 @@ After analysis, the cleanest approach is to **not implement a layout system**:
 5. **No coupling issues** - Current architecture maintains clean boundaries
 
 The layout system creates more problems than it solves. The minor duplication of footer sections is a reasonable trade-off for architectural simplicity.
+
+## Update: Layout System Implementation Complete
+
+After further discussion, we successfully implemented a configuration-based layout system:
+
+### Implemented Solution
+
+1. **Layouts as Configuration**: Layouts are passed to the plugin as Preact components, similar to templates
+2. **Required Layout Field**: Routes now have a required `layout` field (defaults to "default")
+3. **Footer in Layout**: Footer is hardcoded in the DefaultLayout for now
+4. **Clean Separation**: Layouts live in default-site-content, passed via configuration
+
+### Current Implementation Status
+
+✅ Layout system working with JSX sections
+✅ Footer included in DefaultLayout
+✅ All tests passing
+✅ Footer removed from route definitions
+
+### Next Evolution: SiteInfoDataSource
+
+To make the footer (and future header) dynamic, we should evolve from NavigationDataSource to a more comprehensive SiteInfoDataSource:
+
+#### Problems with Current Approach
+
+1. **NavigationDataSource is Limited**: Only provides navigation items
+2. **Site Config Scattered**: Title, description in BuildContext; navigation in DataSource
+3. **Footer Data Hardcoded**: Navigation items hardcoded in DefaultLayout
+4. **No Central Source of Truth**: Site-wide information spread across multiple places
+
+#### Proposed SiteInfoDataSource
+
+Create a unified DataSource that provides all site-wide information:
+
+```typescript
+// Site info structure
+interface SiteInfo {
+  // Core metadata
+  title: string;
+  description: string;
+  url?: string;
+  
+  // Navigation for different slots
+  navigation: {
+    primary: NavigationItem[];
+    footer: NavigationItem[];
+  };
+  
+  // Site-wide content
+  copyright?: string;
+  
+  // Future expansions
+  social?: {
+    twitter?: string;
+    github?: string;
+    linkedin?: string;
+  };
+}
+```
+
+#### Implementation Strategy
+
+1. **Create SiteInfoDataSource**
+   - Consolidates RouteRegistry navigation data
+   - Includes site configuration from plugin config
+   - Single source of truth for site-wide data
+
+2. **Update BuildContext**
+   - Add `getSiteInfo()` method to fetch site information
+   - Cache result for performance
+
+3. **Update Layout Props**
+   - Pass `siteInfo` to layouts alongside sections
+   - Layouts can access any site-wide data they need
+
+4. **Update PreactBuilder**
+   - Fetch site info once per build
+   - Pass to all layouts consistently
+
+5. **Update DefaultLayout**
+   - Use `siteInfo.navigation.footer` instead of hardcoded values
+   - Use `siteInfo.copyright` if available
+
+#### Benefits
+
+- **Single Source of Truth**: All site-wide data in one place
+- **Extensible**: Easy to add new site-wide features
+- **Consistent**: Same data available to all layouts
+- **Dynamic**: Footer/header navigation from route registry
+- **Maintainable**: Clear separation of concerns
+
+#### Migration Path
+
+1. Create SiteInfoDataSource alongside NavigationDataSource
+2. Update layouts to accept and use siteInfo
+3. Gradually migrate features to use SiteInfoDataSource
+4. Remove NavigationDataSource once fully migrated
+
+### Future Considerations
+
+- **Header Component**: Add to layout with primary navigation
+- **SEO Management**: Use Helmet or similar for meta tags
+- **Multiple Layouts**: Support different layouts for different page types
+- **Theme Support**: Pass theme configuration through siteInfo
