@@ -225,3 +225,77 @@ Instead of treating layouts as templates, handle them as a composition layer:
 - Layout changes apply globally
 - System is extensible for future layouts
 - No breaking changes to existing functionality
+
+## Final Architecture Analysis
+
+### Dependency Issues
+
+The core challenge is avoiding circular dependencies:
+
+- site-builder cannot depend on default-site-content
+- default-site-content is passed TO site-builder as configuration
+- Layouts need to be decoupled from both
+
+### Options Considered
+
+1. **Layouts as Templates**
+   - ❌ Breaks template pattern (templates receive data, not HTML)
+   - ❌ Complex data flow mixing HTML and data
+   - ❌ DataSource integration is convoluted
+
+2. **Layouts in BuildContext**
+   - ❌ Couples layout implementation to build process
+   - ❌ Not extensible or configurable
+
+3. **Layouts as Configuration**
+   - ✅ Similar to how templates are passed
+   - ✅ Clean separation of concerns
+   - ❌ Still requires site-builder to understand layout concept
+   - ❌ Creates coupling in app configuration
+
+4. **No Layout System (Status Quo)**
+   - ✅ Simple and explicit
+   - ✅ No architectural changes needed
+   - ✅ Footer duplication is minor (one line per route)
+   - ❌ Some duplication remains
+
+### How Configuration-Based Layouts Would Work
+
+```typescript
+// In brain.config.ts
+import { DefaultLayout } from "@brains/default-site-content/layouts";
+
+siteBuilderPlugin({
+  templates,
+  routes,
+  layouts: {
+    default: DefaultLayout,
+    minimal: MinimalLayout, // Could have different layouts
+  },
+});
+```
+
+**Flow:**
+
+1. DefaultLayout lives in default-site-content as a Preact component
+2. Brain app imports and passes it to siteBuilderPlugin
+3. PreactBuilder receives layouts through configuration
+4. When building: fetch footer data, pass sections + data to layout
+
+**Problems:**
+
+- Brain app must import from default-site-content (coupling)
+- PreactBuilder needs to understand footer data structure
+- Type safety is challenging across package boundaries
+
+### Recommendation: Keep Current Architecture
+
+After analysis, the cleanest approach is to **not implement a layout system**:
+
+1. **Current system works well** - Footer as a section is explicit and clear
+2. **Duplication is minimal** - One line per route is acceptable
+3. **Explicit > Implicit** - Developers can see exactly what's on each page
+4. **Avoid over-engineering** - Complex abstractions for minor benefit
+5. **No coupling issues** - Current architecture maintains clean boundaries
+
+The layout system creates more problems than it solves. The minor duplication of footer sections is a reasonable trade-off for architectural simplicity.
