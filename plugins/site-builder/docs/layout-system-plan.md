@@ -176,6 +176,48 @@ During implementation, discovered important architectural distinction:
 - Need to resolve layout data flow (how footer data gets to layout)
 - Consider whether layout should be special-cased or follow standard template pattern
 
+## Revised Assessment
+
+### Critical Issues with Template-Based Approach
+
+1. **Data Flow Complexity**
+   - Layouts need BOTH rendered sections AND footer data
+   - Current DataSource pattern expects single data type
+   - Mixing pre-rendered HTML with data fetching creates architectural mismatch
+
+2. **Template Pattern Mismatch**
+   - Templates are designed to receive data and render it
+   - Layouts need to receive already-rendered HTML sections
+   - This breaks the standard template → component flow
+
+3. **DataSource Integration Challenge**
+   - NavigationDataSource returns `{ navigation: [...] }`
+   - Footer needs `{ navigation: [...], copyright: string }`
+   - Layout needs `{ sections: string[], title, description, footer: {...} }`
+   - No clean way to compose this data without special-casing
+
+### Recommended Approach: Composition in PreactBuilder
+
+Instead of treating layouts as templates, handle them as a composition layer:
+
+1. **Keep it Simple**
+   - Don't make layouts templates
+   - Handle layout composition directly in PreactBuilder
+   - Layouts are just Preact components that compose sections
+
+2. **Clean Data Flow**
+   - PreactBuilder renders content sections → HTML strings
+   - PreactBuilder fetches footer data via NavigationDataSource
+   - PreactBuilder passes both to layout component
+   - Layout component renders complete page
+
+3. **Benefits**
+   - Cleaner separation of concerns
+   - No architectural violations
+   - Simpler implementation
+   - Easier to test
+   - More flexible for future layouts
+
 ## Success Criteria
 
 - All pages have footer without manual addition
