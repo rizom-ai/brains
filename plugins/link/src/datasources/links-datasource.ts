@@ -2,7 +2,6 @@ import type { DataSource } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
-import { linkSchema } from "../schemas/link";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -33,24 +32,17 @@ export class LinksDataSource implements DataSource {
   }
 
   /**
-   * Fetch raw link entities based on query
-   * Returns validated entity or entity array
+   * Fetch and transform link entities to template-ready format
+   * Currently only supports list view (no detail page for links)
    */
-  async fetch<T>(query: unknown): Promise<T> {
+  async fetch<T>(query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
+    const adapter = new LinkAdapter();
 
     if (params.query?.id) {
-      // Fetch single entity
-      const entity = await this.entityService.getEntity(
-        params.entityType,
-        params.query.id,
-      );
-
-      if (!entity) {
-        throw new Error(`Entity not found: ${params.query.id}`);
-      }
-      return entity as T;
+      // Links don't have a detail view currently
+      throw new Error("Link detail view not implemented");
     }
 
     // Fetch entity list
@@ -67,55 +59,35 @@ export class LinksDataSource implements DataSource {
       listOptions,
     );
 
-    return entities as T;
-  }
+    // Transform to LinkListData
+    const links = entities.map((entity) => {
+      const parsed = adapter.parseLinkBody(entity.content);
+      return {
+        id: entity.id,
+        title: parsed.title,
+        url: parsed.url,
+        description: parsed.description,
+        summary: parsed.summary,
+        keywords: parsed.keywords,
+        domain: parsed.domain,
+        capturedAt: parsed.capturedAt,
+        conversationId: entity.metadata?.["conversationId"] as
+          | string
+          | undefined,
+      };
+    });
 
-  /**
-   * Transform entities to template format
-   * @param content - Raw entities from fetch
-   * @param format - "list" format for now (no detail page)
-   * @param schema - Target schema for validation
-   */
-  async transform<T>(
-    content: unknown,
-    format: string,
-    schema: z.ZodSchema<T>,
-  ): Promise<T> {
-    const adapter = new LinkAdapter();
+    // Sort by captured date, newest first
+    links.sort(
+      (a, b) =>
+        new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime(),
+    );
 
-    if (format === "list") {
-      // Transform entity array to LinkListData
-      const entities = z.array(linkSchema).parse(content);
+    const listData = {
+      links,
+      totalCount: links.length,
+    };
 
-      const links = entities.map((entity) => {
-        const parsed = adapter.parseLinkBody(entity.content);
-        return {
-          id: entity.id,
-          title: parsed.title,
-          url: parsed.url,
-          description: parsed.description,
-          summary: parsed.summary,
-          keywords: parsed.keywords,
-          domain: parsed.domain,
-          capturedAt: parsed.capturedAt,
-          conversationId: entity.metadata?.["conversationId"] as
-            | string
-            | undefined,
-        };
-      });
-
-      // Sort by captured date, newest first
-      links.sort(
-        (a, b) =>
-          new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime(),
-      );
-
-      return schema.parse({
-        links,
-        totalCount: links.length,
-      });
-    }
-
-    throw new Error(`Unknown transform format: ${format}`);
+    return outputSchema.parse(listData);
   }
 }

@@ -7,6 +7,7 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins";
+import { topicListSchema } from "../../src/templates/topic-list/schema";
 
 describe("TopicsDataSource", () => {
   let dataSource: TopicsDataSource;
@@ -32,7 +33,12 @@ describe("TopicsDataSource", () => {
   });
 
   it("should fetch data without throwing", async () => {
-    const result = await dataSource.fetch({ entityType: "topic" });
+    const result = await dataSource.fetch(
+      { entityType: "topic" },
+      topicListSchema,
+    );
     expect(result).toBeDefined();
+    expect(result.topics).toBeInstanceOf(Array);
+    expect(result.totalCount).toBeGreaterThanOrEqual(0);
   });
 });

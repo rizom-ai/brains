@@ -2,7 +2,18 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
 import { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, z } from "@brains/utils";
+
+// Test schema for navigation data
+const testNavigationSchema = z.object({
+  navigation: z.array(
+    z.object({
+      label: z.string(),
+      href: z.string(),
+    }),
+  ),
+  copyright: z.string().optional(),
+});
 
 describe("NavigationDataSource", () => {
   let dataSource: NavigationDataSource;
@@ -47,7 +58,7 @@ describe("NavigationDataSource", () => {
     routeRegistry.register(linksRoute);
 
     // Act: Fetch navigation data
-    const result = await dataSource.fetch(null);
+    const result = await dataSource.fetch(null, testNavigationSchema);
 
     // Assert: Data matches footer component requirements
     expect(result).toEqual({
@@ -98,7 +109,7 @@ describe("NavigationDataSource", () => {
     routeRegistry.register(privateRoute);
     routeRegistry.register(noNavRoute);
 
-    const result = await dataSource.fetch(null);
+    const result = await dataSource.fetch(null, testNavigationSchema);
 
     // Only the public route should be in navigation
     expect(result).toEqual({
@@ -136,7 +147,7 @@ describe("NavigationDataSource", () => {
       sections: [],
     });
 
-    const result = await dataSource.fetch(null);
+    const result = await dataSource.fetch(null, testNavigationSchema);
     const navigation = (result as { navigation: Array<{ href: string }> })
       .navigation;
 

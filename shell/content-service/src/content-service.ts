@@ -148,32 +148,12 @@ export class ContentService implements IContentService {
       );
       if (dataSource) {
         try {
-          // For entity DataSources, use fetch + transform pattern
-          if (
-            dataSource.fetch &&
-            dataSource.transform &&
-            options?.transformFormat
-          ) {
-            // First fetch the raw data (let DataSource handle its own validation)
-            const rawData = await dataSource.fetch(options.dataParams);
-
-            // Then transform it to the desired format
-            const transformedData = await dataSource.transform(
-              rawData,
-              options.transformFormat,
+          // DataSource handles fetching and any needed transformation internally
+          if (dataSource.fetch) {
+            const data = await dataSource.fetch(
+              options?.dataParams,
               template.schema,
             );
-
-            if (transformedData !== undefined) {
-              this.dependencies.logger.debug(
-                `Resolved content via DataSource fetch+transform for ${scopedTemplateName}`,
-              );
-              return transformedData as T;
-            }
-          }
-          // Fallback to simple fetch for non-entity DataSources
-          else if (dataSource.fetch) {
-            const data = await dataSource.fetch(options?.dataParams);
             if (data !== undefined) {
               this.dependencies.logger.debug(
                 `Resolved content via DataSource fetch for ${scopedTemplateName}`,

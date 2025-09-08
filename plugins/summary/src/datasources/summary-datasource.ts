@@ -39,43 +39,39 @@ export class SummaryDataSource implements DataSource {
   }
 
   /**
-   * Fetch raw summary entities based on query
+   * Fetch and transform summary entities to template-ready format
+   * Returns SummaryDetailData for single summary or SummaryListData for multiple
    */
-  async fetch<T>(query: unknown): Promise<T> {
+  async fetch<T>(query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
 
-    if (params.query?.conversationId) {
-      // Fetch single summary by conversation ID
+    const queryId = params.query?.conversationId ?? params.query?.id;
+    if (queryId) {
+      // Fetch single summary (detail view)
       const entity = await this.entityService.getEntity<SummaryEntity>(
-        "summary",
-        params.query.conversationId,
+        params.query?.conversationId ? "summary" : params.entityType,
+        queryId,
       );
 
       if (!entity) {
-        throw new Error(
-          `Summary not found for conversation: ${params.query.conversationId}`,
-        );
+        throw new Error(`Summary not found: ${queryId}`);
       }
 
-      return entity as T;
+      // Transform to SummaryDetailData
+      const body = this.adapter.parseSummaryContent(entity.content);
+      const detailData: SummaryDetailData = {
+        conversationId: body.conversationId,
+        entries: body.entries,
+        totalMessages: body.totalMessages,
+        lastUpdated: body.lastUpdated,
+        entryCount: body.entries.length,
+      };
+
+      return outputSchema.parse(detailData);
     }
 
-    if (params.query?.id) {
-      // Fetch single summary by ID
-      const entity = await this.entityService.getEntity<SummaryEntity>(
-        params.entityType,
-        params.query.id,
-      );
-
-      if (!entity) {
-        throw new Error(`Summary not found: ${params.query.id}`);
-      }
-
-      return entity as T;
-    }
-
-    // Fetch multiple summaries
+    // Fetch multiple summaries (list view)
     const entities = await this.entityService.listEntities<SummaryEntity>(
       params.entityType,
       {
@@ -83,74 +79,32 @@ export class SummaryDataSource implements DataSource {
       },
     );
 
-    return entities as T;
-  }
+    // Transform to SummaryListData
+    const summaries = entities.map((summary) => {
+      const body = this.adapter.parseSummaryContent(summary.content);
+      const latestEntry = body.entries[0]; // Entries are newest-first
 
-  /**
-   * Transform raw data using adapter for template rendering
-   */
-  async transform<T>(data: unknown, templateId?: string): Promise<T> {
-    this.logger.info("Transform called", {
-      templateId,
-      dataType: Array.isArray(data) ? "array" : typeof data,
-      dataLength: Array.isArray(data) ? (data as unknown[]).length : "N/A",
+      return {
+        id: summary.id,
+        conversationId: body.conversationId,
+        entryCount: body.entries.length,
+        totalMessages: body.totalMessages,
+        latestEntry: latestEntry?.title ?? "No entries",
+        lastUpdated: body.lastUpdated,
+        created: summary.created,
+      };
     });
 
-    // Handle detail view - parse and return structured entries
-    if (templateId === "detail") {
-      // If data is an array (from list query), we can't show detail view
-      if (Array.isArray(data)) {
-        throw new Error(
-          "Cannot render detail view without specific summary ID",
-        );
-      }
+    const listData: SummaryListData = {
+      summaries,
+      totalCount: summaries.length,
+    };
 
-      const entity = data as SummaryEntity;
-      const body = this.adapter.parseSummaryContent(entity.content);
+    this.logger.info("Creating list data", {
+      summaryCount: summaries.length,
+      firstSummary: summaries[0]?.id,
+    });
 
-      const detailData: SummaryDetailData = {
-        conversationId: body.conversationId,
-        entries: body.entries, // Return parsed entries
-        totalMessages: body.totalMessages,
-        lastUpdated: body.lastUpdated,
-        entryCount: body.entries.length,
-      };
-
-      return detailData as T;
-    }
-
-    // Handle list view - extract basic info
-    if (templateId === "list") {
-      const entities = Array.isArray(data) ? data : [data];
-      const summaries = entities as SummaryEntity[];
-
-      this.logger.info("Creating list data", {
-        summaryCount: summaries.length,
-        firstSummary: summaries[0]?.id,
-      });
-
-      const listData: SummaryListData = {
-        summaries: summaries.map((summary) => {
-          const body = this.adapter.parseSummaryContent(summary.content);
-          const latestEntry = body.entries[0]; // Entries are newest-first
-
-          return {
-            id: summary.id,
-            conversationId: body.conversationId,
-            entryCount: body.entries.length,
-            totalMessages: body.totalMessages,
-            latestEntry: latestEntry?.title ?? "No entries",
-            lastUpdated: body.lastUpdated,
-            created: summary.created,
-          };
-        }),
-        totalCount: summaries.length,
-      };
-
-      return listData as T;
-    }
-
-    // Default: return as-is
-    return data as T;
+    return outputSchema.parse(listData);
   }
 }

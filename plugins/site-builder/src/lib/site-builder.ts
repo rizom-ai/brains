@@ -240,16 +240,13 @@ export class SiteBuilder implements ISiteBuilder {
     // Template name will be automatically scoped by the context helper
     const templateName = section.template;
 
-    // Check if this section uses dynamic entity content
+    // Check if this section uses dynamic content (DataSource)
     if (section.contentEntity) {
-      const format = section.contentEntity.query?.id ? "detail" : "list";
-
-      // Use the context's resolveContent helper with entity params
+      // Use the context's resolveContent helper with DataSource params
+      // DataSource will handle any necessary transformations internally
       const content = await this.context.resolveContent(templateName, {
         // Parameters for DataSource fetch
         dataParams: section.contentEntity,
-        // Format for DataSource transform
-        transformFormat: format,
         // Static fallback content from section definition
         fallback: section.content,
       });

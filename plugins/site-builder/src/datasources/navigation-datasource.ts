@@ -1,5 +1,6 @@
 import type { DataSource } from "@brains/datasource";
 import type { Logger } from "@brains/plugins";
+import { type z } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
 
 /**
@@ -21,7 +22,7 @@ export class NavigationDataSource implements DataSource {
    * Fetch navigation data
    * Currently returns all main navigation items
    */
-  async fetch<T>(_query: unknown): Promise<T> {
+  async fetch<T>(_query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
     this.logger.debug("NavigationDataSource fetch called");
 
     // Get all main navigation items
@@ -41,6 +42,6 @@ export class NavigationDataSource implements DataSource {
       items: items.map((i) => ({ label: i.label, href: i.href })),
     });
 
-    return result as T;
+    return outputSchema.parse(result);
   }
 }

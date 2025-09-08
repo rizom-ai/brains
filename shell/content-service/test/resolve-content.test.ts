@@ -86,7 +86,10 @@ describe("ContentService.resolveContent", () => {
         cpu: 45.5,
         memory: 72.3,
       });
-      expect(mockDataSource.fetch).toHaveBeenCalledWith({ timeRange: "24h" });
+      expect(mockDataSource.fetch).toHaveBeenCalledWith(
+        { timeRange: "24h" },
+        mockTemplate.schema,
+      );
     });
 
     it("should skip DataSource fetch for AI generation templates", async () => {
@@ -363,53 +366,8 @@ describe("ContentService.resolveContent", () => {
     });
   });
 
-  describe("DataSource fetch + transform pattern", () => {
-    it("should use fetch + transform when transformFormat is provided", async () => {
-      const mockTemplate: Template = {
-        name: "entity-sourced",
-        description: "Template with entity DataSource",
-        dataSourceId: "topics:entities",
-        schema: z.object({ title: z.string(), count: z.number() }),
-        requiredPermission: "public",
-      };
-
-      const rawData = [
-        { id: "topic-1", title: "Topic 1" },
-        { id: "topic-2", title: "Topic 2" },
-      ];
-
-      const transformedData = {
-        title: "Topics List",
-        count: 2,
-      };
-
-      const mockDataSource: Partial<DataSource> = {
-        id: "topics:entities",
-        fetch: mock().mockResolvedValue(rawData),
-        transform: mock().mockResolvedValue(transformedData),
-      };
-
-      templateRegistry.register("entity-sourced", mockTemplate);
-      mockDataSourceRegistry.get.mockReturnValue(mockDataSource);
-
-      const result = await contentService.resolveContent("entity-sourced", {
-        dataParams: { entityType: "topic", query: { limit: 10 } },
-        transformFormat: "list",
-      });
-
-      expect(result).toEqual(transformedData);
-      expect(mockDataSource.fetch).toHaveBeenCalledWith({
-        entityType: "topic",
-        query: { limit: 10 },
-      });
-      expect(mockDataSource.transform).toHaveBeenCalledWith(
-        rawData,
-        "list",
-        mockTemplate.schema,
-      );
-    });
-
-    it("should fallback to simple fetch when transform is not available", async () => {
+  describe("DataSource fetch with parameters", () => {
+    it("should pass dataParams and schema to fetch method", async () => {
       const mockTemplate: Template = {
         name: "simple-sourced",
         description: "Template with simple DataSource",
@@ -421,7 +379,6 @@ describe("ContentService.resolveContent", () => {
       const mockDataSource: Partial<DataSource> = {
         id: "shell:simple-source",
         fetch: mock().mockResolvedValue("Simple data"),
-        // No transform method
       };
 
       templateRegistry.register("simple-sourced", mockTemplate);
@@ -429,43 +386,13 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("simple-sourced", {
         dataParams: { test: true },
-        transformFormat: "detail", // Format provided but will be ignored
       });
 
       expect(result).toBe("Simple data");
-      expect(mockDataSource.fetch).toHaveBeenCalledWith({ test: true });
-    });
-
-    it("should handle transform errors gracefully", async () => {
-      const mockTemplate: Template = {
-        name: "error-transform",
-        description: "Template with failing transform",
-        dataSourceId: "topics:entities",
-        schema: z.object({ title: z.string() }),
-        requiredPermission: "public",
-      };
-
-      const rawData = { id: "topic-1", title: "Topic 1" };
-
-      const mockDataSource: Partial<DataSource> = {
-        id: "topics:entities",
-        fetch: mock().mockResolvedValue(rawData),
-        transform: mock().mockRejectedValue(new Error("Transform failed")),
-      };
-
-      templateRegistry.register("error-transform", mockTemplate);
-      mockDataSourceRegistry.get.mockReturnValue(mockDataSource);
-
-      const result = await contentService.resolveContent("error-transform", {
-        dataParams: { entityType: "topic", query: { id: "topic-1" } },
-        transformFormat: "detail",
-        fallback: { title: "Fallback Title" },
-      });
-
-      // Should fall back to fallback content
-      expect(result).toEqual({ title: "Fallback Title" });
-      expect(mockDataSource.fetch).toHaveBeenCalled();
-      expect(mockDataSource.transform).toHaveBeenCalled();
+      expect(mockDataSource.fetch).toHaveBeenCalledWith(
+        { test: true },
+        mockTemplate.schema,
+      );
     });
   });
 

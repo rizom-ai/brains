@@ -102,7 +102,7 @@ describe("SiteBuilder contentEntity handling", () => {
         },
       });
 
-      // Verify resolveContent was called with correct params
+      // Verify resolveContent was called with correct params (no transformFormat)
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
         {
@@ -110,7 +110,6 @@ describe("SiteBuilder contentEntity handling", () => {
             entityType: "topic",
             query: { limit: 100 },
           },
-          transformFormat: "list",
           fallback: undefined,
         },
       );
@@ -157,7 +156,7 @@ describe("SiteBuilder contentEntity handling", () => {
         // Ignore build errors - we're just testing the content resolution
       }
 
-      // Verify resolveContent was called with detail format
+      // Verify resolveContent was called without transformFormat
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-detail",
         {
@@ -165,7 +164,6 @@ describe("SiteBuilder contentEntity handling", () => {
             entityType: "topic",
             query: { id: "test-topic" },
           },
-          transformFormat: "detail",
           fallback: undefined,
         },
       );
@@ -238,7 +236,6 @@ describe("SiteBuilder contentEntity handling", () => {
             entityType: "topic",
             query: { limit: 5 },
           },
-          transformFormat: "list",
           fallback: { fallbackTitle: "No topics" },
         },
       );
@@ -290,7 +287,6 @@ describe("SiteBuilder contentEntity handling", () => {
           dataParams: {
             entityType: "topic",
           },
-          transformFormat: "list",
           fallback: undefined,
         },
       );
@@ -353,7 +349,6 @@ describe("SiteBuilder contentEntity handling", () => {
               anotherParam: 123,
             },
           },
-          transformFormat: "list",
           fallback: undefined,
         },
       );

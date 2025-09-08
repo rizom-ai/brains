@@ -26,10 +26,11 @@ export interface DataSource {
   /**
    * Optional: Fetch existing data
    * Used by data sources that aggregate or retrieve data (e.g., dashboard stats, API data)
-   * DataSources handle their own validation and return properly typed data
+   * DataSources validate output using the provided schema
    * @param query - Query parameters for fetching data
+   * @param outputSchema - Schema for validating output data
    */
-  fetch?: <T>(query: unknown) => Promise<T>;
+  fetch?: <T>(query: unknown, outputSchema: z.ZodSchema<T>) => Promise<T>;
 
   /**
    * Optional: Generate new content

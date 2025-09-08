@@ -2,7 +2,6 @@ import type { DataSource } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
-import { topicEntitySchema } from "../schemas/topic";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -33,15 +32,16 @@ export class TopicsDataSource implements DataSource {
   }
 
   /**
-   * Fetch raw topic entities based on query
-   * Returns validated entity or entity array
+   * Fetch and transform topic entities to template-ready format
+   * Returns TopicDetailData for single topic or TopicListData for multiple
    */
-  async fetch<T>(query: unknown): Promise<T> {
+  async fetch<T>(query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
+    const adapter = new TopicAdapter();
 
     if (params.query?.id) {
-      // Fetch single entity
+      // Fetch and transform single entity to TopicDetailData
       const entity = await this.entityService.getEntity(
         params.entityType,
         params.query.id,
@@ -50,44 +50,9 @@ export class TopicsDataSource implements DataSource {
       if (!entity) {
         throw new Error(`Entity not found: ${params.query.id}`);
       }
-      return entity as T;
-    }
 
-    // Fetch entity list
-    const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
-      {};
-    if (params.query?.limit !== undefined) {
-      listOptions.limit = params.query.limit;
-    } else {
-      listOptions.limit = 100;
-    }
-
-    const entities = await this.entityService.listEntities(
-      params.entityType,
-      listOptions,
-    );
-
-    return entities as T;
-  }
-
-  /**
-   * Transform entities to template format
-   * @param content - Raw entities from fetch
-   * @param format - "list" or "detail"
-   * @param schema - Target schema for validation
-   */
-  async transform<T>(
-    content: unknown,
-    format: string,
-    schema: z.ZodSchema<T>,
-  ): Promise<T> {
-    const adapter = new TopicAdapter();
-
-    if (format === "detail") {
-      // Transform single entity to TopicDetailData
-      const entity = topicEntitySchema.parse(content);
+      // Transform to TopicDetailData
       const parsed = adapter.parseTopicBody(entity.content);
-
       const detailData = {
         id: entity.id,
         title: parsed.title,
@@ -103,37 +68,47 @@ export class TopicsDataSource implements DataSource {
         updated: entity.updated,
       };
 
-      return schema.parse(detailData);
+      return outputSchema.parse(detailData);
     }
 
-    if (format === "list") {
-      // Transform entity array to TopicListData
-      const entities = z.array(topicEntitySchema).parse(content);
-
-      const topics = entities.map((entity) => {
-        const parsed = adapter.parseTopicBody(entity.content);
-        return {
-          id: entity.id,
-          title: parsed.title,
-          summary: parsed.summary,
-          keywords: parsed.keywords,
-          sourceCount: parsed.sources.length,
-          created: entity.created,
-          updated: entity.updated,
-        };
-      });
-
-      // Sort by updated date, newest first
-      topics.sort(
-        (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
-      );
-
-      return schema.parse({
-        topics,
-        totalCount: topics.length,
-      });
+    // Fetch and transform entity list to TopicListData
+    const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
+      {};
+    if (params.query?.limit !== undefined) {
+      listOptions.limit = params.query.limit;
+    } else {
+      listOptions.limit = 100;
     }
 
-    throw new Error(`Unknown transform format: ${format}`);
+    const entities = await this.entityService.listEntities(
+      params.entityType,
+      listOptions,
+    );
+
+    // Transform to TopicListData
+    const topics = entities.map((entity) => {
+      const parsed = adapter.parseTopicBody(entity.content);
+      return {
+        id: entity.id,
+        title: parsed.title,
+        summary: parsed.summary,
+        keywords: parsed.keywords,
+        sourceCount: parsed.sources.length,
+        created: entity.created,
+        updated: entity.updated,
+      };
+    });
+
+    // Sort by updated date, newest first
+    topics.sort(
+      (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
+    );
+
+    const listData = {
+      topics,
+      totalCount: topics.length,
+    };
+
+    return outputSchema.parse(listData);
   }
 }

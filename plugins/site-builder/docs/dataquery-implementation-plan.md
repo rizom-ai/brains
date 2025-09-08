@@ -26,12 +26,13 @@ Modify `getContentForSection` to detect DataSource type:
 ```typescript
 if (section.contentEntity) {
   // Detect if this is an entity DataSource (has entityType)
-  const isEntityDataSource = 'entityType' in section.contentEntity;
-  const format = isEntityDataSource && section.contentEntity.query?.id 
-    ? "detail" 
-    : isEntityDataSource 
-    ? "list" 
-    : undefined;
+  const isEntityDataSource = "entityType" in section.contentEntity;
+  const format =
+    isEntityDataSource && section.contentEntity.query?.id
+      ? "detail"
+      : isEntityDataSource
+        ? "list"
+        : undefined;
 
   const content = await this.context.resolveContent(templateName, {
     dataParams: section.contentEntity,
@@ -54,6 +55,7 @@ Create `NavigationQuerySchema`:
 ```
 
 Update NavigationDataSource:
+
 - Parse and validate query using NavigationQuerySchema
 - Filter navigation items based on query parameters
 - Default to current behavior when no query provided
@@ -165,11 +167,13 @@ Update NavigationDataSource:
 ## Risk Assessment
 
 **Phase 1 Risk: LOW**
+
 - Only extending functionality, not breaking existing behavior
 - Entity DataSources continue to work exactly as before
 - New capability is opt-in (use contentEntity for navigation)
 
 **Phase 2 Risk: LOW-MEDIUM**
+
 - Simple rename operation
 - Can be done with find/replace
 - Easy to review in a single PR
