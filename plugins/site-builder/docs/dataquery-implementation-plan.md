@@ -1,33 +1,50 @@
-# DataQuery Implementation Plan
+# DataQuery Implementation Plan (REVISED)
 
 ## Overview
-Implement a unified `dataQuery` field for passing query parameters to DataSource-backed templates, starting with NavigationDataSource and later migrating entity queries.
+
+Extend `contentEntity` to support ALL DataSource types (not just entities), then rename it to `dataQuery` in a single atomic migration.
 
 ## Motivation
+
 Currently, we have two different patterns for dynamic content:
+
 1. Entity-based content uses `contentEntity` with `entityType` + `query`
 2. Non-entity DataSources (like navigation) have no way to pass query parameters
 
-The `dataQuery` field will unify these approaches while maintaining backward compatibility.
+Rather than introducing a new field and managing dual paths, we'll extend the existing `contentEntity` to work for all DataSources, then rename it.
 
-## Implementation Phases
+## Implementation Strategy (Revised)
 
-### Phase 1: Add dataQuery Support for Navigation
-**Goal**: Introduce `dataQuery` without breaking existing functionality
+### Phase 1: Extend contentEntity for All DataSources
 
-#### 1.1 Add dataQuery to SectionDefinitionSchema
-- Add `dataQuery: z.unknown().optional()` field
-- Keep `contentEntity` unchanged for backward compatibility
-- Document that both fields can coexist during transition
+**Goal**: Make `contentEntity` work for both entity and non-entity DataSources
 
-#### 1.2 Update SiteBuilder
-- Modify `getContentForSection` to check for `dataQuery` first
-- If `dataQuery` exists and no `contentEntity`, pass it as `dataParams` to `resolveContent`
-- If `contentEntity` exists, use existing logic (backward compatibility)
-- No breaking changes to existing routes
+#### 1.1 Update SiteBuilder Logic
 
-#### 1.3 Implement NavigationDataSource Query Support
+Modify `getContentForSection` to detect DataSource type:
+
+```typescript
+if (section.contentEntity) {
+  // Detect if this is an entity DataSource (has entityType)
+  const isEntityDataSource = 'entityType' in section.contentEntity;
+  const format = isEntityDataSource && section.contentEntity.query?.id 
+    ? "detail" 
+    : isEntityDataSource 
+    ? "list" 
+    : undefined;
+
+  const content = await this.context.resolveContent(templateName, {
+    dataParams: section.contentEntity,
+    transformFormat: format,
+    fallback: section.content,
+  });
+}
+```
+
+#### 1.2 Implement NavigationDataSource Query Support
+
 Create `NavigationQuerySchema`:
+
 ```typescript
 {
   slot?: string;        // Navigation slot (default: "main")
@@ -41,27 +58,35 @@ Update NavigationDataSource:
 - Filter navigation items based on query parameters
 - Default to current behavior when no query provided
 
-#### 1.4 Test with Footer Template
-- Update footer section to demonstrate `dataQuery` usage
-- Add comprehensive tests for query filtering
-- Verify backward compatibility
+#### 1.3 Test Both Patterns with contentEntity
 
-### Phase 2: Migrate Entity Queries (Future)
-**Goal**: Unify all dynamic content under `dataQuery`
+- Test entity DataSources (existing behavior)
+- Test non-entity DataSources (new capability)
+- Verify footer can use `contentEntity` for navigation queries
 
-#### 2.1 Update Entity-based Routes
-- Migrate `contentEntity` usage to `dataQuery` with `entityType` field
+### Phase 2: Atomic Rename to dataQuery
+
+**Goal**: Single commit that renames `contentEntity` to `dataQuery` everywhere
+
+#### 2.1 Mass Rename
+
+- Update `SectionDefinitionSchema`: `contentEntity` → `dataQuery`
+- Update all route definitions
+- Update site-builder references
 - Update dynamic-route-generator
 - Update all tests
+- Update documentation
 
-#### 2.2 Deprecate contentEntity
-- Mark `contentEntity` as deprecated in schema
-- Add migration guide in documentation
-- Plan removal timeline
+#### 2.2 No Logic Changes
+
+- The rename is purely cosmetic
+- All functionality remains identical
+- No dual-path logic needed
 
 ## Example Usage
 
-### Before (Current State)
+### Current State
+
 ```typescript
 // Entity-based (works)
 {
@@ -80,9 +105,10 @@ Update NavigationDataSource:
 }
 ```
 
-### After Phase 1
+### After Phase 1 (Extended contentEntity)
+
 ```typescript
-// Entity-based (still works - backward compatible)
+// Entity-based (unchanged)
 {
   id: "topics",
   template: "topic-list",
@@ -92,56 +118,75 @@ Update NavigationDataSource:
   }
 }
 
-// Navigation (new - with query support)
+// Navigation (NOW WORKS with contentEntity!)
 {
   id: "footer",
   template: "footer",
-  dataQuery: { 
-    slot: "main", 
+  contentEntity: {  // Using same field, no entityType
+    slot: "main",
     limit: 5,
     excludePaths: ["/admin"]
   }
 }
 ```
 
-### After Phase 2 (Future)
+### After Phase 2 (Renamed to dataQuery)
+
 ```typescript
-// All dynamic content uses dataQuery
+// All dynamic content uses dataQuery (just renamed)
 {
   id: "topics",
   template: "topic-list",
-  dataQuery: {
-    entityType: "topic",  // For entity DataSources
-    limit: 100
+  dataQuery: {  // Was contentEntity
+    entityType: "topic",
+    query: { limit: 100 }
   }
 }
 
 {
   id: "footer",
   template: "footer",
-  dataQuery: { 
-    slot: "main", 
-    limit: 5
+  dataQuery: {  // Was contentEntity
+    slot: "main",
+    limit: 5,
+    excludePaths: ["/admin"]
   }
 }
 ```
 
-## Benefits
-1. **Unified API**: Single way to pass queries to any DataSource
-2. **Backward Compatible**: No breaking changes during migration
-3. **Type Safety**: Each DataSource can define its own query schema
-4. **Flexibility**: Templates can work with or without queries
-5. **Clear Separation**: `content` for static, `dataQuery` for dynamic
+## Benefits of Revised Approach
+
+1. **No Dual Paths**: Single code path throughout the migration
+2. **Lower Risk**: Extend existing functionality rather than replace
+3. **Simpler Testing**: Test everything with `contentEntity` first
+4. **Atomic Migration**: Rename is a simple find/replace operation
+5. **No Breaking Changes**: Until the rename, everything works as before
+
+## Risk Assessment
+
+**Phase 1 Risk: LOW**
+- Only extending functionality, not breaking existing behavior
+- Entity DataSources continue to work exactly as before
+- New capability is opt-in (use contentEntity for navigation)
+
+**Phase 2 Risk: LOW-MEDIUM**
+- Simple rename operation
+- Can be done with find/replace
+- Easy to review in a single PR
+- If issues found, easy to revert
 
 ## Success Criteria
+
 - [ ] NavigationDataSource accepts and uses query parameters
-- [ ] Footer can limit/filter navigation items via dataQuery
-- [ ] All existing routes continue to work unchanged
-- [ ] Tests pass for both new and legacy patterns
+- [ ] Footer can use `contentEntity` for navigation queries
+- [ ] All existing entity-based routes continue to work
+- [ ] Tests pass for both entity and non-entity DataSources
+- [ ] Successful rename from `contentEntity` to `dataQuery`
 - [ ] Documentation updated with examples
 
-## Notes
-- Templates define which DataSource they use via `dataSourceId`
-- Sections only provide the query parameters via `dataQuery`
-- DataSources are responsible for validating their own query schemas
+## Implementation Notes
+
+- Detection of entity vs non-entity is based on presence of `entityType` field
+- DataSources validate their own query schemas
 - The `content` field remains for static content only
+- After Phase 2, the field name better reflects its purpose (not just for entities)
