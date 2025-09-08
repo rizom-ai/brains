@@ -22,7 +22,7 @@ describe("RouteRegistry", () => {
       };
 
       registry.register(route);
-      const items = registry.getNavigationItems("main");
+      const items = registry.getNavigationItems("primary");
 
       expect(items).toEqual([]);
     });
@@ -37,7 +37,7 @@ describe("RouteRegistry", () => {
           navigation: {
             show: true,
             label: "Home",
-            slot: "main",
+            slot: "primary",
             priority: 10,
           },
           sections: [],
@@ -49,7 +49,7 @@ describe("RouteRegistry", () => {
           description: "About page",
           navigation: {
             show: true,
-            slot: "main",
+            slot: "primary",
             priority: 20,
           },
           sections: [],
@@ -61,7 +61,7 @@ describe("RouteRegistry", () => {
           description: "Not in nav",
           navigation: {
             show: false,
-            slot: "main",
+            slot: "primary",
             priority: 30,
           },
           sections: [],
@@ -69,7 +69,7 @@ describe("RouteRegistry", () => {
       ];
 
       routes.forEach((route) => registry.register(route));
-      const items = registry.getNavigationItems("main");
+      const items = registry.getNavigationItems("primary");
 
       expect(items).toHaveLength(2);
       expect(items[0]).toEqual({
@@ -93,7 +93,7 @@ describe("RouteRegistry", () => {
           description: "Third page",
           navigation: {
             show: true,
-            slot: "main",
+            slot: "primary",
             priority: 30,
           },
           sections: [],
@@ -105,7 +105,7 @@ describe("RouteRegistry", () => {
           description: "First page",
           navigation: {
             show: true,
-            slot: "main",
+            slot: "primary",
             priority: 10,
           },
           sections: [],
@@ -117,7 +117,7 @@ describe("RouteRegistry", () => {
           description: "Second page",
           navigation: {
             show: true,
-            slot: "main",
+            slot: "primary",
             priority: 20,
           },
           sections: [],
@@ -125,7 +125,7 @@ describe("RouteRegistry", () => {
       ];
 
       routes.forEach((route) => registry.register(route));
-      const items = registry.getNavigationItems("main");
+      const items = registry.getNavigationItems("primary");
 
       expect(items).toHaveLength(3);
       expect(items[0]?.href).toBe("/first");
@@ -142,7 +142,7 @@ describe("RouteRegistry", () => {
           description: "In main nav",
           navigation: {
             show: true,
-            slot: "main",
+            slot: "primary",
             priority: 10,
           },
           sections: [],
@@ -163,7 +163,7 @@ describe("RouteRegistry", () => {
       ];
 
       routes.forEach((route) => registry.register(route));
-      const mainItems = registry.getNavigationItems("main");
+      const mainItems = registry.getNavigationItems("primary");
 
       expect(mainItems).toHaveLength(1);
       expect(mainItems[0]?.href).toBe("/main");
@@ -177,14 +177,14 @@ describe("RouteRegistry", () => {
         description: "Test page",
         navigation: {
           show: true,
-          slot: "main" as const,
+          slot: "primary" as const,
           priority: undefined as unknown as number, // Testing default priority
         },
         sections: [],
       };
 
       registry.register(route);
-      const items = registry.getNavigationItems("main");
+      const items = registry.getNavigationItems("primary");
 
       expect(items).toHaveLength(1);
       expect(items[0]?.priority).toBe(50);

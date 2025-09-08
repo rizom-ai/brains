@@ -2,103 +2,84 @@
 routeId: landing
 sectionId: products
 ---
-
 # Products Section
 
 ## Label
-
 Our Ecosystem
 
 ## Headline
-
 Rizom's Transformative Products
 
 ## Description
-
-Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. Our product portfolio empowers organizations to navigate the complexities of the modern landscape and unlock new frontiers of growth and resilience.
+Rizom is a dynamic collective of experts in digital transformation, organizational development, and ecosystem design. Our products empower individuals, teams, and organizations to navigate complex challenges and unlock new possibilities. From strategy to implementation, we offer a suite of transformative solutions tailored to the unique needs of our clients.
 
 ## Products
 
 ### Product 1
 
 #### ID
-
 practice-innovation
 
 #### Name
-
 Practice Innovation
 
 #### Tagline
-
-Accelerate your organization's transformation
+Elevate your organizational capabilities
 
 #### Description
-
-Our Practice Innovation offering guides leaders through the process of designing and implementing innovative practices that drive measurable impact.
+Our Practice Innovation offering helps organizations develop agile, resilient, and adaptable practices to thrive in a rapidly changing world.
 
 #### Status
-
 live
 
 #### Link
 
-#### Icon
 
-Brain
+#### Icon
+Wrench
 
 ### Product 2
 
 #### ID
-
-ecosystem-architecture
-
-#### Name
-
-Ecosystem Architecture
-
-#### Tagline
-
-Build resilient, adaptive ecosystems
-
-#### Description
-
-Ecosystem Architecture helps organizations map, design, and cultivate thriving ecosystems that foster collaboration, innovation, and long-term sustainability.
-
-#### Status
-
-live
-
-#### Link
-
-#### Icon
-
-Network
-
-### Product 3
-
-#### ID
-
 economy-of-garbage
 
 #### Name
-
 Economy of Garbage
 
 #### Tagline
-
-Unlock value from waste and inefficiency
+Transforming waste into value
 
 #### Description
-
-Our Economy of Garbage solution transforms organizational waste and underutilized resources into new revenue streams and competitive advantages.
+Economy of Garbage is our revolutionary approach to rethinking waste and unlocking new economic opportunities through circular systems design.
 
 #### Status
-
 beta
 
 #### Link
 
-#### Icon
 
-Wrench
+#### Icon
+Cpu
+
+### Product 3
+
+#### ID
+ecosystem-architecture
+
+#### Name
+Ecosystem Architecture
+
+#### Tagline
+Build resilient, adaptive systems
+
+#### Description
+Our Ecosystem Architecture practice helps organizations design and implement flexible, interconnected systems that can adapt to evolving needs.
+
+#### Status
+live
+
+#### Link
+
+
+#### Icon
+Network

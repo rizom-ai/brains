@@ -6,10 +6,10 @@ export const FooterLayout = ({
   copyright,
 }: FooterData): JSX.Element => {
   const currentYear = new Date().getFullYear();
-  const defaultCopyright = `© ${currentYear} Personal Brain. All rights reserved.`;
+  const defaultCopyright = `© ${currentYear} Rizom Brains. All rights reserved.`;
 
   return (
-    <footer className="footer-section bg-gray-900 text-white py-12 mt-20">
+    <footer className="footer-section bg-gray-900 text-white py-12">
       <div className="container mx-auto px-4">
         {/* Navigation Links */}
         <nav className="footer-navigation mb-8">

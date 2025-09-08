@@ -1,4 +1,4 @@
-import type { RouteDefinition, NavigationItem } from "../types/routes";
+import type { RouteDefinition, NavigationItem, NavigationSlot } from "../types/routes";
 import { RouteDefinitionSchema } from "../types/routes";
 import type { Logger } from "@brains/utils";
 
@@ -97,7 +97,7 @@ export class RouteRegistry {
   /**
    * Get navigation items for a specific slot
    */
-  getNavigationItems(slot: "main"): NavigationItem[] {
+  getNavigationItems(slot: NavigationSlot): NavigationItem[] {
     const items: NavigationItem[] = [];
 
     for (const [path, route] of this.routes.entries()) {

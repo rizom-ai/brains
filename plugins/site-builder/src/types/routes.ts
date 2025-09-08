@@ -9,7 +9,7 @@ export const SectionDefinitionSchema = z.object({
   content: z.unknown().optional(), // Static content
   contentEntity: z
     .object({
-      entityType: z.string(), // Entity type to fetch content from
+      entityType: z.string().optional(), // Entity type to fetch content from (for entity datasources)
       template: z.string().optional(), // Template for entity queries
       query: z
         .object({
@@ -20,9 +20,16 @@ export const SectionDefinitionSchema = z.object({
         .passthrough()
         .optional(), // Query parameters for fetching entities - allows additional properties
     })
+    .passthrough() // Allow additional properties like 'slot' for navigation datasource
     .optional(),
   order: z.number().optional(), // Section ordering
 });
+
+/**
+ * Navigation slot types
+ */
+export const NavigationSlots = ["primary", "secondary"] as const;
+export type NavigationSlot = typeof NavigationSlots[number];
 
 /**
  * Navigation metadata schema for route definitions
@@ -31,7 +38,7 @@ export const NavigationMetadataSchema = z
   .object({
     show: z.boolean().default(false), // Display in navigation?
     label: z.string().optional(), // Override title for nav display
-    slot: z.enum(["main"]), // Navigation slot type
+    slot: z.enum(NavigationSlots).default("primary"), // Navigation slot type
     priority: z.number().min(0).max(100).default(50), // Display order (0-100)
   })
   .optional();

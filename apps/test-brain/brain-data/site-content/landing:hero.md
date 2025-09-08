@@ -2,21 +2,16 @@
 routeId: landing
 sectionId: hero
 ---
-
 # Hero Section
 
 ## Headline
-
-Unlock the Power of Your Personal Knowledge Base
+Elevate Your Knowledge with Rizom
 
 ## Subheadline
-
-Organize, connect, and harness your expertise with our intuitive personal knowledge management system.
+Organize, connect, and amplify your expertise with our intuitive personal knowledge management system.
 
 ## CTA Text
-
 Get Started
 
 ## CTA Link
-
-#features
+/get-started

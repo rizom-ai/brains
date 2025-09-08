@@ -9,7 +9,7 @@ export const routes = [
     navigation: {
       show: true,
       label: "Home",
-      slot: "main",
+      slot: "primary",
       priority: 10, // Core page - high priority
     },
     sections: [
@@ -20,7 +20,10 @@ export const routes = [
       {
         id: "footer",
         template: "footer",
-        // No content needed - DataSource provides everything
+        contentEntity: {
+          slot: "primary", // Query for primary navigation items
+          // copyright will be undefined, letting the footer use its default
+        },
       },
     ],
   },

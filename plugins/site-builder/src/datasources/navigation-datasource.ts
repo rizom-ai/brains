@@ -1,10 +1,18 @@
 import type { DataSource } from "@brains/datasource";
 import type { Logger } from "@brains/plugins";
-import { type z } from "@brains/utils";
+import { z, type z as zType } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
+import { NavigationSlots } from "../types/routes";
+
+// Schema for navigation query parameters
+const navigationQuerySchema = z.object({
+  slot: z.enum(NavigationSlots).optional().default("primary"),
+  limit: z.number().optional(),
+});
 
 /**
  * DataSource that provides navigation data from the RouteRegistry
+ * Supports querying specific navigation slots
  */
 export class NavigationDataSource implements DataSource {
   public readonly id = "site:navigation";
@@ -19,28 +27,45 @@ export class NavigationDataSource implements DataSource {
   }
 
   /**
-   * Fetch navigation data
-   * Currently returns all main navigation items
+   * Fetch navigation data based on query parameters
+   * @param query - Query parameters for filtering navigation items
+   * @param outputSchema - Schema for validating output format
    */
-  async fetch<T>(_query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
-    this.logger.debug("NavigationDataSource fetch called");
+  async fetch<T>(
+    query: unknown,
+    outputSchema: zType.ZodSchema<T>,
+  ): Promise<T> {
+    // Parse and validate query parameters
+    const params = navigationQuerySchema.parse(query ?? {});
+    
+    this.logger.debug("NavigationDataSource fetch called", { params });
 
-    // Get all main navigation items
-    const items = this.routeRegistry.getNavigationItems("main");
+    // Get navigation items for the specified slot
+    const items = this.routeRegistry.getNavigationItems(params.slot);
 
-    // Return in the format expected by the footer template
-    const result = {
-      navigation: items.map((item) => ({
-        label: item.label,
-        href: item.href,
-      })),
-      copyright: undefined, // Use default copyright in footer
-    };
+    // Apply limit if specified
+    const limitedItems = params.limit 
+      ? items.slice(0, params.limit)
+      : items;
+
+    // Return navigation items array
+    const navigationItems = limitedItems.map((item) => ({
+      label: item.label,
+      href: item.href,
+    }));
 
     this.logger.debug("NavigationDataSource returning", {
-      itemCount: items.length,
-      items: items.map((i) => ({ label: i.label, href: i.href })),
+      slot: params.slot,
+      itemCount: limitedItems.length,
+      items: navigationItems,
     });
+
+    // The output schema will determine the final shape
+    // For footer template, it expects { navigation: [...], copyright?: string }
+    // We only provide the navigation part
+    const result = {
+      navigation: navigationItems,
+    };
 
     return outputSchema.parse(result);
   }

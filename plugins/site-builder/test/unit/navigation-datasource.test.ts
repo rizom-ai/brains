@@ -4,7 +4,7 @@ import { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
 import { createSilentLogger, z } from "@brains/utils";
 
-// Test schema for navigation data
+// Test schema for navigation data (matches what NavigationDataSource returns)
 const testNavigationSchema = z.object({
   navigation: z.array(
     z.object({
@@ -12,7 +12,6 @@ const testNavigationSchema = z.object({
       href: z.string(),
     }),
   ),
-  copyright: z.string().optional(),
 });
 
 describe("NavigationDataSource", () => {
@@ -35,7 +34,7 @@ describe("NavigationDataSource", () => {
       navigation: {
         show: true,
         label: "Home",
-        slot: "main",
+        slot: "primary",
         priority: 10,
       },
       sections: [],
@@ -48,7 +47,7 @@ describe("NavigationDataSource", () => {
       description: "Links page",
       navigation: {
         show: true,
-        slot: "main",
+        slot: "primary",
         priority: 40,
       },
       sections: [],
@@ -60,13 +59,12 @@ describe("NavigationDataSource", () => {
     // Act: Fetch navigation data
     const result = await dataSource.fetch(null, testNavigationSchema);
 
-    // Assert: Data matches footer component requirements
+    // Assert: Data contains navigation items
     expect(result).toEqual({
       navigation: [
         { label: "Home", href: "/" },
         { label: "Links", href: "/links" },
       ],
-      copyright: undefined,
     });
   });
 
@@ -78,7 +76,7 @@ describe("NavigationDataSource", () => {
       description: "Public page",
       navigation: {
         show: true,
-        slot: "main",
+        slot: "primary",
         priority: 10,
       },
       sections: [],
@@ -91,7 +89,7 @@ describe("NavigationDataSource", () => {
       description: "Private page",
       navigation: {
         show: false, // This route should not appear
-        slot: "main",
+        slot: "primary",
         priority: 20,
       },
       sections: [],
@@ -114,8 +112,68 @@ describe("NavigationDataSource", () => {
     // Only the public route should be in navigation
     expect(result).toEqual({
       navigation: [{ label: "Public", href: "/public" }],
-      copyright: undefined,
     });
+  });
+
+  it("should support query parameters for slot selection", async () => {
+    // Register routes in different slots
+    routeRegistry.register({
+      id: "primary-item",
+      path: "/primary",
+      title: "Primary Item",
+      description: "Primary navigation item",
+      navigation: { show: true, slot: "primary", priority: 10 },
+      sections: [],
+    });
+
+    routeRegistry.register({
+      id: "secondary-item",
+      path: "/secondary",
+      title: "Secondary Item", 
+      description: "Secondary navigation item",
+      navigation: { show: true, slot: "secondary", priority: 10 },
+      sections: [],
+    });
+
+    // Query for primary slot (default)
+    const primaryResult = await dataSource.fetch({}, testNavigationSchema);
+    expect(primaryResult).toEqual({
+      navigation: [{ label: "Primary Item", href: "/primary" }],
+    });
+
+    // Query for secondary slot
+    const secondaryResult = await dataSource.fetch(
+      { slot: "secondary" },
+      testNavigationSchema,
+    );
+    expect(secondaryResult).toEqual({
+      navigation: [{ label: "Secondary Item", href: "/secondary" }],
+    });
+  });
+
+  it("should support limiting navigation items", async () => {
+    // Register multiple routes
+    for (let i = 1; i <= 5; i++) {
+      routeRegistry.register({
+        id: `item-${i}`,
+        path: `/item-${i}`,
+        title: `Item ${i}`,
+        description: `Navigation item ${i}`,
+        navigation: { show: true, slot: "primary", priority: i * 10 },
+        sections: [],
+      });
+    }
+
+    // Query with limit
+    const result = await dataSource.fetch(
+      { limit: 3 },
+      testNavigationSchema,
+    );
+
+    expect(result.navigation).toHaveLength(3);
+    expect(result.navigation[0]?.href).toBe("/item-1");
+    expect(result.navigation[1]?.href).toBe("/item-2");
+    expect(result.navigation[2]?.href).toBe("/item-3");
   });
 
   it("should order navigation by priority", async () => {
@@ -125,7 +183,7 @@ describe("NavigationDataSource", () => {
       path: "/third",
       title: "Third",
       description: "Third page",
-      navigation: { show: true, slot: "main", priority: 30 },
+      navigation: { show: true, slot: "primary", priority: 30 },
       sections: [],
     });
 
@@ -134,7 +192,7 @@ describe("NavigationDataSource", () => {
       path: "/first",
       title: "First",
       description: "First page",
-      navigation: { show: true, slot: "main", priority: 10 },
+      navigation: { show: true, slot: "primary", priority: 10 },
       sections: [],
     });
 
@@ -143,7 +201,7 @@ describe("NavigationDataSource", () => {
       path: "/second",
       title: "Second",
       description: "Second page",
-      navigation: { show: true, slot: "main", priority: 20 },
+      navigation: { show: true, slot: "primary", priority: 20 },
       sections: [],
     });
 

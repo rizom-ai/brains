@@ -58,7 +58,7 @@ export class DynamicRouteGenerator {
         navigation: {
           show: true,
           label: `${this.capitalize(entityType)}s`,
-          slot: "main",
+          slot: "primary",
           priority: 40, // Plugin-registered pages priority
         },
         sections: [
