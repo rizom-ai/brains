@@ -6,9 +6,9 @@ export const LinkListLayout = ({
   totalCount,
 }: LinkListData): JSX.Element => {
   return (
-    <div className="link-list-container max-w-4xl mx-auto p-6">
+    <div className="link-list-container max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Captured Links</h1>
+        <h1 className="text-3xl font-bold mb-2 text-theme">Captured Links</h1>
         <p className="text-theme-muted">
           {totalCount} links captured from conversations and manual additions
         </p>
@@ -18,7 +18,7 @@ export const LinkListLayout = ({
         {links.map((link) => (
           <article
             key={link.id}
-            className="link-card bg-theme-subtle rounded-lg p-5 hover:shadow-lg transition-shadow"
+            className="link-card bg-theme-subtle rounded-lg p-5 hover:shadow-lg transition-shadow border border-theme"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export const LinkListLayout = ({
                   {link.keywords.slice(0, 4).map((keyword) => (
                     <span
                       key={keyword}
-                      className="px-2 py-1 text-xs bg-theme rounded-full text-theme-muted"
+                      className="px-2 py-1 text-xs bg-theme-muted rounded-full text-theme"
                     >
                       {keyword}
                     </span>
@@ -83,7 +83,7 @@ export const LinkListLayout = ({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-theme hover:bg-brand hover:text-white transition-colors"
+                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-theme-muted text-theme hover:bg-brand hover:text-theme-inverse transition-colors"
                   aria-label={`Open ${link.title} in new tab`}
                 >
                   <svg

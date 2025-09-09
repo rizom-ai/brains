@@ -16,13 +16,13 @@ export const CTALayout = ({
         <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-theme-inverse mb-6">
           {headline}
         </h2>
-        <p className="text-xl md:text-2xl text-brand-light mb-10 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-xl md:text-2xl text-theme-inverse/90 mb-10 max-w-3xl mx-auto leading-relaxed">
           {description}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <a
             href={primaryButton.link}
-            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-brand-dark bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
           >
             {primaryButton.text}
             <svg
@@ -42,7 +42,7 @@ export const CTALayout = ({
           {secondaryButton && (
             <a
               href={secondaryButton.link}
-              className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme-inverse border-2 border-white/80 rounded-2xl hover:bg-theme-inverse hover:text-brand hover:border-theme-inverse transition-all duration-300"
+              className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme-inverse border-2 border-theme-light rounded-2xl hover:bg-theme-inverse hover:text-brand hover:border-theme-inverse transition-all duration-300"
             >
               {secondaryButton.text}
               <svg

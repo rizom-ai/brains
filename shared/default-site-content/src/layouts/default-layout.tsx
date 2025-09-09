@@ -25,13 +25,13 @@ export function DefaultLayout({
   const canonicalUrl = siteInfo.url ? `${siteInfo.url}${path}` : undefined;
 
   return (
-    <div class="flex flex-col min-h-screen">
+    <div class="flex flex-col min-h-screen bg-theme">
       <Head
         title={title}
         description={description}
         {...(canonicalUrl && { canonicalUrl })}
       />
-      <main class="flex-grow">{sections}</main>
+      <main class="flex-grow bg-theme">{sections}</main>
       <FooterLayout
         navigation={siteInfo.navigation.primary}
         copyright={siteInfo.copyright}

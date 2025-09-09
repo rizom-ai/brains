@@ -9,7 +9,7 @@ export const FooterLayout = ({
   const defaultCopyright = `© ${currentYear} Rizom Brains. All rights reserved.`;
 
   return (
-    <footer className="footer-section bg-gray-900 text-white py-12">
+    <footer className="footer-section bg-theme-dark text-theme-inverse py-12">
       <div className="container mx-auto px-4">
         {/* Navigation Links */}
         <nav className="footer-navigation mb-8">
@@ -18,7 +18,7 @@ export const FooterLayout = ({
               <li key={item.href}>
                 <a
                   href={item.href}
-                  className="text-gray-300 hover:text-white transition-colors"
+                  className="text-theme-light hover:text-brand transition-colors"
                 >
                   {item.label}
                 </a>
@@ -28,7 +28,7 @@ export const FooterLayout = ({
         </nav>
 
         {/* Copyright */}
-        <div className="text-center text-gray-400 text-sm">
+        <div className="text-center text-theme-light text-sm">
           {copyright || defaultCopyright}
         </div>
       </div>

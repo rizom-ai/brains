@@ -8,7 +8,7 @@ export const HeroLayout = ({
   ctaLink,
 }: LandingHeroData): JSX.Element => {
   return (
-    <section className="hero-section py-20 md:py-32 text-center relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+    <section className="hero-section py-20 md:py-32 text-center relative overflow-hidden bg-gradient-to-br from-gradient-start to-gradient-end">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-5 pointer-events-none hero-bg-pattern"></div>
 
@@ -28,7 +28,7 @@ export const HeroLayout = ({
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href={ctaLink}
-              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-accent to-orange-600 rounded-xl shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-orange-500/20"
+              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-theme-inverse bg-gradient-to-r from-accent to-accent-dark rounded-xl shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-accent/20"
             >
               {ctaText}
               <svg
@@ -47,7 +47,7 @@ export const HeroLayout = ({
             </a>
             <a
               href="#features"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-brand border-2 border-brand rounded-xl hover:bg-brand hover:text-white hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-brand/20"
+              className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-brand border-2 border-brand rounded-xl hover:bg-brand hover:text-theme-inverse hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-brand/20"
             >
               Learn More
               <svg

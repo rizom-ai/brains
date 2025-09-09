@@ -86,17 +86,23 @@ theme.css or imported theme
 
 ### Phase 1: Core Theme Support (Current)
 
-1. **Config Schema Update**
+1. **Ensure Consistent Variable Usage** (First Priority)
+   - Audit all components to use theme CSS variables
+   - Replace hardcoded colors with semantic variables
+   - Update utility classes to use theme variables
+   - Verify all components respect theme customization
+
+2. **Config Schema Update**
    - Add `themeFile` field to SiteBuilderConfig
    - Support string paths and imported modules
    - Default to "./theme.css"
 
-2. **Build Process Integration**
+3. **Build Process Integration**
    - Load theme file during build
    - Inject after default variables
    - Process through existing CSS pipeline
 
-3. **Theme Template**
+4. **Theme Template**
    - Create comprehensive theme.template.css
    - Document all customizable variables
    - Include usage examples

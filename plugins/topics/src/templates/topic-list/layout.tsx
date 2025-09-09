@@ -6,9 +6,9 @@ export const TopicListLayout = ({
   totalCount,
 }: TopicListData): JSX.Element => {
   return (
-    <div className="topic-list-container max-w-4xl mx-auto p-6">
+    <div className="topic-list-container max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Topics</h1>
+        <h1 className="text-3xl font-bold mb-2 text-theme">Topics</h1>
         <p className="text-theme-muted">
           Discovered {totalCount} topics from your knowledge base
         </p>
@@ -18,7 +18,7 @@ export const TopicListLayout = ({
         {topics.map((topic) => (
           <article
             key={topic.id}
-            className="topic-card bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow"
+            className="topic-card bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow border border-theme"
           >
             <h2 className="text-xl font-semibold mb-2">
               <a

@@ -13,9 +13,9 @@ export const SummaryDetailLayout = ({
   entryCount,
 }: SummaryDetailData): JSX.Element => {
   return (
-    <div className="summary-detail-container max-w-4xl mx-auto p-6">
+    <div className="summary-detail-container max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">
+        <h1 className="text-3xl font-bold mb-2 text-theme">
           Conversation Summary: {conversationId}
         </h1>
         <div className="flex items-center gap-4 text-theme-muted">
@@ -31,10 +31,10 @@ export const SummaryDetailLayout = ({
         {entries.map((entry, index) => (
           <article
             key={`${entry.created}-${index}`}
-            className="entry-card bg-theme-subtle rounded-lg p-6"
+            className="entry-card bg-theme-subtle rounded-lg p-6 border border-theme"
           >
             <header className="mb-4">
-              <h2 className="text-xl font-semibold mb-2">{entry.title}</h2>
+              <h2 className="text-xl font-semibold mb-2 text-theme">{entry.title}</h2>
               <div className="flex items-center gap-4 text-sm text-theme-muted">
                 <time dateTime={entry.created}>
                   Created {new Date(entry.created).toLocaleDateString()}
@@ -50,7 +50,7 @@ export const SummaryDetailLayout = ({
             <div className="prose prose-theme max-w-none">
               {entry.content.split("\n").map((paragraph, pIndex) =>
                 paragraph.trim() ? (
-                  <p key={pIndex} className="mb-4">
+                  <p key={pIndex} className="mb-4 text-theme-muted">
                     {paragraph}
                   </p>
                 ) : null,

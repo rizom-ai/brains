@@ -34,7 +34,7 @@ const DashboardRender = ({
       className="dashboard-widget p-6 bg-theme-subtle rounded-lg"
       data-component="site-builder:dashboard"
     >
-      <h2 className="text-2xl font-bold mb-4">System Dashboard</h2>
+      <h2 className="text-2xl font-bold mb-4 text-theme">System Dashboard</h2>
 
       {/* Interactive controls - match static template structure */}
       <div className="mb-4 flex gap-4" data-hydrate-controls="true">
@@ -48,17 +48,17 @@ const DashboardRender = ({
                   onFilterChange((e.target as HTMLInputElement).value)
               : undefined
           }
-          className="px-3 py-2 border rounded"
+          className="px-3 py-2 bg-theme border border-theme rounded text-theme placeholder-theme-muted"
         />
         <button
           onClick={onSortChange}
-          className="px-4 py-2 bg-brand text-white rounded hover:bg-brand-dark"
+          className="px-4 py-2 bg-brand text-theme-inverse rounded hover:bg-brand-dark"
         >
           Sort by {sortBy === "count" ? "Type" : "Count"}
         </button>
         <button
           onClick={onToggleDetails}
-          className="px-4 py-2 bg-theme rounded border hover:bg-theme-subtle"
+          className="px-4 py-2 bg-theme-muted text-theme rounded border border-theme hover:bg-theme-subtle"
         >
           {showDetails ? "Hide" : "Show"} Details
         </button>
@@ -68,7 +68,7 @@ const DashboardRender = ({
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         {sortedStats.map((stat) => (
           <div key={stat.type} className="bg-theme p-4 rounded">
-            <h3 className="font-semibold">{stat.type}</h3>
+            <h3 className="font-semibold text-theme">{stat.type}</h3>
             <p className="text-2xl font-bold text-brand">{stat.count}</p>
           </div>
         ))}
@@ -76,11 +76,11 @@ const DashboardRender = ({
 
       {/* Recent entities - shown when details are toggled */}
       {showDetails && (
-        <div className="mt-6">
+        <div className="mt-6 text-theme">
           <h3 className="text-lg font-semibold mb-3">Recent Entities</h3>
           <div className="space-y-2">
             {data.recentEntities.map((entity) => (
-              <div key={entity.id} className="bg-theme p-3 rounded border">
+              <div key={entity.id} className="bg-theme p-3 rounded border border-theme">
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-medium">{entity.title}</h4>

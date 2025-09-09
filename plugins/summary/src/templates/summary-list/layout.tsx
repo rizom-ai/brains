@@ -6,9 +6,9 @@ export const SummaryListLayout = ({
   totalCount,
 }: SummaryListData): JSX.Element => {
   return (
-    <div className="summary-list-container max-w-4xl mx-auto p-6">
+    <div className="summary-list-container max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Conversation Summaries</h1>
+        <h1 className="text-3xl font-bold mb-2 text-theme">Conversation Summaries</h1>
         <p className="text-theme-muted">
           {totalCount} conversations have been summarized chronologically
         </p>
@@ -18,7 +18,7 @@ export const SummaryListLayout = ({
         {summaries.map((summary) => (
           <article
             key={summary.id}
-            className="summary-card bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow"
+            className="summary-card bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow border border-theme"
           >
             <h2 className="text-xl font-semibold mb-2">
               <a

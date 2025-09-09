@@ -17,10 +17,10 @@ export const ProductsLayout = ({
   products,
 }: ProductsSection): JSX.Element => {
   const statusColors = {
-    live: "bg-green-100 text-green-800",
-    beta: "bg-blue-100 text-blue-800",
-    alpha: "bg-yellow-100 text-yellow-800",
-    concept: "bg-gray-100 text-gray-800",
+    live: "bg-green-500/20 text-green-400",
+    beta: "bg-blue-500/20 text-blue-400",
+    alpha: "bg-yellow-500/20 text-yellow-400",
+    concept: "bg-theme-muted text-theme-muted",
   };
 
   return (
