@@ -8,16 +8,20 @@ export const SiteInfoSchema = z.object({
   description: z.string(),
   url: z.string().optional(),
   navigation: z.object({
-    primary: z.array(z.object({
-      label: z.string(),
-      href: z.string(),
-      priority: z.number(),
-    })),
-    secondary: z.array(z.object({
-      label: z.string(),
-      href: z.string(),
-      priority: z.number(),
-    })),
+    primary: z.array(
+      z.object({
+        label: z.string(),
+        href: z.string(),
+        priority: z.number(),
+      }),
+    ),
+    secondary: z.array(
+      z.object({
+        label: z.string(),
+        href: z.string(),
+        priority: z.number(),
+      }),
+    ),
   }),
   copyright: z.string(),
 });

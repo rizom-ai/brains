@@ -23,7 +23,7 @@ export function DefaultLayout({
     <>
       {/* Head content will be managed by Helmet later */}
       <main class="min-h-full">{sections}</main>
-      <FooterLayout 
+      <FooterLayout
         navigation={siteInfo.navigation.primary}
         copyright={siteInfo.copyright}
       />

@@ -85,7 +85,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         title: siteConfig.title,
         description: siteConfig.description,
         ...(siteConfig.url !== undefined && { url: siteConfig.url }),
-        ...(siteConfig.copyright !== undefined && { copyright: siteConfig.copyright }),
+        ...(siteConfig.copyright !== undefined && {
+          copyright: siteConfig.copyright,
+        }),
       },
       context.logger.child("SiteInfoDataSource"),
     );

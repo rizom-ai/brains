@@ -10,7 +10,8 @@ import type { RouteRegistry } from "../lib/route-registry";
 export class SiteInfoDataSource implements DataSource {
   public readonly id = "site:info";
   public readonly name = "Site Information DataSource";
-  public readonly description = "Provides comprehensive site-wide information including metadata and navigation";
+  public readonly description =
+    "Provides comprehensive site-wide information including metadata and navigation";
 
   constructor(
     private readonly routeRegistry: RouteRegistry,
@@ -30,7 +31,10 @@ export class SiteInfoDataSource implements DataSource {
    * @param query - Optional query parameters (not currently used)
    * @param outputSchema - Schema for validating output format
    */
-  async fetch<T>(_query: unknown, outputSchema: zType.ZodSchema<T>): Promise<T> {
+  async fetch<T>(
+    _query: unknown,
+    outputSchema: zType.ZodSchema<T>,
+  ): Promise<T> {
     this.logger.debug("SiteInfoDataSource fetch called");
 
     // Get navigation items for both slots

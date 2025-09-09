@@ -53,12 +53,12 @@ export class DynamicRouteGenerator {
       const indexRoute: RouteDefinition = {
         id: `${entityType}-index`,
         path: `/${this.pluralize(entityType)}`,
-        title: `${this.capitalize(entityType)}s`,
+        title: `${this.capitalize(this.pluralize(entityType))}`,
         description: `Browse all ${this.pluralize(entityType)}`,
         layout: "default",
         navigation: {
           show: true,
-          label: `${this.capitalize(entityType)}s`,
+          label: `${this.capitalize(this.pluralize(entityType))}`,
           slot: "primary",
           priority: 40, // Plugin-registered pages priority
         },

@@ -97,11 +97,11 @@ export class SiteBuilder implements ISiteBuilder {
     // Get navigation items directly from the route registry
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
     const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
-    
+
     // Generate default copyright if not provided
     const currentYear = new Date().getFullYear();
     const defaultCopyright = `© ${currentYear} ${siteConfig.title}. All rights reserved.`;
-    
+
     // Build the complete site info
     return {
       title: siteConfig.title,
@@ -188,7 +188,9 @@ export class SiteBuilder implements ISiteBuilder {
           title: siteConfig.title,
           description: siteConfig.description,
           ...(siteConfig.url !== undefined && { url: siteConfig.url }),
-          ...(siteConfig.copyright !== undefined && { copyright: siteConfig.copyright }),
+          ...(siteConfig.copyright !== undefined && {
+            copyright: siteConfig.copyright,
+          }),
         },
         getContent: async (
           route: RouteDefinition,
@@ -204,8 +206,12 @@ export class SiteBuilder implements ISiteBuilder {
           return this.getSiteInfo({
             title: options.siteConfig.title,
             description: options.siteConfig.description,
-            ...(options.siteConfig.url !== undefined && { url: options.siteConfig.url }),
-            ...(options.siteConfig.copyright !== undefined && { copyright: options.siteConfig.copyright }),
+            ...(options.siteConfig.url !== undefined && {
+              url: options.siteConfig.url,
+            }),
+            ...(options.siteConfig.copyright !== undefined && {
+              copyright: options.siteConfig.copyright,
+            }),
           });
         },
       };
