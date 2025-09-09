@@ -9,6 +9,8 @@ import type { RouteDefinition } from "../types/routes";
 import type { Logger } from "@brains/plugins";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
+import { HelmetProvider } from "react-helmet-async";
+import type { HelmetServerState } from "react-helmet-async";
 import type { ComponentChildren } from "preact";
 import { join } from "path";
 import { promises as fs } from "fs";
@@ -127,17 +129,31 @@ export class PreactBuilder implements StaticSiteBuilder {
       sections: sectionComponents,
       title: route.title,
       description: route.description,
+      path: route.path,
       siteInfo,
     };
 
-    const layoutVNode = LayoutComponent(layoutProps);
-    const layoutHtml = render(layoutVNode);
+    // Create helmet context for SSR
+    const helmetContext: { helmet?: HelmetServerState } = {};
 
-    // Create full HTML page
+    // Wrap the layout component in HelmetProvider for SSR
+    const wrappedContent = h(
+      HelmetProvider,
+      { context: helmetContext },
+      h(LayoutComponent, layoutProps),
+    );
+
+    const layoutHtml = render(wrappedContent);
+
+    // Extract head data from helmet context
+    const { helmet } = helmetContext;
+
+    // Create full HTML page with helmet data
     const html = this.createHTMLPage({
       title: route.title,
       description: route.description,
       content: layoutHtml,
+      ...(helmet && { helmet }),
     });
 
     // Determine output path
@@ -214,15 +230,27 @@ export class PreactBuilder implements StaticSiteBuilder {
     title: string;
     description: string;
     content: string;
+    helmet?: HelmetServerState;
   }): string {
+    // Extract helmet strings if available
+    const helmetTitle =
+      options.helmet?.title?.toString() || `<title>${options.title}</title>`;
+    const helmetMeta =
+      options.helmet?.meta?.toString() ||
+      (options.description
+        ? `<meta name="description" content="${options.description}">`
+        : "");
+    const helmetLink = options.helmet?.link?.toString() || "";
+
     return `<!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>${options.title}</title>
-  ${options.description ? `<meta name="description" content="${options.description}">` : ""}
+  ${helmetTitle}
+  ${helmetMeta}
+  ${helmetLink}
   
   <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">

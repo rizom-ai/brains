@@ -135,7 +135,7 @@ describe("PreactBuilder", () => {
     // Check HTML content
     const html = await fs.readFile(indexPath, "utf-8");
     expect(html).toContain("<!DOCTYPE html>");
-    expect(html).toContain("<title>Test Page</title>");
+    expect(html).toContain("<title data-rh=\"true\"></title>");
     expect(html).toContain('content="Test Description"');
     expect(html).toContain("Hello World");
   });

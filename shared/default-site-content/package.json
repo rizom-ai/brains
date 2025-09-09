@@ -14,7 +14,10 @@
     "@brains/utils": "workspace:*",
     "@brains/templates": "workspace:*",
     "lucide-preact": "^0.460.0",
-    "preact": "^10.19.3"
+    "preact": "^10.19.3",
+    "react": "npm:@preact/compat",
+    "react-dom": "npm:@preact/compat",
+    "react-helmet-async": "^2.0.5"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

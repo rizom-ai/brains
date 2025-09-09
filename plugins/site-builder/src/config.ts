@@ -14,6 +14,7 @@ export type LayoutComponent = (props: {
   sections: ComponentChildren[];
   title: string;
   description: string;
+  path: string;
   siteInfo: SiteInfo;
 }) => JSX.Element;
 
