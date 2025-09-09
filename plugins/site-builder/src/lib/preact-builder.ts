@@ -2,6 +2,7 @@ import type {
   StaticSiteBuilder,
   StaticSiteBuilderOptions,
   BuildContext,
+  SiteInfo,
 } from "./static-site-builder";
 import type { ComponentType } from "@brains/plugins";
 import type { RouteDefinition } from "../types/routes";
@@ -41,10 +42,13 @@ export class PreactBuilder implements StaticSiteBuilder {
     await fs.mkdir(this.outputDir, { recursive: true });
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
 
+    // Fetch site info once for all routes
+    const siteInfo = await context.getSiteInfo();
+
     // Build each route first (HTML files)
     for (const route of context.routes) {
       onProgress(`Building route: ${route.path}`);
-      await this.buildRoute(route, context);
+      await this.buildRoute(route, context, siteInfo);
     }
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
@@ -95,6 +99,7 @@ export class PreactBuilder implements StaticSiteBuilder {
   private async buildRoute(
     route: RouteDefinition,
     context: BuildContext,
+    siteInfo: SiteInfo,
   ): Promise<void> {
     this.logger.debug(`Building route: ${route.path}`);
 
@@ -122,6 +127,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       sections: sectionComponents,
       title: route.title,
       description: route.description,
+      siteInfo,
     };
 
     const layoutVNode = LayoutComponent(layoutProps);

@@ -340,16 +340,16 @@ interface SiteInfo {
   title: string;
   description: string;
   url?: string;
-  
+
   // Navigation for different slots
   navigation: {
     primary: NavigationItem[];
     footer: NavigationItem[];
   };
-  
+
   // Site-wide content
   copyright?: string;
-  
+
   // Future expansions
   social?: {
     twitter?: string;

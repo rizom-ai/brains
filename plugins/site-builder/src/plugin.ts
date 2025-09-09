@@ -21,6 +21,7 @@ import { siteContentAdapter } from "./entities/site-content-adapter";
 import { dashboardTemplate } from "./templates/dashboard";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
+import { SiteInfoDataSource } from "./datasources/site-info-datasource";
 import { createSiteBuilderTools } from "./tools";
 import { createSiteBuilderCommands } from "./commands";
 import type { SiteBuilderConfig, LayoutComponent } from "./config";
@@ -73,6 +74,24 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.registerDataSource(navigationDataSource);
     this.logger.debug("Registered NavigationDataSource");
 
+    // Register SiteInfoDataSource
+    const siteConfig = this.config.siteConfig || {
+      title: "Personal Brain",
+      description: "A knowledge management system",
+    };
+    const siteInfoDataSource = new SiteInfoDataSource(
+      this._routeRegistry,
+      {
+        title: siteConfig.title,
+        description: siteConfig.description,
+        ...(siteConfig.url !== undefined && { url: siteConfig.url }),
+        ...(siteConfig.copyright !== undefined && { copyright: siteConfig.copyright }),
+      },
+      context.logger.child("SiteInfoDataSource"),
+    );
+    context.registerDataSource(siteInfoDataSource);
+    this.logger.debug("Registered SiteInfoDataSource");
+
     // Setup route message handlers
     this.setupRouteHandlers(context);
 
@@ -95,6 +114,12 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       title: "System Dashboard",
       description: "Monitor your Brain system statistics and activity",
       layout: "default",
+      navigation: {
+        show: true,
+        label: "Dashboard",
+        slot: "primary",
+        priority: 20, // After home
+      },
       sections: [
         {
           id: "main",

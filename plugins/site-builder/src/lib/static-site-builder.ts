@@ -6,6 +6,10 @@ import type {
 import type { RouteDefinition } from "../types/routes";
 import type { CSSProcessor } from "../css/css-processor";
 import type { LayoutComponent } from "../config";
+import type { SiteInfo } from "../types/site-info";
+
+// Re-export SiteInfo type for consumers
+export type { SiteInfo } from "../types/site-info";
 
 /**
  * Build context passed to static site builders
@@ -17,6 +21,7 @@ export interface BuildContext {
     title: string;
     description: string;
     url?: string;
+    copyright?: string;
   };
   getContent: (
     route: RouteDefinition,
@@ -24,6 +29,7 @@ export interface BuildContext {
   ) => Promise<unknown>;
   getViewTemplate: (name: string) => ViewTemplate | undefined;
   layouts: Record<string, LayoutComponent>;
+  getSiteInfo: () => Promise<SiteInfo>;
 }
 
 /**

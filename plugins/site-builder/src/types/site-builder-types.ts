@@ -15,6 +15,7 @@ export const SiteBuilderOptionsSchema = z.object({
     title: z.string(),
     description: z.string(),
     url: z.string().optional(),
+    copyright: z.string().optional(),
   }),
   layouts: z.record(z.any()),
 });

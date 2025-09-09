@@ -7,11 +7,14 @@ import { RouteDefinitionSchema } from "./types/routes";
  */
 import type { ComponentChildren, JSX } from "preact";
 
+import type { SiteInfo } from "./types/site-info";
+
 // Layout component type - accepts JSX sections and returns JSX
 export type LayoutComponent = (props: {
   sections: ComponentChildren[];
   title: string;
   description: string;
+  siteInfo: SiteInfo;
 }) => JSX.Element;
 
 export const siteBuilderConfigSchema = z.object({
@@ -35,6 +38,7 @@ export const siteBuilderConfigSchema = z.object({
       title: z.string(),
       description: z.string(),
       url: z.string().optional(),
+      copyright: z.string().optional(),
     })
     .default({
       title: "Personal Brain",

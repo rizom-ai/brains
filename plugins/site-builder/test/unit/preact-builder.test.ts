@@ -111,6 +111,15 @@ describe("PreactBuilder", () => {
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test Site Description",
+        navigation: {
+          primary: [],
+          secondary: [],
+        },
+        copyright: "© 2025 Test Site. All rights reserved.",
+      }),
     };
 
     await builder.build(buildContext, () => {});
@@ -195,6 +204,15 @@ describe("PreactBuilder", () => {
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test Site Description",
+        navigation: {
+          primary: [],
+          secondary: [],
+        },
+        copyright: "© 2025 Test Site. All rights reserved.",
+      }),
     };
 
     await builder.build(buildContext, () => {});
@@ -260,6 +278,15 @@ describe("PreactBuilder", () => {
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test Site Description",
+        navigation: {
+          primary: [],
+          secondary: [],
+        },
+        copyright: "© 2025 Test Site. All rights reserved.",
+      }),
     };
 
     // Should not throw
@@ -345,6 +372,15 @@ describe("PreactBuilder", () => {
         return mockContent;
       },
       layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test",
+        navigation: {
+          primary: [],
+          secondary: [],
+        },
+        copyright: "© 2025 Test Site. All rights reserved.",
+      }),
     };
 
     await builder.build(buildContext, () => {});
