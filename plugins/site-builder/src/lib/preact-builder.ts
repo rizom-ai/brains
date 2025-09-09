@@ -17,6 +17,7 @@ import { promises as fs } from "fs";
 import { HydrationManager } from "../hydration/hydration-manager";
 import type { CSSProcessor } from "../css/css-processor";
 import { TailwindCSSProcessor } from "../css/css-processor";
+import { createHTMLShell } from "./html-generator";
 
 /**
  * Preact-based static site builder
@@ -149,12 +150,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     const { helmet } = helmetContext;
 
     // Create full HTML page with helmet data
-    const html = this.createHTMLPage({
-      title: route.title,
-      description: route.description,
-      content: layoutHtml,
-      ...(helmet && { helmet }),
-    });
+    const html = createHTMLShell(layoutHtml, helmet);
 
     // Determine output path
     const outputPath =
@@ -226,66 +222,11 @@ export class PreactBuilder implements StaticSiteBuilder {
     return sectionComponents;
   }
 
-  private createHTMLPage(options: {
-    title: string;
-    description: string;
-    content: string;
-    helmet?: HelmetServerState;
-  }): string {
-    // Extract helmet strings if available
-    const helmetTitle =
-      options.helmet?.title?.toString() || `<title>${options.title}</title>`;
-    const helmetMeta =
-      options.helmet?.meta?.toString() ||
-      (options.description
-        ? `<meta name="description" content="${options.description}">`
-        : "");
-    const helmetLink = options.helmet?.link?.toString() || "";
-
-    return `<!DOCTYPE html>
-<html lang="en" class="h-full">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  ${helmetTitle}
-  ${helmetMeta}
-  ${helmetLink}
-  
-  <!-- Favicons -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="icon" type="image/png" href="/favicon.png">
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
-  
-  <!-- Styles -->
-  <link rel="stylesheet" href="/styles/main.css">
-  
-  <!-- Open Graph -->
-  <meta property="og:title" content="${options.title}">
-  ${options.description ? `<meta property="og:description" content="${options.description}">` : ""}
-  <meta property="og:type" content="website">
-  
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${options.title}">
-  ${options.description ? `<meta name="twitter:description" content="${options.description}">` : ""}
-</head>
-<body class="h-full bg-white font-sans">
-  <div id="root" class="min-h-screen">
-    ${options.content}
-  </div>
-</body>
-</html>`;
-  }
-
   private async processStyles(): Promise<void> {
     this.logger.debug("Processing CSS styles");
 
-    const inputCSS = this.createTailwindInput();
+    const inputPath = join(__dirname, "../styles/tailwind-input.css");
+    const inputCSS = await fs.readFile(inputPath, "utf-8");
     const outputPath = join(this.outputDir, "styles", "main.css");
 
     await this.cssProcessor.process(
@@ -296,135 +237,6 @@ export class PreactBuilder implements StaticSiteBuilder {
       this.logger,
     );
     this.logger.debug("CSS processed successfully");
-  }
-
-  private createTailwindInput(): string {
-    return `@import "tailwindcss";
-@source "./**/*.html";
-
-/* Theme Layer - CSS Custom Properties for theming */
-@layer theme {
-  :root {
-    /* Brand Colors - Updated to purple/orange theme */
-    --color-brand: #6366f1;
-    --color-brand-dark: #4f46e5;
-    --color-brand-light: #a5b4fc;
-    --color-accent: #ea580c;
-    
-    /* Semantic Colors */
-    --color-text: #1a202c;
-    --color-text-muted: #718096;
-    --color-text-inverse: #ffffff;
-    
-    /* Background Colors */
-    --color-bg: #ffffff;
-    --color-bg-subtle: #f7fafc;
-    --color-bg-muted: #e2e8f0;
-    
-    /* Typography - Updated to DM Sans */
-    --font-family-sans: 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-    --font-family-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-    --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  }
-}
-
-/* Base layer - Set DM Sans as default font */
-@layer base {
-  :root {
-    --font-sans: 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  }
-  
-  body {
-    font-family: 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  }
-}
-
-/* Utility classes that use theme variables */
-@layer utilities {
-  /* Text colors using theme variables */
-  .text-theme { color: var(--color-text); }
-  .text-theme-muted { color: var(--color-text-muted); }
-  .text-theme-inverse { color: var(--color-text-inverse); }
-  .text-brand { color: var(--color-brand); }
-  
-  /* Background colors using theme variables */
-  .bg-theme { background-color: var(--color-bg); }
-  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
-  .bg-brand { background-color: var(--color-brand); }
-  .bg-brand-dark { background-color: var(--color-brand-dark); }
-  
-  /* Interactive states */
-  .hover\\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
-  .hover\\:text-brand:hover { color: var(--color-brand); }
-  
-  /* Borders */
-  .border-brand-light { border-color: var(--color-brand-light); }
-  .hover\\:border-brand-light:hover { border-color: var(--color-brand-light); }
-  
-  /* Gradients - Tailwind v4 format */
-  .from-brand-dark { 
-    --tw-gradient-from: var(--color-brand-dark);
-    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  .from-brand-light { 
-    --tw-gradient-from: var(--color-brand-light);
-    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  .to-brand { 
-    --tw-gradient-to: var(--color-brand);
-  }
-  .to-theme { 
-    --tw-gradient-to: var(--color-bg);
-  }
-}
-
-/* Hero Background Components */
-@layer components {
-  /* Hero background pattern (dot grid) */
-  .hero-bg-pattern {
-    background-image: radial-gradient(circle at 1px 1px, rgb(99 102 241) 1px, transparent 0);
-    background-size: 20px 20px;
-  }
-  
-  /* CTA background pattern (larger dots) */
-  .cta-bg-pattern {
-    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
-    background-size: 40px 40px;
-  }
-}
-
-/* Blob Animations */
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-}
-
-/* Animation utilities */
-@layer utilities {
-  .animate-blob {
-    animation: blob 7s infinite;
-  }
-  
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-  
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
-}`;
   }
 }
 
