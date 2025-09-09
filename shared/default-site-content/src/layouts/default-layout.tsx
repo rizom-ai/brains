@@ -20,13 +20,13 @@ export function DefaultLayout({
   siteInfo,
 }: DefaultLayoutProps): JSX.Element {
   return (
-    <>
+    <div class="flex flex-col min-h-screen">
       {/* Head content will be managed by Helmet later */}
-      <main class="min-h-full">{sections}</main>
+      <main class="flex-grow">{sections}</main>
       <FooterLayout
         navigation={siteInfo.navigation.primary}
         copyright={siteInfo.copyright}
       />
-    </>
+    </div>
   );
 }

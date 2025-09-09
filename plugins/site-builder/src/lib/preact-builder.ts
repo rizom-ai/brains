@@ -247,7 +247,7 @@ export class PreactBuilder implements StaticSiteBuilder {
   ${options.description ? `<meta name="twitter:description" content="${options.description}">` : ""}
 </head>
 <body class="h-full bg-white font-sans">
-  <div id="root" class="min-h-full">
+  <div id="root" class="min-h-screen">
     ${options.content}
   </div>
 </body>

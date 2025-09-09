@@ -120,7 +120,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         show: true,
         label: "Dashboard",
         slot: "primary",
-        priority: 20, // After home
+        priority: 90, // Last item
       },
       sections: [
         {
