@@ -136,7 +136,7 @@ export class SiteBuilder implements ISiteBuilder {
   ): Promise<BuildResult> {
     // Parse options through schema to apply defaults
     const parsedOptions = SiteBuilderOptionsSchema.parse(options);
-    
+
     const reporter = ProgressReporter.from(progress);
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -163,7 +163,8 @@ export class SiteBuilder implements ISiteBuilder {
 
       // Create static site builder instance
       const workingDir =
-        parsedOptions.workingDir ?? join(parsedOptions.outputDir, ".preact-work");
+        parsedOptions.workingDir ??
+        join(parsedOptions.outputDir, ".preact-work");
       const staticSiteBuilder = this.staticSiteBuilderFactory({
         logger: this.logger.child("StaticSiteBuilder"),
         workingDir,

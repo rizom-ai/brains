@@ -157,7 +157,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-        themeCSS: "",
+          themeCSS: "",
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution
@@ -223,7 +223,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-        themeCSS: "",
+          themeCSS: "",
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution
@@ -287,7 +287,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-        themeCSS: "",
+          themeCSS: "",
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution
@@ -346,7 +346,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-        themeCSS: "",
+          themeCSS: "",
         });
       } catch {
         // Ignore build errors - we're just testing the content resolution

@@ -1,4 +1,8 @@
 /* Custom Theme for Test Brain - Green/Teal Theme */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
 :root {
   /* Brand Colors - Green/Teal theme */
   --color-brand: #10b981;
@@ -7,9 +11,9 @@
   --color-accent: #14b8a6;
   --color-accent-dark: #0d9488;
   
-  /* Typography - Modern font stack */
-  --font-family-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  /* Typography - Distinctive Google Fonts */
+  --font-sans: 'Bebas Neue', Impact, sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
   
   /* Spacing - Slightly more spacious */
   --spacing-md: 1.25rem;

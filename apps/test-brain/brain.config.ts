@@ -10,7 +10,9 @@ import { templates, routes, DefaultLayout } from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
-import themeCSS from "./theme.css" with { type: "text" };
+// import themeCSS from "./theme.css" with { type: "text" };
+
+const themeCSS = "";
 
 const config = defineConfig({
   name: "test-brain",
