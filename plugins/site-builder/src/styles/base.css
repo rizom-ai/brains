@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@source "./**/*.html";
+
+/* Base layer - minimal setup for font fallbacks */
+@layer base {
+  body {
+    font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  }
+  
+  .font-sans {
+    font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  }
+  
+  .font-serif {
+    font-family: var(--font-serif, ui-serif, serif);
+  }
+  
+  .font-mono {
+    font-family: var(--font-mono, ui-monospace, monospace);
+  }
+}

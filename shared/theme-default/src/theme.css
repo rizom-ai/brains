@@ -1,13 +1,10 @@
-@import "tailwindcss";
-@source "./**/*.html";
-
-/* Default font import - will be extracted and placed at beginning of final CSS */
+/* Default font import */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
 
 /* Theme Layer - CSS Custom Properties for theming */
 @layer theme {
   :root {
-    /* Brand Colors - Updated to purple/orange theme */
+    /* Brand Colors - Purple/Orange theme */
     --color-brand: #6366f1;
     --color-brand-dark: #4f46e5;
     --color-brand-light: #a5b4fc;
@@ -34,7 +31,7 @@
     --color-border: #e2e8f0;
     --color-border-light: rgba(255, 255, 255, 0.8);
     
-    /* Typography - Default fonts (can be overridden by themes) */
+    /* Typography */
     --font-sans: 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -71,21 +68,6 @@
   }
 }
 
-/* Base layer - Use CSS variables for fonts with fallback */
-@layer base {
-  body {
-    font-family: var(--font-sans, 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif);
-  }
-  
-  .font-sans {
-    font-family: var(--font-sans, 'DM Sans', 'Inter', ui-sans-serif, system-ui, sans-serif);
-  }
-  
-  .font-mono {
-    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
-  }
-}
-
 /* Utility classes that use theme variables */
 @layer utilities {
   /* Text colors using theme variables */
@@ -112,6 +94,7 @@
   .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
   .hover\:bg-theme-inverse:hover { background-color: var(--color-text-inverse); }
   .hover\:text-brand:hover { color: var(--color-brand); }
+  .hover\:text-brand-dark:hover { color: var(--color-brand-dark); }
   .hover\:text-theme-inverse:hover { color: var(--color-text-inverse); }
   
   /* Borders */

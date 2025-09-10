@@ -260,6 +260,14 @@
         "eslint-config-prettier": "^8.10.0",
       },
     },
+    "shared/theme-default": {
+      "name": "@brains/theme-default",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/typescript-config": "workspace:*",
+        "typescript": "^5.5.4",
+      },
+    },
     "shared/typescript-config": {
       "name": "@brains/typescript-config",
       "version": "0.1.0",
@@ -692,6 +700,8 @@
     "@brains/templates": ["@brains/templates@workspace:shell/templates"],
 
     "@brains/test-brain": ["@brains/test-brain@workspace:apps/test-brain"],
+
+    "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
 
     "@brains/topics": ["@brains/topics@workspace:plugins/topics"],
 

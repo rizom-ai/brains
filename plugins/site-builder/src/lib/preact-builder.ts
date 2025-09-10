@@ -222,30 +222,37 @@ export class PreactBuilder implements StaticSiteBuilder {
     return sectionComponents;
   }
 
-  private extractFontImports(css: string): { imports: string[]; cssWithoutImports: string } {
-    const fontImportRegex = /@import\s+url\([^)]+(?:fonts\.googleapis|fonts\.gstatic)[^)]*\)[^;]*;/g;
+  private extractFontImports(css: string): {
+    imports: string[];
+    cssWithoutImports: string;
+  } {
+    const fontImportRegex =
+      /@import\s+url\([^)]+(?:fonts\.googleapis|fonts\.gstatic)[^)]*\)[^;]*;/g;
     const imports: string[] = [];
-    
+
     const cssWithoutImports = css.replace(fontImportRegex, (match) => {
       imports.push(match);
-      return '';
+      return "";
     });
-    
+
     return { imports, cssWithoutImports };
   }
 
   private async processStyles(themeCSS: string): Promise<void> {
     this.logger.debug("Processing CSS styles");
 
-    const inputPath = join(__dirname, "../styles/tailwind-input.css");
+    const inputPath = join(__dirname, "../styles/base.css");
     const baseCSS = await fs.readFile(inputPath, "utf-8");
 
     // Extract font imports from base and theme CSS
-    const { imports: baseImports, cssWithoutImports: baseCSSClean } = this.extractFontImports(baseCSS);
-    const { imports: themeImports, cssWithoutImports: themeCSSClean } = this.extractFontImports(themeCSS);
+    const { imports: baseImports, cssWithoutImports: baseCSSClean } =
+      this.extractFontImports(baseCSS);
+    const { imports: themeImports, cssWithoutImports: themeCSSClean } =
+      this.extractFontImports(themeCSS);
 
     // Build CSS for Tailwind processing (without font imports)
-    const cssForTailwind = baseCSSClean + "\n\n/* Custom Theme Overrides */\n" + themeCSSClean;
+    const cssForTailwind =
+      baseCSSClean + "\n\n/* Custom Theme Overrides */\n" + themeCSSClean;
 
     const outputPath = join(this.outputDir, "styles", "main.css");
 
@@ -260,15 +267,15 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     // Read processed CSS and prepend font imports
     const processedCSS = await fs.readFile(outputPath, "utf-8");
-    
+
     // Theme imports override base imports (if theme has fonts, use only those)
     const finalImports = themeImports.length > 0 ? themeImports : baseImports;
-    
+
     if (finalImports.length > 0) {
-      const finalCSS = finalImports.join('\n') + '\n\n' + processedCSS;
+      const finalCSS = finalImports.join("\n") + "\n\n" + processedCSS;
       await fs.writeFile(outputPath, finalCSS, "utf-8");
     }
-    
+
     this.logger.debug("CSS processed successfully with font imports");
   }
 }

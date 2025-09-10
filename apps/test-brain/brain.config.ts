@@ -10,9 +10,12 @@ import { templates, routes, DefaultLayout } from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
-// import themeCSS from "./theme.css" with { type: "text" };
+import defaultTheme, { customizeTheme } from "@brains/theme-default";
+import customThemeCSS from "./theme.css" with { type: "text" };
 
-const themeCSS = "";
+// Use test-brain's custom green/teal theme
+// const themeCSS = customizeTheme(defaultTheme, customThemeCSS);
+const themeCSS = ""
 
 const config = defineConfig({
   name: "test-brain",

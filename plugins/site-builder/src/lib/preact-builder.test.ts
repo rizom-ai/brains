@@ -20,9 +20,11 @@ describe("PreactBuilder - extractFontImports", () => {
     const result = builder.extractFontImports(css);
 
     expect(result.imports).toEqual([
-      "@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');",
     ]);
-    expect(result.cssWithoutImports.trim()).toBe("body { font-family: Roboto; }");
+    expect(result.cssWithoutImports.trim()).toBe(
+      "body { font-family: Roboto; }",
+    );
   });
 
   test("handles complex font URLs with multiple families", () => {
@@ -47,7 +49,7 @@ describe("PreactBuilder - extractFontImports", () => {
     const result = builder.extractFontImports(css);
 
     expect(result.imports).toEqual([]);
-    expect(result.cssWithoutImports).toContain("@import \"tailwindcss\"");
+    expect(result.cssWithoutImports).toContain('@import "tailwindcss"');
   });
 
   test("extracts fonts.gstatic.com imports", () => {
