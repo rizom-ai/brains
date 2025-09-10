@@ -9,8 +9,24 @@ WORKDIR /app
 # Copy everything
 COPY . .
 
-# Install dependencies
-RUN bun install
+# Install dependencies (skip postinstall scripts to avoid slow Matrix download)
+RUN bun install --ignore-scripts
+
+# CRITICAL: Download Matrix native binary for Linux
+# We skipped postinstall scripts to save time, so we need to download the binary manually
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
+    cd /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && \
+    PACKAGE_VERSION=$(cat package.json | grep '"version"' | cut -d'"' -f4) && \
+    echo "Downloading Matrix SDK crypto binary v${PACKAGE_VERSION}..." && \
+    curl -L -o matrix-sdk-crypto.linux-x64-gnu.node \
+        "https://github.com/matrix-org/matrix-rust-sdk/releases/download/matrix-sdk-crypto-nodejs-v${PACKAGE_VERSION}/matrix-sdk-crypto.linux-x64-gnu.node" && \
+    chmod +x matrix-sdk-crypto.linux-x64-gnu.node && \
+    echo "Matrix binary downloaded successfully" && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Verify the binary exists
+RUN ls -la /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/*.node || \
+    (echo "ERROR: Matrix native binary not found!" && exit 1)
 
 # Build all packages
 RUN bun run build
