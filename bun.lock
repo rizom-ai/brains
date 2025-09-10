@@ -130,6 +130,21 @@
         "typescript": "^5.2.2",
       },
     },
+    "plugins/examples": {
+      "name": "@brains/plugin-examples",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/command-registry": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/messaging-service": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/typescript-config": "workspace:*",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/git-sync": {
       "name": "@brains/git-sync",
       "version": "0.1.0",
@@ -267,6 +282,10 @@
         "@brains/typescript-config": "workspace:*",
         "typescript": "^5.5.4",
       },
+    },
+    "shared/types": {
+      "name": "@brains/types",
+      "version": "0.0.1",
     },
     "shared/typescript-config": {
       "name": "@brains/typescript-config",
@@ -685,6 +704,8 @@
 
     "@brains/permission-service": ["@brains/permission-service@workspace:shell/permission-service"],
 
+    "@brains/plugin-examples": ["@brains/plugin-examples@workspace:plugins/examples"],
+
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
 
     "@brains/render-service": ["@brains/render-service@workspace:shell/render-service"],
@@ -704,6 +725,8 @@
     "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
 
     "@brains/topics": ["@brains/topics@workspace:plugins/topics"],
+
+    "@brains/types": ["@brains/types@workspace:shared/types"],
 
     "@brains/typescript-config": ["@brains/typescript-config@workspace:shared/typescript-config"],
 

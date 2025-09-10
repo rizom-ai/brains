@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { createCorePluginHarness } from "../src/test/harness";
-import { calculatorPlugin } from "../src/core/example";
-import type { PluginCapabilities } from "../src/interfaces";
+import { createCorePluginHarness } from "@brains/plugins";
+import { calculatorPlugin } from "../src/core-plugin-example";
+import type { PluginCapabilities } from "@brains/plugins";
 import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "@brains/utils";
 

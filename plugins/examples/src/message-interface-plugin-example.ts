@@ -1,6 +1,9 @@
-import { MessageInterfacePlugin } from "./message-interface-plugin";
-import type { MessageContext } from "@brains/messaging-service";
-import type { JobProgressEvent, JobContext } from "@brains/job-queue";
+import { MessageInterfacePlugin } from "@brains/plugins";
+import type { 
+  MessageContext,
+  JobProgressEvent,
+  JobContext
+} from "@brains/plugins";
 import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
@@ -21,7 +24,7 @@ type EchoConfigInput = Partial<EchoConfig>;
  * - Progress event handling
  * - Job/batch operation tracking
  */
-export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
+export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin<EchoConfig> {
   declare protected config: EchoConfig;
   private messageCounter = 0;
 
@@ -167,6 +170,6 @@ export class EchoMessageInterface extends MessageInterfacePlugin<EchoConfig> {
  */
 export function echoMessageInterfacePlugin(
   config?: EchoConfigInput,
-): EchoMessageInterface {
-  return new EchoMessageInterface(config);
+): ExampleMessageInterfacePlugin {
+  return new ExampleMessageInterfacePlugin(config);
 }

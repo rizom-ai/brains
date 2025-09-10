@@ -1,0 +1,19 @@
+{
+  "name": "@brains/plugin-examples",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Example plugin implementations for reference",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
+    "typescript": "^5.3.3"
+  }
+}

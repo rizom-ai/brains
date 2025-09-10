@@ -1,14 +1,14 @@
-import { ServicePlugin } from "./service-plugin";
-import type { ServicePluginContext } from "./context";
-import type {
+import { ServicePlugin } from "@brains/plugins";
+import type { 
+  ServicePluginContext,
   PluginTool,
   PluginResource,
   DefaultQueryResponse,
   ToolResponse,
-} from "../interfaces";
-import type { CommandResponse } from "@brains/command-registry";
-import type { Command } from "@brains/command-registry";
-import type { MessageWithPayload } from "@brains/messaging-service";
+  CommandResponse,
+  Command,
+  MessageWithPayload
+} from "@brains/plugins";
 import { createId } from "@brains/utils";
 import { z } from "@brains/utils";
 

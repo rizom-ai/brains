@@ -1,7 +1,12 @@
-import { InterfacePlugin } from "./interface-plugin";
-import type { InterfacePluginContext } from "./context";
-import type { Daemon, BaseJobTrackingInfo, DaemonHealth } from "../interfaces";
-import type { JobProgressEvent, JobContext } from "@brains/job-queue";
+import { InterfacePlugin } from "@brains/plugins";
+import type { 
+  InterfacePluginContext,
+  Daemon,
+  BaseJobTrackingInfo,
+  DaemonHealth,
+  JobProgressEvent,
+  JobContext
+} from "@brains/plugins";
 import { z } from "@brains/utils";
 
 // Define tracking info for webserver interface jobs
@@ -30,7 +35,7 @@ type WebserverConfigInput = Partial<WebserverConfig>;
  * - System integration
  * - Generic job tracking and inheritance logic
  */
-export class WebserverInterfacePlugin extends InterfacePlugin<
+export class ExampleInterfacePlugin extends InterfacePlugin<
   WebserverConfig,
   WebserverTrackingInfo
 > {
@@ -286,6 +291,6 @@ export class WebserverInterfacePlugin extends InterfacePlugin<
 // Export a factory function for easy instantiation
 export function webserverInterfacePlugin(
   config?: WebserverConfigInput,
-): WebserverInterfacePlugin {
-  return new WebserverInterfacePlugin(config);
+): ExampleInterfacePlugin {
+  return new ExampleInterfacePlugin(config);
 }

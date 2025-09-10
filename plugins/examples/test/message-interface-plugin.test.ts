@@ -1,26 +1,25 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { createInterfacePluginHarness } from "../src/test/harness";
+import { createInterfacePluginHarness, PluginError } from "@brains/plugins";
 import {
   echoMessageInterfacePlugin,
-  EchoMessageInterface,
-} from "../src/message-interface/example";
-import type { MessageContext } from "@brains/messaging-service";
+  ExampleMessageInterfacePlugin,
+} from "../src/message-interface-plugin-example";
 import type {
+  MessageContext,
   PluginCapabilities,
   QueryContext,
   DefaultQueryResponse,
-} from "../src";
-import { PluginError } from "../src";
+} from "@brains/plugins";
 
 describe("MessageInterfacePlugin", () => {
   let harness: ReturnType<
-    typeof createInterfacePluginHarness<EchoMessageInterface>
+    typeof createInterfacePluginHarness<ExampleMessageInterfacePlugin>
   >;
   let capabilities: PluginCapabilities;
   let defaultContext: MessageContext;
 
   beforeEach(async () => {
-    harness = createInterfacePluginHarness<EchoMessageInterface>();
+    harness = createInterfacePluginHarness<ExampleMessageInterfacePlugin>();
 
     // MockShell already provides a suitable generateContent implementation
 
@@ -201,7 +200,7 @@ describe("MessageInterfacePlugin", () => {
   describe("conversation memory integration", () => {
     test("uses consistent conversationId format for storage and queries", async () => {
       // Create a fresh harness for this test
-      const testHarness = createInterfacePluginHarness<EchoMessageInterface>();
+      const testHarness = createInterfacePluginHarness<ExampleMessageInterfacePlugin>();
       const shell = testHarness.getShell();
 
       let storedConversationId: string | undefined;
@@ -300,7 +299,7 @@ describe("MessageInterfacePlugin", () => {
 
     test("includes proper metadata in context", async () => {
       // Test with custom implementation that checks metadata
-      class MetadataCheckInterface extends EchoMessageInterface {
+      class MetadataCheckInterface extends ExampleMessageInterfacePlugin {
         protected override async handleInput(
           input: string,
           context: MessageContext,

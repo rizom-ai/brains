@@ -57,6 +57,7 @@ export type {
   Plugin,
   ContentGenerationConfig,
   GenerateContentFunction,
+  BaseJobTrackingInfo,
 } from "./interfaces";
 
 export {

@@ -1,5 +1,5 @@
-import { CorePlugin } from "./core-plugin";
-import type { CorePluginContext } from "./context";
+import { CorePlugin } from "@brains/plugins";
+import type { CorePluginContext } from "@brains/plugins";
 import type { Command, CommandResponse } from "@brains/command-registry";
 import { z } from "@brains/utils";
 
@@ -37,7 +37,7 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
  * @see ServicePlugin for service-oriented features
  * @see InterfacePlugin for user interface features
  */
-export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
+export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
   constructor(config: CalculatorConfigInput = {}) {
     super(
       "calculator",
@@ -299,6 +299,6 @@ export class CalculatorPlugin extends CorePlugin<CalculatorConfig> {
 // Export a factory function for easy instantiation
 export function calculatorPlugin(
   config?: CalculatorConfigInput,
-): CalculatorPlugin {
-  return new CalculatorPlugin(config);
+): ExampleCorePlugin {
+  return new ExampleCorePlugin(config);
 }

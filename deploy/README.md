@@ -25,16 +25,19 @@ docker-compose up -d
 ## Deployment Methods
 
 ### 1. Local Docker
+
 ```bash
 deploy/scripts/deploy-docker.sh test-brain local
 ```
 
 ### 2. Remote Server
+
 ```bash
 deploy/scripts/deploy-docker.sh test-brain remote user@server.com
 ```
 
 ### 3. Hetzner Cloud
+
 ```bash
 cd deploy/providers/hetzner
 cp config.env.example config.env
@@ -52,9 +55,11 @@ cp deploy/docker/.env.production.example .env.production
 ```
 
 Required variables:
+
 - `ANTHROPIC_API_KEY` - For AI features
 
 Optional variables:
+
 - `MATRIX_HOMESERVER` - Matrix server URL
 - `MATRIX_USER_ID` - Matrix user ID
 - `MATRIX_ACCESS_TOKEN` - Matrix access token
