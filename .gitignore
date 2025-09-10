@@ -193,6 +193,19 @@ brain.db
 # Data directories
 data/
 cache/
+brain-data/
+
+# Docker deployment files
+deploy/*/cache/
+deploy/*/cache.*/
+deploy/*/data/
+deploy/*/data.*/
+deploy/*/brain-data/
+deploy/*/brain-data.*/
+deploy/**/*.db
+deploy/**/*.db-*
+.env.production
+*.env.production
 
 # direnv
 .envrc

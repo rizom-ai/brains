@@ -116,9 +116,9 @@ build_image() {
     # or prepare complex build directories
     log_info "Building Docker image for $APP_NAME..."
     
-    # Build Docker image using the new simple Dockerfile
+    # Build Docker image using the Dockerfile
     if ! docker build \
-        -f "deploy/docker-v2/Dockerfile.simple" \
+        -f "deploy/docker/Dockerfile" \
         --build-arg APP_NAME="$APP_NAME" \
         -t "$LOCAL_IMAGE_NAME" \
         . ; then
