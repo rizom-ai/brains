@@ -12,13 +12,13 @@ describe("Theme CSS Configuration", () => {
     expect(result.themeCSS).toBe(":root { --color-brand: #00ff00; }");
   });
 
-  it("should default themeCSS to empty string when not provided", () => {
+  it("should have themeCSS as undefined when not provided", () => {
     const config = {
       layouts: {},
     };
 
     const result = siteBuilderConfigSchema.parse(config);
-    expect(result.themeCSS).toBe("");
+    expect(result.themeCSS).toBeUndefined();
   });
 
   it("should handle empty themeCSS", () => {

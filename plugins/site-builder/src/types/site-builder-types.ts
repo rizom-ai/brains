@@ -18,7 +18,7 @@ export const SiteBuilderOptionsSchema = z.object({
     copyright: z.string().optional(),
   }),
   layouts: z.record(z.any()),
-  themeCSS: z.string().optional().default(""),
+  themeCSS: z.string().optional(),
 });
 
 export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema> & {

@@ -30,7 +30,7 @@ export interface BuildContext {
   getViewTemplate: (name: string) => ViewTemplate | undefined;
   layouts: Record<string, LayoutComponent>;
   getSiteInfo: () => Promise<SiteInfo>;
-  themeCSS: string;
+  themeCSS?: string;
 }
 
 /**

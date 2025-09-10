@@ -21,7 +21,6 @@ export function createTestConfig(
     layouts: {
       default: TestLayout,
     },
-    themeCSS: "",
   };
 
   return {

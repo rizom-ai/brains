@@ -49,7 +49,7 @@ export const siteBuilderConfigSchema = z.object({
   themeCSS: z
     .string()
     .describe("Custom CSS theme overrides to inject into builds")
-    .default(""),
+    .optional(),
   templates: z.any().optional().describe("Template definitions to register"),
   routes: z
     .array(RouteDefinitionSchema)

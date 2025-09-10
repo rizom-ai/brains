@@ -219,7 +219,9 @@ export class SiteBuilder implements ISiteBuilder {
             }),
           });
         },
-        themeCSS: parsedOptions.themeCSS,
+        ...(parsedOptions.themeCSS !== undefined && {
+          themeCSS: parsedOptions.themeCSS,
+        }),
       };
 
       // Run static site build

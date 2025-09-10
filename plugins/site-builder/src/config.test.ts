@@ -17,7 +17,7 @@ describe("siteBuilderConfigSchema", () => {
     }
   });
 
-  test("defaults themeCSS to empty string", () => {
+  test("themeCSS is optional", () => {
     const config = {
       templates: {},
       routes: [],
@@ -27,7 +27,7 @@ describe("siteBuilderConfigSchema", () => {
     const result = siteBuilderConfigSchema.safeParse(config);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.themeCSS).toBe("");
+      expect(result.data.themeCSS).toBeUndefined();
     }
   });
 

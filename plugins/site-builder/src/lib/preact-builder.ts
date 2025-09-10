@@ -56,7 +56,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress("Processing Tailwind CSS");
-    await this.processStyles(context.themeCSS);
+    await this.processStyles(context.themeCSS || "");
 
     // Set up hydration for interactive components
     onProgress("Setting up component hydration");
@@ -251,8 +251,9 @@ export class PreactBuilder implements StaticSiteBuilder {
       this.extractFontImports(themeCSS);
 
     // Build CSS for Tailwind processing (without font imports)
-    const cssForTailwind =
-      baseCSSClean + "\n\n/* Custom Theme Overrides */\n" + themeCSSClean;
+    const cssForTailwind = themeCSSClean
+      ? baseCSSClean + "\n\n/* Custom Theme Overrides */\n" + themeCSSClean
+      : baseCSSClean;
 
     const outputPath = join(this.outputDir, "styles", "main.css");
 

@@ -18,7 +18,7 @@ export class SiteBuildJobHandler
     private logger: Logger,
     private siteBuilder: SiteBuilder,
     private layouts: Record<string, LayoutComponent>,
-    private themeCSS: string,
+    private themeCSS?: string,
   ) {}
 
   async process(
