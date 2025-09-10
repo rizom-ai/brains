@@ -34,7 +34,9 @@ export const SummaryDetailLayout = ({
             className="entry-card bg-theme-subtle rounded-lg p-6 border border-theme"
           >
             <header className="mb-4">
-              <h2 className="text-xl font-semibold mb-2 text-theme">{entry.title}</h2>
+              <h2 className="text-xl font-semibold mb-2 text-theme">
+                {entry.title}
+              </h2>
               <div className="flex items-center gap-4 text-sm text-theme-muted">
                 <time dateTime={entry.created}>
                   Created {new Date(entry.created).toLocaleDateString()}

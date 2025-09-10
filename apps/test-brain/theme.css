@@ -1,0 +1,42 @@
+/* Custom Theme for Test Brain - Green/Teal Theme */
+:root {
+  /* Brand Colors - Green/Teal theme */
+  --color-brand: #10b981;
+  --color-brand-dark: #059669;
+  --color-brand-light: #34d399;
+  --color-accent: #14b8a6;
+  --color-accent-dark: #0d9488;
+  
+  /* Typography - Modern font stack */
+  --font-family-sans: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  
+  /* Spacing - Slightly more spacious */
+  --spacing-md: 1.25rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 2.5rem;
+  
+  /* Border Radius - More rounded */
+  --radius-base: 0.5rem;
+  --radius-lg: 0.75rem;
+  
+  /* Shadows - Softer shadows */
+  --shadow-sm: 0 1px 3px rgba(16, 185, 129, 0.05);
+  --shadow-base: 0 2px 6px rgba(16, 185, 129, 0.08);
+  --shadow-lg: 0 10px 20px rgba(16, 185, 129, 0.1);
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+  /* Brand Colors - Adjusted for dark mode */
+  --color-brand: #34d399;
+  --color-brand-dark: #10b981;
+  --color-brand-light: #6ee7b7;
+  --color-accent: #2dd4bf;
+  --color-accent-dark: #14b8a6;
+  
+  /* Background Colors - Darker with green tint */
+  --color-bg: #0a0f0d;
+  --color-bg-subtle: #111918;
+  --color-bg-muted: #1a2422;
+}

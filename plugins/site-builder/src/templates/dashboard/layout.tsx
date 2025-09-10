@@ -80,7 +80,10 @@ const DashboardRender = ({
           <h3 className="text-lg font-semibold mb-3">Recent Entities</h3>
           <div className="space-y-2">
             {data.recentEntities.map((entity) => (
-              <div key={entity.id} className="bg-theme p-3 rounded border border-theme">
+              <div
+                key={entity.id}
+                className="bg-theme p-3 rounded border border-theme"
+              >
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="font-medium">{entity.title}</h4>

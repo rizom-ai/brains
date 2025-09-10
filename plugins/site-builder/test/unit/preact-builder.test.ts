@@ -87,6 +87,7 @@ describe("PreactBuilder", () => {
     } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
+      themeCSS: "",
       routes: [
         {
           id: "test",
@@ -178,6 +179,7 @@ describe("PreactBuilder", () => {
     } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
+      themeCSS: "",
       routes: [
         {
           id: "team",
@@ -252,6 +254,7 @@ describe("PreactBuilder", () => {
     } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
+      themeCSS: "",
       routes: [
         {
           id: "test-missing",
@@ -338,6 +341,7 @@ describe("PreactBuilder", () => {
     } as unknown as ServicePluginContext;
 
     const buildContext: BuildContext = {
+      themeCSS: "",
       routes: [
         {
           id: "test-entity",

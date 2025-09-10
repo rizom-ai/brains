@@ -18,6 +18,7 @@ export class SiteBuildJobHandler
     private logger: Logger,
     private siteBuilder: SiteBuilder,
     private layouts: Record<string, LayoutComponent>,
+    private themeCSS: string,
   ) {}
 
   async process(
@@ -60,6 +61,7 @@ export class SiteBuildJobHandler
             description: "A knowledge management system",
           },
           layouts: this.layouts,
+          themeCSS: this.themeCSS,
         },
         buildProgressReporter.toCallback(),
       );

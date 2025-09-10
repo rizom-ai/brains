@@ -1,8 +1,8 @@
 ---
-conversationId: 'matrix-!IiXnxQOIANAsMqSADH:rizom.ai'
-userId: '@yeehaa:rizom.ai'
+conversationId: "matrix-!IiXnxQOIANAsMqSADH:rizom.ai"
+userId: "@yeehaa:rizom.ai"
 messageId: aqwoyPnju60I
-timestamp: '2025-09-09T04:22:05.576Z'
+timestamp: "2025-09-09T04:22:05.576Z"
 ---
 
 # The Omarchy Manual

@@ -56,7 +56,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress("Processing Tailwind CSS");
-    await this.processStyles();
+    await this.processStyles(context.themeCSS);
 
     // Set up hydration for interactive components
     onProgress("Setting up component hydration");
@@ -222,15 +222,19 @@ export class PreactBuilder implements StaticSiteBuilder {
     return sectionComponents;
   }
 
-  private async processStyles(): Promise<void> {
+  private async processStyles(themeCSS: string): Promise<void> {
     this.logger.debug("Processing CSS styles");
 
     const inputPath = join(__dirname, "../styles/tailwind-input.css");
-    const inputCSS = await fs.readFile(inputPath, "utf-8");
+    const baseCSS = await fs.readFile(inputPath, "utf-8");
+
+    // Inject theme CSS after the base styles to ensure overrides take precedence
+    const finalCSS = baseCSS + "\n\n/* Custom Theme Overrides */\n" + themeCSS;
+
     const outputPath = join(this.outputDir, "styles", "main.css");
 
     await this.cssProcessor.process(
-      inputCSS,
+      finalCSS,
       outputPath,
       this.workingDir,
       this.outputDir,

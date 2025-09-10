@@ -7,6 +7,7 @@ import type {
   SiteBuilderOptions,
   BuildResult,
 } from "../types/site-builder-types";
+import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
 import { builtInTemplates } from "../view-template-schemas";
 import type {
   StaticSiteBuilderFactory,
@@ -133,6 +134,9 @@ export class SiteBuilder implements ISiteBuilder {
     options: SiteBuilderOptions,
     progress?: ProgressCallback,
   ): Promise<BuildResult> {
+    // Parse options through schema to apply defaults
+    const parsedOptions = SiteBuilderOptionsSchema.parse(options);
+    
     const reporter = ProgressReporter.from(progress);
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -159,11 +163,11 @@ export class SiteBuilder implements ISiteBuilder {
 
       // Create static site builder instance
       const workingDir =
-        options.workingDir ?? join(options.outputDir, ".preact-work");
+        parsedOptions.workingDir ?? join(parsedOptions.outputDir, ".preact-work");
       const staticSiteBuilder = this.staticSiteBuilderFactory({
         logger: this.logger.child("StaticSiteBuilder"),
         workingDir,
-        outputDir: options.outputDir,
+        outputDir: parsedOptions.outputDir,
       });
 
       // Get all registered routes (now includes dynamically generated ones)
@@ -179,7 +183,7 @@ export class SiteBuilder implements ISiteBuilder {
       });
 
       // Create build context
-      const siteConfig = options.siteConfig;
+      const siteConfig = parsedOptions.siteConfig;
 
       const buildContext: BuildContext = {
         routes,
@@ -201,19 +205,20 @@ export class SiteBuilder implements ISiteBuilder {
         getViewTemplate: (name: string) => {
           return this.context.getViewTemplate(name);
         },
-        layouts: options.layouts,
+        layouts: parsedOptions.layouts,
         getSiteInfo: async () => {
           return this.getSiteInfo({
-            title: options.siteConfig.title,
-            description: options.siteConfig.description,
-            ...(options.siteConfig.url !== undefined && {
-              url: options.siteConfig.url,
+            title: parsedOptions.siteConfig.title,
+            description: parsedOptions.siteConfig.description,
+            ...(parsedOptions.siteConfig.url !== undefined && {
+              url: parsedOptions.siteConfig.url,
             }),
-            ...(options.siteConfig.copyright !== undefined && {
-              copyright: options.siteConfig.copyright,
+            ...(parsedOptions.siteConfig.copyright !== undefined && {
+              copyright: parsedOptions.siteConfig.copyright,
             }),
           });
         },
+        themeCSS: parsedOptions.themeCSS,
       };
 
       // Run static site build
@@ -240,7 +245,7 @@ export class SiteBuilder implements ISiteBuilder {
 
       const result: BuildResult = {
         success: errors.length === 0,
-        outputDir: options.outputDir,
+        outputDir: parsedOptions.outputDir,
         filesGenerated,
         routesBuilt: routes.length,
       };
@@ -264,7 +269,7 @@ export class SiteBuilder implements ISiteBuilder {
       errors.push(buildError.message);
       return {
         success: false,
-        outputDir: options.outputDir,
+        outputDir: parsedOptions.outputDir,
         filesGenerated: 0,
         routesBuilt: 0,
         errors,

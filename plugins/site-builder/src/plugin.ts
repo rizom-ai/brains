@@ -176,6 +176,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.logger.child("SiteBuildJobHandler"),
       this.siteBuilder,
       this.layouts,
+      this.config.themeCSS,
     );
     context.registerJobHandler("site-build", siteBuildHandler);
     this.logger.debug("Registered site-build job handler");

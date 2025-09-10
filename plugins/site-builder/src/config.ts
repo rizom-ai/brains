@@ -46,6 +46,10 @@ export const siteBuilderConfigSchema = z.object({
       description: "A knowledge management system",
     })
     .optional(),
+  themeCSS: z
+    .string()
+    .describe("Custom CSS theme overrides to inject into builds")
+    .default(""),
   templates: z.any().optional().describe("Template definitions to register"),
   routes: z
     .array(RouteDefinitionSchema)
