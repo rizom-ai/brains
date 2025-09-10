@@ -13,7 +13,7 @@ import { SummaryPlugin } from "@brains/summary";
 import defaultTheme, { customizeTheme } from "@brains/theme-default";
 import customThemeCSS from "./theme.css" with { type: "text" };
 
-// Use test-brain's custom green/teal theme
+// Use test-brain's custom green/teal themen
 const themeCSS = customizeTheme(defaultTheme, customThemeCSS);
 
 const config = defineConfig({

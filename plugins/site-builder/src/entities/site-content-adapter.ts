@@ -95,10 +95,3 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
 
 // Create default instance
 export const siteContentAdapter = new SiteContentAdapter();
-
-// Legacy exports for backward compatibility during migration
-// TODO: Remove these after migration is complete
-export const siteContentPreviewAdapter = siteContentAdapter;
-export const siteContentProductionAdapter = siteContentAdapter;
-export class SiteContentPreviewAdapter extends SiteContentAdapter {}
-export class SiteContentProductionAdapter extends SiteContentAdapter {}

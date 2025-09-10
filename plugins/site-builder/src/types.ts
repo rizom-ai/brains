@@ -13,10 +13,3 @@ export const siteContentSchema = baseEntitySchema.extend({
 });
 
 export type SiteContent = z.infer<typeof siteContentSchema>;
-
-// Legacy type aliases for backward compatibility during migration
-// TODO: Remove these after migration is complete
-export type SiteContentPreview = SiteContent;
-export type SiteContentProduction = SiteContent;
-export const siteContentPreviewSchema = siteContentSchema;
-export const siteContentProductionSchema = siteContentSchema;

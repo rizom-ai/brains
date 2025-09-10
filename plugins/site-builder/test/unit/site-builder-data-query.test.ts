@@ -156,7 +156,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-          });
+        });
       } catch {
         // Ignore build errors - we're just testing the content resolution
       }
@@ -221,7 +221,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-          });
+        });
       } catch {
         // Ignore build errors - we're just testing the content resolution
       }
@@ -284,7 +284,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-          });
+        });
       } catch {
         // Ignore build errors - we're just testing the content resolution
       }
@@ -342,7 +342,7 @@ describe("SiteBuilder dataQuery handling", () => {
             description: "Test Description",
           },
           layouts: { default: TestLayout },
-          });
+        });
       } catch {
         // Ignore build errors - we're just testing the content resolution
       }

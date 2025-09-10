@@ -248,7 +248,6 @@ export const ToolContextRoutingSchema = z.object({
 
 /**
  * Base tool response schema
- * TODO: This can be extended with discriminated unions for different response types
  */
 export const toolResponseSchema = z
   .object({

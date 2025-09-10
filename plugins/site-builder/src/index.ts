@@ -11,8 +11,8 @@ export type {
 export { createPreactBuilder } from "./lib/preact-builder";
 
 // Export site content types and schemas
-export type { SiteContentPreview, SiteContentProduction } from "./types";
-export { siteContentPreviewSchema, siteContentProductionSchema } from "./types";
+export type { SiteContent } from "./types";
+export { siteContentSchema } from "./types";
 
 // Export route types and schemas for other plugins to use
 export type {

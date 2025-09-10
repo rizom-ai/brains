@@ -694,9 +694,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   protected override async onRegister(context: ServicePluginContext): Promise<void> {
     // Register entity types for content
     context.registerEntityType(
-      "site-content-preview",
-      siteContentPreviewSchema,
-      siteContentPreviewAdapter
+      "site-content",
+      siteContentSchema,
+      siteContentAdapter
     );
 
     // Register templates and routes

@@ -1,0 +1,7 @@
+{
+  "name": "@brains/types",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared TypeScript type declarations",
+  "types": "./index.d.ts"
+}
