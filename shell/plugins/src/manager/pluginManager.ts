@@ -1,6 +1,6 @@
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
-import type { IShell } from "@brains/plugins";
+import type { IShell } from "../interfaces";
 import { EventEmitter } from "events";
 import type { Plugin } from "../interfaces";
 import { DaemonRegistry } from "@brains/daemon-registry";

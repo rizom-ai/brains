@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { IShell } from "@brains/plugins";
+import type { IShell } from "../interfaces";
 import type { EventEmitter } from "events";
 import type { PluginCapabilities } from "../interfaces";
 import type { DaemonRegistry } from "@brains/daemon-registry";

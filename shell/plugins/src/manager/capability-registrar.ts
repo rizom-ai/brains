@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { IShell } from "@brains/plugins";
+import type { IShell } from "../interfaces";
 import type { PluginCapabilities } from "../interfaces";
 
 /**

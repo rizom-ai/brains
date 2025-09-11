@@ -8,7 +8,7 @@ import type {
 import type { PluginTool, PluginResource } from "../interfaces";
 import type { Command } from "@brains/command-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { IShell } from "@brains/plugins";
+import type { IShell } from "../interfaces";
 
 /**
  * Handler for plugin capability registration (tools, resources)
