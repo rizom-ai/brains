@@ -4,6 +4,8 @@ import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue";
 import { migrateConversations } from "@brains/conversation-service";
 import { appConfigSchema, type AppConfig } from "./types";
+import * as fs from "fs/promises";
+import * as path from "path";
 
 export class App {
   private shell: Shell | null = null;
@@ -90,10 +92,79 @@ export class App {
     }
   }
 
+  private async initializeSeedData(): Promise<void> {
+    const logger = Logger.getInstance();
+    // brain-data and seed-content are always in the current working directory
+    const brainDataDir = path.resolve(process.cwd(), "brain-data");
+    const seedContentDir = path.resolve(process.cwd(), "seed-content");
+
+    try {
+      logger.debug(`Checking brain-data at: ${brainDataDir}`);
+      logger.debug(`Looking for seed-content at: ${seedContentDir}`);
+
+      // Check if brain-data directory exists and is empty
+      let isEmpty = false;
+      try {
+        const files = await fs.readdir(brainDataDir);
+        isEmpty = files.length === 0;
+        logger.debug(`brain-data exists with ${files.length} files`);
+      } catch {
+        // Directory doesn't exist
+        logger.debug("brain-data directory doesn't exist, creating it");
+        isEmpty = true;
+        await fs.mkdir(brainDataDir, { recursive: true });
+      }
+
+      if (isEmpty) {
+        // Check if seed-content exists
+        try {
+          await fs.access(seedContentDir);
+          logger.info(`Initializing brain-data with seed content...`);
+
+          // Copy seed content to brain-data
+          await this.copyDirectory(seedContentDir, brainDataDir);
+
+          logger.info("✅ Seed content copied successfully");
+        } catch {
+          // No seed content available, that's okay
+          logger.info(
+            "No seed-content directory found, starting with empty brain-data",
+          );
+        }
+      } else {
+        logger.info(
+          "brain-data directory not empty, skipping seed content initialization",
+        );
+      }
+    } catch (error) {
+      logger.warn("Failed to initialize seed data:", error);
+      // Don't fail the app startup for this
+    }
+  }
+
+  private async copyDirectory(src: string, dest: string): Promise<void> {
+    const entries = await fs.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        await fs.mkdir(destPath, { recursive: true });
+        await this.copyDirectory(srcPath, destPath);
+      } else {
+        await fs.copyFile(srcPath, destPath);
+      }
+    }
+  }
+
   public async initialize(): Promise<void> {
     console.log("🔧 App.initialize() called - running migrations...");
     // Run migrations before creating shell
     await this.runMigrations();
+
+    // Initialize seed data if needed
+    await this.initializeSeedData();
 
     // Create shell if not provided in constructor
     if (!this.shell) {

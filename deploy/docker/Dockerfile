@@ -35,10 +35,9 @@ RUN bun run build
 RUN mkdir -p /app/data /app/cache /app/cache/embeddings /app/dist /app/brain-data && \
     chmod -R 777 /app/data /app/cache /app/dist /app/brain-data
 
-# Copy app-specific seed-content to the brain-data location
-# This ensures the seed content is available at /app/brain-data where the app expects it
+# Copy seed-content to /app so it's available at ./seed-content when running from /app
 RUN if [ -d "/app/apps/${APP_NAME}/seed-content" ]; then \
-        cp -r /app/apps/${APP_NAME}/seed-content/* /app/brain-data/ 2>/dev/null || true; \
+        cp -r "/app/apps/${APP_NAME}/seed-content" /app/seed-content; \
     fi
 
 # Expose port (can be overridden at runtime)

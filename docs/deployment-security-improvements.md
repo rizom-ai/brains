@@ -3,6 +3,7 @@
 ## Current State
 
 Currently, the Hetzner deployment uses root for all operations:
+
 - SSH access as root
 - Docker containers managed by root
 - No dedicated deploy user (creation was failing)
@@ -24,6 +25,7 @@ Currently, the Hetzner deployment uses root for all operations:
 ## Proposed Solution
 
 ### Phase 1: Deploy User Setup
+
 Create a dedicated deploy user during server provisioning:
 
 ```bash
@@ -51,6 +53,7 @@ EOF
 ```
 
 ### Phase 2: Docker User Mapping
+
 Run containers as non-root user:
 
 ```dockerfile
@@ -63,6 +66,7 @@ docker run --user 1001:1001 ...
 ```
 
 ### Phase 3: Directory Permissions
+
 Set proper ownership:
 
 ```bash
@@ -122,6 +126,7 @@ For existing deployments:
 ## Priority
 
 **Medium** - Current Docker isolation provides some security, but this should be done before:
+
 - Handling sensitive user data
 - Multi-tenant deployments
 - Production release

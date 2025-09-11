@@ -22,9 +22,10 @@ Traditional institutions — corporations, universities, geographic communities 
 
 This model is collapsing under its own contradictions. Burnout rates, talent shortages, and mass resignations signal that people are rejecting work that feels meaningless. Meanwhile, the most valuable work — innovation, problem-solving, creative collaboration — happens precisely when people are intrinsically motivated rather than externally controlled.
 
-When we say *the future of work is play,* we do not mean ping-pong tables, mandatory karaoke, or casual Fridays. We mean fundamental restructuring of how humans collaborate.
+When we say _the future of work is play,_ we do not mean ping-pong tables, mandatory karaoke, or casual Fridays. We mean fundamental restructuring of how humans collaborate.
 
 Play means:
+
 - Voluntary engagement where you lose track of time
 - Creating your own rules and boundaries
 - The freedom to fail without catastrophe
@@ -60,7 +61,7 @@ But this is bigger than any single platform. It is about recognizing that when m
 
 ## The Choice Is Yours
 
-Stop asking why the current system does not work and start investing in  alternatives that could.
+Stop asking why the current system does not work and start investing in alternatives that could.
 
 The infrastructure is emerging. The tools exist. The communities are forming. Your choice is whether to help shape this future or wait for others to build it.
 
