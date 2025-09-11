@@ -1,8 +1,8 @@
 import { MessageInterfacePlugin } from "@brains/plugins";
-import type { 
+import type {
   MessageContext,
   JobProgressEvent,
-  JobContext
+  JobContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 

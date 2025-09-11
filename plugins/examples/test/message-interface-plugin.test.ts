@@ -200,7 +200,8 @@ describe("MessageInterfacePlugin", () => {
   describe("conversation memory integration", () => {
     test("uses consistent conversationId format for storage and queries", async () => {
       // Create a fresh harness for this test
-      const testHarness = createInterfacePluginHarness<ExampleMessageInterfacePlugin>();
+      const testHarness =
+        createInterfacePluginHarness<ExampleMessageInterfacePlugin>();
       const shell = testHarness.getShell();
 
       let storedConversationId: string | undefined;

@@ -1,11 +1,11 @@
 import { InterfacePlugin } from "@brains/plugins";
-import type { 
+import type {
   InterfacePluginContext,
   Daemon,
   BaseJobTrackingInfo,
   DaemonHealth,
   JobProgressEvent,
-  JobContext
+  JobContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 

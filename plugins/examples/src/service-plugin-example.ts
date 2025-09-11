@@ -1,5 +1,5 @@
 import { ServicePlugin } from "@brains/plugins";
-import type { 
+import type {
   ServicePluginContext,
   PluginTool,
   PluginResource,
@@ -7,7 +7,7 @@ import type {
   ToolResponse,
   CommandResponse,
   Command,
-  MessageWithPayload
+  MessageWithPayload,
 } from "@brains/plugins";
 import { createId } from "@brains/utils";
 import { z } from "@brains/utils";
