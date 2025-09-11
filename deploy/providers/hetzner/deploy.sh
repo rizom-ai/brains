@@ -421,7 +421,7 @@ update_application() {
     
     # Deploy update
     log_info "Deploying update to $SERVER_IP..."
-    "$PROJECT_ROOT/deploy/scripts/deploy.sh" "deploy@$SERVER_IP" "$RELEASE_FILE"
+    "$PROJECT_ROOT/deploy/scripts/deploy.sh" "root@$SERVER_IP" "$RELEASE_FILE"
     
     log_info "✅ Update complete"
 }
@@ -458,12 +458,12 @@ destroy_infrastructure() {
     if [ -n "$SERVER_IP" ]; then
         # Create backup before destroying
         log_info "Creating backup..."
-        ssh "deploy@$SERVER_IP" "sudo $APP_INSTALL_PATH/backup.sh" || true
+        ssh "root@$SERVER_IP" "[ -f $APP_INSTALL_PATH/backup.sh ] && $APP_INSTALL_PATH/backup.sh" || true
         
         # Download backup
         BACKUP_DIR="$PROJECT_ROOT/backups/$APP_NAME-$(date +%Y%m%d_%H%M%S)"
         mkdir -p "$BACKUP_DIR"
-        scp "deploy@$SERVER_IP:$APP_INSTALL_PATH/backups/*" "$BACKUP_DIR/" || true
+        scp "root@$SERVER_IP:$APP_INSTALL_PATH/backups/*" "$BACKUP_DIR/" || true
         log_info "Backup saved to: $BACKUP_DIR"
     fi
     
@@ -514,16 +514,16 @@ get_status() {
     
     if [ "$SERVER_IP" != "unknown" ]; then
         # Check if server is reachable
-        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "deploy@$SERVER_IP" "echo 'Connected'" &> /dev/null; then
+        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "root@$SERVER_IP" "echo 'Connected'" &> /dev/null; then
             log_info "Server: ✅ Reachable"
             
             # Check service status
-            SERVICE_STATUS=$(ssh "deploy@$SERVER_IP" "sudo systemctl is-active $APP_SERVICE_NAME" 2>/dev/null || echo "unknown")
+            SERVICE_STATUS=$(ssh "root@$SERVER_IP" "systemctl is-active $APP_SERVICE_NAME" 2>/dev/null || echo "unknown")
             log_info "Service: $SERVICE_STATUS"
             
             # Get app version if possible
-            if ssh "deploy@$SERVER_IP" "test -f $APP_INSTALL_PATH/version.txt" 2>/dev/null; then
-                VERSION=$(ssh "deploy@$SERVER_IP" "cat $APP_INSTALL_PATH/version.txt" 2>/dev/null || echo "unknown")
+            if ssh "root@$SERVER_IP" "test -f $APP_INSTALL_PATH/version.txt" 2>/dev/null; then
+                VERSION=$(ssh "root@$SERVER_IP" "cat $APP_INSTALL_PATH/version.txt" 2>/dev/null || echo "unknown")
                 log_info "Version: $VERSION"
             fi
         else
