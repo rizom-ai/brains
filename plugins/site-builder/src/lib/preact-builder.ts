@@ -8,7 +8,7 @@ import type { ComponentType } from "@brains/plugins";
 import type { RouteDefinition } from "../types/routes";
 import type { Logger } from "@brains/plugins";
 import { render } from "preact-render-to-string";
-import { createElement } from "preact";
+import { h } from "preact";
 import { HeadCollector, type HeadProps } from "./head-collector";
 import type { ComponentChildren } from "preact";
 import { join } from "path";
@@ -138,7 +138,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     // Render the layout component
     // TODO: Pass headCollector through context when we implement proper context support
-    const layoutHtml = render(createElement(LayoutComponent, layoutProps));
+    const layoutHtml = render(h(LayoutComponent, layoutProps));
 
     // For now, we'll use a simple default head
     // In a real implementation, we'd collect head props from the Head component
@@ -146,11 +146,11 @@ export class PreactBuilder implements StaticSiteBuilder {
       title: route.title || siteInfo.title || "Personal Brain",
       description: route.description || siteInfo.description,
     };
-    
+
     if (route.path !== "/") {
       headProps.canonicalUrl = route.path;
     }
-    
+
     headCollector.setHeadProps(headProps);
 
     // Create full HTML page with head data
@@ -202,13 +202,13 @@ export class PreactBuilder implements StaticSiteBuilder {
       try {
         const validatedContent = template.schema.parse(content);
 
-        // Create component using createElement() to pass props correctly
+        // Create component using h() to pass props correctly
         // renderer is already checked to be a function, so we can cast it to ComponentType
         // We cast validatedContent to Record<string, unknown> since we know it's an object after schema validation
         const ComponentFunc = renderer as ComponentType<
           Record<string, unknown>
         >;
-        const component = createElement(
+        const component = h(
           ComponentFunc,
           validatedContent as Record<string, unknown>,
         );

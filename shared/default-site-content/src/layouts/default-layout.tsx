@@ -1,4 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { h } from "preact";
 import { FooterLayout } from "../footer/layout";
 import type { SiteInfo } from "@brains/site-builder-plugin/src/types/site-info";
 

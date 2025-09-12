@@ -1,8 +1,9 @@
 {
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact"
+    "jsx": "react",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment"
   },
   "include": [
     "src/**/*",

@@ -1,4 +1,6 @@
 import type { JSX } from "preact";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { h } from "preact";
 import type { CTASection } from "./schema";
 
 export const CTALayout = ({
