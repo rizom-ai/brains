@@ -1,20 +1,24 @@
 import type { JSX } from "preact";
-import * as Icons from "lucide-preact";
 import type { IntroContent } from "./schema";
 
 export const IntroLayout = ({
   tagline,
   description,
-  features,
 }: IntroContent): JSX.Element => {
   return (
-    <section className="intro-section relative overflow-hidden">
-      {/* Background gradient for visual interest */}
-      <div className="absolute inset-0 bg-gradient-to-br from-brand/5 via-transparent to-accent/5"></div>
+    <section className="intro-section relative overflow-hidden flex items-center flex-grow">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-accent/20 animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 via-transparent to-brand/10 animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand/30 rounded-full filter blur-3xl animate-blob"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/30 rounded-full filter blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute -top-48 -left-48 w-96 h-96 bg-gradient-to-br from-brand/40 to-accent/40 rounded-full filter blur-3xl opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
 
-      <div className="container mx-auto px-4 max-w-7xl py-24 md:py-32 relative">
-        {/* Main intro - larger and more prominent */}
-        <div className="text-center mb-20 max-w-4xl mx-auto">
+      <div className="container mx-auto px-4 max-w-7xl py-12 relative">
+        {/* Main intro - centered and prominent */}
+        <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-theme">
             {tagline}
           </h1>
@@ -22,41 +26,6 @@ export const IntroLayout = ({
             {description}
           </p>
         </div>
-
-        {/* Features grid - cleaner and more balanced */}
-        {features && features.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            {features.map((feature, index) => {
-              // Get the icon component dynamically
-              const iconName = feature.icon as keyof typeof Icons;
-              // Type assertion needed due to Lucide's complex type exports
-              const IconComponent = (Icons[iconName] ?? Icons.Box) as typeof Icons.Box;
-
-              return (
-                <div key={index} className="group">
-                  <div className="h-full p-8 rounded-xl bg-theme-subtle/20 border border-theme-border/30 hover:border-brand/30 hover:bg-theme-subtle/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
-                    {/* Simplified icon */}
-                    <div className="flex items-center justify-center w-16 h-16 mb-6 rounded-xl bg-brand/10 text-brand group-hover:bg-brand/15 transition-colors">
-                      <IconComponent
-                        size={28}
-                        className="stroke-current fill-none"
-                        strokeWidth={1.5}
-                      />
-                    </div>
-
-                    {/* Text content */}
-                    <h3 className="text-lg font-semibold mb-2 text-theme">
-                      {feature.title}
-                    </h3>
-                    <p className="text-theme-muted text-sm leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </section>
   );

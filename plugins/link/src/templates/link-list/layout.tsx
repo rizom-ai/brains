@@ -6,7 +6,7 @@ export const LinkListLayout = ({
   totalCount,
 }: LinkListData): JSX.Element => {
   return (
-    <div className="link-list-container max-w-4xl mx-auto p-6 bg-theme">
+    <div className="link-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-theme">Captured Links</h1>
         <p className="text-theme-muted">

@@ -6,7 +6,7 @@ export const SummaryListLayout = ({
   totalCount,
 }: SummaryListData): JSX.Element => {
   return (
-    <div className="summary-list-container max-w-4xl mx-auto p-6 bg-theme">
+    <div className="summary-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-theme">
           Conversation Summaries

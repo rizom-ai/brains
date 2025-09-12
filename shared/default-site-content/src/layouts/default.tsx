@@ -38,7 +38,7 @@ export function DefaultLayout({
         </div>
       </header>
 
-      <main className="flex-grow bg-theme">{sections}</main>
+      <main className="flex-grow flex flex-col bg-theme">{sections}</main>
 
       <Footer navigation={siteInfo.navigation.primary} />
     </div>
