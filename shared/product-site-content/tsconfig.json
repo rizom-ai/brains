@@ -1,0 +1,16 @@
+{
+  "extends": "@brains/typescript-config/base.json",
+  "compilerOptions": {
+    "jsx": "react",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment"
+  },
+  "include": [
+    "src/**/*",
+    "test/**/*",
+    "../types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

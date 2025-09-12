@@ -1,22 +1,16 @@
-// Default routes for the site
-// Site-builder will apply proper typing when consuming these
+// Default routes for the minimal site
 export const routes = [
   {
-    id: "landing",
+    id: "home",
     path: "/",
     title: "Home",
-    description: "Welcome to your Personal Brain",
+    description: "Personal Brain Overview",
     navigation: {
       show: true,
       label: "Home",
       slot: "primary",
-      priority: 10, // Core page - high priority
+      priority: 10,
     },
-    sections: [
-      { id: "hero", template: "hero" },
-      { id: "features", template: "features" },
-      { id: "products", template: "products" },
-      { id: "cta", template: "cta" },
-    ],
+    sections: [{ id: "intro", template: "intro" }],
   },
 ];

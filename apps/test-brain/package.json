@@ -27,6 +27,7 @@
     "@brains/app": "workspace:*",
     "@brains/cli": "workspace:*",
     "@brains/default-site-content": "workspace:*",
+    "@brains/product-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",

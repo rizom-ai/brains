@@ -74,10 +74,7 @@ const app = App.create({
   version: "1.0.0",
   database: "file:./data/brain.db",
   aiApiKey: process.env.ANTHROPIC_API_KEY,
-  plugins: [
-    new DirectorySyncPlugin(),
-    new LinkPlugin(),
-  ],
+  plugins: [new DirectorySyncPlugin(), new LinkPlugin()],
 });
 
 await app.initialize();
@@ -118,7 +115,7 @@ The app package provides built-in CLI commands:
 Migrations are handled automatically on startup via the `MigrationManager` class. It manages migrations for all three databases:
 
 - Entity database (`brain.db`)
-- Job queue database (`brain-jobs.db`) 
+- Job queue database (`brain-jobs.db`)
 - Conversation database (`conversations.db`)
 
 Migrations run automatically when you start the app, but you can also run them manually:
@@ -200,14 +197,14 @@ import { SeedDataManager } from "@brains/app";
 
 const manager = new SeedDataManager(
   logger,
-  "/path/to/brain-data",    // optional, defaults to ./brain-data
-  "/path/to/seed-content"    // optional, defaults to ./seed-content
+  "/path/to/brain-data", // optional, defaults to ./brain-data
+  "/path/to/seed-content", // optional, defaults to ./seed-content
 );
 
 await manager.initialize();
 ```
 
-### MigrationManager class  
+### MigrationManager class
 
 Handles database migrations:
 
@@ -225,15 +222,15 @@ await manager.runAllMigrations();
 ```typescript
 interface AppConfig {
   // Required
-  name: string;              // Application name
-  version: string;           // Application version
-  
+  name: string; // Application name
+  version: string; // Application version
+
   // Optional
-  database?: string;         // Database URL or path
-  aiApiKey?: string;         // Anthropic API key
+  database?: string; // Database URL or path
+  aiApiKey?: string; // Anthropic API key
   logLevel?: "debug" | "info" | "warn" | "error";
-  plugins?: Plugin[];        // Array of plugin instances
-  
+  plugins?: Plugin[]; // Array of plugin instances
+
   // Advanced (usually not needed)
   shellConfig?: ShellConfig; // Direct Shell configuration
   permissions?: PermissionConfig;

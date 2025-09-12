@@ -1,43 +1,55 @@
 # Default Site Redesign Plan
 
 ## Overview
+
 Rename the current default-site-content to product-site-content and create a new, more appropriate default site for Personal Brain applications.
 
 ## Decisions Made
 
 ### Q1: Rename existing package to product-site-content?
+
 **Yes** - The current templates (hero, features, products, CTA) are clearly product/marketing oriented.
 
 ### Q2: Should the new default be minimal/clean focused on content?
+
 **Yes, with nuance** - Focus on summarizing/representing the gist of the brain's content.
 
 ### Q3: Include smart summary of brain content?
+
 **Yes** - Display AI-generated synthesis of main themes and insights.
 
 ### Q4: Include search/query interface?
+
 **Optional later** - Make it an optional enhancement, not part of initial default.
 
 ### Q5: Show recent items/activity?
+
 **No** - That's what the dashboard is for.
 
 ### Q6: Include brain statistics?
+
 **No** - Also handled by dashboard.
 
 ### Q7: Support dark/light mode from start?
+
 **Yes** - Use CSS custom properties and localStorage for preference.
 
 ### Q8: Single-page or multi-page?
+
 **Single-page home** - Plus any pages registered by plugins (dashboard, etc.)
 
 ### Q9: Static or dynamic content generation?
+
 **Static** - Generated at build time for performance.
 
 ### Q10: Include hero section?
+
 **Compact intro** - Not a full marketing hero, but a minimal introduction section (30-40% viewport height).
 
 ## Final Plan
 
 ### Phase 1: Rename existing package
+
 1. Rename `@brains/default-site-content` to `@brains/product-site-content`
 2. Update package.json name
 3. Update all imports in test-brain and other packages
@@ -53,7 +65,7 @@ Rename the current default-site-content to product-site-content and create a new
    - Subtle visual element (gradient/pattern)
    - Clean, minimal design
 
-2. **Brain Overview Section**: 
+2. **Brain Overview Section**:
    - AI-generated summary of the brain's main themes and content
    - Static generation at build time
    - Shows the "gist" of what the brain contains
@@ -69,6 +81,7 @@ Rename the current default-site-content to product-site-content and create a new
    - Powered by Personal Brain link
 
 #### Design principles:
+
 - Single-page home with compact intro + content summary
 - Clean, minimal design focusing on readability
 - Dark/light mode support from the start
@@ -76,6 +89,7 @@ Rename the current default-site-content to product-site-content and create a new
 - Fast loading (static generation)
 
 ### Phase 3: Implementation steps
+
 1. Create new package directory structure
 2. Move existing package to product-site-content
 3. Update all imports and dependencies
@@ -89,6 +103,7 @@ Rename the current default-site-content to product-site-content and create a new
 7. Test with test-brain app
 
 ### File structure:
+
 ```
 shared/default-site-content/        # New minimal default
 ├── src/
@@ -110,6 +125,7 @@ shared/product-site-content/        # Renamed from default
 ```
 
 ## Future Enhancements
+
 - Search/query interface (optional add-on)
 - Multiple theme variations
 - More layout options

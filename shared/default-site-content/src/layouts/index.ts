@@ -1,1 +1,1 @@
-export { DefaultLayout, type DefaultLayoutProps } from "./default-layout";
+export { DefaultLayout } from "./default";

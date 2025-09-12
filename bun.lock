@@ -24,6 +24,7 @@
         "@brains/entity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/matrix": "workspace:*",
+        "@brains/product-site-content": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/summary": "workspace:*",
         "@brains/webserver": "workspace:*",
@@ -261,6 +262,23 @@
         "eslint-config-prettier": "^8.10.0",
       },
     },
+    "shared/product-site-content": {
+      "name": "@brains/product-site-content",
+      "version": "0.0.1",
+      "dependencies": {
+        "@brains/templates": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "lucide-preact": "^0.460.0",
+        "preact": "^10.19.3",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.17",
+        "eslint": "^8.48.0",
+        "typescript": "^5.7.3",
+      },
+    },
     "shared/theme-default": {
       "name": "@brains/theme-default",
       "version": "0.1.0",
@@ -336,6 +354,12 @@
     "shell/app": {
       "name": "@brains/app",
       "version": "0.1.0",
+      "bin": {
+        "brain-migrate": "./scripts/migrate.ts",
+        "brain-migrate-entities": "./scripts/migrate-entities.ts",
+        "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",
+        "brain-migrate-conversations": "./scripts/migrate-conversations.ts",
+      },
       "dependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/core": "workspace:*",
@@ -693,6 +717,8 @@
     "@brains/plugin-examples": ["@brains/plugin-examples@workspace:plugins/examples"],
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
+
+    "@brains/product-site-content": ["@brains/product-site-content@workspace:shared/product-site-content"],
 
     "@brains/render-service": ["@brains/render-service@workspace:shell/render-service"],
 
