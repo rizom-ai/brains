@@ -7,6 +7,7 @@ The `@brains/app` package is the core application framework for Brain applicatio
 ## Current State
 
 The app package currently handles:
+
 - Application lifecycle management
 - Database migrations
 - Plugin loading and initialization
@@ -26,15 +27,16 @@ The app package currently handles:
 ### 1. Extract Seed Data Initialization
 
 Create `src/seed-data.ts`:
+
 ```typescript
 export class SeedDataManager {
   constructor(private appName: string) {}
-  
+
   async initialize(): Promise<void> {
     // Check if brain-data is empty
     // Copy from seed-content if needed
   }
-  
+
   private async copyDirectory(src: string, dest: string): Promise<void> {
     // Recursive directory copy
   }
@@ -42,6 +44,7 @@ export class SeedDataManager {
 ```
 
 **Benefits:**
+
 - Reduces App class complexity by ~50 lines
 - Easier to test in isolation
 - Single responsibility principle
@@ -49,19 +52,21 @@ export class SeedDataManager {
 ### 2. Create Migration Manager
 
 Create `src/migrations.ts`:
+
 ```typescript
 export class MigrationManager {
   async runAll(): Promise<void> {
     // Run all three migrations in sequence
   }
-  
-  async runEntities(): Promise<void>
-  async runJobQueue(): Promise<void>
-  async runConversations(): Promise<void>
+
+  async runEntities(): Promise<void>;
+  async runJobQueue(): Promise<void>;
+  async runConversations(): Promise<void>;
 }
 ```
 
 **Benefits:**
+
 - Eliminates duplicate code between app.ts and scripts
 - Centralized migration logic
 - Easier to maintain
@@ -69,6 +74,7 @@ export class MigrationManager {
 ### 3. Improve Error Messages
 
 Add actionable error messages:
+
 ```typescript
 // Instead of:
 throw new Error("Migration failed");
@@ -76,13 +82,14 @@ throw new Error("Migration failed");
 // Use:
 throw new Error(
   "Database migration failed. Please check:\n" +
-  "1. Database file permissions\n" +
-  "2. Available disk space\n" +
-  "3. Database URL in .env file"
+    "1. Database file permissions\n" +
+    "2. Available disk space\n" +
+    "3. Database URL in .env file",
 );
 ```
 
 **Common scenarios to handle:**
+
 - Database connection failures
 - Missing environment variables
 - File permission issues
@@ -91,6 +98,7 @@ throw new Error(
 ### 4. Add Comprehensive Tests
 
 Create tests for new modules:
+
 ```
 test/
   unit/
@@ -101,6 +109,7 @@ test/
 ```
 
 **Test coverage goals:**
+
 - Mock file system operations
 - Test error scenarios
 - Verify happy path
@@ -109,18 +118,21 @@ test/
 ## Implementation Plan
 
 ### Phase 1: Refactoring (Week 1)
+
 1. Extract SeedDataManager class
 2. Create MigrationManager class
 3. Update App class to use new managers
 4. Ensure backward compatibility
 
 ### Phase 2: Testing (Week 1-2)
+
 1. Write unit tests for SeedDataManager
 2. Write unit tests for MigrationManager
 3. Add integration tests for app lifecycle
 4. Mock file system and database operations
 
 ### Phase 3: Error Improvements (Week 2)
+
 1. Audit existing error messages
 2. Add actionable suggestions
 3. Create error message constants
@@ -147,6 +159,7 @@ scripts/
 ## What We're NOT Doing
 
 Based on review, we're explicitly NOT implementing:
+
 - Retry logic for migrations (not needed)
 - Lifecycle hooks (plugins already have their own)
 - ConfigLoader class (Zod handles validation)

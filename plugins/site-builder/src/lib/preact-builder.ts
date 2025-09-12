@@ -8,9 +8,8 @@ import type { ComponentType } from "@brains/plugins";
 import type { RouteDefinition } from "../types/routes";
 import type { Logger } from "@brains/plugins";
 import { render } from "preact-render-to-string";
-import { h } from "preact";
-import { HelmetProvider } from "react-helmet-async";
-import type { HelmetServerState } from "react-helmet-async";
+import { createElement } from "preact";
+import { HeadCollector, type HeadProps } from "./head-collector";
 import type { ComponentChildren } from "preact";
 import { join } from "path";
 import { promises as fs } from "fs";
@@ -134,23 +133,28 @@ export class PreactBuilder implements StaticSiteBuilder {
       siteInfo,
     };
 
-    // Create helmet context for SSR
-    const helmetContext: { helmet?: HelmetServerState } = {};
+    // Create head collector for SSR
+    const headCollector = new HeadCollector();
 
-    // Wrap the layout component in HelmetProvider for SSR
-    const wrappedContent = h(
-      HelmetProvider,
-      { context: helmetContext },
-      h(LayoutComponent, layoutProps),
-    );
+    // Render the layout component
+    // TODO: Pass headCollector through context when we implement proper context support
+    const layoutHtml = render(createElement(LayoutComponent, layoutProps));
 
-    const layoutHtml = render(wrappedContent);
+    // For now, we'll use a simple default head
+    // In a real implementation, we'd collect head props from the Head component
+    const headProps: HeadProps = {
+      title: route.title || siteInfo.title || "Personal Brain",
+      description: route.description || siteInfo.description,
+    };
+    
+    if (route.path !== "/") {
+      headProps.canonicalUrl = route.path;
+    }
+    
+    headCollector.setHeadProps(headProps);
 
-    // Extract head data from helmet context
-    const { helmet } = helmetContext;
-
-    // Create full HTML page with helmet data
-    const html = createHTMLShell(layoutHtml, helmet);
+    // Create full HTML page with head data
+    const html = createHTMLShell(layoutHtml, headCollector.generateHeadHTML());
 
     // Determine output path
     const outputPath =
@@ -198,13 +202,13 @@ export class PreactBuilder implements StaticSiteBuilder {
       try {
         const validatedContent = template.schema.parse(content);
 
-        // Create component using h() to pass props correctly
+        // Create component using createElement() to pass props correctly
         // renderer is already checked to be a function, so we can cast it to ComponentType
         // We cast validatedContent to Record<string, unknown> since we know it's an object after schema validation
         const ComponentFunc = renderer as ComponentType<
           Record<string, unknown>
         >;
-        const component = h(
+        const component = createElement(
           ComponentFunc,
           validatedContent as Record<string, unknown>,
         );

@@ -54,10 +54,5 @@
     "plugins/*",
     "interfaces/*",
     "apps/*"
-  ],
-  "dependencies": {
-    "@preact/compat": "^18.3.1",
-    "react": "npm:@preact/compat",
-    "react-dom": "npm:@preact/compat"
-  }
+  ]
 }

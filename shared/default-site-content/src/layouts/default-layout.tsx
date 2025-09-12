@@ -1,5 +1,4 @@
 import type { JSX, ComponentChildren } from "preact";
-import { Head } from "../components/head";
 import { FooterLayout } from "../footer/layout";
 import type { SiteInfo } from "@brains/site-builder-plugin/src/types/site-info";
 
@@ -14,23 +13,14 @@ export interface DefaultLayoutProps {
 /**
  * Default layout for pages
  * Renders JSX sections directly with footer
+ * Head metadata is now handled by the SSR process
  */
 export function DefaultLayout({
   sections,
-  title,
-  description,
-  path,
   siteInfo,
 }: DefaultLayoutProps): JSX.Element {
-  const canonicalUrl = siteInfo.url ? `${siteInfo.url}${path}` : undefined;
-
   return (
     <div class="flex flex-col min-h-screen bg-theme">
-      <Head
-        title={title}
-        description={description}
-        {...(canonicalUrl && { canonicalUrl })}
-      />
       <main class="flex-grow bg-theme">{sections}</main>
       <FooterLayout
         navigation={siteInfo.navigation.primary}
