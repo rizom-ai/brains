@@ -6,7 +6,7 @@ import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
-import { templates, routes, DefaultLayout } from "@brains/default-site-content";
+import { templates, routes, DefaultLayout, MinimalLayout } from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
@@ -55,6 +55,7 @@ const config = defineConfig({
       routes,
       layouts: {
         default: DefaultLayout,
+        minimal: MinimalLayout,
       },
       themeCSS,
     }),

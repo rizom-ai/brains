@@ -115,7 +115,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       path: "/dashboard",
       title: "System Dashboard",
       description: "Monitor your Brain system statistics and activity",
-      layout: "default",
+      layout: "minimal",
       navigation: {
         show: true,
         label: "Dashboard",

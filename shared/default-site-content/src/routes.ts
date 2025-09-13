@@ -5,6 +5,7 @@ export const routes = [
     path: "/",
     title: "Home",
     description: "Personal Brain Overview",
+    layout: "minimal", // Use minimal layout without header
     navigation: {
       show: true,
       label: "Home",
