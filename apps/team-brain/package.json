@@ -1,0 +1,44 @@
+{
+  "name": "@brains/team-brain",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "./brain.config.ts",
+  "scripts": {
+    "dev": "bun --watch brain.config.ts",
+    "dev:cli": "bun --watch brain.config.ts --cli",
+    "start": "bun brain.config.ts",
+    "start:cli": "bun brain.config.ts --cli",
+    "migrate": "brain-migrate",
+    "migrate:entities": "brain-migrate-entities",
+    "migrate:job-queue": "brain-migrate-job-queue",
+    "migrate:conversations": "brain-migrate-conversations",
+    "db:studio": "bun scripts/studio.ts",
+    "db:studio:entities": "bun scripts/studio.ts entities",
+    "db:studio:conversations": "bun scripts/studio.ts conversations",
+    "db:studio:jobs": "bun scripts/studio.ts jobs",
+    "test": "bun test",
+    "matrix:setup": "bun scripts/matrix-setup.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/cli": "workspace:*",
+    "@brains/default-site-content": "workspace:*",
+    "@brains/product-site-content": "workspace:*",
+    "@brains/directory-sync": "workspace:*",
+    "@brains/entity-service": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/matrix": "workspace:*",
+    "@brains/site-builder-plugin": "workspace:*",
+    "@brains/summary": "workspace:*",
+    "@brains/webserver": "workspace:*",
+    "preact": "^10.26.9"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  }
+}

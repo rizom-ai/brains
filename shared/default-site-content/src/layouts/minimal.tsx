@@ -21,7 +21,7 @@ export function MinimalLayout({
   return (
     <div className="flex flex-col min-h-screen bg-theme">
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
-      
+
       <Footer navigation={siteInfo.navigation.primary} />
     </div>
   );

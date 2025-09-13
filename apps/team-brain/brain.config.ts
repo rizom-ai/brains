@@ -10,18 +10,19 @@ import {
   templates,
   routes,
   DefaultLayout,
-} from "@brains/product-site-content";
+  MinimalLayout,
+} from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
 import defaultTheme, { customizeTheme } from "@brains/theme-default";
 import customThemeCSS from "./theme.css" with { type: "text" };
 
-// Use test-brain's custom green/teal themen
+// Use team-brain's custom theme
 const themeCSS = customizeTheme(defaultTheme, customThemeCSS);
 
 const config = defineConfig({
-  name: "test-brain",
+  name: "team-brain",
   version: "1.0.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
@@ -50,7 +51,7 @@ const config = defineConfig({
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
-      userId: process.env["MATRIX_USER_ID"] || "@testbrain-dev:rizom.ai",
+      userId: process.env["MATRIX_USER_ID"] || "@teambrain-dev:rizom.ai",
     }),
     directorySync({}),
     new WebserverInterface({}),
@@ -59,7 +60,7 @@ const config = defineConfig({
       routes,
       layouts: {
         default: DefaultLayout,
-        minimal: DefaultLayout
+        minimal: MinimalLayout,
       },
       themeCSS,
     }),

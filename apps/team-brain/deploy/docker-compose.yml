@@ -1,0 +1,33 @@
+services:
+  brain:
+    build:
+      context: ../..
+      dockerfile: deploy/docker-v2/Dockerfile.simple
+    image: ${DOCKER_IMAGE:-personal-brain:latest}
+    container_name: ${CONTAINER_NAME:-personal-brain}
+    ports:
+      # MCP Server port
+      - "${BRAIN_SERVER_PORT:-3333}:3333"
+      # Webserver ports (if webserver plugin is enabled)
+      - "${WEBSITE_PREVIEW_PORT:-4321}:4321"
+      - "${WEBSITE_PRODUCTION_PORT:-8080}:8080"
+    volumes:
+      # Essential volumes for persistence
+      - ${DATA_VOLUME:-./data}:/app/data               # SQLite databases
+      - ${BRAIN_DATA_VOLUME:-./brain-data}:/app/brain-data    # Markdown content
+      - ${CACHE_VOLUME:-./cache}:/app/cache            # Embedding model cache
+      
+      # Optional: For git-sync plugin (uncomment if using)
+      # - ${BRAIN_REPO_VOLUME:-./brain-repo}:/app/brain-repo
+    env_file:
+      # Load environment variables from .env.production file
+      # This file should be created from .env.production.example
+      - ${ENV_FILE:-.env.production}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+      - brain-network
+
+networks:
+  brain-network:
+    driver: bridge
+    name: ${NETWORK_NAME:-brain-network}
