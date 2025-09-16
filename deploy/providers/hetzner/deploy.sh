@@ -217,6 +217,8 @@ deploy_infrastructure() {
     
     # Plan deployment
     log_info "Planning infrastructure..."
+    # Ensure state directory exists before cd
+    mkdir -p "$TERRAFORM_STATE_DIR"
     cd "$TERRAFORM_STATE_DIR"
     terraform plan \
         -var="hcloud_token=$HCLOUD_TOKEN" \

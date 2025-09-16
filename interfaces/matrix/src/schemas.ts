@@ -26,7 +26,7 @@ export const matrixConfigSchema = z.object({
     .string()
     .optional()
     .describe("Device display name")
-    .default("Personal Brain"),
+    .default("Brain Bot"),
   storageDir: z.string().optional().describe("Directory for state storage"),
   cryptoStorageDir: z
     .string()

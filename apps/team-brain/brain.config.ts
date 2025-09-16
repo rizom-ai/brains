@@ -52,6 +52,7 @@ const config = defineConfig({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@teambrain-dev:rizom.ai",
+      deviceDisplayName: "Team Brain",
     }),
     directorySync({}),
     new WebserverInterface({}),

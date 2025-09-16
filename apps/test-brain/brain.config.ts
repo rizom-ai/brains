@@ -13,7 +13,7 @@ import { SummaryPlugin } from "@brains/summary";
 import defaultTheme, { customizeTheme } from "@brains/theme-default";
 // import customThemeCSS from "./theme.css" with { type: "text" };
 
-const customThemeCSS = ""
+const customThemeCSS = "";
 // Use test-brain's custom green/teal themen
 const themeCSS = customizeTheme(defaultTheme, customThemeCSS);
 
@@ -48,6 +48,7 @@ const config = defineConfig({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@testbrain-dev:rizom.ai",
+      deviceDisplayName: "Test Brain",
     }),
     directorySync({}),
     new WebserverInterface({}),
