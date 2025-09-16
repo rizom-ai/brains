@@ -6,17 +6,14 @@ import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
-import {
-  templates,
-  routes,
-  DefaultLayout,
-} from "@brains/product-site-content";
+import { templates, routes, DefaultLayout } from "@brains/product-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
 import defaultTheme, { customizeTheme } from "@brains/theme-default";
-import customThemeCSS from "./theme.css" with { type: "text" };
+// import customThemeCSS from "./theme.css" with { type: "text" };
 
+const customThemeCSS = ""
 // Use test-brain's custom green/teal themen
 const themeCSS = customizeTheme(defaultTheme, customThemeCSS);
 
@@ -59,7 +56,7 @@ const config = defineConfig({
       routes,
       layouts: {
         default: DefaultLayout,
-        minimal: DefaultLayout
+        minimal: DefaultLayout,
       },
       themeCSS,
     }),

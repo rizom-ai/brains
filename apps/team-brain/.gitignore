@@ -1,6 +1,6 @@
-# Test database
-test-brain.db
-test-brain.db-journal
+# Team database
+team-brain.db
+team-brain.db-journal
 
 # Build output
 dist/
@@ -21,3 +21,9 @@ brain.config.yaml
 
 # Website output
 website/
+
+# Terraform state (for Hetzner deployments)
+deploy/terraform-hetzner/
+*.tfstate
+*.tfstate.backup
+.terraform/

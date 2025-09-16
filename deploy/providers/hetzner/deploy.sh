@@ -25,9 +25,11 @@ log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 # - SCRIPT_DIR: Scripts directory
 
 # Hetzner-specific configuration
-TERRAFORM_DIR="$PROJECT_ROOT/deploy/providers/hetzner/terraform"
-HETZNER_CONFIG_FILE="$PROJECT_ROOT/deploy/providers/hetzner/config.env"
-DEPLOY_DIR="$PROJECT_ROOT/deploy"
+PROVIDER_DIR="$PROJECT_ROOT/deploy/providers/hetzner"
+TERRAFORM_DIR="$PROVIDER_DIR/terraform"
+TERRAFORM_STATE_DIR="$PROJECT_ROOT/apps/$APP_NAME/deploy/terraform-state"
+HETZNER_CONFIG_FILE="$PROVIDER_DIR/config.env"
+SHARED_STATE_DIR="$PROVIDER_DIR/shared"
 
 # Load Hetzner configuration if exists
 if [ -f "$HETZNER_CONFIG_FILE" ]; then
@@ -55,37 +57,58 @@ check_prerequisites() {
         exit 1
     fi
     
-    # Check for SSH key - auto-detect if not specified
+    # Ensure shared resources are configured (idempotent)
+    log_info "Ensuring shared resources are configured..."
+
+    # Auto-detect SSH key if not specified
     if [ -z "${SSH_PUBLIC_KEY_PATH:-}" ]; then
-        # Try common SSH key locations in order of preference
         for key_type in id_ed25519.pub id_rsa.pub id_ecdsa.pub; do
             if [ -f "$HOME/.ssh/$key_type" ]; then
-                SSH_KEY_PATH="$HOME/.ssh/$key_type"
-                SSH_PRIVATE_KEY_PATH="$HOME/.ssh/${key_type%.pub}"
-                log_info "Auto-detected SSH key: $SSH_KEY_PATH"
+                SSH_PUBLIC_KEY_PATH="$HOME/.ssh/$key_type"
+                log_info "Auto-detected SSH key: $SSH_PUBLIC_KEY_PATH"
                 break
             fi
         done
-        
-        if [ -z "$SSH_KEY_PATH" ]; then
-            log_error "No SSH public key found. Checked for: id_ed25519.pub, id_rsa.pub, id_ecdsa.pub in ~/.ssh/"
+
+        if [ -z "$SSH_PUBLIC_KEY_PATH" ]; then
+            log_error "No SSH public key found!"
             log_error "Generate one with: ssh-keygen -t ed25519"
             exit 1
         fi
-    else
-        SSH_KEY_PATH="$SSH_PUBLIC_KEY_PATH"
-        SSH_PRIVATE_KEY_PATH="${SSH_KEY_PATH%.pub}"
-        if [ ! -f "$SSH_KEY_PATH" ]; then
-            log_error "SSH public key not found at specified path: $SSH_KEY_PATH"
-            exit 1
-        fi
     fi
-    
-    # Verify private key exists
-    if [ ! -f "$SSH_PRIVATE_KEY_PATH" ]; then
-        log_error "SSH private key not found at: $SSH_PRIVATE_KEY_PATH"
+
+    # Initialize and apply shared resources (idempotent)
+    cd "$SHARED_STATE_DIR"
+
+    # Initialize Terraform
+    if ! terraform init -upgrade >/dev/null 2>&1; then
+        log_error "Failed to initialize shared resources Terraform"
+        terraform init -upgrade  # Run again to show error
         exit 1
     fi
+
+    # Apply shared resources
+    if ! terraform apply \
+        -var="hcloud_token=$HCLOUD_TOKEN" \
+        -var="ssh_public_key_path=$SSH_PUBLIC_KEY_PATH" \
+        -auto-approve >/dev/null 2>&1; then
+        log_error "Failed to setup shared resources. Running with output for debugging:"
+        terraform apply \
+            -var="hcloud_token=$HCLOUD_TOKEN" \
+            -var="ssh_public_key_path=$SSH_PUBLIC_KEY_PATH" \
+            -auto-approve
+        exit 1
+    fi
+
+    # Get SSH key name from shared resources
+    SSH_KEY_NAME=$(terraform output -raw ssh_key_name 2>/dev/null)
+    if [ -z "$SSH_KEY_NAME" ]; then
+        log_error "Failed to get SSH key name from shared resources"
+        exit 1
+    fi
+
+    log_info "✅ Shared resources ready (SSH key: $SSH_KEY_NAME)"
+    cd - > /dev/null
     
     log_info "✅ Prerequisites checked"
 }
@@ -93,113 +116,20 @@ check_prerequisites() {
 # Initialize Terraform
 init_terraform() {
     log_info "Initializing Terraform..."
-    
-    # Create terraform directory if needed
-    mkdir -p "$TERRAFORM_DIR"
-    
-    # Copy terraform files if not present
-    if [ ! -f "$TERRAFORM_DIR/main.tf" ]; then
-        log_info "Setting up Terraform configuration..."
-        # In a real implementation, these would be proper files
-        # For now, we'll create them inline
-        create_terraform_files
-    fi
-    
-    cd "$TERRAFORM_DIR"
+
+    # Create state directory if needed
+    mkdir -p "$TERRAFORM_STATE_DIR"
+
+    # Copy only main.tf and variables.tf to state directory
+    cp "$TERRAFORM_DIR"/main.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
+    cp "$TERRAFORM_DIR"/variables.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
+
+    # Initialize in the state directory
+    cd "$TERRAFORM_STATE_DIR"
     terraform init
     cd - > /dev/null
 }
 
-# Create Terraform configuration files
-create_terraform_files() {
-    # This would normally copy from templates
-    # For now, creating minimal config
-    cat > "$TERRAFORM_DIR/main.tf" << 'EOF'
-terraform {
-  required_providers {
-    hcloud = {
-      source = "hetznercloud/hcloud"
-      version = "~> 1.45"
-    }
-  }
-}
-
-provider "hcloud" {
-  token = var.hcloud_token
-}
-
-resource "hcloud_ssh_key" "deploy" {
-  name       = "${var.app_name}-key"
-  public_key = file(var.ssh_public_key_path)
-}
-
-resource "hcloud_firewall" "main" {
-  name = "${var.app_name}-firewall"
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = "22"
-    source_ips = ["0.0.0.0/0", "::/0"]
-  }
-
-  rule {
-    direction = "in"
-    protocol  = "tcp"
-    port      = var.app_port
-    source_ips = ["0.0.0.0/0", "::/0"]
-  }
-}
-
-resource "hcloud_server" "main" {
-  name        = var.app_name
-  server_type = var.server_type
-  location    = var.location
-  image       = "ubuntu-22.04"
-  ssh_keys    = [hcloud_ssh_key.deploy.id]
-  firewall_ids = [hcloud_firewall.main.id]
-}
-
-output "server_ip" {
-  value = hcloud_server.main.ipv4_address
-}
-EOF
-
-    cat > "$TERRAFORM_DIR/variables.tf" << 'EOF'
-variable "hcloud_token" {
-  description = "Hetzner Cloud API token"
-  type        = string
-  sensitive   = true
-}
-
-variable "app_name" {
-  description = "Application name"
-  type        = string
-}
-
-variable "app_port" {
-  description = "Application port"
-  type        = string
-}
-
-variable "server_type" {
-  description = "Server type"
-  type        = string
-  default     = "cx22"
-}
-
-variable "location" {
-  description = "Server location"
-  type        = string
-  default     = "fsn1"
-}
-
-variable "ssh_public_key_path" {
-  description = "Path to SSH public key"
-  type        = string
-}
-EOF
-}
 
 # Deploy infrastructure
 deploy_infrastructure() {
@@ -209,7 +139,6 @@ deploy_infrastructure() {
     init_terraform
     
     # Extract app configuration
-    APP_PORT=$(jq -r '.defaultPort // 3333' "$APP_CONFIG_PATH")
     SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx22"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx22")
     
     # Check if registry is configured
@@ -288,22 +217,14 @@ deploy_infrastructure() {
     
     # Plan deployment
     log_info "Planning infrastructure..."
-    cd "$TERRAFORM_DIR"
+    cd "$TERRAFORM_STATE_DIR"
     terraform plan \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
-        -var="app_port=$APP_PORT" \
         -var="server_type=$SERVER_TYPE" \
-        -var="ssh_public_key_path=$SSH_KEY_PATH" \
-        -var="ssh_private_key_path=$SSH_PRIVATE_KEY_PATH" \
-        -var="docker_image=$DOCKER_IMAGE" \
-        -var="docker_registry=$DOCKER_REGISTRY" \
-        -var="registry_user=$REGISTRY_USER" \
-        -var="registry_token=$REGISTRY_TOKEN" \
-        -var="env_file_path=$ENV_FILE" \
-        -var="domain=$DOMAIN" \
+        -var="ssh_key_name=$SSH_KEY_NAME" \
         -out=tfplan
-    
+
     # Apply deployment
     log_info "Creating infrastructure..."
     terraform apply tfplan
@@ -312,97 +233,28 @@ deploy_infrastructure() {
     SERVER_IP=$(terraform output -raw server_ip)
     cd - > /dev/null
     
-    log_info "✅ Infrastructure deployed at $SERVER_IP"
-    
-    # Wait for server to be ready
-    wait_for_server "$SERVER_IP"
-    
-    # Setup application
-    setup_application "$SERVER_IP"
-}
+    log_info "✅ Infrastructure created at $SERVER_IP"
 
-# Wait for server to be ready
-wait_for_server() {
-    local server_ip="$1"
-    local user="${2:-root}"
-    log_info "Waiting for server to be ready..."
-    
-    local max_attempts=30
-    local attempt=0
-    
-    while [ $attempt -lt $max_attempts ]; do
-        if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "$user@$server_ip" "echo 'SSH ready'" &> /dev/null; then
-            log_info "✅ Server is ready"
-            return 0
-        fi
-        
-        attempt=$((attempt + 1))
-        log_info "Waiting for SSH... (attempt $attempt/$max_attempts)"
-        sleep 10
-    done
-    
-    log_error "Server failed to become ready"
-    exit 1
-}
+    # Deploy application using the separate script
+    log_step "Deploying Application"
+    "$PROVIDER_DIR/deploy-app.sh" "$SERVER_IP" "$APP_NAME" "$DOCKER_IMAGE" "$ENV_FILE" "$DOMAIN" "$REGISTRY_USER" "$REGISTRY_TOKEN"
 
-# Setup application on server
-setup_application() {
-    local server_ip="$1"
-    log_step "Setting up $APP_NAME on server"
-    
-    # Run server setup script
-    log_info "Running server setup..."
-    
-    # First, create deploy user as root
-    log_info "Creating deploy user..."
-    ssh "root@$server_ip" << 'EOF'
-# Create deploy user if it doesn't exist
-if ! id "deploy" &>/dev/null; then
-    useradd -m -s /bin/bash deploy
-    usermod -aG sudo deploy
-    echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy
-    chmod 440 /etc/sudoers.d/deploy
-fi
-
-# Set up SSH for deploy user
-mkdir -p /home/deploy/.ssh
-cp /root/.ssh/authorized_keys /home/deploy/.ssh/
-chown -R deploy:deploy /home/deploy/.ssh
-chmod 700 /home/deploy/.ssh
-chmod 600 /home/deploy/.ssh/authorized_keys
-EOF
-    
-    # Wait for deploy user SSH to be ready
-    log_info "Waiting for deploy user SSH access..."
-    wait_for_server "$server_ip" "deploy"
-    
-    # Docker deployment is handled entirely by Terraform
-    log_info "Docker deployment configured in Terraform..."
-    log_info "Container will be deployed automatically"
-    
     log_info "✅ Application deployed successfully"
-    log_info ""
-    if [ -n "$DOMAIN" ]; then
-        log_info "Access your brain at:"
-        log_info "  Production: https://$DOMAIN"
-        log_info "  Preview: https://preview.$DOMAIN"
-    else
-        log_info "Access your brain at: http://$server_ip:$APP_DEFAULT_PORT"
-    fi
-    log_info "SSH access: ssh deploy@$server_ip"
 }
+
+
 
 # Update existing deployment
 update_application() {
     log_step "Updating $APP_NAME deployment"
-    
-    cd "$TERRAFORM_DIR"
+
+    cd "$TERRAFORM_STATE_DIR"
     if [ ! -f "terraform.tfstate" ]; then
         log_error "No existing deployment found!"
         log_info "Run 'deploy' first"
         exit 1
     fi
-    
+
     # Get server IP from state
     SERVER_IP=$(terraform output -raw server_ip 2>/dev/null)
     if [ -z "$SERVER_IP" ]; then
@@ -410,30 +262,65 @@ update_application() {
         exit 1
     fi
     cd - > /dev/null
-    
-    # Build new release
-    log_info "Building new release..."
-    # Use Docker build for compatibility with target server
-    "$PROJECT_ROOT/scripts/build-release.sh" "$APP_NAME" linux-x64 --docker
-    
-    # Find latest release
-    RELEASE_FILE=$(ls -t "$PROJECT_ROOT/apps/$APP_NAME/dist/"*.tar.gz | head -1)
-    
-    # Deploy update
+
+    check_prerequisites
+
+    # Check if registry is configured
+    DOCKER_REGISTRY="${DOCKER_REGISTRY:-}"
+    REGISTRY_USER="${REGISTRY_USER:-}"
+    REGISTRY_TOKEN="${REGISTRY_TOKEN:-}"
+
+    # Build and push new Docker image
+    log_info "Building and pushing new Docker image..."
+    cd "$PROJECT_ROOT"
+
+    if [ -n "$DOCKER_REGISTRY" ]; then
+        # Set full image name with registry
+        case "$DOCKER_REGISTRY" in
+            ghcr.io)
+                DOCKER_IMAGE="$DOCKER_REGISTRY/$REGISTRY_USER/personal-brain-$APP_NAME:latest"
+                ;;
+            docker.io)
+                DOCKER_IMAGE="$REGISTRY_USER/personal-brain-$APP_NAME:latest"
+                ;;
+            *)
+                DOCKER_IMAGE="$DOCKER_REGISTRY/personal-brain-$APP_NAME:latest"
+                ;;
+        esac
+
+        # Build and push
+        if ! env GITHUB_TOKEN="$REGISTRY_TOKEN" \
+            GITHUB_USER="$REGISTRY_USER" \
+            DOCKER_TOKEN="$REGISTRY_TOKEN" \
+            DOCKER_USER="$REGISTRY_USER" \
+            "$PROJECT_ROOT/deploy/scripts/deploy-docker.sh" "$APP_NAME" local \
+            --registry "$DOCKER_REGISTRY" --tag latest --push-only; then
+            log_error "Docker build/push failed"
+            exit 1
+        fi
+    else
+        log_error "Docker registry not configured!"
+        exit 1
+    fi
+
+    # Get environment file and domain
+    ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
+    DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
+
+    # Deploy the update
     log_info "Deploying update to $SERVER_IP..."
-    "$PROJECT_ROOT/deploy/scripts/deploy.sh" "root@$SERVER_IP" "$RELEASE_FILE"
-    
+    "$PROVIDER_DIR/deploy-app.sh" "$SERVER_IP" "$APP_NAME" "$DOCKER_IMAGE" "$ENV_FILE" "$DOMAIN" "$REGISTRY_USER" "$REGISTRY_TOKEN"
+
     log_info "✅ Update complete"
 }
 
 # Destroy infrastructure
 destroy_infrastructure() {
     log_step "Destroying Hetzner Infrastructure"
-    
-    # Check prerequisites to get SSH key paths
+
     check_prerequisites
     
-    cd "$TERRAFORM_DIR"
+    cd "$TERRAFORM_STATE_DIR"
     if [ ! -f "terraform.tfstate" ]; then
         log_warn "No infrastructure to destroy"
         exit 0
@@ -454,34 +341,31 @@ destroy_infrastructure() {
     
     # Get server IP for backup
     SERVER_IP=$(terraform output -raw server_ip 2>/dev/null || true)
-    
+
     if [ -n "$SERVER_IP" ]; then
-        # Create backup before destroying
-        log_info "Creating backup..."
-        ssh "root@$SERVER_IP" "[ -f $APP_INSTALL_PATH/backup.sh ] && $APP_INSTALL_PATH/backup.sh" || true
-        
-        # Download backup
+        log_info "Creating backup before destroy..."
+        # Backup data directories
         BACKUP_DIR="$PROJECT_ROOT/backups/$APP_NAME-$(date +%Y%m%d_%H%M%S)"
         mkdir -p "$BACKUP_DIR"
-        scp "root@$SERVER_IP:$APP_INSTALL_PATH/backups/*" "$BACKUP_DIR/" || true
-        log_info "Backup saved to: $BACKUP_DIR"
+
+        ssh -o StrictHostKeyChecking=no "root@$SERVER_IP" \
+            "cd /opt/personal-brain && tar czf /tmp/backup.tar.gz data brain-repo brain-data matrix-storage 2>/dev/null" || true
+
+        scp -o StrictHostKeyChecking=no "root@$SERVER_IP:/tmp/backup.tar.gz" "$BACKUP_DIR/" 2>/dev/null || true
+
+        if [ -f "$BACKUP_DIR/backup.tar.gz" ]; then
+            log_info "Backup saved to: $BACKUP_DIR"
+        fi
     fi
     
     # Destroy infrastructure
     log_info "Destroying infrastructure..."
-    
-    # Set defaults for destroy to avoid prompts
+
     terraform destroy \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
-        -var="app_port=${APP_DEFAULT_PORT:-3333}" \
-        -var="ssh_public_key_path=$SSH_KEY_PATH" \
-        -var="ssh_private_key_path=$SSH_PRIVATE_KEY_PATH" \
-        -var="docker_image=ghcr.io/$REGISTRY_USER/personal-brain-$APP_NAME:latest" \
-        -var="docker_registry=${DOCKER_REGISTRY:-ghcr.io}" \
-        -var="registry_user=${REGISTRY_USER:-}" \
-        -var="registry_token=${REGISTRY_TOKEN:-}" \
-        -var="env_file_path=" \
+        -var="server_type=cx22" \
+        -var="ssh_key_name=$SSH_KEY_NAME" \
         -auto-approve
     
     cd - > /dev/null
@@ -493,14 +377,14 @@ destroy_infrastructure() {
 get_status() {
     log_step "Hetzner Deployment Status"
     
-    # Check if terraform directory exists
-    if [ ! -d "$TERRAFORM_DIR" ]; then
+    # Check if terraform state directory exists
+    if [ ! -d "$TERRAFORM_STATE_DIR" ]; then
         log_info "No deployment found for $APP_NAME"
         exit 0
     fi
     
-    cd "$TERRAFORM_DIR"
-    
+    cd "$TERRAFORM_STATE_DIR"
+
     if [ ! -f "terraform.tfstate" ]; then
         log_info "No deployment found for $APP_NAME"
         exit 0
@@ -516,15 +400,16 @@ get_status() {
         # Check if server is reachable
         if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "root@$SERVER_IP" "echo 'Connected'" &> /dev/null; then
             log_info "Server: ✅ Reachable"
-            
-            # Check service status
-            SERVICE_STATUS=$(ssh "root@$SERVER_IP" "systemctl is-active $APP_SERVICE_NAME" 2>/dev/null || echo "unknown")
-            log_info "Service: $SERVICE_STATUS"
-            
-            # Get app version if possible
-            if ssh "root@$SERVER_IP" "test -f $APP_INSTALL_PATH/version.txt" 2>/dev/null; then
-                VERSION=$(ssh "root@$SERVER_IP" "cat $APP_INSTALL_PATH/version.txt" 2>/dev/null || echo "unknown")
-                log_info "Version: $VERSION"
+
+            # Check Docker container status
+            CONTAINER_STATUS=$(ssh -o StrictHostKeyChecking=no "root@$SERVER_IP" \
+                "cd /opt/personal-brain && docker compose ps --format json" 2>/dev/null || echo "")
+
+            if [ -n "$CONTAINER_STATUS" ]; then
+                log_info "Containers running:"
+                echo "$CONTAINER_STATUS" | jq -r '.Name + ": " + .State'
+            else
+                log_info "Containers: Not running or not deployed"
             fi
         else
             log_warn "Server: ❌ Not reachable"
