@@ -120,57 +120,49 @@ init_terraform() {
     # Create state directory if needed
     mkdir -p "$TERRAFORM_STATE_DIR"
 
-    # Copy only main.tf and variables.tf to state directory
-    cp "$TERRAFORM_DIR"/main.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
-    cp "$TERRAFORM_DIR"/variables.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
+    # Only copy .tf files if they don't exist or if state doesn't exist
+    # This preserves existing state
+    if [ ! -f "$TERRAFORM_STATE_DIR/terraform.tfstate" ] || [ ! -f "$TERRAFORM_STATE_DIR/main.tf" ]; then
+        log_info "Setting up Terraform configuration..."
+        cp "$TERRAFORM_DIR"/main.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
+        cp "$TERRAFORM_DIR"/variables.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
+    fi
 
     # Initialize in the state directory
     cd "$TERRAFORM_STATE_DIR"
-    terraform init
+    terraform init -upgrade
     cd - > /dev/null
 }
 
 
-# Deploy infrastructure
-deploy_infrastructure() {
-    log_step "Deploying Hetzner Infrastructure"
-    
-    check_prerequisites
-    init_terraform
-    
-    # Extract app configuration
-    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx22"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx22")
-    
+# Build and push Docker image
+build_and_push_docker_image() {
     # Check if registry is configured
     DOCKER_REGISTRY="${DOCKER_REGISTRY:-}"
     REGISTRY_USER="${REGISTRY_USER:-}"
     REGISTRY_TOKEN="${REGISTRY_TOKEN:-}"
-    
-    # Build Docker image using deploy-docker.sh
-    log_info "Building Docker image..."
-    cd "$PROJECT_ROOT"
-    
+
     if [ -n "$DOCKER_REGISTRY" ]; then
         # Build and push to registry
         log_info "Using Docker registry: $DOCKER_REGISTRY"
-        
+
         # Set full image name with registry
         case "$DOCKER_REGISTRY" in
             ghcr.io)
-                # For ghcr.io, we need to include the username
                 DOCKER_IMAGE="$DOCKER_REGISTRY/$REGISTRY_USER/personal-brain-$APP_NAME:latest"
                 ;;
             docker.io)
-                # For Docker Hub, include username
                 DOCKER_IMAGE="$REGISTRY_USER/personal-brain-$APP_NAME:latest"
                 ;;
             *)
-                # For other registries
                 DOCKER_IMAGE="$DOCKER_REGISTRY/personal-brain-$APP_NAME:latest"
                 ;;
         esac
-        
-        # Build and push
+
+        # Always build (Docker will use cache if no changes)
+        # The deploy-docker.sh script handles the build and push
+        log_info "Building and pushing Docker image..."
+        cd "$PROJECT_ROOT"
         if ! env GITHUB_TOKEN="$REGISTRY_TOKEN" \
             GITHUB_USER="$REGISTRY_USER" \
             DOCKER_TOKEN="$REGISTRY_TOKEN" \
@@ -181,45 +173,94 @@ deploy_infrastructure() {
             exit 1
         fi
     else
-        # Registry is required
         log_error "Docker registry not configured!"
-        log_error ""
-        log_error "Please configure a Docker registry in $HETZNER_CONFIG_FILE:"
-        log_error ""
-        log_error "For GitHub Container Registry (recommended):"
-        log_error "  DOCKER_REGISTRY=ghcr.io/yourusername"
-        log_error "  REGISTRY_USER=yourusername"
-        log_error "  REGISTRY_TOKEN=your-github-personal-access-token"
-        log_error ""
-        log_error "For Docker Hub:"
-        log_error "  DOCKER_REGISTRY=docker.io"
-        log_error "  REGISTRY_USER=yourdockerhubusername"
-        log_error "  REGISTRY_TOKEN=your-dockerhub-access-token"
-        log_error ""
-        log_error "See deploy/providers/hetzner/README.md for detailed instructions"
         exit 1
     fi
-    
+}
+
+# Deploy application to server
+deploy_application_to_server() {
+    local server_ip="$1"
+
     # Get environment file path
     ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
     if [ ! -f "$ENV_FILE" ]; then
         log_error "Environment file not found: $ENV_FILE"
-        log_info "Please create the file with your configuration"
         exit 1
     fi
-    
-    # Load domain from env file using docker run --env-file to parse it properly
-    # This avoids hacky grep/sed parsing and handles all edge cases
+
+    # Load domain from env file
     DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
     if [ -n "$DOMAIN" ]; then
         log_info "Domain configured: $DOMAIN"
     fi
+
+    # Deploy application using the separate script
+    log_step "Deploying Application"
+    "$PROVIDER_DIR/deploy-app.sh" "$server_ip" "$APP_NAME" "$DOCKER_IMAGE" "$ENV_FILE" "$DOMAIN" "$REGISTRY_USER" "$REGISTRY_TOKEN"
+
+    log_info "✅ Application deployed successfully"
+}
+
+# Deploy infrastructure
+deploy_infrastructure() {
+    log_step "Deploying Hetzner Infrastructure"
+
+    check_prerequisites
+    init_terraform
+
+    # Check if infrastructure already exists
+    cd "$TERRAFORM_STATE_DIR"
+    if [ -f "terraform.tfstate" ] && terraform state list 2>/dev/null | grep -q "hcloud_server.main"; then
+        log_info "Infrastructure already exists, checking status..."
+
+        # Refresh state to ensure it's current
+        terraform refresh \
+            -var="hcloud_token=$HCLOUD_TOKEN" \
+            -var="app_name=$APP_NAME" \
+            -var="ssh_key_name=$SSH_KEY_NAME" \
+            >/dev/null 2>&1
+
+        # Get server IP
+        SERVER_IP=$(terraform output -raw server_ip 2>/dev/null)
+        if [ -n "$SERVER_IP" ]; then
+            log_info "✅ Using existing infrastructure at $SERVER_IP"
+            cd - > /dev/null
+
+            # Skip to application deployment
+            # Build and push Docker image if needed
+            build_and_push_docker_image
+
+            # Deploy application
+            deploy_application_to_server "$SERVER_IP"
+            return 0
+        fi
+    fi
+    cd - > /dev/null
+
+    # Continue with new infrastructure deployment
+    # Extract app configuration
+    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx22"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx22")
+
+    # Build and push Docker image
+    build_and_push_docker_image
     
-    # Plan deployment
-    log_info "Planning infrastructure..."
+    # Refresh state first to sync with reality
+    log_info "Refreshing Terraform state..."
     # Ensure state directory exists before cd
     mkdir -p "$TERRAFORM_STATE_DIR"
     cd "$TERRAFORM_STATE_DIR"
+
+    # Refresh to update state from actual infrastructure
+    terraform refresh \
+        -var="hcloud_token=$HCLOUD_TOKEN" \
+        -var="app_name=$APP_NAME" \
+        -var="server_type=$SERVER_TYPE" \
+        -var="ssh_key_name=$SSH_KEY_NAME" \
+        >/dev/null 2>&1 || true
+
+    # Plan deployment
+    log_info "Planning infrastructure..."
     terraform plan \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
@@ -227,8 +268,8 @@ deploy_infrastructure() {
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -out=tfplan
 
-    # Apply deployment
-    log_info "Creating infrastructure..."
+    # Apply deployment (Terraform will handle existing resources properly)
+    log_info "Applying infrastructure changes..."
     terraform apply tfplan
     
     # Get server IP
@@ -237,11 +278,8 @@ deploy_infrastructure() {
     
     log_info "✅ Infrastructure created at $SERVER_IP"
 
-    # Deploy application using the separate script
-    log_step "Deploying Application"
-    "$PROVIDER_DIR/deploy-app.sh" "$SERVER_IP" "$APP_NAME" "$DOCKER_IMAGE" "$ENV_FILE" "$DOMAIN" "$REGISTRY_USER" "$REGISTRY_TOKEN"
-
-    log_info "✅ Application deployed successfully"
+    # Deploy application to the new server
+    deploy_application_to_server "$SERVER_IP"
 }
 
 
