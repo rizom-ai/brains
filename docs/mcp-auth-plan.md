@@ -1,11 +1,13 @@
 # MCP Authentication Implementation Plan
 
 ## Overview
+
 Implement authentication for MCP HTTP transport to securely expose it from our server and Docker containers.
 
 ## Authentication Approach
 
 ### 1. **Bearer Token Authentication** (Recommended)
+
 - Simple, stateless authentication using Bearer tokens
 - Tokens configured via environment variables
 - Easy to implement and manage
@@ -15,6 +17,7 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
 ### 2. Implementation Steps
 
 #### Phase 1: Basic Token Authentication
+
 1. **Add authentication middleware** to HTTP server:
    - Check for `Authorization: Bearer <token>` header
    - Validate against configured token(s)
@@ -31,6 +34,7 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
    - Set auth tokens in production environment
 
 #### Phase 2: Enhanced Security (Future)
+
 - Rate limiting per token
 - Token rotation mechanism
 - Audit logging for authentication events
@@ -84,7 +88,7 @@ interface AuthConfig {
 // Middleware function
 function authMiddleware(req, res, next) {
   // Skip auth for health check
-  if (req.path === '/health') {
+  if (req.path === "/health") {
     return next();
   }
 
@@ -95,13 +99,13 @@ function authMiddleware(req, res, next) {
 
   // Check Authorization header
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   const token = authHeader.substring(7);
   if (!authConfig.tokens.includes(token)) {
-    return res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: "Invalid token" });
   }
 
   next();
@@ -151,6 +155,7 @@ MCP Inspector has built-in support for Bearer token authentication:
 4. **Connection**: Click Connect to establish authenticated connection
 
 The inspector will:
+
 - Automatically add `Authorization: Bearer <token>` header to all requests
 - Save token in browser local storage for future connections
 - Support token refresh if implemented
@@ -199,6 +204,7 @@ uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]'
 ## Client Configuration
 
 ### For MCP Inspector
+
 1. Open MCP Inspector at https://modelcontextprotocol.io/inspector
 2. Select "Streamable HTTP" transport
 3. Enter server URL
@@ -206,25 +212,28 @@ uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]'
 5. Connect
 
 ### For Programmatic Clients
+
 ```javascript
 // Example client configuration
 const client = new MCPClient({
-  transport: 'http',
-  url: 'https://mcp.yourdomain.com',
+  transport: "http",
+  url: "https://mcp.yourdomain.com",
   headers: {
-    'Authorization': `Bearer ${process.env.MCP_CLIENT_TOKEN}`
-  }
+    Authorization: `Bearer ${process.env.MCP_CLIENT_TOKEN}`,
+  },
 });
 ```
 
 ### For Claude Desktop
+
 ```json
 {
   "mcpServers": {
     "brain": {
       "command": "curl",
       "args": [
-        "-H", "Authorization: Bearer YOUR_TOKEN_HERE",
+        "-H",
+        "Authorization: Bearer YOUR_TOKEN_HERE",
         "https://mcp.yourdomain.com"
       ]
     }

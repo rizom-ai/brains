@@ -45,6 +45,7 @@ vim deploy/providers/hetzner/config.env
 ```
 
 Required configuration:
+
 ```bash
 # Hetzner Cloud API token (get from console.hetzner.cloud)
 HCLOUD_TOKEN=your-hetzner-api-token
@@ -200,6 +201,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 
 The docker-compose.yml mounts local directories:
+
 - `./data:/app/data` - Database files
 - `./brain-data:/app/brain-data` - Entity storage
 - `./brain-repo:/app/brain-repo` - Git repository (if using git-sync)
