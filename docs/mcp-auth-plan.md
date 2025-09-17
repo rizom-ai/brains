@@ -52,21 +52,50 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
 
 ## File Changes Required
 
-1. **interfaces/mcp/src/transports/http-server.ts**
-   - Add authentication middleware
-   - Check Bearer token on all endpoints except /health
+1. **apps/*/brain.config.ts**
+   - Read MCP_AUTH_TOKEN from environment
+   - Pass auth config to MCPInterface constructor
+   - Example:
+     ```typescript
+     new MCPInterface({
+       transport: "http",
+       httpPort: 3333,
+       auth: {
+         enabled: process.env.NODE_ENV === "production",
+         token: process.env.MCP_AUTH_TOKEN
+       }
+     })
+     ```
 
 2. **interfaces/mcp/src/config.ts**
-   - Add auth configuration schema
-   - Parse environment variables
+   - Add auth configuration schema (no env var access here)
+   - Auth config passed from app level
 
-3. **deploy/providers/hetzner/deploy-app.sh**
+3. **interfaces/mcp/src/transports/http-server.ts**
+   - Add authentication middleware
+   - Check Bearer token on all endpoints except /health
+   - Receive auth config through constructor
+
+4. **interfaces/mcp/src/mcp-interface.ts**
+   - Pass auth config to HTTP server constructor
+
+5. **deploy/providers/hetzner/deploy-app.sh**
    - Update Caddy configuration to proxy MCP
    - Add MCP endpoint with proper headers
 
-4. **.env files**
+6. **.env files**
    - Add MCP_AUTH_TOKEN examples
    - Document authentication setup
+
+## Architecture Benefits
+
+This approach keeps the MCP package pure:
+
+- **No environment variable access in MCP package** - Configuration passed from app level
+- **Testable** - Easy to test with mock auth configurations
+- **Consistent** - Follows the existing plugin configuration pattern
+- **Flexible** - Each app can have different auth settings
+- **Clean** - Separation of concerns between app config and plugin logic
 
 ## Security Considerations
 
@@ -89,49 +118,72 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
 ### Authentication Middleware
 
 ```typescript
-// Phase 1: Simple authentication
-interface AuthConfig {
-  enabled: boolean;
-  token: string | undefined;
-}
+// In config.ts - pure schema, no env vars
+export const mcpConfigSchema = z.object({
+  transport: z.enum(["stdio", "http"]).default("http"),
+  httpPort: z.number().default(3333),
+  auth: z.object({
+    enabled: z.boolean().default(false),
+    token: z.string().optional(),
+  }).optional(),
+});
 
-// Middleware function
-function authMiddleware(req, res, next) {
-  // Skip auth for health check
-  if (req.path === "/health" || req.path === "/status") {
-    return next();
+// In http-server.ts - receives config, no env vars
+class StreamableHTTPServer {
+  constructor(config: StreamableHTTPServerConfig) {
+    this.authConfig = config.auth ?? { enabled: false };
+    // ...
   }
 
-  // Check if auth is enabled
-  if (!authConfig.enabled) {
-    return next();
-  }
+  private authMiddleware = (req, res, next) => {
+    // Skip auth for health check
+    if (req.path === "/health" || req.path === "/status") {
+      return next();
+    }
 
-  // Check Authorization header
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+    // Check if auth is enabled
+    if (!this.authConfig.enabled || !this.authConfig.token) {
+      return next();
+    }
 
-  const token = authHeader.substring(7);
-  if (token !== authConfig.token) {
-    return res.status(401).json({ error: "Invalid token" });
-  }
+    // Check Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-  // Set permission level to anchor for authenticated requests
-  mcpService.setPermissionLevel("anchor");
-  next();
+    const token = authHeader.substring(7);
+    if (token !== this.authConfig.token) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
+    // Authenticated requests get anchor permission
+    this.mcpServer?.setPermissionLevel("anchor");
+    next();
+  };
 }
 ```
 
 ### Environment Variables
 
-```bash
-# Single shared secret token
-MCP_AUTH_TOKEN=your-secret-token-here
+Environment variables are read at the app level (brain.config.ts), not in the MCP package:
 
-# Enable/disable auth (default: true in production, false in development)
-MCP_AUTH_ENABLED=true
+```bash
+# In .env files
+MCP_AUTH_TOKEN=your-secret-token-here
+NODE_ENV=production  # Auth enabled by default in production
+```
+
+```typescript
+// In brain.config.ts
+new MCPInterface({
+  transport: "http",
+  httpPort: 3333,
+  auth: {
+    enabled: process.env.NODE_ENV === "production",
+    token: process.env.MCP_AUTH_TOKEN
+  }
+})
 ```
 
 ### Caddy Configuration
