@@ -9,10 +9,12 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
 ### 1. **Bearer Token Authentication** (Recommended)
 
 - Simple, stateless authentication using Bearer tokens
-- Tokens configured via environment variables
+- Single shared token configured via environment variable
+- Authenticated users get "anchor" (full) permission level
 - Easy to implement and manage
 - Works well with Docker deployments
 - **Fully compatible with MCP Inspector** (has built-in Bearer token field)
+- **Easy to extend later** with multi-token/multi-level support
 
 ### 2. Implementation Steps
 
@@ -24,21 +26,29 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
    - Return 401 Unauthorized for invalid/missing tokens
 
 2. **Environment configuration**:
-   - Add `MCP_AUTH_TOKEN` environment variable
-   - Support multiple tokens: `MCP_AUTH_TOKENS` (comma-separated)
-   - Optional: `MCP_AUTH_ENABLED` flag (default: true for production)
+   - Add `MCP_AUTH_TOKEN` environment variable (single shared secret)
+   - Optional: `MCP_AUTH_ENABLED` flag (default: true for production, false for development)
 
 3. **Update deployment configuration**:
    - Add MCP port (3333) to Caddy configuration
    - Configure firewall rules (already exposed)
    - Set auth tokens in production environment
 
-#### Phase 2: Enhanced Security (Future)
+#### Phase 2: Multi-Token Support (Future)
 
-- Rate limiting per token
-- Token rotation mechanism
+- Multiple tokens with different permission levels (anchor, trusted, public)
+- Token storage in database or Redis
+- Token generation and management API
+- Token expiration and rotation
+- Per-token rate limiting
 - Audit logging for authentication events
-- Optional OAuth2 support
+
+#### Phase 3: Advanced Security (Future)
+
+- OAuth2/OpenID Connect support
+- JWT tokens with claims
+- API key management UI
+- Token scopes and fine-grained permissions
 
 ## File Changes Required
 
@@ -79,16 +89,16 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
 ### Authentication Middleware
 
 ```typescript
-// Basic structure
+// Phase 1: Simple authentication
 interface AuthConfig {
   enabled: boolean;
-  tokens: string[];
+  token: string | undefined;
 }
 
 // Middleware function
 function authMiddleware(req, res, next) {
   // Skip auth for health check
-  if (req.path === "/health") {
+  if (req.path === "/health" || req.path === "/status") {
     return next();
   }
 
@@ -104,10 +114,12 @@ function authMiddleware(req, res, next) {
   }
 
   const token = authHeader.substring(7);
-  if (!authConfig.tokens.includes(token)) {
+  if (token !== authConfig.token) {
     return res.status(401).json({ error: "Invalid token" });
   }
 
+  // Set permission level to anchor for authenticated requests
+  mcpService.setPermissionLevel("anchor");
   next();
 }
 ```
@@ -115,13 +127,10 @@ function authMiddleware(req, res, next) {
 ### Environment Variables
 
 ```bash
-# Single token
+# Single shared secret token
 MCP_AUTH_TOKEN=your-secret-token-here
 
-# Multiple tokens (comma-separated)
-MCP_AUTH_TOKENS=token1,token2,token3
-
-# Enable/disable auth (default: true in production)
+# Enable/disable auth (default: true in production, false in development)
 MCP_AUTH_ENABLED=true
 ```
 
@@ -241,10 +250,29 @@ const client = new MCPClient({
 }
 ```
 
+## Migration Path to Multi-Token Support
+
+When ready to add multi-token support, the migration will be simple:
+
+1. **No client changes needed** - Still uses `Authorization: Bearer <token>`
+2. **Middleware enhancement** - Add token lookup logic:
+   ```typescript
+   // Phase 2: Multi-token support
+   const tokenData = await tokenStore.lookup(token);
+   if (tokenData) {
+     mcpService.setPermissionLevel(tokenData.permissionLevel);
+     next();
+   }
+   ```
+3. **Add token storage** - Database table or Redis
+4. **Add management API** - Endpoints to create/revoke tokens
+
+The key is that the HTTP interface remains stable, so existing integrations continue working.
+
 ## Security Notes
 
-1. **Token Rotation**: Implement regular token rotation (e.g., monthly)
-2. **Token Scope**: Consider different tokens for different access levels
+1. **Token Security**: Generate strong, random tokens (at least 32 characters)
+2. **Token Rotation**: Change the token periodically
 3. **Monitoring**: Log authentication attempts for security auditing
 4. **HTTPS Only**: Never expose MCP over plain HTTP in production
 5. **Environment Security**: Ensure .env files are never committed to git
