@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-07
+Last Updated: 2025-09-16
 
 ## Vision
 
@@ -12,15 +12,17 @@ Based on current progress, the following items are ready to be worked on:
 
 ### Immediate Priorities
 
-1. **Entity Service Batch Operations** - Performance optimization
+1. **Documentation Updates** - Update all docs to reflect current architecture
 2. **Health Checks for All Services** - Production readiness
 3. **Database Backup/Restore** - Data safety
+4. **Test-Brain Deployment Fix** - Resolve Terraform state issues
 
 ### Secondary Priorities
 
-4. **Blog Plugin** - Long-form content management (planning complete)
-5. **Vector Search Optimization** - Performance improvement
-6. **Task Plugin** - Task and project management
+5. **Entity Service Batch Operations** - Performance optimization
+6. **Blog Plugin** - Long-form content management (planning complete)
+7. **Vector Search Optimization** - Performance improvement
+8. **Task Plugin** - Task and project management
 
 ## Current Status
 
@@ -53,10 +55,14 @@ Based on current progress, the following items are ready to be worked on:
 - **Site Content Consolidation**: Removed preview/production distinction
 - **Docker Deployment**: Simplified Docker deployment with Dockerfile.simple
 - **Hetzner Cloud Provider**: Terraform-based deployment with automatic HTTPS via Caddy
+- **Team-Brain App**: Created separate app instance with custom configuration
+- **Matrix Bot Display Names**: Fixed to show app-specific names instead of "Personal Brain"
+- **Deployment Idempotency**: Improved deployment scripts to handle existing infrastructure
 
 ### In Progress 🚧
 
 - **Documentation**: Updating docs to reflect current architecture
+- **Test-Brain Deployment**: Fixing Terraform state mismatch issues
 
 ## Phase 1: Production Readiness (Q1 2025)
 

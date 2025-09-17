@@ -113,16 +113,27 @@ Refer to these documents for detailed architecture information:
 - **Query Processor**: (integrated into shell core)
 - **Development Workflow**: `docs/development-workflow.md`
 
-## Implementation Priority
+## Implementation Status & Next Priorities
 
-1. Shell app core
-2. Entity model infrastructure
-3. Cleanup phase (see cleanup-plan-2025-01.md)
-4. Link plugin as first plugin (web content capture with AI)
-5. Article plugin (long-form content)
-6. Additional contexts as plugins (Task, Profile, Project)
-7. CLI and Matrix interfaces
-8. Note plugin (extended features - deprioritized since BaseEntity provides core functionality)
+### ✅ Completed
+1. Shell app core - Full plugin system with 4 types
+2. Entity model infrastructure - Complete with adapters and Zod schemas
+3. Link plugin - Web content capture with AI extraction
+4. Summary plugin - AI summarization and daily digests
+5. Topics plugin - AI-powered topic extraction
+6. Directory sync & Git sync plugins - File system integration
+7. Site builder plugin - Static site generation with Preact/Tailwind
+8. CLI and Matrix interfaces - Fully functional
+9. MCP interface - Complete with stdio and HTTP transports
+10. Deployment - Docker + Hetzner with Terraform/Caddy
+
+### 🚧 Next Priorities
+1. Documentation updates - Reflect current architecture
+2. Health checks for all services - Production readiness
+3. Database backup/restore - Data safety
+4. Blog plugin - Long-form content (planning complete)
+5. Task plugin - Task and project management
+6. Performance optimization - Batch operations, vector search
 
 ## Code Quality Checklist
 
