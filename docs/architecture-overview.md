@@ -63,6 +63,7 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 ### Application Packages
 
 - **apps/test-brain**: Reference implementation and testing
+- **apps/team-brain**: Team collaboration instance with custom configuration
 
 ## Key Components
 
@@ -148,12 +149,28 @@ The brain application supports multiple deployment strategies:
 
 - Run directly with Bun for hot reloading
 - All interfaces available simultaneously
+- Local Docker testing with docker-compose
 
-**Production:**
+**Production (Hetzner Cloud):**
+
+- Terraform-managed infrastructure with per-app isolation
+- Docker containers with automated builds and registry push
+- Caddy reverse proxy with automatic HTTPS via Let's Encrypt
+- Separate servers for each app instance
+- Idempotent deployments handling existing infrastructure
+
+**Production (Docker):**
+
+- Single Docker image with all dependencies
+- Environment-based configuration via .env files
+- Volume mounts for persistent data
+- Support for docker-compose orchestration
+
+**Production (Binary):**
 
 - Compile to single executable with Bun
-- Environment-based configuration
-- Support for Docker deployment
+- Systemd service management
+- Direct server deployment via SSH
 
 ## Testing Strategy
 

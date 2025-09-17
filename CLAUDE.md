@@ -116,6 +116,7 @@ Refer to these documents for detailed architecture information:
 ## Implementation Status & Next Priorities
 
 ### ✅ Completed
+
 1. Shell app core - Full plugin system with 4 types
 2. Entity model infrastructure - Complete with adapters and Zod schemas
 3. Link plugin - Web content capture with AI extraction
@@ -128,6 +129,7 @@ Refer to these documents for detailed architecture information:
 10. Deployment - Docker + Hetzner with Terraform/Caddy
 
 ### 🚧 Next Priorities
+
 1. Documentation updates - Reflect current architecture
 2. Health checks for all services - Production readiness
 3. Database backup/restore - Data safety
