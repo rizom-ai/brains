@@ -9,6 +9,7 @@ The Model Context Protocol (MCP) server is exposed as part of the Personal Brain
 ### Port Configuration
 
 The MCP server runs on port **3333** by default. This port is:
+
 - Exposed in Docker containers
 - Opened in Hetzner firewall rules
 - Proxied through Caddy for SSL when using domain-based deployment
@@ -18,11 +19,13 @@ The MCP server runs on port **3333** by default. This port is:
 MCP HTTP API supports Bearer token authentication for production deployments:
 
 1. **Generate a secure token** (minimum 32 characters recommended):
+
    ```bash
    openssl rand -hex 32
    ```
 
 2. **Set the token in your environment file**:
+
    ```bash
    # .env.production
    MCP_AUTH_TOKEN=your-secure-token-here
@@ -33,11 +36,13 @@ MCP HTTP API supports Bearer token authentication for production deployments:
 ### Access URLs
 
 #### With Domain (HTTPS via Caddy)
+
 - MCP API: `https://mcp.yourdomain.com/mcp`
 - Production site: `https://yourdomain.com`
 - Preview site: `https://preview.yourdomain.com`
 
 #### Without Domain (Direct Port Access)
+
 - MCP API: `http://server-ip:3333/mcp`
 - Production site: `http://server-ip:8080`
 - Preview site: `http://server-ip:4321`
@@ -81,14 +86,14 @@ To configure Claude Desktop to use your deployed MCP server:
 When building custom MCP clients, include the Bearer token in all requests:
 
 ```javascript
-const response = await fetch('https://mcp.yourdomain.com/mcp', {
-  method: 'POST',
+const response = await fetch("https://mcp.yourdomain.com/mcp", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer your-secure-token-here',
-    'MCP-Session-Id': sessionId // for existing sessions
+    "Content-Type": "application/json",
+    Authorization: "Bearer your-secure-token-here",
+    "MCP-Session-Id": sessionId, // for existing sessions
   },
-  body: JSON.stringify(mcpRequest)
+  body: JSON.stringify(mcpRequest),
 });
 ```
 
@@ -142,16 +147,19 @@ curl -X POST https://mcp.yourdomain.com/mcp \
 ## Troubleshooting
 
 ### Connection Refused
+
 - Verify port 3333 is open in firewall
 - Check Docker container is running: `docker ps`
 - Review logs: `docker logs personal-brain`
 
 ### Authentication Errors
+
 - Verify `MCP_AUTH_TOKEN` is set in environment
 - Check token is included in Authorization header
 - Ensure token matches exactly (no extra spaces)
 
 ### CORS Issues
+
 - Caddy configuration includes CORS headers for MCP endpoint
 - For local development, CORS is automatically handled
 

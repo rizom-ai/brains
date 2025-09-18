@@ -43,7 +43,9 @@ const config = defineConfig({
     new TopicsPlugin({}),
     new SummaryPlugin({}),
     new LinkPlugin({}),
-    new MCPInterface({}),
+    new MCPInterface({
+      authToken: process.env["MCP_AUTH_TOKEN"],
+    }),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
