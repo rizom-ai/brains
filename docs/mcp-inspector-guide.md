@@ -17,7 +17,7 @@ bun run dev
 1. Go to: https://modelcontextprotocol.io/inspector
 2. Configure connection:
    - **Server URL**: `http://localhost:3333/mcp`
-   - **Transport**: SSE (Server-Sent Events)
+   - **Transport**: Streamable HTTP
    - **Authentication** (use the separate fields):
      - **Header Name**: `Authorization`
      - **Bearer Token**: `test-token-12345678901234567890123456789012`
@@ -43,8 +43,8 @@ Once connected, you can:
 
 For production servers:
 
-- **Server URL**: `https://mcp.yourdomain.com/mcp`
-- **Transport**: SSE
+- **Server URL**: `https://api.yourdomain.com/mcp`
+- **Transport**: Streamable HTTP
 - **Authentication**:
   - **Header Name**: `Authorization`
   - **Bearer Token**: `your-production-token-here`

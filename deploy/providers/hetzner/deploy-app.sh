@@ -247,8 +247,8 @@ preview.$DOMAIN {
     }
 }
 
-# MCP API endpoint
-mcp.$DOMAIN {
+# API endpoint (MCP server)
+api.$DOMAIN {
     reverse_proxy personal-brain:3333
 
     header {
@@ -329,16 +329,16 @@ main() {
         log_info "✅ Deployment complete!"
         log_info "Production site: https://$DOMAIN"
         log_info "Preview site: https://preview.$DOMAIN"
-        log_info "MCP API: https://mcp.$DOMAIN/mcp"
+        log_info "API (MCP): https://api.$DOMAIN/mcp"
         log_info ""
-        log_info "MCP API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
+        log_info "API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
     else
         log_info "✅ Deployment complete!"
-        log_info "MCP API: http://$SERVER_IP:3333/mcp"
+        log_info "API (MCP): http://$SERVER_IP:3333/mcp"
         log_info "Production site: http://$SERVER_IP:8080"
         log_info "Preview site: http://$SERVER_IP:4321"
         log_info ""
-        log_info "MCP API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
+        log_info "API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
     fi
 }
 

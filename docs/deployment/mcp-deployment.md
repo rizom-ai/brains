@@ -37,13 +37,13 @@ MCP HTTP API supports Bearer token authentication for production deployments:
 
 #### With Domain (HTTPS via Caddy)
 
-- MCP API: `https://mcp.yourdomain.com/mcp`
+- API (MCP): `https://api.yourdomain.com/mcp`
 - Production site: `https://yourdomain.com`
 - Preview site: `https://preview.yourdomain.com`
 
 #### Without Domain (Direct Port Access)
 
-- MCP API: `http://server-ip:3333/mcp`
+- API (MCP): `http://server-ip:3333/mcp`
 - Production site: `http://server-ip:8080`
 - Preview site: `http://server-ip:4321`
 
@@ -55,7 +55,7 @@ To connect MCP Inspector to your deployed server:
 
 1. Open MCP Inspector in your browser
 2. Enter the server URL:
-   - With domain: `https://mcp.yourdomain.com/mcp`
+   - With domain: `https://api.yourdomain.com/mcp`
    - Without domain: `http://server-ip:3333/mcp`
 3. If authentication is enabled, add the Bearer token in the headers:
    ```
@@ -72,7 +72,7 @@ To configure Claude Desktop to use your deployed MCP server:
      "mcpServers": {
        "personal-brain": {
          "transport": "http",
-         "url": "https://mcp.yourdomain.com/mcp",
+         "url": "https://api.yourdomain.com/mcp",
          "headers": {
            "Authorization": "Bearer your-secure-token-here"
          }
@@ -86,7 +86,7 @@ To configure Claude Desktop to use your deployed MCP server:
 When building custom MCP clients, include the Bearer token in all requests:
 
 ```javascript
-const response = await fetch("https://mcp.yourdomain.com/mcp", {
+const response = await fetch("https://api.yourdomain.com/mcp", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -135,10 +135,10 @@ Check that MCP is accessible:
 
 ```bash
 # Test health endpoint (no auth required)
-curl https://mcp.yourdomain.com/health
+curl https://api.yourdomain.com/health
 
-# Test MCP endpoint (requires auth)
-curl -X POST https://mcp.yourdomain.com/mcp \
+# Test API endpoint (requires auth)
+curl -X POST https://api.yourdomain.com/mcp \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-secure-token-here" \
   -d '{"jsonrpc": "2.0", "method": "initialize", "params": {}, "id": 1}'
@@ -160,7 +160,7 @@ curl -X POST https://mcp.yourdomain.com/mcp \
 
 ### CORS Issues
 
-- Caddy configuration includes CORS headers for MCP endpoint
+- Caddy configuration includes CORS headers for API endpoint
 - For local development, CORS is automatically handled
 
 ## Migration from Development
