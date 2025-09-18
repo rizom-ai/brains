@@ -193,6 +193,7 @@ services:
     networks:
       - personal-brain-net
     expose:
+      - "3333"
       - "8080"
       - "4321"
 
@@ -245,6 +246,18 @@ preview.$DOMAIN {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 }
+
+# MCP API endpoint
+mcp.$DOMAIN {
+    reverse_proxy personal-brain:3333
+
+    header {
+        X-Content-Type-Options "nosniff"
+        Access-Control-Allow-Origin "*"
+        Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+    }
+}
 EOF
     else
         # Without domain - direct port access
@@ -265,6 +278,7 @@ services:
       - $APP_DIR/website:/app/apps/shell/dist
       - $APP_DIR/matrix-storage:/app/.matrix-storage
     ports:
+      - "3333:3333"
       - "8080:8080"
       - "4321:4321"
     networks:
@@ -313,14 +327,18 @@ main() {
 
     if [ -n "$DOMAIN" ]; then
         log_info "✅ Deployment complete!"
-        log_info "Production: https://$DOMAIN"
-        log_info "Preview: https://preview.$DOMAIN"
-        log_info "API: https://api.$DOMAIN"
+        log_info "Production site: https://$DOMAIN"
+        log_info "Preview site: https://preview.$DOMAIN"
+        log_info "MCP API: https://mcp.$DOMAIN/mcp"
+        log_info ""
+        log_info "MCP API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
     else
         log_info "✅ Deployment complete!"
-        log_info "Access at: http://$SERVER_IP:3333"
-        log_info "Preview at: http://$SERVER_IP:8080"
-        log_info "API at: http://$SERVER_IP:4321"
+        log_info "MCP API: http://$SERVER_IP:3333/mcp"
+        log_info "Production site: http://$SERVER_IP:8080"
+        log_info "Preview site: http://$SERVER_IP:4321"
+        log_info ""
+        log_info "MCP API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
     fi
 }
 
