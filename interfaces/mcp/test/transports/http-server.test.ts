@@ -458,4 +458,198 @@ describe("StreamableHTTPServer", () => {
       expect(server.isRunning()).toBe(false);
     });
   });
+
+  describe("Authentication", () => {
+    const testToken = "test-secret-token-minimum-32-characters-long";
+
+    describe("with authentication disabled", () => {
+      beforeEach(async () => {
+        server = new StreamableHTTPServer({
+          port: testPort,
+          logger: mockLogger,
+          auth: {
+            enabled: false,
+            token: testToken,
+          },
+        });
+        await server.start();
+
+        const mcpServer = new McpServer({
+          name: "test-server",
+          version: "1.0",
+        });
+        server.connectMCPServer(mcpServer);
+      });
+
+      test("should allow requests without auth header", async () => {
+        const response = await makeRequest("GET", "/health", {
+          port: testPort,
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+          status: "ok",
+          transport: "streamable-http",
+        });
+      });
+
+      test("should allow MCP requests without auth header", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port: testPort,
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        // Won't be 401, but may be 400 or other error since no session
+        expect(response.status).not.toBe(401);
+      });
+    });
+
+    describe("with authentication enabled", () => {
+      beforeEach(async () => {
+        server = new StreamableHTTPServer({
+          port: testPort,
+          logger: mockLogger,
+          auth: {
+            enabled: true,
+            token: testToken,
+          },
+        });
+        await server.start();
+
+        const mcpServer = new McpServer({
+          name: "test-server",
+          version: "1.0",
+        });
+        server.connectMCPServer(mcpServer);
+      });
+
+      test("should allow health check without auth", async () => {
+        const response = await makeRequest("GET", "/health", {
+          port: testPort,
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+          status: "ok",
+        });
+      });
+
+      test("should allow status check without auth", async () => {
+        const response = await makeRequest("GET", "/status", {
+          port: testPort,
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toMatchObject({
+          sessions: 0,
+        });
+      });
+
+      test("should reject MCP requests without auth header", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port: testPort,
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toMatchObject({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Unauthorized: Bearer token required",
+          },
+        });
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Authentication failed: Missing Bearer token",
+          ),
+        );
+      });
+
+      test("should reject MCP requests with invalid token", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port: testPort,
+          headers: {
+            Authorization: "Bearer invalid-token",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toMatchObject({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Unauthorized: Invalid token",
+          },
+        });
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          expect.stringContaining("Authentication failed: Invalid token"),
+        );
+      });
+
+      test("should accept MCP requests with valid token", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port: testPort,
+          headers: {
+            Authorization: `Bearer ${testToken}`,
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        // Won't be 401, but may be 400 or other error since no session
+        expect(response.status).not.toBe(401);
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          expect.stringContaining("Authentication successful"),
+        );
+      });
+
+      test("should reject requests with malformed auth header", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port: testPort,
+          headers: {
+            Authorization: "Basic dGVzdDp0ZXN0", // Basic auth instead of Bearer
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toMatchObject({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Unauthorized: Bearer token required",
+          },
+        });
+      });
+    });
+
+    describe("with authentication enabled but no token configured", () => {
+      beforeEach(async () => {
+        server = new StreamableHTTPServer({
+          port: testPort,
+          logger: mockLogger,
+          auth: {
+            enabled: true,
+            // No token provided
+          },
+        });
+        await server.start();
+      });
+
+      test("should log warning and allow all requests", async () => {
+        expect(mockLogger.warn).toHaveBeenCalledWith(
+          "Authentication enabled but no token provided!",
+        );
+
+        const response = await makeRequest("POST", "/mcp", {
+          port: testPort,
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        // Should not require auth since no token is configured
+        expect(response.status).not.toBe(401);
+      });
+    });
+  });
 });

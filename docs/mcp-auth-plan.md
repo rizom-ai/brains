@@ -52,7 +52,7 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
 
 ## File Changes Required
 
-1. **apps/*/brain.config.ts**
+1. **apps/\*/brain.config.ts**
    - Read MCP_AUTH_TOKEN from environment
    - Pass auth config to MCPInterface constructor
    - Example:
@@ -62,9 +62,9 @@ Implement authentication for MCP HTTP transport to securely expose it from our s
        httpPort: 3333,
        auth: {
          enabled: process.env.NODE_ENV === "production",
-         token: process.env.MCP_AUTH_TOKEN
-       }
-     })
+         token: process.env.MCP_AUTH_TOKEN,
+       },
+     });
      ```
 
 2. **interfaces/mcp/src/config.ts**
@@ -122,10 +122,12 @@ This approach keeps the MCP package pure:
 export const mcpConfigSchema = z.object({
   transport: z.enum(["stdio", "http"]).default("http"),
   httpPort: z.number().default(3333),
-  auth: z.object({
-    enabled: z.boolean().default(false),
-    token: z.string().optional(),
-  }).optional(),
+  auth: z
+    .object({
+      enabled: z.boolean().default(false),
+      token: z.string().optional(),
+    })
+    .optional(),
 });
 
 // In http-server.ts - receives config, no env vars
@@ -181,9 +183,9 @@ new MCPInterface({
   httpPort: 3333,
   auth: {
     enabled: process.env.NODE_ENV === "production",
-    token: process.env.MCP_AUTH_TOKEN
-  }
-})
+    token: process.env.MCP_AUTH_TOKEN,
+  },
+});
 ```
 
 ### Caddy Configuration

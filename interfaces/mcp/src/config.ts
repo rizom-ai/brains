@@ -6,6 +6,13 @@ export const mcpConfigSchema = z.object({
     .number()
     .describe("Port for HTTP transport (only used when transport is 'http')")
     .default(3333),
+  auth: z
+    .object({
+      enabled: z.boolean().default(false),
+      token: z.string().optional(),
+    })
+    .describe("Authentication configuration for HTTP transport")
+    .optional(),
 });
 
 export type MCPConfig = z.infer<typeof mcpConfigSchema>;

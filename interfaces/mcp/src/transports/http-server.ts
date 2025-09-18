@@ -1,4 +1,9 @@
-import express, { type Express } from "express";
+import express, {
+  type Express,
+  type Request,
+  type Response,
+  type NextFunction,
+} from "express";
 import cors from "cors";
 import { randomUUID } from "node:crypto";
 import asyncHandler from "express-async-handler";
@@ -9,10 +14,16 @@ import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/plugins";
 
+export interface AuthConfig {
+  enabled: boolean;
+  token?: string | undefined;
+}
+
 export interface StreamableHTTPServerConfig {
   port?: number | string;
   host?: string;
   logger?: Logger | TransportLogger;
+  auth?: AuthConfig;
 }
 
 /**
@@ -28,6 +39,7 @@ export class StreamableHTTPServer {
   private server: ReturnType<Express["listen"]> | null = null;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
+  private readonly authConfig: AuthConfig;
 
   constructor(config: StreamableHTTPServerConfig = {}) {
     this.config = config;
@@ -35,6 +47,13 @@ export class StreamableHTTPServer {
     this.logger = this.config.logger
       ? adaptLogger(this.config.logger)
       : createConsoleLogger();
+
+    // Initialize auth configuration
+    this.authConfig = config.auth ?? { enabled: false };
+
+    if (this.authConfig.enabled && !this.authConfig.token) {
+      this.logger.warn("Authentication enabled but no token provided!");
+    }
 
     this.app = express();
     this.setupMiddleware();
@@ -67,6 +86,61 @@ export class StreamableHTTPServer {
     return new StreamableHTTPServer(config);
   }
 
+  /**
+   * Authentication middleware
+   */
+  private authMiddleware = (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): void => {
+    // Skip auth for health endpoints
+    if (req.path === "/health" || req.path === "/status") {
+      return next();
+    }
+
+    // Check if auth is enabled
+    if (!this.authConfig.enabled || !this.authConfig.token) {
+      return next();
+    }
+
+    // Check Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      this.logger.warn(
+        `Authentication failed: Missing Bearer token from ${req.ip}`,
+      );
+      res.status(401).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32001,
+          message: "Unauthorized: Bearer token required",
+        },
+        id: null,
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7);
+    if (token !== this.authConfig.token) {
+      this.logger.warn(`Authentication failed: Invalid token from ${req.ip}`);
+      res.status(401).json({
+        jsonrpc: "2.0",
+        error: {
+          code: -32001,
+          message: "Unauthorized: Invalid token",
+        },
+        id: null,
+      });
+      return;
+    }
+
+    // Token is valid - authenticated requests get anchor permission
+    this.logger.debug(`Authentication successful from ${req.ip}`);
+    // Permission level will be set when MCP server is connected
+    next();
+  };
+
   private setupMiddleware(): void {
     this.app.use(express.json());
     this.app.use(cors()); // Enable CORS for MCP Inspector
@@ -76,6 +150,9 @@ export class StreamableHTTPServer {
       this.logger.debug(`${req.method} ${req.path}`);
       next();
     });
+
+    // Apply authentication middleware
+    this.app.use(this.authMiddleware);
   }
 
   private setupRoutes(): void {

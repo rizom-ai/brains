@@ -147,10 +147,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     // This will be used by the centralized PermissionService to determine actual permissions
     const transportUserId =
       this.config.transport === "stdio" ? "stdio" : "http";
-    const userLevel = this.context.getUserPermissionLevel(
-      "mcp",
-      transportUserId,
-    );
+
+    let userLevel = this.context.getUserPermissionLevel("mcp", transportUserId);
+
+    // For HTTP with auth enabled, authenticated users get anchor permission
+    // For HTTP without auth, use the configured permission level
+    if (this.config.transport === "http" && this.config.auth?.enabled) {
+      userLevel = "anchor";
+      this.logger.debug(
+        "HTTP auth enabled - authenticated users will have anchor permissions",
+      );
+    }
 
     // Pass the determined permission level to the MCP transport
     this.mcpTransport.setPermissionLevel(userLevel);
@@ -173,9 +180,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       this.logger.info("MCP STDIO transport started");
     } else {
       // HTTP transport
+      const authConfig = this.config.auth
+        ? {
+            enabled: this.config.auth.enabled,
+            token: this.config.auth.token,
+          }
+        : undefined;
+
       this.httpServer = StreamableHTTPServer.createFresh({
         port: this.config.httpPort,
         logger: this.logger,
+        ...(authConfig && { auth: authConfig }),
       });
 
       // Connect MCP server from service to HTTP transport
