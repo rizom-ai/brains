@@ -23,14 +23,17 @@ bun run dev
      - **Bearer Token**: `test-token-12345678901234567890123456789012`
 
    Note: MCP Inspector will automatically combine these into the header:
+
    ```
    Authorization: Bearer test-token-12345678901234567890123456789012
    ```
+
 3. Click "Connect"
 
 ### 3. Test the connection:
 
 Once connected, you can:
+
 - View available tools (system:query, link:capture, etc.)
 - Execute tool calls
 - View resources
@@ -49,15 +52,18 @@ For production servers:
 ## Troubleshooting
 
 ### Connection Refused
+
 - Check the server is running: `curl http://localhost:3333/health`
 - Verify port 3333 is not blocked
 
 ### Authentication Failed
+
 - Verify the token matches exactly what's in your .env file
 - Check the Authorization header format: `Bearer <token>`
 - No extra spaces before/after the token
 
 ### CORS Issues
+
 - The server includes CORS headers by default
 - If using a custom domain, ensure it's properly configured
 
