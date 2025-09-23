@@ -100,7 +100,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         join(this.config.previewDistDir, "index.html"),
         placeholderHtml,
       );
-      this.logger.info(
+      this.logger.debug(
         `Created preview directory at ${this.config.previewDistDir}`,
       );
     }
@@ -112,7 +112,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         join(this.config.productionDistDir, "index.html"),
         placeholderHtml,
       );
-      this.logger.info(
+      this.logger.debug(
         `Created production directory at ${this.config.productionDistDir}`,
       );
     }

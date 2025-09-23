@@ -171,19 +171,21 @@ export class ShellInitializer {
    * Initialize plugins
    */
   public async initializePlugins(pluginManager: PluginManager): Promise<void> {
-    this.logger.info(`Found ${this.config.plugins.length} plugins to register`);
+    this.logger.debug(
+      `Found ${this.config.plugins.length} plugins to register`,
+    );
 
     try {
       // Register plugins from config
       for (const plugin of this.config.plugins) {
-        this.logger.info(`Registering plugin: ${plugin.id}`);
+        this.logger.debug(`Registering plugin: ${plugin.id}`);
         pluginManager.registerPlugin(plugin);
       }
 
       // Initialize all registered plugins
       await pluginManager.initializePlugins();
 
-      this.logger.info("Plugin initialization complete");
+      this.logger.debug("Plugin initialization complete");
     } catch (error) {
       this.logger.error("Failed to initialize plugins", error);
       throw new Error("Failed to initialize plugins");
@@ -394,7 +396,7 @@ export class ShellInitializer {
     entityRegistry: EntityRegistry,
     pluginManager: PluginManager,
   ): Promise<void> {
-    this.logger.info("Starting Shell initialization");
+    this.logger.debug("Starting Shell initialization");
 
     try {
       // Step 1: Register shell templates
@@ -406,7 +408,7 @@ export class ShellInitializer {
       // Step 3: Initialize plugins
       await this.initializePlugins(pluginManager);
 
-      this.logger.info("Shell initialization completed successfully");
+      this.logger.info("Shell ready");
     } catch (error) {
       this.logger.error("Shell initialization failed", error);
       throw error;

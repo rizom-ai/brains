@@ -162,7 +162,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     // Pass the determined permission level to the MCP transport
     this.mcpTransport.setPermissionLevel(userLevel);
 
-    this.logger.info(
+    this.logger.debug(
       `Starting MCP ${this.config.transport} transport with ${userLevel} permissions`,
     );
 
@@ -177,7 +177,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
 
       // Start STDIO server
       await this.stdioServer.start();
-      this.logger.info("MCP STDIO transport started");
+      this.logger.debug("MCP STDIO transport started");
     } else {
       // HTTP transport - auth is enabled if token is provided
       this.httpServer = StreamableHTTPServer.createFresh({
@@ -197,7 +197,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
 
       // Start HTTP server
       await this.httpServer.start();
-      this.logger.info(
+      this.logger.debug(
         `MCP HTTP transport started on port ${this.config.httpPort}`,
       );
     }
@@ -207,7 +207,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
    * Stop the MCP server
    */
   private async stopServer(): Promise<void> {
-    this.logger.info(`Stopping MCP ${this.config.transport} transport`);
+    this.logger.debug(`Stopping MCP ${this.config.transport} transport`);
 
     if (this.stdioServer) {
       this.stdioServer.stop();

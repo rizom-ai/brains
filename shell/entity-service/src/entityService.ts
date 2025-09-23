@@ -334,7 +334,9 @@ export class EntityService implements IEntityService {
 
     // Emit entity:deleted event if deletion was successful
     if (result && this.messageBus) {
-      this.logger.debug(`Emitting entity:deleted event for ${entityType}:${id}`);
+      this.logger.debug(
+        `Emitting entity:deleted event for ${entityType}:${id}`,
+      );
       await this.messageBus.send(
         "entity:deleted",
         {

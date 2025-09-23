@@ -38,8 +38,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
-    this.logger.info("Registering Topics plugin");
-
     // Register topic entity type
     const adapter = new TopicAdapter();
     context.registerEntityType("topic", adapter.schema, adapter);

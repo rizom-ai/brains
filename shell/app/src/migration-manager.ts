@@ -26,7 +26,7 @@ export class MigrationManager {
   }
 
   public async runAllMigrations(): Promise<void> {
-    this.logger.info("Running database migrations...");
+    this.logger.debug("Running database migrations...");
 
     try {
       const config = await this.migrations.getStandardConfigWithDirectories();
@@ -35,7 +35,7 @@ export class MigrationManager {
       await this.migrateJobQueueDatabase(config);
       await this.migrateConversationDatabase(config);
 
-      this.logger.info("✅ All database migrations completed successfully");
+      this.logger.debug("All database migrations completed successfully");
     } catch (error) {
       this.logger.warn(
         "Migration failed (databases may already be migrated):",
@@ -47,7 +47,7 @@ export class MigrationManager {
   private async migrateEntityDatabase(
     config: Awaited<ReturnType<typeof getStandardConfigWithDirectories>>,
   ): Promise<void> {
-    this.logger.info("Running entity database migrations...");
+    this.logger.debug("Running entity database migrations...");
     await this.migrations.migrateEntities(
       {
         url: config.database.url,
@@ -62,7 +62,7 @@ export class MigrationManager {
   private async migrateJobQueueDatabase(
     config: Awaited<ReturnType<typeof getStandardConfigWithDirectories>>,
   ): Promise<void> {
-    this.logger.info("Running job queue database migrations...");
+    this.logger.debug("Running job queue database migrations...");
     await this.migrations.migrateJobQueue(
       {
         url: config.jobQueueDatabase.url,
@@ -77,7 +77,7 @@ export class MigrationManager {
   private async migrateConversationDatabase(
     config: Awaited<ReturnType<typeof getStandardConfigWithDirectories>>,
   ): Promise<void> {
-    this.logger.info("Running conversation database migrations...");
+    this.logger.debug("Running conversation database migrations...");
     await this.migrations.migrateConversations(
       {
         url: config.conversationDatabase.url,

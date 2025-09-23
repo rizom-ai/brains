@@ -164,7 +164,7 @@ export class ServerManager {
       throw new Error("No preview build found. Run build_site first.");
     }
 
-    this.logger.info(
+    this.logger.debug(
       `Starting preview server on port ${this.options.previewPort}`,
     );
 
@@ -176,7 +176,7 @@ export class ServerManager {
     });
 
     const url = `http://localhost:${this.options.previewPort}`;
-    this.logger.info(`Preview server started at ${url}`);
+    this.logger.debug(`Preview server started at ${url}`);
     return url;
   }
 
@@ -193,7 +193,7 @@ export class ServerManager {
       throw new Error("No build found. Run build_site first.");
     }
 
-    this.logger.info(
+    this.logger.debug(
       `Starting production server on port ${this.options.productionPort}`,
     );
 
@@ -205,7 +205,7 @@ export class ServerManager {
     });
 
     const url = `http://localhost:${this.options.productionPort}`;
-    this.logger.info(`Production server started at ${url}`);
+    this.logger.debug(`Production server started at ${url}`);
     return url;
   }
 
@@ -221,7 +221,7 @@ export class ServerManager {
 
     await server.stop();
     this.servers[type] = null;
-    this.logger.info(`${type} server stopped`);
+    this.logger.debug(`${type} server stopped`);
   }
 
   /**

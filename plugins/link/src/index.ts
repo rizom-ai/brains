@@ -53,15 +53,10 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     context.registerDataSource(linksDataSource);
 
     // Register auto-capture job handler
-    this.logger.info("Link plugin config", {
-      enableAutoCapture: this.config.enableAutoCapture,
-      config: this.config,
-    });
 
     if (this.config.enableAutoCapture) {
       const autoCaptureHandler = AutoCaptureHandler.getInstance(context);
       context.registerJobHandler("auto-capture", autoCaptureHandler);
-      this.logger.info("Auto-capture handler registered");
 
       // Subscribe to conversation message events
       const messageEventHandler = MessageEventHandler.getInstance(

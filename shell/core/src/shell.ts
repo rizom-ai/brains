@@ -183,8 +183,6 @@ export class Shell implements IShell {
       return;
     }
 
-    this.logger.info("Initializing Shell");
-
     try {
       const shellInitializer = ShellInitializer.getInstance(
         this.logger,
@@ -203,15 +201,12 @@ export class Shell implements IShell {
         this.contentService,
         this.entityService,
       );
-      this.logger.info("Content job handlers registered");
 
       // Start the job queue worker
       await this.jobQueueWorker.start();
-      this.logger.info("Job queue worker started");
 
       // Start the job progress monitor
       this.jobProgressMonitor.start();
-      this.logger.info("Job progress monitor started");
 
       // Register core DataSources
       this.registerCoreDataSources();
@@ -219,7 +214,6 @@ export class Shell implements IShell {
       // Shell commands now provided by system plugin
 
       this.initialized = true;
-      this.logger.info("Shell initialized successfully");
     } catch (error) {
       this.logger.error("Failed to initialize Shell", error);
       throw error;
@@ -247,16 +241,16 @@ export class Shell implements IShell {
    * Shutdown the Shell and clean up resources
    */
   public async shutdown(): Promise<void> {
-    this.logger.info("Shutting down Shell");
+    this.logger.debug("Shutting down Shell");
 
     // Cleanup in reverse order of initialization
     // Stop the job progress monitor first
     this.jobProgressMonitor.stop();
-    this.logger.info("Job progress monitor stopped");
+    this.logger.debug("Job progress monitor stopped");
 
     // Stop the job queue worker
     await this.jobQueueWorker.stop();
-    this.logger.info("Job queue worker stopped");
+    this.logger.debug("Job queue worker stopped");
 
     // Disable all plugins
     for (const [pluginId] of this.pluginManager.getAllPlugins()) {
@@ -267,7 +261,7 @@ export class Shell implements IShell {
     this.serviceRegistry.clear();
 
     this.initialized = false;
-    this.logger.info("Shell shutdown complete");
+    this.logger.debug("Shell shutdown complete");
   }
 
   /**

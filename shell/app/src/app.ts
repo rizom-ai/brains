@@ -51,7 +51,6 @@ export class App {
   }
 
   public async initialize(): Promise<void> {
-    console.log("🔧 App.initialize() called - running migrations...");
     // Run migrations before creating shell
     await this.runMigrations();
 
@@ -155,12 +154,10 @@ export class App {
     }
 
     try {
-      logger.info(`🚀 Starting ${this.config.name} v${this.config.version}`);
-
       await this.initialize();
-      logger.info("✅ App initialized successfully");
-
       await this.start();
+
+      logger.info(`✅ ${this.config.name} v${this.config.version} ready`);
 
       // Keep process alive
       process.stdin.resume();

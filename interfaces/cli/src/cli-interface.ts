@@ -218,7 +218,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
             "Initialization failed: Plugin context not initialized",
           );
         }
-        this.logger.info("Starting CLI interface");
+        this.logger.debug("Starting CLI interface");
 
         try {
           // Use dynamic imports to ensure React isolation
@@ -246,11 +246,11 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
           // Handle process termination gracefully
           process.on("SIGINT", async (): Promise<void> => {
-            this.logger.info("Received SIGINT, stopping CLI interface");
+            this.logger.debug("Received SIGINT, stopping CLI interface");
             await this.cleanup();
           });
           process.on("SIGTERM", async (): Promise<void> => {
-            this.logger.info("Received SIGTERM, stopping CLI interface");
+            this.logger.debug("Received SIGTERM, stopping CLI interface");
             await this.cleanup();
           });
         } catch (error) {
@@ -259,7 +259,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
         }
       },
       stop: async (): Promise<void> => {
-        this.logger.info("Stopping CLI interface");
+        this.logger.debug("Stopping CLI interface");
         await this.cleanup();
       },
       healthCheck: async (): Promise<DaemonHealth> => {

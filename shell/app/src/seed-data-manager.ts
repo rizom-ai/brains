@@ -39,7 +39,7 @@ export class SeedDataManager {
       if (isEmpty) {
         await this.copySeedContent();
       } else {
-        this.logger.info(
+        this.logger.debug(
           "brain-data directory not empty, skipping seed content initialization",
         );
       }
@@ -63,13 +63,13 @@ export class SeedDataManager {
   private async copySeedContent(): Promise<void> {
     try {
       await this.fs.access(this.seedContentDir);
-      this.logger.info(`Initializing brain-data with seed content...`);
+      this.logger.debug(`Initializing brain-data with seed content...`);
 
       await this.copyDirectory(this.seedContentDir, this.brainDataDir);
 
-      this.logger.info("✅ Seed content copied successfully");
+      this.logger.debug("Seed content copied successfully");
     } catch {
-      this.logger.info(
+      this.logger.debug(
         "No seed-content directory found, starting with empty brain-data",
       );
     }

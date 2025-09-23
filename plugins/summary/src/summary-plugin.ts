@@ -47,11 +47,8 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
-    this.logger.info("Registering Summary plugin");
-
     // Register the summary entity type with its adapter
     context.registerEntityType("summary", summarySchema, new SummaryAdapter());
-    this.logger.debug("Registered summary entity type");
 
     // Register templates
     context.registerTemplates({
@@ -59,7 +56,6 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       "summary-detail": summaryDetailTemplate,
       "ai-response": summaryAiResponseTemplate,
     });
-    this.logger.debug("Registered summary templates");
 
     // Register datasource for templates
     const summaryDataSource = new SummaryDataSource(
@@ -67,7 +63,6 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       this.logger,
     );
     context.registerDataSource(summaryDataSource);
-    this.logger.debug("Registered summary datasource");
 
     // Initialize digest handler using singleton pattern
     this.digestHandler = DigestHandler.getInstance(context, this.logger);
@@ -81,11 +76,6 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       });
       this.logger.info("Summary plugin subscribed to digest events");
     }
-
-    this.logger.info("Summary plugin initialized", {
-      version: this.version,
-      autoSummary: this.config.enableAutoSummary,
-    });
   }
 
   /**

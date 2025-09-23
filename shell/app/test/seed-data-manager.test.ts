@@ -45,7 +45,7 @@ describe("SeedDataManager", () => {
       expect(mockFs.mkdir).toHaveBeenCalledWith(testBrainDataDir, {
         recursive: true,
       });
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "No seed-content directory found, starting with empty brain-data",
       );
     });
@@ -57,7 +57,7 @@ describe("SeedDataManager", () => {
 
       await seedDataManager.initialize();
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "brain-data directory not empty, skipping seed content initialization",
       );
       expect(mockFs.access).not.toHaveBeenCalled();
@@ -83,11 +83,11 @@ describe("SeedDataManager", () => {
 
       await seedDataManager.initialize();
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "Initializing brain-data with seed content...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        "✅ Seed content copied successfully",
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "Seed content copied successfully",
       );
     });
 

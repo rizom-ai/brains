@@ -72,7 +72,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger.child("NavigationDataSource"),
     );
     context.registerDataSource(navigationDataSource);
-    this.logger.debug("Registered NavigationDataSource");
 
     // Register SiteInfoDataSource
     const siteConfig = this.config.siteConfig || {
@@ -92,7 +91,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger.child("SiteInfoDataSource"),
     );
     context.registerDataSource(siteInfoDataSource);
-    this.logger.debug("Registered SiteInfoDataSource");
 
     // Setup route message handlers
     this.setupRouteHandlers(context);
@@ -103,11 +101,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       siteContentSchema,
       siteContentAdapter,
     );
-    this.logger.debug("Registered site-content entity type");
 
     // Register built-in dashboard template using unified method
     context.registerTemplates({ dashboard: dashboardTemplate });
-    this.logger.debug("Registered dashboard template");
 
     // Register dashboard route via internal registry
     this.routeRegistry.register({
@@ -130,14 +126,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       ],
       pluginId: this.id,
     });
-    this.logger.debug("Registered dashboard route");
 
     // Register templates from configuration using unified registration
     if (this.config.templates) {
       context.registerTemplates(this.config.templates);
-      this.logger.debug(
-        `Registered ${Object.keys(this.config.templates).length} templates from config`,
-      );
     }
 
     // Register routes if provided
@@ -179,7 +171,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.config.themeCSS,
     );
     context.registerJobHandler("site-build", siteBuildHandler);
-    this.logger.debug("Registered site-build job handler");
 
     // Note: content-generation and content-derivation handlers are registered
     // by the shell as they are core content operations owned by ContentService
@@ -269,7 +260,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           this.routeRegistry.register(processedRoute);
         }
 
-        this.logger.debug(`Registered ${routes.length} routes for ${pluginId}`);
         return { success: true };
       } catch (error) {
         this.logger.error("Failed to register routes", { error });
@@ -374,7 +364,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Subscribe to entity events
     context.subscribe("entity:created", async (message) => {
       const { entityType } = message.payload as { entityType: string };
-      this.logger.debug(`Received entity:created event for type: ${entityType}`);
+      this.logger.debug(
+        `Received entity:created event for type: ${entityType}`,
+      );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
         scheduleRebuild();
@@ -384,7 +376,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     context.subscribe("entity:updated", async (message) => {
       const { entityType } = message.payload as { entityType: string };
-      this.logger.debug(`Received entity:updated event for type: ${entityType}`);
+      this.logger.debug(
+        `Received entity:updated event for type: ${entityType}`,
+      );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
         scheduleRebuild();
@@ -394,7 +388,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     context.subscribe("entity:deleted", async (message) => {
       const { entityType } = message.payload as { entityType: string };
-      this.logger.debug(`Received entity:deleted event for type: ${entityType}`);
+      this.logger.debug(
+        `Received entity:deleted event for type: ${entityType}`,
+      );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
         scheduleRebuild();

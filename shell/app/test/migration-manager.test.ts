@@ -49,20 +49,20 @@ describe("MigrationManager", () => {
     it("should run all migrations successfully", async () => {
       await migrationManager.runAllMigrations();
 
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "Running database migrations...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "Running entity database migrations...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "Running job queue database migrations...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "Running conversation database migrations...",
       );
-      expect(mockLogger.info).toHaveBeenCalledWith(
-        "✅ All database migrations completed successfully",
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        "All database migrations completed successfully",
       );
 
       expect(mockMigrations.migrateEntities).toHaveBeenCalledWith(
