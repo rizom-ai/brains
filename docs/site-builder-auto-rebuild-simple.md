@@ -1,9 +1,22 @@
 # Simple Site Builder Auto-Rebuild Plan
 
+## Summary of Decisions
+
+Based on our yes/no discussion:
+- ✅ **Enable auto-rebuild by default** - It should work out of the box
+- ✅ **Use 5-second delay** for batching changes
+- ✅ **Include ALL entity types except 'base'** - Rebuild on any content change
+- ✅ **Use flag-based batching** - Guarantees rebuilds happen (no timer reset issues)
+- ✅ **Skip priority setting** - Use default job queue priority
+- ✅ **Make it configurable** - Allow users to disable if needed
+- ✅ **Keep it simple** - Just modify EntityService and Site Builder Plugin
+
 ## Problem
+
 Currently, users must manually run `site-builder:build-site` after creating or updating content (links, topics, summaries). This leads to stale site content when users forget to rebuild.
 
 ## Solution
+
 Automatically trigger site rebuilds when content changes, with simple batching to avoid excessive rebuilds.
 
 ## Implementation Overview
@@ -19,21 +32,21 @@ Add event emissions after successful entity operations:
 await this.messageBus.send(
   "entity:created",
   { entityType: validatedEntity.entityType, entityId: validatedEntity.id },
-  "entity-service"
+  "entity-service",
 );
 
 // In updateEntity method, after successful update:
 await this.messageBus.send(
   "entity:updated",
   { entityType: entity.entityType, entityId: entity.id },
-  "entity-service"
+  "entity-service",
 );
 
 // In deleteEntity method, after successful deletion:
 await this.messageBus.send(
   "entity:deleted",
   { entityType, entityId },
-  "entity-service"
+  "entity-service",
 );
 ```
 
@@ -50,7 +63,11 @@ protected async onInitialize(context: ServicePluginContext): Promise<void> {
   // Auto-rebuild setup
   let pendingRebuild = false;
   let rebuildTimer: NodeJS.Timeout | undefined;
-  const contentTypes = ['link', 'topic', 'summary'];
+
+  // Get all registered entity types except 'base'
+  const excludedTypes = ['base'];
+  const contentTypes = Array.from(context.entityRegistry.getTypes())
+    .filter(type => !excludedTypes.includes(type));
 
   const scheduleRebuild = () => {
     // If rebuild already scheduled, do nothing
@@ -77,7 +94,6 @@ protected async onInitialize(context: ServicePluginContext): Promise<void> {
             }
           },
           {
-            priority: 5, // Lower priority than manual builds
             source: "site-builder:auto"
           }
         );
@@ -112,7 +128,7 @@ protected async onInitialize(context: ServicePluginContext): Promise<void> {
     return { success: true };
   });
 
-  this.logger.info("Auto-rebuild enabled for content types", { contentTypes });
+  this.logger.info("Auto-rebuild enabled for all entity types except", { excludedTypes });
 }
 ```
 
@@ -125,7 +141,10 @@ Add a simple enable/disable flag:
 ```typescript
 export const siteBuilderConfigSchema = z.object({
   // ... existing config ...
-  autoRebuild: z.boolean().default(true).describe("Automatically rebuild site when content changes")
+  autoRebuild: z
+    .boolean()
+    .default(true)
+    .describe("Automatically rebuild site when content changes"),
 });
 ```
 
@@ -158,13 +177,15 @@ if (this.config.autoRebuild) {
 ## Testing
 
 ### Manual Testing
-1. Create a new link → Wait 5 seconds → Site rebuilds
-2. Create multiple links rapidly → Wait 5 seconds → Single rebuild
-3. Update a topic → Wait 5 seconds → Site rebuilds
-4. Mix operations (create link, update topic, create summary) → Single rebuild after 5 seconds
+
+1. Create any entity (link, topic, summary, etc.) → Wait 5 seconds → Site rebuilds
+2. Create multiple entities rapidly → Wait 5 seconds → Single rebuild
+3. Update any entity → Wait 5 seconds → Site rebuilds
+4. Mix operations (create, update, delete various entity types) → Single rebuild after 5 seconds
 
 ### Verify Batching Works
-1. Create 10 links as fast as possible
+
+1. Create 10 entities as fast as possible
 2. Check logs: Should see "Scheduling site rebuild" once
 3. After 5 seconds: Should see "Auto-triggering site rebuild" once
 4. Result: 10 changes → 1 rebuild ✓
@@ -172,17 +193,19 @@ if (this.config.autoRebuild) {
 ## Configuration Options
 
 ### Default (Recommended)
+
 ```typescript
 new SiteBuilderPlugin({
-  autoRebuild: true  // That's it!
-})
+  autoRebuild: true, // That's it!
+});
 ```
 
 ### Disable for Manual Control
+
 ```typescript
 new SiteBuilderPlugin({
-  autoRebuild: false
-})
+  autoRebuild: false,
+});
 ```
 
 ## Future Enhancements (If Needed)
@@ -199,6 +222,7 @@ But honestly, the simple version will probably work fine for 99% of use cases.
 ## Rollback Plan
 
 If there are issues:
+
 1. Set `autoRebuild: false` in config
 2. Deploy the change
 3. Back to manual rebuilds
