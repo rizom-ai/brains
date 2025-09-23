@@ -1,11 +1,12 @@
 import { z } from "@brains/utils";
 import type { EntityDB } from "../db";
 import { entities } from "../schema/entities";
-import type { EntityWithoutEmbedding } from "../types";
+import type { EmbeddingJobData } from "../types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils";
+import type { MessageBus } from "@brains/messaging-service";
 
 /**
  * Zod schema for embedding job data validation
@@ -21,6 +22,7 @@ const embeddingJobDataSchema = z.object({
     .number()
     .min(0)
     .max(1, "Content weight must be between 0 and 1"),
+  operation: z.enum(["create", "update"]),
 });
 
 /**
@@ -33,6 +35,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   private logger: Logger;
   private embeddingService: IEmbeddingService;
   private db: EntityDB;
+  private messageBus?: MessageBus;
 
   /**
    * Get the singleton instance
@@ -40,10 +43,12 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   public static getInstance(
     db: EntityDB,
     embeddingService: IEmbeddingService,
+    messageBus?: MessageBus,
   ): EmbeddingJobHandler {
     EmbeddingJobHandler.instance ??= new EmbeddingJobHandler(
       db,
       embeddingService,
+      messageBus,
     );
     return EmbeddingJobHandler.instance;
   }
@@ -61,17 +66,25 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   public static createFresh(
     db: EntityDB,
     embeddingService: IEmbeddingService,
+    messageBus?: MessageBus,
   ): EmbeddingJobHandler {
-    return new EmbeddingJobHandler(db, embeddingService);
+    return new EmbeddingJobHandler(db, embeddingService, messageBus);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(db: EntityDB, embeddingService: IEmbeddingService) {
+  private constructor(
+    db: EntityDB,
+    embeddingService: IEmbeddingService,
+    messageBus?: MessageBus,
+  ) {
     this.logger = Logger.getInstance().child("EmbeddingJobHandler");
     this.embeddingService = embeddingService;
     this.db = db;
+    if (messageBus) {
+      this.messageBus = messageBus;
+    }
   }
 
   /**
@@ -79,7 +92,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
    * Generates embedding for entity content and upserts the complete entity
    */
   public async process(
-    data: EntityWithoutEmbedding,
+    data: EmbeddingJobData,
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<void> {
@@ -134,6 +147,26 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
           },
         });
 
+      // Emit entity event after successful save
+      if (this.messageBus) {
+        const eventType = data.operation === 'create' ? "entity:created" : "entity:updated";
+        this.logger.info(
+          `Emitting ${eventType} event for ${data.entityType}:${data.id} after entity saved`,
+        );
+        await this.messageBus.send(
+          eventType,
+          {
+            entityType: data.entityType,
+            entityId: data.id,
+            metadata: data.metadata,
+          },
+          "entity-service",
+          undefined,
+          undefined,
+          true, // broadcast
+        );
+      }
+
       // Report completion
       await progressReporter.report({
         progress: 2,
@@ -163,7 +196,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
    */
   public async onError(
     error: Error,
-    data: EntityWithoutEmbedding,
+    data: EmbeddingJobData,
     jobId: string,
   ): Promise<void> {
     this.logger.error("Embedding job error handler called", {
@@ -186,7 +219,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
    * Validate and parse embedding job data using Zod schema
    * Ensures type safety and data integrity
    */
-  public validateAndParse(data: unknown): EntityWithoutEmbedding | null {
+  public validateAndParse(data: unknown): EmbeddingJobData | null {
     try {
       const result = embeddingJobDataSchema.parse(data);
 

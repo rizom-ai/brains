@@ -21,6 +21,7 @@ export function createTestConfig(
     layouts: {
       default: TestLayout,
     },
+    autoRebuild: false, // Disabled for tests
   };
 
   return {

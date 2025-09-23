@@ -58,6 +58,10 @@ export const siteBuilderConfigSchema = z.object({
   layouts: z
     .record(z.any())
     .describe("Layout components (at least 'default' required)"),
+  autoRebuild: z
+    .boolean()
+    .default(true)
+    .describe("Automatically rebuild site when content changes"),
 });
 
 export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {

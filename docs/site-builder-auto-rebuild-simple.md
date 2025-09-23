@@ -3,6 +3,7 @@
 ## Summary of Decisions
 
 Based on our yes/no discussion:
+
 - ✅ **Enable auto-rebuild by default** - It should work out of the box
 - ✅ **Use 5-second delay** for batching changes
 - ✅ **Include ALL entity types except 'base'** - Rebuild on any content change

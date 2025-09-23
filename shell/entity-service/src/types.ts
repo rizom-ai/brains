@@ -7,6 +7,13 @@ import type { Entity } from "./schema/entities";
 export type EntityWithoutEmbedding = Omit<Entity, "embedding">;
 
 /**
+ * Embedding job data that includes the operation type
+ */
+export type EmbeddingJobData = EntityWithoutEmbedding & {
+  operation: 'create' | 'update';
+};
+
+/**
  * Base entity schema that all entities must extend
  */
 export const baseEntitySchema = z.object({

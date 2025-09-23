@@ -269,6 +269,7 @@ export class ShellInitializer {
         entityRegistry,
         logger,
         jobQueueService,
+        messageBus,
         dbConfig: {
           url: this.config.database.url,
           ...(this.config.database.authToken && {

@@ -8,10 +8,11 @@ import {
 } from "./db";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields, createId } from "@brains/utils";
-import type { BaseEntity, SearchResult, EntityWithoutEmbedding } from "./types";
+import type { BaseEntity, SearchResult, EmbeddingJobData } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
 import type { JobQueueService } from "@brains/job-queue";
+import type { MessageBus } from "@brains/messaging-service";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
@@ -25,6 +26,7 @@ export interface EntityServiceOptions {
   entityRegistry?: EntityRegistry;
   logger?: Logger;
   jobQueueService?: JobQueueService;
+  messageBus?: MessageBus;
   dbConfig: EntityDbConfig;
 }
 
@@ -43,6 +45,7 @@ export class EntityService implements IEntityService {
   private logger: Logger;
   private embeddingService: IEmbeddingService;
   private jobQueueService: JobQueueService;
+  private messageBus?: MessageBus;
 
   // Extracted responsibility classes
   private entitySearch: EntitySearch;
@@ -94,6 +97,9 @@ export class EntityService implements IEntityService {
       );
     }
     this.jobQueueService = options.jobQueueService;
+    if (options.messageBus) {
+      this.messageBus = options.messageBus;
+    }
 
     // Initialize extracted responsibility classes
     this.entitySerializer = new EntitySerializer(
@@ -116,6 +122,7 @@ export class EntityService implements IEntityService {
     const embeddingJobHandler = EmbeddingJobHandler.createFresh(
       this.db,
       this.embeddingService,
+      this.messageBus,
     );
     this.jobQueueService.registerHandler(
       "shell:embedding",
@@ -183,7 +190,7 @@ export class EntityService implements IEntityService {
     );
 
     // Prepare entity data for queue (without embedding)
-    const entityForQueue: EntityWithoutEmbedding = {
+    const entityForQueue: EmbeddingJobData = {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
       content: markdown,
@@ -191,6 +198,7 @@ export class EntityService implements IEntityService {
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
       contentWeight,
+      operation: 'create',
     };
 
     // Enqueue for async embedding generation
@@ -215,6 +223,8 @@ export class EntityService implements IEntityService {
     this.logger.debug(
       `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
     );
+
+    // Note: entity:created event will be emitted by EmbeddingJobHandler after entity is saved
 
     return {
       entityId: validatedEntity.id,
@@ -277,17 +287,19 @@ export class EntityService implements IEntityService {
 
     // Queue embedding generation for the updated entity
     const rootJobId = createId(); // Generate unique ID for system job
+    const entityForQueue: EmbeddingJobData = {
+      id: validatedEntity.id,
+      entityType: validatedEntity.entityType,
+      content: markdown,
+      contentWeight,
+      created: new Date(validatedEntity.created).getTime(),
+      updated: new Date(validatedEntity.updated).getTime(),
+      metadata,
+      operation: 'update',
+    };
     const jobId = await this.jobQueueService.enqueue(
       "shell:embedding",
-      {
-        id: validatedEntity.id,
-        entityType: validatedEntity.entityType,
-        content: markdown,
-        contentWeight,
-        created: new Date(validatedEntity.created).getTime(),
-        updated: new Date(validatedEntity.updated).getTime(),
-        metadata,
-      },
+      entityForQueue,
       {
         ...(options?.priority !== undefined && { priority: options.priority }),
         ...(options?.maxRetries !== undefined && {
@@ -306,6 +318,8 @@ export class EntityService implements IEntityService {
       `Queued embedding update for entity ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
     );
 
+    // Note: entity:updated event will be emitted by EmbeddingJobHandler after entity is saved
+
     return {
       entityId: validatedEntity.id,
       jobId,
@@ -316,7 +330,29 @@ export class EntityService implements IEntityService {
    * Delete an entity by type and ID
    */
   public async deleteEntity(entityType: string, id: string): Promise<boolean> {
-    return this.entityQueries.deleteEntity(entityType, id);
+    const result = await this.entityQueries.deleteEntity(entityType, id);
+
+    // Emit entity:deleted event if deletion was successful
+    if (result && this.messageBus) {
+      this.logger.info(
+        `Emitting entity:deleted event for ${entityType}:${id}`,
+      );
+      await this.messageBus.send(
+        "entity:deleted",
+        {
+          entityType,
+          entityId: id,
+        },
+        "entity-service",
+        undefined,
+        undefined,
+        true, // broadcast
+      );
+    } else if (result && !this.messageBus) {
+      this.logger.warn("MessageBus not available, cannot emit entity:deleted event");
+    }
+
+    return result;
   }
 
   /**
