@@ -10,7 +10,7 @@ export type EntityWithoutEmbedding = Omit<Entity, "embedding">;
  * Embedding job data that includes the operation type
  */
 export type EmbeddingJobData = EntityWithoutEmbedding & {
-  operation: 'create' | 'update';
+  operation: "create" | "update";
 };
 
 /**

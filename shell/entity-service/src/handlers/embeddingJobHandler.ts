@@ -149,8 +149,9 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
       // Emit entity event after successful save
       if (this.messageBus) {
-        const eventType = data.operation === 'create' ? "entity:created" : "entity:updated";
-        this.logger.info(
+        const eventType =
+          data.operation === "create" ? "entity:created" : "entity:updated";
+        this.logger.debug(
           `Emitting ${eventType} event for ${data.entityType}:${data.id} after entity saved`,
         );
         await this.messageBus.send(

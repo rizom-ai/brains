@@ -198,7 +198,7 @@ export class EntityService implements IEntityService {
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
       contentWeight,
-      operation: 'create',
+      operation: "create",
     };
 
     // Enqueue for async embedding generation
@@ -295,7 +295,7 @@ export class EntityService implements IEntityService {
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
       metadata,
-      operation: 'update',
+      operation: "update",
     };
     const jobId = await this.jobQueueService.enqueue(
       "shell:embedding",
@@ -334,9 +334,7 @@ export class EntityService implements IEntityService {
 
     // Emit entity:deleted event if deletion was successful
     if (result && this.messageBus) {
-      this.logger.info(
-        `Emitting entity:deleted event for ${entityType}:${id}`,
-      );
+      this.logger.debug(`Emitting entity:deleted event for ${entityType}:${id}`);
       await this.messageBus.send(
         "entity:deleted",
         {
@@ -349,7 +347,9 @@ export class EntityService implements IEntityService {
         true, // broadcast
       );
     } else if (result && !this.messageBus) {
-      this.logger.warn("MessageBus not available, cannot emit entity:deleted event");
+      this.logger.warn(
+        "MessageBus not available, cannot emit entity:deleted event",
+      );
     }
 
     return result;
