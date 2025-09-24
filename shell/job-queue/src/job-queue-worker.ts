@@ -1,40 +1,10 @@
-import type { Logger, IJobProgressMonitor } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import type { IJobProgressMonitor } from "@brains/utils";
 import type { JobQueueService } from "./job-queue-service";
 import type { JobQueue } from "./schema/job-queue";
 import type { JobResult } from "./schemas";
+import type { JobQueueWorkerConfig, JobQueueWorkerStats } from "./types";
 import { JOB_STATUS } from "./schemas";
-
-/**
- * Configuration options for the JobQueueWorker
- */
-export interface JobQueueWorkerConfig {
-  /** Number of concurrent jobs to process */
-  concurrency?: number;
-  /** Polling interval in milliseconds */
-  pollInterval?: number;
-  /** Maximum number of jobs to process before stopping (0 for unlimited) */
-  maxJobs?: number;
-  /** Whether to start the worker automatically */
-  autoStart?: boolean;
-}
-
-/**
- * Statistics for the JobQueueWorker
- */
-export interface JobQueueWorkerStats {
-  /** Number of jobs processed successfully */
-  processedJobs: number;
-  /** Number of jobs that failed */
-  failedJobs: number;
-  /** Number of jobs currently being processed */
-  activeJobs: number;
-  /** Worker uptime in milliseconds */
-  uptime: number;
-  /** Whether the worker is currently running */
-  isRunning: boolean;
-  /** Last error encountered */
-  lastError?: string;
-}
 
 /**
  * Generic job queue worker that processes jobs from the queue

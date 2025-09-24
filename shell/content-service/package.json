@@ -16,9 +16,10 @@
   "dependencies": {
     "@brains/utils": "workspace:*",
     "@brains/job-queue": "workspace:*",
-    "@brains/conversation-service": "workspace:*",
-    "@brains/render-service": "workspace:*",
-    "@brains/templates": "workspace:*"
+    "@brains/templates": "workspace:*",
+    "@brains/entity-service": "workspace:*",
+    "@brains/ai-service": "workspace:*",
+    "@brains/datasource": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

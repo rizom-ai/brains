@@ -1,14 +1,10 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import * as schema from "./schema";
+import { conversations, messages, summaryTracking } from "./schema";
+import type { ConversationDbConfig } from "./types";
 
-export interface ConversationDbConfig {
-  url: string; // Now required - no default
-  authToken?: string;
-}
-
-export type ConversationDB = LibSQLDatabase<typeof schema>;
+export type ConversationDB = LibSQLDatabase<Record<string, unknown>>;
 
 /**
  * Create a conversation database connection
@@ -28,7 +24,7 @@ export function createConversationDatabase(config: ConversationDbConfig): {
     ? createClient({ url, authToken })
     : createClient({ url });
 
-  const db = drizzle(client, { schema });
+  const db = drizzle(client, { schema: { conversations, messages, summaryTracking } });
 
   return { db, client, url };
 }

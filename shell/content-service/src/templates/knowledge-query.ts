@@ -18,7 +18,7 @@ Instructions:
 3. Provide accurate, contextual responses based on the data
 4. If information is missing, clearly state what additional data might be helpful
 5. Structure your response clearly and concisely`,
-  dataSourceId: "shell:ai-content",
+  dataSourceId: "ai-content",
   requiredPermission: "public",
   schema: defaultQueryResponseSchema,
   formatter: new DefaultQueryResponseFormatter(),

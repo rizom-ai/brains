@@ -1,23 +1,22 @@
+// With moduleResolution: "bundler", we can export implementations safely
 export { ConversationService } from "./conversation-service";
+
 export type {
   IConversationService,
   ConversationServiceConfig,
   MessageRole,
   GetMessagesOptions,
   ConversationDigestPayload,
+  ConversationDbConfig,
 } from "./types";
 export { conversationDigestPayloadSchema } from "./types";
-export { createConversationDatabase } from "./database";
-export type { ConversationDB } from "./database";
-export {
-  conversations,
-  messages,
-  summaryTracking,
-  type Conversation,
-  type Message,
-  type NewConversation,
-  type NewMessage,
-  type SummaryTracking,
-  type NewSummaryTracking,
+
+// Schema types for compatibility - consider importing from /service if you need these
+export type {
+  Conversation,
+  Message,
+  NewConversation,
+  NewMessage,
+  SummaryTracking,
+  NewSummaryTracking,
 } from "./schema";
-export { migrateConversations } from "./migrate";

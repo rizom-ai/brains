@@ -1,13 +1,14 @@
 import { eq, and, or, inArray, sql, desc, asc, lte } from "drizzle-orm";
-import { jobQueue, type JobOptions, type JobQueue } from "./schema/job-queue";
+import { jobQueue, type JobQueue } from "./schema/job-queue";
+import type { JobOptions } from "./schema/types";
 import { Logger, createId } from "@brains/utils";
-import type { IJobQueueService, JobHandler } from "./types";
+import type { IJobQueueService, JobHandler, JobInfo } from "./types";
 import { JOB_STATUS } from "./schemas";
 import {
   createJobQueueDatabase,
   enableWALMode,
-  type JobQueueDbConfig,
 } from "./db";
+import type { JobQueueDbConfig } from "./types";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
@@ -259,7 +260,7 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Get job status by ID
    */
-  public async getStatus(jobId: string): Promise<JobQueue | null> {
+  public async getStatus(jobId: string): Promise<JobInfo | null> {
     const jobs = await this.db
       .select()
       .from(jobQueue)
@@ -278,7 +279,7 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Get job status by entity ID (from job data)
    */
-  public async getStatusByEntityId(entityId: string): Promise<JobQueue | null> {
+  public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
     // Use JSON extract to search within the data field
     const jobs = await this.db
       .select()
@@ -364,7 +365,7 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Get active jobs (pending or processing)
    */
-  public async getActiveJobs(types?: string[]): Promise<JobQueue[]> {
+  public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
     let query = this.db
       .select()
       .from(jobQueue)

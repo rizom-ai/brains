@@ -46,8 +46,6 @@ export type {
   CreateEntityResponse,
   UpdateEntityResponse,
   PluginType,
-  DaemonHealth,
-  Daemon,
   ToolVisibility,
   ToolContext,
   ToolResponse,
@@ -69,7 +67,6 @@ export {
   createEntityResponseSchema,
   updateEntityResponseSchema,
   pluginMetadataSchema,
-  DaemonHealthSchema,
   ToolContextRoutingSchema,
   toolResponseSchema,
 } from "./interfaces";
@@ -110,7 +107,7 @@ export type {
   SearchOptions,
   IEntityService,
   ICoreEntityService,
-  EntityRegistry,
+  IEntityRegistry,
 } from "@brains/entity-service";
 export {
   baseEntitySchema,
@@ -176,7 +173,7 @@ export type { ViewTemplate, OutputFormat } from "@brains/render-service";
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
 
 // From @brains/db
-export type { JobOptions, JobQueue, JobContext } from "@brains/job-queue";
+export type { JobOptions, JobInfo, JobContext } from "@brains/job-queue";
 export { JobContextSchema } from "@brains/job-queue";
 
 // From @brains/utils
@@ -198,8 +195,8 @@ export {
   StructuredContentFormatter,
 } from "@brains/utils";
 
-// Test utilities from @brains/core
-export { MockShell } from "@brains/core";
+// Test utilities
+export { MockShell } from "./test/mock-shell";
 
 // Content management exports removed - these types are now defined in site-builder plugin
 

@@ -5,7 +5,7 @@ import {
   enableWALModeForEntities,
   ensureEntityIndexes,
 } from "./db";
-import type { EntityDbConfig } from "./db";
+import type { EntityDbConfig } from "./types";
 import { Logger } from "@brains/utils";
 
 export async function migrateEntities(

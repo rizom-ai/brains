@@ -8,37 +8,35 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "test": "bun test",
-    "clean": "rm -rf dist"
+    "test": "bun test"
   },
   "dependencies": {
-    "@brains/ai-service": "workspace:*",
-    "@brains/command-registry": "workspace:*",
-    "@brains/conversation-service": "workspace:*",
-    "@brains/daemon-registry": "workspace:*",
-    "@brains/datasource": "workspace:*",
-    "@brains/embedding-service": "workspace:*",
-    "@brains/entity-service": "workspace:*",
-    "@brains/job-queue": "workspace:*",
-    "@brains/messaging-service": "workspace:*",
-    "@brains/permission-service": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/service-registry": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@brains/render-service": "workspace:*",
-    "@brains/content-service": "workspace:*",
-    "@brains/templates": "workspace:*"
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/datasource": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "@brains/entity-service": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/service-registry": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
+    "@brains/command-registry": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
+    "@brains/daemon-registry": "workspace:*",
+    "@brains/embedding-service": "workspace:*",
+    "@brains/conversation-service": "workspace:*",
+    "@brains/content-service": "workspace:*",
+    "@brains/ai-service": "workspace:*",
+    "@brains/permission-service": "workspace:*",
+    "@brains/render-service": "workspace:*"
   }
 }

@@ -1,5 +1,36 @@
-import { Logger } from "@brains/utils";
-import type { Daemon, DaemonHealth } from "@brains/plugins";
+import { Logger, z } from "@brains/utils";
+
+/**
+ * Daemon health status schema
+ */
+export const DaemonHealthSchema = z.object({
+  status: z.enum(["healthy", "warning", "error", "unknown"]),
+  message: z.string().optional(),
+  lastCheck: z.date().optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+});
+
+export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
+
+/**
+ * Daemon interface for long-running interface processes
+ */
+export interface Daemon {
+  /**
+   * Start the daemon - called when plugin is initialized
+   */
+  start: () => Promise<void>;
+
+  /**
+   * Stop the daemon - called when plugin is unloaded/shutdown
+   */
+  stop: () => Promise<void>;
+
+  /**
+   * Optional health check - called periodically to monitor daemon health
+   */
+  healthCheck?: () => Promise<DaemonHealth>;
+}
 
 /**
  * Information about a registered daemon

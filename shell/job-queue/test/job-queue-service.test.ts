@@ -4,8 +4,8 @@ import type { JobHandler } from "../src/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger, createId } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
-import type { JobContext } from "../src/schema/job-queue";
-import type { JobQueueDbConfig } from "../src/db";
+import type { JobContext } from "../src/types";
+import type { JobQueueDbConfig } from "../src/types";
 
 // Test type for entity-like data
 interface EntityWithoutEmbedding {

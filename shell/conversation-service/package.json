@@ -9,7 +9,8 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
-    }
+    },
+    "./migrate": "./src/migrate.ts"
   },
   "scripts": {
     "test": "bun test",

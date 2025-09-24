@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { getStandardConfigWithDirectories } from "@brains/core";
-import { migrateConversations } from "@brains/conversation-service";
+import { migrateConversations } from "@brains/conversation-service/migrate";
 import { Logger } from "@brains/utils";
 
 async function main(): Promise<void> {

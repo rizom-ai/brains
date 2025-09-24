@@ -1,12 +1,10 @@
 {
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
-    "rootDir": "./src"
+    "baseUrl": "."
   },
   "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "test"
+    "src/**/*",
+    "test/**/*"
   ]
 }

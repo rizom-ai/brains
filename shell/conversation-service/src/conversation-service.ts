@@ -1,8 +1,9 @@
 import { createConversationDatabase } from "./database";
-import type { ConversationDB, ConversationDbConfig } from "./database";
+import type { ConversationDB } from "./database";
 import type {
   IConversationService,
   ConversationServiceConfig,
+  ConversationDbConfig,
   MessageRole,
   GetMessagesOptions,
   ConversationDigestPayload,

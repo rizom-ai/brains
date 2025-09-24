@@ -1,10 +1,34 @@
-import type {
-  JobQueue,
-  JobOptions,
-  JobType,
-  JobDataFor,
-} from "./schema/job-queue";
+import { JobContextSchema } from "./schema/types";
+import type { JobOptions, JobContext } from "./schema/types";
+import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
+
+// Re-export types that are used internally
+export type { JobOptions, JobContext };
 import type { ProgressReporter } from "@brains/utils";
+import { z } from "@brains/utils";
+
+/**
+ * Simplified job info schema for external packages
+ * Avoids exposing the complex Drizzle-inferred JobQueue type
+ */
+export const JobInfoSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  data: z.string(),
+  status: z.enum(["pending", "processing", "completed", "failed"]),
+  source: z.string().nullable(),
+  priority: z.number(),
+  retryCount: z.number(),
+  maxRetries: z.number(),
+  lastError: z.string().nullable(),
+  createdAt: z.number(),
+  scheduledFor: z.number(),
+  startedAt: z.number().nullable(),
+  completedAt: z.number().nullable(),
+  metadata: JobContextSchema,
+});
+
+export type JobInfo = z.infer<typeof JobInfoSchema>;
 
 /**
  * Job handler interface for processing specific job types
@@ -82,11 +106,6 @@ export interface IJobQueueService {
   ): Promise<string>;
 
   /**
-   * Get next job to process (marks as processing)
-   */
-  dequeue(): Promise<JobQueue | null>;
-
-  /**
    * Mark job as completed
    */
   complete(jobId: string, result: unknown): Promise<void>;
@@ -104,12 +123,12 @@ export interface IJobQueueService {
   /**
    * Get job status by job ID
    */
-  getStatus(jobId: string): Promise<JobQueue | null>;
+  getStatus(jobId: string): Promise<JobInfo | null>;
 
   /**
    * Get job status by entity ID (for embedding jobs)
    */
-  getStatusByEntityId(entityId: string): Promise<JobQueue | null>;
+  getStatusByEntityId(entityId: string): Promise<JobInfo | null>;
 
   /**
    * Get queue statistics
@@ -130,7 +149,7 @@ export interface IJobQueueService {
   /**
    * Get active jobs (pending or processing)
    */
-  getActiveJobs(types?: string[]): Promise<JobQueue[]>;
+  getActiveJobs(types?: string[]): Promise<JobInfo[]>;
 
   /**
    * Get registered job types
@@ -139,10 +158,94 @@ export interface IJobQueueService {
 }
 
 /**
- * Type-safe job enqueue function
+ * Job enqueue function
  */
-export type EnqueueJob = <T extends JobType>(
-  type: T,
-  data: JobDataFor<T>,
+export type EnqueueJob = (
+  type: string,
+  data: unknown,
   options: JobOptions,
 ) => Promise<string>;
+
+/**
+ * Database configuration for job queue
+ */
+export interface JobQueueDbConfig {
+  url: string; // Now required - no default
+  authToken?: string;
+}
+
+/**
+ * Configuration for the JobQueueWorker
+ */
+export interface JobQueueWorkerConfig {
+  /** Number of concurrent jobs to process */
+  concurrency?: number;
+  /** Polling interval in milliseconds */
+  pollInterval?: number;
+  /** Maximum number of jobs to process before stopping (0 for unlimited) */
+  maxJobs?: number;
+  /** Whether to start the worker automatically */
+  autoStart?: boolean;
+}
+
+/**
+ * Statistics for the JobQueueWorker
+ */
+export interface JobQueueWorkerStats {
+  /** Number of jobs processed successfully */
+  processedJobs: number;
+  /** Number of jobs that failed */
+  failedJobs: number;
+  /** Number of jobs currently being processed */
+  activeJobs: number;
+  /** Worker uptime in milliseconds */
+  uptime: number;
+  /** Whether the worker is currently running */
+  isRunning: boolean;
+  /** Last error encountered */
+  lastError?: string;
+}
+
+/**
+ * Interface for job queue worker
+ */
+export interface IJobQueueWorker {
+  /** Start the worker */
+  start(): Promise<void>;
+  /** Stop the worker */
+  stop(): Promise<void>;
+  /** Get worker statistics */
+  getStats(): JobQueueWorkerStats;
+  /** Check if worker is running */
+  isWorkerRunning(): boolean;
+}
+
+/**
+ * Interface for batch job manager
+ */
+export interface IBatchJobManager {
+  /** Register a batch for tracking */
+  registerBatch(
+    batchId: string,
+    jobIds: string[],
+    operations: BatchOperation[],
+    source: string,
+    metadata: JobContext,
+  ): void;
+
+  /** Enqueue a batch of operations */
+  enqueueBatch(
+    operations: BatchOperation[],
+    options: JobOptions,
+    batchId: string,
+    source: string,
+  ): Promise<string>;
+
+  /** Get status of a specific batch */
+  getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
+
+  /** Get all active batches */
+  getActiveBatches(): Promise<Batch[]>;
+}
+
+

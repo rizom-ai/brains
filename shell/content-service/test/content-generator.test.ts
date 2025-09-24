@@ -48,14 +48,20 @@ describe("ContentService", () => {
       has: mock(),
       getIds: mock(),
       list: mock(),
+      registerWithId: mock(),
+      getAll: mock(),
+      reset: mock(),
+      clear: mock(),
+      dataSources: new Map(),
+      logger: mockLogger,
     };
 
     mockDependencies = {
       logger: mockLogger,
-      entityService: mockEntityService as EntityService,
-      aiService: mockAIService as AIService,
+      entityService: mockEntityService as unknown as EntityService,
+      aiService: mockAIService as unknown as AIService,
       templateRegistry,
-      dataSourceRegistry: mockDataSourceRegistry as DataSourceRegistry,
+      dataSourceRegistry: mockDataSourceRegistry as unknown as DataSourceRegistry,
     };
 
     contentService = new ContentService(mockDependencies);
@@ -72,6 +78,7 @@ describe("ContentService", () => {
         format: mock((content) => `formatted: ${content}`),
         parse: mock(),
       },
+      requiredPermission: "public",
     };
 
     const mockDataSource = {
@@ -84,7 +91,7 @@ describe("ContentService", () => {
       // Register the mock template with the registry
       templateRegistry.register("test-template", mockTemplate);
       // Setup DataSource registry mock to return our mock DataSource
-      mockDependencies.dataSourceRegistry.get.mockReturnValue(mockDataSource);
+      (mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(mockDataSource);
       mockDataSource.generate.mockResolvedValue("raw content");
     });
 
@@ -125,6 +132,7 @@ describe("ContentService", () => {
         description: "Template without DataSource",
         basePrompt: "Generate content",
         schema: z.string(),
+        requiredPermission: "public",
       };
 
       templateRegistry.register(
@@ -175,6 +183,7 @@ describe("ContentService", () => {
         basePrompt: "Generate test content",
         dataSourceId: "shell:ai-content",
         schema: z.string(),
+        requiredPermission: "public",
       };
       templateRegistry.register(
         "test-template-no-formatter",
@@ -196,6 +205,7 @@ describe("ContentService", () => {
         basePrompt: "Generate test content",
         dataSourceId: "shell:ai-content",
         schema: z.object({ data: z.string() }),
+        requiredPermission: "public",
       };
       templateRegistry.register("test-template-object", templateWithSchema);
       mockDataSource.generate.mockResolvedValue({ data: "object" });
@@ -229,6 +239,7 @@ describe("ContentService", () => {
           return { title, content: contentText };
         }),
       },
+      requiredPermission: "public",
     };
 
     beforeEach(() => {
@@ -264,6 +275,7 @@ describe("ContentService", () => {
         description: "Template without formatter",
         basePrompt: "Generate content",
         schema: z.string(),
+        requiredPermission: "public",
       };
       templateRegistry.register(
         "no-formatter-template",

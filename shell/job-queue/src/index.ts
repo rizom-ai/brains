@@ -1,21 +1,24 @@
+// With moduleResolution: "bundler", we can export implementations safely
 export { JobQueueService } from "./job-queue-service";
 export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
 export { JobProgressMonitor } from "./job-progress-monitor";
-export type { JobQueueDbConfig } from "./db";
-export { migrateJobQueue } from "./migrate";
+
 export type {
+  IJobQueueService,
+  JobHandler,
+  EnqueueJob,
+  JobInfo,
+  JobQueueDbConfig,
   JobQueueWorkerConfig,
   JobQueueWorkerStats,
-} from "./job-queue-worker";
-export type { IJobQueueService, JobHandler, EnqueueJob } from "./types";
+  IJobQueueWorker,
+  IBatchJobManager,
+} from "./types";
+export { JobInfoSchema } from "./types";
 export {
   JobStatusSchema,
   JobResultSchema,
-  BatchOperationSchema,
-  BatchJobDataSchema,
-  BatchJobStatusSchema,
-  BatchSchema,
   JobStatusEnum,
   JobResultStatusEnum,
   JOB_STATUS,
@@ -23,15 +26,30 @@ export {
   type JobResult,
   type JobStatusType,
   type JobResultStatusType,
-  type BatchOperation,
-  type BatchJobData,
-  type BatchJobStatus,
-  type Batch,
   JobProgressEventSchema,
   type JobProgressEvent,
 } from "./schemas";
 
-// Export job queue schema and types
-export * from "./schema/job-queue";
+// Export batch-related types
+export type {
+  BatchOperation,
+  BatchJobStatus,
+  Batch,
+} from "./batch-schemas";
+
+// Export enums and schemas from pure types file (no Drizzle dependencies)
+export {
+  OperationTypeEnum,
+  JobContextSchema,
+} from "./schema/types";
+
+// Export types that external packages need
+export type {
+  OperationType,
+  JobContext,
+  JobOptions,
+  JobStats,
+} from "./schema/types";
+
 
 // Removed complex progress utilities for simplicity

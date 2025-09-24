@@ -1,10 +1,10 @@
 /**
  * Centralized Zod exports for the entire monorepo.
  * This provides a single point of control for Zod versioning and migrations.
+ *
+ * IMPORTANT: Do not use wildcard exports here as they cause TypeScript to load
+ * all of Zod's complex types, creating millions of type instantiations.
  */
-
-// Re-export everything from zod
-export * from "zod";
 
 // Default export
 export { z as default } from "zod";

@@ -5,7 +5,7 @@ import {
   PermissionService,
   type UserPermissionLevel,
 } from "@brains/permission-service";
-import type { PluginTool, PluginResource } from "@brains/plugins";
+import type { PluginTool, PluginResource } from "./types";
 import type { IMCPService } from "./types";
 
 /**

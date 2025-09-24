@@ -122,9 +122,9 @@ describe("PluginManager - Direct Registration", () => {
       registerResource: registerResourceMock,
       listTools: mock(() => registeredTools),
       listResources: mock(() => registeredResources),
-      getMcpServer: mock(() => ({}) as McpServer),
+      getMcpServer: mock(() => ({} as unknown as McpServer)),
       setPermissionLevel: mock(() => {}),
-    } satisfies IMCPService;
+    } as unknown as IMCPService;
 
     // Create mock shell using test harness
     const harness = new PluginTestHarness();

@@ -4,7 +4,7 @@ import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import type { JobQueueService } from "@brains/job-queue";
+import type { IJobQueueService } from "@brains/job-queue";
 
 import { createSilentLogger, type Logger, createId } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
@@ -62,7 +62,7 @@ describe("EntityService", (): void => {
   let logger: Logger;
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
-  let mockJobQueueService: Partial<JobQueueService>;
+  let mockJobQueueService: Partial<IJobQueueService>;
 
   beforeEach((): void => {
     // Reset singletons
@@ -106,7 +106,7 @@ describe("EntityService", (): void => {
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
-      jobQueueService: mockJobQueueService as unknown as JobQueueService,
+      jobQueueService: mockJobQueueService as unknown as IJobQueueService,
       dbConfig: { url: "file::memory:" }, // Use in-memory database for tests
     });
   });

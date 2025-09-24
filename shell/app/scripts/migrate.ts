@@ -1,8 +1,8 @@
 #!/usr/bin/env bun
 import { getStandardConfigWithDirectories } from "@brains/core";
 import { migrateEntities } from "@brains/entity-service/migrate";
-import { migrateJobQueue } from "@brains/job-queue";
-import { migrateConversations } from "@brains/conversation-service";
+import { migrateJobQueue } from "@brains/job-queue/migrate";
+import { migrateConversations } from "@brains/conversation-service/migrate";
 import { Logger } from "@brains/utils";
 
 async function main(): Promise<void> {

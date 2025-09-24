@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
-import type { ConversationDbConfig } from "../../src/database";
+import type { ConversationDbConfig } from "../../src/types";
 import { createConversationDatabase } from "../../src/database";
 import { migrate } from "drizzle-orm/libsql/migrator";
 

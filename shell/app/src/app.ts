@@ -1,8 +1,9 @@
-import { Shell } from "@brains/core";
+import { Shell, type ShellDependencies } from "@brains/core";
 import { Logger, LogLevel } from "@brains/utils";
 import { appConfigSchema, type AppConfig } from "./types";
 import { SeedDataManager } from "./seed-data-manager";
 import { MigrationManager } from "./migration-manager";
+import { ShellInitializer } from "./shellInitializer";
 
 export class App {
   private shell: Shell | null = null;
@@ -59,42 +60,92 @@ export class App {
 
     // Create shell if not provided in constructor
     if (!this.shell) {
-      const shellConfig: Parameters<typeof Shell.createFresh>[0] = {
+      // Build shell config from app config
+      const shellConfig = {
         plugins: this.config.plugins ?? [],
-        ...this.config.shellConfig, // Allow overriding for tests/advanced use
-      };
-
-      // Apply simple app config (these override shellConfig if both are provided)
-      if (this.config.database) {
-        shellConfig.database = { url: this.config.database };
-      }
-
-      // Set feature flags (none currently)
-      shellConfig.features = {};
-
-      if (this.config.aiApiKey) {
-        shellConfig.ai = {
+        database: { url: this.config.database ?? "file:./data/brain.db" },
+        conversationDatabase: { url: this.config.database ?? "file:./data/conversations.db" },
+        jobQueueDatabase: { url: this.config.database ?? "file:./data/brain-jobs.db" },
+        features: {},
+        ai: this.config.aiApiKey ? {
           apiKey: this.config.aiApiKey,
-          provider: "anthropic",
+          provider: "anthropic" as const,
           model: "claude-3-haiku-20240307",
           temperature: 0.7,
           maxTokens: 1000,
           webSearch: false,
-        };
-      }
-
-      if (this.config.logLevel) {
-        shellConfig.logging = {
-          level: this.config.logLevel,
+        } : {
+          apiKey: "fake-key",
+          provider: "anthropic" as const,
+          model: "claude-3-haiku-20240307",
+          temperature: 0.7,
+          maxTokens: 1000,
+          webSearch: false,
+        },
+        logging: {
+          level: this.config.logLevel ?? "info",
           context: this.config.name,
-        };
-      }
+        },
+        permissions: this.config.permissions ?? {},
+        embedding: {
+          model: "fast-all-MiniLM-L6-v2" as const,
+          cacheDir: "./cache/embeddings"
+        },
+        ...this.config.shellConfig, // Allow overriding for tests/advanced use
+      };
 
-      if (this.config.permissions) {
-        shellConfig.permissions = this.config.permissions;
-      }
+      // Create logger
+      const logger = Logger.createFresh({
+        level: {
+          debug: LogLevel.DEBUG,
+          info: LogLevel.INFO,
+          warn: LogLevel.WARN,
+          error: LogLevel.ERROR,
+        }[shellConfig.logging.level],
+        context: shellConfig.logging.context,
+      });
 
-      this.shell = Shell.createFresh(shellConfig);
+      // Initialize services using ShellInitializer
+      const shellInitializer = ShellInitializer.getInstance(logger, shellConfig);
+      const services = shellInitializer.initializeServices();
+
+      // Create shell with all services as dependencies
+      // Cast to ShellDependencies since Shell expects interface types but we have concrete implementations
+      const shellDependencies: ShellDependencies = {
+        logger: services.logger,
+        serviceRegistry: services.serviceRegistry,
+        entityRegistry: services.entityRegistry,
+        messageBus: services.messageBus,
+        renderService: services.renderService,
+        daemonRegistry: services.daemonRegistry,
+        pluginManager: services.pluginManager,
+        commandRegistry: services.commandRegistry,
+        templateRegistry: services.templateRegistry,
+        dataSourceRegistry: services.dataSourceRegistry,
+        mcpService: services.mcpService,
+        embeddingService: services.embeddingService,
+        entityService: services.entityService,
+        aiService: services.aiService,
+        conversationService: services.conversationService,
+        contentService: services.contentService,
+        jobQueueService: services.jobQueueService,
+        jobQueueWorker: services.jobQueueWorker,
+        batchJobManager: services.batchJobManager,
+        jobProgressMonitor: services.jobProgressMonitor,
+        permissionService: services.permissionService,
+      };
+
+      this.shell = Shell.createFresh(shellDependencies, shellConfig);
+
+      // Register services in the service registry
+      shellInitializer.registerServices(services, this.shell);
+
+      // Complete initialization (templates, plugins, etc.)
+      await shellInitializer.initializeAll(
+        services.templateRegistry,
+        services.entityRegistry,
+        services.pluginManager,
+      );
     }
 
     // Register CLI interface if --cli flag is present

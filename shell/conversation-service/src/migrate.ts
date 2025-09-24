@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { createConversationDatabase } from "./database";
-import type { ConversationDbConfig } from "./database";
+import type { ConversationDbConfig } from "./types";
 import { Logger } from "@brains/utils";
 
 export async function migrateConversations(

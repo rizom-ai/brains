@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { ContentTemplate } from "@brains/content-service";
+import type { ContentTemplate } from "../types";
 
 /**
  * Schema for public query responses
@@ -37,7 +37,7 @@ export const queryResponseTemplate: ContentTemplate<QueryResponse> = {
   name: "shell:query_response",
   description: "Template for structured query responses for public users",
   schema: queryResponseSchema,
-  dataSourceId: "shell:ai-content",
+  dataSourceId: "ai-content",
   requiredPermission: "public",
   basePrompt: `You are a helpful assistant providing information from a knowledge base.
 

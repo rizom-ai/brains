@@ -1,7 +1,8 @@
 import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
-import type { JobQueueDbConfig } from "../../src/db";
+import type { JobQueueDbConfig } from "../../src/types";
+// Import implementations directly for tests - these are test utilities only
 import { createJobQueueDatabase } from "../../src/db";
 import { migrateJobQueue } from "../../src/migrate";
 import { createSilentLogger } from "@brains/utils";

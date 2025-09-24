@@ -2,7 +2,8 @@
   "extends": "@brains/typescript-config/base.json",
   "compilerOptions": {
     "rootDir": ".",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": "."
   },
   "include": ["src/**/*", "test/**/*"]
 }

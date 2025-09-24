@@ -1,10 +1,17 @@
 import { z } from "@brains/utils";
-import type { Entity } from "./schema/entities";
 
 /**
  * Entity type without embedding field (used for job queue data)
  */
-export type EntityWithoutEmbedding = Omit<Entity, "embedding">;
+export interface EntityWithoutEmbedding {
+  id: string;
+  entityType: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  contentWeight: number;
+  created: number;
+  updated: number;
+};
 
 /**
  * Embedding job data that includes the operation type
@@ -198,3 +205,12 @@ export interface EntityRegistry {
 
   getAllEntityTypes(): string[];
 }
+
+/**
+ * Database configuration for entity service
+ */
+export interface EntityDbConfig {
+  url: string; // Now required - no default
+  authToken?: string;
+}
+

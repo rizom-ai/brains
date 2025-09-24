@@ -3,7 +3,7 @@ import type {
   ContentTemplate,
   ResolutionOptions,
 } from "./types";
-import type { EntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { ContentService as IContentService } from "./types";
@@ -16,7 +16,7 @@ import type { DataSourceRegistry } from "@brains/datasource";
  */
 export interface ContentServiceDependencies {
   logger: Logger;
-  entityService: EntityService;
+  entityService: IEntityService;
   aiService: IAIService;
   templateRegistry: TemplateRegistry;
   dataSourceRegistry: DataSourceRegistry;

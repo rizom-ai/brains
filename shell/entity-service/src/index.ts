@@ -1,7 +1,9 @@
+// With moduleResolution: "bundler", we can export implementations safely
 export { EntityService } from "./entityService";
 export { EntityRegistry } from "./entityRegistry";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
+export { BaseEntityAdapter } from "./adapters";
 
 // Export types
 export type {
@@ -14,6 +16,7 @@ export type {
   EntityRegistry as IEntityRegistry,
   EntityService as IEntityService,
   ICoreEntityService,
+  EntityDbConfig,
 } from "./types";
 
 // Export schemas

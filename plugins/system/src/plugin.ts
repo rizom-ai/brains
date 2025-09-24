@@ -6,7 +6,7 @@ import type {
   DefaultQueryResponse,
   SearchResult,
 } from "@brains/plugins";
-import type { BatchJobStatus, Batch, JobQueue } from "@brains/job-queue";
+import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
 import {
   systemConfigSchema,
@@ -127,7 +127,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     jobTypes?: string[],
   ): Promise<{
     batch?: BatchJobStatus | null;
-    activeJobs?: JobQueue[];
+    activeJobs?: JobInfo[];
     activeBatches?: Batch[];
   }> {
     if (!this.context) {

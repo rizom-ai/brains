@@ -1,6 +1,5 @@
 import type {
   IShell,
-  Daemon,
   DefaultQueryResponse,
   QueryContext,
   IMCPTransport,
@@ -8,6 +7,7 @@ import type {
   PluginTool,
   PluginResource,
 } from "@brains/plugins";
+import type { Daemon } from "@brains/daemon-registry";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
@@ -21,17 +21,17 @@ import type {
 } from "@brains/content-service";
 import type { Logger } from "@brains/utils";
 import type {
-  EntityService,
-  EntityRegistry,
+  IEntityService,
+  IEntityRegistry,
   BaseEntity,
 } from "@brains/entity-service";
 import type {
-  JobQueueService,
+  IJobQueueService,
   BatchOperation,
   Batch,
   BatchJobStatus,
 } from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/job-queue";
+import type { JobOptions, JobInfo } from "@brains/job-queue";
 import type {
   CommandRegistry,
   CommandContext,
@@ -181,7 +181,7 @@ export class MockShell implements IShell {
     return this.logger;
   }
 
-  getEntityService(): EntityService {
+  getEntityService(): IEntityService {
     return {
       createEntity: async (entity: BaseEntity) => {
         const id = entity.id || `entity-${Date.now()}`;
@@ -220,10 +220,10 @@ export class MockShell implements IShell {
           : await this.getEntityService().createEntity(entity);
         return { ...result, created: !exists };
       },
-    } as unknown as EntityService;
+    } as unknown as IEntityService;
   }
 
-  getEntityRegistry(): EntityRegistry {
+  getEntityRegistry(): IEntityRegistry {
     return {
       registerEntityType: (
         type: string,
@@ -241,7 +241,7 @@ export class MockShell implements IShell {
       hasEntityType: (type: string) => this.entityTypes.has(type),
       validateEntity: (_type: string, entity: BaseEntity) => entity,
       getAllEntityTypes: () => Array.from(this.entityTypes),
-    } as unknown as EntityRegistry;
+    } as unknown as IEntityRegistry;
   }
 
   getConversationService(): IConversationService {
@@ -254,10 +254,9 @@ export class MockShell implements IShell {
     };
   }
 
-  getJobQueueService(): JobQueueService {
+  getJobQueueService(): IJobQueueService {
     return {
       enqueue: async () => `job-${Date.now()}`,
-      dequeue: async () => null,
       complete: async () => {},
       fail: async () => {},
       getStatus: async () => null,
@@ -277,7 +276,7 @@ export class MockShell implements IShell {
       update: async () => {},
       getActiveJobs: async () => [],
       getStatusByEntityId: async () => null,
-    } as unknown as JobQueueService;
+    } as unknown as IJobQueueService;
   }
 
   getCommandRegistry(): CommandRegistry {
@@ -364,7 +363,7 @@ export class MockShell implements IShell {
       setPermissionLevel: (): void => {
         // No-op for testing
       },
-    };
+    } as unknown as IMCPTransport;
   }
 
   getPermissionService(): PermissionService {
@@ -422,12 +421,12 @@ export class MockShell implements IShell {
     });
   }
 
-  async getActiveJobs(_types?: string[]): Promise<JobQueue[]> {
+  async getActiveJobs(_types?: string[]): Promise<JobInfo[]> {
     // Mock implementation - return empty array
     return [];
   }
 
-  async getJobStatus(_jobId: string): Promise<JobQueue | null> {
+  async getJobStatus(_jobId: string): Promise<JobInfo | null> {
     // Mock implementation - return null
     return null;
   }

@@ -20,7 +20,7 @@ export const appConfigSchema = z.object({
 export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
   plugins?: Plugin[];
   // Advanced: Pass through any Shell config for testing/advanced use cases
-  shellConfig?: Parameters<typeof Shell.createFresh>[0];
+  shellConfig?: Parameters<typeof Shell.createFresh>[1];
   // CLI-specific configuration (used when --cli flag is present)
   cliConfig?: CLIConfig;
   // Permissions - centralized permission configuration

@@ -89,3 +89,11 @@ export const conversationDigestPayloadSchema = z.object({
 export type ConversationDigestPayload = z.infer<
   typeof conversationDigestPayloadSchema
 >;
+
+/**
+ * Database configuration for conversation service
+ */
+export interface ConversationDbConfig {
+  url: string; // Now required - no default
+  authToken?: string;
+}

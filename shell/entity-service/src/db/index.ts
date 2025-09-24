@@ -1,14 +1,10 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-import * as schema from "../schema/entities";
+import { entities } from "../schema/entities";
+import type { EntityDbConfig } from "../types";
 
-export interface EntityDbConfig {
-  url: string; // Now required - no default
-  authToken?: string;
-}
-
-export type EntityDB = LibSQLDatabase<typeof schema>;
+export type EntityDB = LibSQLDatabase<Record<string, unknown>>;
 
 /**
  * Create an entity database connection
@@ -26,7 +22,7 @@ export function createEntityDatabase(config: EntityDbConfig): {
     ? createClient({ url, authToken })
     : createClient({ url });
 
-  const db = drizzle(client, { schema });
+  const db = drizzle(client, { schema: { entities } });
 
   return { db, client, url };
 }

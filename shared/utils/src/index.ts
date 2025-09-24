@@ -54,13 +54,12 @@ export {
 } from "./response-types";
 
 // Zod exports - centralized for the entire monorepo
-export * as zod from "./zod";
+// NOTE: No wildcard exports to avoid loading all Zod types (causes 5M+ type instantiations)
 export { z, ZodError } from "./zod";
+export type { ZodType, ZodSchema } from "./zod";
 
-// Type-only exports
+// Additional Zod type exports
 export type {
-  ZodType,
-  ZodSchema,
   ZodRawShape,
   ZodInfer,
   ZodInput,

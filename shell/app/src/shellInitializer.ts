@@ -1,5 +1,5 @@
 import { Logger, LogLevel } from "@brains/utils";
-import type { ShellConfig } from "../config";
+import type { ShellConfig } from "@brains/core";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import type { ContentService } from "@brains/content-service";
 import { ContentGenerationJobHandler } from "@brains/content-service";
@@ -30,10 +30,10 @@ import {
   JobProgressMonitor,
   type JobQueueDbConfig,
 } from "@brains/job-queue";
-import { BaseEntityAdapter } from "../entities/base-entity-adapter";
-import { knowledgeQueryTemplate } from "../templates";
+import { BaseEntityAdapter } from "@brains/entity-service";
+import { knowledgeQueryTemplate } from "@brains/content-service";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
-import type { ShellDependencies } from "../shell";
+import type { ShellDependencies } from "@brains/core";
 
 /**
  * Services initialized by ShellInitializer
@@ -223,8 +223,7 @@ export class ShellInitializer {
     // Core registries and services
     const serviceRegistry =
       dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(logger);
-    const entityRegistry =
-      dependencies?.entityRegistry ?? EntityRegistry.getInstance(logger);
+    const entityRegistry = EntityRegistry.getInstance(logger);
     const messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(logger);
     // Template registry
@@ -259,26 +258,22 @@ export class ShellInitializer {
       }),
     };
 
-    const jobQueueService =
-      dependencies?.jobQueueService ??
-      JobQueueService.getInstance(jobQueueDbConfig, logger);
+    const jobQueueService = JobQueueService.getInstance(jobQueueDbConfig, logger);
 
     // Entity service with its database
-    const entityService =
-      dependencies?.entityService ??
-      EntityService.getInstance({
-        embeddingService,
-        entityRegistry,
-        logger,
-        jobQueueService,
-        messageBus,
-        dbConfig: {
-          url: this.config.database.url,
-          ...(this.config.database.authToken && {
-            authToken: this.config.database.authToken,
-          }),
-        },
-      });
+    const entityService = EntityService.getInstance({
+      embeddingService,
+      entityRegistry,
+      logger,
+      jobQueueService,
+      messageBus,
+      dbConfig: {
+        url: this.config.database.url,
+        ...(this.config.database.authToken && {
+          authToken: this.config.database.authToken,
+        }),
+      },
+    });
 
     // Conversation service
     const conversationService =
@@ -309,23 +304,19 @@ export class ShellInitializer {
       jobQueueService,
       logger,
     );
-    const jobProgressMonitor =
-      dependencies?.jobProgressMonitor ??
-      JobProgressMonitor.getInstance(
-        jobQueueService,
-        messageBus,
-        batchJobManager,
-        logger,
-      );
+    const jobProgressMonitor = JobProgressMonitor.getInstance(
+      jobQueueService,
+      messageBus,
+      batchJobManager,
+      logger,
+    );
 
     // Job queue worker
-    const jobQueueWorker =
-      dependencies?.jobQueueWorker ??
-      JobQueueWorker.getInstance(jobQueueService, jobProgressMonitor, logger, {
-        pollInterval: 100,
-        concurrency: 1,
-        autoStart: false,
-      });
+    const jobQueueWorker = JobQueueWorker.getInstance(jobQueueService, jobProgressMonitor, logger, {
+      pollInterval: 100,
+      concurrency: 1,
+      autoStart: false,
+    });
 
     return {
       logger,

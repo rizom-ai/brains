@@ -2,9 +2,8 @@ import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
   PluginError,
-  type Daemon,
-  type DaemonHealth,
 } from "@brains/plugins";
+import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import type {
   MessageContext,
   Command,

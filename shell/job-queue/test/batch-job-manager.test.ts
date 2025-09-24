@@ -2,12 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { BatchJobManager } from "../src/batch-job-manager";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
-import type { BatchOperation } from "../src/schemas";
-import type { JobContext } from "../src/schema/job-queue";
+import type { BatchOperation } from "../src/batch-schemas";
+import type { JobContext } from "../src/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger, createId } from "@brains/utils";
-import type { JobQueueDbConfig } from "../src/db";
+import type { JobQueueDbConfig } from "../src/types";
 
 // Default test metadata
 const defaultTestMetadata: JobContext = {

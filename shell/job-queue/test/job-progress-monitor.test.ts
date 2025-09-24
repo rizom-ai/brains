@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
-import type { IJobQueueService } from "../src/types";
 import type { BatchJobManager } from "../src/batch-job-manager";
+import type { IJobQueueService } from "../src/types";
 import type { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger, type Logger } from "@brains/utils";
 
 // Use consistent test metadata to ensure test expectations match
 const testRootJobId = "test-root-job-id";
-import type { JobQueue, JobContext } from "../src/schema/job-queue";
-import type { BatchJobStatus } from "../src/schemas";
+import type { JobContext } from "../src/types";
+import type { JobQueue } from "../src/schema/job-queue";
+import type { BatchJobStatus } from "../src/batch-schemas";
 import type { Mock } from "bun:test";
 
 describe("JobProgressMonitor", () => {
@@ -28,7 +29,6 @@ describe("JobProgressMonitor", () => {
 
     mockJobQueueService = {
       enqueue: mock(() => Promise.resolve("job-id")),
-      dequeue: mock(() => Promise.resolve(null)),
       getStatus: getStatusMock,
       complete: mock(() => Promise.resolve()),
       fail: mock(() => Promise.resolve()),

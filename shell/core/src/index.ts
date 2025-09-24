@@ -17,6 +17,7 @@
 
 // Re-export only the main Shell class as it's the primary entry point
 export { Shell } from "./shell";
+export type { ShellDependencies } from "./shell";
 
 // Re-export configuration functions and types
 export {
@@ -32,8 +33,6 @@ export type { ShellConfig } from "./config";
 export type { IEmbeddingService } from "@brains/embedding-service";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
 
-// Re-export test utilities
-export { MockShell } from "../test/mock-shell";
+// MockShell moved to plugins package
 
-// Re-export DataSources
-export * from "./datasources";
+// DataSources moved to their respective service packages

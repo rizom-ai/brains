@@ -1,12 +1,11 @@
 import { InterfacePlugin } from "@brains/plugins";
 import type {
   InterfacePluginContext,
-  Daemon,
   BaseJobTrackingInfo,
-  DaemonHealth,
   JobProgressEvent,
   JobContext,
 } from "@brains/plugins";
+import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import { z } from "@brains/utils";
 
 // Define tracking info for webserver interface jobs

@@ -1,11 +1,10 @@
 import {
   InterfacePlugin,
   type InterfacePluginContext,
-  type Daemon,
-  type DaemonHealth,
   type JobProgressEvent,
   type JobContext,
 } from "@brains/plugins";
+import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";

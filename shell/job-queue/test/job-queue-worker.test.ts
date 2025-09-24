@@ -19,6 +19,14 @@ const mockProgressReporter: ProgressReporter = {
 } as unknown as ProgressReporter;
 
 class MockProgressMonitor implements IJobProgressMonitor {
+  start(): void {
+    // Mock implementation
+  }
+
+  stop(): void {
+    // Mock implementation
+  }
+
   createProgressReporter(): ProgressReporter {
     return mockProgressReporter;
   }

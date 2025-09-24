@@ -123,6 +123,16 @@ export class ProgressReporter {
  */
 export interface IJobProgressMonitor {
   /**
+   * Start the progress monitor
+   */
+  start(): void;
+
+  /**
+   * Stop the progress monitor
+   */
+  stop(): void;
+
+  /**
    * Create a ProgressReporter for a specific job
    */
   createProgressReporter(jobId: string): ProgressReporter;

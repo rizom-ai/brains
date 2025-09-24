@@ -4,14 +4,14 @@ import {
   enableWALModeForEntities,
   ensureEntityIndexes,
   type EntityDB,
-  type EntityDbConfig,
 } from "./db";
+import type { EntityDbConfig } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { Logger, extractIndexedFields, createId } from "@brains/utils";
 import type { BaseEntity, SearchResult, EmbeddingJobData } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
-import type { JobQueueService } from "@brains/job-queue";
+import type { IJobQueueService } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
@@ -25,7 +25,7 @@ export interface EntityServiceOptions {
   embeddingService: IEmbeddingService;
   entityRegistry?: EntityRegistry;
   logger?: Logger;
-  jobQueueService?: JobQueueService;
+  jobQueueService?: IJobQueueService;
   messageBus?: MessageBus;
   dbConfig: EntityDbConfig;
 }
@@ -44,7 +44,7 @@ export class EntityService implements IEntityService {
   private entityRegistry: EntityRegistry;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
-  private jobQueueService: JobQueueService;
+  private jobQueueService: IJobQueueService;
   private messageBus?: MessageBus;
 
   // Extracted responsibility classes

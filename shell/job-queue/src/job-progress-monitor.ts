@@ -7,10 +7,10 @@ import type {
 import type { MessageBus } from "@brains/messaging-service";
 import type { IJobQueueService } from "./types";
 import type { BatchJobManager } from "./batch-job-manager";
-import type { BatchJobStatus } from "./schemas";
+import type { BatchJobStatus } from "./batch-schemas";
 import type { z } from "@brains/utils";
 import type { JobProgressEventSchema } from "./schemas";
-import { type JobContext } from "./schema/job-queue";
+import type { JobContext } from "./types";
 
 /**
  * Progress event emitted by the monitor

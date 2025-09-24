@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { getStandardConfigWithDirectories } from "@brains/core";
-import { migrateJobQueue } from "@brains/job-queue";
+import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { Logger } from "@brains/utils";
 
 async function main(): Promise<void> {

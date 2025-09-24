@@ -27,7 +27,7 @@ export class PluginManager implements IPluginManager {
 
   private plugins: Map<string, PluginInfo> = new Map();
   private logger: Logger;
-  private events: EventEmitter;
+  private events = new EventEmitter();
   private daemonRegistry: DaemonRegistry;
   private serviceRegistry: ServiceRegistry;
   private pluginLifecycle: PluginLifecycle;

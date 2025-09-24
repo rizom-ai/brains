@@ -1,11 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
-import * as schema from "../schema/job-queue";
-
-export interface JobQueueDbConfig {
-  url: string; // Now required - no default
-  authToken?: string;
-}
+import { jobQueue } from "../schema/job-queue";
+import type { JobQueueDbConfig } from "../types";
 
 export type JobQueueDB = ReturnType<typeof drizzle>;
 
@@ -27,7 +23,7 @@ export function createJobQueueDatabase(config: JobQueueDbConfig): {
     ? createClient({ url, authToken })
     : createClient({ url });
 
-  const db = drizzle(client, { schema });
+  const db = drizzle(client, { schema: { jobQueue } });
 
   return { db, client, url };
 }

@@ -1,6 +1,7 @@
 import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
-import type { Daemon, IShell, IMCPTransport } from "../interfaces";
+import type { IShell, IMCPTransport } from "../interfaces";
+import type { Daemon } from "@brains/daemon-registry";
 import type { UserPermissionLevel } from "@brains/permission-service";
 import type {
   CommandInfo,

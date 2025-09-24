@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { createJobQueueDatabase, enableWALMode } from "./db";
-import type { JobQueueDbConfig } from "./db";
+import type { JobQueueDbConfig } from "./types";
 import { Logger } from "@brains/utils";
 
 export async function migrateJobQueue(

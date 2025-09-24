@@ -1,10 +1,10 @@
 import { BasePlugin } from "../base-plugin";
 import type {
-  Daemon,
   PluginCapabilities,
   IShell,
   BaseJobTrackingInfo,
 } from "../interfaces";
+import type { Daemon } from "@brains/daemon-registry";
 import type { InterfacePluginContext } from "./context";
 import { createInterfacePluginContext } from "./context";
 import type {

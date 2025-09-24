@@ -4,8 +4,7 @@ import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { Template } from "@brains/templates";
 import type { ICoreEntityService } from "@brains/entity-service";
-import type { Batch, BatchJobStatus } from "@brains/job-queue";
-import type { JobQueue } from "@brains/job-queue";
+import type { Batch, BatchJobStatus, JobInfo } from "@brains/job-queue";
 import type {
   Conversation,
   Message,
@@ -47,10 +46,10 @@ export interface CorePluginContext {
   ) => Promise<DefaultQueryResponse>;
 
   // Job monitoring (read-only)
-  getActiveJobs: (types?: string[]) => Promise<JobQueue[]>;
+  getActiveJobs: (types?: string[]) => Promise<JobInfo[]>;
   getActiveBatches: () => Promise<Batch[]>;
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
-  getJobStatus: (jobId: string) => Promise<JobQueue | null>;
+  getJobStatus: (jobId: string) => Promise<JobInfo | null>;
 
   // Conversation service (read-only)
   getConversation: (conversationId: string) => Promise<Conversation | null>;
@@ -130,7 +129,7 @@ export function createCorePluginContext(
     },
 
     // Job monitoring
-    getActiveJobs: (types?: string[]): Promise<JobQueue[]> => {
+    getActiveJobs: (types?: string[]): Promise<JobInfo[]> => {
       return shell.getActiveJobs(types);
     },
     getActiveBatches: (): Promise<Batch[]> => {
@@ -139,7 +138,7 @@ export function createCorePluginContext(
     getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> => {
       return shell.getBatchStatus(batchId);
     },
-    getJobStatus: (jobId: string): Promise<JobQueue | null> => {
+    getJobStatus: (jobId: string): Promise<JobInfo | null> => {
       return shell.getJobStatus(jobId);
     },
 

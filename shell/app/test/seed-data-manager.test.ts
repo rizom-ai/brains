@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SeedDataManager, type FileSystem } from "../src/seed-data-manager";
 import type { Logger } from "@brains/utils";
-import * as fs from "fs/promises";
+import type * as fs from "fs/promises";
 import * as path from "path";
 
 describe("SeedDataManager", () => {

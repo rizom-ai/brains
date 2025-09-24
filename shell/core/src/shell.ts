@@ -1,6 +1,5 @@
 import type {
   ContentGenerationConfig,
-  Daemon,
   DefaultQueryResponse,
   QueryContext,
   Command,
@@ -9,61 +8,63 @@ import type {
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import type { ServiceRegistry } from "@brains/service-registry";
-import type { EntityRegistry, EntityService } from "@brains/entity-service";
-import {
-  JobProgressMonitor,
-  type BatchJobStatus,
-  type Batch,
-  type BatchOperation,
+import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
+import type {
+  BatchJobStatus,
+  Batch,
+  BatchOperation,
 } from "@brains/job-queue";
 import type {
   JobOptions,
-  JobQueue,
-  JobQueueService,
-  JobQueueWorker,
-  BatchJobManager,
+  JobInfo,
+  IJobQueueService,
+  IJobQueueWorker,
+  IBatchJobManager,
 } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 import type { PluginManager } from "@brains/plugins";
 import type { CommandRegistry } from "@brains/command-registry";
-import { TemplateRegistry, type Template } from "@brains/templates";
+import type { TemplateRegistry, Template } from "@brains/templates";
 import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
-import type { DaemonRegistry } from "@brains/daemon-registry";
+import type { DaemonRegistry, Daemon } from "@brains/daemon-registry";
 import { type IEmbeddingService } from "@brains/embedding-service";
 import { type IConversationService } from "@brains/conversation-service";
 import type { ContentService } from "@brains/content-service";
 import { type IAIService } from "@brains/ai-service";
-import { PermissionService } from "@brains/permission-service";
-import { Logger } from "@brains/utils";
+import type { PermissionService } from "@brains/permission-service";
+import type { Logger} from "@brains/utils";
+import { type IJobProgressMonitor } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
 import type { ShellConfig } from "./config";
 import { createShellConfig } from "./config";
 import type { RenderService } from "@brains/render-service";
-import { ShellInitializer } from "./initialization/shellInitializer";
 import type { DataSourceRegistry } from "@brains/datasource";
-import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
 
 /**
- * Optional dependencies that can be injected for testing
+ * Required dependencies for Shell initialization
  */
 export interface ShellDependencies {
-  logger?: Logger;
-  embeddingService?: IEmbeddingService;
-  aiService?: IAIService;
-  entityService?: EntityService;
-  conversationService?: IConversationService;
-  serviceRegistry?: ServiceRegistry;
-  entityRegistry?: EntityRegistry;
-  messageBus?: MessageBus;
-  renderService?: RenderService;
-  daemonRegistry?: DaemonRegistry;
-  pluginManager?: PluginManager;
-  commandRegistry?: CommandRegistry;
-  mcpService?: IMCPService;
-  contentService?: ContentService;
-  jobQueueService?: JobQueueService;
-  jobQueueWorker?: JobQueueWorker;
-  jobProgressMonitor?: JobProgressMonitor;
+  logger: Logger;
+  embeddingService: IEmbeddingService;
+  aiService: IAIService;
+  entityService: IEntityService;
+  conversationService: IConversationService;
+  serviceRegistry: ServiceRegistry;
+  entityRegistry: IEntityRegistry;
+  messageBus: MessageBus;
+  renderService: RenderService;
+  daemonRegistry: DaemonRegistry;
+  pluginManager: PluginManager;
+  commandRegistry: CommandRegistry;
+  mcpService: IMCPService;
+  contentService: ContentService;
+  jobQueueService: IJobQueueService;
+  jobQueueWorker: IJobQueueWorker;
+  jobProgressMonitor: IJobProgressMonitor;
+  batchJobManager: IBatchJobManager;
+  permissionService: PermissionService;
+  templateRegistry: TemplateRegistry;
+  dataSourceRegistry: DataSourceRegistry;
 }
 
 /**
@@ -76,24 +77,23 @@ export interface ShellDependencies {
 export class Shell implements IShell {
   private static instance: Shell | null = null;
 
-  private readonly config: ShellConfig;
   private readonly logger: Logger;
   private readonly serviceRegistry: ServiceRegistry;
-  private readonly entityRegistry: EntityRegistry;
+  private readonly entityRegistry: IEntityRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
   private readonly commandRegistry: CommandRegistry;
   private readonly mcpService: IMCPService;
   private readonly renderService: RenderService;
   private readonly daemonRegistry: DaemonRegistry;
-  private readonly entityService: EntityService;
+  private readonly entityService: IEntityService;
   private readonly aiService: IAIService;
   private readonly conversationService: IConversationService;
   private readonly contentService: ContentService;
-  private readonly jobQueueService: JobQueueService;
-  private readonly jobQueueWorker: JobQueueWorker;
-  private readonly batchJobManager: BatchJobManager;
-  private readonly jobProgressMonitor: JobProgressMonitor;
+  private readonly jobQueueService: IJobQueueService;
+  private readonly jobQueueWorker: IJobQueueWorker;
+  private readonly batchJobManager: IBatchJobManager;
+  private readonly jobProgressMonitor: IJobProgressMonitor;
   private readonly permissionService: PermissionService;
   private readonly templateRegistry: TemplateRegistry;
   private readonly dataSourceRegistry: DataSourceRegistry;
@@ -101,9 +101,12 @@ export class Shell implements IShell {
 
   /**
    * Get the singleton instance of Shell
+   * Note: This method is deprecated. Use createFresh with dependencies instead.
    */
-  public static getInstance(config?: Partial<ShellConfig>): Shell {
-    Shell.instance ??= new Shell(createShellConfig(config));
+  public static getInstance(_config?: Partial<ShellConfig>): Shell {
+    if (!Shell.instance) {
+      throw new Error("Shell instance not initialized. Use createFresh with dependencies.");
+    }
     return Shell.instance;
   }
 
@@ -115,10 +118,7 @@ export class Shell implements IShell {
       await Shell.instance.shutdown();
       Shell.instance = null;
     }
-    // Also reset dependent singletons
-    ShellInitializer.resetInstance();
-    JobProgressMonitor.resetInstance();
-    TemplateRegistry.resetInstance();
+    // Also reset dependent singletons - handled by app package now
   }
 
   /**
@@ -127,8 +127,8 @@ export class Shell implements IShell {
    * @param dependencies - Optional dependencies for testing
    */
   public static createFresh(
+    dependencies: ShellDependencies,
     config?: Partial<ShellConfig>,
-    dependencies?: ShellDependencies,
   ): Shell {
     const fullConfig = createShellConfig(config);
     return new Shell(fullConfig, dependencies);
@@ -137,45 +137,38 @@ export class Shell implements IShell {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(config: ShellConfig, dependencies?: ShellDependencies) {
-    this.config = config;
+  private constructor(_config: ShellConfig, dependencies: ShellDependencies) {
+    // Store service references from dependencies
+    this.logger = dependencies.logger;
+    this.serviceRegistry = dependencies.serviceRegistry;
+    this.entityRegistry = dependencies.entityRegistry;
+    this.messageBus = dependencies.messageBus;
+    this.renderService = dependencies.renderService;
+    this.daemonRegistry = dependencies.daemonRegistry;
+    this.pluginManager = dependencies.pluginManager;
+    this.commandRegistry = dependencies.commandRegistry;
+    this.templateRegistry = dependencies.templateRegistry;
+    this.dataSourceRegistry = dependencies.dataSourceRegistry;
+    this.mcpService = dependencies.mcpService;
+    this.entityService = dependencies.entityService;
+    this.aiService = dependencies.aiService;
+    this.conversationService = dependencies.conversationService;
+    this.contentService = dependencies.contentService;
+    this.jobQueueService = dependencies.jobQueueService;
+    this.jobQueueWorker = dependencies.jobQueueWorker;
+    this.batchJobManager = dependencies.batchJobManager;
+    this.jobProgressMonitor = dependencies.jobProgressMonitor;
+    this.permissionService = dependencies.permissionService;
 
-    // Use ShellInitializer to create all services
-    const shellInitializer = ShellInitializer.getInstance(
-      Logger.getInstance(),
-      config,
-    );
-
-    const services = shellInitializer.initializeServices(dependencies);
-
-    // Store service references
-    this.logger = services.logger;
-    this.serviceRegistry = services.serviceRegistry;
-    this.entityRegistry = services.entityRegistry;
-    this.messageBus = services.messageBus;
-    this.renderService = services.renderService;
-    this.daemonRegistry = services.daemonRegistry;
-    this.pluginManager = services.pluginManager;
-    this.commandRegistry = services.commandRegistry;
-    this.templateRegistry = services.templateRegistry;
-    this.dataSourceRegistry = services.dataSourceRegistry;
-    this.mcpService = services.mcpService;
-    this.entityService = services.entityService;
-    this.aiService = services.aiService;
-    this.conversationService = services.conversationService;
-    this.contentService = services.contentService;
-    this.jobQueueService = services.jobQueueService;
-    this.jobQueueWorker = services.jobQueueWorker;
-    this.batchJobManager = services.batchJobManager;
-    this.jobProgressMonitor = services.jobProgressMonitor;
-    this.permissionService = services.permissionService;
-
-    // Register only the services that plugins actually need
-    shellInitializer.registerServices(services, this);
+    // Register services that plugins need to resolve
+    this.serviceRegistry.register("shell", () => this);
+    this.serviceRegistry.register("commandRegistry", () => this.commandRegistry);
+    this.serviceRegistry.register("mcpService", () => this.mcpService);
   }
 
   /**
-   * Initialize the Shell and all its components
+   * Initialize the Shell instance
+   * Note: Heavy initialization (plugins, templates, job handlers) is now handled by ShellInitializer in the app package
    */
   public async initialize(): Promise<void> {
     if (this.initialized) {
@@ -184,36 +177,17 @@ export class Shell implements IShell {
     }
 
     try {
-      const shellInitializer = ShellInitializer.getInstance(
-        this.logger,
-        this.config,
-      );
-
-      await shellInitializer.initializeAll(
-        this.templateRegistry,
-        this.entityRegistry,
-        this.pluginManager,
-      );
-
-      // Register job handlers for content operations
-      shellInitializer.registerJobHandlers(
-        this.jobQueueService,
-        this.contentService,
-        this.entityService,
-      );
-
       // Start the job queue worker
       await this.jobQueueWorker.start();
 
       // Start the job progress monitor
       this.jobProgressMonitor.start();
 
-      // Register core DataSources
+      // Core DataSources registration is now handled externally
       this.registerCoreDataSources();
 
-      // Shell commands now provided by system plugin
-
       this.initialized = true;
+      this.logger.debug("Shell initialized successfully");
     } catch (error) {
       this.logger.error("Failed to initialize Shell", error);
       throw error;
@@ -283,7 +257,7 @@ export class Shell implements IShell {
     // Check if interface-granted permission meets template requirements
     const grantedPermission = config.interfacePermissionGrant ?? "public";
     if (
-      !PermissionService.hasPermission(
+      !this.permissionService.hasPermission(
         grantedPermission,
         template.requiredPermission,
       )
@@ -356,7 +330,7 @@ export class Shell implements IShell {
 
   // Keep only getters that are actually used by plugins and tests
 
-  public getEntityService(): EntityService {
+  public getEntityService(): IEntityService {
     return this.entityService;
   }
 
@@ -364,7 +338,7 @@ export class Shell implements IShell {
     return this.conversationService;
   }
 
-  public getEntityRegistry(): EntityRegistry {
+  public getEntityRegistry(): IEntityRegistry {
     return this.entityRegistry;
   }
 
@@ -392,7 +366,7 @@ export class Shell implements IShell {
     return this.logger;
   }
 
-  public getJobQueueService(): JobQueueService {
+  public getJobQueueService(): IJobQueueService {
     return this.jobQueueService;
   }
 
@@ -500,14 +474,14 @@ export class Shell implements IShell {
   /**
    * Get active jobs
    */
-  public async getActiveJobs(types?: string[]): Promise<JobQueue[]> {
+  public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
     return this.jobQueueService.getActiveJobs(types);
   }
 
   /**
    * Get job status by ID
    */
-  public async getJobStatus(jobId: string): Promise<JobQueue | null> {
+  public async getJobStatus(jobId: string): Promise<JobInfo | null> {
     return this.jobQueueService.getStatus(jobId);
   }
 
@@ -523,7 +497,7 @@ export class Shell implements IShell {
    * This provides access to shell services with public permissions
    */
   public getPublicContext(): {
-    entityService: EntityService;
+    entityService: IEntityService;
     generateContent: <T = unknown>(
       config: ContentGenerationConfig,
     ) => Promise<T>;
@@ -580,22 +554,10 @@ export class Shell implements IShell {
 
   /**
    * Register core DataSources that are built into the shell
+   * Note: DataSources are now registered by the app package during initialization
    */
   private registerCoreDataSources(): void {
-    this.logger.debug("Registering core DataSources");
-
-    // Register the SystemStats DataSource
-    const systemStatsDataSource = new SystemStatsDataSource(this.entityService);
-    this.dataSourceRegistry.register(systemStatsDataSource);
-
-    // Register the AI Content DataSource
-    const aiContentDataSource = new AIContentDataSource(
-      this.aiService,
-      this.entityService,
-      this.templateRegistry,
-    );
-    this.dataSourceRegistry.register(aiContentDataSource);
-
-    this.logger.debug("Core DataSources registered");
+    // DataSources now registered by app package
+    this.logger.debug("Core DataSources registration handled by app package");
   }
 }

@@ -1,5 +1,4 @@
-import { z, type ZodRawShape } from "@brains/utils";
-import type { ProgressNotification } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/permission-service";
 import {
   defaultQueryResponseSchema,
@@ -13,17 +12,33 @@ import {
 } from "@brains/utils";
 import type { Command } from "@brains/command-registry";
 import type { IMessageBus } from "@brains/messaging-service";
+import type { Daemon } from "@brains/daemon-registry";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
-import type { IEntityService, EntityRegistry } from "@brains/entity-service";
+import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
 import type {
-  JobQueueService,
+  PluginTool,
+  PluginResource,
+} from "@brains/mcp-service";
+export type {
+  ToolVisibility,
+  ToolContext,
+  ToolResponse,
+  PluginTool,
+  PluginResource
+} from "@brains/mcp-service";
+export {
+  toolResponseSchema,
+  ToolContextRoutingSchema
+} from "@brains/mcp-service";
+import type {
+  IJobQueueService,
   Batch,
   BatchJobStatus,
   BatchOperation,
 } from "@brains/job-queue";
-import type { JobOptions, JobQueue } from "@brains/job-queue";
+import type { JobOptions, JobInfo } from "@brains/job-queue";
 import type { CommandRegistry } from "@brains/command-registry";
 import type { RenderService } from "@brains/render-service";
 import type { IConversationService } from "@brains/conversation-service";
@@ -53,8 +68,8 @@ export interface IShell {
   getContentService(): IContentService;
   getLogger(): Logger;
   getEntityService(): IEntityService;
-  getEntityRegistry(): EntityRegistry;
-  getJobQueueService(): JobQueueService;
+  getEntityRegistry(): IEntityRegistry;
+  getJobQueueService(): IJobQueueService;
   getCommandRegistry(): CommandRegistry;
   getRenderService(): RenderService;
   getConversationService(): IConversationService;
@@ -88,8 +103,8 @@ export interface IShell {
   ): Promise<string>;
   getActiveBatches(): Promise<Batch[]>;
   getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
-  getActiveJobs(types?: string[]): Promise<JobQueue[]>;
-  getJobStatus(jobId: string): Promise<JobQueue | null>;
+  getActiveJobs(types?: string[]): Promise<JobInfo[]>;
+  getJobStatus(jobId: string): Promise<JobInfo | null>;
 
   // Daemon registration
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;
@@ -183,110 +198,8 @@ export const pluginMetadataSchema = z.object({
   packageName: z.string(), // Package name for import resolution (e.g., "@brains/site-builder-plugin")
 });
 
-/**
- * Daemon health status schema
- */
-export const DaemonHealthSchema = z.object({
-  status: z.enum(["healthy", "warning", "error", "unknown"]),
-  message: z.string().optional(),
-  lastCheck: z.date().optional(),
-  details: z.record(z.string(), z.unknown()).optional(),
-});
 
-export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
 
-/**
- * Daemon interface for long-running interface processes
- */
-export interface Daemon {
-  /**
-   * Start the daemon - called when plugin is initialized
-   */
-  start: () => Promise<void>;
-
-  /**
-   * Stop the daemon - called when plugin is unloaded/shutdown
-   */
-  stop: () => Promise<void>;
-
-  /**
-   * Optional health check - called periodically to monitor daemon health
-   */
-  healthCheck?: () => Promise<DaemonHealth>;
-}
-
-/**
- * Tool visibility levels for permission control
- * Uses the same levels as UserPermissionLevel for consistency
- */
-export type ToolVisibility = UserPermissionLevel;
-
-/**
- * Tool execution context
- * Provides progress reporting and routing metadata
- */
-export interface ToolContext {
-  // Progress reporting
-  progressToken?: string | number;
-  sendProgress?: (notification: ProgressNotification) => Promise<void>;
-
-  // Routing metadata for job creation (required for proper context propagation)
-  interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
-  userId: string; // User who invoked the tool
-  channelId?: string; // Channel/room context (for Matrix, etc.)
-}
-
-/**
- * Schema for ToolContext routing metadata
- * Used to validate routing information in tool execution requests
- */
-export const ToolContextRoutingSchema = z.object({
-  interfaceType: z.string(),
-  userId: z.string(),
-  channelId: z.string().optional(),
-});
-
-/**
- * Base tool response schema
- */
-export const toolResponseSchema = z
-  .object({
-    status: z.string().optional(),
-    message: z.string().optional(),
-    success: z.boolean().optional(),
-    data: z.record(z.string(), z.unknown()).optional(), // Generic data object
-  })
-  .passthrough(); // Allow additional fields
-
-export type ToolResponse = z.infer<typeof toolResponseSchema>;
-
-/**
- * Plugin tool definition
- */
-export interface PluginTool {
-  name: string;
-  description: string;
-  inputSchema: ZodRawShape; // Same type as MCP expects
-  handler: (input: unknown, context: ToolContext) => Promise<ToolResponse>;
-  visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
-}
-
-/**
- * Plugin resource definition
- */
-export interface PluginResource {
-  uri: string;
-  name: string;
-  description?: string;
-  mimeType?: string;
-  handler: () => Promise<{
-    contents: Array<{
-      text: string;
-      uri: string;
-      mimeType?: string;
-    }>;
-  }>;
-}
 
 /**
  * Plugin capabilities that can be exposed

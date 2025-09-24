@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
-// Import JobContextSchema from local schema
-import { JobContextSchema } from "./schema/job-queue";
+// Import JobContextSchema from types file (no Drizzle dependencies)
+import { JobContextSchema } from "./schema/types";
 
 /**
  * Job status enum - reusable across all job-related types
@@ -60,61 +60,8 @@ export const JobResultSchema = z.object({
   error: z.string().optional(),
 });
 
-/**
- * Schema for batch operation data
- */
-export const BatchOperationSchema = z.object({
-  type: z.string(),
-  data: z.record(z.string(), z.unknown()).default({}),
-});
-
-/**
- * Schema for batch job data
- */
-export const BatchJobDataSchema = z.object({
-  operations: z.array(BatchOperationSchema),
-  userId: z.string().optional(),
-  startedAt: z.string(),
-  // Progress tracking fields
-  completedOperations: z.number().default(0),
-  failedOperations: z.number().default(0),
-  currentOperation: z.string().optional(),
-  errors: z.array(z.string()).default([]),
-});
-
-/**
- * Schema for batch job status response
- */
-export const BatchJobStatusSchema = z.object({
-  batchId: z.string(),
-  totalOperations: z.number(),
-  completedOperations: z.number(),
-  failedOperations: z.number(),
-  currentOperation: z.string().optional(),
-  errors: z.array(z.string()),
-  status: JobStatusEnum,
-});
-
-/**
- * Schema for batch result with full metadata
- */
-export const BatchSchema = z.object({
-  batchId: z.string(),
-  status: BatchJobStatusSchema,
-  metadata: z.object({
-    operations: z.array(BatchOperationSchema),
-    source: z.string(),
-    startedAt: z.string(),
-    metadata: JobContextSchema,
-  }),
-});
-
 export type JobStatus = z.infer<typeof JobStatusSchema>;
 export type JobResult = z.infer<typeof JobResultSchema>;
-export type BatchOperation = z.infer<typeof BatchOperationSchema>;
-export type BatchJobData = z.infer<typeof BatchJobDataSchema>;
-export type BatchJobStatus = z.infer<typeof BatchJobStatusSchema>;
-export type Batch = z.infer<typeof BatchSchema>;
 
 /**
  * Schema for job progress events
