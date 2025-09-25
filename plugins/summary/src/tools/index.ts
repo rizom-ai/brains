@@ -3,6 +3,7 @@ import {
   type Logger,
   type PluginTool,
   type ToolResponse,
+  parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { SummaryService } from "../lib/summary-service";
@@ -64,11 +65,21 @@ export function createGetTool(
           };
         }
 
-        const body = adapter.parseSummaryContent(summary.content);
+        // Parse entries from content
+        let entries;
+        try {
+          const parsedContent = parseMarkdownWithFrontmatter(
+            summary.content,
+            z.record(z.string(), z.unknown()),
+          );
+          entries = adapter.parseEntriesFromContent(parsedContent.content);
+        } catch {
+          entries = adapter.parseEntriesFromContent(summary.content);
+        }
 
         logger.info("Retrieved summary", {
           conversationId: parsed.data.conversationId,
-          entryCount: body.entries.length,
+          entryCount: entries.length,
         });
 
         return {
@@ -77,8 +88,8 @@ export function createGetTool(
             conversationId: parsed.data.conversationId,
             created: summary.created,
             updated: summary.updated,
-            entryCount: body.entries.length,
-            entries: body.entries,
+            entryCount: entries.length,
+            entries,
             metadata: summary.metadata,
           },
         };
@@ -123,14 +134,25 @@ export function createListTool(
         const limitedSummaries = summaries.slice(0, limit);
 
         const summaryList = limitedSummaries.map((summary) => {
-          const body = adapter.parseSummaryContent(summary.content);
+          // Parse entries from content
+          let entries;
+          try {
+            const parsedContent = parseMarkdownWithFrontmatter(
+              summary.content,
+              z.record(z.string(), z.unknown()),
+            );
+            entries = adapter.parseEntriesFromContent(parsedContent.content);
+          } catch {
+            entries = adapter.parseEntriesFromContent(summary.content);
+          }
+
           const conversationId = summary.id.replace("summary-", "");
           return {
             conversationId,
             created: summary.created,
             updated: summary.updated,
-            entryCount: body.entries.length,
-            lastEntry: body.entries[0]?.title ?? "No entries",
+            entryCount: entries.length,
+            lastEntry: entries[0]?.title ?? "No entries",
           };
         });
 

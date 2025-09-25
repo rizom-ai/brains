@@ -1,6 +1,11 @@
 import type { EntityAdapter } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { StructuredContentFormatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+  generateFrontmatter,
+  StructuredContentFormatter,
+} from "@brains/plugins";
+import { z } from "@brains/utils";
 import {
   topicEntitySchema,
   topicBodySchema,
@@ -8,7 +13,15 @@ import {
   type TopicBody,
   type TopicSource,
 } from "../schemas/topic";
-import type { z } from "@brains/utils";
+
+// Schema for parsing frontmatter metadata
+const topicFrontmatterSchema = z.object({
+  keywords: z.array(z.string()).optional(),
+  sourceCount: z.number().optional(),
+});
+
+// Type for topic metadata
+type TopicMetadata = z.infer<typeof topicFrontmatterSchema>;
 
 /**
  * Entity adapter for Topic entities
@@ -55,30 +68,75 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
   }
 
   /**
-   * Convert topic entity to markdown
-   * Topics don't need frontmatter as the ID is the title
+   * Convert topic entity to markdown with frontmatter if metadata exists
    */
   public toMarkdown(entity: TopicEntity): string {
-    // Just return the content as-is
-    return entity.content;
+    // Extract the body content without any existing frontmatter
+    let contentBody = entity.content;
+    try {
+      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
+      contentBody = parsed.content;
+    } catch {
+      // Content doesn't have frontmatter, use as-is
+    }
+
+    // Always include metadata as frontmatter if it exists
+    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+      return generateMarkdownWithFrontmatter(contentBody, entity.metadata);
+    }
+
+    return contentBody;
   }
 
   /**
-   * Extract topic-specific fields from markdown
+   * Extract topic-specific fields from markdown, including frontmatter
    */
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
-    // Topics store everything in the content, no frontmatter needed
+    // Try to extract metadata from frontmatter
+    let metadata: TopicMetadata = {};
+    let contentBody = markdown;
+
+    try {
+      const parsed = parseMarkdownWithFrontmatter(
+        markdown,
+        topicFrontmatterSchema,
+      );
+      metadata = parsed.metadata;
+      contentBody = parsed.content;
+    } catch {
+      // No frontmatter, use entire content as body
+    }
+
+    // Parse the topic body to get keywords and sources
+    const topicMetadata: TopicMetadata = {};
+    try {
+      const parsed = this.parseTopicBody(contentBody);
+      if (parsed.keywords.length > 0) {
+        topicMetadata.keywords = parsed.keywords;
+      }
+      if (parsed.sources.length > 0) {
+        topicMetadata.sourceCount = parsed.sources.length;
+      }
+    } catch {
+      // Parsing failed, no additional metadata
+    }
+
     return {
-      content: markdown,
+      content: markdown, // Keep full markdown including frontmatter
       entityType: "topic",
+      metadata: { ...topicMetadata, ...metadata }, // Merge parsed and frontmatter metadata
     };
   }
 
   /**
    * Extract metadata for search/filtering
    */
-  public extractMetadata(_entity: TopicEntity): Record<string, unknown> {
-    // Metadata is now empty - all data stored in content body
+  public extractMetadata(entity: TopicEntity): Record<string, unknown> {
+    // Return entity metadata if it exists
+    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+      return entity.metadata;
+    }
+
     return {};
   }
 
@@ -95,10 +153,15 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
 
   /**
    * Generate frontmatter for the entity
-   * Topics don't use frontmatter
    */
   public generateFrontMatter(entity: TopicEntity): string {
-    return entity.content;
+    const metadata = this.extractMetadata(entity);
+
+    if (Object.keys(metadata).length > 0) {
+      return generateFrontmatter(metadata);
+    }
+
+    return "";
   }
 
   /**

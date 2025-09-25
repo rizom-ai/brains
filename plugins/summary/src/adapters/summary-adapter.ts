@@ -1,12 +1,21 @@
 import type { EntityAdapter } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+  generateFrontmatter,
+} from "@brains/plugins";
+import { z } from "@brains/utils";
 import { summarySchema } from "../schemas/summary";
-import type {
-  SummaryEntity,
-  SummaryBody,
-  SummaryLogEntry,
-} from "../schemas/summary";
-import type { z } from "@brains/utils";
+import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
+
+// Schema for parsing frontmatter metadata
+const summaryFrontmatterSchema = z.object({
+  conversationId: z.string(),
+  channelName: z.string(),
+  entryCount: z.number(),
+  totalMessages: z.number(),
+  lastUpdated: z.string(),
+});
 
 /**
  * Adapter for summary entities with simplified log-based structure
@@ -29,29 +38,40 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
   }
 
   /**
-   * Create markdown content from summary body
-   * Entries are in reverse chronological order (newest first)
+   * Create markdown content body (without frontmatter)
+   * Only includes the summary log entries, metadata goes in frontmatter
    */
-  public createSummaryContent(body: SummaryBody): string {
+  public createContentBody(entries: SummaryLogEntry[]): string {
     const lines: string[] = [];
 
-    // Main title
-    lines.push(`# Conversation Summary: ${body.conversationId}`);
-    lines.push("");
-    lines.push("## Metadata");
-    lines.push("");
-    lines.push(`**Total Messages:** ${body.totalMessages}`);
-    lines.push(`**Last Updated:** ${body.lastUpdated}`);
-    lines.push("");
-    lines.push("## Summary Log");
+    lines.push("# Summary Log");
     lines.push("");
 
     // Add each log entry (already in newest-first order)
-    for (const entry of body.entries) {
+    for (const entry of entries) {
       lines.push(this.formatEntry(entry));
     }
 
     return lines.join("\n");
+  }
+
+  /**
+   * Parse entries from content body
+   */
+  public parseEntriesFromContent(content: string): SummaryLogEntry[] {
+    const entries: SummaryLogEntry[] = [];
+
+    // Split by entry headers (### [...])
+    const sections = content.split(/^###\s+/m).slice(1); // Skip content before first entry
+
+    for (const section of sections) {
+      const entry = this.parseEntry(section);
+      if (entry.title) {
+        entries.push(entry);
+      }
+    }
+
+    return entries;
   }
 
   /**
@@ -99,93 +119,88 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
   }
 
   /**
-   * Parse summary body from markdown content
-   */
-  public parseSummaryContent(content: string): SummaryBody {
-    const entries: SummaryLogEntry[] = [];
-
-    // Extract conversation ID from title
-    const titleMatch = content.match(/^# Conversation Summary: (.+)$/m);
-    const conversationId = titleMatch?.[1] ?? "";
-
-    // Extract metadata
-    const totalMessagesMatch = content.match(/\*\*Total Messages:\*\* (\d+)/);
-    const totalMessages = totalMessagesMatch?.[1]
-      ? parseInt(totalMessagesMatch[1], 10)
-      : 0;
-
-    const lastUpdatedMatch = content.match(/\*\*Last Updated:\*\* (.+)/);
-    const lastUpdated = lastUpdatedMatch?.[1] ?? new Date().toISOString();
-
-    // Split by entry headers (### [...])
-    const logSection = content.split("## Summary Log")[1];
-    if (!logSection) {
-      return {
-        conversationId,
-        entries: [],
-        totalMessages: 0,
-        lastUpdated: new Date().toISOString(),
-      };
-    }
-
-    // Split by ### but keep the delimiter
-    const entrySections = logSection.split(/^###\s+/m).slice(1); // Skip content before first entry
-
-    for (const section of entrySections) {
-      // Add back the header start for parsing
-      const entry = this.parseEntry(section);
-      if (entry.title) {
-        entries.push(entry);
-      }
-    }
-
-    return {
-      conversationId,
-      entries, // Already in newest-first order from the markdown
-      totalMessages,
-      lastUpdated,
-    };
-  }
-
-  /**
    * Get the first N entries (most recent) from content
    */
   public getRecentEntries(content: string, count: number): SummaryLogEntry[] {
-    const body = this.parseSummaryContent(content);
-    return body.entries.slice(0, count);
+    const entries = this.parseEntriesFromContent(content);
+    return entries.slice(0, count);
   }
 
   /**
-   * Convert entity to markdown
+   * Convert entity to markdown with frontmatter
    */
   public toMarkdown(entity: SummaryEntity): string {
-    return entity.content;
+    // Parse existing content to get entries
+    let contentBody = entity.content;
+    try {
+      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
+      contentBody = parsed.content;
+    } catch {
+      // Content doesn't have frontmatter, use as-is
+    }
+
+    // Parse to get entries and recreate body without metadata duplication
+    const entries = this.parseEntriesFromContent(contentBody);
+    const cleanBody = this.createContentBody(entries);
+
+    // Always include metadata as frontmatter for roundtrip
+    return generateMarkdownWithFrontmatter(cleanBody, entity.metadata);
   }
 
   /**
-   * Create entity from markdown
+   * Create entity from markdown, extracting metadata from frontmatter
    */
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {
-    const body = this.parseSummaryContent(markdown);
+    // Try to parse with frontmatter first (new format)
+    try {
+      const { metadata, content: contentBody } = parseMarkdownWithFrontmatter(
+        markdown,
+        summaryFrontmatterSchema.partial(),
+      );
 
-    // Get the oldest entry's created date (last in array since they're newest-first)
-    // If entries are empty, use current date
-    const oldestEntry = body.entries[body.entries.length - 1];
-    const newestEntry = body.entries[0];
+      // Parse entries from content body
+      const entries = this.parseEntriesFromContent(contentBody);
 
-    return {
-      entityType: "summary",
-      content: markdown,
-      created: oldestEntry?.created ?? new Date().toISOString(),
-      updated: newestEntry?.updated ?? body.lastUpdated,
-      metadata: {
-        conversationId: body.conversationId,
-        channelName: "Unknown", // Default value when parsing from markdown
-        entryCount: body.entries.length,
-        totalMessages: body.totalMessages,
-        lastUpdated: body.lastUpdated,
-      },
-    };
+      // Get timestamps from entries
+      const oldestEntry = entries[entries.length - 1];
+      const newestEntry = entries[0];
+
+      return {
+        entityType: "summary",
+        content: markdown, // Store the FULL markdown including frontmatter
+        created: oldestEntry?.created ?? new Date().toISOString(),
+        updated:
+          newestEntry?.updated ??
+          metadata.lastUpdated ??
+          new Date().toISOString(),
+        metadata: {
+          conversationId: metadata.conversationId ?? "",
+          channelName: metadata.channelName ?? "Unknown",
+          entryCount: metadata.entryCount ?? entries.length,
+          totalMessages: metadata.totalMessages ?? 0,
+          lastUpdated: metadata.lastUpdated ?? new Date().toISOString(),
+        },
+      };
+    } catch {
+      // Fallback: parse content without frontmatter
+      const entries = this.parseEntriesFromContent(markdown);
+      const oldestEntry = entries[entries.length - 1];
+      const newestEntry = entries[0];
+
+      return {
+        entityType: "summary",
+        content: markdown,
+        created: oldestEntry?.created ?? new Date().toISOString(),
+        updated: newestEntry?.updated ?? new Date().toISOString(),
+        metadata: {
+          conversationId: "", // No conversationId in content without frontmatter
+          channelName: "Unknown",
+          entryCount: entries.length,
+          totalMessages: 0,
+          lastUpdated: newestEntry?.updated ?? new Date().toISOString(),
+        },
+      };
+    }
   }
 
   /**
@@ -209,61 +224,43 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
 
   /**
    * Generate frontmatter for the entity
-   * Summaries don't use frontmatter
    */
-  public generateFrontMatter(_entity: SummaryEntity): string {
+  public generateFrontMatter(entity: SummaryEntity): string {
+    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+      return generateFrontmatter(entity.metadata);
+    }
     return "";
   }
 
   /**
-   * Helper to prepend or update an entry in a summary
-   * @param existingContent - Existing summary markdown or null
-   * @param newEntry - The new entry to add or update with
-   * @param conversationId - The conversation ID
-   * @param shouldUpdate - Whether to update an existing entry
-   * @param entryIndexToUpdate - Index of entry to update (0 = most recent)
+   * Helper to manage summary entries
+   * Returns the updated entries list
    */
-  public addOrUpdateEntry(
-    existingContent: string | null,
+  public manageEntries(
+    existingEntries: SummaryLogEntry[],
     newEntry: SummaryLogEntry,
-    conversationId: string,
     shouldUpdate: boolean,
     entryIndexToUpdate?: number,
-  ): string {
-    let body: SummaryBody;
+  ): SummaryLogEntry[] {
+    const entries = [...existingEntries];
 
-    if (!existingContent) {
-      // Create new summary with first entry
-      body = {
-        conversationId,
-        entries: [newEntry],
-        totalMessages: 0, // Will be updated by caller
-        lastUpdated: newEntry.created,
+    if (
+      shouldUpdate &&
+      entryIndexToUpdate !== undefined &&
+      entries[entryIndexToUpdate]
+    ) {
+      // Update existing entry (merge the content)
+      const existingEntry = entries[entryIndexToUpdate];
+      entries[entryIndexToUpdate] = {
+        ...existingEntry,
+        content: `${existingEntry.content}\n\nUPDATE: ${newEntry.content}`,
+        updated: newEntry.created, // Set updated timestamp
       };
     } else {
-      // Parse existing and add/update entry
-      body = this.parseSummaryContent(existingContent);
-
-      if (
-        shouldUpdate &&
-        entryIndexToUpdate !== undefined &&
-        body.entries[entryIndexToUpdate]
-      ) {
-        // Update existing entry (merge the content)
-        const existingEntry = body.entries[entryIndexToUpdate];
-        body.entries[entryIndexToUpdate] = {
-          ...existingEntry,
-          content: `${existingEntry.content}\n\nUPDATE: ${newEntry.content}`,
-          updated: newEntry.created, // Set updated timestamp
-        };
-      } else {
-        // Prepend new entry (newest first)
-        body.entries.unshift(newEntry);
-      }
-
-      body.lastUpdated = newEntry.created;
+      // Prepend new entry (newest first)
+      entries.unshift(newEntry);
     }
 
-    return this.createSummaryContent(body);
+    return entries;
   }
 }

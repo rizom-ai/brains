@@ -139,7 +139,10 @@ describe("DigestHandler", () => {
         const entity = upsertCall[0] as SummaryEntity;
         expect(entity.id).toBe("conv-123");
         expect(entity.entityType).toBe("summary");
-        expect(entity.content).toContain("Conversation Summary: conv-123");
+        // Content should have frontmatter with metadata
+        expect(entity.content).toContain("---");
+        expect(entity.content).toContain("conversationId: conv-123");
+        expect(entity.content).toContain("# Summary Log");
         expect(entity.metadata?.conversationId).toBe("conv-123");
         expect(entity.metadata?.totalMessages).toBe(50);
       }

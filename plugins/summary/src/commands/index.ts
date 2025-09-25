@@ -3,10 +3,12 @@ import type {
   CommandResponse,
   ServicePluginContext,
 } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { z } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import type { SummaryConfig } from "../schemas/summary";
 import { SummaryService } from "../lib/summary-service";
 import { SummaryAdapter } from "../adapters/summary-adapter";
-import type { Logger } from "@brains/utils";
 
 /**
  * Create summary-list command
@@ -65,8 +67,17 @@ export function createListCommand(
             const lastUpdated = new Date(summary.updated).toLocaleDateString();
 
             // Get first entry title as preview
-            const parsed = adapter.parseSummaryContent(summary.content);
-            const preview = parsed.entries[0]?.title ?? "No entries";
+            let entries;
+            try {
+              const parsed = parseMarkdownWithFrontmatter(
+                summary.content,
+                z.record(z.string(), z.unknown()),
+              );
+              entries = adapter.parseEntriesFromContent(parsed.content);
+            } catch {
+              entries = adapter.parseEntriesFromContent(summary.content);
+            }
+            const preview = entries[0]?.title ?? "No entries";
 
             return [
               `**${conversationId}** | ${entryCount} entries | ${lastUpdated}`,

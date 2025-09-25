@@ -3,9 +3,14 @@ import type {
   ServicePluginContext,
   ConversationDigestPayload,
 } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
+import { z } from "@brains/utils";
 import { SummaryExtractor } from "../lib/summary-extractor";
 import { SummaryAdapter } from "../adapters/summary-adapter";
-import type { SummaryEntity } from "../schemas/summary";
+import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
 
 /**
  * Handler for conversation digest events
@@ -88,47 +93,42 @@ export class DigestHandler {
         existingEntity?.content ?? null,
       );
 
-      // Apply the decision to create/update the summary
-      let updatedContent: string;
-      if (decision.action === "create") {
-        // Create new summary with first entry
-        updatedContent = this.adapter.addOrUpdateEntry(
-          null,
-          decision.entry,
-          digest.conversationId,
-          false,
-        );
-      } else if (decision.action === "update") {
-        // Update existing entry
-        updatedContent = this.adapter.addOrUpdateEntry(
-          existingEntity?.content ?? null,
-          decision.entry,
-          digest.conversationId,
-          true,
-          decision.entryIndex,
-        );
-      } else {
-        // Append new entry
-        updatedContent = this.adapter.addOrUpdateEntry(
-          existingEntity?.content ?? null,
-          decision.entry,
-          digest.conversationId,
-          false,
-        );
+      // Parse existing entries if we have an existing entity
+      let entries: SummaryLogEntry[] = [];
+      if (existingEntity?.content) {
+        try {
+          const parsed = parseMarkdownWithFrontmatter(
+            existingEntity.content,
+            z.record(z.string(), z.unknown()),
+          );
+          entries = this.adapter.parseEntriesFromContent(parsed.content);
+        } catch {
+          // Fallback: parse content without frontmatter
+          entries = this.adapter.parseEntriesFromContent(
+            existingEntity.content,
+          );
+        }
       }
 
-      // Parse the content to get metadata
-      const body = this.adapter.parseSummaryContent(updatedContent);
+      // Apply the decision to update entries
+      const shouldUpdate = decision.action === "update";
+      const entryIndex =
+        decision.action === "update" ? decision.entryIndex : undefined;
+      const updatedEntries = this.adapter.manageEntries(
+        entries,
+        decision.entry,
+        shouldUpdate,
+        entryIndex,
+      );
 
-      // Update totalMessages with the window end (approximate total)
-      body.totalMessages = digest.windowEnd;
-      updatedContent = this.adapter.createSummaryContent(body);
+      // Create the content body (without frontmatter)
+      const contentBody = this.adapter.createContentBody(updatedEntries);
 
       // Fetch conversation to get channel name
       const conversation = await this.context.getConversation(
         digest.conversationId,
       );
-      if (!conversation || !conversation.metadata) {
+      if (!conversation?.metadata) {
         throw new Error(
           `Conversation ${digest.conversationId} not found or missing metadata`,
         );
@@ -136,20 +136,29 @@ export class DigestHandler {
       const conversationMetadata = JSON.parse(conversation.metadata);
       const channelName = conversationMetadata.channelName;
 
+      // Prepare metadata
+      const metadata = {
+        conversationId: digest.conversationId,
+        channelName,
+        entryCount: updatedEntries.length,
+        totalMessages: digest.windowEnd,
+        lastUpdated: digest.timestamp,
+      };
+
+      // Create content with frontmatter
+      const contentWithFrontmatter = generateMarkdownWithFrontmatter(
+        contentBody,
+        metadata,
+      );
+
       // Save the updated summary
       const summaryEntity: SummaryEntity = {
         id: digest.conversationId,
         entityType: "summary",
-        content: updatedContent,
+        content: contentWithFrontmatter,
         created: existingEntity?.created ?? digest.timestamp,
         updated: digest.timestamp,
-        metadata: {
-          conversationId: digest.conversationId,
-          channelName,
-          entryCount: body.entries.length,
-          totalMessages: digest.windowEnd,
-          lastUpdated: digest.timestamp,
-        },
+        metadata,
       };
 
       await this.context.entityService.upsertEntity(summaryEntity);

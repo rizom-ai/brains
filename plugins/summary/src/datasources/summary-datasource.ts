@@ -1,5 +1,6 @@
 import type { DataSource } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity } from "../schemas/summary";
@@ -58,16 +59,26 @@ export class SummaryDataSource implements DataSource {
         throw new Error(`Summary not found: ${queryId}`);
       }
 
-      // Transform to SummaryDetailData
-      const body = this.adapter.parseSummaryContent(entity.content);
+      // Parse entries from content
+      let entries;
+      try {
+        const parsed = parseMarkdownWithFrontmatter(
+          entity.content,
+          z.record(z.string(), z.unknown()),
+        );
+        entries = this.adapter.parseEntriesFromContent(parsed.content);
+      } catch {
+        // Fallback: parse content without frontmatter
+        entries = this.adapter.parseEntriesFromContent(entity.content);
+      }
 
       const detailData: SummaryDetailData = {
-        conversationId: body.conversationId,
+        conversationId: entity.metadata.conversationId,
         channelName: entity.metadata.channelName,
-        entries: body.entries,
-        totalMessages: body.totalMessages,
-        lastUpdated: body.lastUpdated,
-        entryCount: body.entries.length,
+        entries,
+        totalMessages: entity.metadata.totalMessages,
+        lastUpdated: entity.metadata.lastUpdated,
+        entryCount: entries.length,
       };
 
       return outputSchema.parse(detailData);
@@ -83,20 +94,29 @@ export class SummaryDataSource implements DataSource {
 
     // Transform to SummaryListData with channel names
     const summaries = entities.map((summary) => {
-      const body = this.adapter.parseSummaryContent(summary.content);
-      const latestEntry = body.entries[0]; // Entries are newest-first
+      // Parse entries from content
+      let entries;
+      try {
+        const parsed = parseMarkdownWithFrontmatter(
+          summary.content,
+          z.record(z.string(), z.unknown()),
+        );
+        entries = this.adapter.parseEntriesFromContent(parsed.content);
+      } catch {
+        // Fallback: parse content without frontmatter
+        entries = this.adapter.parseEntriesFromContent(summary.content);
+      }
 
-      // Get channel name from summary metadata
-      const channelName = summary.metadata.channelName;
+      const latestEntry = entries[0]; // Entries are newest-first
 
       return {
         id: summary.id,
-        conversationId: body.conversationId,
-        channelName,
-        entryCount: body.entries.length,
-        totalMessages: body.totalMessages,
+        conversationId: summary.metadata.conversationId,
+        channelName: summary.metadata.channelName,
+        entryCount: entries.length,
+        totalMessages: summary.metadata.totalMessages,
         latestEntry: latestEntry?.title ?? "No entries",
-        lastUpdated: body.lastUpdated,
+        lastUpdated: summary.metadata.lastUpdated,
         created: summary.created,
       };
     });

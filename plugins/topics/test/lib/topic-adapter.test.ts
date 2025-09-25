@@ -97,7 +97,7 @@ This is the main content
   });
 
   describe("toMarkdown", () => {
-    it("should return content as-is", () => {
+    it("should return content without frontmatter when no metadata", () => {
       const entity: TopicEntity = {
         id: "test-topic",
         entityType: "topic",
@@ -109,6 +109,22 @@ This is the main content
 
       const markdown = adapter.toMarkdown(entity);
       expect(markdown).toBe(entity.content);
+    });
+
+    it("should include frontmatter when metadata exists", () => {
+      const entity: TopicEntity = {
+        id: "test-topic",
+        entityType: "topic",
+        content: "# Test Topic\n\n## Content\nSome content",
+        metadata: { keywords: ["test", "topic"] },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      const markdown = adapter.toMarkdown(entity);
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("keywords:");
+      expect(markdown).toContain("# Test Topic");
     });
   });
 
@@ -124,7 +140,7 @@ This is the main content
   });
 
   describe("extractMetadata", () => {
-    it("should return empty metadata", () => {
+    it("should return empty metadata when no metadata", () => {
       const entity: TopicEntity = {
         id: "test-topic",
         entityType: "topic",
@@ -136,6 +152,20 @@ This is the main content
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata).toEqual({});
+    });
+
+    it("should return metadata when it exists", () => {
+      const entity: TopicEntity = {
+        id: "test-topic",
+        entityType: "topic",
+        content: "# Test Topic\n\n## Content\nSome content",
+        metadata: { keywords: ["test"], sourceCount: 1 },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      const metadata = adapter.extractMetadata(entity);
+      expect(metadata).toEqual({ keywords: ["test"], sourceCount: 1 });
     });
   });
 
@@ -155,7 +185,7 @@ metadata: {}
   });
 
   describe("generateFrontMatter", () => {
-    it("should return content without frontmatter", () => {
+    it("should return empty string when no metadata", () => {
       const entity: TopicEntity = {
         id: "test-topic",
         entityType: "topic",
@@ -166,7 +196,22 @@ metadata: {}
       };
 
       const result = adapter.generateFrontMatter(entity);
-      expect(result).toBe(entity.content);
+      expect(result).toBe("");
+    });
+
+    it("should generate frontmatter when metadata exists", () => {
+      const entity: TopicEntity = {
+        id: "test-topic",
+        entityType: "topic",
+        content: "# Test Topic\n\n## Content\nSome content",
+        metadata: { keywords: ["test", "topic"], sourceCount: 2 },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      const result = adapter.generateFrontMatter(entity);
+      expect(result).toContain("keywords:");
+      expect(result).toContain("sourceCount: 2");
     });
   });
 
