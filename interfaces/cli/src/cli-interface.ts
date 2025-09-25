@@ -279,6 +279,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
+   * Get the channel name for conversation metadata
+   */
+  protected override async getChannelName(_channelId: string): Promise<string> {
+    // For CLI, always use "CLI Terminal" as the human-readable name
+    return "CLI Terminal";
+  }
+
+  /**
    * Process user input - public API for UI components, testing, and programmatic use
    * Creates appropriate context and delegates to handleInput
    */

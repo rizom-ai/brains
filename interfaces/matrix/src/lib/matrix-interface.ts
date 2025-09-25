@@ -1,14 +1,11 @@
 import {
   MessageInterfacePlugin,
   type MessageInterfacePluginContext,
-} from "@brains/plugins";
-import {
-  type Daemon,
-  type DaemonHealth,
   type MessageContext,
   type JobProgressEvent,
   type JobContext,
 } from "@brains/plugins";
+import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import { matrixConfigSchema } from "../schemas";
 import type { MatrixConfig } from "../schemas";
 import { MatrixClientWrapper } from "../client/matrix-client";
@@ -191,6 +188,26 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       trackingInfo.channelId, // Matrix room for message routing
       trackingInfo.messageId, // Matrix message ID for editing
     );
+  }
+
+  /**
+   * Get the channel name (room name) for conversation metadata
+   */
+  protected override async getChannelName(channelId: string): Promise<string> {
+    if (!this.client) {
+      return channelId;
+    }
+
+    try {
+      const roomName = await this.client.getRoomName(channelId);
+      return roomName;
+    } catch (error) {
+      this.logger.debug("Failed to get room name for conversation", {
+        channelId,
+        error,
+      });
+      return channelId;
+    }
   }
 
   /**

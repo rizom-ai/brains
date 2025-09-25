@@ -3,7 +3,10 @@ import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { ConversationDB } from "../src/database";
-import type { ConversationServiceConfig, ConversationMetadata } from "../src/types";
+import type {
+  ConversationServiceConfig,
+  ConversationMetadata,
+} from "../src/types";
 import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 import { MessageBus } from "@brains/messaging-service";
@@ -19,7 +22,7 @@ describe("ConversationService", () => {
 
   // Default test metadata
   const testMetadata: ConversationMetadata = {
-    channelName: "Test Channel"
+    channelName: "Test Channel",
   };
 
   beforeEach(async () => {
@@ -78,7 +81,12 @@ describe("ConversationService", () => {
       const channelId = "test-channel";
 
       // Start conversation first time
-      await service.startConversation(sessionId, interfaceType, channelId, testMetadata);
+      await service.startConversation(
+        sessionId,
+        interfaceType,
+        channelId,
+        testMetadata,
+      );
 
       // Start conversation second time
       const conversationId = await service.startConversation(
@@ -103,10 +111,15 @@ describe("ConversationService", () => {
       const interfaceType = "matrix";
       const channelId = "!room123:matrix.org";
       const metadata: ConversationMetadata = {
-        channelName: "Test Room"
+        channelName: "Test Room",
       };
 
-      await service.startConversation(sessionId, interfaceType, channelId, metadata);
+      await service.startConversation(
+        sessionId,
+        interfaceType,
+        channelId,
+        metadata,
+      );
 
       // Verify metadata was stored correctly
       const result = await client.execute({
@@ -123,17 +136,27 @@ describe("ConversationService", () => {
       const interfaceType = "cli";
       const channelId = "cli-channel";
       const metadata: ConversationMetadata = {
-        channelName: "CLI Terminal"
+        channelName: "CLI Terminal",
       };
 
       // Start conversation first time with metadata
-      await service.startConversation(sessionId, interfaceType, channelId, metadata);
+      await service.startConversation(
+        sessionId,
+        interfaceType,
+        channelId,
+        metadata,
+      );
 
       // Resume conversation with different metadata (should not update)
       const differentMetadata: ConversationMetadata = {
-        channelName: "Different Name"
+        channelName: "Different Name",
       };
-      await service.startConversation(sessionId, interfaceType, channelId, differentMetadata);
+      await service.startConversation(
+        sessionId,
+        interfaceType,
+        channelId,
+        differentMetadata,
+      );
 
       // Verify original metadata is preserved
       const result = await client.execute({
@@ -154,7 +177,12 @@ describe("ConversationService", () => {
       const metadata = { key: "value" };
 
       // First create a conversation
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
 
       // Add message
       await service.addMessage(conversationId, role, content, metadata);
@@ -175,7 +203,12 @@ describe("ConversationService", () => {
       const conversationId = "conv-123";
 
       // Create conversation
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
 
       // Add messages
       await service.addMessage(conversationId, "user", "First message");
@@ -195,7 +228,12 @@ describe("ConversationService", () => {
       const limit = 2;
 
       // Create conversation
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
 
       // Add more messages than limit
       await service.addMessage(conversationId, "user", "Message 1");
@@ -243,7 +281,12 @@ describe("ConversationService", () => {
       const conversationId = "conv-range";
 
       // Create conversation and add messages
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
       await service.addMessage(conversationId, "user", "Message 1");
       await service.addMessage(conversationId, "assistant", "Message 2");
       await service.addMessage(conversationId, "user", "Message 3");
@@ -264,7 +307,12 @@ describe("ConversationService", () => {
     it("should handle range at beginning of conversation", async () => {
       const conversationId = "conv-range-start";
 
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
       await service.addMessage(conversationId, "user", "Message 1");
       await service.addMessage(conversationId, "assistant", "Message 2");
       await service.addMessage(conversationId, "user", "Message 3");
@@ -282,7 +330,12 @@ describe("ConversationService", () => {
     it("should handle range at end of conversation", async () => {
       const conversationId = "conv-range-end";
 
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
       await service.addMessage(conversationId, "user", "Message 1");
       await service.addMessage(conversationId, "assistant", "Message 2");
       await service.addMessage(conversationId, "user", "Message 3");
@@ -300,7 +353,12 @@ describe("ConversationService", () => {
     it("should handle single message range", async () => {
       const conversationId = "conv-single";
 
-      await service.startConversation(conversationId, "cli", "test-channel", testMetadata);
+      await service.startConversation(
+        conversationId,
+        "cli",
+        "test-channel",
+        testMetadata,
+      );
       await service.addMessage(conversationId, "user", "Message 1");
       await service.addMessage(conversationId, "assistant", "Message 2");
       await service.addMessage(conversationId, "user", "Message 3");
@@ -318,11 +376,21 @@ describe("ConversationService", () => {
   describe("searchConversations", () => {
     it("should search conversations by content", async () => {
       // Create conversation with searchable content
-      await service.startConversation("conv-1", "cli", "channel-1", testMetadata);
+      await service.startConversation(
+        "conv-1",
+        "cli",
+        "channel-1",
+        testMetadata,
+      );
       await service.addMessage("conv-1", "user", "This is a test message");
 
       // Create another conversation without the search term
-      await service.startConversation("conv-2", "cli", "channel-2", testMetadata);
+      await service.startConversation(
+        "conv-2",
+        "cli",
+        "channel-2",
+        testMetadata,
+      );
       await service.addMessage("conv-2", "user", "Different content");
 
       const result = await service.searchConversations("test");
@@ -377,7 +445,12 @@ describe("ConversationService", () => {
       );
 
       const conversationId = "test-window";
-      await testService.startConversation(conversationId, "cli", "test", testMetadata);
+      await testService.startConversation(
+        conversationId,
+        "cli",
+        "test",
+        testMetadata,
+      );
 
       // Add some messages
       await testService.addMessage(conversationId, "user", "Message 1");
@@ -411,7 +484,12 @@ describe("ConversationService", () => {
       );
 
       const conversationId = "test-large-window";
-      await testService.startConversation(conversationId, "cli", "test", testMetadata);
+      await testService.startConversation(
+        conversationId,
+        "cli",
+        "test",
+        testMetadata,
+      );
 
       // Add only 3 messages
       await testService.addMessage(conversationId, "user", "Message 1");

@@ -246,6 +246,16 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
+   * Get the channel name for conversation metadata
+   * Override this method to provide interface-specific channel names
+   */
+  protected async getChannelName(channelId: string): Promise<string> {
+    // Default implementation: return the channel ID
+    // Subclasses should override to provide human-readable names
+    return channelId;
+  }
+
+  /**
    * Route input to appropriate handler and send response with job/batch mapping
    */
   protected async handleInput(
@@ -259,11 +269,12 @@ export abstract class MessageInterfacePlugin<
     if (!this.startedConversations.has(conversationId)) {
       try {
         // Start conversation returns the conversation ID (same as sessionId in this case)
+        const channelName = await this.getChannelName(context.channelId);
         await this.getContext().startConversation(
           conversationId,
           context.interfaceType,
           context.channelId,
-          { channelName: context.channelId }, // Default to channelId, interfaces override
+          { channelName },
         );
         this.startedConversations.add(conversationId);
       } catch (error) {

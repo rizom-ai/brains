@@ -30,6 +30,7 @@ globalThis.mockMatrixClient = {
   getJoinedRooms: mock(() =>
     Promise.resolve(["!room1:example.org", "!room2:example.org"]),
   ),
+  getRoomStateEvent: mock(() => Promise.resolve({})),
   _lastSentContent: null,
 };
 

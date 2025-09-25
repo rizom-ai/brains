@@ -124,6 +124,28 @@ export class MatrixClientWrapper {
   }
 
   /**
+   * Get the display name of a room
+   */
+  async getRoomName(roomId: string): Promise<string> {
+    try {
+      // Get the room state event for the name
+      const nameEvent = await this.client.getRoomStateEvent(
+        roomId,
+        "m.room.name",
+        "",
+      );
+      if (nameEvent && typeof nameEvent.name === "string") {
+        return nameEvent.name;
+      }
+    } catch (error) {
+      this.logger.debug("Failed to get room name", { roomId, error });
+    }
+
+    // Fall back to room ID if no name is set
+    return roomId;
+  }
+
+  /**
    * Send a text message to a room
    */
   async sendTextMessage(
