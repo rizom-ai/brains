@@ -16,6 +16,13 @@ export interface ConversationServiceConfig {
 }
 
 /**
+ * Metadata for a conversation
+ */
+export interface ConversationMetadata {
+  channelName: string; // Human-readable name for the channel/room
+}
+
+/**
  * Service interface for conversation storage
  */
 /**
@@ -36,6 +43,7 @@ export interface IConversationService {
     sessionId: string,
     interfaceType: string,
     channelId: string,
+    metadata: ConversationMetadata,
   ): Promise<string>;
   addMessage(
     conversationId: string,

@@ -4,6 +4,7 @@ export { ConversationService } from "./conversation-service";
 export type {
   IConversationService,
   ConversationServiceConfig,
+  ConversationMetadata,
   MessageRole,
   GetMessagesOptions,
   ConversationDigestPayload,

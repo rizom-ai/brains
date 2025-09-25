@@ -263,6 +263,7 @@ export abstract class MessageInterfacePlugin<
           conversationId,
           context.interfaceType,
           context.channelId,
+          { channelName: context.channelId }, // Default to channelId, interfaces override
         );
         this.startedConversations.add(conversationId);
       } catch (error) {

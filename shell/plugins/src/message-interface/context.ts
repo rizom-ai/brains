@@ -1,6 +1,10 @@
 import type { InterfacePluginContext } from "../interface/context";
 import { createInterfacePluginContext } from "../interface/context";
-import type { MessageRole, Message } from "@brains/conversation-service";
+import type {
+  MessageRole,
+  Message,
+  ConversationMetadata,
+} from "@brains/conversation-service";
 import type { IShell } from "../interfaces";
 
 /**
@@ -13,6 +17,7 @@ export interface MessageInterfacePluginContext extends InterfacePluginContext {
     sessionId: string,
     interfaceType: string,
     channelId: string,
+    metadata: ConversationMetadata,
   ) => Promise<string>;
 
   addMessage: (
@@ -46,12 +51,14 @@ export function createMessageInterfacePluginContext(
       sessionId: string,
       interfaceType: string,
       channelId: string,
+      metadata: ConversationMetadata,
     ): Promise<string> => {
       const conversationService = shell.getConversationService();
       const conversationId = await conversationService.startConversation(
         sessionId,
         interfaceType,
         channelId,
+        metadata,
       );
       interfaceContext.logger.debug(`Started conversation ${conversationId}`, {
         sessionId,

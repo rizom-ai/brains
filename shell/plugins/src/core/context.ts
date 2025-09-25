@@ -10,6 +10,7 @@ import type {
   Message,
   MessageRole,
   GetMessagesOptions,
+  ConversationMetadata,
 } from "@brains/conversation-service";
 
 /**
@@ -62,6 +63,7 @@ export interface CorePluginContext {
     conversationId: string,
     interfaceType: string,
     channelId: string,
+    metadata: ConversationMetadata,
   ) => Promise<string>;
   addMessage: (
     conversationId: string,
@@ -164,12 +166,14 @@ export function createCorePluginContext(
       conversationId: string,
       interfaceType: string,
       channelId: string,
+      metadata: ConversationMetadata,
     ): Promise<string> => {
       const conversationService = shell.getConversationService();
       return conversationService.startConversation(
         conversationId,
         interfaceType,
         channelId,
+        metadata,
       );
     },
     addMessage: async (

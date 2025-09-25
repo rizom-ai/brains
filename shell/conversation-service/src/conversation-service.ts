@@ -4,6 +4,7 @@ import type {
   IConversationService,
   ConversationServiceConfig,
   ConversationDbConfig,
+  ConversationMetadata,
   MessageRole,
   GetMessagesOptions,
   ConversationDigestPayload,
@@ -91,6 +92,7 @@ export class ConversationService implements IConversationService {
     sessionId: string,
     interfaceType: string,
     channelId: string,
+    metadata: ConversationMetadata,
   ): Promise<string> {
     const now = new Date().toISOString();
 
@@ -122,7 +124,7 @@ export class ConversationService implements IConversationService {
       lastActive: now,
       created: now,
       updated: now,
-      metadata: JSON.stringify({}),
+      metadata: JSON.stringify(metadata),
     };
 
     await this.db.insert(conversations).values(newConversation);

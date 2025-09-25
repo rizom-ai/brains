@@ -4,7 +4,7 @@ import {
   EntityRegistry,
   EntityService,
   type IEntityRegistry,
-  type IEntityService
+  type IEntityService,
 } from "@brains/entity-service";
 import type { ContentService } from "@brains/content-service";
 import { ContentGenerationJobHandler } from "@brains/content-service";
@@ -283,7 +283,6 @@ export class ShellInitializer {
         }),
       },
     });
-
 
     // Conversation service
     const conversationService =

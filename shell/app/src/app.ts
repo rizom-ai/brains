@@ -97,7 +97,7 @@ export class App {
       // Pass the global logger instance which has already been configured
       // In CLI mode, it's already set to use stderr in run()
       this.shell = Shell.createFresh(shellConfig, {
-        logger: Logger.getInstance()
+        logger: Logger.getInstance(),
       });
     }
 

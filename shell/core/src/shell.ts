@@ -134,7 +134,10 @@ export class Shell implements IShell {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(private config: ShellConfig, dependencies?: ShellDependencies) {
+  private constructor(
+    private config: ShellConfig,
+    dependencies?: ShellDependencies,
+  ) {
     // Initialize services using ShellInitializer
     const shellInitializer = ShellInitializer.getInstance(
       dependencies?.logger ?? Logger.getInstance(),
