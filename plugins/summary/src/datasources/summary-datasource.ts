@@ -60,8 +60,10 @@ export class SummaryDataSource implements DataSource {
 
       // Transform to SummaryDetailData
       const body = this.adapter.parseSummaryContent(entity.content);
+
       const detailData: SummaryDetailData = {
         conversationId: body.conversationId,
+        channelName: entity.metadata.channelName,
         entries: body.entries,
         totalMessages: body.totalMessages,
         lastUpdated: body.lastUpdated,
@@ -85,12 +87,7 @@ export class SummaryDataSource implements DataSource {
       const latestEntry = body.entries[0]; // Entries are newest-first
 
       // Get channel name from summary metadata
-      const channelName = summary.metadata?.channelName as string;
-      if (!channelName) {
-        throw new Error(
-          `Summary ${summary.id} missing channelName in metadata`,
-        );
-      }
+      const channelName = summary.metadata.channelName;
 
       return {
         id: summary.id,

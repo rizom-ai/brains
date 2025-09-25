@@ -192,7 +192,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
    * Extract metadata for storage
    */
   public extractMetadata(entity: SummaryEntity): Record<string, unknown> {
-    return entity.metadata ?? {};
+    return entity.metadata;
   }
 
   /**

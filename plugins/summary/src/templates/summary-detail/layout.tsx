@@ -6,7 +6,7 @@ import type { SummaryDetailData } from "./schema";
  * Each entry has simple 4-field structure with natural prose content
  */
 export const SummaryDetailLayout = ({
-  conversationId,
+  channelName,
   entries,
   totalMessages,
   lastUpdated,
@@ -16,7 +16,7 @@ export const SummaryDetailLayout = ({
     <div className="summary-detail-container max-w-4xl mx-auto p-6 bg-theme">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2 text-theme">
-          Conversation Summary: {conversationId}
+          {channelName} Summary
         </h1>
         <div className="flex items-center gap-4 text-theme-muted">
           <span>{entryCount} entries</span>

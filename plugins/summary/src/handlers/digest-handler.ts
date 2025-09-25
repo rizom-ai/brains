@@ -125,7 +125,9 @@ export class DigestHandler {
       updatedContent = this.adapter.createSummaryContent(body);
 
       // Fetch conversation to get channel name
-      const conversation = await this.context.getConversation(digest.conversationId);
+      const conversation = await this.context.getConversation(
+        digest.conversationId,
+      );
       if (!conversation || !conversation.metadata) {
         throw new Error(
           `Conversation ${digest.conversationId} not found or missing metadata`,

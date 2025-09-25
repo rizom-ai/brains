@@ -39,15 +39,13 @@ export const summarySchema = z.object({
   content: z.string(), // Structured markdown with log entries
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  metadata: z
-    .object({
-      conversationId: z.string(),
-      channelName: z.string(),
-      entryCount: z.number(),
-      totalMessages: z.number(),
-      lastUpdated: z.string().datetime(),
-    })
-    .optional(),
+  metadata: z.object({
+    conversationId: z.string(),
+    channelName: z.string(),
+    entryCount: z.number(),
+    totalMessages: z.number(),
+    lastUpdated: z.string().datetime(),
+  }),
   embedding: z.array(z.number()).optional(),
   source: z.string().optional(),
 });

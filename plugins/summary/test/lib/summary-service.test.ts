@@ -281,7 +281,13 @@ describe("SummaryService", () => {
           content: "content1",
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
-          // metadata omitted to test missing entryCount
+          metadata: {
+            conversationId: "conv-123",
+            channelName: "Test Channel",
+            entryCount: 0, // Set to 0 to test missing/zero entryCount handling
+            totalMessages: 10,
+            lastUpdated: "2025-01-01T00:00:00Z",
+          },
         },
       ];
       spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);

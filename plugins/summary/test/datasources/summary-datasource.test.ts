@@ -130,6 +130,13 @@ Test content
 `,
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
+        metadata: {
+          conversationId: "conv-456",
+          channelName: "Test Channel",
+          entryCount: 0,
+          totalMessages: 0,
+          lastUpdated: "2025-01-01T00:00:00Z",
+        },
       };
 
       const getEntitySpy = spyOn(

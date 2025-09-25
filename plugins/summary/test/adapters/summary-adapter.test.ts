@@ -364,18 +364,6 @@ Content
       expect(metadata["conversationId"]).toBe("conv-123");
     });
 
-    it("should return empty object if no metadata", () => {
-      const entity: SummaryEntity = {
-        id: "conv-123",
-        entityType: "summary",
-        content: "content",
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
-      };
-
-      const metadata = adapter.extractMetadata(entity);
-      expect(metadata).toEqual({});
-    });
   });
 
   describe("generateFrontMatter", () => {
@@ -386,6 +374,13 @@ Content
         content: "content",
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
+        metadata: {
+          conversationId: "conv-123",
+          channelName: "Test Channel",
+          entryCount: 1,
+          totalMessages: 10,
+          lastUpdated: "2025-01-01T00:00:00Z",
+        },
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
