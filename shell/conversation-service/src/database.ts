@@ -24,7 +24,9 @@ export function createConversationDatabase(config: ConversationDbConfig): {
     ? createClient({ url, authToken })
     : createClient({ url });
 
-  const db = drizzle(client, { schema: { conversations, messages, summaryTracking } });
+  const db = drizzle(client, {
+    schema: { conversations, messages, summaryTracking },
+  });
 
   return { db, client, url };
 }

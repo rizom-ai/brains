@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { ContentTemplate } from "../types";
+import type { ContentTemplate } from "@brains/content-service";
 
 /**
  * Schema for public query responses

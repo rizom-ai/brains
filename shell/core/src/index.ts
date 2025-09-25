@@ -35,4 +35,6 @@ export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // MockShell moved to plugins package
 
-// DataSources moved to their respective service packages
+// Export core datasources
+export { SystemStatsDataSource } from "./datasources";
+export type { DashboardData } from "./datasources";

@@ -61,7 +61,8 @@ describe("ContentService", () => {
       entityService: mockEntityService as unknown as EntityService,
       aiService: mockAIService as unknown as AIService,
       templateRegistry,
-      dataSourceRegistry: mockDataSourceRegistry as unknown as DataSourceRegistry,
+      dataSourceRegistry:
+        mockDataSourceRegistry as unknown as DataSourceRegistry,
     };
 
     contentService = new ContentService(mockDependencies);
@@ -91,7 +92,9 @@ describe("ContentService", () => {
       // Register the mock template with the registry
       templateRegistry.register("test-template", mockTemplate);
       // Setup DataSource registry mock to return our mock DataSource
-      (mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(mockDataSource);
+      (
+        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
+      ).mockReturnValue(mockDataSource);
       mockDataSource.generate.mockResolvedValue("raw content");
     });
 

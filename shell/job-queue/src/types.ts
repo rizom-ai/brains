@@ -247,5 +247,3 @@ export interface IBatchJobManager {
   /** Get all active batches */
   getActiveBatches(): Promise<Batch[]>;
 }
-
-

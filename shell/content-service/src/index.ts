@@ -21,10 +21,10 @@ export {
   type ContentGenerationJobData,
 } from "./handlers/contentGenerationJobHandler";
 
-// Export datasources
-export { AIContentDataSource } from "./datasources";
-export type { GenerationContext as AIGenerationContext } from "./datasources";
-
 // Export templates
-export { knowledgeQueryTemplate, queryResponseTemplate, queryResponseSchema } from "./templates";
+export {
+  knowledgeQueryTemplate,
+  queryResponseTemplate,
+  queryResponseSchema,
+} from "./templates";
 export type { QueryResponse } from "./templates";

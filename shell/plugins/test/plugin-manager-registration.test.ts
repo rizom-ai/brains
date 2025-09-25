@@ -122,7 +122,7 @@ describe("PluginManager - Direct Registration", () => {
       registerResource: registerResourceMock,
       listTools: mock(() => registeredTools),
       listResources: mock(() => registeredResources),
-      getMcpServer: mock(() => ({} as unknown as McpServer)),
+      getMcpServer: mock(() => ({}) as unknown as McpServer),
       setPermissionLevel: mock(() => {}),
     } as unknown as IMCPService;
 

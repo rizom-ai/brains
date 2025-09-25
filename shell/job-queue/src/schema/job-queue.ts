@@ -29,9 +29,7 @@ export const jobQueue = sqliteTable(
     source: text("source"),
 
     // Job metadata (additional context for progress events)
-    metadata: text("metadata", { mode: "json" })
-      .$type<JobContext>()
-      .notNull(),
+    metadata: text("metadata", { mode: "json" }).$type<JobContext>().notNull(),
 
     // Queue metadata
     status: text("status", {
@@ -75,4 +73,3 @@ export type InsertJobQueue = typeof jobQueue.$inferInsert;
 export type JobQueue = typeof jobQueue.$inferSelect;
 
 export type JobStatus = JobQueue["status"];
-

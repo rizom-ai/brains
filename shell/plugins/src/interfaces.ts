@@ -17,20 +17,17 @@ import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
-import type {
-  PluginTool,
-  PluginResource,
-} from "@brains/mcp-service";
+import type { PluginTool, PluginResource } from "@brains/mcp-service";
 export type {
   ToolVisibility,
   ToolContext,
   ToolResponse,
   PluginTool,
-  PluginResource
+  PluginResource,
 } from "@brains/mcp-service";
 export {
   toolResponseSchema,
-  ToolContextRoutingSchema
+  ToolContextRoutingSchema,
 } from "@brains/mcp-service";
 import type {
   IJobQueueService,
@@ -197,9 +194,6 @@ export const pluginMetadataSchema = z.object({
   dependencies: z.array(z.string()).optional(),
   packageName: z.string(), // Package name for import resolution (e.g., "@brains/site-builder-plugin")
 });
-
-
-
 
 /**
  * Plugin capabilities that can be exposed

@@ -11,7 +11,7 @@ export interface EntityWithoutEmbedding {
   contentWeight: number;
   created: number;
   updated: number;
-};
+}
 
 /**
  * Embedding job data that includes the operation type
@@ -213,4 +213,3 @@ export interface EntityDbConfig {
   url: string; // Now required - no default
   authToken?: string;
 }
-

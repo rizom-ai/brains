@@ -1,6 +1,11 @@
 import { Logger, LogLevel } from "@brains/utils";
 import type { ShellConfig } from "@brains/core";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
+import {
+  EntityRegistry,
+  EntityService,
+  type IEntityRegistry,
+  type IEntityService
+} from "@brains/entity-service";
 import type { ContentService } from "@brains/content-service";
 import { ContentGenerationJobHandler } from "@brains/content-service";
 import { PluginManager } from "@brains/plugins";
@@ -29,6 +34,7 @@ import {
   BatchJobManager,
   JobProgressMonitor,
   type JobQueueDbConfig,
+  type IJobQueueService,
 } from "@brains/job-queue";
 import { BaseEntityAdapter } from "@brains/entity-service";
 import { knowledgeQueryTemplate } from "@brains/content-service";
@@ -135,7 +141,7 @@ export class ShellInitializer {
    * This provides fallback handling for generic entities
    */
   public registerBaseEntitySupport(
-    entityRegistry: EntityRegistry,
+    entityRegistry: IEntityRegistry,
     templateRegistry: TemplateRegistry,
   ): void {
     this.logger.debug("Registering base entity support");
@@ -258,7 +264,10 @@ export class ShellInitializer {
       }),
     };
 
-    const jobQueueService = JobQueueService.getInstance(jobQueueDbConfig, logger);
+    const jobQueueService = JobQueueService.getInstance(
+      jobQueueDbConfig,
+      logger,
+    );
 
     // Entity service with its database
     const entityService = EntityService.getInstance({
@@ -274,6 +283,7 @@ export class ShellInitializer {
         }),
       },
     });
+
 
     // Conversation service
     const conversationService =
@@ -312,11 +322,16 @@ export class ShellInitializer {
     );
 
     // Job queue worker
-    const jobQueueWorker = JobQueueWorker.getInstance(jobQueueService, jobProgressMonitor, logger, {
-      pollInterval: 100,
-      concurrency: 1,
-      autoStart: false,
-    });
+    const jobQueueWorker = JobQueueWorker.getInstance(
+      jobQueueService,
+      jobProgressMonitor,
+      logger,
+      {
+        pollInterval: 100,
+        concurrency: 1,
+        autoStart: false,
+      },
+    );
 
     return {
       logger,
@@ -347,9 +362,9 @@ export class ShellInitializer {
    * Register job handlers for content generation and derivation
    */
   public registerJobHandlers(
-    jobQueueService: JobQueueService,
+    jobQueueService: IJobQueueService,
     contentService: ContentService,
-    entityService: EntityService,
+    entityService: IEntityService,
   ): void {
     // Register content generation job handler with shell namespace
     const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
@@ -384,7 +399,7 @@ export class ShellInitializer {
    */
   public async initializeAll(
     templateRegistry: TemplateRegistry,
-    entityRegistry: EntityRegistry,
+    entityRegistry: IEntityRegistry,
     pluginManager: PluginManager,
   ): Promise<void> {
     this.logger.debug("Starting Shell initialization");

@@ -4,10 +4,7 @@ import type { JobOptions } from "./schema/types";
 import { Logger, createId } from "@brains/utils";
 import type { IJobQueueService, JobHandler, JobInfo } from "./types";
 import { JOB_STATUS } from "./schemas";
-import {
-  createJobQueueDatabase,
-  enableWALMode,
-} from "./db";
+import { createJobQueueDatabase, enableWALMode } from "./db";
 import type { JobQueueDbConfig } from "./types";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
