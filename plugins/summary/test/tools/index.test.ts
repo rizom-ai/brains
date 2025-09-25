@@ -73,6 +73,7 @@ describe("Summary Tools", () => {
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 1,
           totalMessages: 10,
           lastUpdated: "2025-01-01T00:00:00Z",

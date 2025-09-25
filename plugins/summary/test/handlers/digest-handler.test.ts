@@ -85,6 +85,19 @@ describe("DigestHandler", () => {
       // Mock entity service to return no existing summary
       spyOn(context.entityService, "getEntity").mockResolvedValue(null);
 
+      // Mock getConversation to return conversation with channel name
+      spyOn(context, "getConversation").mockResolvedValue({
+        id: "conv-123",
+        sessionId: "session-123",
+        interfaceType: "cli",
+        channelId: "cli-terminal",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "CLI Terminal" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+      });
+
       // Mock upsert to succeed
       const upsertSpy = spyOn(
         context.entityService,
@@ -162,6 +175,7 @@ User asked about project setup
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 1,
           totalMessages: 50,
           lastUpdated: "2025-01-01T00:00:00Z",
@@ -171,6 +185,19 @@ User asked about project setup
       spyOn(context.entityService, "getEntity").mockResolvedValue(
         existingSummary,
       );
+
+      // Mock getConversation to return conversation with channel name
+      spyOn(context, "getConversation").mockResolvedValue({
+        id: "conv-123",
+        sessionId: "session-123",
+        interfaceType: "cli",
+        channelId: "cli-terminal",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+      });
 
       // Mock content generation - single AI call returns both decision and content
       spyOn(context, "generateContent").mockResolvedValue({
@@ -259,6 +286,7 @@ Window End: 50
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 1,
           totalMessages: 50,
           lastUpdated: "2025-01-01T00:00:00Z",
@@ -268,6 +296,19 @@ Window End: 50
       spyOn(context.entityService, "getEntity").mockResolvedValue(
         existingSummary,
       );
+
+      // Mock getConversation to return conversation with channel name
+      spyOn(context, "getConversation").mockResolvedValue({
+        id: "conv-123",
+        sessionId: "session-123",
+        interfaceType: "cli",
+        channelId: "cli-terminal",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+      });
 
       // Mock content generation for AI decision and summary
       const generateContentSpy = spyOn(context, "generateContent");
@@ -320,6 +361,19 @@ Window End: 50
         new Error("Database error"),
       );
 
+      // Mock getConversation to return conversation with channel name
+      spyOn(context, "getConversation").mockResolvedValue({
+        id: "conv-123",
+        sessionId: "session-123",
+        interfaceType: "cli",
+        channelId: "cli-terminal",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+      });
+
       // Should not throw, but log error
       await handler.handleDigest(digest);
       // If we get here, it didn't throw
@@ -333,6 +387,19 @@ Window End: 50
       });
 
       spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+
+      // Mock getConversation to return conversation with channel name
+      spyOn(context, "getConversation").mockResolvedValue({
+        id: "conv-123",
+        sessionId: "session-123",
+        interfaceType: "cli",
+        channelId: "cli-terminal",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+      });
 
       // Mock content generation for empty messages
       const generateContentSpy = spyOn(context, "generateContent");
@@ -378,6 +445,7 @@ Window End: 50
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 2,
           totalMessages: 50,
           lastUpdated: "2025-01-01T00:00:00Z",
@@ -387,6 +455,19 @@ Window End: 50
       spyOn(context.entityService, "getEntity").mockResolvedValue(
         existingSummary,
       );
+
+      // Mock getConversation to return conversation with channel name
+      spyOn(context, "getConversation").mockResolvedValue({
+        id: "conv-123",
+        sessionId: "session-123",
+        interfaceType: "cli",
+        channelId: "cli-terminal",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
+      });
 
       const generateContentSpy = spyOn(context, "generateContent");
 

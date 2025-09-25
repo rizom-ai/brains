@@ -58,6 +58,7 @@ describe("SummaryService", () => {
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 1,
           totalMessages: 10,
           lastUpdated: "2025-01-01T00:00:00Z",
@@ -135,6 +136,7 @@ describe("SummaryService", () => {
           updated: "2025-01-01T00:00:00Z",
           metadata: {
             conversationId: "conv-1",
+            channelName: "Test Channel",
             entryCount: 3,
             totalMessages: 30,
             lastUpdated: "2025-01-01T00:00:00Z",
@@ -148,6 +150,7 @@ describe("SummaryService", () => {
           updated: "2025-01-01T00:00:00Z",
           metadata: {
             conversationId: "conv-2",
+            channelName: "Test Channel",
             entryCount: 2,
             totalMessages: 20,
             lastUpdated: "2025-01-01T00:00:00Z",
@@ -187,6 +190,7 @@ describe("SummaryService", () => {
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 5,
           totalMessages: 50,
           lastUpdated: "2025-01-01T00:00:00Z",
@@ -225,6 +229,7 @@ describe("SummaryService", () => {
           updated: "2025-01-01T00:00:00Z",
           metadata: {
             conversationId: "conv-1",
+            channelName: "Test Channel",
             entryCount: 3,
             totalMessages: 30,
             lastUpdated: "2025-01-01T00:00:00Z",
@@ -238,6 +243,7 @@ describe("SummaryService", () => {
           updated: "2025-01-01T00:00:00Z",
           metadata: {
             conversationId: "conv-2",
+            channelName: "Test Channel",
             entryCount: 2,
             totalMessages: 20,
             lastUpdated: "2025-01-01T00:00:00Z",

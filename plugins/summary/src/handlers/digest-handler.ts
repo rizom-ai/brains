@@ -124,6 +124,16 @@ export class DigestHandler {
       body.totalMessages = digest.windowEnd;
       updatedContent = this.adapter.createSummaryContent(body);
 
+      // Fetch conversation to get channel name
+      const conversation = await this.context.getConversation(digest.conversationId);
+      if (!conversation || !conversation.metadata) {
+        throw new Error(
+          `Conversation ${digest.conversationId} not found or missing metadata`,
+        );
+      }
+      const conversationMetadata = JSON.parse(conversation.metadata);
+      const channelName = conversationMetadata.channelName;
+
       // Save the updated summary
       const summaryEntity: SummaryEntity = {
         id: digest.conversationId,
@@ -133,6 +143,7 @@ export class DigestHandler {
         updated: digest.timestamp,
         metadata: {
           conversationId: digest.conversationId,
+          channelName,
           entryCount: body.entries.length,
           totalMessages: digest.windowEnd,
           lastUpdated: digest.timestamp,

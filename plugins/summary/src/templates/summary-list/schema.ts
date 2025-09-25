@@ -3,6 +3,7 @@ import { z } from "@brains/utils";
 // Schema for individual summary in list
 const summaryItemSchema = z.object({
   conversationId: z.string(),
+  channelName: z.string(),
   id: z.string(),
   entryCount: z.number(),
   totalMessages: z.number(),

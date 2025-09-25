@@ -79,14 +79,23 @@ export class SummaryDataSource implements DataSource {
       },
     );
 
-    // Transform to SummaryListData
+    // Transform to SummaryListData with channel names
     const summaries = entities.map((summary) => {
       const body = this.adapter.parseSummaryContent(summary.content);
       const latestEntry = body.entries[0]; // Entries are newest-first
 
+      // Get channel name from summary metadata
+      const channelName = summary.metadata?.channelName as string;
+      if (!channelName) {
+        throw new Error(
+          `Summary ${summary.id} missing channelName in metadata`,
+        );
+      }
+
       return {
         id: summary.id,
         conversationId: body.conversationId,
+        channelName,
         entryCount: body.entries.length,
         totalMessages: body.totalMessages,
         latestEntry: latestEntry?.title ?? "No entries",

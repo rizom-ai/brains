@@ -27,7 +27,7 @@ export const SummaryListLayout = ({
                 href={`/summaries/${summary.id}`}
                 className="text-brand hover:text-brand-dark"
               >
-                Conversation {summary.conversationId}
+                {summary.channelName}
               </a>
             </h2>
 

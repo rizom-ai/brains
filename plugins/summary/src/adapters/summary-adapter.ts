@@ -180,6 +180,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
       updated: newestEntry?.updated ?? body.lastUpdated,
       metadata: {
         conversationId: body.conversationId,
+        channelName: "Unknown", // Default value when parsing from markdown
         entryCount: body.entries.length,
         totalMessages: body.totalMessages,
         lastUpdated: body.lastUpdated,

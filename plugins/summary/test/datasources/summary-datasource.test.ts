@@ -91,6 +91,7 @@ Test content
         updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
+          channelName: "Test Channel",
           entryCount: 1,
           totalMessages: 50,
           lastUpdated: "2025-01-01T00:00:00Z",
@@ -158,6 +159,13 @@ Test content
           content: "content1",
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
+          metadata: {
+            conversationId: "1",
+            channelName: "Test Channel",
+            entryCount: 1,
+            totalMessages: 10,
+            lastUpdated: "2025-01-01T00:00:00Z",
+          },
         },
         {
           id: "2",
@@ -165,6 +173,13 @@ Test content
           content: "content2",
           created: "2025-01-02T00:00:00Z",
           updated: "2025-01-02T00:00:00Z",
+          metadata: {
+            conversationId: "2",
+            channelName: "Test Channel",
+            entryCount: 1,
+            totalMessages: 20,
+            lastUpdated: "2025-01-02T00:00:00Z",
+          },
         },
       ];
 

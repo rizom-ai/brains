@@ -42,6 +42,7 @@ export const summarySchema = z.object({
   metadata: z
     .object({
       conversationId: z.string(),
+      channelName: z.string(),
       entryCount: z.number(),
       totalMessages: z.number(),
       lastUpdated: z.string().datetime(),
