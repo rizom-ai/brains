@@ -105,7 +105,7 @@ export class DaemonRegistry {
     };
 
     this.daemons.set(name, daemonInfo);
-    this.logger.info(`Registered daemon: ${name} from plugin: ${pluginId}`);
+    this.logger.debug(`Registered daemon: ${name} from plugin: ${pluginId}`);
   }
 
   /**
@@ -136,7 +136,7 @@ export class DaemonRegistry {
       return;
     }
 
-    this.logger.info(`Starting daemon: ${name}`);
+    this.logger.debug(`Starting daemon: ${name}`);
     daemonInfo.status = "starting";
     delete daemonInfo.error;
 
@@ -144,7 +144,7 @@ export class DaemonRegistry {
       await daemonInfo.daemon.start();
       daemonInfo.status = "running";
       daemonInfo.startedAt = new Date();
-      this.logger.info(`Daemon started successfully: ${name}`);
+      this.logger.debug(`Daemon started successfully: ${name}`);
     } catch (error) {
       daemonInfo.status = "error";
       daemonInfo.error =
@@ -168,14 +168,14 @@ export class DaemonRegistry {
       return;
     }
 
-    this.logger.info(`Stopping daemon: ${name}`);
+    this.logger.debug(`Stopping daemon: ${name}`);
     daemonInfo.status = "stopping";
 
     try {
       await daemonInfo.daemon.stop();
       daemonInfo.status = "stopped";
       daemonInfo.stoppedAt = new Date();
-      this.logger.info(`Daemon stopped successfully: ${name}`);
+      this.logger.debug(`Daemon stopped successfully: ${name}`);
     } catch (error) {
       daemonInfo.status = "error";
       daemonInfo.error =
@@ -252,7 +252,7 @@ export class DaemonRegistry {
     }
 
     this.daemons.delete(name);
-    this.logger.info(`Unregistered daemon: ${name}`);
+    this.logger.debug(`Unregistered daemon: ${name}`);
   }
 
   /**
@@ -260,7 +260,7 @@ export class DaemonRegistry {
    */
   public async startPlugin(pluginId: string): Promise<void> {
     const pluginDaemons = this.getByPlugin(pluginId);
-    this.logger.info(
+    this.logger.debug(
       `Starting ${pluginDaemons.length} daemons for plugin: ${pluginId}`,
     );
 
@@ -279,7 +279,7 @@ export class DaemonRegistry {
    */
   public async stopPlugin(pluginId: string): Promise<void> {
     const pluginDaemons = this.getByPlugin(pluginId);
-    this.logger.info(
+    this.logger.debug(
       `Stopping ${pluginDaemons.length} daemons for plugin: ${pluginId}`,
     );
 
@@ -315,6 +315,6 @@ export class DaemonRegistry {
     }
 
     this.daemons.clear();
-    this.logger.info("All daemons cleared");
+    this.logger.debug("All daemons cleared");
   }
 }

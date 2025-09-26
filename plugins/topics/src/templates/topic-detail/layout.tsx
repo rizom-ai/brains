@@ -53,15 +53,20 @@ export const TopicDetailLayout = ({
           <h2 className="text-xl font-semibold mb-3 text-theme">Sources</h2>
           <div className="space-y-3">
             {sources.map((source) => (
-              <div
+              <a
                 key={source.id}
-                className="p-4 bg-theme-subtle rounded-lg hover:bg-theme-muted transition-colors border border-theme"
+                href={`/summaries/${source.id}`}
+                className="block p-4 bg-theme-subtle rounded-lg hover:bg-theme-muted transition-colors border border-theme"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium text-theme">{source.title}</h3>
+                    <h3 className="font-medium text-theme hover:text-brand transition-colors">
+                      {source.title}
+                    </h3>
                     <p className="text-sm text-theme-muted mt-1">
-                      Type: {source.type} • ID: {source.id}
+                      {source.type === "conversation"
+                        ? "Conversation Summary"
+                        : source.type}
                     </p>
                     {source.excerpt && (
                       <p className="text-sm mt-2 text-theme-muted italic">
@@ -70,7 +75,7 @@ export const TopicDetailLayout = ({
                     )}
                   </div>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </section>

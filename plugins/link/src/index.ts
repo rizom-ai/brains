@@ -67,14 +67,14 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
         "conversation:messageAdded",
         messageEventHandler.getHandler(),
       );
-      this.logger.info("Subscribed to conversation:messageAdded events");
+      this.logger.debug("Subscribed to conversation:messageAdded events");
     } else {
-      this.logger.info(
+      this.logger.debug(
         "Auto-capture is disabled, skipping handler registration",
       );
     }
 
-    this.logger.info("Link plugin registered successfully");
+    this.logger.debug("Link plugin registered successfully");
   }
 
   /**

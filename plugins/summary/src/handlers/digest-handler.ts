@@ -66,7 +66,7 @@ export class DigestHandler {
    */
   public async handleDigest(digest: ConversationDigestPayload): Promise<void> {
     try {
-      this.logger.info("Processing digest for conversation", {
+      this.logger.debug("Processing digest for conversation", {
         conversationId: digest.conversationId,
         messageCount: digest.messageCount,
         windowSize: digest.windowSize,
@@ -164,7 +164,7 @@ export class DigestHandler {
 
       await this.context.entityService.upsertEntity(summaryEntity);
 
-      this.logger.info("Summary updated successfully", {
+      this.logger.debug("Summary updated successfully", {
         conversationId: digest.conversationId,
         action: decision.action,
         entryCount: summaryEntity.metadata?.entryCount,

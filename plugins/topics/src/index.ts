@@ -52,6 +52,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Register DataSource
     const topicsDataSource = new TopicsDataSource(
       context.entityService,
+      context,
       this.logger.child("TopicsDataSource"),
     );
     context.registerDataSource(topicsDataSource);
@@ -107,7 +108,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     payload: ConversationDigestPayload,
   ): Promise<void> {
     try {
-      this.logger.info("Processing conversation digest for topic extraction", {
+      this.logger.debug("Processing conversation digest for topic extraction", {
         conversationId: payload.conversationId,
         messageCount: payload.messageCount,
         windowSize: payload.windowSize,
@@ -123,14 +124,14 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       );
 
       if (extractedTopics.length === 0) {
-        this.logger.info("No topics found in digest", {
+        this.logger.debug("No topics found in digest", {
           conversationId: payload.conversationId,
           messagesProcessed: payload.messages.length,
         });
         return;
       }
 
-      this.logger.info("Topics extracted from digest", {
+      this.logger.debug("Topics extracted from digest", {
         conversationId: payload.conversationId,
         topicsCount: extractedTopics.length,
         topics: extractedTopics.map((t) => t.title),
@@ -164,7 +165,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         },
       });
 
-      this.logger.info("Queued automatic topic extraction batch", {
+      this.logger.debug("Queued automatic topic extraction batch", {
         batchId,
         conversationId: payload.conversationId,
         topicsExtracted: extractedTopics.length,

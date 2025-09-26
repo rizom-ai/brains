@@ -29,7 +29,7 @@ export class DependencyResolver {
     initialized: Set<string>;
     failed: string[];
   }> {
-    this.logger.info("Resolving plugin initialization order...");
+    this.logger.debug("Resolving plugin initialization order...");
 
     // Get all plugin IDs
     const allPluginIds = Array.from(this.plugins.keys());
@@ -123,7 +123,7 @@ export class DependencyResolver {
       }
     }
 
-    this.logger.info(
+    this.logger.debug(
       `Resolved ${initialized.size} of ${allPluginIds.length} plugins`,
     );
 

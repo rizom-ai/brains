@@ -72,7 +72,7 @@ export class MCPService implements IMCPService {
       version: "1.0.0",
     });
 
-    this.logger.info("MCPService initialized");
+    this.logger.debug("MCPService initialized");
   }
 
   /**
@@ -173,7 +173,7 @@ export class MCPService implements IMCPService {
 
     // Track the tool
     this.registeredTools.set(tool.name, { pluginId, tool });
-    this.logger.info(`Registered tool ${tool.name} from ${pluginId}`);
+    this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
   }
 
   /**
@@ -237,7 +237,7 @@ export class MCPService implements IMCPService {
 
     // Track the resource
     this.registeredResources.set(resource.uri, { pluginId, resource });
-    this.logger.info(`Registered resource ${resource.uri} from ${pluginId}`);
+    this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
   }
 
   /**

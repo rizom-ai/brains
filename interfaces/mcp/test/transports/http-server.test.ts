@@ -248,7 +248,7 @@ describe("StreamableHTTPServer", () => {
 
     test("should connect MCP server", () => {
       server.connectMCPServer(mcpServer);
-      expect(mockLogger.info).toHaveBeenCalledWith(
+      expect(mockLogger.debug).toHaveBeenCalledWith(
         "MCP server connected to StreamableHTTP transport",
       );
     });

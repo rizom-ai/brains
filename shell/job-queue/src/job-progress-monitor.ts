@@ -82,14 +82,14 @@ export class JobProgressMonitor implements IJobProgressMonitor {
    * Start monitoring - now a no-op since we're event-driven
    */
   public start(): void {
-    this.logger.info("Job progress monitor ready (event-driven mode)");
+    this.logger.debug("Job progress monitor ready (event-driven mode)");
   }
 
   /**
    * Stop monitoring - now a no-op since no polling
    */
   public stop(): void {
-    this.logger.info("Job progress monitor stopped");
+    this.logger.debug("Job progress monitor stopped");
   }
 
   /**

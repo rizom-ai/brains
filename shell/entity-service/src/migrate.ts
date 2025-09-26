@@ -17,7 +17,7 @@ export async function migrateEntities(
     Logger.getInstance().child("entity-migrate");
   const { db, client, url } = createEntityDatabase(config);
 
-  log.info("Running entity database migrations...");
+  log.debug("Running entity database migrations...");
 
   try {
     // Enable WAL mode before migrations
@@ -31,7 +31,7 @@ export async function migrateEntities(
     // Ensure indexes exist
     await ensureEntityIndexes(client);
 
-    log.info("Entity database migrations completed successfully");
+    log.debug("Entity database migrations completed successfully");
   } catch (error) {
     log.error("Entity database migration failed:", error);
     throw error;

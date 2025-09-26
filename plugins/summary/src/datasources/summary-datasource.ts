@@ -126,7 +126,7 @@ export class SummaryDataSource implements DataSource {
       totalCount: summaries.length,
     };
 
-    this.logger.info("Creating list data", {
+    this.logger.debug("Creating list data", {
       summaryCount: summaries.length,
       firstSummary: summaries[0]?.id,
     });

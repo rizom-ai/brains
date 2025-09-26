@@ -65,7 +65,7 @@ export class ServiceRegistry {
       this.logger.debug(`Removed existing instance of: ${id}`);
     }
 
-    this.logger.info(`Registered component: ${id}`);
+    this.logger.debug(`Registered component: ${id}`);
   }
 
   /**
@@ -148,7 +148,7 @@ export class ServiceRegistry {
       this.logger.debug(`Removed cached instance of: ${id}`);
     }
 
-    this.logger.info(`Unregistered component: ${id}`);
+    this.logger.debug(`Unregistered component: ${id}`);
   }
 
   /**
@@ -165,6 +165,6 @@ export class ServiceRegistry {
     this.logger.debug("Clearing all components");
     this.components.clear();
     this.factories.clear();
-    this.logger.info("All components cleared");
+    this.logger.debug("All components cleared");
   }
 }

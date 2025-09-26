@@ -89,7 +89,7 @@ export class JobQueueWorker {
       isRunning: false,
     };
 
-    this.logger.info("JobQueueWorker initialized", {
+    this.logger.debug("JobQueueWorker initialized", {
       concurrency: this.config.concurrency,
       pollInterval: this.config.pollInterval,
       maxJobs: this.config.maxJobs,
@@ -110,7 +110,7 @@ export class JobQueueWorker {
       return;
     }
 
-    this.logger.info("Starting JobQueueWorker");
+    this.logger.debug("Starting JobQueueWorker");
     this.isRunning = true;
     this.shouldStop = false;
     this.startTime = Date.now();
@@ -129,7 +129,7 @@ export class JobQueueWorker {
       return;
     }
 
-    this.logger.info("Stopping JobQueueWorker");
+    this.logger.debug("Stopping JobQueueWorker");
     this.shouldStop = true;
 
     // Clear any scheduled polls
@@ -140,7 +140,7 @@ export class JobQueueWorker {
 
     // Wait for all active jobs to complete
     if (this.processingPromises.size > 0) {
-      this.logger.info("Waiting for active jobs to complete", {
+      this.logger.debug("Waiting for active jobs to complete", {
         activeJobs: this.processingPromises.size,
       });
       await Promise.all(this.processingPromises.values());
@@ -148,7 +148,7 @@ export class JobQueueWorker {
 
     this.isRunning = false;
     this.stats.isRunning = false;
-    this.logger.info("JobQueueWorker stopped");
+    this.logger.debug("JobQueueWorker stopped");
   }
 
   /**
@@ -189,7 +189,7 @@ export class JobQueueWorker {
         this.config.maxJobs > 0 &&
         this.stats.processedJobs >= this.config.maxJobs
       ) {
-        this.logger.info("Maximum job limit reached, stopping worker", {
+        this.logger.debug("Maximum job limit reached, stopping worker", {
           maxJobs: this.config.maxJobs,
           processedJobs: this.stats.processedJobs,
         });

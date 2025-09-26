@@ -62,7 +62,7 @@ export class EntityQueries {
       .limit(1);
 
     if (result.length === 0) {
-      this.logger.info(`Entity of type ${entityType} with ID ${id} not found`);
+      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
       return null;
     }
 
@@ -140,7 +140,7 @@ export class EntityQueries {
       entityType,
     );
 
-    this.logger.info(
+    this.logger.debug(
       `Listed ${entityList.length} entities of type ${entityType}`,
     );
 
@@ -170,7 +170,7 @@ export class EntityQueries {
     const exists = await this.entityExists(entityType, id);
 
     if (!exists) {
-      this.logger.info(
+      this.logger.debug(
         `Entity of type ${entityType} with ID ${id} not found for deletion`,
       );
       return false;
@@ -181,7 +181,7 @@ export class EntityQueries {
       .delete(entities)
       .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));
 
-    this.logger.info(`Deleted entity of type ${entityType} with ID ${id}`);
+    this.logger.debug(`Deleted entity of type ${entityType} with ID ${id}`);
     return true;
   }
 }

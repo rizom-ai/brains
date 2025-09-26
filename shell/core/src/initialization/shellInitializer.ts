@@ -413,7 +413,7 @@ export class ShellInitializer {
       // Step 3: Initialize plugins
       await this.initializePlugins(pluginManager);
 
-      this.logger.info("Shell ready");
+      this.logger.debug("Shell ready");
     } catch (error) {
       this.logger.error("Shell initialization failed", error);
       throw error;

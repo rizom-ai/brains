@@ -36,18 +36,18 @@ export class HydrationManager {
 
     // Find all interactive components
     for (const route of routes) {
-      this.logger.info(
+      this.logger.debug(
         `Processing route ${route.path} with ${route.sections.length} sections`,
       );
       for (const section of route.sections) {
-        this.logger.info(
+        this.logger.debug(
           `Checking section ${section.id} with template ${section.template}`,
         );
         const template = this.getViewTemplate(section.template);
         if (!template) {
           this.logger.warn(`Template not found: ${section.template}`);
         } else {
-          this.logger.info(
+          this.logger.debug(
             `Template ${section.template}: interactive=${template.interactive}`,
           );
           if (template.interactive) {
@@ -58,13 +58,13 @@ export class HydrationManager {
     }
 
     if (interactiveComponents.size === 0) {
-      this.logger.info(
+      this.logger.debug(
         "No interactive components found, skipping hydration setup",
       );
       return [];
     }
 
-    this.logger.info(
+    this.logger.debug(
       `Found ${interactiveComponents.size} interactive components using self-hydration`,
     );
 

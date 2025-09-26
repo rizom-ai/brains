@@ -314,7 +314,7 @@ export class EntityService implements IEntityService {
       },
     );
 
-    this.logger.info(
+    this.logger.debug(
       `Queued embedding update for entity ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
     );
 

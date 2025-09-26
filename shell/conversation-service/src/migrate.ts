@@ -13,7 +13,7 @@ export async function migrateConversations(
     Logger.getInstance().child("conversation-migrate");
   const { db, client, url } = createConversationDatabase(config);
 
-  log.info("Running conversation database migrations...");
+  log.debug("Running conversation database migrations...");
 
   try {
     // Enable WAL mode before migrations (for better concurrent access)
@@ -26,7 +26,7 @@ export async function migrateConversations(
       migrationsFolder: new URL("../drizzle", import.meta.url).pathname,
     });
 
-    log.info("Conversation database migrations completed successfully");
+    log.debug("Conversation database migrations completed successfully");
   } catch (error) {
     log.error("Conversation database migration failed:", error);
     throw error;

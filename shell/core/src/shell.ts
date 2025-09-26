@@ -176,13 +176,13 @@ export class Shell implements IShell {
    * Initialize the Shell instance
    */
   public async initialize(): Promise<void> {
-    this.logger.info("Shell.initialize() called");
+    this.logger.debug("Shell.initialize() called");
     if (this.initialized) {
       this.logger.warn("Shell already initialized");
       return;
     }
 
-    this.logger.info("Starting Shell initialization");
+    this.logger.debug("Starting Shell initialization");
     try {
       const shellInitializer = ShellInitializer.getInstance(
         this.logger,
@@ -581,12 +581,12 @@ export class Shell implements IShell {
    * Register core DataSources that are built into the shell
    */
   private registerCoreDataSources(): void {
-    this.logger.info("Registering core DataSources");
+    this.logger.debug("Registering core DataSources");
 
     // Register the SystemStats DataSource
     const systemStatsDataSource = new SystemStatsDataSource(this.entityService);
     this.dataSourceRegistry.register(systemStatsDataSource);
-    this.logger.info("Registered SystemStats DataSource");
+    this.logger.debug("Registered SystemStats DataSource");
 
     // Register the AI Content DataSource
     const aiContentDataSource = new AIContentDataSource(
@@ -595,8 +595,8 @@ export class Shell implements IShell {
       this.templateRegistry,
     );
     this.dataSourceRegistry.register(aiContentDataSource);
-    this.logger.info("Registered AI Content DataSource");
+    this.logger.debug("Registered AI Content DataSource");
 
-    this.logger.info("Core DataSources registered");
+    this.logger.debug("Core DataSources registered");
   }
 }

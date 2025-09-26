@@ -93,7 +93,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Initialize directory structure only (no sync)
     try {
       await this.directorySync.initializeDirectory();
-      this.info("Directory structure initialized", {
+      this.debug("Directory structure initialized", {
         path: this.config.syncPath,
       });
     } catch (error) {
@@ -114,7 +114,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     if (this.config.initialSync) {
       setTimeout(async () => {
         const jobId = await this.queueSyncJob(context, "initial");
-        this.info("Queued initial sync job", {
+        this.debug("Queued initial sync job", {
           jobId,
           delay: this.config.initialSyncDelay,
         });
@@ -269,7 +269,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    this.info("Registered message handlers for inter-plugin communication");
+    this.debug("Registered message handlers for inter-plugin communication");
   }
 
   /**
@@ -355,7 +355,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
     context.registerJobHandler("directory-import", importHandler);
 
-    this.info("Registered async job handlers");
+    this.debug("Registered async job handlers");
   }
 }
 

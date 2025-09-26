@@ -40,7 +40,7 @@ export class FileWatcher {
       return;
     }
 
-    this.logger.info("Starting directory watch", {
+    this.logger.debug("Starting directory watch", {
       path: this.syncPath,
       interval: this.watchInterval,
     });

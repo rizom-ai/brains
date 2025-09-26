@@ -57,5 +57,5 @@ export function setupJobProgressListener(
     return { success: true };
   });
 
-  logger.info("Subscribed to job progress events");
+  logger.debug("Subscribed to job progress events");
 }

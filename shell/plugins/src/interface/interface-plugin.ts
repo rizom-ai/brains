@@ -81,7 +81,7 @@ export abstract class InterfacePlugin<
     if (!this.daemon) return;
 
     context.registerDaemon(this.id, this.daemon);
-    context.logger.info(`Registered daemon for interface: ${this.id}`);
+    context.logger.debug(`Registered daemon for interface: ${this.id}`);
   }
 
   /**

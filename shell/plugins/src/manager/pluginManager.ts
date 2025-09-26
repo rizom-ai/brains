@@ -122,7 +122,7 @@ export class PluginManager implements IPluginManager {
     };
 
     this.plugins.set(plugin.id, pluginInfo);
-    this.logger.info(`Registered plugin: ${plugin.id} (${plugin.version})`);
+    this.logger.debug(`Registered plugin: ${plugin.id} (${plugin.version})`);
 
     // Emit registered event
     this.events.emit(PluginEvent.REGISTERED, plugin.id, plugin);
@@ -133,7 +133,7 @@ export class PluginManager implements IPluginManager {
    * Plugins with no dependencies are initialized first
    */
   public async initializePlugins(): Promise<void> {
-    this.logger.info("Initializing plugins...");
+    this.logger.debug("Initializing plugins...");
 
     // Use dependency resolver to handle initialization order
     const result = await this.dependencyResolver.resolveInitializationOrder(
@@ -142,7 +142,7 @@ export class PluginManager implements IPluginManager {
       },
     );
 
-    this.logger.info(
+    this.logger.debug(
       `Initialized ${result.initialized.size} of ${this.plugins.size} plugins`,
     );
   }

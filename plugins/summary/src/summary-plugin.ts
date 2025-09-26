@@ -74,7 +74,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
         await this.handleDigestMessage({ ...message, payload });
         return { success: true };
       });
-      this.logger.info("Summary plugin subscribed to digest events");
+      this.logger.debug("Summary plugin subscribed to digest events");
     }
   }
 

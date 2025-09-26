@@ -360,7 +360,7 @@ export class ConversationService implements IConversationService {
       true, // broadcast
     );
 
-    this.logger.info("Broadcast conversation digest", {
+    this.logger.debug("Broadcast conversation digest", {
       conversationId,
       messageCount,
       windowStart,

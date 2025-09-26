@@ -55,7 +55,7 @@ export class TopicProcessingHandler
   ): Promise<TopicProcessingResult> {
     const { topic, autoMerge = false, mergeSimilarityThreshold = 0.85 } = data;
 
-    this.logger.info("Processing extracted topic", {
+    this.logger.debug("Processing extracted topic", {
       jobId,
       title: topic.title,
       conversationId: data.conversationId,
@@ -97,7 +97,7 @@ export class TopicProcessingHandler
           keywords: topic.keywords,
         });
 
-        this.logger.info("Merged with existing topic", {
+        this.logger.debug("Merged with existing topic", {
           topicId: topResult.entity.id,
           title: topic.title,
           similarityScore: topResult.score,
@@ -124,7 +124,7 @@ export class TopicProcessingHandler
           throw new Error(`Failed to create topic: ${topic.title}`);
         }
 
-        this.logger.info("Created new topic", {
+        this.logger.debug("Created new topic", {
           title: topic.title,
           id: created.id,
         });

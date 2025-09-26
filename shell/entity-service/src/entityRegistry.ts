@@ -54,7 +54,7 @@ export class EntityRegistry implements IEntityRegistry {
     schema: z.ZodType<unknown>,
     adapter: EntityAdapter<TEntity>,
   ): void {
-    this.logger.info(`Registering entity type: ${type}`);
+    this.logger.debug(`Registering entity type: ${type}`);
 
     // Check for duplicate registration
     if (this.entitySchemas.has(type)) {
@@ -69,7 +69,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
 
-    this.logger.info(`Registered entity type: ${type}`);
+    this.logger.debug(`Registered entity type: ${type}`);
   }
 
   /**

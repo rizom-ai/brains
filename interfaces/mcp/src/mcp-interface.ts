@@ -78,7 +78,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
-    this.logger.info(
+    this.logger.debug(
       `MCP interface initialized with ${this.config.transport} transport`,
     );
 

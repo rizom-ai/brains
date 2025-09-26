@@ -76,7 +76,7 @@ export class TopicExtractor {
 
     const relevantTopics = Array.from(topicMap.values());
 
-    this.logger.info(
+    this.logger.debug(
       `Extracted ${relevantTopics.length} relevant topics from ${messages.length} messages`,
     );
     return relevantTopics;

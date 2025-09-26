@@ -51,7 +51,7 @@ export class PluginLifecycle {
 
       // Update plugin status
       pluginInfo.status = PluginStatus.INITIALIZED;
-      this.logger.info(`Initialized plugin: ${pluginId}`);
+      this.logger.debug(`Initialized plugin: ${pluginId}`);
 
       // Start any daemons registered by this plugin
       try {
@@ -117,7 +117,7 @@ export class PluginLifecycle {
     // Emit disabled event
     this.events.emit(PluginEvent.DISABLED, id, pluginInfo.plugin);
 
-    this.logger.info(`Disabled plugin: ${id}`);
+    this.logger.debug(`Disabled plugin: ${id}`);
   }
 
   /**
@@ -152,6 +152,6 @@ export class PluginLifecycle {
     // Emit enabled event
     this.events.emit(PluginEvent.ENABLED, id, pluginInfo.plugin);
 
-    this.logger.info(`Enabled plugin: ${id}`);
+    this.logger.debug(`Enabled plugin: ${id}`);
   }
 }

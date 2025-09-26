@@ -59,7 +59,7 @@ export class StdioMCPServer {
    */
   public connectMCPServer(mcpServer: McpServer): void {
     this.mcpServer = mcpServer;
-    this.logger.info("MCP server connected to stdio transport");
+    this.logger.debug("MCP server connected to stdio transport");
   }
 
   /**

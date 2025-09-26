@@ -76,7 +76,7 @@ export class TopicService {
         updated: new Date().toISOString(),
       };
 
-      this.logger.info("Created topic", {
+      this.logger.debug("Created topic", {
         id: topic.id,
         title: params.title,
       });
@@ -85,7 +85,7 @@ export class TopicService {
     } catch (error) {
       // Handle case where another process created the topic concurrently
       if (error instanceof Error && error.message.includes("already exists")) {
-        this.logger.info("Topic was created concurrently, fetching existing", {
+        this.logger.debug("Topic was created concurrently, fetching existing", {
           id: topicId,
           title: params.title,
         });
@@ -119,9 +119,13 @@ export class TopicService {
     const summary = updates.summary ?? parsed.summary;
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
-    const sources = updates.sources
-      ? [...parsed.sources, ...updates.sources] // Append new sources
-      : parsed.sources;
+
+    // Deduplicate sources using a Set
+    const sourcesSet = new Set(parsed.sources);
+    if (updates.sources) {
+      updates.sources.forEach((source) => sourcesSet.add(source));
+    }
+    const sources = Array.from(sourcesSet);
 
     // Metadata stays empty
     const metadata: TopicMetadata = {};

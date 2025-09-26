@@ -194,7 +194,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       const content = await context.getContent(route, section);
 
       if (!content) {
-        this.logger.warn(`No content for section: ${section.id}`);
+        this.logger.debug(`No content for section: ${section.id}`);
         continue;
       }
 

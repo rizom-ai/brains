@@ -80,7 +80,7 @@ export class SummaryExtractor {
     digest: ConversationDigestPayload,
     existingContent: string | null,
   ): Promise<DigestDecision> {
-    this.logger.info("Analyzing digest for conversation", {
+    this.logger.debug("Analyzing digest for conversation", {
       conversationId: digest.conversationId,
       messageCount: digest.messageCount,
       windowSize: digest.windowSize,

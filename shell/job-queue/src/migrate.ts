@@ -13,7 +13,7 @@ export async function migrateJobQueue(
     Logger.getInstance().child("job-queue-migrate");
   const { db, client, url } = createJobQueueDatabase(config);
 
-  log.info("Running job queue migrations...");
+  log.debug("Running job queue migrations...");
 
   try {
     // Enable WAL mode before migrations
@@ -23,7 +23,7 @@ export async function migrateJobQueue(
       migrationsFolder: new URL("../drizzle", import.meta.url).pathname,
     });
 
-    log.info("Job queue migrations completed successfully");
+    log.debug("Job queue migrations completed successfully");
   } catch (error) {
     log.error("Job queue migration failed:", error);
     throw error;

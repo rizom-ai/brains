@@ -43,7 +43,7 @@ export class DynamicRouteGenerator {
       return;
     }
 
-    logger.info(`Generating routes for entity type: ${entityType}`, {
+    logger.debug(`Generating routes for entity type: ${entityType}`, {
       listTemplate: listTemplateName,
       detailTemplate: detailTemplateName,
     });
@@ -95,7 +95,7 @@ export class DynamicRouteGenerator {
           { limit: 1000 }, // Get all entities for static generation
         );
 
-        logger.info(
+        logger.debug(
           `Found ${entities.length} ${entityType} entities to generate routes for`,
         );
 
@@ -132,7 +132,7 @@ export class DynamicRouteGenerator {
         const routeCount = listTemplateName
           ? entities.length + 1
           : entities.length;
-        logger.info(
+        logger.debug(
           `Successfully registered ${routeCount} routes for ${entityType}`,
         );
       } catch (error) {
