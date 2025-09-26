@@ -50,7 +50,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     // Set up event handlers
     this.setupEventHandlers();
 
-    this.logger.info("Matrix interface registered", {
+    this.logger.debug("Matrix interface registered", {
       homeserver: this.config.homeserver,
       userId: this.config.userId,
     });
@@ -65,17 +65,17 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
         if (!this.client) {
           throw new Error("Matrix client not initialized");
         }
-        this.logger.info("Starting Matrix interface...");
+        this.logger.debug("Starting Matrix interface...");
         await this.client.start();
-        this.logger.info("Matrix interface started", {
+        this.logger.debug("Matrix interface started", {
           userId: this.config.userId,
         });
       },
       stop: async (): Promise<void> => {
         if (this.client) {
-          this.logger.info("Stopping Matrix interface...");
+          this.logger.debug("Stopping Matrix interface...");
           await this.client.stop();
-          this.logger.info("Matrix interface stopped");
+          this.logger.debug("Matrix interface stopped");
         }
       },
       healthCheck: async (): Promise<DaemonHealth> => {
@@ -195,7 +195,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
    */
   protected override async getChannelName(channelId: string): Promise<string> {
     if (!this.client) {
-      this.logger.warn(
+      this.logger.debug(
         "Matrix client not available when getting channel name",
         { channelId },
       );
@@ -204,14 +204,14 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
 
     try {
       const roomName = await this.client.getRoomName(channelId);
-      this.logger.info("Got room name from Matrix", {
+      this.logger.debug("Got room name from Matrix", {
         channelId,
         roomName,
         isSameAsId: roomName === channelId,
       });
       return roomName;
     } catch (error) {
-      this.logger.warn("Failed to get room name for conversation", {
+      this.logger.debug("Failed to get room name for conversation", {
         channelId,
         error,
       });

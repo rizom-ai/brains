@@ -87,16 +87,10 @@ export function isAddressedToBot(
     };
   },
   botUserId: string,
-  logger: Logger,
+  _logger: Logger,
 ): boolean {
   const userIds = event.content?.["m.mentions"]?.user_ids;
   const isAddressed = userIds?.includes(botUserId) ?? false;
-
-  logger.debug("Checking if bot is addressed", {
-    botUserId,
-    mentionedUserIds: userIds,
-    isAddressed,
-  });
 
   return isAddressed;
 }

@@ -101,10 +101,6 @@ export async function handleJobProgress(
       message,
       markdownToHtml(message),
     );
-    logger.debug("Edited message with job progress", {
-      jobId: progressEvent.id,
-      messageId,
-    });
   } catch (error) {
     logger.error("Failed to send/edit job progress message", {
       error,
@@ -165,10 +161,6 @@ export async function handleBatchProgress(
       message,
       markdownToHtml(message),
     );
-    logger.debug("Edited message with batch progress", {
-      batchId: progressEvent.id,
-      messageId,
-    });
   } catch (error) {
     logger.error("Failed to send/edit batch progress message", {
       error,

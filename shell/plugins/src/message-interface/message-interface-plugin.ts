@@ -269,13 +269,13 @@ export abstract class MessageInterfacePlugin<
     if (!this.startedConversations.has(conversationId)) {
       try {
         // Start conversation returns the conversation ID (same as sessionId in this case)
-        this.logger.info("Getting channel name for conversation", {
+        this.logger.debug("Getting channel name for conversation", {
           conversationId,
           channelId: context.channelId,
           interfaceType: context.interfaceType,
         });
         const channelName = await this.getChannelName(context.channelId);
-        this.logger.info("Got channel name", {
+        this.logger.debug("Got channel name", {
           channelId: context.channelId,
           channelName,
         });

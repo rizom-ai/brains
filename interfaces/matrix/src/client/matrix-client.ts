@@ -51,11 +51,6 @@ export class MatrixClientWrapper {
     if (config.autoJoinRooms) {
       AutojoinRoomsMixin.setupOnClient(this.client);
     }
-
-    this.logger.info("Matrix client initialized", {
-      homeserver: config.homeserver,
-      userId: config.userId,
-    });
   }
 
   /**
@@ -70,12 +65,12 @@ export class MatrixClientWrapper {
    */
   async start(): Promise<void> {
     if (this.connected) {
-      this.logger.warn("Matrix client already started");
+      this.logger.debug("Matrix client already started");
       return;
     }
 
     try {
-      this.logger.info("Starting Matrix client...");
+      this.logger.debug("Starting Matrix client...");
 
       // Verify we can connect
       const whoami = await this.client.getUserId();
@@ -90,14 +85,14 @@ export class MatrixClientWrapper {
         try {
           await this.client.setDisplayName(this.config.deviceDisplayName);
         } catch (error) {
-          this.logger.warn("Failed to set display name", { error });
+          this.logger.debug("Failed to set display name", { error });
         }
       }
 
       // Start syncing
       await this.client.start();
       this.connected = true;
-      this.logger.info("Matrix client started successfully");
+      this.logger.debug("Matrix client started successfully");
     } catch (error) {
       this.logger.error("Failed to start Matrix client", { error });
       throw error;
@@ -113,10 +108,10 @@ export class MatrixClientWrapper {
     }
 
     try {
-      this.logger.info("Stopping Matrix client...");
+      this.logger.debug("Stopping Matrix client...");
       this.client.stop();
       this.connected = false;
-      this.logger.info("Matrix client stopped");
+      this.logger.debug("Matrix client stopped");
     } catch (error) {
       this.logger.error("Error stopping Matrix client", { error });
       throw error;
@@ -134,7 +129,7 @@ export class MatrixClientWrapper {
         "m.room.name",
         "",
       );
-      this.logger.info("Room name event from Matrix", {
+      this.logger.debug("Room name event from Matrix", {
         roomId,
         nameEvent,
         hasName: nameEvent && typeof nameEvent.name === "string",
@@ -143,11 +138,11 @@ export class MatrixClientWrapper {
         return nameEvent.name;
       }
     } catch (error) {
-      this.logger.warn("Failed to get room name", { roomId, error });
+      this.logger.debug("Failed to get room name", { roomId, error });
     }
 
     // Fall back to room ID if no name is set
-    this.logger.info("Falling back to room ID as name", { roomId });
+    this.logger.debug("Falling back to room ID as name", { roomId });
     return roomId;
   }
 

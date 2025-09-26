@@ -70,13 +70,6 @@ export async function handleRoomMessage(
   const cleanMessage = message.replace(mentionPattern, "").trim();
   const messageToProcess = cleanMessage || message; // Use original if cleaning resulted in empty
 
-  ctx.logger.info("Processing message", {
-    roomId,
-    senderId,
-    eventId,
-    message: messageToProcess.substring(0, 100), // Log first 100 chars
-  });
-
   try {
     // Create message context - permission level will be determined by handleInput
     const messageContext: MessageContext = {
@@ -118,17 +111,12 @@ export async function handleRoomInvite(
 
   const inviter = inviteEvent.sender ?? "unknown";
 
-  ctx.logger.info("Received room invite", {
-    roomId,
-    inviter,
-  });
-
   // Check permissions using centralized permission service
   const userPermissionLevel = ctx.getUserPermissionLevel("matrix", inviter);
 
   // Only accept invites from anchor users
   if (userPermissionLevel !== "anchor") {
-    ctx.logger.info("Ignoring room invite from non-anchor user", {
+    ctx.logger.debug("Ignoring room invite from non-anchor user", {
       roomId,
       inviter,
       permissionLevel: userPermissionLevel,
@@ -138,7 +126,7 @@ export async function handleRoomInvite(
 
   try {
     await ctx.client.joinRoom(roomId);
-    ctx.logger.info("Joined room after invite from anchor user", {
+    ctx.logger.debug("Joined room after invite from anchor user", {
       roomId,
       inviter,
     });
