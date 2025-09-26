@@ -77,8 +77,8 @@ export class SummaryDataSource implements DataSource {
         channelName: entity.metadata.channelName,
         entries,
         totalMessages: entity.metadata.totalMessages,
-        lastUpdated: entity.metadata.lastUpdated,
         entryCount: entries.length,
+        updated: entity.updated,
       };
 
       return outputSchema.parse(detailData);
@@ -116,7 +116,7 @@ export class SummaryDataSource implements DataSource {
         entryCount: entries.length,
         totalMessages: summary.metadata.totalMessages,
         latestEntry: latestEntry?.title ?? "No entries",
-        lastUpdated: summary.metadata.lastUpdated,
+        updated: summary.updated,
         created: summary.created,
       };
     });

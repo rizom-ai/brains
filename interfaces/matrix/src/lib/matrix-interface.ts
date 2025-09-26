@@ -195,14 +195,23 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
    */
   protected override async getChannelName(channelId: string): Promise<string> {
     if (!this.client) {
+      this.logger.warn(
+        "Matrix client not available when getting channel name",
+        { channelId },
+      );
       return channelId;
     }
 
     try {
       const roomName = await this.client.getRoomName(channelId);
+      this.logger.info("Got room name from Matrix", {
+        channelId,
+        roomName,
+        isSameAsId: roomName === channelId,
+      });
       return roomName;
     } catch (error) {
-      this.logger.debug("Failed to get room name for conversation", {
+      this.logger.warn("Failed to get room name for conversation", {
         channelId,
         error,
       });

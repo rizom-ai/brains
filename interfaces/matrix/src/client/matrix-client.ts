@@ -134,14 +134,20 @@ export class MatrixClientWrapper {
         "m.room.name",
         "",
       );
+      this.logger.info("Room name event from Matrix", {
+        roomId,
+        nameEvent,
+        hasName: nameEvent && typeof nameEvent.name === "string",
+      });
       if (nameEvent && typeof nameEvent.name === "string") {
         return nameEvent.name;
       }
     } catch (error) {
-      this.logger.debug("Failed to get room name", { roomId, error });
+      this.logger.warn("Failed to get room name", { roomId, error });
     }
 
     // Fall back to room ID if no name is set
+    this.logger.info("Falling back to room ID as name", { roomId });
     return roomId;
   }
 

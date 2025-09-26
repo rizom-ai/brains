@@ -59,9 +59,10 @@ describe("SummaryService", () => {
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 10,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
@@ -137,9 +138,10 @@ describe("SummaryService", () => {
           metadata: {
             conversationId: "conv-1",
             channelName: "Test Channel",
+            channelId: "test-channel",
+            interfaceType: "cli",
             entryCount: 3,
             totalMessages: 30,
-            lastUpdated: "2025-01-01T00:00:00Z",
           },
         },
         {
@@ -151,9 +153,10 @@ describe("SummaryService", () => {
           metadata: {
             conversationId: "conv-2",
             channelName: "Test Channel",
+            channelId: "test-channel",
+            interfaceType: "cli",
             entryCount: 2,
             totalMessages: 20,
-            lastUpdated: "2025-01-01T00:00:00Z",
           },
         },
       ];
@@ -191,9 +194,10 @@ describe("SummaryService", () => {
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 5,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
@@ -230,9 +234,10 @@ describe("SummaryService", () => {
           metadata: {
             conversationId: "conv-1",
             channelName: "Test Channel",
+            channelId: "test-channel",
+            interfaceType: "cli",
             entryCount: 3,
             totalMessages: 30,
-            lastUpdated: "2025-01-01T00:00:00Z",
           },
         },
         {
@@ -244,9 +249,10 @@ describe("SummaryService", () => {
           metadata: {
             conversationId: "conv-2",
             channelName: "Test Channel",
+            channelId: "test-channel",
+            interfaceType: "cli",
             entryCount: 2,
             totalMessages: 20,
-            lastUpdated: "2025-01-01T00:00:00Z",
           },
         },
       ];
@@ -283,10 +289,11 @@ describe("SummaryService", () => {
           updated: "2025-01-01T00:00:00Z",
           metadata: {
             conversationId: "conv-123",
+            channelId: "test-channel",
+            interfaceType: "cli",
             channelName: "Test Channel",
             entryCount: 0, // Set to 0 to test missing/zero entryCount handling
             totalMessages: 10,
-            lastUpdated: "2025-01-01T00:00:00Z",
           },
         },
       ];

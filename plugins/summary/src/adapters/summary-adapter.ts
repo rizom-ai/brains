@@ -12,9 +12,10 @@ import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
 const summaryFrontmatterSchema = z.object({
   conversationId: z.string(),
   channelName: z.string(),
+  channelId: z.string(),
+  interfaceType: z.string(),
   entryCount: z.number(),
   totalMessages: z.number(),
-  lastUpdated: z.string(),
 });
 
 /**
@@ -151,56 +152,33 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
    * Create entity from markdown, extracting metadata from frontmatter
    */
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {
-    // Try to parse with frontmatter first (new format)
-    try {
-      const { metadata, content: contentBody } = parseMarkdownWithFrontmatter(
-        markdown,
-        summaryFrontmatterSchema.partial(),
-      );
+    // Parse with required frontmatter fields
+    const { metadata, content: contentBody } = parseMarkdownWithFrontmatter(
+      markdown,
+      summaryFrontmatterSchema,
+    );
 
-      // Parse entries from content body
-      const entries = this.parseEntriesFromContent(contentBody);
+    // Parse entries from content body
+    const entries = this.parseEntriesFromContent(contentBody);
 
-      // Get timestamps from entries
-      const oldestEntry = entries[entries.length - 1];
-      const newestEntry = entries[0];
+    // Get timestamps from entries
+    const oldestEntry = entries[entries.length - 1];
+    const newestEntry = entries[0];
 
-      return {
-        entityType: "summary",
-        content: markdown, // Store the FULL markdown including frontmatter
-        created: oldestEntry?.created ?? new Date().toISOString(),
-        updated:
-          newestEntry?.updated ??
-          metadata.lastUpdated ??
-          new Date().toISOString(),
-        metadata: {
-          conversationId: metadata.conversationId ?? "",
-          channelName: metadata.channelName ?? "Unknown",
-          entryCount: metadata.entryCount ?? entries.length,
-          totalMessages: metadata.totalMessages ?? 0,
-          lastUpdated: metadata.lastUpdated ?? new Date().toISOString(),
-        },
-      };
-    } catch {
-      // Fallback: parse content without frontmatter
-      const entries = this.parseEntriesFromContent(markdown);
-      const oldestEntry = entries[entries.length - 1];
-      const newestEntry = entries[0];
-
-      return {
-        entityType: "summary",
-        content: markdown,
-        created: oldestEntry?.created ?? new Date().toISOString(),
-        updated: newestEntry?.updated ?? new Date().toISOString(),
-        metadata: {
-          conversationId: "", // No conversationId in content without frontmatter
-          channelName: "Unknown",
-          entryCount: entries.length,
-          totalMessages: 0,
-          lastUpdated: newestEntry?.updated ?? new Date().toISOString(),
-        },
-      };
-    }
+    return {
+      entityType: "summary",
+      content: markdown, // Store the FULL markdown including frontmatter
+      created: oldestEntry?.created ?? new Date().toISOString(),
+      updated: newestEntry?.updated ?? new Date().toISOString(),
+      metadata: {
+        conversationId: metadata.conversationId,
+        channelName: metadata.channelName,
+        channelId: metadata.channelId,
+        interfaceType: metadata.interfaceType,
+        entryCount: metadata.entryCount,
+        totalMessages: metadata.totalMessages,
+      },
+    };
   }
 
   /**

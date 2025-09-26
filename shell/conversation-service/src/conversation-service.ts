@@ -38,8 +38,8 @@ export class ConversationService implements IConversationService {
   ) {
     this.messageBus = messageBus;
     this.config = {
-      digestTriggerInterval: 10,
-      digestWindowSize: 20,
+      digestTriggerInterval: 5,
+      digestWindowSize: 10,
       ...config,
     };
   }

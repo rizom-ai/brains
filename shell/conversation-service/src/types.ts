@@ -20,6 +20,8 @@ export interface ConversationServiceConfig {
  */
 export interface ConversationMetadata {
   channelName: string; // Human-readable name for the channel/room
+  interfaceType: string; // Interface that created the conversation (e.g., 'matrix', 'cli')
+  channelId: string; // Original channel/room identifier
 }
 
 /**

@@ -8,7 +8,7 @@ const summaryItemSchema = z.object({
   entryCount: z.number(),
   totalMessages: z.number(),
   latestEntry: z.string(),
-  lastUpdated: z.string(),
+  updated: z.string(),
   created: z.string(),
 });
 

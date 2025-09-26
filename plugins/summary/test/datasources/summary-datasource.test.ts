@@ -92,9 +92,10 @@ Test content
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -133,9 +134,10 @@ Test content
         metadata: {
           conversationId: "conv-456",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 0,
           totalMessages: 0,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -169,9 +171,10 @@ Test content
           metadata: {
             conversationId: "1",
             channelName: "Test Channel",
+            channelId: "test-channel",
+            interfaceType: "cli",
             entryCount: 1,
             totalMessages: 10,
-            lastUpdated: "2025-01-01T00:00:00Z",
           },
         },
         {
@@ -183,9 +186,10 @@ Test content
           metadata: {
             conversationId: "2",
             channelName: "Test Channel",
+            channelId: "test-channel",
+            interfaceType: "cli",
             entryCount: 1,
             totalMessages: 20,
-            lastUpdated: "2025-01-02T00:00:00Z",
           },
         },
       ];

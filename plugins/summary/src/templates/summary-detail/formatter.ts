@@ -23,14 +23,14 @@ export class SummaryDetailFormatter extends StructuredContentFormatter<SummaryDe
           type: "number",
         },
         {
-          key: "lastUpdated",
-          label: "Last Updated",
-          type: "string",
-        },
-        {
           key: "entryCount",
           label: "Entry Count",
           type: "number",
+        },
+        {
+          key: "updated",
+          label: "Last Updated",
+          type: "string",
         },
       ],
     });

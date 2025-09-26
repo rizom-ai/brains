@@ -23,6 +23,8 @@ describe("ConversationService", () => {
   // Default test metadata
   const testMetadata: ConversationMetadata = {
     channelName: "Test Channel",
+    interfaceType: "test",
+    channelId: "test-channel",
   };
 
   beforeEach(async () => {
@@ -112,6 +114,8 @@ describe("ConversationService", () => {
       const channelId = "!room123:matrix.org";
       const metadata: ConversationMetadata = {
         channelName: "Test Room",
+        interfaceType,
+        channelId,
       };
 
       await service.startConversation(
@@ -137,6 +141,8 @@ describe("ConversationService", () => {
       const channelId = "cli-channel";
       const metadata: ConversationMetadata = {
         channelName: "CLI Terminal",
+        interfaceType,
+        channelId,
       };
 
       // Start conversation first time with metadata
@@ -150,6 +156,8 @@ describe("ConversationService", () => {
       // Resume conversation with different metadata (should not update)
       const differentMetadata: ConversationMetadata = {
         channelName: "Different Name",
+        interfaceType,
+        channelId,
       };
       await service.startConversation(
         sessionId,
@@ -410,8 +418,8 @@ describe("ConversationService", () => {
       );
 
       // Access private config to verify defaults
-      expect((defaultService as any).config.digestTriggerInterval).toBe(10);
-      expect((defaultService as any).config.digestWindowSize).toBe(20);
+      expect((defaultService as any).config.digestTriggerInterval).toBe(5);
+      expect((defaultService as any).config.digestWindowSize).toBe(10);
     });
 
     it("should use custom digest configuration values", () => {

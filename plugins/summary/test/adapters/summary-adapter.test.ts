@@ -248,9 +248,10 @@ Content
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -264,8 +265,9 @@ Content
       const markdown = `---
 conversationId: conv-123
 channelName: Test Channel
+channelId: test-channel
+interfaceType: cli
 totalMessages: 50
-lastUpdated: '2025-01-01T00:00:00Z'
 entryCount: 1
 ---
 # Summary Log
@@ -300,9 +302,10 @@ Content
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -322,9 +325,10 @@ Content
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 10,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 

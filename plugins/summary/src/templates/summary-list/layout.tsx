@@ -48,8 +48,8 @@ export const SummaryListLayout = ({
               <time dateTime={summary.created}>
                 Created {new Date(summary.created).toLocaleDateString()}
               </time>
-              <time dateTime={summary.lastUpdated}>
-                Updated {new Date(summary.lastUpdated).toLocaleDateString()}
+              <time dateTime={summary.updated}>
+                Updated {new Date(summary.updated).toLocaleDateString()}
               </time>
             </div>
           </article>

@@ -74,9 +74,10 @@ describe("Summary Tools", () => {
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 10,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
       const getSummarySpy = spyOn(

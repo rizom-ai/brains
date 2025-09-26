@@ -9,7 +9,7 @@ export const SummaryDetailLayout = ({
   channelName,
   entries,
   totalMessages,
-  lastUpdated,
+  updated,
   entryCount,
 }: SummaryDetailData): JSX.Element => {
   return (
@@ -21,8 +21,8 @@ export const SummaryDetailLayout = ({
         <div className="flex items-center gap-4 text-theme-muted">
           <span>{entryCount} entries</span>
           <span>{totalMessages} messages</span>
-          <time dateTime={lastUpdated}>
-            Last updated {new Date(lastUpdated).toLocaleDateString()}
+          <time dateTime={updated}>
+            Last updated {new Date(updated).toLocaleDateString()}
           </time>
         </div>
       </div>

@@ -134,15 +134,16 @@ export class DigestHandler {
         );
       }
       const conversationMetadata = JSON.parse(conversation.metadata);
-      const channelName = conversationMetadata.channelName;
+      const { channelName, channelId, interfaceType } = conversationMetadata;
 
       // Prepare metadata
       const metadata = {
         conversationId: digest.conversationId,
         channelName,
+        channelId,
+        interfaceType,
         entryCount: updatedEntries.length,
         totalMessages: digest.windowEnd,
-        lastUpdated: digest.timestamp,
       };
 
       // Create content with frontmatter

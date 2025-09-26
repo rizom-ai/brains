@@ -93,7 +93,11 @@ describe("DigestHandler", () => {
         channelId: "cli-terminal",
         started: "2025-01-01T00:00:00Z",
         lastActive: "2025-01-01T00:00:00Z",
-        metadata: JSON.stringify({ channelName: "CLI Terminal" }),
+        metadata: JSON.stringify({
+          channelName: "CLI Terminal",
+          interfaceType: "cli",
+          channelId: "cli-terminal",
+        }),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
       });
@@ -144,6 +148,9 @@ describe("DigestHandler", () => {
         expect(entity.content).toContain("conversationId: conv-123");
         expect(entity.content).toContain("# Summary Log");
         expect(entity.metadata?.conversationId).toBe("conv-123");
+        expect(entity.metadata?.channelName).toBe("CLI Terminal");
+        expect(entity.metadata?.channelId).toBe("cli-terminal");
+        expect(entity.metadata?.interfaceType).toBe("cli");
         expect(entity.metadata?.totalMessages).toBe(50);
       }
     });
@@ -179,9 +186,10 @@ User asked about project setup
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -197,7 +205,11 @@ User asked about project setup
         channelId: "cli-terminal",
         started: "2025-01-01T00:00:00Z",
         lastActive: "2025-01-01T00:00:00Z",
-        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        metadata: JSON.stringify({
+          channelName: "Test Channel",
+          interfaceType: "cli",
+          channelId: "test-channel",
+        }),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
       });
@@ -290,9 +302,10 @@ Window End: 50
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 1,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -308,7 +321,11 @@ Window End: 50
         channelId: "cli-terminal",
         started: "2025-01-01T00:00:00Z",
         lastActive: "2025-01-01T00:00:00Z",
-        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        metadata: JSON.stringify({
+          channelName: "Test Channel",
+          interfaceType: "cli",
+          channelId: "test-channel",
+        }),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
       });
@@ -372,7 +389,11 @@ Window End: 50
         channelId: "cli-terminal",
         started: "2025-01-01T00:00:00Z",
         lastActive: "2025-01-01T00:00:00Z",
-        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        metadata: JSON.stringify({
+          channelName: "Test Channel",
+          interfaceType: "cli",
+          channelId: "test-channel",
+        }),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
       });
@@ -399,7 +420,11 @@ Window End: 50
         channelId: "cli-terminal",
         started: "2025-01-01T00:00:00Z",
         lastActive: "2025-01-01T00:00:00Z",
-        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        metadata: JSON.stringify({
+          channelName: "Test Channel",
+          interfaceType: "cli",
+          channelId: "test-channel",
+        }),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
       });
@@ -449,9 +474,10 @@ Window End: 50
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
+          channelId: "test-channel",
+          interfaceType: "cli",
           entryCount: 2,
           totalMessages: 50,
-          lastUpdated: "2025-01-01T00:00:00Z",
         },
       };
 
@@ -467,7 +493,11 @@ Window End: 50
         channelId: "cli-terminal",
         started: "2025-01-01T00:00:00Z",
         lastActive: "2025-01-01T00:00:00Z",
-        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        metadata: JSON.stringify({
+          channelName: "Test Channel",
+          interfaceType: "cli",
+          channelId: "test-channel",
+        }),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
       });

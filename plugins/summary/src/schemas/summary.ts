@@ -22,10 +22,6 @@ export const summaryBodySchema = z.object({
   conversationId: z.string().describe("The conversation being summarized"),
   entries: z.array(summaryLogEntrySchema).describe("Chronological log entries"),
   totalMessages: z.number().describe("Total messages processed so far"),
-  lastUpdated: z
-    .string()
-    .datetime()
-    .describe("When the summary was last updated"),
 });
 
 export type SummaryBody = z.infer<typeof summaryBodySchema>;
@@ -42,9 +38,10 @@ export const summarySchema = z.object({
   metadata: z.object({
     conversationId: z.string(),
     channelName: z.string(),
+    channelId: z.string(),
+    interfaceType: z.string(),
     entryCount: z.number(),
     totalMessages: z.number(),
-    lastUpdated: z.string().datetime(),
   }),
   embedding: z.array(z.number()).optional(),
   source: z.string().optional(),
