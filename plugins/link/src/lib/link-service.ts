@@ -1,6 +1,24 @@
 import type { ServicePluginContext } from "@brains/plugins";
+import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
+import type { LinkSource } from "../schemas/link";
+
+/**
+ * Schema for link capture options
+ */
+export const linkCaptureOptionsSchema = z.object({
+  id: z.string().optional(),
+  metadata: z.object({
+    conversationId: z.string().optional(),
+    interfaceId: z.string().optional(), // e.g. "cli", "matrix", "mcp"
+    userId: z.string().optional(),
+    messageId: z.string().optional(),
+    timestamp: z.string().optional(),
+  }).optional(),
+});
+
+export type LinkCaptureOptions = z.infer<typeof linkCaptureOptionsSchema>;
 
 /**
  * Core service for link operations
@@ -19,10 +37,7 @@ export class LinkService {
    */
   async captureLink(
     url: string,
-    options?: {
-      id?: string;
-      metadata?: Record<string, unknown>;
-    },
+    options?: LinkCaptureOptions,
   ): Promise<{
     entityId: string;
     title: string;
@@ -106,13 +121,48 @@ export class LinkService {
       keywords,
     });
 
-    // Create structured content using adapter
+    // Determine the source - resolve channel name ONCE at creation time and store it
+    let source: LinkSource;
+    const conversationId = options?.metadata?.conversationId;
+
+    if (conversationId) {
+      // Link captured from a conversation
+      let conversationTitle = conversationId;
+      try {
+        const conversation = await this.context.getConversation(conversationId);
+        if (conversation?.metadata) {
+          const metadata = JSON.parse(conversation.metadata);
+          conversationTitle = metadata.channelName ?? conversationId;
+        }
+      } catch (error) {
+        this.context.logger.debug("Could not resolve conversation metadata", {
+          conversationId,
+          error,
+        });
+      }
+      source = {
+        id: conversationId,
+        title: conversationTitle,
+        type: "conversation",
+      };
+    } else {
+      // Manual addition (via MCP, direct API call, etc.)
+      const interfaceId = options?.metadata?.interfaceId ?? "manual";
+      source = {
+        id: interfaceId,
+        title: interfaceId.charAt(0).toUpperCase() + interfaceId.slice(1),
+        type: "manual",
+      };
+    }
+
+    // Create structured content using adapter - this STORES the source in the link body
     const linkBody = this.linkAdapter.createLinkBody({
       title: extractedData.title,
       url,
       description: extractedData.description,
       summary: extractedData.summary,
       keywords,
+      source,
     });
 
     // Create entity with deterministic ID

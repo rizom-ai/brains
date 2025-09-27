@@ -11,7 +11,11 @@ export interface ConversationMessageEvent {
   messageId: string;
   role: "user" | "assistant";
   content: string;
-  metadata?: Record<string, unknown>;
+  metadata?: {
+    interfaceId?: string;
+    userId?: string;
+    [key: string]: unknown;
+  };
   timestamp: number;
 }
 
@@ -120,8 +124,9 @@ export class MessageEventHandler {
               url,
               metadata: {
                 conversationId: event.conversationId,
+                interfaceId: event.metadata?.interfaceId,
                 messageId: event.messageId,
-                userId: event.metadata?.["userId"] as string | undefined,
+                userId: event.metadata?.userId,
                 timestamp: new Date(event.timestamp).toISOString(),
               },
             },

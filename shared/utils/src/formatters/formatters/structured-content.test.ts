@@ -2,7 +2,10 @@ import { describe, it, expect } from "bun:test";
 import { z } from "../../zod";
 import { StructuredContentFormatter } from "./structured-content";
 import type { FieldMapping } from "./structured-content";
-import { SourceListFormatter } from "../entity-field-formatters";
+import {
+  SourceListFormatter,
+  sourceReferenceSchema,
+} from "../entity-field-formatters";
 
 describe("StructuredContentFormatter", () => {
   // Simple flat schema for basic tests
@@ -431,14 +434,7 @@ not-a-number
             label: "Sources",
             type: "custom",
             formatter: (value: unknown) => {
-              const sourcesSchema = z.array(
-                z.object({
-                  id: z.string(),
-                  title: z.string(),
-                  type: z.enum(["conversation", "file", "manual"]),
-                }),
-              );
-              const sources = sourcesSchema.parse(value);
+              const sources = z.array(sourceReferenceSchema).parse(value);
               return SourceListFormatter.format(sources);
             },
             parser: (text: string) => SourceListFormatter.parse(text),
@@ -465,8 +461,10 @@ not-a-number
       const formatted = formatter.format(data);
 
       // Check that custom formatter was used
+      expect(formatted).toContain("## Sources");
+      expect(formatted).toContain("- Team Standup (conv-123) [conversation]");
       expect(formatted).toContain(
-        "## Sources\n\n- Team Standup (conv-123)\n- Project Planning (conv-456)",
+        "- Project Planning (conv-456) [conversation]",
       );
       expect(formatted).not.toContain("### Source 1"); // Should NOT use object array format
 

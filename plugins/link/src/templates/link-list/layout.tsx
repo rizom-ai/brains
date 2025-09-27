@@ -65,14 +65,15 @@ export const LinkListLayout = ({
                   <time dateTime={link.capturedAt}>
                     Captured {new Date(link.capturedAt).toLocaleDateString()}
                   </time>
-                  {link.conversationId && (
+                  {link.source.type === "conversation" && (
                     <>
                       <span>•</span>
-                      <span className="text-xs" title={link.conversationId}>
-                        {link.conversationId.startsWith("matrix-")
-                          ? `Matrix: ${link.conversationId.slice(7, 20)}...`
-                          : `Conv: ${link.conversationId.slice(0, 12)}...`}
-                      </span>
+                      <a
+                        href={`/summaries/${link.source.id}`}
+                        className="text-brand hover:text-brand-dark"
+                      >
+                        {link.source.title}
+                      </a>
                     </>
                   )}
                 </div>

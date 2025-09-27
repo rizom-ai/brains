@@ -57,6 +57,11 @@ describe("LinkPlugin", () => {
         description: "A test article",
         summary: "This is a test article summary.",
         keywords: ["test", "example"],
+        source: {
+          id: "manual",
+          title: "Manual",
+          type: "manual",
+        },
       });
 
       expect(linkBody).toContain("# Test Article");
@@ -69,6 +74,8 @@ describe("LinkPlugin", () => {
       expect(linkBody).toContain("- example");
       expect(linkBody).toContain("## Domain");
       expect(linkBody).toContain("example.com");
+      expect(linkBody).toContain("## Source");
+      expect(linkBody).toContain("- Manual (manual) [manual]");
     });
 
     it("should parse link body correctly", () => {
@@ -103,7 +110,11 @@ example.com
 
 ## Captured
 
-2025-01-30T10:00:00.000Z`;
+2025-01-30T10:00:00.000Z
+
+## Source
+
+- Manual (manual) [manual]`;
 
       const parsed = adapter.parseLinkBody(sampleContent);
 
@@ -114,6 +125,11 @@ example.com
       expect(parsed.keywords).toEqual(["test", "example"]);
       expect(parsed.domain).toBe("example.com");
       expect(parsed.capturedAt).toBe("2025-01-30T10:00:00.000Z");
+      expect(parsed.source).toEqual({
+        id: "manual",
+        title: "Manual",
+        type: "manual",
+      });
     });
 
     it("should convert entity to markdown", () => {

@@ -54,8 +54,8 @@ This is the main content
 - example
 
 ## Sources
-- Team Standup (conv-123)
-- Project Notes (note-456)`;
+- Team Standup (conv-123) [conversation]
+- Project Notes (note-456) [conversation]`;
 
       const parsed = adapter.parseTopicBody(body);
 

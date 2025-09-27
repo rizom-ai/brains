@@ -4,12 +4,14 @@ import {
   generateMarkdownWithFrontmatter,
   StructuredContentFormatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, SourceListFormatter } from "@brains/utils";
 import {
   linkSchema,
   linkBodySchema,
+  linkSourceSchema,
   type LinkEntity,
   type LinkBody,
+  type LinkSource,
 } from "../schemas/link";
 
 /**
@@ -37,6 +39,21 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
         },
         { key: "domain", label: "Domain", type: "string" },
         { key: "capturedAt", label: "Captured", type: "string" },
+        {
+          key: "source",
+          label: "Source",
+          type: "custom",
+          formatter: (value: unknown) => {
+            if (!value) return "";
+            const source = linkSourceSchema.parse(value);
+            return SourceListFormatter.format([source]);
+          },
+          parser: (text: string) => {
+            if (!text || text.trim() === "") return undefined;
+            const sources = SourceListFormatter.parse(text);
+            return sources[0];
+          },
+        },
       ],
     });
   }
@@ -50,6 +67,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
     description: string;
     summary: string;
     keywords: string[];
+    source: LinkSource;
   }): string {
     const formatter = this.createFormatter(params.title);
     return formatter.format({
@@ -59,6 +77,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
       keywords: params.keywords,
       domain: new URL(params.url).hostname,
       capturedAt: new Date().toISOString(),
+      source: params.source,
     });
   }
 

@@ -1,6 +1,15 @@
 import { z } from "@brains/utils";
 
 /**
+ * Source reference with metadata for links
+ */
+export const linkSourceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  type: z.enum(["conversation", "manual"]),
+});
+
+/**
  * Link body schema for structured content storage
  */
 export const linkBodySchema = z.object({
@@ -10,6 +19,7 @@ export const linkBodySchema = z.object({
   keywords: z.array(z.string()),
   domain: z.string(),
   capturedAt: z.string().datetime(),
+  source: linkSourceSchema,
 });
 
 /**
@@ -54,6 +64,7 @@ export const linkConfigSchema = z.object({
     .describe("Maximum number of URLs to capture from a single message"),
 });
 
+export type LinkSource = z.infer<typeof linkSourceSchema>;
 export type LinkBody = z.infer<typeof linkBodySchema>;
 export type LinkEntity = z.infer<typeof linkSchema>;
 export type LinkConfig = z.infer<typeof linkConfigSchema>;

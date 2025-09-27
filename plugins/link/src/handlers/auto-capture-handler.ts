@@ -3,7 +3,7 @@ import type { ProgressReporter } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
-import { LinkService } from "../lib/link-service";
+import { LinkService, linkCaptureOptionsSchema } from "../lib/link-service";
 import { UrlUtils } from "../lib/url-utils";
 
 /**
@@ -14,6 +14,7 @@ export const autoCaptureJobDataSchema = z.object({
   metadata: z
     .object({
       conversationId: z.string().optional(),
+      interfaceId: z.string().optional(),
       userId: z.string().optional(),
       messageId: z.string().optional(),
       timestamp: z.string().optional(),
@@ -88,15 +89,11 @@ export class AutoCaptureHandler
       // Generate deterministic entity ID
       const entityId = UrlUtils.generateEntityId(data.url);
 
-      // Capture the link (will check for existing entity automatically)
-      const captureOptions: Parameters<typeof this.linkService.captureLink>[1] =
-        {
-          id: entityId,
-        };
-
-      if (data.metadata) {
-        captureOptions.metadata = data.metadata;
-      }
+      // Parse and validate capture options
+      const captureOptions = linkCaptureOptionsSchema.parse({
+        id: entityId,
+        metadata: data.metadata,
+      });
 
       const result = await this.linkService.captureLink(
         data.url,

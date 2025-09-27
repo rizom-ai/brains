@@ -2,14 +2,18 @@
  * Reusable formatters for common entity field types
  */
 
+import { z } from "../zod";
+
 /**
- * Source reference with metadata
+ * Source reference schema
  */
-export interface SourceReference {
-  id: string;
-  title: string;
-  type: "conversation" | "file" | "manual";
-}
+export const sourceReferenceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  type: z.enum(["conversation", "manual"]),
+});
+
+export type SourceReference = z.infer<typeof sourceReferenceSchema>;
 
 /**
  * Formatter for source lists in entity markdown
@@ -23,7 +27,7 @@ export const SourceListFormatter = {
     if (sources.length === 0) {
       return "";
     }
-    return sources.map((s) => `- ${s.title} (${s.id})`).join("\n");
+    return sources.map((s) => `- ${s.title} (${s.id}) [${s.type}]`).join("\n");
   },
 
   /**
@@ -39,25 +43,21 @@ export const SourceListFormatter = {
       .map((line) => line.trim())
       .filter((line) => line.startsWith("- "));
 
-    return lines.map((line) => {
-      // Try to parse "- Title (id)" format
-      const match = line.match(/^- (.+) \(([^)]+)\)$/);
-      if (match?.[1] && match[2]) {
-        return {
-          id: match[2].trim(),
-          title: match[1].trim(),
-          type: "conversation" as const,
-        };
-      }
-
-      // Fallback for plain "- id" format (backward compatibility)
-      const id = line.slice(2).trim();
-      return {
-        id,
-        title: id, // Use ID as title for old format
-        type: "conversation" as const,
-      };
-    });
+    return lines
+      .map((line) => {
+        // Parse "- Title (id) [type]" format
+        const match = line.match(/^- (.+) \(([^)]+)\) \[([^\]]+)\]$/);
+        if (match?.[1] && match[2] && match[3]) {
+          const parsed = sourceReferenceSchema.safeParse({
+            id: match[2].trim(),
+            title: match[1].trim(),
+            type: match[3].trim(),
+          });
+          return parsed.success ? parsed.data : null;
+        }
+        return null;
+      })
+      .filter((item): item is SourceReference => item !== null);
   },
 
   /**
