@@ -20,21 +20,27 @@ export const topicEntitySchema = baseEntitySchema.extend({
 export type TopicEntity = z.infer<typeof topicEntitySchema>;
 
 /**
+ * Schema for topic source with metadata
+ */
+export const topicSourceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  type: z.literal("conversation"),
+});
+
+export type TopicSource = z.infer<typeof topicSourceSchema>;
+
+/**
  * Schema for topic body structure (without title, which is dynamic)
  */
 export const topicBodySchema = z.object({
   summary: z.string(),
   content: z.string(),
   keywords: z.array(z.string()),
-  sources: z.array(z.string()), // Just source IDs
+  sources: z.array(topicSourceSchema), // Rich source objects with metadata
 });
 
 export type TopicBody = z.infer<typeof topicBodySchema>;
-
-/**
- * Topic sources are just IDs of entities this topic was extracted from
- */
-export type TopicSource = string;
 
 /**
  * Topic extraction job data schema

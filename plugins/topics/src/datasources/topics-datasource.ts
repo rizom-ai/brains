@@ -1,9 +1,5 @@
 import type { DataSource } from "@brains/datasource";
-import type {
-  IEntityService,
-  Logger,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
 
@@ -30,7 +26,6 @@ export class TopicsDataSource implements DataSource {
 
   constructor(
     private entityService: IEntityService,
-    private context: ServicePluginContext,
     private readonly logger: Logger,
   ) {
     this.logger.debug("TopicsDataSource initialized");
@@ -59,36 +54,8 @@ export class TopicsDataSource implements DataSource {
       // Transform to TopicDetailData
       const parsed = adapter.parseTopicBody(entity.content);
 
-      // Resolve source metadata
-      const sources = await Promise.all(
-        parsed.sources.map(async (sourceId) => {
-          try {
-            // Most sources are conversation IDs
-            const conversation = await this.context.getConversation(sourceId);
-            if (conversation?.metadata) {
-              // Parse metadata JSON string to get channelName
-              const metadata = JSON.parse(conversation.metadata);
-              return {
-                id: sourceId,
-                title: metadata.channelName || sourceId,
-                type: "conversation",
-              };
-            }
-          } catch (error) {
-            this.logger.debug("Could not resolve source as conversation", {
-              sourceId,
-              error,
-            });
-          }
-
-          // Fallback for sources we can't resolve
-          return {
-            id: sourceId,
-            title: sourceId,
-            type: "unknown",
-          };
-        }),
-      );
+      // Sources are now already stored with titles
+      const sources = parsed.sources;
 
       const detailData = {
         id: entity.id,

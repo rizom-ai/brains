@@ -1,7 +1,7 @@
 import type { ContentFormatter } from "../types";
 import { z } from "../../zod";
 import { remark } from "remark";
-import type { Root, Heading, Paragraph, Content } from "mdast";
+import type { Root, Heading, Paragraph, Content, List, ListItem } from "mdast";
 
 /**
  * Field mapping configuration for structured content formatting
@@ -12,13 +12,17 @@ export interface FieldMapping {
   /** The markdown heading label */
   label: string;
   /** The field type */
-  type: "string" | "number" | "object" | "array";
+  type: "string" | "number" | "object" | "array" | "custom";
   /** Child mappings for object types */
   children?: FieldMapping[];
   /** For arrays: the type of each item */
   itemType?: "string" | "number" | "object";
   /** For arrays of objects: mappings for each item's fields */
   itemMappings?: FieldMapping[];
+  /** Custom formatter function for the field */
+  formatter?: (value: unknown) => string;
+  /** Custom parser function for the field */
+  parser?: (text: string) => unknown;
 }
 
 /**
@@ -85,6 +89,18 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   ): void {
     const heading = "#".repeat(depth) + " " + mapping.label;
     const value = this.getValueByPath(data, mapping.key);
+
+    // Use custom formatter if provided
+    if (mapping.type === "custom" && mapping.formatter) {
+      if (value !== undefined && value !== null) {
+        lines.push(heading, "");
+        const formatted = mapping.formatter(value);
+        if (formatted) {
+          lines.push(formatted, "");
+        }
+      }
+      return;
+    }
 
     switch (mapping.type) {
       case "string":
@@ -262,7 +278,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
     for (const mapping of mappings) {
       const section = sections.get(mapping.label.toLowerCase());
 
-      if (mapping.type === "object" && mapping.children && section) {
+      // Handle custom parser if provided
+      if (mapping.type === "custom" && mapping.parser && section) {
+        const textValue = this.getTextFromSection(section);
+        const value = mapping.parser(textValue);
+        this.setValueByPath(result, mapping.key, value);
+      } else if (mapping.type === "object" && mapping.children && section) {
         // Extract subsections for object type
         const subsections = this.extractSubsections(section, depth + 1);
         const objectValue = this.buildDataFromSections(
@@ -336,6 +357,15 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
         if (text) {
           textParts.push(text);
         }
+      } else if (node.type === "list") {
+        // Extract text from list items
+        const list = node as List;
+        for (const item of list.children) {
+          const itemText = this.extractTextFromListItem(item);
+          if (itemText) {
+            textParts.push(`- ${itemText}`);
+          }
+        }
       }
     }
 
@@ -366,16 +396,14 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
 
     for (const node of content) {
       if (node.type === "list") {
-        const listNode = node as {
-          type: "list";
-          children: Array<{ type: string; children: Content[] }>;
-        };
+        // TypeScript doesn't narrow Content to List automatically
+        // so we need to help it understand
+        const listNode = node as List;
         for (const item of listNode.children) {
-          if (item.type === "listItem") {
-            const text = this.extractTextFromListItem(item);
-            if (text) {
-              items.push(text);
-            }
+          // List.children is already typed as ListItem[]
+          const text = this.extractTextFromListItem(item);
+          if (text) {
+            items.push(text);
           }
         }
       }
@@ -440,7 +468,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   /**
    * Extract text from a list item
    */
-  private extractTextFromListItem(listItem: { children: Content[] }): string {
+  private extractTextFromListItem(listItem: ListItem): string {
     const parts: string[] = [];
 
     for (const child of listItem.children) {

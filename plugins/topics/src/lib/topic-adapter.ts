@@ -5,10 +5,11 @@ import {
   generateFrontmatter,
   StructuredContentFormatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, SourceListFormatter } from "@brains/utils";
 import {
   topicEntitySchema,
   topicBodySchema,
+  topicSourceSchema,
   type TopicEntity,
   type TopicBody,
   type TopicSource,
@@ -60,8 +61,12 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
         {
           key: "sources",
           label: "Sources",
-          type: "array",
-          itemType: "string",
+          type: "custom",
+          formatter: (value: unknown) => {
+            const sources = topicSourceSchema.array().parse(value);
+            return SourceListFormatter.format(sources);
+          },
+          parser: (text: string) => SourceListFormatter.parse(text),
         },
       ],
     });

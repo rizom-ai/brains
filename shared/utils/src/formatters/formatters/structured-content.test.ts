@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { z } from "../../zod";
 import { StructuredContentFormatter } from "./structured-content";
 import type { FieldMapping } from "./structured-content";
+import { SourceListFormatter } from "../entity-field-formatters";
 
 describe("StructuredContentFormatter", () => {
   // Simple flat schema for basic tests
@@ -404,6 +405,80 @@ not-a-number
       const parsed = formatter.parse(formatted);
 
       expect(parsed.content).toBe("Line 1\nLine 2\nLine 3");
+    });
+  });
+
+  describe("custom formatter and parser", () => {
+    // Schema with custom formatted sources
+    const customSchema = z.object({
+      title: z.string(),
+      sources: z.array(
+        z.object({
+          id: z.string(),
+          title: z.string(),
+          type: z.literal("conversation"),
+        }),
+      ),
+    });
+
+    it("should use custom formatter and parser for sources field", () => {
+      const formatter = new StructuredContentFormatter(customSchema, {
+        title: "Document with Sources",
+        mappings: [
+          { key: "title", label: "Title", type: "string" },
+          {
+            key: "sources",
+            label: "Sources",
+            type: "custom",
+            formatter: (value: unknown) => {
+              const sourcesSchema = z.array(
+                z.object({
+                  id: z.string(),
+                  title: z.string(),
+                  type: z.enum(["conversation", "file", "manual"]),
+                }),
+              );
+              const sources = sourcesSchema.parse(value);
+              return SourceListFormatter.format(sources);
+            },
+            parser: (text: string) => SourceListFormatter.parse(text),
+          },
+        ],
+      });
+
+      const data = {
+        title: "My Topic",
+        sources: [
+          {
+            id: "conv-123",
+            title: "Team Standup",
+            type: "conversation" as const,
+          },
+          {
+            id: "conv-456",
+            title: "Project Planning",
+            type: "conversation" as const,
+          },
+        ],
+      };
+
+      const formatted = formatter.format(data);
+
+      // Check that custom formatter was used
+      expect(formatted).toContain(
+        "## Sources\n\n- Team Standup (conv-123)\n- Project Planning (conv-456)",
+      );
+      expect(formatted).not.toContain("### Source 1"); // Should NOT use object array format
+
+      // Parse back and verify
+      const parsed = formatter.parse(formatted);
+      expect(parsed).toEqual(data);
+      expect(parsed.sources).toHaveLength(2);
+      expect(parsed.sources[0]).toEqual({
+        id: "conv-123",
+        title: "Team Standup",
+        type: "conversation",
+      });
     });
   });
 });

@@ -1,11 +1,12 @@
 import { z } from "@brains/utils";
 import { linkBodySchema } from "../../schemas/link";
 
-// Schema for link summary - extends linkBody with id, title, and conversationId
+// Schema for link summary - extends linkBody with id, title, and conversation info
 const linkSummarySchema = linkBodySchema.extend({
   id: z.string(),
   title: z.string(),
   conversationId: z.string().optional(),
+  conversationTitle: z.string().optional(),
 });
 
 // Schema for link list page data

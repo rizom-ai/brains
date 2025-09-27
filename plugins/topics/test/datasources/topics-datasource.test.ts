@@ -19,7 +19,7 @@ describe("TopicsDataSource", () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger });
     context = createServicePluginContext(mockShell, "topics");
-    dataSource = new TopicsDataSource(context.entityService, context, logger);
+    dataSource = new TopicsDataSource(context.entityService, logger);
   });
 
   it("should be instantiable", () => {

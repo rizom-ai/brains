@@ -11,3 +11,4 @@ export type { SchemaFormatter, ContentFormatter } from "./types";
 
 // Export implementations
 export * from "./formatters";
+export * from "./entity-field-formatters";

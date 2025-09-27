@@ -129,11 +129,32 @@ Return an array of topics in the required JSON format.`;
       // Create ExtractedTopic objects with sources
       const topics: ExtractedTopic[] = [];
 
+      // Fetch conversation metadata once for all topics
+      let conversationTitle = conversationId;
+      try {
+        const conversation = await this.context.getConversation(conversationId);
+        if (conversation?.metadata) {
+          const metadata = JSON.parse(conversation.metadata);
+          conversationTitle = metadata.channelName ?? conversationId;
+        }
+      } catch (error) {
+        this.logger.debug("Could not resolve conversation metadata", {
+          conversationId,
+          error,
+        });
+      }
+
       for (const data of extractedData) {
-        // Create topic source reference - just the conversation ID
+        // Create topic source reference with title
         topics.push({
           ...data,
-          sources: [conversationId],
+          sources: [
+            {
+              id: conversationId,
+              title: conversationTitle,
+              type: "conversation" as const,
+            },
+          ],
         });
       }
 

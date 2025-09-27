@@ -13,7 +13,13 @@ const topicProcessingJobDataSchema = z.object({
     title: z.string(),
     summary: z.string(),
     content: z.string(),
-    sources: z.array(z.string()), // TopicSource is just a string
+    sources: z.array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        type: z.literal("conversation"),
+      }),
+    ), // TopicSource objects with metadata
     keywords: z.array(z.string()),
   }),
   conversationId: z.string(),

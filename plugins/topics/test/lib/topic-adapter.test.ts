@@ -12,7 +12,10 @@ describe("TopicAdapter", () => {
 
   describe("createTopicBody", () => {
     it("should create structured content body", () => {
-      const sources: TopicSource[] = ["conv-123", "note-456"];
+      const sources: TopicSource[] = [
+        { id: "conv-123", title: "Team Standup", type: "conversation" },
+        { id: "note-456", title: "Project Notes", type: "conversation" },
+      ];
 
       const body = adapter.createTopicBody({
         title: "Test Topic",
@@ -31,8 +34,8 @@ describe("TopicAdapter", () => {
       expect(body).toContain("test");
       expect(body).toContain("example");
       expect(body).toContain("## Sources");
-      expect(body).toContain("conv-123");
-      expect(body).toContain("note-456");
+      expect(body).toContain("Team Standup (conv-123)");
+      expect(body).toContain("Project Notes (note-456)");
     });
   });
 
@@ -51,8 +54,8 @@ This is the main content
 - example
 
 ## Sources
-- conv-123
-- note-456`;
+- Team Standup (conv-123)
+- Project Notes (note-456)`;
 
       const parsed = adapter.parseTopicBody(body);
 
@@ -60,7 +63,10 @@ This is the main content
       expect(parsed.summary).toBe("This is a test summary");
       expect(parsed.content).toBe("This is the main content");
       expect(parsed.keywords).toEqual(["test", "example"]);
-      expect(parsed.sources).toEqual(["conv-123", "note-456"]);
+      expect(parsed.sources).toEqual([
+        { id: "conv-123", title: "Team Standup", type: "conversation" },
+        { id: "note-456", title: "Project Notes", type: "conversation" },
+      ]);
     });
   });
 
