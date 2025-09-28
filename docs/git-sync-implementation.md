@@ -5,6 +5,7 @@
 - Git-sync plugin layers on top of directory-sync plugin
 - Uses separate `brain-data/` directory for git repository
 - Directory-sync handles all file I/O, git-sync only does git operations
+- Entity IDs with colons map to subdirectories for better organization
 
 ## Configuration
 
@@ -66,6 +67,29 @@ gitSync({
 - ✅ Pull-before-push pattern for every sync
 - ✅ Continuous bidirectional sync with auto-resolve
 
+### Entity ID Path Mapping
+
+Entity IDs containing colons are mapped to subdirectory structures:
+
+- `summary:daily:2024-01-27` → `summaries/daily/2024-01-27.md`
+- `topic:tech:ai:llms` → `topics/tech/ai/llms.md`
+- `link:article:123` → `links/article/123.md`
+
+**Benefits:**
+- ✅ Windows filesystem compatibility (no colons in filenames)
+- ✅ Logical organization in file explorer
+- ✅ Cleaner git diffs and history
+- ✅ Natural browsing structure
+
+**Implementation:**
+```typescript
+// Convert colons to path separators
+const idParts = entity.id.split(':');
+const filename = idParts.pop() + '.md';
+const subdirs = idParts.length > 0 ? idParts : [];
+return join(syncPath, entityType, ...subdirs, filename);
+```
+
 ### Invalid Entity Handling
 
 When git-sync pulls changes containing invalid markdown files:
@@ -86,6 +110,7 @@ When git-sync pulls changes containing invalid markdown files:
    - Next sync retries import
 
 **Benefits:**
+
 - ✅ Non-blocking - valid entities still import
 - ✅ Visible - `.invalid` extension marks problems
 - ✅ Traceable - git history shows quarantine events
@@ -167,3 +192,5 @@ export default defineConfig({
 - Sync completes within 5 seconds for typical changes
 - Clear error messages when remote is unavailable
 - Meaningful git history that can be reviewed
+- Entity IDs with colons properly map to subdirectories
+- Invalid entities quarantined without blocking valid imports
