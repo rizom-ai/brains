@@ -41,8 +41,22 @@ export class FileOperations {
     const entityType =
       pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
 
-    // Extract filename without extension for id
-    const filename = basename(fullPath, ".md");
+    // Reconstruct ID from path with colons for nested structures
+    // e.g., site-content/landing/hero.md -> id: "landing:hero"
+    let id: string;
+    if (pathParts.length > 2) {
+      // Has subdirectories after entity type
+      const idParts = pathParts.slice(1); // Remove entity type
+      const lastPart = idParts[idParts.length - 1];
+      if (lastPart) {
+        const filename = lastPart.replace(".md", "");
+        idParts[idParts.length - 1] = filename;
+      }
+      id = idParts.join(":");
+    } else {
+      // Simple case - just filename
+      id = basename(fullPath, ".md");
+    }
 
     // Use file timestamps, but fallback to current time if birthtime is invalid
     const created =
@@ -51,7 +65,7 @@ export class FileOperations {
 
     return {
       entityType,
-      id: filename,
+      id,
       content: markdown,
       created,
       updated,
@@ -86,13 +100,42 @@ export class FileOperations {
    * Get file path for entity
    */
   getEntityFilePath(entity: BaseEntity): string {
-    // Base entities go in root directory, others in subdirectories
-    if (entity.entityType === "base") {
-      return join(this.syncPath, `${entity.id}.md`);
-    } else {
-      // Other entity types go in their own directories
-      return join(this.syncPath, entity.entityType, `${entity.id}.md`);
+    // Split ID by colons to create subdirectory structure
+    const idParts = entity.id.split(":");
+
+    // Filter empty parts but preserve structure
+    const cleanParts = idParts.filter(part => part.length > 0);
+
+    // If no parts after cleaning, use unnamed
+    if (cleanParts.length === 0) {
+      return join(this.syncPath, entity.entityType, "unnamed.md");
     }
+
+    // If only one part (no colons), simple flat file
+    if (cleanParts.length === 1) {
+      return join(this.syncPath, entity.entityType, `${cleanParts[0]}.md`);
+    }
+
+    // For multiple parts, check if first part matches entity type
+    // If it does, skip it to avoid duplication like "summary/summary/..."
+    let pathParts = cleanParts;
+    if (cleanParts[0] === entity.entityType) {
+      pathParts = cleanParts.slice(1);
+    }
+
+    // If we removed the only part, treat as simple file
+    if (pathParts.length === 0) {
+      return join(this.syncPath, entity.entityType, "unnamed.md");
+    }
+
+    // Last part becomes the filename
+    const filename = pathParts.pop();
+    if (!filename) {
+      return join(this.syncPath, entity.entityType, "unnamed.md");
+    }
+
+    // Build path with entity type and any subdirectories from ID
+    return join(this.syncPath, entity.entityType, ...pathParts, `${filename}.md`);
   }
 
   /**
@@ -105,27 +148,23 @@ export class FileOperations {
       return files;
     }
 
-    // Get all entries in the sync directory
-    const entries = readdirSync(this.syncPath, { withFileTypes: true });
+    // Recursively find all markdown files
+    const findMarkdownFiles = (currentPath: string, relativePath: string = ""): void => {
+      const entries = readdirSync(currentPath, { withFileTypes: true });
 
-    // Process root directory files as base entity type
-    entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
-      .forEach((entry) => files.push(entry.name));
+      for (const entry of entries) {
+        const entryPath = join(currentPath, entry.name);
+        const relativeEntryPath = relativePath ? join(relativePath, entry.name) : entry.name;
 
-    // Process subdirectories
-    const subDirs = entries.filter(
-      (entry) => entry.isDirectory() && !entry.name.startsWith("."),
-    );
+        if (entry.isFile() && entry.name.endsWith(".md") && !entry.name.endsWith(".invalid")) {
+          files.push(relativeEntryPath);
+        } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
+          findMarkdownFiles(entryPath, relativeEntryPath);
+        }
+      }
+    };
 
-    for (const dir of subDirs) {
-      const dirPath = join(this.syncPath, dir.name);
-      const dirFiles = readdirSync(dirPath)
-        .filter((f) => f.endsWith(".md"))
-        .map((f) => join(dir.name, f));
-      files.push(...dirFiles);
-    }
-
+    findMarkdownFiles(this.syncPath);
     return files;
   }
 

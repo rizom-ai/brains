@@ -9,13 +9,15 @@ import type { LinkSource } from "../schemas/link";
  */
 export const linkCaptureOptionsSchema = z.object({
   id: z.string().optional(),
-  metadata: z.object({
-    conversationId: z.string().optional(),
-    interfaceId: z.string().optional(), // e.g. "cli", "matrix", "mcp"
-    userId: z.string().optional(),
-    messageId: z.string().optional(),
-    timestamp: z.string().optional(),
-  }).optional(),
+  metadata: z
+    .object({
+      conversationId: z.string().optional(),
+      interfaceId: z.string().optional(), // e.g. "cli", "matrix", "mcp"
+      userId: z.string().optional(),
+      messageId: z.string().optional(),
+      timestamp: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type LinkCaptureOptions = z.infer<typeof linkCaptureOptionsSchema>;

@@ -1,7 +1,7 @@
 import type { Logger, ServicePluginContext } from "@brains/plugins";
 import type { IEntityService, ProgressReporter } from "@brains/plugins";
-import { resolve, isAbsolute } from "path";
-import { existsSync, mkdirSync } from "fs";
+import { resolve, isAbsolute, join } from "path";
+import { existsSync, mkdirSync, renameSync, appendFileSync, readFileSync, writeFileSync } from "fs";
 import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
@@ -248,6 +248,11 @@ export class DirectorySync {
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
+    // Skip .invalid files
+    if (filePath.endsWith(".invalid")) {
+      return;
+    }
+
     try {
       const rawEntity = await this.fileOperations.readEntity(filePath);
 
@@ -322,17 +327,119 @@ export class DirectorySync {
         path: filePath,
         entityType: rawEntity.entityType,
       });
-    } catch {
-      // Skip if entity type is not registered or deserialization fails
-      const serializationError = new Error(
-        "Unable to deserialize entity from file",
-      );
-      this.logger.debug("Skipping file - unable to deserialize", {
+
+      // Mark as recovered in error log if it was previously quarantined
+      this.markAsRecoveredIfNeeded(filePath);
+    } catch (error) {
+      // Quarantine file if deserialization fails
+      this.quarantineInvalidFile(filePath, error, result);
+    }
+  }
+
+  /**
+   * Mark a file as recovered in the error log if it was previously quarantined
+   */
+  private markAsRecoveredIfNeeded(filePath: string): void {
+    const errorLogPath = join(this.syncPath, ".import-errors.log");
+
+    // Check if error log exists
+    if (!existsSync(errorLogPath)) {
+      return;
+    }
+
+    try {
+      // Read current log content
+      const logContent = readFileSync(errorLogPath, "utf-8");
+
+      // Check if this file is mentioned in the error log
+      if (logContent.includes(filePath)) {
+        // Replace entries for this file with [RECOVERED] marker
+        const timestamp = new Date().toISOString();
+        const recoveryMarker = `${timestamp} - [RECOVERED] ${filePath}\n`;
+
+        // Find and replace the error entry for this file
+        const lines = logContent.split("\n");
+        const newLines: string[] = [];
+        let skipNext = false;
+
+        for (const line of lines) {
+          if (skipNext) {
+            skipNext = false;
+            continue;
+          }
+
+          if (line.includes(filePath) && !line.includes("[RECOVERED]")) {
+            // Replace with recovery marker
+            newLines.push(recoveryMarker.trim());
+            // Skip the arrow line
+            skipNext = true;
+          } else {
+            newLines.push(line);
+          }
+        }
+
+        // Write updated content back
+        writeFileSync(errorLogPath, newLines.join("\n"));
+
+        this.logger.debug("Marked file as recovered in error log", {
+          path: filePath
+        });
+      }
+    } catch (error) {
+      // Non-critical, just log debug
+      this.logger.debug("Could not update error log for recovered file", {
         path: filePath,
-        entityType: rawEntity.entityType,
-        error: serializationError,
+        error
       });
-      result.skipped++;
+    }
+  }
+
+  /**
+   * Quarantine an invalid file by renaming it and logging the error
+   */
+  private quarantineInvalidFile(
+    filePath: string,
+    error: unknown,
+    result: ImportResult
+  ): void {
+    const fullPath = filePath.startsWith(this.syncPath)
+      ? filePath
+      : join(this.syncPath, filePath);
+
+    const quarantinePath = `${fullPath}.invalid`;
+
+    try {
+      // Rename file to .invalid
+      renameSync(fullPath, quarantinePath);
+
+      // Track in result
+      result.quarantined++;
+      result.quarantinedFiles.push(filePath);
+
+      // Log error to .import-errors.log
+      const errorLogPath = join(this.syncPath, ".import-errors.log");
+      const timestamp = new Date().toISOString();
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const logEntry = `${timestamp} - ${filePath}: ${errorMessage}\n→ ${filePath}.invalid\n\n`;
+
+      appendFileSync(errorLogPath, logEntry);
+
+      this.logger.warn("Quarantined invalid entity file", {
+        originalPath: filePath,
+        quarantinePath: `${filePath}.invalid`,
+        error: errorMessage
+      });
+    } catch (renameError) {
+      // If we can't quarantine, just log and skip
+      this.logger.error("Failed to quarantine invalid file", {
+        path: filePath,
+        error: renameError
+      });
+      result.failed++;
+      result.errors.push({
+        path: filePath,
+        error: "Failed to quarantine invalid file"
+      });
     }
   }
 
@@ -346,6 +453,8 @@ export class DirectorySync {
       imported: 0,
       skipped: 0,
       failed: 0,
+      quarantined: 0,
+      quarantinedFiles: [],
       errors: [],
     };
 
@@ -372,6 +481,7 @@ export class DirectorySync {
         imported: result.imported,
         skipped: result.skipped,
         failed: result.failed,
+        quarantined: result.quarantined,
       });
     } else {
       // For single file imports (like from file watcher), use debug level

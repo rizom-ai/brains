@@ -35,6 +35,8 @@ export class ProgressOperations {
       imported: 0,
       skipped: 0,
       failed: 0,
+      quarantined: 0,
+      quarantinedFiles: [],
       errors: [],
     };
 

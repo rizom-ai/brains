@@ -76,16 +76,18 @@ Entity IDs containing colons are mapped to subdirectory structures:
 - `link:article:123` → `links/article/123.md`
 
 **Benefits:**
+
 - ✅ Windows filesystem compatibility (no colons in filenames)
 - ✅ Logical organization in file explorer
 - ✅ Cleaner git diffs and history
 - ✅ Natural browsing structure
 
 **Implementation:**
+
 ```typescript
 // Convert colons to path separators
-const idParts = entity.id.split(':');
-const filename = idParts.pop() + '.md';
+const idParts = entity.id.split(":");
+const filename = idParts.pop() + ".md";
 const subdirs = idParts.length > 0 ? idParts : [];
 return join(syncPath, entityType, ...subdirs, filename);
 ```

@@ -86,6 +86,8 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   failed: number;
+  quarantined: number;
+  quarantinedFiles: string[];
   errors: Array<{
     path: string;
     error: string;
