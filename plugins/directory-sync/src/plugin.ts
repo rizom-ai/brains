@@ -122,15 +122,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       // File watching is started automatically in DirectorySync.initialize()
     }
 
-    // Queue initial sync job if enabled
+    // Queue initial sync after all plugins are initialized
     if (this.config.initialSync) {
-      setTimeout(async () => {
+      context.subscribe("system:plugins:ready", async () => {
+        this.debug("All plugins initialized, starting initial sync");
         const jobId = await this.queueSyncJob(context, "initial");
-        this.debug("Queued initial sync job", {
-          jobId,
-          delay: this.config.initialSyncDelay,
-        });
-      }, this.config.initialSyncDelay || 1000);
+        this.debug("Queued initial sync job", { jobId });
+        return { success: true };
+      });
     }
 
     // Register message handlers for plugin communication
@@ -373,10 +372,11 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     const directorySync = this.requireDirectorySync();
 
     // Subscribe to entity:created
-    subscribe<{ entity: BaseEntity; entityType: string }>(
+    subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
       "entity:created",
       async (message) => {
         const { entity } = message.payload;
+
         await directorySync.fileOps.writeEntity(entity);
         this.debug("Auto-exported created entity", {
           id: entity.id,
@@ -387,10 +387,11 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
 
     // Subscribe to entity:updated
-    subscribe<{ entity: BaseEntity; entityType: string }>(
+    subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
       "entity:updated",
       async (message) => {
         const { entity } = message.payload;
+
         await directorySync.fileOps.writeEntity(entity);
         this.debug("Auto-exported updated entity", {
           id: entity.id,
@@ -405,6 +406,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       "entity:deleted",
       async (message) => {
         const { entityId, entityType } = message.payload;
+
         const filePath = directorySync.fileOps.getFilePath(
           entityId,
           entityType,

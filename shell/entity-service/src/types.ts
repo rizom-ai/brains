@@ -183,6 +183,18 @@ export interface EntityService extends ICoreEntityService {
     status: "pending" | "processing" | "completed" | "failed";
     error?: string;
   } | null>;
+
+  // Store entity with pre-generated embedding (used by embedding job handler)
+  storeEntityWithEmbedding(data: {
+    id: string;
+    entityType: string;
+    content: string;
+    metadata: Record<string, unknown>;
+    created: number;
+    updated: number;
+    contentWeight: number;
+    embedding: Float32Array;
+  }): Promise<void>;
 }
 
 /**

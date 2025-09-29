@@ -60,6 +60,27 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
     // Initialize repository
     await this.gitSync.initialize();
+
+    // Pull initial content after all plugins are initialized
+    // This ensures entity types are registered before importing files
+    context.subscribe("system:plugins:ready", async () => {
+      this.logger.debug("All plugins initialized, performing initial git pull");
+
+      const git = this.getGitSync();
+      const status = await git.getStatus();
+
+      // Only pull if we have a remote
+      if (status.remote) {
+        try {
+          await git.pull();
+          this.logger.info("Successfully pulled and imported initial content");
+        } catch (error) {
+          this.logger.warn("Failed to pull during post-init", { error });
+        }
+      }
+
+      return { success: true };
+    });
   }
 
   /**

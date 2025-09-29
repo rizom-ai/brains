@@ -1,7 +1,8 @@
 import { z } from "@brains/utils";
-import type { EntityDB } from "../db";
-import { entities } from "../schema/entities";
-import type { EmbeddingJobData } from "../types";
+import type {
+  EntityService as IEntityService,
+  EmbeddingJobData,
+} from "../types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";
@@ -34,19 +35,19 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   private static instance: EmbeddingJobHandler | null = null;
   private logger: Logger;
   private embeddingService: IEmbeddingService;
-  private db: EntityDB;
+  private entityService: IEntityService;
   private messageBus?: MessageBus;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
-    db: EntityDB,
+    entityService: IEntityService,
     embeddingService: IEmbeddingService,
     messageBus?: MessageBus,
   ): EmbeddingJobHandler {
     EmbeddingJobHandler.instance ??= new EmbeddingJobHandler(
-      db,
+      entityService,
       embeddingService,
       messageBus,
     );
@@ -64,24 +65,24 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    db: EntityDB,
+    entityService: IEntityService,
     embeddingService: IEmbeddingService,
     messageBus?: MessageBus,
   ): EmbeddingJobHandler {
-    return new EmbeddingJobHandler(db, embeddingService, messageBus);
+    return new EmbeddingJobHandler(entityService, embeddingService, messageBus);
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    db: EntityDB,
+    entityService: IEntityService,
     embeddingService: IEmbeddingService,
     messageBus?: MessageBus,
   ) {
     this.logger = Logger.getInstance().child("EmbeddingJobHandler");
     this.embeddingService = embeddingService;
-    this.db = db;
+    this.entityService = entityService;
     if (messageBus) {
       this.messageBus = messageBus;
     }
@@ -123,29 +124,17 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         message: `Storing embedding for ${data.entityType} ${data.id}`,
       });
 
-      // Upsert the complete entity with embedding (handles both create and update)
-      await this.db
-        .insert(entities)
-        .values({
-          id: data.id,
-          entityType: data.entityType,
-          content: data.content,
-          metadata: data.metadata,
-          created: data.created,
-          updated: data.updated,
-          contentWeight: data.contentWeight,
-          embedding,
-        })
-        .onConflictDoUpdate({
-          target: [entities.id, entities.entityType],
-          set: {
-            content: data.content,
-            metadata: data.metadata,
-            updated: data.updated,
-            contentWeight: data.contentWeight,
-            embedding,
-          },
-        });
+      // Store the entity with embedding through the entity service
+      await this.entityService.storeEntityWithEmbedding({
+        id: data.id,
+        entityType: data.entityType,
+        content: data.content,
+        metadata: data.metadata,
+        created: data.created,
+        updated: data.updated,
+        contentWeight: data.contentWeight,
+        embedding,
+      });
 
       // Emit entity event after successful save
       if (this.messageBus) {
@@ -154,18 +143,45 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         this.logger.debug(
           `Emitting ${eventType} event for ${data.entityType}:${data.id} after entity saved`,
         );
-        await this.messageBus.send(
-          eventType,
-          {
+
+        // Fetch the full entity from the database to get the properly structured entity
+        const entity = await this.entityService.getEntity(
+          data.entityType,
+          data.id,
+        );
+
+        if (!entity) {
+          this.logger.error("Failed to fetch entity after save", {
             entityType: data.entityType,
             entityId: data.id,
-            metadata: data.metadata,
-          },
-          "entity-service",
-          undefined,
-          undefined,
-          true, // broadcast
-        );
+          });
+          // Still send the event with minimal data
+          await this.messageBus.send(
+            eventType,
+            {
+              entityType: data.entityType,
+              entityId: data.id,
+              metadata: data.metadata || {},
+            },
+            "entity-service",
+            undefined,
+            undefined,
+            true, // broadcast
+          );
+        } else {
+          await this.messageBus.send(
+            eventType,
+            {
+              entityType: data.entityType,
+              entityId: data.id,
+              entity, // Full, properly structured entity
+            },
+            "entity-service",
+            undefined,
+            undefined,
+            true, // broadcast
+          );
+        }
       }
 
       // Report completion

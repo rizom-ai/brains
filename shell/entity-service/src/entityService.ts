@@ -120,7 +120,7 @@ export class EntityService implements IEntityService {
 
     // Register embedding job handler with job queue service
     const embeddingJobHandler = EmbeddingJobHandler.createFresh(
-      this.db,
+      this,
       this.embeddingService,
       this.messageBus,
     );
@@ -468,5 +468,45 @@ export class EntityService implements IEntityService {
       status: status.status,
       ...(status.lastError && { error: status.lastError }),
     };
+  }
+
+  /**
+   * Store entity with pre-generated embedding
+   * Used by embedding job handler to directly store entity with embedding
+   */
+  public async storeEntityWithEmbedding(data: {
+    id: string;
+    entityType: string;
+    content: string;
+    metadata: Record<string, unknown>;
+    created: number;
+    updated: number;
+    contentWeight: number;
+    embedding: Float32Array;
+  }): Promise<void> {
+    const { entities } = await import("./schema/entities");
+
+    await this.db
+      .insert(entities)
+      .values({
+        id: data.id,
+        entityType: data.entityType,
+        content: data.content,
+        metadata: data.metadata,
+        created: data.created,
+        updated: data.updated,
+        contentWeight: data.contentWeight,
+        embedding: data.embedding,
+      })
+      .onConflictDoUpdate({
+        target: [entities.id, entities.entityType],
+        set: {
+          content: data.content,
+          metadata: data.metadata,
+          updated: data.updated,
+          contentWeight: data.contentWeight,
+          embedding: data.embedding,
+        },
+      });
   }
 }

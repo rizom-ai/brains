@@ -198,6 +198,9 @@ export class GitSync {
       }
     }
 
+    // Don't pull here - wait for system:plugins:ready event to ensure
+    // all entity types are registered before importing files
+
     // No need to reconfigure directory-sync - it's already using the same directory
 
     // Start auto-sync if enabled

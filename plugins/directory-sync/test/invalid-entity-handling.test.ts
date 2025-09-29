@@ -73,6 +73,18 @@ describe("Invalid Entity Handling", () => {
       getAsyncJobStatus: async (_jobId: string) => {
         return { status: "completed" as const, progress: 100 };
       },
+      storeEntityWithEmbedding: async (_data: {
+        id: string;
+        entityType: string;
+        content: string;
+        metadata: Record<string, unknown>;
+        created: number;
+        updated: number;
+        contentWeight: number;
+        embedding: Float32Array;
+      }) => {
+        // Mock implementation - does nothing
+      },
     };
 
     // Create directory sync instance

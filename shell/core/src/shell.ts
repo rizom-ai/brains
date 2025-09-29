@@ -195,6 +195,20 @@ export class Shell implements IShell {
         this.pluginManager,
       );
 
+      // Emit event to signal all plugins are initialized
+      await this.messageBus.send(
+        "system:plugins:ready",
+        {
+          timestamp: new Date().toISOString(),
+          pluginCount: this.pluginManager.getAllPluginIds().length,
+        },
+        "shell",
+        undefined,
+        undefined,
+        true, // broadcast
+      );
+      this.logger.debug("Emitted system:plugins:ready event");
+
       // Register job handlers for content operations
       shellInitializer.registerJobHandlers(
         this.jobQueueService,
