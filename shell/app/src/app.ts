@@ -1,7 +1,6 @@
 import { Shell } from "@brains/core";
 import { Logger, LogLevel } from "@brains/utils";
 import { appConfigSchema, type AppConfig } from "./types";
-import { SeedDataManager } from "./seed-data-manager";
 import { MigrationManager } from "./migration-manager";
 
 export class App {
@@ -44,18 +43,10 @@ export class App {
     await migrationManager.runAllMigrations();
   }
 
-  private async initializeSeedData(): Promise<void> {
-    const logger = Logger.getInstance();
-    const seedDataManager = new SeedDataManager(logger);
-    await seedDataManager.initialize();
-  }
 
   public async initialize(): Promise<void> {
     // Run migrations before creating shell
     await this.runMigrations();
-
-    // Initialize seed data if needed
-    await this.initializeSeedData();
 
     // Create shell if not provided in constructor
     if (!this.shell) {

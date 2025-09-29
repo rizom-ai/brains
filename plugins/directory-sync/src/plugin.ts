@@ -6,6 +6,8 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin, createId } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
+import { existsSync, readdirSync, mkdirSync, copyFileSync } from "fs";
+import { join, resolve } from "path";
 import {
   directorySyncConfigSchema,
   type DirectorySyncConfig,
@@ -90,12 +92,17 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       logger,
     });
 
-    // Initialize directory structure only (no sync)
+    // Initialize directory structure and handle seed content
     try {
       await this.directorySync.initializeDirectory();
       this.debug("Directory structure initialized", {
         path: this.config.syncPath,
       });
+
+      // Copy seed content if configured and directory is empty
+      if (this.config.seedContent) {
+        await this.copySeedContentIfNeeded();
+      }
     } catch (error) {
       this.error("Failed to initialize directory", error);
       throw error; // Fail plugin registration if init fails
@@ -123,6 +130,61 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
     // Register message handlers for plugin communication
     this.registerMessageHandlers(context);
+  }
+
+  /**
+   * Copy seed content if the brain-data directory is empty
+   */
+  private async copySeedContentIfNeeded(): Promise<void> {
+    const brainDataPath = resolve(process.cwd(), this.config.syncPath);
+    const seedContentPath = resolve(process.cwd(), "seed-content");
+
+    // Check if brain-data is empty
+    const isEmpty = this.isBrainDataEmpty(brainDataPath);
+
+    if (isEmpty && existsSync(seedContentPath)) {
+      this.info("Copying seed content to brain-data directory");
+      await this.copyDirectory(seedContentPath, brainDataPath);
+      this.info("Seed content copied successfully");
+    } else if (isEmpty) {
+      this.debug("No seed content directory found, starting with empty brain-data");
+    } else {
+      this.debug("brain-data directory not empty, skipping seed content");
+    }
+  }
+
+  /**
+   * Check if the brain-data directory is empty
+   */
+  private isBrainDataEmpty(brainDataPath: string): boolean {
+    if (!existsSync(brainDataPath)) {
+      return true;
+    }
+    const files = readdirSync(brainDataPath);
+    // Ignore .git directory when checking if empty
+    const nonGitFiles = files.filter(f => f !== ".git" && f !== ".gitkeep");
+    return nonGitFiles.length === 0;
+  }
+
+  /**
+   * Recursively copy a directory
+   */
+  private async copyDirectory(src: string, dest: string): Promise<void> {
+    const entries = readdirSync(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = join(src, entry.name);
+      const destPath = join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        if (!existsSync(destPath)) {
+          mkdirSync(destPath, { recursive: true });
+        }
+        await this.copyDirectory(srcPath, destPath);
+      } else {
+        copyFileSync(srcPath, destPath);
+      }
+    }
   }
 
   /**

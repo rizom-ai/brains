@@ -53,7 +53,9 @@ const config = defineConfig({
       userId: process.env["MATRIX_USER_ID"] || "@testbrain-dev:rizom.ai",
       deviceDisplayName: "Test Brain",
     }),
-    directorySync({}),
+    directorySync({
+      seedContent: true, // Enable seed content for first-time initialization
+    }),
     new GitSyncPlugin({
       gitUrl:
         process.env["GIT_SYNC_URL"] ||

@@ -43,6 +43,11 @@ export const directorySyncConfigSchema = z.object({
     .optional()
     .describe("Job priority (1-10)")
     .default(3),
+  seedContent: z
+    .boolean()
+    .optional()
+    .describe("Copy seed content on first initialization")
+    .default(false),
 });
 
 export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;
