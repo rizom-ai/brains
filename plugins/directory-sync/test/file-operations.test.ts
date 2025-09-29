@@ -66,7 +66,9 @@ describe("FileOperations", () => {
       mkdirSync(deepDir, { recursive: true });
       writeFileSync(join(deepDir, "react.md"), "# React");
 
-      const entity = await fileOps.readEntity("topic/tech/web/frontend/react.md");
+      const entity = await fileOps.readEntity(
+        "topic/tech/web/frontend/react.md",
+      );
 
       expect(entity.entityType).toBe("topic");
       expect(entity.id).toBe("tech:web:frontend:react");
@@ -90,7 +92,9 @@ describe("FileOperations", () => {
       expect(existsSync(expectedPath)).toBe(true);
 
       // Read it back
-      const readEntity = await fileOps.readEntity("site-content/landing/hero.md");
+      const readEntity = await fileOps.readEntity(
+        "site-content/landing/hero.md",
+      );
       expect(readEntity.id).toBe("landing:hero");
       expect(readEntity.entityType).toBe("site-content");
     });
@@ -137,7 +141,9 @@ describe("FileOperations", () => {
         };
 
         const path = fileOps.getEntityFilePath(entity);
-        expect(path).toBe(join(testDir, "topic", "tech", "ai", "llms", "gpt4.md"));
+        expect(path).toBe(
+          join(testDir, "topic", "tech", "ai", "llms", "gpt4.md"),
+        );
       });
 
       it("should handle base entities without subdirectories", () => {
@@ -184,7 +190,14 @@ describe("FileOperations", () => {
 
         await fileOps.writeEntity(entity);
 
-        const expectedPath = join(testDir, "summary", "daily", "2024", "01", "27.md");
+        const expectedPath = join(
+          testDir,
+          "summary",
+          "daily",
+          "2024",
+          "01",
+          "27.md",
+        );
         expect(existsSync(expectedPath)).toBe(true);
 
         const content = readFileSync(expectedPath, "utf-8");
@@ -203,7 +216,16 @@ describe("FileOperations", () => {
 
         await fileOps.writeEntity(entity);
 
-        const expectedPath = join(testDir, "test", "a", "b", "c", "d", "e", "f.md");
+        const expectedPath = join(
+          testDir,
+          "test",
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f.md",
+        );
         expect(existsSync(expectedPath)).toBe(true);
       });
     });
@@ -251,7 +273,7 @@ describe("FileOperations", () => {
           join(testDir, "note", "simple.md"),
         ];
 
-        paths.forEach(path => {
+        paths.forEach((path) => {
           mkdirSync(join(path, ".."), { recursive: true });
           writeFileSync(path, "test content");
         });

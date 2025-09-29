@@ -4,6 +4,7 @@ import { SystemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
+import { GitSyncPlugin } from "@brains/git-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { templates, routes, DefaultLayout } from "@brains/product-site-content";
@@ -53,6 +54,12 @@ const config = defineConfig({
       deviceDisplayName: "Test Brain",
     }),
     directorySync({}),
+    new GitSyncPlugin({
+      gitUrl:
+        process.env["GIT_SYNC_URL"] ||
+        "https://github.com/username/test-brain-backup",
+      authToken: process.env["GIT_SYNC_TOKEN"],
+    }),
     new WebserverInterface({}),
     siteBuilderPlugin({
       templates,

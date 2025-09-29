@@ -38,15 +38,30 @@ describe("Invalid Entity Handling", () => {
         return { entityId: _entity.id, jobId: "test-job" };
       },
       upsertEntity: async (entity: Partial<BaseEntity>) => {
-        return { entityId: entity.id ?? "test-id", jobId: "test-job", created: true };
+        return {
+          entityId: entity.id ?? "test-id",
+          jobId: "test-job",
+          created: true,
+        };
       },
       deleteEntity: async (_entityType: string, _id: string) => {
         return true;
       },
-      listEntities: async (_entityType: string, _options?: { limit?: number; offset?: number }) => {
+      listEntities: async (
+        _entityType: string,
+        _options?: { limit?: number; offset?: number },
+      ) => {
         return [];
       },
-      search: async (_query: string, _options?: { types?: string[]; limit?: number; sortBy?: string; sortDirection?: "asc" | "desc" }) => {
+      search: async (
+        _query: string,
+        _options?: {
+          types?: string[];
+          limit?: number;
+          sortBy?: string;
+          sortDirection?: "asc" | "desc";
+        },
+      ) => {
         return [];
       },
       getEntityTypes: () => {
@@ -57,14 +72,14 @@ describe("Invalid Entity Handling", () => {
       },
       getAsyncJobStatus: async (_jobId: string) => {
         return { status: "completed" as const, progress: 100 };
-      }
+      },
     };
 
     // Create directory sync instance
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
-      logger: createSilentLogger("test")
+      logger: createSilentLogger("test"),
     });
   });
 
@@ -110,7 +125,7 @@ describe("Invalid Entity Handling", () => {
         join(testDir, "topic", "malformed.md"),
       ];
 
-      files.forEach(file => {
+      files.forEach((file) => {
         writeFileSync(file, "Invalid content");
       });
 
@@ -125,7 +140,7 @@ describe("Invalid Entity Handling", () => {
       expect(result.imported).toBe(0);
 
       // Check all files renamed
-      files.forEach(file => {
+      files.forEach((file) => {
         expect(existsSync(file)).toBe(false);
         expect(existsSync(`${file}.invalid`)).toBe(true);
       });
@@ -235,7 +250,9 @@ describe("Invalid Entity Handling", () => {
       const logContent = readFileSync(errorLog, "utf-8");
 
       // Check for ISO timestamp format with milliseconds
-      const timestampMatch = logContent.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/);
+      const timestampMatch = logContent.match(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/,
+      );
       expect(timestampMatch).toBeTruthy();
 
       if (timestampMatch) {
@@ -258,7 +275,9 @@ describe("Invalid Entity Handling", () => {
       const logContent = readFileSync(errorLog, "utf-8");
 
       // Check for clear formatting
-      expect(logContent).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*summary\/daily\/2024-01-27\.md/);
+      expect(logContent).toMatch(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*summary\/daily\/2024-01-27\.md/,
+      );
       expect(logContent).toContain("Missing required field: conversationId");
       expect(logContent).toContain("→ summary/daily/2024-01-27.md.invalid");
     });
@@ -284,7 +303,10 @@ describe("Invalid Entity Handling", () => {
 
       // Rename back
       rmSync(originalPath, { force: true });
-      writeFileSync(originalPath, readFileSync(`${originalPath}.invalid`, "utf-8"));
+      writeFileSync(
+        originalPath,
+        readFileSync(`${originalPath}.invalid`, "utf-8"),
+      );
       rmSync(`${originalPath}.invalid`);
 
       // Clear the error for next import
@@ -364,7 +386,7 @@ describe("Invalid Entity Handling", () => {
         "topic/malformed.md",
       ];
 
-      files.forEach(file => {
+      files.forEach((file) => {
         writeFileSync(join(testDir, file), "Invalid");
       });
 

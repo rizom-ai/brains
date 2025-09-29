@@ -1,7 +1,14 @@
 import type { Logger, ServicePluginContext } from "@brains/plugins";
 import type { IEntityService, ProgressReporter } from "@brains/plugins";
 import { resolve, isAbsolute, join } from "path";
-import { existsSync, mkdirSync, renameSync, appendFileSync, readFileSync, writeFileSync } from "fs";
+import {
+  existsSync,
+  mkdirSync,
+  renameSync,
+  appendFileSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
 import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
@@ -382,14 +389,14 @@ export class DirectorySync {
         writeFileSync(errorLogPath, newLines.join("\n"));
 
         this.logger.debug("Marked file as recovered in error log", {
-          path: filePath
+          path: filePath,
         });
       }
     } catch (error) {
       // Non-critical, just log debug
       this.logger.debug("Could not update error log for recovered file", {
         path: filePath,
-        error
+        error,
       });
     }
   }
@@ -400,7 +407,7 @@ export class DirectorySync {
   private quarantineInvalidFile(
     filePath: string,
     error: unknown,
-    result: ImportResult
+    result: ImportResult,
   ): void {
     const fullPath = filePath.startsWith(this.syncPath)
       ? filePath
@@ -419,7 +426,8 @@ export class DirectorySync {
       // Log error to .import-errors.log
       const errorLogPath = join(this.syncPath, ".import-errors.log");
       const timestamp = new Date().toISOString();
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const logEntry = `${timestamp} - ${filePath}: ${errorMessage}\n→ ${filePath}.invalid\n\n`;
 
       appendFileSync(errorLogPath, logEntry);
@@ -427,18 +435,18 @@ export class DirectorySync {
       this.logger.warn("Quarantined invalid entity file", {
         originalPath: filePath,
         quarantinePath: `${filePath}.invalid`,
-        error: errorMessage
+        error: errorMessage,
       });
     } catch (renameError) {
       // If we can't quarantine, just log and skip
       this.logger.error("Failed to quarantine invalid file", {
         path: filePath,
-        error: renameError
+        error: renameError,
       });
       result.failed++;
       result.errors.push({
         path: filePath,
-        error: "Failed to quarantine invalid file"
+        error: "Failed to quarantine invalid file",
       });
     }
   }

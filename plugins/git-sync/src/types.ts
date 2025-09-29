@@ -3,6 +3,8 @@ import { basePluginConfigSchema } from "@brains/plugins";
 
 export const gitSyncConfigSchema = basePluginConfigSchema
   .extend({
+    enabled: z.boolean().default(true),
+    debug: z.boolean().default(false),
     gitUrl: z.string().describe("Git repository URL (https or ssh)"),
     branch: z.string().describe("Git branch to sync").default("main"),
     autoSync: z.boolean().describe("Enable automatic syncing").default(false),

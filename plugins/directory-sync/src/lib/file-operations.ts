@@ -104,7 +104,7 @@ export class FileOperations {
     const idParts = entity.id.split(":");
 
     // Filter empty parts but preserve structure
-    const cleanParts = idParts.filter(part => part.length > 0);
+    const cleanParts = idParts.filter((part) => part.length > 0);
 
     // If no parts after cleaning, use unnamed
     if (cleanParts.length === 0) {
@@ -135,7 +135,12 @@ export class FileOperations {
     }
 
     // Build path with entity type and any subdirectories from ID
-    return join(this.syncPath, entity.entityType, ...pathParts, `${filename}.md`);
+    return join(
+      this.syncPath,
+      entity.entityType,
+      ...pathParts,
+      `${filename}.md`,
+    );
   }
 
   /**
@@ -149,14 +154,23 @@ export class FileOperations {
     }
 
     // Recursively find all markdown files
-    const findMarkdownFiles = (currentPath: string, relativePath: string = ""): void => {
+    const findMarkdownFiles = (
+      currentPath: string,
+      relativePath: string = "",
+    ): void => {
       const entries = readdirSync(currentPath, { withFileTypes: true });
 
       for (const entry of entries) {
         const entryPath = join(currentPath, entry.name);
-        const relativeEntryPath = relativePath ? join(relativePath, entry.name) : entry.name;
+        const relativeEntryPath = relativePath
+          ? join(relativePath, entry.name)
+          : entry.name;
 
-        if (entry.isFile() && entry.name.endsWith(".md") && !entry.name.endsWith(".invalid")) {
+        if (
+          entry.isFile() &&
+          entry.name.endsWith(".md") &&
+          !entry.name.endsWith(".invalid")
+        ) {
           files.push(relativeEntryPath);
         } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
           findMarkdownFiles(entryPath, relativeEntryPath);

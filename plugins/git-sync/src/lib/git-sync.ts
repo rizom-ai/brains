@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, basename } from "path";
 import { z } from "@brains/utils";
 import type { CorePluginContext } from "@brains/plugins";
@@ -104,9 +104,9 @@ export class GitSync {
   async initialize(): Promise<void> {
     this.logger.debug("Initializing git repository", { gitUrl: this.gitUrl });
 
-    // Git-sync manages its own repository directory
-    // Don't use directory-sync's path as that would create nested git repos
-    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] ?? "./brain-repo";
+    // Use the directory-sync path (brain-data) or test path
+    // Git will initialize inside the same directory that directory-sync manages
+    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] ?? "./brain-data";
     this.logger.info("Using git repository path", { path: this.repoPath });
 
     // Clone or initialize repository
@@ -175,26 +175,27 @@ export class GitSync {
     } catch {
       // Branch doesn't exist, create it
       await this.git.checkoutLocalBranch(this.branch);
+
+      // For new repositories, create an initial commit so there's a HEAD to push
+      const log = await this.git.log().catch(() => ({ all: [] }));
+
+      if (log.all.length === 0) {
+        // No commits yet - create initial commit
+        this.logger.info("Creating initial commit for empty repository");
+
+        // Create a .gitkeep file to have something to commit
+        const gitkeepPath = join(this.repoPath, ".gitkeep");
+        if (!existsSync(gitkeepPath)) {
+          writeFileSync(gitkeepPath, "");
+        }
+
+        await this.git.add(".gitkeep");
+        await this.git.commit("Initial commit");
+        this.logger.info("Created initial commit");
+      }
     }
 
-    // Configure directory-sync to use our repository path
-    const configResponse = await this.sendMessage("sync:configure:request", {
-      syncPath: this.repoPath,
-    });
-
-    if ("noop" in configResponse || !configResponse.success) {
-      this.logger.warn("Could not configure directory-sync", {
-        error:
-          "noop" in configResponse
-            ? "No operation performed"
-            : configResponse.error,
-        repoPath: this.repoPath,
-      });
-    } else {
-      this.logger.info("Configured directory-sync to use git repository", {
-        path: this.repoPath,
-      });
-    }
+    // No need to reconfigure directory-sync - it's already using the same directory
 
     // Start auto-sync if enabled
     if (this.autoSync) {
@@ -301,13 +302,20 @@ export class GitSync {
    */
   async push(): Promise<void> {
     try {
-      await this.git.push("origin", this.branch);
+      // Try to push with upstream tracking on first push
+      await this.git.push("origin", this.branch, ["--set-upstream"]);
       this.logger.info("Pushed changes to remote");
-    } catch (error) {
-      this.logger.error("Failed to push changes", { error });
-      throw new Error(
-        `Failed to push changes to remote repository: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    } catch {
+      // If that fails, try a regular push
+      try {
+        await this.git.push("origin", this.branch);
+        this.logger.info("Pushed changes to remote");
+      } catch (fallbackError) {
+        this.logger.error("Failed to push changes", { error: fallbackError });
+        throw new Error(
+          `Failed to push changes to remote repository: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
+        );
+      }
     }
   }
 
@@ -345,7 +353,7 @@ export class GitSync {
   }
 
   /**
-   * Perform full sync (export, commit, push, pull)
+   * Perform full sync (export, pull, commit, push)
    */
   async sync(): Promise<void> {
     this.logger.debug("Starting sync");
@@ -363,25 +371,30 @@ export class GitSync {
         this.logger.info("Exported entities", { result: exportResponse.data });
       }
 
-      // Check if there are changes to commit
+      // Get initial status
       const status = await this.getStatus();
 
-      if (status.hasChanges) {
-        await this.commit();
-      }
-
-      // Pull before push to handle conflicts
+      // Pull first to get remote changes
       if (status.remote) {
         try {
           await this.pull();
         } catch (error) {
-          this.logger.warn("Pull failed, will try to push anyway", { error });
+          this.logger.warn("Pull failed", { error });
         }
+      }
 
-        // Push if we have commits
-        if (status.ahead > 0 || status.hasChanges) {
-          await this.push();
-        }
+      // Check for changes after pull (including any local changes)
+      const statusAfterPull = await this.getStatus();
+
+      // Commit any local changes
+      if (statusAfterPull.hasChanges) {
+        await this.commit();
+      }
+
+      // Push if we have commits ahead
+      const finalStatus = await this.getStatus();
+      if (status.remote && finalStatus.ahead > 0) {
+        await this.push();
       }
 
       this.logger.info("Sync completed successfully");
