@@ -23,6 +23,10 @@ export const gitSyncConfigSchema = basePluginConfigSchema
       .string()
       .optional()
       .describe("Authentication token for private repositories"),
+    autoPush: z
+      .boolean()
+      .describe("Automatically push after commits")
+      .default(false),
   })
   .describe("Configuration for the git-sync plugin");
 

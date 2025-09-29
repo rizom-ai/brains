@@ -212,7 +212,4 @@ describe("DirectorySync AutoSync", () => {
       expect(existsSync(join(testDir, "entity-2.md"))).toBe(true);
     });
   });
-
-
-
 });

@@ -373,33 +373,55 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     const directorySync = this.requireDirectorySync();
 
     // Subscribe to entity:created
-    subscribe<{ entity: BaseEntity; entityType: string }>("entity:created", async (message) => {
-      const { entity } = message.payload;
-      await directorySync.fileOps.writeEntity(entity);
-      this.debug("Auto-exported created entity", { id: entity.id, entityType: entity.entityType });
-      return { success: true };
-    });
+    subscribe<{ entity: BaseEntity; entityType: string }>(
+      "entity:created",
+      async (message) => {
+        const { entity } = message.payload;
+        await directorySync.fileOps.writeEntity(entity);
+        this.debug("Auto-exported created entity", {
+          id: entity.id,
+          entityType: entity.entityType,
+        });
+        return { success: true };
+      },
+    );
 
     // Subscribe to entity:updated
-    subscribe<{ entity: BaseEntity; entityType: string }>("entity:updated", async (message) => {
-      const { entity } = message.payload;
-      await directorySync.fileOps.writeEntity(entity);
-      this.debug("Auto-exported updated entity", { id: entity.id, entityType: entity.entityType });
-      return { success: true };
-    });
+    subscribe<{ entity: BaseEntity; entityType: string }>(
+      "entity:updated",
+      async (message) => {
+        const { entity } = message.payload;
+        await directorySync.fileOps.writeEntity(entity);
+        this.debug("Auto-exported updated entity", {
+          id: entity.id,
+          entityType: entity.entityType,
+        });
+        return { success: true };
+      },
+    );
 
     // Subscribe to entity:deleted
-    subscribe<{ entityId: string; entityType: string }>("entity:deleted", async (message) => {
-      const { entityId, entityType } = message.payload;
-      const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
-      const { unlinkSync, existsSync } = await import("fs");
+    subscribe<{ entityId: string; entityType: string }>(
+      "entity:deleted",
+      async (message) => {
+        const { entityId, entityType } = message.payload;
+        const filePath = directorySync.fileOps.getFilePath(
+          entityId,
+          entityType,
+        );
+        const { unlinkSync, existsSync } = await import("fs");
 
-      if (existsSync(filePath)) {
-        unlinkSync(filePath);
-        this.debug("Auto-deleted entity file", { id: entityId, entityType, path: filePath });
-      }
-      return { success: true };
-    });
+        if (existsSync(filePath)) {
+          unlinkSync(filePath);
+          this.debug("Auto-deleted entity file", {
+            id: entityId,
+            entityType,
+            path: filePath,
+          });
+        }
+        return { success: true };
+      },
+    );
 
     this.debug("Setup auto-sync for entity events", {
       syncDebounce: this.config.syncDebounce,

@@ -148,12 +148,7 @@ export class FileOperations {
     if (isBase) {
       return join(this.syncPath, ...directories, `${filename}.md`);
     } else {
-      return join(
-        this.syncPath,
-        entityType,
-        ...directories,
-        `${filename}.md`,
-      );
+      return join(this.syncPath, entityType, ...directories, `${filename}.md`);
     }
   }
 

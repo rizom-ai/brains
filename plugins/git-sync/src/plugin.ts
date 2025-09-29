@@ -54,6 +54,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
       authorName: this.config.authorName,
       authorEmail: this.config.authorEmail,
       authToken: this.config.authToken,
+      autoPush: this.config.autoPush,
       ...context,
     });
 

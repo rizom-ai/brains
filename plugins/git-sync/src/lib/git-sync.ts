@@ -17,6 +17,7 @@ export const gitSyncOptionsSchema = z.object({
   authorName: z.string().optional(),
   authorEmail: z.string().optional(),
   authToken: z.string().optional(),
+  autoPush: z.boolean().optional(),
 });
 
 export type GitSyncOptions = z.infer<typeof gitSyncOptionsSchema> &
@@ -54,6 +55,7 @@ export class GitSync {
   private authorName: string | undefined;
   private authorEmail: string | undefined;
   private authToken: string | undefined;
+  private autoPush: boolean;
   private syncTimer: Timer | undefined;
   private repoPath: string = "";
 
@@ -71,6 +73,7 @@ export class GitSync {
     this.authorName = options.authorName;
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
+    this.autoPush = options.autoPush ?? false;
   }
 
   /**
@@ -391,10 +394,11 @@ export class GitSync {
         await this.commit();
       }
 
-      // Push if we have commits ahead
+      // Push if autoPush is enabled and we have commits ahead
       const finalStatus = await this.getStatus();
-      if (status.remote && finalStatus.ahead > 0) {
+      if (this.autoPush && status.remote && finalStatus.ahead > 0) {
         await this.push();
+        this.logger.info("Auto-pushed changes to remote");
       }
 
       this.logger.info("Sync completed successfully");
