@@ -38,24 +38,41 @@ export class FileOperations {
     // Determine entity type from path
     const relativePath = fullPath.replace(this.syncPath + "/", "");
     const pathParts = relativePath.split("/");
-    const entityType =
-      pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
+
+    // Check if first part is a known entity type directory
+    // Base entities are in root, so if there's only one part or
+    // the first part isn't a directory, it's a base entity
+    let entityType: string;
+    let idPathParts: string[];
+
+    if (pathParts.length === 1) {
+      // File in root - it's a base entity
+      entityType = "base";
+      idPathParts = pathParts;
+    } else if (pathParts[0] && !pathParts[0].endsWith(".md")) {
+      // First part is a directory, assume it's the entity type
+      entityType = pathParts[0];
+      idPathParts = pathParts.slice(1);
+    } else {
+      // Edge case: file in root with subdirectories (base entity with colon ID)
+      entityType = "base";
+      idPathParts = pathParts;
+    }
 
     // Reconstruct ID from path with colons for nested structures
     // e.g., site-content/landing/hero.md -> id: "landing:hero"
     let id: string;
-    if (pathParts.length > 2) {
-      // Has subdirectories after entity type
-      const idParts = pathParts.slice(1); // Remove entity type
-      const lastPart = idParts[idParts.length - 1];
+    if (idPathParts.length > 1) {
+      // Has subdirectories - join with colons
+      const lastPart = idPathParts[idPathParts.length - 1];
       if (lastPart) {
         const filename = lastPart.replace(".md", "");
-        idParts[idParts.length - 1] = filename;
+        idPathParts[idPathParts.length - 1] = filename;
       }
-      id = idParts.join(":");
+      id = idPathParts.join(":");
     } else {
       // Simple case - just filename
-      id = basename(fullPath, ".md");
+      id = basename(idPathParts[0] ?? "", ".md");
     }
 
     // Use file timestamps, but fallback to current time if birthtime is invalid
@@ -106,14 +123,14 @@ export class FileOperations {
     // Filter empty parts but preserve structure
     const cleanParts = idParts.filter((part) => part.length > 0);
 
-    // If no parts after cleaning, use unnamed
-    if (cleanParts.length === 0) {
-      return join(this.syncPath, entity.entityType, "unnamed.md");
-    }
+    // Base entities go in root, others in type subdirectory
+    const isBase = entity.entityType === "base";
 
     // If only one part (no colons), simple flat file
     if (cleanParts.length === 1) {
-      return join(this.syncPath, entity.entityType, `${cleanParts[0]}.md`);
+      return isBase
+        ? join(this.syncPath, `${cleanParts[0]}.md`)
+        : join(this.syncPath, entity.entityType, `${cleanParts[0]}.md`);
     }
 
     // For multiple parts, check if first part matches entity type
@@ -123,24 +140,21 @@ export class FileOperations {
       pathParts = cleanParts.slice(1);
     }
 
-    // If we removed the only part, treat as simple file
-    if (pathParts.length === 0) {
-      return join(this.syncPath, entity.entityType, "unnamed.md");
-    }
-
     // Last part becomes the filename
-    const filename = pathParts.pop();
-    if (!filename) {
-      return join(this.syncPath, entity.entityType, "unnamed.md");
-    }
+    const filename = pathParts[pathParts.length - 1];
+    const directories = pathParts.slice(0, -1);
 
-    // Build path with entity type and any subdirectories from ID
-    return join(
-      this.syncPath,
-      entity.entityType,
-      ...pathParts,
-      `${filename}.md`,
-    );
+    // Build path - base entities in root, others in type subdirectory
+    if (isBase) {
+      return join(this.syncPath, ...directories, `${filename}.md`);
+    } else {
+      return join(
+        this.syncPath,
+        entity.entityType,
+        ...directories,
+        `${filename}.md`,
+      );
+    }
   }
 
   /**

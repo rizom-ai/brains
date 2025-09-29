@@ -147,7 +147,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       await this.copyDirectory(seedContentPath, brainDataPath);
       this.info("Seed content copied successfully");
     } else if (isEmpty) {
-      this.debug("No seed content directory found, starting with empty brain-data");
+      this.debug(
+        "No seed content directory found, starting with empty brain-data",
+      );
     } else {
       this.debug("brain-data directory not empty, skipping seed content");
     }
@@ -162,7 +164,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
     const files = readdirSync(brainDataPath);
     // Ignore .git directory when checking if empty
-    const nonGitFiles = files.filter(f => f !== ".git" && f !== ".gitkeep");
+    const nonGitFiles = files.filter((f) => f !== ".git" && f !== ".gitkeep");
     return nonGitFiles.length === 0;
   }
 

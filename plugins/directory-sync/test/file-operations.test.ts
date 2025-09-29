@@ -156,9 +156,9 @@ describe("FileOperations", () => {
           updated: new Date().toISOString(),
         };
 
-        // Base entities should still go in root, but with colon handling
+        // Base entities go in root, "base:" prefix is stripped since it matches entity type
         const path = fileOps.getEntityFilePath(entity);
-        expect(path).toBe(join(testDir, "base", "entity", "test.md"));
+        expect(path).toBe(join(testDir, "entity", "test.md"));
       });
 
       it("should handle empty ID parts gracefully", () => {

@@ -54,7 +54,7 @@ const config = defineConfig({
       deviceDisplayName: "Test Brain",
     }),
     directorySync({
-      seedContent: true, // Enable seed content for first-time initialization
+      seedContent: false, // Disable seed content when using git-sync restore
     }),
     new GitSyncPlugin({
       gitUrl:

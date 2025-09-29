@@ -43,7 +43,6 @@ export class App {
     await migrationManager.runAllMigrations();
   }
 
-
   public async initialize(): Promise<void> {
     // Run migrations before creating shell
     await this.runMigrations();

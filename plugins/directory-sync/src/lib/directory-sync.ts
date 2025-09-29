@@ -195,18 +195,19 @@ export class DirectorySync {
           await this.fileOperations.writeEntity(entity);
           result.exported++;
           this.logger.debug("Exported entity", { entityType, id: entity.id });
-        } catch {
-          const exportError = new Error(`Failed to export entity ${entity.id}`);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
           result.failed++;
           result.errors.push({
             entityId: entity.id,
             entityType,
-            error: exportError.message,
+            error: errorMessage,
           });
           this.logger.error("Failed to export entity", {
             entityType,
             id: entity.id,
-            error: exportError,
+            error: errorMessage,
           });
         }
       }
