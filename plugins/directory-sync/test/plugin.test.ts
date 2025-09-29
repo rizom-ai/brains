@@ -73,7 +73,8 @@ describe("DirectorySyncPlugin", () => {
     // Create plugin
     plugin = new DirectorySyncPlugin({
       syncPath,
-      watchEnabled: false,
+      autoSync: false,
+      initialSync: false,
     });
 
     // Install plugin

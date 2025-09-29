@@ -32,14 +32,15 @@ Replace the current `watchEnabled` (file → database only) with `autoSync` (bid
 ### Phase 1: Directory-Sync AutoSync
 
 #### Configuration Changes
+
 ```typescript
 interface DirectorySyncConfig {
   // Deprecated
-  watchEnabled?: boolean;  // Will show deprecation warning
+  watchEnabled?: boolean; // Will show deprecation warning
 
   // New
-  autoSync: boolean;       // Default: true (bidirectional sync)
-  syncDebounce: number;    // Default: 1000ms (batch exports)
+  autoSync: boolean; // Default: true (bidirectional sync)
+  syncDebounce: number; // Default: 1000ms (batch exports)
 
   // Unchanged
   syncPath: string;
@@ -50,6 +51,7 @@ interface DirectorySyncConfig {
 ```
 
 #### Event Subscriptions
+
 ```typescript
 // Subscribe to entity lifecycle events
 context.subscribe("entity:created", handleEntityExport);
@@ -58,6 +60,7 @@ context.subscribe("entity:deleted", handleEntityDelete);
 ```
 
 #### Debouncing Strategy
+
 - Track pending exports in a Map
 - Use setTimeout to batch changes within `syncDebounce` window
 - Export all pending changes in one operation
@@ -65,19 +68,21 @@ context.subscribe("entity:deleted", handleEntityDelete);
 ### Phase 2: Git-Sync Optimization
 
 #### Configuration Changes
+
 ```typescript
 interface GitSyncConfig {
   // Existing
-  autoSync: boolean;      // Auto-commit and sync
-  syncInterval: number;   // Interval for auto-sync
+  autoSync: boolean; // Auto-commit and sync
+  syncInterval: number; // Interval for auto-sync
 
   // New
-  autoPush: boolean;      // Auto-push after commits (default: false)
+  autoPush: boolean; // Auto-push after commits (default: false)
   skipExportCheck: boolean; // Check if export needed (default: true)
 }
 ```
 
 #### Export Skip Logic
+
 ```typescript
 async sync() {
   // Check if directory-sync has autoSync enabled
@@ -107,28 +112,30 @@ async sync() {
 ### Recommended Configurations
 
 #### Manual Commits, Automatic Files
+
 ```typescript
-directorySync({
-  autoSync: true,        // Auto-sync DB ↔ files
-  syncDebounce: 1000,    // 1 second debounce
+(directorySync({
+  autoSync: true, // Auto-sync DB ↔ files
+  syncDebounce: 1000, // 1 second debounce
 }),
-new GitSyncPlugin({
-  autoSync: false,       // Manual commits
-  autoPush: true,        // Auto-push after manual commits
-})
+  new GitSyncPlugin({
+    autoSync: false, // Manual commits
+    autoPush: true, // Auto-push after manual commits
+  }));
 ```
 
 #### Full Automation
+
 ```typescript
-directorySync({
+(directorySync({
   autoSync: true,
   syncDebounce: 1000,
 }),
-new GitSyncPlugin({
-  autoSync: true,        // Auto-commit changes
-  syncInterval: 300,     // Every 5 minutes
-  autoPush: true,        // Auto-push commits
-})
+  new GitSyncPlugin({
+    autoSync: true, // Auto-commit changes
+    syncInterval: 300, // Every 5 minutes
+    autoPush: true, // Auto-push commits
+  }));
 ```
 
 ## Testing Strategy

@@ -8,10 +8,17 @@ export const directorySyncConfigSchema = z.object({
     .string()
     .describe("Directory path for synchronization")
     .default("./brain-data"),
-  watchEnabled: z.boolean().describe("Enable file watching").default(true),
+  autoSync: z
+    .boolean()
+    .describe("Enable bidirectional auto-sync")
+    .default(true),
+  syncDebounce: z
+    .number()
+    .describe("Debounce time for entity exports in ms")
+    .default(1000),
   watchInterval: z
     .number()
-    .describe("Watch polling interval in ms")
+    .describe("File watch polling interval in ms")
     .default(1000),
   includeMetadata: z
     .boolean()

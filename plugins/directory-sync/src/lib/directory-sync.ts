@@ -30,7 +30,8 @@ import { EventHandler } from "./event-handler";
  */
 export const directorySyncOptionsSchema = z.object({
   syncPath: z.string(),
-  watchEnabled: z.boolean().optional(),
+  autoSync: z.boolean().optional(),
+  syncDebounce: z.number().optional(),
   watchInterval: z.number().optional(),
   includeMetadata: z.boolean().optional(),
   entityTypes: z.array(z.string()).optional(),
@@ -52,7 +53,8 @@ export class DirectorySync {
   private entityService: IEntityService;
   private logger: Logger;
   private syncPath: string;
-  private watchEnabled: boolean;
+  private autoSync: boolean;
+  private syncDebounce: number;
   private watchInterval: number;
   private entityTypes: string[] | undefined;
   private fileWatcher: FileWatcher | undefined;
@@ -77,7 +79,8 @@ export class DirectorySync {
       ? options.syncPath
       : resolve(process.cwd(), options.syncPath);
 
-    this.watchEnabled = options.watchEnabled ?? false;
+    this.autoSync = options.autoSync ?? true;
+    this.syncDebounce = options.syncDebounce ?? 1000;
     this.watchInterval = options.watchInterval ?? 5000;
     this.entityTypes = options.entityTypes;
     this.batchOperationsManager = new BatchOperationsManager(
@@ -111,8 +114,8 @@ export class DirectorySync {
       });
     }
 
-    // Start watching if enabled
-    if (this.watchEnabled) {
+    // Start file watching if autoSync enabled (for bidirectional sync)
+    if (this.autoSync) {
       void this.startWatching();
     }
   }
@@ -611,5 +614,12 @@ export class DirectorySync {
     if (this.fileWatcher) {
       this.fileWatcher.setCallback(callback);
     }
+  }
+
+  /**
+   * Get sync debounce time
+   */
+  getSyncDebounce(): number {
+    return this.syncDebounce;
   }
 }

@@ -114,29 +114,29 @@ export class FileOperations {
   }
 
   /**
-   * Get file path for entity
+   * Get file path for entity by ID and type
    */
-  getEntityFilePath(entity: BaseEntity): string {
+  getFilePath(entityId: string, entityType: string): string {
     // Split ID by colons to create subdirectory structure
-    const idParts = entity.id.split(":");
+    const idParts = entityId.split(":");
 
     // Filter empty parts but preserve structure
     const cleanParts = idParts.filter((part) => part.length > 0);
 
     // Base entities go in root, others in type subdirectory
-    const isBase = entity.entityType === "base";
+    const isBase = entityType === "base";
 
     // If only one part (no colons), simple flat file
     if (cleanParts.length === 1) {
       return isBase
         ? join(this.syncPath, `${cleanParts[0]}.md`)
-        : join(this.syncPath, entity.entityType, `${cleanParts[0]}.md`);
+        : join(this.syncPath, entityType, `${cleanParts[0]}.md`);
     }
 
     // For multiple parts, check if first part matches entity type
     // If it does, skip it to avoid duplication like "summary/summary/..."
     let pathParts = cleanParts;
-    if (cleanParts[0] === entity.entityType) {
+    if (cleanParts[0] === entityType) {
       pathParts = cleanParts.slice(1);
     }
 
@@ -150,11 +150,18 @@ export class FileOperations {
     } else {
       return join(
         this.syncPath,
-        entity.entityType,
+        entityType,
         ...directories,
         `${filename}.md`,
       );
     }
+  }
+
+  /**
+   * Get file path for entity
+   */
+  getEntityFilePath(entity: BaseEntity): string {
+    return this.getFilePath(entity.id, entity.entityType);
   }
 
   /**

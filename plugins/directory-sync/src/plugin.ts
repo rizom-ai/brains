@@ -3,6 +3,7 @@ import type {
   ServicePluginContext,
   Command,
   PluginTool,
+  BaseEntity,
 } from "@brains/plugins";
 import { ServicePlugin, createId } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
@@ -84,7 +85,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Create DirectorySync instance
     this.directorySync = new DirectorySync({
       syncPath: this.config.syncPath,
-      watchEnabled: this.config.watchEnabled,
+      autoSync: this.config.autoSync,
+      syncDebounce: this.config.syncDebounce,
       watchInterval: this.config.watchInterval,
       includeMetadata: this.config.includeMetadata,
       entityTypes: this.config.entityTypes,
@@ -111,10 +113,13 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Register job handlers for async operations
     await this.registerJobHandlers(context);
 
-    // Setup file watcher with job queue integration if enabled
-    if (this.config.watchEnabled) {
+    // Setup auto-sync if enabled (bidirectional sync)
+    if (this.config.autoSync) {
+      // Database → Files
+      this.setupAutoSync(context);
+      // Files → Database
       this.setupFileWatcher(context);
-      await this.directorySync.startWatching();
+      // File watching is started automatically in DirectorySync.initialize()
     }
 
     // Queue initial sync job if enabled
@@ -358,6 +363,48 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
 
     return result.batchId;
+  }
+
+  /**
+   * Setup auto-sync for entity events (Database → Files)
+   */
+  private setupAutoSync(context: ServicePluginContext): void {
+    const { subscribe } = context;
+    const directorySync = this.requireDirectorySync();
+
+    // Subscribe to entity:created
+    subscribe<{ entity: BaseEntity; entityType: string }>("entity:created", async (message) => {
+      const { entity } = message.payload;
+      await directorySync.fileOps.writeEntity(entity);
+      this.debug("Auto-exported created entity", { id: entity.id, entityType: entity.entityType });
+      return { success: true };
+    });
+
+    // Subscribe to entity:updated
+    subscribe<{ entity: BaseEntity; entityType: string }>("entity:updated", async (message) => {
+      const { entity } = message.payload;
+      await directorySync.fileOps.writeEntity(entity);
+      this.debug("Auto-exported updated entity", { id: entity.id, entityType: entity.entityType });
+      return { success: true };
+    });
+
+    // Subscribe to entity:deleted
+    subscribe<{ entityId: string; entityType: string }>("entity:deleted", async (message) => {
+      const { entityId, entityType } = message.payload;
+      const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
+      const { unlinkSync, existsSync } = await import("fs");
+
+      if (existsSync(filePath)) {
+        unlinkSync(filePath);
+        this.debug("Auto-deleted entity file", { id: entityId, entityType, path: filePath });
+      }
+      return { success: true };
+    });
+
+    this.debug("Setup auto-sync for entity events", {
+      syncDebounce: this.config.syncDebounce,
+      entityTypes: this.config.entityTypes,
+    });
   }
 
   /**
