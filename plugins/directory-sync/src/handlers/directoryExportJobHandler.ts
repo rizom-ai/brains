@@ -146,41 +146,20 @@ export class DirectoryExportJobHandler
 
       // Process batch in parallel
       const batchPromises = entities.map(async (entity) => {
-        try {
-          // Check if file exists
-          const filePath = this.directorySync.fileOps.getEntityFilePath(entity);
-          const fileExists =
-            await this.directorySync.fileOps.fileExists(filePath);
+        const exportResult = await this.directorySync.processEntityExport(entity);
 
-          if (!fileExists) {
-            // File was deleted - delete entity from DB if configured
-            if (this.directorySync.shouldDeleteOnFileRemoval) {
-              this.logger.debug("File missing, deleting entity from DB", {
-                entityId: entity.id,
-                entityType,
-              });
-              await this.context.entityService.deleteEntity(
-                entityType,
-                entity.id,
-              );
-              result.exported++; // Count as processed
-              return { success: true, deleted: true };
-            }
-          }
-
-          // File exists or deleteOnFileRemoval is false - write/update it
-          await this.directorySync.fileOps.writeEntity(entity);
+        if (exportResult.success) {
           result.exported++;
-          return { success: true };
-        } catch (error) {
+        } else {
           result.failed++;
           result.errors.push({
             entityId: entity.id,
             entityType,
-            error: error instanceof Error ? error.message : String(error),
+            error: exportResult.error ?? "Unknown error",
           });
-          return { success: false, error };
         }
+
+        return exportResult;
       });
 
       // Process batch in parallel

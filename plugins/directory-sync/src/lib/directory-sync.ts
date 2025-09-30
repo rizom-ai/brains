@@ -1,4 +1,8 @@
-import type { Logger, ServicePluginContext } from "@brains/plugins";
+import type {
+  Logger,
+  ServicePluginContext,
+  BaseEntity,
+} from "@brains/plugins";
 import type { IEntityService, ProgressReporter } from "@brains/plugins";
 import { resolve, isAbsolute, join } from "path";
 import {
@@ -177,6 +181,43 @@ export class DirectorySync {
   }
 
   /**
+   * Process export for a single entity
+   * Checks if file exists and either writes or deletes entity accordingly
+   */
+  async processEntityExport(entity: BaseEntity): Promise<{
+    success: boolean;
+    deleted?: boolean;
+    error?: string;
+  }> {
+    try {
+      // Check if file exists
+      const filePath = this.fileOperations.getEntityFilePath(entity);
+      const fileExists = await this.fileOperations.fileExists(filePath);
+
+      if (!fileExists) {
+        // File was deleted - delete entity from DB if configured
+        if (this.deleteOnFileRemoval) {
+          this.logger.debug("File missing, deleting entity from DB", {
+            entityId: entity.id,
+            entityType: entity.entityType,
+          });
+          await this.entityService.deleteEntity(entity.entityType, entity.id);
+          return { success: true, deleted: true };
+        }
+      }
+
+      // File exists or deleteOnFileRemoval is false - write/update it
+      await this.fileOperations.writeEntity(entity);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  /**
    * Export all entities to directory
    */
   async exportEntities(entityTypes?: string[]): Promise<ExportResult> {
@@ -197,23 +238,29 @@ export class DirectorySync {
       });
 
       for (const entity of entities) {
-        try {
-          await this.fileOperations.writeEntity(entity);
+        const exportResult = await this.processEntityExport(entity);
+
+        if (exportResult.success) {
           result.exported++;
-          this.logger.debug("Exported entity", { entityType, id: entity.id });
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          if (exportResult.deleted) {
+            this.logger.debug("Deleted entity from DB (file missing)", {
+              entityType,
+              id: entity.id,
+            });
+          } else {
+            this.logger.debug("Exported entity", { entityType, id: entity.id });
+          }
+        } else {
           result.failed++;
           result.errors.push({
             entityId: entity.id,
             entityType,
-            error: errorMessage,
+            error: exportResult.error ?? "Unknown error",
           });
           this.logger.error("Failed to export entity", {
             entityType,
             id: entity.id,
-            error: errorMessage,
+            error: exportResult.error,
           });
         }
       }

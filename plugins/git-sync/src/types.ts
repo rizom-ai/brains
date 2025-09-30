@@ -26,7 +26,7 @@ export const gitSyncConfigSchema = basePluginConfigSchema
     autoPush: z
       .boolean()
       .describe("Automatically push after commits")
-      .default(false),
+      .default(true),
   })
   .describe("Configuration for the git-sync plugin");
 

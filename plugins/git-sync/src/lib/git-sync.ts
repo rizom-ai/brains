@@ -368,6 +368,13 @@ export class GitSync {
       // Get initial status to check for local changes
       const initialStatus = await this.getStatus();
 
+      // Determine if we need to push (before pull complicates state)
+      // Push if we have local changes OR if we're already ahead
+      const shouldPush =
+        this.autoPush &&
+        initialStatus.remote &&
+        (initialStatus.hasChanges || initialStatus.ahead > 0);
+
       // Commit any local changes FIRST (including deletions)
       // This ensures deletions are preserved before pulling
       if (initialStatus.hasChanges) {
@@ -384,9 +391,8 @@ export class GitSync {
         }
       }
 
-      // Push if autoPush is enabled and we have commits ahead
-      const finalStatus = await this.getStatus();
-      if (this.autoPush && initialStatus.remote && finalStatus.ahead > 0) {
+      // Push if we determined we should (based on initial status)
+      if (shouldPush) {
         await this.push();
         this.logger.info("Auto-pushed changes to remote");
       }
