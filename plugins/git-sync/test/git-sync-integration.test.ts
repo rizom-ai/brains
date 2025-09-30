@@ -116,7 +116,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
 
       // Verify it was added to git
       const status = await git.status();
-      expect(status.files.some(f => f.path.includes("hero.md"))).toBe(false); // Should be committed, not in changes
+      expect(status.files.some((f) => f.path.includes("hero.md"))).toBe(false); // Should be committed, not in changes
     });
 
     it("should handle deeply nested entity structures", async () => {

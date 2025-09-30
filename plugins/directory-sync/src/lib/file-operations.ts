@@ -301,4 +301,11 @@ export class FileOperations {
   syncDirectoryExists(): boolean {
     return existsSync(this.syncPath);
   }
+
+  /**
+   * Check if a file exists
+   */
+  async fileExists(filePath: string): Promise<boolean> {
+    return existsSync(filePath);
+  }
 }

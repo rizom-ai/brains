@@ -512,6 +512,13 @@ export class DirectorySync {
   }
 
   /**
+   * Get deleteOnFileRemoval config
+   */
+  get shouldDeleteOnFileRemoval(): boolean {
+    return this.deleteOnFileRemoval;
+  }
+
+  /**
    * Get all markdown files (for tools)
    */
   getAllMarkdownFiles(): string[] {
