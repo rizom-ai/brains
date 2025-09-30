@@ -4,6 +4,7 @@ import { SystemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
+import { GitSyncPlugin } from "@brains/git-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import {
@@ -56,7 +57,15 @@ const config = defineConfig({
       userId: process.env["MATRIX_USER_ID"] || "@teambrain-dev:rizom.ai",
       deviceDisplayName: "Team Brain",
     }),
-    directorySync({}),
+    directorySync({
+      seedContent: false, // Disable seed content when using git-sync restore
+    }),
+    new GitSyncPlugin({
+      gitUrl:
+        process.env["GIT_SYNC_URL"] ||
+        "https://github.com/username/team-brain-backup",
+      authToken: process.env["GIT_SYNC_TOKEN"],
+    }),
     new WebserverInterface({}),
     siteBuilderPlugin({
       templates,
