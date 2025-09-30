@@ -41,13 +41,16 @@ export class EventHandler {
       // Create the delete handler
       this.handleDelete = async (path: string): Promise<void> => {
         if (!this.deleteOnFileRemoval) {
-          this.logger.warn("File deleted but deleteOnFileRemoval is disabled", { path });
+          this.logger.warn("File deleted but deleteOnFileRemoval is disabled", {
+            path,
+          });
           return;
         }
 
         // Extract entity info from file path
         try {
-          const { entityType, id } = this.fileOperations.parseEntityFromPath(path);
+          const { entityType, id } =
+            this.fileOperations.parseEntityFromPath(path);
 
           const jobId = await jobQueueCallback({
             type: "directory-delete" as const,
@@ -64,7 +67,10 @@ export class EventHandler {
             entityType,
           });
         } catch (error) {
-          this.logger.warn("Could not extract entity info from deleted file", { path, error });
+          this.logger.warn("Could not extract entity info from deleted file", {
+            path,
+            error,
+          });
         }
       };
     } else {
@@ -108,5 +114,4 @@ export class EventHandler {
       });
     }
   }
-
 }

@@ -10,15 +10,14 @@ describe("EventHandler", () => {
   let mockFileOperations: FileOperations;
 
   beforeEach(() => {
-
     mockImportFn = mock().mockResolvedValue(undefined);
     mockJobQueueCallback = mock().mockResolvedValue("job-123");
 
     mockFileOperations = {
       parseEntityFromPath: mock().mockReturnValue({
         entityType: "topic",
-        id: "technology:ai"
-      })
+        id: "technology:ai",
+      }),
     } as unknown as FileOperations;
   });
 
@@ -31,7 +30,7 @@ describe("EventHandler", () => {
         mockImportFn,
         mockJobQueueCallback,
         mockFileOperations,
-        true // deleteOnFileRemoval
+        true, // deleteOnFileRemoval
       );
     });
 
@@ -60,9 +59,14 @@ describe("EventHandler", () => {
       });
 
       it("should queue delete job for 'delete' event", async () => {
-        await eventHandler.handleFileChange("delete", "/test/topic/technology/ai.md");
+        await eventHandler.handleFileChange(
+          "delete",
+          "/test/topic/technology/ai.md",
+        );
 
-        expect(mockFileOperations.parseEntityFromPath).toHaveBeenCalledWith("/test/topic/technology/ai.md");
+        expect(mockFileOperations.parseEntityFromPath).toHaveBeenCalledWith(
+          "/test/topic/technology/ai.md",
+        );
         expect(mockJobQueueCallback).toHaveBeenCalledWith({
           type: "directory-delete",
           data: {
@@ -79,7 +83,7 @@ describe("EventHandler", () => {
 
         mockFileOperations.parseEntityFromPath = mock().mockReturnValue({
           entityType: "summary",
-          id: "daily"
+          id: "daily",
         });
 
         await eventHandler.handleFileChange("unlink", "/test/summary/daily.md");
@@ -100,7 +104,7 @@ describe("EventHandler", () => {
           mockImportFn,
           mockJobQueueCallback,
           mockFileOperations,
-          false // deleteOnFileRemoval disabled
+          false, // deleteOnFileRemoval disabled
         );
 
         await eventHandler.handleFileChange("delete", "/test/file.md");
@@ -110,9 +114,11 @@ describe("EventHandler", () => {
       });
 
       it("should handle parseEntityFromPath errors gracefully", async () => {
-        mockFileOperations.parseEntityFromPath = mock().mockImplementation(() => {
-          throw new Error("Invalid path format");
-        });
+        mockFileOperations.parseEntityFromPath = mock().mockImplementation(
+          () => {
+            throw new Error("Invalid path format");
+          },
+        );
 
         await eventHandler.handleFileChange("delete", "/test/invalid.md");
 
@@ -147,7 +153,7 @@ describe("EventHandler", () => {
         mockImportFn,
         undefined, // no job queue
         mockFileOperations,
-        true
+        true,
       );
     });
 

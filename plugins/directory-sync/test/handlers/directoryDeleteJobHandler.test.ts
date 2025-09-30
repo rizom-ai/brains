@@ -33,7 +33,7 @@ describe("DirectoryDeleteJobHandler", () => {
     handler = new DirectoryDeleteJobHandler(
       logger,
       mockContext,
-      mockDirectorySync
+      mockDirectorySync,
     );
   });
 
@@ -48,11 +48,15 @@ describe("DirectoryDeleteJobHandler", () => {
     it("should successfully delete an existing entity", async () => {
       mockEntityService.deleteEntity = mock().mockResolvedValue(true);
 
-      const result = await handler.process(validData, jobId, mockProgressReporter);
+      const result = await handler.process(
+        validData,
+        jobId,
+        mockProgressReporter,
+      );
 
       expect(mockEntityService.deleteEntity).toHaveBeenCalledWith(
         "topic",
-        "technology:ai"
+        "technology:ai",
       );
       expect(result).toEqual({
         deleted: true,
@@ -67,11 +71,15 @@ describe("DirectoryDeleteJobHandler", () => {
     it("should handle case when entity doesn't exist", async () => {
       mockEntityService.deleteEntity = mock().mockResolvedValue(false);
 
-      const result = await handler.process(validData, jobId, mockProgressReporter);
+      const result = await handler.process(
+        validData,
+        jobId,
+        mockProgressReporter,
+      );
 
       expect(mockEntityService.deleteEntity).toHaveBeenCalledWith(
         "topic",
-        "technology:ai"
+        "technology:ai",
       );
       expect(result).toEqual({
         deleted: false,
@@ -99,7 +107,11 @@ describe("DirectoryDeleteJobHandler", () => {
         // missing entityId
       };
 
-      const promise = handler.process(invalidData as unknown as typeof validData, jobId, mockProgressReporter);
+      const promise = handler.process(
+        invalidData as unknown as typeof validData,
+        jobId,
+        mockProgressReporter,
+      );
       await expect(promise).rejects.toThrow();
     });
 

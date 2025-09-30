@@ -9,6 +9,7 @@ Based on Q&A refinement session, the final simplification:
 - **Total reduction**: From 14 to 5 operations (64% reduction)
 
 Key decisions:
+
 - Both plugins get a command for users and a sync tool for programmatic access
 - Watch and auto-sync become config-only (no runtime control)
 - Commands provide summary feedback after operations

@@ -71,16 +71,20 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       // Verify capabilities
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools?.length).toBe(6);
+      expect(capabilities.tools?.length).toBe(2);
 
       // Verify tool names
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("git-sync:sync");
-      expect(toolNames).toContain("git-sync:commit");
-      expect(toolNames).toContain("git-sync:push");
-      expect(toolNames).toContain("git-sync:pull");
       expect(toolNames).toContain("git-sync:status");
-      expect(toolNames).toContain("git-sync:auto-sync");
+    });
+
+    it("should provide commands", () => {
+      expect(capabilities.commands).toBeDefined();
+      expect(capabilities.commands?.length).toBe(1);
+
+      const commandNames = capabilities.commands.map((c) => c.name);
+      expect(commandNames).toContain("git-sync");
     });
 
     it("should provide tool metadata", () => {
@@ -90,7 +94,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       const syncTool = tools.find((t) => t.name === "git-sync:sync");
       expect(syncTool).toBeDefined();
       expect(syncTool?.description).toBe(
-        "Perform full git sync (export, commit, push, pull)",
+        "Perform full git sync (commit, push, pull)",
       );
       expect(syncTool?.visibility).toBe("anchor");
 
@@ -99,20 +103,6 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       expect(statusTool).toBeDefined();
       expect(statusTool?.description).toBe("Get git repository status");
       expect(statusTool?.visibility).toBe("public");
-    });
-
-    it("should have correct input schemas", () => {
-      const tools = capabilities.tools;
-
-      // Check commit tool has commitMessage input
-      const commitTool = tools.find((t) => t.name === "git-sync:commit");
-      expect(commitTool).toBeDefined();
-      expect(commitTool?.inputSchema).toHaveProperty("commitMessage");
-
-      // Check auto-sync tool has autoSync input
-      const autoSyncTool = tools.find((t) => t.name === "git-sync:auto-sync");
-      expect(autoSyncTool).toBeDefined();
-      expect(autoSyncTool?.inputSchema).toHaveProperty("autoSync");
     });
   });
 

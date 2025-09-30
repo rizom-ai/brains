@@ -9,7 +9,8 @@ describe("FileOperations.parseEntityFromPath", () => {
 
   beforeEach(() => {
     const mockEntityService = {
-      serializeEntity: (entity: { id: string; content: string }) => `# ${entity.id}\n\n${entity.content}`,
+      serializeEntity: (entity: { id: string; content: string }) =>
+        `# ${entity.id}\n\n${entity.content}`,
       deserializeEntity: () => ({ metadata: {} }),
     } as unknown as IEntityService;
 
@@ -36,7 +37,9 @@ describe("FileOperations.parseEntityFromPath", () => {
 
   describe("entity type directories", () => {
     it("should parse entity type from first directory", () => {
-      const result = fileOps.parseEntityFromPath("/test/brain-data/summary/daily.md");
+      const result = fileOps.parseEntityFromPath(
+        "/test/brain-data/summary/daily.md",
+      );
       expect(result).toEqual({
         entityType: "summary",
         id: "daily",
@@ -44,7 +47,9 @@ describe("FileOperations.parseEntityFromPath", () => {
     });
 
     it("should handle nested paths with colons", () => {
-      const result = fileOps.parseEntityFromPath("/test/brain-data/site-content/landing/hero.md");
+      const result = fileOps.parseEntityFromPath(
+        "/test/brain-data/site-content/landing/hero.md",
+      );
       expect(result).toEqual({
         entityType: "site-content",
         id: "landing:hero",
@@ -52,7 +57,9 @@ describe("FileOperations.parseEntityFromPath", () => {
     });
 
     it("should handle deeply nested paths", () => {
-      const result = fileOps.parseEntityFromPath("/test/brain-data/site-content/products/category/item.md");
+      const result = fileOps.parseEntityFromPath(
+        "/test/brain-data/site-content/products/category/item.md",
+      );
       expect(result).toEqual({
         entityType: "site-content",
         id: "products:category:item",
@@ -62,7 +69,9 @@ describe("FileOperations.parseEntityFromPath", () => {
 
   describe("edge cases", () => {
     it("should handle paths without .md extension in directory names", () => {
-      const result = fileOps.parseEntityFromPath("/test/brain-data/test.md/actual-file.md");
+      const result = fileOps.parseEntityFromPath(
+        "/test/brain-data/test.md/actual-file.md",
+      );
       expect(result).toEqual({
         entityType: "test.md",
         id: "actual-file",

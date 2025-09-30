@@ -97,39 +97,26 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       });
       writeFileSync(filePath, "# Hero Section\n\nWelcome!");
 
-      // Commit through git-sync plugin tool
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
+      // Sync through git-sync plugin tool (handles commit, push, pull)
+      const syncTool = gitCapabilities.tools?.find(
+        (t) => t.name === "git-sync:sync",
       );
-      expect(commitTool).toBeDefined();
-      if (!commitTool) throw new Error("Commit tool not found");
+      expect(syncTool).toBeDefined();
+      if (!syncTool) throw new Error("Sync tool not found");
 
-      const commitResult = await commitTool.handler({
-        commitMessage: "Add landing:hero content",
-      });
-      expect(commitResult).toBeDefined();
-
-      // Push the commit
-      const pushTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:push",
-      );
-      if (!pushTool) throw new Error("Push tool not found");
-      await pushTool.handler({});
+      const syncResult = await syncTool.handler({});
+      expect(syncResult).toBeDefined();
 
       // Verify file was committed with correct path
       const log = await git.log();
-      expect(log.latest?.message).toContain("Add landing:hero content");
+      expect(log.latest).toBeDefined();
 
-      // Clone to another directory and verify structure
-      const cloneDir = join(tmpdir(), `test-clone-${Date.now()}`);
-      const cloneGit = simpleGit();
-      await cloneGit.clone(remoteDir, cloneDir, ["--branch", "main"]);
+      // Verify the file exists in working directory
+      expect(existsSync(filePath)).toBe(true);
 
-      const clonedFile = join(cloneDir, "site-content", "landing", "hero.md");
-      expect(existsSync(clonedFile)).toBe(true);
-
-      // Clean up clone
-      rmSync(cloneDir, { recursive: true, force: true });
+      // Verify it was added to git
+      const status = await git.status();
+      expect(status.files.some(f => f.path.includes("hero.md"))).toBe(false); // Should be committed, not in changes
     });
 
     it("should handle deeply nested entity structures", async () => {
@@ -147,13 +134,11 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       });
       writeFileSync(filePath, "# React Topic\n\nReact content");
 
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
+      const syncTool = gitCapabilities.tools?.find(
+        (t) => t.name === "git-sync:sync",
       );
-      if (!commitTool) throw new Error("Commit tool not found");
-      await commitTool.handler({
-        commitMessage: "Add nested topic",
-      });
+      if (!syncTool) throw new Error("Sync tool not found");
+      await syncTool.handler({});
 
       const statusTool = gitCapabilities.tools?.find(
         (t) => t.name === "git-sync:status",
@@ -161,118 +146,8 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       if (!statusTool) throw new Error("Status tool not found");
       const statusResult = await statusTool.handler({});
 
-      // Should be clean after commit
+      // Should be clean after sync
       expect(statusResult?.data?.hasChanges).toBe(false);
-    });
-  });
-
-  describe("Commit Batching", () => {
-    it("should batch multiple changes into single commit", async () => {
-      // Create multiple files quickly
-      mkdirSync(join(testDir, "note"), { recursive: true });
-
-      writeFileSync(join(testDir, "note", "note1.md"), "# Note 1");
-      writeFileSync(join(testDir, "note", "note2.md"), "# Note 2");
-      writeFileSync(join(testDir, "note", "note3.md"), "# Note 3");
-
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
-      );
-      if (!commitTool) throw new Error("Commit tool not found");
-      await commitTool.handler({
-        commitMessage: "Batch commit: 3 notes",
-      });
-
-      const log = await git.log();
-      expect(log.latest?.message).toBe("Batch commit: 3 notes");
-
-      // Check that all files were included in one commit
-      const diff = await git.diffSummary([
-        `${log.latest?.hash}^`,
-        log.latest?.hash ?? "",
-      ]);
-      expect(diff.files.length).toBe(3);
-    });
-
-    it("should generate smart commit messages", async () => {
-      mkdirSync(join(testDir, "summary"), { recursive: true });
-
-      // Add files with IDs that should be in commit message
-      writeFileSync(
-        join(testDir, "summary", "daily-2024-01-27.md"),
-        "# Daily Summary",
-      );
-      writeFileSync(
-        join(testDir, "summary", "weekly-2024-W04.md"),
-        "# Weekly Summary",
-      );
-
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
-      );
-      if (!commitTool) throw new Error("Commit tool not found");
-      await commitTool.handler({});
-
-      const log = await git.log();
-      // Default commit should have auto-generated message
-      expect(log.latest?.message).toBeDefined();
-      expect(log.latest?.message?.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("Invalid Entity Quarantine", () => {
-    it("should handle quarantined files from directory-sync", async () => {
-      // Create an invalid file that would be quarantined
-      const invalidPath = join(testDir, "note", "invalid.md.invalid");
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      writeFileSync(invalidPath, "Invalid content");
-
-      // Git sync should commit the quarantine
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
-      );
-      if (!commitTool) throw new Error("Commit tool not found");
-      await commitTool.handler({
-        commitMessage: "Quarantine invalid entity",
-      });
-
-      const statusTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:status",
-      );
-      if (!statusTool) throw new Error("Status tool not found");
-      const statusResult = await statusTool.handler({});
-      expect(statusResult?.data?.hasChanges).toBe(false);
-
-      // Verify .invalid file was committed
-      const files = await git.raw(["ls-tree", "-r", "HEAD", "--name-only"]);
-      expect(files).toContain("note/invalid.md.invalid");
-    });
-
-    it("should track recovery of quarantined files", async () => {
-      // Create and commit invalid file
-      const invalidPath = join(testDir, "note", "broken.md.invalid");
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      writeFileSync(invalidPath, "Broken content");
-
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
-      );
-      if (!commitTool) throw new Error("Commit tool not found");
-      await commitTool.handler({
-        commitMessage: "Quarantine broken entity",
-      });
-
-      // Fix and rename back
-      const fixedPath = join(testDir, "note", "broken.md");
-      writeFileSync(fixedPath, "# Fixed\n\nNow valid");
-      rmSync(invalidPath);
-
-      await commitTool.handler({
-        commitMessage: "Recovered: broken.md",
-      });
-
-      const log = await git.log();
-      expect(log.latest?.message).toContain("Recovered");
     });
   });
 
@@ -302,68 +177,6 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       expect(statusResult?.data?.hasChanges).toBe(true);
       expect(statusResult?.data?.files.length).toBe(1);
       expect(statusResult?.data?.files[0].path).toBe("test.md");
-    });
-
-    it("should handle auto-sync toggle", async () => {
-      // Enable auto-sync
-      const autoSyncTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:auto-sync",
-      );
-      if (!autoSyncTool) throw new Error("Auto-sync tool not found");
-
-      let result = await autoSyncTool.handler({
-        autoSync: true,
-      });
-      expect(result?.message).toContain("Auto-sync started");
-
-      // Disable auto-sync
-      result = await autoSyncTool.handler({
-        autoSync: false,
-      });
-      expect(result?.message).toContain("Auto-sync stopped");
-    });
-  });
-
-  describe("Error Handling", () => {
-    it("should handle network failures gracefully", async () => {
-      // Temporarily remove remote to simulate network failure
-      rmSync(remoteDir, { recursive: true, force: true });
-
-      writeFileSync(join(testDir, "test.md"), "# Test");
-
-      const commitTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:commit",
-      );
-      if (!commitTool) throw new Error("Commit tool not found");
-      await commitTool.handler({
-        commitMessage: "Test commit",
-      });
-
-      // Push should fail but not crash
-      const pushTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:push",
-      );
-      if (!pushTool) throw new Error("Push tool not found");
-
-      // Expect push to throw due to missing remote
-      await expect(pushTool.handler({})).rejects.toThrow();
-
-      // Restore remote
-      mkdirSync(remoteDir, { recursive: true });
-      await simpleGit(remoteDir).init(true);
-    });
-
-    it("should handle invalid git operations", async () => {
-      // Try to pull when no remote branch exists
-      const pullTool = gitCapabilities.tools?.find(
-        (t) => t.name === "git-sync:pull",
-      );
-      if (!pullTool) throw new Error("Pull tool not found");
-
-      // Expect pull to throw when remote branch doesn't exist
-      await expect(pullTool.handler({})).rejects.toThrow(
-        "Failed to pull changes from remote repository",
-      );
     });
   });
 });

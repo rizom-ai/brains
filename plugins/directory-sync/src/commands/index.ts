@@ -50,37 +50,5 @@ export function createDirectorySyncCommands(
         }
       },
     },
-    {
-      name: "sync-status",
-      description: "Get directory sync status",
-      usage: "/sync-status",
-      handler: async (_args, _context): Promise<CommandResponse> => {
-        const status = await directorySync.getStatus();
-        const { syncPath, exists, watching, lastSync, stats } = status;
-
-        let message = `📊 **Directory Sync Status**\n`;
-        message += `📁 Path: \`${syncPath}\`\n`;
-        message += `✅ Initialized: ${exists ? "Yes" : "No"}\n`;
-        message += `👁️ Watching: ${watching ? "Yes" : "No"}\n`;
-        message += `📝 Entity count: ${stats.totalFiles} total`;
-
-        if (Object.keys(stats.byEntityType).length > 0) {
-          message += " (";
-          const types = Object.entries(stats.byEntityType)
-            .map(([type, count]) => `${type}: ${count}`)
-            .join(", ");
-          message += types + ")";
-        }
-
-        if (lastSync) {
-          message += `\n🕐 Last sync: ${new Date(lastSync).toLocaleString()}`;
-        }
-
-        return {
-          type: "message",
-          message,
-        };
-      },
-    },
   ];
 }

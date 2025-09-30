@@ -101,11 +101,7 @@ describe("DirectorySyncPlugin", () => {
     it("should provide expected tools", () => {
       const toolNames = capabilities.tools?.map((t) => t.name) || [];
       expect(toolNames).toContain("directory-sync:sync");
-      expect(toolNames).toContain("directory-sync:export");
-      expect(toolNames).toContain("directory-sync:import");
-      expect(toolNames).toContain("directory-sync:status");
-      expect(toolNames).toContain("directory-sync:watch");
-      expect(toolNames).toContain("directory-sync:ensure-structure");
+      expect(toolNames.length).toBe(1);
     });
 
     it("should provide commands", () => {
@@ -114,7 +110,7 @@ describe("DirectorySyncPlugin", () => {
 
       const commandNames = capabilities.commands?.map((c) => c.name) || [];
       expect(commandNames).toContain("directory-sync");
-      expect(commandNames).toContain("sync-status");
+      expect(commandNames.length).toBe(1);
     });
 
     it("should register templates", () => {
@@ -128,114 +124,9 @@ describe("DirectorySyncPlugin", () => {
       // The plugin already initializes the directory in onRegister
       // So we expect it to exist
       expect(existsSync(syncPath)).toBe(true);
-
-      // Use the ensure-structure tool (should work even if already exists)
-      const ensureTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:ensure-structure",
-      );
-      expect(ensureTool).toBeDefined();
-
-      const result = await ensureTool!.handler(
-        {},
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      );
-      expect(result).toEqual({ message: "Directory structure created" });
-      expect(existsSync(syncPath)).toBe(true);
-    });
-
-    it("should get status", async () => {
-      // Ensure directory exists
-      const ensureTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:ensure-structure",
-      );
-      await ensureTool!.handler(
-        {},
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      );
-
-      // Get status
-      const statusTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:status",
-      );
-      expect(statusTool).toBeDefined();
-
-      const status = (await statusTool!.handler(
-        {},
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      )) as any;
-      expect(status.syncPath).toBe(syncPath);
-      expect(status.exists).toBe(true);
-      expect(status.watching).toBe(false);
-    });
-
-    it("should export entities", async () => {
-      // Ensure directory exists
-      const ensureTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:ensure-structure",
-      );
-      await ensureTool!.handler(
-        {},
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      );
-
-      // Create some test entities
-      const shell = harness.getShell();
-      const entityService = shell.getEntityService();
-
-      await entityService.createEntity({
-        id: "test-export-1",
-        content: "Test Export 1\nThis is test content",
-        entityType: "base",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      });
-
-      // Export using the tool (which queues a batch job)
-      const exportTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:export",
-      );
-      expect(exportTool).toBeDefined();
-
-      const exportResult = (await exportTool!.handler(
-        { entityTypes: ["base"] },
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      )) as any;
-      expect(exportResult.status).toBe("queued");
-      expect(exportResult.batchId).toBeDefined();
-
-      // In a real test, we'd wait for the batch job to complete
-      // For now, we'll just verify the job was queued
-      expect(exportResult.entityTypes).toContain("base");
     });
 
     it("should handle sync operation", async () => {
-      // Ensure directory exists
-      const ensureTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:ensure-structure",
-      );
-      await ensureTool!.handler(
-        {},
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      );
-
       // Sync using the tool
       const syncTool = capabilities.tools?.find(
         (t) => t.name === "directory-sync:sync",
@@ -258,33 +149,6 @@ describe("DirectorySyncPlugin", () => {
       } else {
         expect(syncResult.status).toBe("completed");
       }
-    });
-
-    it("should control watching", async () => {
-      const watchTool = capabilities.tools?.find(
-        (t) => t.name === "directory-sync:watch",
-      );
-      expect(watchTool).toBeDefined();
-
-      // Start watching
-      let result = (await watchTool!.handler(
-        { action: "start" },
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      )) as any;
-      expect(result.watching).toBe(true);
-
-      // Stop watching
-      result = (await watchTool!.handler(
-        { action: "stop" },
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      )) as any;
-      expect(result.watching).toBe(false);
     });
   });
 
