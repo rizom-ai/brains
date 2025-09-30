@@ -2,9 +2,11 @@ import type {
   DirectorySyncJobData,
   DirectoryExportJobData,
   DirectoryImportJobData,
+  DirectoryDeleteJobData,
   ExportResult,
   ImportResult,
   SyncResult,
+  DeleteResult,
 } from "../types";
 
 /**
@@ -23,6 +25,10 @@ declare module "@brains/job-queue" {
     "directory-import": {
       input: DirectoryImportJobData;
       output: ImportResult;
+    };
+    "directory-delete": {
+      input: DirectoryDeleteJobData;
+      output: DeleteResult;
     };
   }
 }

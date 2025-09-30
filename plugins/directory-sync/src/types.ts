@@ -55,6 +55,11 @@ export const directorySyncConfigSchema = z.object({
     .optional()
     .describe("Copy seed content on first initialization")
     .default(false),
+  deleteOnFileRemoval: z
+    .boolean()
+    .optional()
+    .describe("Delete entities from database when files are deleted")
+    .default(true),
 });
 
 export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;
@@ -116,6 +121,16 @@ export interface SyncResult {
 }
 
 /**
+ * Delete result
+ */
+export interface DeleteResult {
+  deleted: boolean;
+  entityId: string;
+  entityType: string;
+  filePath: string;
+}
+
+/**
  * Raw entity data from file
  */
 export interface RawEntity {
@@ -154,9 +169,19 @@ export interface DirectoryExportJobData {
 }
 
 /**
+ * Job data for directory delete operations
+ */
+export interface DirectoryDeleteJobData {
+  entityId: string;
+  entityType: string;
+  filePath: string;
+}
+
+/**
  * Job request types for file watcher - discriminated union for type safety
  */
 export type JobRequest =
   | { type: "directory-sync"; data: DirectorySyncJobData }
   | { type: "directory-import"; data: DirectoryImportJobData }
-  | { type: "directory-export"; data: DirectoryExportJobData };
+  | { type: "directory-export"; data: DirectoryExportJobData }
+  | { type: "directory-delete"; data: DirectoryDeleteJobData };

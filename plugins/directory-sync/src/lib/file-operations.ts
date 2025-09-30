@@ -25,15 +25,13 @@ export class FileOperations {
   }
 
   /**
-   * Read entity from file
+   * Parse entity info from file path
+   * Extracts entity type and ID from the file path structure
    */
-  async readEntity(filePath: string): Promise<RawEntity> {
+  parseEntityFromPath(filePath: string): { entityType: string; id: string } {
     const fullPath = filePath.startsWith(this.syncPath)
       ? filePath
       : join(this.syncPath, filePath);
-
-    const markdown = readFileSync(fullPath, "utf-8");
-    const stats = statSync(fullPath);
 
     // Determine entity type from path
     const relativePath = fullPath.replace(this.syncPath + "/", "");
@@ -49,12 +47,13 @@ export class FileOperations {
       // File in root - it's a base entity
       entityType = "base";
       idPathParts = pathParts;
-    } else if (pathParts[0] && !pathParts[0].endsWith(".md")) {
-      // First part is a directory, assume it's the entity type
+    } else if (pathParts.length > 1 && pathParts[0]) {
+      // Multiple parts means first part is a directory (entity type)
+      // even if it has .md in the name (edge case)
       entityType = pathParts[0];
       idPathParts = pathParts.slice(1);
     } else {
-      // Edge case: file in root with subdirectories (base entity with colon ID)
+      // Fallback: treat as base entity
       entityType = "base";
       idPathParts = pathParts;
     }
@@ -74,6 +73,23 @@ export class FileOperations {
       // Simple case - just filename
       id = basename(idPathParts[0] ?? "", ".md");
     }
+
+    return { entityType, id };
+  }
+
+  /**
+   * Read entity from file
+   */
+  async readEntity(filePath: string): Promise<RawEntity> {
+    const fullPath = filePath.startsWith(this.syncPath)
+      ? filePath
+      : join(this.syncPath, filePath);
+
+    const markdown = readFileSync(fullPath, "utf-8");
+    const stats = statSync(fullPath);
+
+    // Parse entity info from path
+    const { entityType, id } = this.parseEntityFromPath(filePath);
 
     // Use file timestamps, but fallback to current time if birthtime is invalid
     const created =

@@ -35,6 +35,7 @@ export const directorySyncOptionsSchema = z.object({
   watchInterval: z.number().optional(),
   includeMetadata: z.boolean().optional(),
   entityTypes: z.array(z.string()).optional(),
+  deleteOnFileRemoval: z.boolean().optional(),
   entityService: z.any(), // We can't validate these complex types with Zod
   logger: z.any(),
 });
@@ -56,6 +57,7 @@ export class DirectorySync {
   private autoSync: boolean;
   private syncDebounce: number;
   private watchInterval: number;
+  private deleteOnFileRemoval: boolean;
   private entityTypes: string[] | undefined;
   private fileWatcher: FileWatcher | undefined;
   private lastSync: Date | undefined;
@@ -82,6 +84,7 @@ export class DirectorySync {
     this.autoSync = options.autoSync ?? true;
     this.syncDebounce = options.syncDebounce ?? 1000;
     this.watchInterval = options.watchInterval ?? 5000;
+    this.deleteOnFileRemoval = options.deleteOnFileRemoval ?? true;
     this.entityTypes = options.entityTypes;
     this.batchOperationsManager = new BatchOperationsManager(
       this.logger,
@@ -582,6 +585,8 @@ export class DirectorySync {
       this.logger,
       this.importEntities.bind(this),
       this.jobQueueCallback,
+      this.fileOperations,
+      this.deleteOnFileRemoval,
     );
 
     // Create file watcher with callback to handle changes

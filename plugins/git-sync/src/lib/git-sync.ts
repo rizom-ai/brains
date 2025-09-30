@@ -289,13 +289,13 @@ export class GitSync {
   }
 
   /**
-   * Commit current changes
+   * Commit current changes (including deletions)
    */
   async commit(message?: string): Promise<void> {
     const finalMessage = message ?? this.formatCommitMessage();
 
-    // Stage all changes
-    await this.git.add(".");
+    // Stage all changes including deletions (equivalent to git add -A)
+    await this.git.add(["-A"]);
 
     // Commit
     await this.git.commit(finalMessage);
@@ -359,29 +359,24 @@ export class GitSync {
   }
 
   /**
-   * Perform full sync (export, pull, commit, push)
+   * Perform full sync (commit local changes, pull, push)
    */
   async sync(): Promise<void> {
     this.logger.debug("Starting sync");
 
     try {
-      // First, export entities to directory via message bus
-      const exportResponse = await this.sendMessage(
-        "entity:export:request",
-        {},
-      );
+      // Get initial status to check for local changes
+      const initialStatus = await this.getStatus();
 
-      if ("noop" in exportResponse || !exportResponse.success) {
-        this.logger.warn("No directory sync plugin available for export");
-      } else {
-        this.logger.info("Exported entities", { result: exportResponse.data });
+      // Commit any local changes FIRST (including deletions)
+      // This ensures deletions are preserved before pulling
+      if (initialStatus.hasChanges) {
+        await this.commit();
+        this.logger.info("Committed local changes");
       }
 
-      // Get initial status
-      const status = await this.getStatus();
-
-      // Pull first to get remote changes
-      if (status.remote) {
+      // Now pull remote changes (after local changes are safely committed)
+      if (initialStatus.remote) {
         try {
           await this.pull();
         } catch (error) {
@@ -389,17 +384,9 @@ export class GitSync {
         }
       }
 
-      // Check for changes after pull (including any local changes)
-      const statusAfterPull = await this.getStatus();
-
-      // Commit any local changes
-      if (statusAfterPull.hasChanges) {
-        await this.commit();
-      }
-
       // Push if autoPush is enabled and we have commits ahead
       const finalStatus = await this.getStatus();
-      if (this.autoPush && status.remote && finalStatus.ahead > 0) {
+      if (this.autoPush && initialStatus.remote && finalStatus.ahead > 0) {
         await this.push();
         this.logger.info("Auto-pushed changes to remote");
       }

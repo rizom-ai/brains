@@ -20,6 +20,7 @@ import {
   DirectoryExportJobHandler,
   DirectoryImportJobHandler,
   DirectorySyncJobHandler,
+  DirectoryDeleteJobHandler,
 } from "./handlers";
 import { createDirectorySyncTools } from "./tools";
 import { createDirectorySyncCommands } from "./commands";
@@ -90,6 +91,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       watchInterval: this.config.watchInterval,
       includeMetadata: this.config.includeMetadata,
       entityTypes: this.config.entityTypes,
+      deleteOnFileRemoval: this.config.deleteOnFileRemoval,
       entityService,
       logger,
     });
@@ -489,6 +491,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       directorySync,
     );
     context.registerJobHandler("directory-import", importHandler);
+
+    // Register delete job handler
+    const deleteHandler = new DirectoryDeleteJobHandler(
+      this.logger.child("DirectoryDeleteJobHandler"),
+      context,
+      directorySync,
+    );
+    context.registerJobHandler("directory-delete", deleteHandler);
 
     this.debug("Registered async job handlers");
   }
