@@ -1,5 +1,20 @@
 # Sync Plugins Simplification Plan
 
+## Summary of Refined Decisions
+
+Based on Q&A refinement session, the final simplification:
+
+- **Directory-sync**: 2 operations (command + sync tool)
+- **Git-sync**: 3 operations (command + sync tool + status tool)
+- **Total reduction**: From 14 to 5 operations (64% reduction)
+
+Key decisions:
+- Both plugins get a command for users and a sync tool for programmatic access
+- Watch and auto-sync become config-only (no runtime control)
+- Commands provide summary feedback after operations
+- Git-sync adds `pullOnStartup` config for remote synchronization
+- Directory-sync removes status tool (not useful enough)
+
 ## Problem Statement
 
 The current directory-sync and git-sync plugins have too many commands and tools (14 total operations), making the flow unintuitive and confusing for users. Many operations overlap or duplicate functionality.
@@ -7,11 +22,14 @@ The current directory-sync and git-sync plugins have too many commands and tools
 ## Current State
 
 ### Directory-sync (8 operations)
+
 **Commands:**
+
 - `/directory-sync` - Synchronize all entities with directory
 - `/sync-status` - Get directory sync status
 
 **Tools:**
+
 - `directory-sync:sync` - Synchronize all entities (async)
 - `directory-sync:export` - Export entities to directory
 - `directory-sync:import` - Import entities from directory
@@ -20,7 +38,9 @@ The current directory-sync and git-sync plugins have too many commands and tools
 - `directory-sync:ensure-structure` - Create directory structure
 
 ### Git-sync (6 operations)
+
 **Tools:**
+
 - `git-sync:sync` - Full sync (export, commit, push, pull)
 - `git-sync:status` - Get repository status
 - `git-sync:commit` - Commit changes
@@ -37,27 +57,38 @@ The current directory-sync and git-sync plugins have too many commands and tools
 
 ## Proposed Simplification
 
-### Directory-sync (3 operations)
+### Directory-sync (2 operations)
+
 **Command:**
-- `/directory-sync` - Main user-facing sync operation
+
+- `/directory-sync` - Main user-facing sync operation (shows summary after completion)
 
 **Tools:**
-- `directory-sync:status` - Get current state
-- `directory-sync:watch` - Control file watching (or make config-only)
+
+- `directory-sync:sync` - Programmatic sync operation (for MCP/tools)
 
 **Removed:**
-- `/sync-status` command (redundant with status tool)
-- `sync` tool (redundant with command)
-- `export` tool (handled internally by sync)
-- `import` tool (handled internally by sync)
-- `ensure-structure` tool (auto-created on first sync)
 
-### Git-sync (2 operations)
+- `/sync-status` command (redundant, removed)
+- `directory-sync:status` tool (not useful enough to keep)
+- `directory-sync:export` tool (handled internally by sync)
+- `directory-sync:import` tool (handled internally by sync)
+- `directory-sync:watch` tool (moved to config-only)
+- `directory-sync:ensure-structure` tool (auto-created as needed)
+
+### Git-sync (3 operations)
+
+**Command:**
+
+- `/git-sync` - User-facing sync command (shows status summary after completion)
+
 **Tools:**
-- `git-sync:sync` - Full sync operation
+
+- `git-sync:sync` - Programmatic sync operation (for MCP/tools)
 - `git-sync:status` - Get repository state
 
 **Removed:**
+
 - `commit` tool (handled internally by sync)
 - `push` tool (handled internally by sync)
 - `pull` tool (handled internally by sync)
@@ -68,56 +99,71 @@ The current directory-sync and git-sync plugins have too many commands and tools
 ### 1. Directory-sync
 
 **commands/index.ts:**
+
 - Remove `sync-status` command
-- Keep only `/directory-sync` command
+- Keep only `/directory-sync` command (with summary output)
 
 **tools/index.ts:**
-- Remove: `sync`, `export`, `import`, `ensure-structure`
-- Keep: `status`, `watch` (consider making watch config-only)
-- Ensure directory structure is created automatically on initialization
+
+- Remove: `status`, `export`, `import`, `ensure-structure`, `watch`
+- Keep: `sync` (for programmatic access)
 
 **Internal changes:**
-- Main sync operation handles both export and import internally
-- Automatically determines what needs syncing based on timestamps
-- Creates directory structure as needed
+
+- Sync operation handles both export and import internally
+- Watch functionality controlled by config only (no runtime toggle)
+- Directory structure created automatically as needed
+- Command shows summary: "Exported X entities, imported Y files, deleted Z entities"
 
 ### 2. Git-sync
 
+**commands/index.ts:**
+
+- Add new `/git-sync` command (with status summary output)
+
 **tools/index.ts:**
+
 - Remove: `commit`, `push`, `pull`, `auto-sync`
 - Keep: `sync`, `status`
 
 **Internal changes:**
+
 - `sync` performs full operation: stage changes, commit, push, pull
 - Auto-sync controlled entirely by config setting
-- Remove runtime toggling of auto-sync
+- Pull on startup controlled by `pullOnStartup` config option
+- Command shows summary: "Committed X files, pushed to origin, pulled Y updates"
 
 ### 3. Configuration Updates
 
 **directory-sync config.yaml:**
+
 ```yaml
 directory-sync:
   enabled: true
   syncPath: "./brain-data"
-  watch: true  # Auto-start watching on init
+  watch: true # Auto-start watching on init (no runtime control)
   deleteOnFileRemoval: true
 ```
 
 **git-sync config.yaml:**
+
 ```yaml
 git-sync:
   enabled: true
-  autoSync: true  # Auto-sync at intervals
-  syncInterval: 300000  # 5 minutes
+  autoSync: true # Auto-sync at intervals
+  pullOnStartup: true # Pull remote changes on startup
+  syncInterval: 300000 # 5 minutes
   commitMessage: "Auto-sync brain data"
 ```
 
 ## Benefits
 
-1. **Reduced Complexity**: From 14 to 5 operations (65% reduction)
+1. **Reduced Complexity**: From 14 to 5 operations (64% reduction)
 2. **Clearer Mental Model**: One way to do each thing
 3. **Better Defaults**: Auto-sync and watch controlled by config
-4. **Intuitive Flow**: Sync → Status → Configure (via config file)
+4. **Intuitive Flow**: Commands for users, tools for programmatic access
+5. **Better Feedback**: Commands show summaries of what was synced
+6. **Startup Handling**: Git-sync pulls remote changes on startup
 
 ## Migration Path
 
