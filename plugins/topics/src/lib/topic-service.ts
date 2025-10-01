@@ -120,12 +120,12 @@ export class TopicService {
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
 
-    // Deduplicate sources using a Set
-    const sourcesSet = new Set(parsed.sources);
+    // Deduplicate sources by ID using a Map
+    const sourcesMap = new Map(parsed.sources.map((s) => [s.id, s]));
     if (updates.sources) {
-      updates.sources.forEach((source) => sourcesSet.add(source));
+      updates.sources.forEach((source) => sourcesMap.set(source.id, source));
     }
-    const sources = Array.from(sourcesSet);
+    const sources = Array.from(sourcesMap.values());
 
     // Metadata stays empty
     const metadata: TopicMetadata = {};
@@ -257,8 +257,9 @@ export class TopicService {
       "\n\n---\n\n",
     );
 
-    // Deduplicate sources (they're just strings/IDs)
-    const uniqueSources = Array.from(new Set(allSources));
+    // Deduplicate sources by ID using a Map
+    const sourcesMap = new Map(allSources.map((s) => [s.id, s]));
+    const uniqueSources = Array.from(sourcesMap.values());
 
     const merged = await this.updateTopic(target.id, {
       content: mergedContent,
