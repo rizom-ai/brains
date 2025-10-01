@@ -339,6 +339,49 @@ export class ShellInitializer {
       this.config.identity,
     );
 
+    // Subscribe to identity entity changes for cache refresh
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      "entity:created",
+      async (message) => {
+        if (
+          message.payload.entityType === "identity" &&
+          message.payload.entityId === "identity"
+        ) {
+          await identityService.refreshCache();
+          logger.debug("Identity entity created, cache refreshed");
+        }
+        return { success: true };
+      },
+    );
+
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      "entity:updated",
+      async (message) => {
+        if (
+          message.payload.entityType === "identity" &&
+          message.payload.entityId === "identity"
+        ) {
+          await identityService.refreshCache();
+          logger.debug("Identity entity updated, cache refreshed");
+        }
+        return { success: true };
+      },
+    );
+
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      "entity:deleted",
+      async (message) => {
+        if (
+          message.payload.entityType === "identity" &&
+          message.payload.entityId === "identity"
+        ) {
+          await identityService.refreshCache();
+          logger.debug("Identity entity deleted, cache refreshed");
+        }
+        return { success: true };
+      },
+    );
+
     // Register job handlers
     this.registerJobHandlers(jobQueueService, contentService, entityService);
 
