@@ -168,4 +168,77 @@ Help with academic research
       );
     });
   });
+
+  describe("custom default identity", () => {
+    it("should use provided custom default identity instead of hardcoded default", () => {
+      const customIdentity = {
+        role: "Technical documentation assistant",
+        purpose: "Help write and maintain technical documentation",
+        values: ["precision", "clarity", "consistency"],
+      };
+
+      // Create fresh mock for this test
+      const freshMockEntityService = {
+        getEntity: mock(async () => null),
+        createEntity: mock(async () => ({
+          entityId: "identity",
+          jobId: "job-123",
+        })),
+      } as unknown as IEntityService;
+
+      // Create a completely fresh service with custom identity
+      const customService = IdentityService.createFresh(
+        freshMockEntityService,
+        createSilentLogger(),
+        customIdentity,
+      );
+
+      // Without any entity in database, should return custom default
+      const identity = customService.getIdentity();
+
+      expect(identity).toEqual(customIdentity);
+    });
+
+    it("should create entity with custom default when none exists", async () => {
+      const customIdentity = {
+        role: "Research assistant",
+        purpose: "Help with academic research",
+        values: ["rigor", "thoroughness"],
+      };
+
+      const customService = IdentityService.createFresh(
+        mockEntityService,
+        createSilentLogger(),
+        customIdentity,
+      );
+
+      // Mock behavior: no existing identity
+      mockGetEntityImpl = async () => null;
+
+      await customService.initialize();
+
+      // Should have created entity with custom values
+      expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
+
+      const createCall = (
+        mockEntityService.createEntity as ReturnType<typeof mock>
+      ).mock.calls[0]?.[0];
+
+      expect(createCall?.content).toContain("Research assistant");
+      expect(createCall?.content).toContain("rigor");
+      expect(createCall?.content).not.toContain("Personal knowledge assistant");
+    });
+
+    it("should fall back to hardcoded default when custom identity is not provided", () => {
+      const serviceWithoutCustom = IdentityService.createFresh(
+        mockEntityService,
+        createSilentLogger(),
+        undefined,
+      );
+
+      const identity = serviceWithoutCustom.getIdentity();
+
+      expect(identity).toEqual(IdentityService.getDefaultIdentity());
+    });
+  });
 });

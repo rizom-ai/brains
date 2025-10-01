@@ -99,4 +99,30 @@ describe("App", () => {
       expect(typeof app.run).toBe("function");
     });
   });
+
+  describe("identity configuration", () => {
+    it("should accept identity in app config", () => {
+      const mockShell = createMockShell();
+      const customIdentity = {
+        role: "Technical assistant",
+        purpose: "Help with technical tasks",
+        values: ["precision", "efficiency"],
+      };
+
+      const app = App.create(
+        {
+          identity: customIdentity,
+        },
+        mockShell,
+      );
+
+      expect(app).toBeDefined();
+    });
+
+    it("should work without identity config (using default)", () => {
+      const mockShell = createMockShell();
+      const app = App.create({}, mockShell);
+      expect(app).toBeDefined();
+    });
+  });
 });

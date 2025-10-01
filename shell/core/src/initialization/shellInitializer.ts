@@ -333,7 +333,11 @@ export class ShellInitializer {
       });
 
     // Identity service
-    const identityService = IdentityService.getInstance(entityService, logger);
+    const identityService = IdentityService.getInstance(
+      entityService,
+      logger,
+      this.config.identity,
+    );
 
     // Register job handlers
     this.registerJobHandlers(jobQueueService, contentService, entityService);

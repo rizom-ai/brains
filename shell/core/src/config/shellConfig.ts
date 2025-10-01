@@ -2,6 +2,7 @@ import { z } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/permission-service";
+import type { IdentityBody } from "@brains/identity-service";
 import { mkdir } from "fs/promises";
 
 /**
@@ -130,6 +131,7 @@ export const shellConfigSchema = z.object({
 export type ShellConfig = z.infer<typeof shellConfigSchema> & {
   plugins: Plugin[];
   permissions: PermissionConfig;
+  identity?: IdentityBody;
 };
 
 /**
@@ -169,9 +171,16 @@ export function createShellConfig(
 
   // Validate schema and return with plugins
   const validated = shellConfigSchema.parse(config);
-  return {
+  const result: ShellConfig = {
     ...validated,
     plugins: config.plugins,
     permissions: config.permissions,
   };
+
+  // Only add identity if it's defined (exactOptionalPropertyTypes requirement)
+  if (overrides.identity !== undefined) {
+    result.identity = overrides.identity;
+  }
+
+  return result;
 }

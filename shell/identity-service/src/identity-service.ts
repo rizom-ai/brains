@@ -13,6 +13,7 @@ export class IdentityService {
   private logger: Logger;
   private entityService: IEntityService;
   private adapter: IdentityAdapter;
+  private defaultIdentity: IdentityBody;
 
   /**
    * Get the default identity for a new brain
@@ -32,8 +33,13 @@ export class IdentityService {
   public static getInstance(
     entityService: IEntityService,
     logger: Logger,
+    defaultIdentity?: IdentityBody,
   ): IdentityService {
-    IdentityService.instance ??= new IdentityService(entityService, logger);
+    IdentityService.instance ??= new IdentityService(
+      entityService,
+      logger,
+      defaultIdentity,
+    );
     return IdentityService.instance;
   }
 
@@ -50,17 +56,24 @@ export class IdentityService {
   public static createFresh(
     entityService: IEntityService,
     logger: Logger,
+    defaultIdentity?: IdentityBody,
   ): IdentityService {
-    return new IdentityService(entityService, logger);
+    return new IdentityService(entityService, logger, defaultIdentity);
   }
 
   /**
    * Private constructor to enforce factory methods
    */
-  private constructor(entityService: IEntityService, logger: Logger) {
+  private constructor(
+    entityService: IEntityService,
+    logger: Logger,
+    defaultIdentity?: IdentityBody,
+  ) {
     this.entityService = entityService;
     this.logger = logger.child("IdentityService");
     this.adapter = new IdentityAdapter();
+    this.defaultIdentity =
+      defaultIdentity ?? IdentityService.getDefaultIdentity();
   }
 
   /**
@@ -74,8 +87,7 @@ export class IdentityService {
     if (!this.cache) {
       this.logger.info("No identity found, creating default identity");
       try {
-        const defaultIdentity = IdentityService.getDefaultIdentity();
-        const content = this.adapter.createIdentityContent(defaultIdentity);
+        const content = this.adapter.createIdentityContent(this.defaultIdentity);
 
         await this.entityService.createEntity({
           id: "identity",
@@ -99,7 +111,7 @@ export class IdentityService {
     if (this.cache) {
       return this.adapter.parseIdentityBody(this.cache.content);
     }
-    return IdentityService.getDefaultIdentity();
+    return this.defaultIdentity;
   }
 
   /**

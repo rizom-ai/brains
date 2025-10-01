@@ -368,20 +368,49 @@ All templates can access identity via `{{identity.role}}`, `{{identity.purpose}}
 
 ## Customizing Identity
 
-Since identity is stored as a normal entity file, users can customize it through:
+Identity can be customized in multiple ways:
 
-1. **Direct file editing** (if using directory-sync):
-   - Edit `brain-data/identity/system:identity.md`
-   - Modify frontmatter fields: role, purpose, values
-   - Changes sync to database automatically
+### 1. App Configuration (Recommended for New Apps)
 
-2. **Entity update operations**:
-   - Use entity service methods to update programmatically
-   - Changes trigger cache refresh via `entity:updated` event
+Define custom default identity in `brain.config.ts`:
 
-3. **Future UI** (potential enhancement):
-   - Settings page to edit identity
-   - Form-based editing with validation
+```typescript
+import { defineConfig } from "@brains/app";
+
+export default defineConfig({
+  name: "research-brain",
+  identity: {
+    role: "Academic research assistant",
+    purpose: "Help organize research papers and maintain literature review notes",
+    values: ["academic rigor", "citation accuracy", "critical thinking"]
+  },
+  plugins: [...]
+});
+```
+
+**Benefits:**
+- Set default identity without needing entity files
+- Each app can have its own identity
+- Version controlled with app configuration
+- Creates entity on first run if missing
+
+### 2. Direct File Editing (If Using directory-sync)
+
+Edit the identity entity file:
+- File: `brain-data/identity/identity.md`
+- Modify structured content: role, purpose, values sections
+- Changes sync to database automatically
+
+### 3. Entity Update Operations
+
+Use entity service methods to update programmatically:
+- Changes trigger cache refresh via `entity:updated` event
+- Useful for runtime customization
+
+### 4. Future UI (Potential Enhancement)
+
+- Settings page to edit identity
+- Form-based editing with validation
 
 ## Example Use Cases
 

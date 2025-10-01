@@ -84,6 +84,10 @@ export class App {
         shellConfig.permissions = this.config.permissions;
       }
 
+      if (this.config.identity) {
+        shellConfig.identity = this.config.identity;
+      }
+
       // Pass the global logger instance which has already been configured
       // In CLI mode, it's already set to use stderr in run()
       this.shell = Shell.createFresh(shellConfig, {
