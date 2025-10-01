@@ -616,11 +616,12 @@ export class Shell implements IShell {
     this.dataSourceRegistry.register(systemStatsDataSource);
     this.logger.debug("Registered SystemStats DataSource");
 
-    // Register the AI Content DataSource
+    // Register the AI Content DataSource with identity injection
     const aiContentDataSource = new AIContentDataSource(
       this.aiService,
       this.entityService,
       this.templateRegistry,
+      () => this.getIdentity(),
     );
     this.dataSourceRegistry.register(aiContentDataSource);
     this.logger.debug("Registered AI Content DataSource");

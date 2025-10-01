@@ -2,6 +2,7 @@ import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
+import type { IdentityBody } from "@brains/identity-service";
 import { z } from "@brains/utils";
 
 /**
@@ -35,6 +36,7 @@ export class AIContentDataSource implements DataSource {
     private readonly aiService: IAIService,
     private readonly entityService: IEntityService,
     private readonly templateRegistry: TemplateRegistry,
+    private readonly getIdentity: () => IdentityBody,
   ) {}
 
   /**
@@ -73,15 +75,40 @@ export class AIContentDataSource implements DataSource {
       relevantEntities,
     );
 
-    // Generate content using AI service with entity-informed context
+    // Build system prompt with identity
+    const systemPrompt = this.buildSystemPrompt(template.basePrompt);
+
+    // Generate content using AI service with entity-informed context and identity
     const result = await this.aiService.generateObject(
-      template.basePrompt,
+      systemPrompt,
       enhancedPrompt,
       template.schema,
     );
 
     // Validate and return typed result
     return schema.parse(result.object);
+  }
+
+  /**
+   * Build system prompt with identity prepended
+   */
+  private buildSystemPrompt(templateBasePrompt: string): string {
+    const identity = this.getIdentity();
+
+    // Build identity system prompt (identity is always available - from entity or default)
+    const identityPrompt = [
+      `You are ${identity.role}.`,
+      identity.purpose ? `\nYour purpose: ${identity.purpose}` : "",
+      identity.values && identity.values.length > 0
+        ? `\nYour guiding values: ${identity.values.join(", ")}`
+        : "",
+      "\n",
+    ]
+      .filter(Boolean)
+      .join("");
+
+    // Prepend identity to template base prompt
+    return identityPrompt + templateBasePrompt;
   }
 
   /**
