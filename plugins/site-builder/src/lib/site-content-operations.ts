@@ -101,7 +101,7 @@ export class SiteContentOperations {
           }
 
           if (!capabilities.canGenerate) {
-            logger.info("Template doesn't support generation, skipping", {
+            logger.debug("Template doesn't support generation, skipping", {
               routeId: route.id,
               sectionId: section.id,
               templateName: section.template,
