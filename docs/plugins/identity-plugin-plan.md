@@ -21,6 +21,7 @@ Implement Identity as a **core Shell feature** that defines the brain's **role, 
 **Decision**: Core Shell feature (not a plugin)
 
 **Rationale:**
+
 - Identity is fundamental - injected into all AI operations
 - Avoids circular dependency (core cannot depend on plugins)
 - Always available, not optional
@@ -112,6 +113,7 @@ Rationale: Identity is more than personality - role and purpose directly affect 
 **Decision**: Programmatic creation, no seed content files
 
 **Rationale:**
+
 - No dependency on directory-sync plugin
 - Guaranteed consistency - code ensures structure is correct
 - Simpler - no files to maintain across multiple apps
@@ -122,6 +124,7 @@ Rationale: Identity is more than personality - role and purpose directly affect 
 **Decision**: Custom IdentityAdapter in shell/core
 
 **Rationale:**
+
 - Identity has specific fields (role, purpose, values) that need frontmatter
 - BaseEntityAdapter doesn't handle custom frontmatter fields
 - Need proper markdown serialization/deserialization
@@ -131,6 +134,7 @@ Rationale: Identity is more than personality - role and purpose directly affect 
 **Decision**: Plain text format for `/identity` command
 
 **Rationale:**
+
 - Simple and readable - identity shown at a glance
 - Consistent with other info commands
 - Just 3 fields, doesn't need complex formatting
@@ -171,6 +175,7 @@ export interface IdentityEntity {
 **Location**: `shell/core/src/adapters/identity-adapter.ts`
 
 **Responsibilities:**
+
 - Serialize identity to markdown with frontmatter
 - Deserialize markdown to identity entity
 - Handle role, purpose, and values fields
@@ -200,6 +205,7 @@ export const identitySchema = z.object({
 **Location**: `shell/core/src/services/identity-service.ts`
 
 **Interface:**
+
 ```typescript
 export class IdentityService {
   async initialize(): Promise<void>;
@@ -209,6 +215,7 @@ export class IdentityService {
 ```
 
 **Responsibilities:**
+
 - Initialize and cache identity on startup
 - Provide cached identity to Shell
 - Refresh cache when identity entity updated
@@ -219,6 +226,7 @@ export class IdentityService {
 **Location**: `shell/core/src/initialization/shellInitializer.ts` (or similar init location)
 
 **Add to initialization:**
+
 ```typescript
 async registerCoreEntityTypes(entityService: IEntityService) {
   // Register identity entity type
@@ -230,6 +238,7 @@ async registerCoreEntityTypes(entityService: IEntityService) {
 ```
 
 **Create default identity if missing:**
+
 ```typescript
 async ensureDefaultIdentity(entityService: IEntityService) {
   const existing = await entityService.getEntity("identity", "system:identity");
@@ -251,12 +260,14 @@ async ensureDefaultIdentity(entityService: IEntityService) {
 **Location**: `shell/core/src/shell.ts`
 
 **Changes:**
+
 - Add IdentityService as private field
 - Initialize in `initialize()` method (after entity type registration)
 - Subscribe to `entity:updated` events for identity refresh
 - Inject identity into `generateContent()` method data context
 
 **Implementation:**
+
 ```typescript
 // In Shell class
 private identityService: IdentityService;
@@ -307,6 +318,7 @@ async generateContent<T>(...): Promise<T> {
 **Location**: `plugins/system/src/commands/index.ts`
 
 **Add command:**
+
 ```typescript
 {
   name: "identity",

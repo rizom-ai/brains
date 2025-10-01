@@ -1,4 +1,4 @@
-# Personal Brain
+# Rizom Brains
 
 A modular, extensible knowledge management system built on the Model Context Protocol (MCP). Every brain is an MCP server that exposes tools and resources for AI assistants to help manage your knowledge.
 
