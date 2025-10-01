@@ -37,6 +37,7 @@ import type { RenderService } from "@brains/render-service";
 import type { DataSourceRegistry } from "@brains/datasource";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
+import type { IdentityService } from "@brains/identity-service";
 
 /**
  * Required dependencies for Shell initialization
@@ -95,6 +96,7 @@ export class Shell implements IShell {
   private readonly permissionService: PermissionService;
   private readonly templateRegistry: TemplateRegistry;
   private readonly dataSourceRegistry: DataSourceRegistry;
+  private readonly identityService: IdentityService;
   private initialized = false;
 
   /**
@@ -167,6 +169,7 @@ export class Shell implements IShell {
     this.batchJobManager = services.batchJobManager;
     this.jobProgressMonitor = services.jobProgressMonitor;
     this.permissionService = services.permissionService;
+    this.identityService = services.identityService;
 
     // Register services that plugins need to resolve
     shellInitializer.registerServices(services, this);
@@ -224,6 +227,9 @@ export class Shell implements IShell {
 
       // Core DataSources registration
       this.registerCoreDataSources();
+
+      // Initialize identity service
+      await this.identityService.initialize();
 
       this.initialized = true;
       this.logger.debug("Shell initialized successfully");

@@ -37,6 +37,7 @@
     "@brains/content-service": "workspace:*",
     "@brains/ai-service": "workspace:*",
     "@brains/permission-service": "workspace:*",
-    "@brains/render-service": "workspace:*"
+    "@brains/render-service": "workspace:*",
+    "@brains/identity-service": "workspace:*"
   }
 }

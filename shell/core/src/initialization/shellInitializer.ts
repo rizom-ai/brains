@@ -40,6 +40,7 @@ import { BaseEntityAdapter } from "@brains/entity-service";
 import { knowledgeQueryTemplate } from "@brains/content-service";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
 import type { ShellDependencies } from "@brains/core";
+import { IdentityAdapter, IdentityService } from "@brains/identity-service";
 
 /**
  * Services initialized by ShellInitializer
@@ -66,6 +67,7 @@ export interface ShellServices {
   batchJobManager: BatchJobManager;
   jobProgressMonitor: JobProgressMonitor;
   permissionService: PermissionService;
+  identityService: IdentityService;
 }
 
 /**
@@ -170,6 +172,31 @@ export class ShellInitializer {
     } catch (error) {
       this.logger.error("Failed to register base entity support", error);
       throw new Error("Failed to register base entity type");
+    }
+  }
+
+  /**
+   * Register identity entity support
+   * This provides the brain's identity (role, purpose, values)
+   */
+  public registerIdentitySupport(entityRegistry: IEntityRegistry): void {
+    this.logger.debug("Registering identity entity support");
+
+    try {
+      // Create identity adapter
+      const identityAdapter = new IdentityAdapter();
+
+      // Register with entity registry
+      entityRegistry.registerEntityType(
+        "identity",
+        identityAdapter.schema,
+        identityAdapter,
+      );
+
+      this.logger.debug("Identity entity support registered successfully");
+    } catch (error) {
+      this.logger.error("Failed to register identity entity support", error);
+      throw new Error("Failed to register identity entity type");
     }
   }
 
@@ -305,6 +332,9 @@ export class ShellInitializer {
         dataSourceRegistry,
       });
 
+    // Identity service
+    const identityService = IdentityService.getInstance(entityService, logger);
+
     // Register job handlers
     this.registerJobHandlers(jobQueueService, contentService, entityService);
 
@@ -354,6 +384,7 @@ export class ShellInitializer {
       batchJobManager,
       jobProgressMonitor,
       permissionService,
+      identityService,
     };
   }
 
@@ -410,7 +441,10 @@ export class ShellInitializer {
       // Step 2: Register base entity support
       this.registerBaseEntitySupport(entityRegistry, templateRegistry);
 
-      // Step 3: Initialize plugins
+      // Step 3: Register identity entity support
+      this.registerIdentitySupport(entityRegistry);
+
+      // Step 4: Initialize plugins
       await this.initializePlugins(pluginManager);
 
       this.logger.debug("Shell ready");
