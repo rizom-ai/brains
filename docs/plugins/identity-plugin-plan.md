@@ -1,37 +1,52 @@
-# Identity Plugin Implementation Plan
+# Identity Feature Implementation Plan
 
 ## Overview
 
-Create an Identity plugin that defines the brain's **role, purpose, and values**, injecting this identity into all AI interactions to provide consistent, personalized responses aligned with the brain's character.
+Implement Identity as a **core Shell feature** that defines the brain's **role, purpose, and values**, injecting this identity into all AI interactions to provide consistent, personalized responses aligned with the brain's character.
 
 ## Architecture Summary
 
-**Core Service + Plugin Pattern:**
-- **IdentityService** (core shell service) - Caches and provides identity to Shell
-- **Identity Plugin** - Manages entity type, ensures default exists, provides view command
+**Core Shell Feature (Not a Plugin):**
+
+- **IdentityEntity interface** - Defined in `shell/core/src/types/identity.ts`
+- **IdentityAdapter** - Handles markdown serialization in `shell/core/src/adapters/identity-adapter.ts`
+- **IdentityService** - Caches and provides identity in `shell/core/src/services/identity-service.ts`
+- **Shell integration** - Registers entity type, creates default, injects into AI calls
+- **System Plugin** - Provides `/identity` view command
 
 ## Design Decisions
 
-### 1. Plugin vs App-Level Config
-**Decision**: Plugin-based (not app-level config)
-- Can provide seed content for defaults
-- Follows modular architecture pattern
-- Optional but recommended for all brains
+### 1. Core Feature vs Plugin
+
+**Decision**: Core Shell feature (not a plugin)
+
+**Rationale:**
+- Identity is fundamental - injected into all AI operations
+- Avoids circular dependency (core cannot depend on plugins)
+- Always available, not optional
+- Simpler architecture
+- Type definitions live in core where Shell can access them
 
 ### 2. Storage Strategy
+
 **Decision**: Stored as database entity (can evolve over time)
+
 - Identity can be queried and updated
 - Participates in sync/backup workflows
 - Allows identity to evolve with the brain
 
 ### 3. Singleton Pattern
+
 **Decision**: One identity per brain
+
 - Fixed ID: `"system:identity"`
 - Easy to retrieve: `entityService.getEntity("identity", "system:identity")`
 - Clear, unambiguous identity for each brain
 
 ### 4. Identity Fields
+
 **Decision**: Three core fields
+
 - **role**: Single line describing what the brain is (e.g., "personal knowledge assistant")
 - **purpose**: Paragraph explaining why it exists and what it helps with
 - **values**: Array of key principles that guide behavior (e.g., `["clarity", "accuracy", "helpfulness"]`)
@@ -39,7 +54,9 @@ Create an Identity plugin that defines the brain's **role, purpose, and values**
 Rationale: These three fields cover 80% of identity needs. Can extend later if needed.
 
 ### 5. Injection Scope
+
 **Decision**: Injected into ALL AI operations
+
 - Link extraction considers the brain's role/purpose
 - Topic extraction aligns with values
 - Summaries are framed according to purpose
@@ -48,7 +65,9 @@ Rationale: These three fields cover 80% of identity needs. Can extend later if n
 Rationale: Identity is more than personality - role and purpose directly affect how ALL operations should be performed.
 
 ### 6. Injection Strategy
+
 **Decision**: Shell-level injection (in generateContent method)
+
 - Templates can access and format identity appropriately for their use case
 - More flexible: Different templates can use identity differently
 - Observable: Identity is part of the data flow, easier to debug/test
@@ -56,47 +75,85 @@ Rationale: Identity is more than personality - role and purpose directly affect 
 - Follows existing patterns: Uses the template/data system already in place
 
 ### 7. Identity ID
+
 **Decision**: Fixed ID `"system:identity"`
+
 - Makes singleton retrieval trivial
 - No need to query/search
 - Clear, predictable identifier
 
 ### 8. Management Interface
+
 **Decision**: View command only, updates through entity operations
+
 - `/identity` command to view current identity
 - Updates via standard entity operations or file editing
 - Participates in normal entity workflows
 
 ### 9. Default Identity
+
 **Decision**: Plugin creates default programmatically if missing
+
 - Ensures every brain has an identity from the start
 - No dependency on directory-sync plugin
 - Seed content available for documentation/reference
 
 ### 10. Performance
+
 **Decision**: Shell caches identity with update invalidation
+
 - Identity cached in memory on Shell init
 - Listens to `entity:updated` events to refresh cache
 - Avoids database lookup on every AI call
 - Read-heavy access pattern (rarely changes, frequently read)
 
+### 11. Seed Content
+
+**Decision**: Programmatic creation, no seed content files
+
+**Rationale:**
+- No dependency on directory-sync plugin
+- Guaranteed consistency - code ensures structure is correct
+- Simpler - no files to maintain across multiple apps
+- Users can still edit - becomes normal entity file after creation
+
+### 12. Entity Adapter
+
+**Decision**: Custom IdentityAdapter in shell/core
+
+**Rationale:**
+- Identity has specific fields (role, purpose, values) that need frontmatter
+- BaseEntityAdapter doesn't handle custom frontmatter fields
+- Need proper markdown serialization/deserialization
+
+### 13. Command Output Format
+
+**Decision**: Plain text format for `/identity` command
+
+**Rationale:**
+- Simple and readable - identity shown at a glance
+- Consistent with other info commands
+- Just 3 fields, doesn't need complex formatting
+
 ## Architecture Details
 
 ### Current AI Query Flow
+
 1. User query → `Shell.query()` → `generateContent()`
 2. Uses template: `shell:knowledge-query` with base prompt
 3. Base prompt in `shell/content-service/src/templates/knowledge-query.ts`
 4. Prompt passed to `AIService.generateText(systemPrompt, userPrompt)`
 
 ### Identity Integration Point
+
 Identity is injected into the data context before template resolution, making it available to all templates via template variables.
 
 ## Implementation Steps
 
-### 1. Create IdentityService (Shell Core)
-**Location**: `shell/identity-service/`
+### 1. Define IdentityEntity Interface
 
-**Interface:**
+**Location**: `shell/core/src/types/identity.ts`
+
 ```typescript
 export interface IdentityEntity {
   id: "system:identity";
@@ -107,7 +164,43 @@ export interface IdentityEntity {
   createdAt: string;
   updatedAt: string;
 }
+```
 
+### 2. Create IdentityAdapter
+
+**Location**: `shell/core/src/adapters/identity-adapter.ts`
+
+**Responsibilities:**
+- Serialize identity to markdown with frontmatter
+- Deserialize markdown to identity entity
+- Handle role, purpose, and values fields
+
+**Pattern**: Similar to LinkAdapter and TopicAdapter
+
+### 3. Create Identity Schema
+
+**Location**: `shell/core/src/schemas/identity.ts`
+
+```typescript
+import { z } from "@brains/utils";
+
+export const identitySchema = z.object({
+  id: z.literal("system:identity"),
+  entityType: z.literal("identity"),
+  role: z.string().describe("The brain's primary role"),
+  purpose: z.string().describe("The brain's purpose and goals"),
+  values: z.array(z.string()).describe("Core values that guide behavior"),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+```
+
+### 4. Create IdentityService
+
+**Location**: `shell/core/src/services/identity-service.ts`
+
+**Interface:**
+```typescript
 export class IdentityService {
   async initialize(): Promise<void>;
   async getIdentity(): Promise<IdentityEntity | null>;
@@ -121,12 +214,45 @@ export class IdentityService {
 - Refresh cache when identity entity updated
 - Handle missing identity gracefully
 
-### 2. Integrate IdentityService into Shell
+### 5. Register Identity Entity Type in Shell
+
+**Location**: `shell/core/src/initialization/shellInitializer.ts` (or similar init location)
+
+**Add to initialization:**
+```typescript
+async registerCoreEntityTypes(entityService: IEntityService) {
+  // Register identity entity type
+  const identityAdapter = new IdentityAdapter();
+  entityService.registerEntityType("identity", identitySchema, identityAdapter);
+
+  this.logger.debug("Core entity types registered");
+}
+```
+
+**Create default identity if missing:**
+```typescript
+async ensureDefaultIdentity(entityService: IEntityService) {
+  const existing = await entityService.getEntity("identity", "system:identity");
+
+  if (!existing) {
+    this.logger.info("Creating default identity entity");
+    await entityService.createEntity("identity", {
+      id: "system:identity",
+      role: "Personal knowledge assistant",
+      purpose: "Help organize, understand, and retrieve information from your personal knowledge base.",
+      values: ["clarity", "accuracy", "helpfulness"],
+    });
+  }
+}
+```
+
+### 6. Integrate IdentityService into Shell
+
 **Location**: `shell/core/src/shell.ts`
 
 **Changes:**
 - Add IdentityService as private field
-- Initialize in `initialize()` method
+- Initialize in `initialize()` method (after entity type registration)
 - Subscribe to `entity:updated` events for identity refresh
 - Inject identity into `generateContent()` method data context
 
@@ -137,6 +263,12 @@ private identityService: IdentityService;
 
 async initialize() {
   // ... existing initialization
+
+  // Register core entity types
+  await shellInitializer.registerCoreEntityTypes(this.entityService);
+
+  // Ensure default identity exists
+  await shellInitializer.ensureDefaultIdentity(this.entityService);
 
   // Initialize identity service
   this.identityService = new IdentityService(
@@ -170,49 +302,44 @@ async generateContent<T>(...): Promise<T> {
 }
 ```
 
-### 3. Create Identity Plugin
-**Location**: `plugins/identity/`
+### 7. Add /identity Command to System Plugin
 
-**Package Structure:**
-```
-plugins/identity/
-├── src/
-│   ├── plugin.ts                 # Main plugin class
-│   ├── schemas/
-│   │   └── identity.ts           # Entity schema
-│   ├── adapters/
-│   │   └── identity-adapter.ts   # Entity adapter
-│   └── commands/
-│       └── index.ts              # View command
-├── seed-content/
-│   └── identity/
-│       └── system:identity.md    # Default identity
-├── test/
-│   └── plugin.test.ts
-├── package.json
-└── tsconfig.json
-```
+**Location**: `plugins/system/src/commands/index.ts`
 
-**Plugin Responsibilities:**
-- Register identity entity type with schema and adapter
-- Ensure default identity exists (create if missing)
-- Provide `/identity` view command
-- Provide seed content for documentation
-
-**Default Identity:**
+**Add command:**
 ```typescript
 {
-  id: "system:identity",
-  role: "Personal knowledge assistant",
-  purpose: "Help organize, understand, and retrieve information from your personal knowledge base.",
-  values: ["clarity", "accuracy", "helpfulness"]
+  name: "identity",
+  description: "View the brain's identity",
+  usage: "/identity",
+  handler: async (_args, context) => {
+    const identity = await context.entityService.getEntity("identity", "system:identity");
+    if (!identity) {
+      return {
+        type: "message",
+        message: "❌ No identity configured"
+      };
+    }
+    return {
+      type: "message",
+      message: `🧠 **Brain Identity**
+
+**Role**: ${identity.role}
+
+**Purpose**: ${identity.purpose}
+
+**Values**: ${identity.values.join(", ")}`
+    };
+  }
 }
 ```
 
-### 4. Update Templates to Use Identity
+### 8. Update Templates to Use Identity
+
 **Location**: `shell/content-service/src/templates/knowledge-query.ts`
 
 **Template Enhancement:**
+
 ```typescript
 basePrompt: `{{#if identity}}You are {{identity.role}}.
 
@@ -221,59 +348,33 @@ Your purpose: {{identity.purpose}}
 Your guiding values: {{identity.values}}
 
 {{/if}}You are a personal knowledge assistant with access to the user's entities and data.
-[... rest of prompt ...]`
+[... rest of prompt ...]`;
 ```
 
 **Pattern for Other Templates:**
 All templates can access identity via `{{identity.role}}`, `{{identity.purpose}}`, `{{identity.values}}` in their prompts.
 
-### 5. Register Plugin in Brain Configs
-**Location**: `apps/test-brain/brain.config.ts` and `apps/team-brain/brain.config.ts`
+## Customizing Identity
 
-```typescript
-import { IdentityPlugin } from "@brains/identity";
+Since identity is stored as a normal entity file, users can customize it through:
 
-plugins: [
-  new SystemPlugin({}),
-  new IdentityPlugin(), // Add near the top
-  new TopicsPlugin({}),
-  // ... rest
-]
-```
+1. **Direct file editing** (if using directory-sync):
+   - Edit `brain-data/identity/system:identity.md`
+   - Modify frontmatter fields: role, purpose, values
+   - Changes sync to database automatically
 
-### 6. Seed Content Structure
-**Location**: `plugins/identity/seed-content/identity/system:identity.md`
+2. **Entity update operations**:
+   - Use entity service methods to update programmatically
+   - Changes trigger cache refresh via `entity:updated` event
 
-```markdown
----
-id: system:identity
-entityType: identity
-role: Personal knowledge assistant
-purpose: Help organize, understand, and retrieve information from your personal knowledge base. Provide contextual insights and maintain continuity across conversations.
-values:
-  - clarity
-  - accuracy
-  - helpfulness
-  - respect for privacy
----
-
-# Brain Identity
-
-This entity defines the identity of your brain - who it is, what it does, and the values that guide its behavior.
-
-## Customizing Your Identity
-
-Edit this file to customize your brain's identity:
-- **Role**: What is your brain? (e.g., "Research assistant", "Team coordinator")
-- **Purpose**: What does it help you achieve?
-- **Values**: What principles guide its behavior?
-
-The identity is automatically injected into all AI interactions to ensure consistent, personalized responses.
-```
+3. **Future UI** (potential enhancement):
+   - Settings page to edit identity
+   - Form-based editing with validation
 
 ## Example Use Cases
 
 ### Research Assistant Brain
+
 ```yaml
 role: Academic research assistant
 purpose: Help organize research papers, extract key insights, and maintain literature review notes. Support academic writing and citation management.
@@ -287,6 +388,7 @@ values:
 **Effect**: Link extraction focuses on methodology, findings, citations. Topic extraction emphasizes academic concepts. Queries receive scholarly, well-referenced responses.
 
 ### Team Coordination Brain
+
 ```yaml
 role: Team knowledge coordinator
 purpose: Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization. Support collaboration and transparency.
@@ -300,6 +402,7 @@ values:
 **Effect**: Content organized for team consumption. Summaries highlight action items and decisions. Links capture team-relevant context.
 
 ### Personal Knowledge Brain
+
 ```yaml
 role: Personal knowledge assistant
 purpose: Help organize, understand, and retrieve information from your personal knowledge base. Provide contextual insights and maintain continuity.
@@ -335,6 +438,7 @@ values:
 ## Future Enhancements
 
 Potential additions (not in initial implementation):
+
 - **Personality**: Tone and communication style
 - **Constraints**: Behavioral boundaries ("never make up information")
 - **Context**: Specific domain knowledge or focus areas
