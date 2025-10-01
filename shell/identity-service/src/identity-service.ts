@@ -1,6 +1,6 @@
 import type { IEntityService } from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
-import type { IdentityEntity } from "./schema";
+import type { IdentityEntity, IdentityBody } from "./schema";
 import { IdentityAdapter } from "./adapter";
 
 /**
@@ -13,6 +13,18 @@ export class IdentityService {
   private logger: Logger;
   private entityService: IEntityService;
   private adapter: IdentityAdapter;
+
+  /**
+   * Get the default identity for a new brain
+   */
+  public static getDefaultIdentity(): IdentityBody {
+    return {
+      role: "Personal knowledge assistant",
+      purpose:
+        "Help organize, understand, and retrieve information from your personal knowledge base",
+      values: ["clarity", "accuracy", "helpfulness"],
+    };
+  }
 
   /**
    * Get the singleton instance
@@ -53,16 +65,41 @@ export class IdentityService {
 
   /**
    * Initialize the service and load identity into cache
+   * Creates a default identity if none exists
    */
   public async initialize(): Promise<void> {
     await this.loadIdentity();
+
+    // If no identity exists, create one with default values
+    if (!this.cache) {
+      this.logger.info("No identity found, creating default identity");
+      try {
+        const defaultIdentity = IdentityService.getDefaultIdentity();
+        const content = this.adapter.createIdentityContent(defaultIdentity);
+
+        await this.entityService.createEntity({
+          id: "identity",
+          entityType: "identity",
+          content,
+        });
+
+        // Reload the cache with the newly created entity
+        await this.loadIdentity();
+        this.logger.info("Default identity created successfully");
+      } catch (error) {
+        this.logger.error("Failed to create default identity", { error });
+      }
+    }
   }
 
   /**
-   * Get the cached identity
+   * Get the identity data (from cache or default)
    */
-  public async getIdentity(): Promise<IdentityEntity | null> {
-    return this.cache;
+  public getIdentity(): IdentityBody {
+    if (this.cache) {
+      return this.adapter.parseIdentityBody(this.cache.content);
+    }
+    return IdentityService.getDefaultIdentity();
   }
 
   /**
@@ -79,7 +116,7 @@ export class IdentityService {
     try {
       const identity = (await this.entityService.getEntity(
         "identity",
-        "system:identity",
+        "identity",
       )) as IdentityEntity | null;
 
       this.cache = identity;

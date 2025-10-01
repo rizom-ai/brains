@@ -393,5 +393,48 @@ export function createSystemCommands(
         }
       },
     },
+    {
+      name: "identity",
+      description: "View the brain's identity (role, purpose, values)",
+      usage: "/identity",
+      visibility: "public",
+      handler: async (_args, _context): Promise<CommandResponse> => {
+        try {
+          // Get identity from context
+          const identity = plugin.getIdentityData();
+
+          // Format as plain markdown
+          const sections = [
+            "# Brain Identity",
+            "",
+            "## Role",
+            identity.role || "Not set",
+            "",
+            "## Purpose",
+            identity.purpose || "Not set",
+            "",
+            "## Values",
+          ];
+
+          if (identity.values && identity.values.length > 0) {
+            identity.values.forEach((value) => {
+              sections.push(`- ${value}`);
+            });
+          } else {
+            sections.push("Not set");
+          }
+
+          return {
+            type: "message",
+            message: sections.join("\n"),
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error getting identity: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      },
+    },
   ];
 }

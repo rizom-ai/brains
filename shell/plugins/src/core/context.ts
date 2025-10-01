@@ -12,6 +12,7 @@ import type {
   GetMessagesOptions,
   ConversationMetadata,
 } from "@brains/conversation-service";
+import type { IdentityBody } from "@brains/identity-service";
 
 /**
  * Core plugin context - provides basic services to core plugins
@@ -23,6 +24,9 @@ export interface CorePluginContext {
 
   // Core entity service (read-only operations)
   readonly entityService: ICoreEntityService;
+
+  // Brain identity
+  getIdentity: () => IdentityBody;
 
   // Inter-plugin messaging
   sendMessage: MessageSender;
@@ -94,6 +98,9 @@ export function createCorePluginContext(
     pluginId,
     logger,
     entityService,
+
+    // Identity
+    getIdentity: () => shell.getIdentity(),
 
     // Messaging
     sendMessage,

@@ -188,4 +188,14 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     }
     return this.context.searchConversations(query);
   }
+
+  /**
+   * Get the brain's identity data
+   */
+  public getIdentityData() {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.getIdentity();
+  }
 }

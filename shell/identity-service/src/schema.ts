@@ -6,7 +6,7 @@ import { baseEntitySchema } from "@brains/entity-service";
  * Identity data (role, purpose, values) is stored in content field as structured markdown
  */
 export const identitySchema = baseEntitySchema.extend({
-  id: z.literal("system:identity"),
+  id: z.literal("identity"),
   entityType: z.literal("identity"),
 });
 

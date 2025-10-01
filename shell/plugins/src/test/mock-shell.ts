@@ -43,6 +43,7 @@ import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry, DataSource } from "@brains/datasource";
+import type { IdentityBody } from "@brains/identity-service";
 
 import { createSilentLogger } from "@brains/utils";
 
@@ -515,6 +516,16 @@ export class MockShell implements IShell {
       failedOperations: 0,
       errors: [],
       status: "completed" as const,
+    };
+  }
+
+  // Identity
+  getIdentity(): IdentityBody {
+    // Return a default identity for testing
+    return {
+      role: "Test Assistant",
+      purpose: "Testing purposes",
+      values: ["reliability", "accuracy"],
     };
   }
 

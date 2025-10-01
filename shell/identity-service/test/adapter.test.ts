@@ -15,7 +15,7 @@ describe("IdentityAdapter", () => {
       const schema = adapter.schema;
 
       const validIdentity = {
-        id: "system:identity",
+        id: "identity",
         entityType: "identity",
         content: "", // BaseEntity requires content field
         created: new Date().toISOString(),
@@ -29,7 +29,7 @@ describe("IdentityAdapter", () => {
       const schema = adapter.schema;
 
       const invalidIdentity = {
-        id: "system:identity",
+        id: "identity",
         entityType: "other", // Wrong type
         content: "",
         role: "Assistant",
@@ -46,7 +46,7 @@ describe("IdentityAdapter", () => {
       const schema = adapter.schema;
 
       const invalidIdentity = {
-        id: "wrong:id", // Must be "system:identity"
+        id: "wrong:id", // Must be "identity"
         entityType: "identity",
         content: "",
         role: "Assistant",
@@ -71,7 +71,7 @@ describe("IdentityAdapter", () => {
       });
 
       const entity: IdentityEntity = {
-        id: "system:identity",
+        id: "identity",
         entityType: "identity",
         content,
         created: new Date().toISOString(),
@@ -177,7 +177,7 @@ Help organize research papers and maintain literature review notes.
       });
 
       const entity: IdentityEntity = {
-        id: "system:identity",
+        id: "identity",
         entityType: "identity",
         content,
         created: new Date().toISOString(),
@@ -196,7 +196,7 @@ Help organize research papers and maintain literature review notes.
   describe("generateFrontMatter", () => {
     it("should return empty string (identity uses structured content, not frontmatter)", () => {
       const entity: IdentityEntity = {
-        id: "system:identity",
+        id: "identity",
         entityType: "identity",
         content: "",
         created: new Date().toISOString(),

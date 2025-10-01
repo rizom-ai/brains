@@ -38,6 +38,7 @@ import type { DataSourceRegistry } from "@brains/datasource";
 import { ShellInitializer } from "./initialization/shellInitializer";
 import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
 import type { IdentityService } from "@brains/identity-service";
+import type { IdentityBody } from "@brains/identity-service";
 
 /**
  * Required dependencies for Shell initialization
@@ -595,6 +596,13 @@ export class Shell implements IShell {
    */
   public getDataSourceRegistry(): DataSourceRegistry {
     return this.dataSourceRegistry;
+  }
+
+  /**
+   * Get the brain's identity
+   */
+  public getIdentity(): IdentityBody {
+    return this.identityService.getIdentity();
   }
 
   /**

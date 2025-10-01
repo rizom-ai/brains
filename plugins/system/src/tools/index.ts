@@ -342,5 +342,25 @@ export function createSystemTools(
         }
       },
     },
+    {
+      name: `${pluginId}:get-identity`,
+      description: "Get the brain's identity (role, purpose, values)",
+      inputSchema: {},
+      visibility: "public",
+      handler: async (): Promise<ToolResponse> => {
+        try {
+          const identity = plugin.getIdentityData();
+          return {
+            status: "success",
+            data: identity,
+          };
+        } catch (error) {
+          return {
+            status: "error",
+            message: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
+    },
   ];
 }

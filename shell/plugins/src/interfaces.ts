@@ -42,6 +42,7 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry } from "@brains/datasource";
+import type { IdentityBody } from "@brains/identity-service";
 
 /**
  * Query context for shell queries
@@ -73,6 +74,9 @@ export interface IShell {
   getMcpTransport(): IMCPTransport;
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
+
+  // Identity
+  getIdentity(): IdentityBody;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;

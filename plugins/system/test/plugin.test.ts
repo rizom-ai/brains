@@ -142,7 +142,7 @@ describe("SystemPlugin", () => {
     it("should provide search, get, get-job-status, and conversation commands", async () => {
       const commands = await (plugin as any).getCommands();
 
-      expect(commands).toHaveLength(6);
+      expect(commands).toHaveLength(7);
 
       const commandNames = commands.map((cmd: any) => cmd.name);
       expect(commandNames).toContain("search");
@@ -151,6 +151,7 @@ describe("SystemPlugin", () => {
       expect(commandNames).toContain("get-conversation");
       expect(commandNames).toContain("list-conversations");
       expect(commandNames).toContain("get-messages");
+      expect(commandNames).toContain("identity");
     });
   });
 
@@ -158,7 +159,7 @@ describe("SystemPlugin", () => {
     it("should provide system tools including conversation tools", async () => {
       const tools = await (plugin as any).getTools();
 
-      expect(tools.length).toBe(7); // Updated to include 3 new conversation tools
+      expect(tools.length).toBe(8); // Updated to include identity tool
 
       const toolNames = tools.map((tool: any) => tool.name);
       expect(toolNames).toContain("system:query");
@@ -167,6 +168,7 @@ describe("SystemPlugin", () => {
       expect(toolNames).toContain("system:check-job-status");
       expect(toolNames).toContain("system:get-conversation");
       expect(toolNames).toContain("system:list-conversations");
+      expect(toolNames).toContain("system:get-identity");
       expect(toolNames).toContain("system:get-messages");
     });
   });
