@@ -389,6 +389,7 @@ export default defineConfig({
 ```
 
 **Benefits:**
+
 - Set default identity without needing entity files
 - Each app can have its own identity
 - Version controlled with app configuration
@@ -397,6 +398,7 @@ export default defineConfig({
 ### 2. Direct File Editing (If Using directory-sync)
 
 Edit the identity entity file:
+
 - File: `brain-data/identity/identity.md`
 - Modify structured content: role, purpose, values sections
 - Changes sync to database automatically
@@ -404,6 +406,7 @@ Edit the identity entity file:
 ### 3. Entity Update Operations
 
 Use entity service methods to update programmatically:
+
 - Changes trigger cache refresh via `entity:updated` event
 - Useful for runtime customization
 

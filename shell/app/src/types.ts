@@ -4,7 +4,7 @@ import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
 import type { PermissionConfig } from "@brains/permission-service";
-import type { IdentityBody } from "@brains/identity-service";
+import { identityBodySchema } from "@brains/identity-service";
 
 // App config focuses on app-level concerns, plugins come from Shell
 export const appConfigSchema = z.object({
@@ -16,6 +16,8 @@ export const appConfigSchema = z.object({
   logLevel: z.enum(["debug", "info", "warn", "error"]).optional(), // Maps to logging.level
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
+  // Identity - override default identity for this app
+  identity: identityBodySchema.optional(),
 });
 
 export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
@@ -26,6 +28,4 @@ export type AppConfig = Omit<z.infer<typeof appConfigSchema>, "plugins"> & {
   cliConfig?: CLIConfig;
   // Permissions - centralized permission configuration
   permissions?: PermissionConfig;
-  // Identity - override default identity for this app
-  identity?: IdentityBody;
 };

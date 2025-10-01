@@ -27,6 +27,14 @@ const config = defineConfig({
   version: "1.0.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
+  // Define team-brain's identity
+  identity: {
+    role: "Team knowledge coordinator",
+    purpose:
+      "Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization",
+    values: ["collaboration", "transparency", "accessibility", "actionability"],
+  },
+
   // Configure centralized permissions
   permissions: {
     anchors: [

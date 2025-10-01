@@ -21,6 +21,7 @@ export function defineConfig(config: AppConfig): AppConfig {
   if (config.permissions) finalConfig.permissions = config.permissions;
   if (config.cliConfig) finalConfig.cliConfig = config.cliConfig;
   if (config.shellConfig) finalConfig.shellConfig = config.shellConfig;
+  if (config.identity) finalConfig.identity = config.identity;
 
   return finalConfig;
 }

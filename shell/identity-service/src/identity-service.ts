@@ -87,7 +87,9 @@ export class IdentityService {
     if (!this.cache) {
       this.logger.info("No identity found, creating default identity");
       try {
-        const content = this.adapter.createIdentityContent(this.defaultIdentity);
+        const content = this.adapter.createIdentityContent(
+          this.defaultIdentity,
+        );
 
         await this.entityService.createEntity({
           id: "identity",
