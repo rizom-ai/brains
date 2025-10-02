@@ -4,13 +4,16 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "cache": true
     },
     "lint": {
-      "outputs": []
+      "outputs": [],
+      "cache": true
     },
     "lint:fix": {
-      "outputs": []
+      "outputs": [],
+      "cache": false
     },
     "dev": {
       "dependsOn": ["precompile"],
@@ -18,20 +21,26 @@
       "persistent": true
     },
     "test": {
-      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"]
+      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"],
+      "outputs": ["coverage/**"],
+      "cache": true
     },
     "typecheck": {
-      "outputs": []
+      "dependsOn": ["^typecheck"],
+      "outputs": [],
+      "cache": true
     },
     "clean": {
       "cache": false
     },
     "precompile": {
-      "outputs": ["src/content-schemas.txt"]
+      "outputs": ["src/content-schemas.txt"],
+      "cache": true
     },
     "compile": {
       "dependsOn": ["precompile"],
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**"],
+      "cache": true
     }
   }
 }
