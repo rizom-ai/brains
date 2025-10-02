@@ -46,12 +46,23 @@ import type { IdentityBody } from "@brains/identity-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
 
 /**
+ * Plugin info for status display
+ */
+export const pluginInfoSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  version: z.string(),
+  status: z.string(),
+});
+
+/**
  * App info schema for validation
  */
 export const appInfoSchema = z.object({
   model: z.string(),
   version: z.string(),
-  daemons: z.array(DaemonStatusInfoSchema),
+  plugins: z.array(pluginInfoSchema),
+  interfaces: z.array(DaemonStatusInfoSchema),
 });
 
 export type AppInfo = z.infer<typeof appInfoSchema>;

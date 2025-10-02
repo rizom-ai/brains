@@ -454,12 +454,27 @@ export function createSystemCommands(
           sections.push(`**Model**: ${appInfo.model} v${appInfo.version}`);
           sections.push("");
 
+          // Plugins
+          if (appInfo.plugins && appInfo.plugins.length > 0) {
+            sections.push("## Plugins");
+            sections.push("");
+
+            for (const plugin of appInfo.plugins) {
+              const statusIcon =
+                plugin.status === "initialized" ? "✓" : plugin.status === "error" ? "✗" : "○";
+              sections.push(
+                `${statusIcon} **${plugin.id}** (${plugin.type}) v${plugin.version}`,
+              );
+            }
+            sections.push("");
+          }
+
           // Access points (interfaces)
-          if (appInfo.daemons && appInfo.daemons.length > 0) {
+          if (appInfo.interfaces && appInfo.interfaces.length > 0) {
             sections.push("## Interfaces");
             sections.push("");
 
-            for (const daemon of appInfo.daemons) {
+            for (const daemon of appInfo.interfaces) {
               const isHealthy =
                 daemon.status === "running" &&
                 daemon.health?.status === "healthy";

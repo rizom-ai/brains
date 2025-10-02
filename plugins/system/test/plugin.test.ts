@@ -80,7 +80,8 @@ describe("SystemPlugin", () => {
       getAppInfo: async () => ({
         model: "test-brain",
         version: "1.2.3",
-        daemons: [],
+        plugins: [],
+        interfaces: [],
       }),
       getIdentity: () => ({
         name: "Test Brain",
@@ -219,9 +220,9 @@ describe("SystemPlugin", () => {
       expect(appInfo).toEqual({
         model: "test-brain",
         version: "1.2.3",
-        daemons: [],
+        plugins: [],
+        interfaces: [],
       });
     });
   });
-
 });

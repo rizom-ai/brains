@@ -250,8 +250,7 @@ export class DaemonRegistry {
   /**
    * Get daemon statuses with fresh health checks
    */
-  public async getStatuses(): Promise<DaemonStatusInfo[]
-  > {
+  public async getStatuses(): Promise<DaemonStatusInfo[]> {
     const allDaemons = this.getAllInfo();
 
     // Refresh health checks for all daemons

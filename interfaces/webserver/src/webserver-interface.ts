@@ -74,9 +74,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
 
         return {
           status: isRunning ? "healthy" : "error",
-          message: isRunning
-            ? urls.join(", ")
-            : "No servers are running",
+          message: isRunning ? urls.join(", ") : "No servers are running",
           lastCheck: new Date(),
           details: {
             preview: status.preview,

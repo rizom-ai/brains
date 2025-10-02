@@ -536,7 +536,8 @@ export class MockShell implements IShell {
     return {
       model: "test-brain",
       version: "1.0.0",
-      daemons: [],
+      plugins: [],
+      interfaces: [],
     };
   }
 

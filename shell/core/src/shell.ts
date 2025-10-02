@@ -611,14 +611,26 @@ export class Shell implements IShell {
   }
 
   /**
-   * Get app metadata including daemon statuses
+   * Get app metadata including plugin and interface statuses
    */
   public async getAppInfo(): Promise<AppInfo> {
-    const daemons = await this.daemonRegistry.getStatuses();
+    const interfaces = await this.daemonRegistry.getStatuses();
+
+    // Get plugin information
+    const plugins = Array.from(this.pluginManager.getAllPlugins().values()).map(
+      (info) => ({
+        id: info.plugin.id,
+        type: info.plugin.type,
+        version: info.plugin.version,
+        status: info.status,
+      }),
+    );
+
     return {
       model: this.config.name || "brain-app",
       version: this.config.version || "1.0.0",
-      daemons,
+      plugins,
+      interfaces,
     };
   }
 
