@@ -436,5 +436,46 @@ export function createSystemCommands(
         }
       },
     },
+    {
+      name: "about",
+      description: "View brain information and identity",
+      usage: "/about",
+      visibility: "public",
+      handler: async (_args, _context): Promise<CommandResponse> => {
+        try {
+          const aboutInfo = plugin.getAboutInfo();
+          const sections: string[] = [];
+
+          // Title: Brain name
+          sections.push(`# ${aboutInfo.name || "Personal Brain"}`);
+          sections.push("");
+
+          // Model and version
+          sections.push(`**Model**: ${aboutInfo.model} v${aboutInfo.version}`);
+          sections.push("");
+
+          // Identity section
+          sections.push("## Identity");
+          sections.push("");
+          sections.push(`**Role**: ${aboutInfo.role || "Not set"}`);
+          sections.push("");
+          sections.push(`**Purpose**: ${aboutInfo.purpose || "Not set"}`);
+          sections.push("");
+          if (aboutInfo.values && aboutInfo.values.length > 0) {
+            sections.push(`**Values**: ${aboutInfo.values.join(", ")}`);
+          }
+
+          return {
+            type: "message",
+            message: sections.join("\n"),
+          };
+        } catch (error) {
+          return {
+            type: "message",
+            message: `Error getting brain information: ${error instanceof Error ? error.message : String(error)}`,
+          };
+        }
+      },
+    },
   ];
 }
