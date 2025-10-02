@@ -88,6 +88,10 @@ export class App {
         shellConfig.identity = this.config.identity;
       }
 
+      // Set app name and version
+      shellConfig.name = this.config.name;
+      shellConfig.version = this.config.version;
+
       // Pass the global logger instance which has already been configured
       // In CLI mode, it's already set to use stderr in run()
       this.shell = Shell.createFresh(shellConfig, {

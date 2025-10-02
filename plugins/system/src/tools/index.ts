@@ -362,5 +362,26 @@ export function createSystemTools(
         }
       },
     },
+    {
+      name: `${pluginId}:get-about`,
+      description:
+        "Get comprehensive brain information including name, model, version, and identity",
+      inputSchema: {},
+      visibility: "public",
+      handler: async (): Promise<ToolResponse> => {
+        try {
+          const aboutInfo = plugin.getAboutInfo();
+          return {
+            status: "success",
+            data: aboutInfo,
+          };
+        } catch (error) {
+          return {
+            status: "error",
+            message: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
+    },
   ];
 }

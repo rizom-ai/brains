@@ -104,6 +104,7 @@ describe("App", () => {
     it("should accept identity in app config", () => {
       const mockShell = createMockShell();
       const customIdentity = {
+        name: "Test Assistant",
         role: "Technical assistant",
         purpose: "Help with technical tasks",
         values: ["precision", "efficiency"],

@@ -150,6 +150,8 @@ export function createShellConfig(
 
   // Build config with standard values or overrides
   const config = {
+    name: overrides.name ?? "brain-app",
+    version: overrides.version ?? "1.0.0",
     database: overrides.database ?? standardConfig.database,
     jobQueueDatabase:
       overrides.jobQueueDatabase ?? standardConfig.jobQueueDatabase,

@@ -170,7 +170,7 @@ describe("SystemPlugin", () => {
     it("should provide system tools including conversation tools", async () => {
       const tools = await (plugin as any).getTools();
 
-      expect(tools.length).toBe(8); // Updated to include identity tool
+      expect(tools.length).toBe(9); // Updated to include get-about tool
 
       const toolNames = tools.map((tool: any) => tool.name);
       expect(toolNames).toContain("system:query");
@@ -181,6 +181,7 @@ describe("SystemPlugin", () => {
       expect(toolNames).toContain("system:list-conversations");
       expect(toolNames).toContain("system:get-identity");
       expect(toolNames).toContain("system:get-messages");
+      expect(toolNames).toContain("system:get-about");
     });
   });
 
