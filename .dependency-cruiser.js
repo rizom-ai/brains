@@ -21,7 +21,11 @@ module.exports = {
           "(^|/)\\.[^/]+\\.(js|cjs|mjs|ts|json)$", // dot files
           "\\.d\\.ts$", // TypeScript declaration files
           "(^|/)tsconfig\\.json$", // TypeScript config
-          "(^|/)(babel|webpack)\\.config\\.(js|cjs|mjs|ts|json)$", // Build configs
+          "(^|/)(babel|webpack|tailwind)\\.config\\.(js|cjs|mjs|ts|json)$", // Build configs
+          "^shared/eslint-config/index\\.js$", // ESLint config entry
+          "/dist/.*\\.(js|mjs)$", // Build output files
+          "/test/fixtures/", // Test fixture files
+          "hydration\\.js$", // Client-side hydration entry points
         ],
       },
       to: {},
