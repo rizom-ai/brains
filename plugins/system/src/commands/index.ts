@@ -461,7 +461,11 @@ export function createSystemCommands(
 
             for (const plugin of appInfo.plugins) {
               const statusIcon =
-                plugin.status === "initialized" ? "✓" : plugin.status === "error" ? "✗" : "○";
+                plugin.status === "initialized"
+                  ? "✓"
+                  : plugin.status === "error"
+                    ? "✗"
+                    : "○";
               sections.push(
                 `${statusIcon} **${plugin.id}** (${plugin.type}) v${plugin.version}`,
               );
