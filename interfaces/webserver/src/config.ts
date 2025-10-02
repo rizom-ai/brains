@@ -17,6 +17,10 @@ export const webserverConfigSchema = z.object({
     .number()
     .describe("Port for production server")
     .default(8080),
+  productionDomain: z
+    .string()
+    .optional()
+    .describe("Public domain for production server (e.g., https://babal.io)"),
 });
 
 export type WebserverConfig = z.infer<typeof webserverConfigSchema>;

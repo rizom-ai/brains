@@ -77,9 +77,10 @@ describe("SystemPlugin", () => {
           lastActive: new Date().toISOString(),
         },
       ],
-      getAppInfo: () => ({
+      getAppInfo: async () => ({
         model: "test-brain",
         version: "1.2.3",
+        daemons: [],
       }),
       getIdentity: () => ({
         name: "Test Brain",
@@ -162,7 +163,7 @@ describe("SystemPlugin", () => {
       expect(commandNames).toContain("list-conversations");
       expect(commandNames).toContain("get-messages");
       expect(commandNames).toContain("identity");
-      expect(commandNames).toContain("about");
+      expect(commandNames).toContain("status");
     });
   });
 
@@ -170,7 +171,7 @@ describe("SystemPlugin", () => {
     it("should provide system tools including conversation tools", async () => {
       const tools = await (plugin as any).getTools();
 
-      expect(tools.length).toBe(9); // Updated to include get-about tool
+      expect(tools.length).toBe(9); // Updated to include get-status tool
 
       const toolNames = tools.map((tool: any) => tool.name);
       expect(toolNames).toContain("system:query");
@@ -181,7 +182,7 @@ describe("SystemPlugin", () => {
       expect(toolNames).toContain("system:list-conversations");
       expect(toolNames).toContain("system:get-identity");
       expect(toolNames).toContain("system:get-messages");
-      expect(toolNames).toContain("system:get-about");
+      expect(toolNames).toContain("system:get-status");
     });
   });
 
@@ -212,28 +213,15 @@ describe("SystemPlugin", () => {
   });
 
   describe("getAppInfo", () => {
-    it("should return app model and version from shell", () => {
-      const appInfo = plugin.getAppInfo();
+    it("should return app model and version from shell", async () => {
+      const appInfo = await plugin.getAppInfo();
 
       expect(appInfo).toEqual({
         model: "test-brain",
         version: "1.2.3",
+        daemons: [],
       });
     });
   });
 
-  describe("getAboutInfo", () => {
-    it("should return combined identity and app info", () => {
-      const aboutInfo = plugin.getAboutInfo();
-
-      expect(aboutInfo).toEqual({
-        name: "Test Brain",
-        role: "Test Assistant",
-        purpose: "Testing purposes",
-        values: ["reliability", "accuracy"],
-        model: "test-brain",
-        version: "1.2.3",
-      });
-    });
-  });
 });

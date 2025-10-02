@@ -6,8 +6,9 @@ import type {
   Command,
   PluginTool,
   PluginResource,
+  AppInfo,
 } from "@brains/plugins";
-import type { Daemon, DaemonRegistry } from "@brains/daemon-registry";
+import type { Daemon } from "@brains/daemon-registry";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
@@ -531,15 +532,12 @@ export class MockShell implements IShell {
   }
 
   // App metadata
-  getAppInfo(): { model: string; version: string } {
+  async getAppInfo(): Promise<AppInfo> {
     return {
       model: "test-brain",
       version: "1.0.0",
+      daemons: [],
     };
-  }
-
-  getDaemonRegistry(): DaemonRegistry {
-    return this.services.get("daemonRegistry") as DaemonRegistry;
   }
 
   // Daemon registration - simple mock that just logs

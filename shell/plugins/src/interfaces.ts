@@ -12,7 +12,7 @@ import {
 } from "@brains/utils";
 import type { Command } from "@brains/command-registry";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { Daemon, DaemonRegistry } from "@brains/daemon-registry";
+import type { Daemon } from "@brains/daemon-registry";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
@@ -43,6 +43,18 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry } from "@brains/datasource";
 import type { IdentityBody } from "@brains/identity-service";
+import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
+
+/**
+ * App info schema for validation
+ */
+export const appInfoSchema = z.object({
+  model: z.string(),
+  version: z.string(),
+  daemons: z.array(DaemonStatusInfoSchema),
+});
+
+export type AppInfo = z.infer<typeof appInfoSchema>;
 
 /**
  * Query context for shell queries
@@ -79,10 +91,7 @@ export interface IShell {
   getIdentity(): IdentityBody;
 
   // App metadata
-  getAppInfo(): { model: string; version: string };
-
-  // Daemon registry (for introspection)
-  getDaemonRegistry(): DaemonRegistry;
+  getAppInfo(): Promise<AppInfo>;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;

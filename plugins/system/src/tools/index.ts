@@ -363,17 +363,17 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:get-about`,
+      name: `${pluginId}:get-status`,
       description:
-        "Get comprehensive brain information including name, model, version, and identity",
+        "Get system status including model, version, and running interfaces with access URLs",
       inputSchema: {},
       visibility: "public",
       handler: async (): Promise<ToolResponse> => {
         try {
-          const aboutInfo = plugin.getAboutInfo();
+          const appInfo = await plugin.getAppInfo();
           return {
             status: "success",
-            data: aboutInfo,
+            data: appInfo,
           };
         } catch (error) {
           return {

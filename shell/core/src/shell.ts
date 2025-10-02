@@ -5,6 +5,7 @@ import type {
   Command,
   PluginTool,
   PluginResource,
+  AppInfo,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import type { ServiceRegistry } from "@brains/service-registry";
@@ -337,9 +338,13 @@ export class Shell implements IShell {
       throw new Error("Shell query attempted before initialization");
     }
 
+    // Fetch app info to provide daemon URLs and infrastructure context
+    const appInfo = await this.getAppInfo();
+
     // Build query context with sensible defaults
     const queryContext = {
       ...context,
+      appInfo,
       timestamp: new Date().toISOString(),
     };
 
@@ -606,20 +611,15 @@ export class Shell implements IShell {
   }
 
   /**
-   * Get app metadata (model and version)
+   * Get app metadata including daemon statuses
    */
-  public getAppInfo(): { model: string; version: string } {
+  public async getAppInfo(): Promise<AppInfo> {
+    const daemons = await this.daemonRegistry.getStatuses();
     return {
       model: this.config.name || "brain-app",
       version: this.config.version || "1.0.0",
+      daemons,
     };
-  }
-
-  /**
-   * Get daemon registry for introspection
-   */
-  public getDaemonRegistry() {
-    return this.daemonRegistry;
   }
 
   /**

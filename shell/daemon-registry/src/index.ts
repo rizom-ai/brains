@@ -1,2 +1,11 @@
-export { DaemonRegistry, DaemonHealthSchema } from "./daemonRegistry";
-export type { DaemonInfo, Daemon, DaemonHealth } from "./daemonRegistry";
+export {
+  DaemonRegistry,
+  DaemonHealthSchema,
+  DaemonStatusInfoSchema,
+} from "./daemonRegistry";
+export type {
+  DaemonInfo,
+  Daemon,
+  DaemonHealth,
+  DaemonStatusInfo,
+} from "./daemonRegistry";

@@ -48,6 +48,7 @@ export type {
   PluginType,
   ToolVisibility,
   ToolContext,
+  AppInfo,
   ToolResponse,
   PluginTool,
   PluginResource,
@@ -69,6 +70,7 @@ export {
   pluginMetadataSchema,
   ToolContextRoutingSchema,
   toolResponseSchema,
+  appInfoSchema,
 } from "./interfaces";
 
 // Config utilities
@@ -194,10 +196,6 @@ export {
   markdownToHtml,
   StructuredContentFormatter,
 } from "@brains/utils";
-
-// From @brains/core
-export type { AppInfo } from "@brains/core";
-export { appInfoSchema } from "@brains/core";
 
 // From @brains/identity-service
 export type { IdentityBody } from "@brains/identity-service";

@@ -437,32 +437,41 @@ export function createSystemCommands(
       },
     },
     {
-      name: "about",
-      description: "View brain information and identity",
-      usage: "/about",
+      name: "status",
+      description: "View system status and access information",
+      usage: "/status",
       visibility: "public",
       handler: async (_args, _context): Promise<CommandResponse> => {
         try {
-          const aboutInfo = plugin.getAboutInfo();
+          const appInfo = await plugin.getAppInfo();
           const sections: string[] = [];
 
-          // Title: Brain name
-          sections.push(`# ${aboutInfo.name || "Personal Brain"}`);
+          // Title
+          sections.push("# System Status");
           sections.push("");
 
           // Model and version
-          sections.push(`**Model**: ${aboutInfo.model} v${aboutInfo.version}`);
+          sections.push(`**Model**: ${appInfo.model} v${appInfo.version}`);
           sections.push("");
 
-          // Identity section
-          sections.push("## Identity");
-          sections.push("");
-          sections.push(`**Role**: ${aboutInfo.role || "Not set"}`);
-          sections.push("");
-          sections.push(`**Purpose**: ${aboutInfo.purpose || "Not set"}`);
-          sections.push("");
-          if (aboutInfo.values && aboutInfo.values.length > 0) {
-            sections.push(`**Values**: ${aboutInfo.values.join(", ")}`);
+          // Access points (interfaces)
+          if (appInfo.daemons && appInfo.daemons.length > 0) {
+            sections.push("## Interfaces");
+            sections.push("");
+
+            for (const daemon of appInfo.daemons) {
+              const isHealthy =
+                daemon.status === "running" &&
+                daemon.health?.status === "healthy";
+              const icon = isHealthy ? "✓" : "✗";
+              const message = daemon.health?.message || daemon.status;
+
+              // Capitalize first letter
+              const name =
+                daemon.name.charAt(0).toUpperCase() + daemon.name.slice(1);
+
+              sections.push(`${icon} **${name}**: ${message}`);
+            }
           }
 
           return {
@@ -472,7 +481,7 @@ export function createSystemCommands(
         } catch (error) {
           return {
             type: "message",
-            message: `Error getting brain information: ${error instanceof Error ? error.message : String(error)}`,
+            message: `Error getting system status: ${error instanceof Error ? error.message : String(error)}`,
           };
         }
       },

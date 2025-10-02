@@ -59,17 +59,30 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         const status = this.serverManager.getStatus();
         const isRunning = status.preview || status.production;
 
+        const previewUrl = `http://localhost:${this.config.previewPort}`;
+        const productionUrl = this.config.productionDomain
+          ? this.config.productionDomain
+          : `http://localhost:${this.config.productionPort}`;
+
+        const urls: string[] = [];
+        if (status.preview) {
+          urls.push(`Preview: ${previewUrl}`);
+        }
+        if (status.production) {
+          urls.push(`Production: ${productionUrl}`);
+        }
+
         return {
           status: isRunning ? "healthy" : "error",
           message: isRunning
-            ? `Servers running - Preview: ${status.preview ? "up" : "down"}, Production: ${status.production ? "up" : "down"}`
+            ? urls.join(", ")
             : "No servers are running",
           lastCheck: new Date(),
           details: {
             preview: status.preview,
             production: status.production,
-            previewPort: this.config.previewPort,
-            productionPort: this.config.productionPort,
+            previewUrl: status.preview ? previewUrl : undefined,
+            productionUrl: status.production ? productionUrl : undefined,
           },
         };
       },

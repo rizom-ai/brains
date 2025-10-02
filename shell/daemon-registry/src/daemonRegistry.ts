@@ -13,6 +13,17 @@ export const DaemonHealthSchema = z.object({
 export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
 
 /**
+ * Daemon status info schema for validation
+ */
+export const DaemonStatusInfoSchema = z.object({
+  name: z.string(),
+  status: z.string(),
+  health: DaemonHealthSchema.optional(),
+});
+
+export type DaemonStatusInfo = z.infer<typeof DaemonStatusInfoSchema>;
+
+/**
  * Daemon interface for long-running interface processes
  */
 export interface Daemon {
@@ -234,6 +245,28 @@ export class DaemonRegistry {
    */
   public getAllInfo(): DaemonInfo[] {
     return Array.from(this.daemons.values());
+  }
+
+  /**
+   * Get daemon statuses with fresh health checks
+   */
+  public async getStatuses(): Promise<DaemonStatusInfo[]
+  > {
+    const allDaemons = this.getAllInfo();
+
+    // Refresh health checks for all daemons
+    for (const daemon of allDaemons) {
+      if (daemon.daemon.healthCheck) {
+        await this.checkHealth(daemon.name);
+      }
+    }
+
+    // Return fresh status info
+    return allDaemons.map((daemon) => ({
+      name: daemon.name,
+      status: daemon.status,
+      health: daemon.health,
+    }));
   }
 
   /**

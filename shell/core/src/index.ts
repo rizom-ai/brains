@@ -31,12 +31,7 @@ export type { ShellConfig } from "./config";
 
 // Re-export essential types that don't trigger side effects
 export type { IEmbeddingService } from "@brains/embedding-service";
-export type {
-  SerializableEntity,
-  SerializableQueryResult,
-  AppInfo,
-} from "./types";
-export { appInfoSchema } from "./types";
+export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // MockShell moved to plugins package
 

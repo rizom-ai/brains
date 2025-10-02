@@ -100,17 +100,24 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       healthCheck: async (): Promise<DaemonHealth> => {
         const isRunning = this.isServerRunning();
 
+        let message = "MCP server not running";
+        if (isRunning) {
+          if (this.config.transport === "http") {
+            message = `MCP HTTP: http://localhost:${this.config.httpPort}/mcp`;
+          } else {
+            message = "MCP stdio server running";
+          }
+        }
+
         return {
           status: isRunning ? "healthy" : "error",
-          message: isRunning
-            ? `MCP ${this.config.transport} server running${this.config.transport === "http" ? ` on port ${this.config.httpPort}` : ""}`
-            : "MCP server not running",
+          message,
           lastCheck: new Date(),
           details: {
             transport: this.config.transport,
-            port:
+            url:
               this.config.transport === "http"
-                ? this.config.httpPort
+                ? `http://localhost:${this.config.httpPort}/mcp`
                 : undefined,
             running: isRunning,
           },
