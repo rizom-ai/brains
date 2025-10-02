@@ -22,6 +22,7 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
     return new StructuredContentFormatter(identityBodySchema, {
       title: "Brain Identity",
       mappings: [
+        { key: "name", label: "Name", type: "string" },
         { key: "role", label: "Role", type: "string" },
         { key: "purpose", label: "Purpose", type: "string" },
         {
@@ -38,12 +39,14 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
    * Create identity content from components
    */
   public createIdentityContent(params: {
+    name: string;
     role: string;
     purpose: string;
     values: string[];
   }): string {
     const formatter = this.createFormatter();
     return formatter.format({
+      name: params.name,
       role: params.role,
       purpose: params.purpose,
       values: params.values,
@@ -54,17 +57,8 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
    * Parse identity body from content
    */
   public parseIdentityBody(content: string): IdentityBody {
-    try {
-      const formatter = this.createFormatter();
-      return formatter.parse(content);
-    } catch {
-      // Return empty structure if parsing fails
-      return {
-        role: "",
-        purpose: "",
-        values: [],
-      };
-    }
+    const formatter = this.createFormatter();
+    return formatter.parse(content);
   }
 
   /**

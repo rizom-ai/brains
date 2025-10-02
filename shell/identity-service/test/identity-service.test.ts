@@ -37,10 +37,11 @@ describe("IdentityService", () => {
   });
 
   describe("getDefaultIdentity", () => {
-    it("should return default identity with role, purpose, and values", () => {
+    it("should return default identity with name, role, purpose, and values", () => {
       const defaultIdentity = IdentityService.getDefaultIdentity();
 
       expect(defaultIdentity).toEqual({
+        name: "Personal Brain",
         role: "Personal knowledge assistant",
         purpose:
           "Help organize, understand, and retrieve information from your personal knowledge base",
@@ -62,6 +63,9 @@ describe("IdentityService", () => {
         id: "identity",
         entityType: "identity",
         content: `# Brain Identity
+
+## Name
+Research Brain
 
 ## Role
 Research assistant
@@ -118,11 +122,24 @@ Help with academic research
     });
 
     it("should not create entity when one already exists", async () => {
-      // Mock behavior: existing entity
+      // Mock behavior: existing entity with valid content
       const mockEntity: IdentityEntity = {
         id: "identity",
         entityType: "identity",
-        content: "existing content",
+        content: `# Brain Identity
+
+## Name
+Existing Brain
+
+## Role
+Existing role
+
+## Purpose
+Existing purpose
+
+## Values
+
+- existing value`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
@@ -172,6 +189,7 @@ Help with academic research
   describe("custom default identity", () => {
     it("should use provided custom default identity instead of hardcoded default", () => {
       const customIdentity = {
+        name: "Tech Doc Brain",
         role: "Technical documentation assistant",
         purpose: "Help write and maintain technical documentation",
         values: ["precision", "clarity", "consistency"],
@@ -201,6 +219,7 @@ Help with academic research
 
     it("should create entity with custom default when none exists", async () => {
       const customIdentity = {
+        name: "Research Brain",
         role: "Research assistant",
         purpose: "Help with academic research",
         values: ["rigor", "thoroughness"],

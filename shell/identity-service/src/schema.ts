@@ -20,6 +20,7 @@ export type IdentityEntity = z.infer<typeof identitySchema>;
  * (Not stored as separate entity fields - parsed from content)
  */
 export const identityBodySchema = z.object({
+  name: z.string().describe("The brain's friendly display name"),
   role: z.string().describe("The brain's primary role"),
   purpose: z.string().describe("The brain's purpose and goals"),
   values: z.array(z.string()).describe("Core values that guide behavior"),

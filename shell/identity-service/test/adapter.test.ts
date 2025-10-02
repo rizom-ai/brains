@@ -64,6 +64,7 @@ describe("IdentityAdapter", () => {
     it("should convert identity entity to structured markdown", () => {
       // Create identity content
       const content = adapter.createIdentityContent({
+        name: "Personal Brain",
         role: "Personal knowledge assistant",
         purpose:
           "Help organize, understand, and retrieve information from your personal knowledge base.",
@@ -99,6 +100,9 @@ describe("IdentityAdapter", () => {
     it("should parse structured markdown to identity body", () => {
       const markdown = `# Brain Identity
 
+## Name
+Research Brain
+
 ## Role
 Research assistant
 
@@ -113,6 +117,7 @@ Help organize research papers and maintain literature review notes.
 
       const result = adapter.parseIdentityBody(markdown);
 
+      expect(result.name).toBe("Research Brain");
       expect(result.role).toBe("Research assistant");
       expect(result.purpose).toBe(
         "Help organize research papers and maintain literature review notes.",
@@ -124,24 +129,20 @@ Help organize research papers and maintain literature review notes.
       ]);
     });
 
-    it("should handle markdown without proper structure", () => {
+    it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
-      const result = adapter.parseIdentityBody(markdown);
-
-      expect(result.role).toBe("");
-      expect(result.purpose).toBe("");
-      expect(result.values).toEqual([]);
+      expect(() => adapter.parseIdentityBody(markdown)).toThrow(
+        "Failed to parse structured content",
+      );
     });
 
-    it("should handle empty markdown", () => {
+    it("should throw error for empty markdown", () => {
       const markdown = "";
 
-      const result = adapter.parseIdentityBody(markdown);
-
-      expect(result.role).toBe("");
-      expect(result.purpose).toBe("");
-      expect(result.values).toEqual([]);
+      expect(() => adapter.parseIdentityBody(markdown)).toThrow(
+        "Failed to parse structured content",
+      );
     });
   });
 
@@ -171,6 +172,7 @@ Help organize research papers and maintain literature review notes.
   describe("extractMetadata", () => {
     it("should extract role and values as metadata", () => {
       const content = adapter.createIdentityContent({
+        name: "Team Brain",
         role: "Team coordinator",
         purpose: "Facilitate knowledge sharing across the organization",
         values: ["collaboration", "transparency", "accessibility"],
@@ -226,6 +228,7 @@ Content`;
   describe("roundtrip conversion", () => {
     it("should preserve data through createIdentityContent and parseIdentityBody", () => {
       const originalData = {
+        name: "Personal Brain",
         role: "Personal knowledge assistant",
         purpose:
           "Help organize, understand, and retrieve information from your personal knowledge base.",

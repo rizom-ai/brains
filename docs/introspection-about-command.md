@@ -7,6 +7,7 @@ Add an `/about` command that provides comprehensive runtime introspection - show
 ## The Core Need
 
 **Current State:**
+
 - `/identity` command shows role, purpose, values (good!)
 - No way to see the brain's name or model
 - No way to see what interfaces are running and their URLs
@@ -15,12 +16,14 @@ Add an `/about` command that provides comprehensive runtime introspection - show
 
 **What We Need:**
 A single command that shows:
+
 1. Who/what the brain is (name, model, version, identity)
 2. Where to access it (public URLs, interface status)
 
 ## Solution: Introspection-Based `/about` Command
 
 ### Core Principle
+
 **Query runtime services for their actual state** - don't read config files, ask the running systems what they're doing.
 
 ### Example Output
@@ -31,11 +34,13 @@ A single command that shows:
 **Model**: team-brain v1.0.0
 
 ## Identity
+
 Role: Team knowledge coordinator
 Purpose: Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization
 Values: collaboration, transparency, accessibility, actionability, candor
 
 ## Access
+
 ✓ Web: https://babal.io
 ✓ Matrix: @teambrain:rizom.ai on https://matrix.rizom.ai
 ✓ MCP: Enabled
@@ -49,11 +54,13 @@ Or in local development:
 **Model**: team-brain v1.0.0
 
 ## Identity
+
 Role: Team knowledge coordinator
 Purpose: Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization
 Values: collaboration, transparency, accessibility, actionability, candor
 
 ## Access
+
 ✓ Web: http://localhost:3000 (preview), http://localhost:8080 (production)
 ✓ Matrix: @teambrain-dev:rizom.ai on https://matrix.rizom.ai
 ✓ MCP: Enabled
@@ -64,6 +71,7 @@ Values: collaboration, transparency, accessibility, actionability, candor
 ### Phase 1: Identity Schema Enhancement
 
 #### 1.1 Add `name` field to identity schema
+
 **File**: `shell/identity-service/src/schema.ts`
 
 ```typescript
@@ -76,18 +84,22 @@ export const identityBodySchema = z.object({
 ```
 
 #### 1.2 Update identity markdown files
+
 **File**: `apps/team-brain/brain-data/identity/identity.md`
 
 ```markdown
 # Brain Identity
 
 ## Name
+
 Team Knowledge Assistant
 
 ## Role
+
 Team knowledge coordinator
 
 ## Purpose
+
 Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization
 
 ## Values
@@ -100,15 +112,18 @@ Maintain team documentation, track decisions, and facilitate knowledge sharing a
 ```
 
 #### 1.3 Update identity adapter parsing
+
 **File**: `shell/identity-service/src/adapter.ts`
 
 Update `parseIdentityBody()` to extract `name` from markdown:
+
 - Look for `## Name` section
 - Extract the name value
 
 ### Phase 2: App Info Exposure
 
 #### 2.1 Add `getAppInfo()` to IShell interface
+
 **File**: `shell/plugins/src/interfaces.ts`
 
 ```typescript
@@ -124,6 +139,7 @@ export interface IShell {
 ```
 
 #### 2.2 Implement in Shell class
+
 **File**: `shell/core/src/shell.ts`
 
 ```typescript
@@ -142,6 +158,7 @@ public getDaemonRegistry(): DaemonRegistry {
 ### Phase 3: Enhance Webserver Health Check
 
 #### 3.1 Update webserver health check to include public URL
+
 **File**: `interfaces/webserver/src/webserver-interface.ts`
 
 ```typescript
@@ -185,12 +202,13 @@ healthCheck: async (): Promise<DaemonHealth> => {
     lastCheck: new Date(),
     details,
   };
-}
+};
 ```
 
 ### Phase 4: Implement `/about` Command
 
 #### 4.1 Add helper method to SystemPlugin
+
 **File**: `plugins/system/src/plugin.ts`
 
 ```typescript
@@ -213,6 +231,7 @@ public async getDaemonStatus(): Promise<DaemonInfo[]> {
 ```
 
 #### 4.2 Add `/about` command
+
 **File**: `plugins/system/src/commands/index.ts`
 
 ```typescript
@@ -282,16 +301,20 @@ public async getDaemonStatus(): Promise<DaemonInfo[]> {
 Update existing identity files to include the `name` field:
 
 **File**: `apps/team-brain/brain-data/identity/identity.md`
+
 ```markdown
 # Brain Identity
 
 ## Name
+
 Team Knowledge Assistant
 
 ## Role
+
 Team knowledge coordinator
 
 ## Purpose
+
 Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization
 
 ## Values
@@ -304,16 +327,20 @@ Maintain team documentation, track decisions, and facilitate knowledge sharing a
 ```
 
 **File**: `apps/test-brain/brain-data/identity/identity.md` (if exists)
+
 ```markdown
 # Brain Identity
 
 ## Name
+
 Test Brain
 
 ## Role
+
 Test assistant
 
 ## Purpose
+
 Test environment for development
 
 ## Values
@@ -325,6 +352,7 @@ Test environment for development
 ## What We're NOT Doing (Future Phases)
 
 **Phase 2** (later):
+
 - `/plugins` or `/capabilities` command for plugin list
 - `/stats` for entity counts, storage usage, metrics
 - System health summary/status
@@ -382,21 +410,25 @@ The `/about` command automatically becomes available as an MCP tool since it's a
 ## Migration Path
 
 **Phase 1: Identity Schema** (1-2 hours)
+
 - Add `name` to identity schema
 - Update identity adapter
 - Update identity files
 - Test identity parsing
 
 **Phase 2: App Info** (1 hour)
+
 - Add `getAppInfo()` to Shell
 - Expose via IShell interface
 
 **Phase 3: Health Check Enhancement** (2 hours)
+
 - Update webserver health check
 - Add DOMAIN env var support
 - Test local vs deployed behavior
 
 **Phase 4: Command Implementation** (2-3 hours)
+
 - Add `getDaemonStatus()` to SystemPlugin
 - Implement `/about` command
 - Test in all interfaces

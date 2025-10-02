@@ -20,6 +20,7 @@ export class IdentityService {
    */
   public static getDefaultIdentity(): IdentityBody {
     return {
+      name: "Personal Brain",
       role: "Personal knowledge assistant",
       purpose:
         "Help organize, understand, and retrieve information from your personal knowledge base",
