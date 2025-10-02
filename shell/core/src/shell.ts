@@ -616,6 +616,13 @@ export class Shell implements IShell {
   }
 
   /**
+   * Get daemon registry for introspection
+   */
+  public getDaemonRegistry() {
+    return this.daemonRegistry;
+  }
+
+  /**
    * Register core DataSources that are built into the shell
    */
   private registerCoreDataSources(): void {

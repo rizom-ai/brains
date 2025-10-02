@@ -12,7 +12,7 @@ import {
 } from "@brains/utils";
 import type { Command } from "@brains/command-registry";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { Daemon } from "@brains/daemon-registry";
+import type { Daemon, DaemonRegistry } from "@brains/daemon-registry";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
@@ -80,6 +80,9 @@ export interface IShell {
 
   // App metadata
   getAppInfo(): { model: string; version: string };
+
+  // Daemon registry (for introspection)
+  getDaemonRegistry(): DaemonRegistry;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;

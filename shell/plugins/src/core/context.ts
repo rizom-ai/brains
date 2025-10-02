@@ -13,6 +13,7 @@ import type {
   ConversationMetadata,
 } from "@brains/conversation-service";
 import type { IdentityBody } from "@brains/identity-service";
+import type { DaemonRegistry } from "@brains/daemon-registry";
 
 /**
  * Core plugin context - provides basic services to core plugins
@@ -30,6 +31,9 @@ export interface CorePluginContext {
 
   // App metadata
   getAppInfo: () => { model: string; version: string };
+
+  // Daemon registry (for introspection)
+  getDaemonRegistry: () => DaemonRegistry;
 
   // Inter-plugin messaging
   sendMessage: MessageSender;
@@ -107,6 +111,9 @@ export function createCorePluginContext(
 
     // App metadata
     getAppInfo: () => shell.getAppInfo(),
+
+    // Daemon registry
+    getDaemonRegistry: () => shell.getDaemonRegistry(),
 
     // Messaging
     sendMessage,
