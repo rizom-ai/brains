@@ -81,7 +81,7 @@ export class Shell implements IShell {
    */
   public static getInstance(config?: Partial<ShellConfig>): Shell {
     if (!Shell.instance) {
-      Shell.instance = new Shell(createShellConfig(config));
+      Shell.instance = new Shell(createShellConfig(config ?? {}));
     }
     return Shell.instance;
   }

@@ -99,7 +99,7 @@ export class AIContentDataSource implements DataSource {
     const identityPrompt = [
       `You are ${identity.role}.`,
       identity.purpose ? `\nYour purpose: ${identity.purpose}` : "",
-      identity.values && identity.values.length > 0
+      identity.values.length > 0
         ? `\nYour guiding values: ${identity.values.join(", ")}`
         : "",
       "\n",

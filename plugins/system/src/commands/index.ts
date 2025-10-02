@@ -416,7 +416,7 @@ export function createSystemCommands(
             "## Values",
           ];
 
-          if (identity.values && identity.values.length > 0) {
+          if (identity.values.length > 0) {
             identity.values.forEach((value) => {
               sections.push(`- ${value}`);
             });
@@ -455,7 +455,7 @@ export function createSystemCommands(
           sections.push("");
 
           // Plugins
-          if (appInfo.plugins && appInfo.plugins.length > 0) {
+          if (appInfo.plugins.length > 0) {
             sections.push("## Plugins");
             sections.push("");
 
@@ -474,7 +474,7 @@ export function createSystemCommands(
           }
 
           // Access points (interfaces)
-          if (appInfo.interfaces && appInfo.interfaces.length > 0) {
+          if (appInfo.interfaces.length > 0) {
             sections.push("## Interfaces");
             sections.push("");
 
@@ -483,7 +483,7 @@ export function createSystemCommands(
                 daemon.status === "running" &&
                 daemon.health?.status === "healthy";
               const icon = isHealthy ? "✓" : "✗";
-              const message = daemon.health?.message || daemon.status;
+              const message = daemon.health?.message ?? daemon.status;
 
               // Capitalize first letter
               const name =

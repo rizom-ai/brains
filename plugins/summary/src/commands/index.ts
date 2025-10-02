@@ -63,7 +63,7 @@ export function createListCommand(
           .map((summary) => {
             const conversationId =
               summary.metadata?.conversationId ?? "unknown";
-            const entryCount = summary.metadata?.entryCount ?? 0;
+            const entryCount = summary.metadata.entryCount ?? 0;
             const lastUpdated = new Date(summary.updated).toLocaleDateString();
 
             // Get first entry title as preview

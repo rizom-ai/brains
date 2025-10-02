@@ -433,11 +433,11 @@ not-a-number
             key: "sources",
             label: "Sources",
             type: "custom",
-            formatter: (value: unknown) => {
+            formatter: (value: unknown): string => {
               const sources = z.array(sourceReferenceSchema).parse(value);
               return SourceListFormatter.format(sources);
             },
-            parser: (text: string) => SourceListFormatter.parse(text),
+            parser: (text: string): unknown => SourceListFormatter.parse(text),
           },
         ],
       });

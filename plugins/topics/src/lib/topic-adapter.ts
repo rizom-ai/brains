@@ -62,11 +62,11 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
           key: "sources",
           label: "Sources",
           type: "custom",
-          formatter: (value: unknown) => {
+          formatter: (value: unknown): string => {
             const sources = topicSourceSchema.array().parse(value);
             return SourceListFormatter.format(sources);
           },
-          parser: (text: string) => SourceListFormatter.parse(text),
+          parser: (text: string): unknown => SourceListFormatter.parse(text),
         },
       ],
     });

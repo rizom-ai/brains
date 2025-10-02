@@ -15,7 +15,7 @@ export function createGitSyncCommands(gitSync: GitSync): Command[] {
           const status = await gitSync.getStatus();
 
           let message = "✅ **Git sync completed**\n";
-          if (status.files && status.files.length > 0) {
+          if (status.files.length > 0) {
             message += `📝 Changes synced: ${status.files.length} files\n`;
           }
           if (status.ahead > 0) {

@@ -5,6 +5,8 @@ import type {
   BaseEntity,
   DefaultQueryResponse,
   SearchResult,
+  IdentityBody,
+  AppInfo,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
@@ -192,7 +194,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get the brain's identity data
    */
-  public getIdentityData() {
+  public getIdentityData(): IdentityBody {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -202,7 +204,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get app metadata (model and version)
    */
-  public getAppInfo() {
+  public getAppInfo(): Promise<AppInfo> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }

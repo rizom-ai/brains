@@ -204,7 +204,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
    * Generate frontmatter for the entity
    */
   public generateFrontMatter(entity: SummaryEntity): string {
-    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+    if (Object.keys(entity.metadata).length > 0) {
       return generateFrontmatter(entity.metadata);
     }
     return "";
