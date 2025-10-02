@@ -1,8 +1,8 @@
 import type { Command, CommandResponse } from "@brains/plugins";
-import type { SystemPlugin } from "../plugin";
+import type { ISystemPlugin } from "../types";
 
 export function createSystemCommands(
-  plugin: SystemPlugin,
+  plugin: ISystemPlugin,
   _pluginId: string,
 ): Command[] {
   return [

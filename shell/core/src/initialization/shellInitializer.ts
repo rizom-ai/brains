@@ -1,5 +1,5 @@
 import { Logger, LogLevel } from "@brains/utils";
-import type { ShellConfig } from "@brains/core";
+import type { ShellConfig } from "../config";
 import {
   EntityRegistry,
   EntityService,
@@ -39,7 +39,7 @@ import {
 import { BaseEntityAdapter } from "@brains/entity-service";
 import { knowledgeQueryTemplate } from "@brains/content-service";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
-import type { ShellDependencies } from "@brains/core";
+import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
 
 /**

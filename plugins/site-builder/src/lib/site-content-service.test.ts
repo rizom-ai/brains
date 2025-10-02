@@ -6,7 +6,7 @@ import {
   createServicePluginContext,
   createSilentLogger,
   type ServicePluginContext,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 import { SiteContentOperations } from "./site-content-operations";
 
 describe("SiteContentService", () => {

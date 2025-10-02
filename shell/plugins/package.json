@@ -5,6 +5,10 @@
   "description": "Core plugin system implementation for the Personal Brain application",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./test": "./test.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",

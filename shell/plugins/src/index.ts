@@ -1,15 +1,6 @@
 // Plugin base class and core context
 export { BasePlugin, type CoreContext } from "./base-plugin";
 
-// Unified test harness for all plugin types
-export {
-  PluginTestHarness,
-  createCorePluginHarness,
-  createServicePluginHarness,
-  createInterfacePluginHarness,
-  type HarnessOptions,
-} from "./test/harness";
-
 // Core plugin
 export { CorePlugin } from "./core/core-plugin";
 export type { CorePluginContext } from "./core/context";
@@ -200,11 +191,6 @@ export {
 // From @brains/identity-service
 export type { IdentityBody } from "@brains/identity-service";
 export { identityBodySchema } from "@brains/identity-service";
-
-// Test utilities
-export { MockShell } from "./test/mock-shell";
-
-// Content management exports removed - these types are now defined in site-builder plugin
 
 // Utility functions
 export { createId } from "./utils/id";

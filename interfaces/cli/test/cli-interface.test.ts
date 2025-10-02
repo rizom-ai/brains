@@ -8,8 +8,8 @@ import {
   afterAll,
 } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import { createInterfacePluginHarness } from "@brains/plugins";
-import type { PluginTestHarness } from "@brains/plugins";
+import { createInterfacePluginHarness } from "@brains/plugins/test";
+import type { PluginTestHarness } from "@brains/plugins/test";
 import type { CLIConfig } from "../src/types";
 
 // Mock console.clear

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins";
-import type { PluginCapabilities } from "@brains/plugins";
-import type { BaseEntity, EntityAdapter } from "@brains/plugins";
-import { baseEntitySchema } from "@brains/plugins";
+import { createServicePluginHarness } from "@brains/plugins/test";
+import type { PluginCapabilities } from "@brains/plugins/test";
+import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
+import { baseEntitySchema } from "@brains/plugins/test";
 import type { z } from "@brains/utils";
 import { join } from "path";
 import { tmpdir } from "os";

@@ -4,7 +4,7 @@ import {
   MockShell,
   createServicePluginContext,
   createSilentLogger,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 
 describe("TopicService", () => {
   it("should be instantiable", () => {

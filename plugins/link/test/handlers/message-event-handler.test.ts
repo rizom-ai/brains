@@ -5,12 +5,12 @@ import {
 } from "../../src/handlers/message-event-handler";
 import type { LinkConfig } from "../../src/schemas/link";
 import {
-  MockShell,
   createServicePluginContext,
   createSilentLogger,
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins";
+import { MockShell } from "@brains/plugins/test";
 import type { MessageWithPayload } from "@brains/messaging-service";
 
 describe("MessageEventHandler", () => {

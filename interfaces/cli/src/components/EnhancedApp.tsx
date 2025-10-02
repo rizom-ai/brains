@@ -8,18 +8,8 @@ import { EnhancedInput } from "./EnhancedInput";
 import { StatusBarWithProgress } from "./StatusBarWithProgress";
 import { MultiLineProgress } from "./MultiLineProgress";
 import { CommandHistory } from "../features/history";
-import type { CLIInterface } from "../cli-interface";
-import type { JobProgressEvent } from "@brains/job-queue";
-
-interface Props {
-  interface: CLIInterface;
-  registerProgressCallback: (
-    callback: (events: JobProgressEvent[]) => void,
-  ) => void;
-  unregisterProgressCallback: () => void;
-  registerResponseCallback: (callback: (response: string) => void) => void;
-  unregisterMessageCallbacks: () => void;
-}
+import type { EnhancedAppProps } from "../types/app-props";
+import type { JobProgressEvent } from "@brains/plugins";
 
 export default function EnhancedApp({
   interface: cliInterface,
@@ -27,7 +17,7 @@ export default function EnhancedApp({
   unregisterProgressCallback,
   registerResponseCallback,
   unregisterMessageCallbacks,
-}: Props): React.ReactElement {
+}: EnhancedAppProps): React.ReactElement {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "system",

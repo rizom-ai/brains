@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { createInterfacePluginHarness } from "@brains/plugins";
+import { createInterfacePluginHarness } from "@brains/plugins/test";
 import { webserverInterfacePlugin } from "../src/interface-plugin-example";
 import type { ExampleInterfacePlugin } from "../src/interface-plugin-example";
-import type { PluginCapabilities } from "@brains/plugins";
+import type { PluginCapabilities } from "@brains/plugins/test";
 import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "@brains/utils";
 

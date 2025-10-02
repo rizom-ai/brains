@@ -1,9 +1,9 @@
 import type { PluginTool, ToolResponse } from "@brains/plugins";
-import type { SystemPlugin } from "../plugin";
+import type { ISystemPlugin } from "../types";
 import { z } from "@brains/utils";
 
 export function createSystemTools(
-  plugin: SystemPlugin,
+  plugin: ISystemPlugin,
   pluginId: string,
 ): PluginTool[] {
   return [

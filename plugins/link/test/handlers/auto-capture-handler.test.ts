@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { AutoCaptureHandler } from "../../src/handlers/auto-capture-handler";
 import {
-  MockShell,
   createServicePluginContext,
   createSilentLogger,
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins";
+import { MockShell } from "@brains/plugins/test";
 
 describe("AutoCaptureHandler", () => {
   let handler: AutoCaptureHandler;

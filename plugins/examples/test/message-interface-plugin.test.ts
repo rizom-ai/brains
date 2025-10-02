@@ -1,5 +1,8 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { createInterfacePluginHarness, PluginError } from "@brains/plugins";
+import {
+  createInterfacePluginHarness,
+  PluginError,
+} from "@brains/plugins/test";
 import {
   echoMessageInterfacePlugin,
   ExampleMessageInterfacePlugin,
@@ -9,7 +12,7 @@ import type {
   PluginCapabilities,
   QueryContext,
   DefaultQueryResponse,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 
 describe("MessageInterfacePlugin", () => {
   let harness: ReturnType<

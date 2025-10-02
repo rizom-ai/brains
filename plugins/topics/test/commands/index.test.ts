@@ -7,7 +7,7 @@ import {
   type ServicePluginContext,
   type Logger,
   type CommandContext,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
 import { TopicService } from "../../src/lib/topic-service";
 

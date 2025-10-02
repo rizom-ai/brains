@@ -7,7 +7,7 @@ import {
   createSilentLogger,
   type ServicePluginContext,
   type BatchOperation,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 
 describe("SiteContentOperations", () => {
   let mockShell: MockShell;

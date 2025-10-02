@@ -1,6 +1,6 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryService } from "../../src/lib/summary-service";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins/test";
 import type { SummaryEntity } from "../../src/schemas/summary";
 
 describe("SummaryService", () => {

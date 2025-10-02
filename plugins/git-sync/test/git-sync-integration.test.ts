@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
-import type { PluginCapabilities } from "@brains/plugins";
-import { createCorePluginHarness } from "@brains/plugins";
+import type { PluginCapabilities } from "@brains/plugins/test";
+import { createCorePluginHarness } from "@brains/plugins/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";

@@ -24,7 +24,6 @@ import type { CommandRegistry } from "@brains/command-registry";
 import type { TemplateRegistry, Template } from "@brains/templates";
 import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import type { DaemonRegistry, Daemon } from "@brains/daemon-registry";
-import { type IEmbeddingService } from "@brains/embedding-service";
 import { type IConversationService } from "@brains/conversation-service";
 import type { ContentService } from "@brains/content-service";
 import { type IAIService } from "@brains/ai-service";
@@ -40,33 +39,9 @@ import { ShellInitializer } from "./initialization/shellInitializer";
 import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
 import type { IdentityService } from "@brains/identity-service";
 import type { IdentityBody } from "@brains/identity-service";
+import type { ShellDependencies } from "./types/shell-types";
 
-/**
- * Required dependencies for Shell initialization
- */
-export interface ShellDependencies {
-  logger?: Logger;
-  embeddingService?: IEmbeddingService;
-  aiService?: IAIService;
-  entityService?: IEntityService;
-  conversationService?: IConversationService;
-  serviceRegistry?: ServiceRegistry;
-  entityRegistry?: IEntityRegistry;
-  messageBus?: MessageBus;
-  renderService?: RenderService;
-  daemonRegistry?: DaemonRegistry;
-  pluginManager?: PluginManager;
-  commandRegistry?: CommandRegistry;
-  mcpService?: IMCPService;
-  contentService?: ContentService;
-  jobQueueService?: IJobQueueService;
-  jobQueueWorker?: IJobQueueWorker;
-  jobProgressMonitor?: IJobProgressMonitor;
-  batchJobManager?: IBatchJobManager;
-  permissionService?: PermissionService;
-  templateRegistry?: TemplateRegistry;
-  dataSourceRegistry?: DataSourceRegistry;
-}
+export type { ShellDependencies };
 
 /**
  * Shell - The main entry point for the Brain system

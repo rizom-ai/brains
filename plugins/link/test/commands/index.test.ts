@@ -6,13 +6,13 @@ import {
   createGetCommand,
 } from "../../src/commands";
 import {
-  MockShell,
   createServicePluginContext,
   createSilentLogger,
   type ServicePluginContext,
   type CommandContext,
   type Logger,
 } from "@brains/plugins";
+import { MockShell } from "@brains/plugins/test";
 import { LinkService } from "../../src/lib/link-service";
 
 describe("Link Commands", () => {

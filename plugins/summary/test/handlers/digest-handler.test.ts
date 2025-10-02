@@ -16,7 +16,7 @@ import {
   type ServicePluginContext,
   type Logger,
   type ConversationDigestPayload,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 import type { SummaryEntity } from "../../src/schemas/summary";
 
 describe("DigestHandler", () => {

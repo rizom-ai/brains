@@ -1,15 +1,23 @@
-# Fix formatting
-echo "📐 Fixing format..."
-bun run format
+# Validate workspace structure
+echo "☔️ Checking workspace..."
+bun run workspace:check
 
-# Run type checking
+# Check dependency versions
+echo "🔍 Checking dependency versions..."
+bun run deps:check
+
+# Format staged files only (fast!)
+echo "📐 Formatting staged files..."
+bunx lint-staged
+
+# Run linting on all packages (cached by turbo)
+echo "🔍 Running linter..."
+bun run lint:fix
+
+# Run type checking on all packages (required for monorepo correctness)
 echo "🔍 Running type checks..."
 bun run typecheck
 
-# Run tests
+# Run tests on all packages (required for monorepo correctness)
 echo "🧪 Running tests..."
 bun run test
-
-# Check linting (don't auto-fix)
-echo "🎨 Checking lint..."
-bun run lint

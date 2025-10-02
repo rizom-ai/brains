@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SummaryPlugin } from "../src";
-import { MockShell, createSilentLogger } from "@brains/plugins";
+import { createSilentLogger } from "@brains/plugins/test";
+import { MockShell } from "@brains/plugins/test";
 
 describe("SummaryPlugin", () => {
   let plugin: SummaryPlugin;

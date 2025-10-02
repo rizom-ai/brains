@@ -1,8 +1,8 @@
 import "./mocks/setup";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { MatrixInterface } from "../src";
-import { createInterfacePluginHarness } from "@brains/plugins";
-import type { PluginTestHarness } from "@brains/plugins";
+import { createInterfacePluginHarness } from "@brains/plugins/test";
+import type { PluginTestHarness } from "@brains/plugins/test";
 import { PermissionService } from "@brains/permission-service";
 
 // Access the global mocks

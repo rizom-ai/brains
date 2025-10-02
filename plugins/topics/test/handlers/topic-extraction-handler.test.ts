@@ -6,7 +6,7 @@ import {
   createSilentLogger,
   type ServicePluginContext,
   type Logger,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 import type { ProgressReporter } from "@brains/utils";
 import type { TopicsPluginConfig } from "../../src/schemas/config";
 

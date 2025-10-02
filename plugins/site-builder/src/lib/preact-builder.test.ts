@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
 import { PreactBuilder } from "./preact-builder";
-import { createSilentLogger } from "@brains/plugins";
+import { createSilentLogger } from "@brains/plugins/test";
 
 describe("PreactBuilder - extractFontImports", () => {
   const logger = createSilentLogger("test");

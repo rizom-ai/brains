@@ -6,7 +6,7 @@ import {
   createSilentLogger,
   type ServicePluginContext,
   type Logger,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 import { topicListSchema } from "../../src/templates/topic-list/schema";
 
 describe("TopicsDataSource", () => {

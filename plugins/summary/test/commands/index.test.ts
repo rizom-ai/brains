@@ -22,7 +22,7 @@ import {
   type ServicePluginContext,
   type Logger,
   type CommandContext,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 import type { SummaryConfig } from "../../src/schemas/summary";
 
 describe("Summary Commands", () => {

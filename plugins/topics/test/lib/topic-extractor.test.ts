@@ -6,7 +6,7 @@ import {
   createSilentLogger,
   type ServicePluginContext,
   type Logger,
-} from "@brains/plugins";
+} from "@brains/plugins/test";
 
 describe("TopicExtractor", () => {
   let extractor: TopicExtractor;
