@@ -81,6 +81,12 @@ describe("SystemPlugin", () => {
         model: "test-brain",
         version: "1.2.3",
       }),
+      getIdentity: () => ({
+        name: "Test Brain",
+        role: "Test Assistant",
+        purpose: "Testing purposes",
+        values: ["reliability", "accuracy"],
+      }),
     } as InterfacePluginContext;
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
@@ -208,6 +214,21 @@ describe("SystemPlugin", () => {
       const appInfo = plugin.getAppInfo();
 
       expect(appInfo).toEqual({
+        model: "test-brain",
+        version: "1.2.3",
+      });
+    });
+  });
+
+  describe("getAboutInfo", () => {
+    it("should return combined identity and app info", () => {
+      const aboutInfo = plugin.getAboutInfo();
+
+      expect(aboutInfo).toEqual({
+        name: "Test Brain",
+        role: "Test Assistant",
+        purpose: "Testing purposes",
+        values: ["reliability", "accuracy"],
         model: "test-brain",
         version: "1.2.3",
       });

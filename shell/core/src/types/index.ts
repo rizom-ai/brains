@@ -7,6 +7,17 @@ import type { BaseEntity } from "@brains/entity-service";
 export type Entity = BaseEntity;
 
 /**
+ * App info schema - brain application metadata
+ * Used for introspection and about information
+ */
+export const appInfoSchema = z.object({
+  model: z.string(),
+  version: z.string(),
+});
+
+export type AppInfo = z.infer<typeof appInfoSchema>;
+
+/**
  * Search options schema for entity queries - shell-specific
  */
 export const searchOptionsSchema = z.object({

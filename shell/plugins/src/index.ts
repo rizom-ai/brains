@@ -195,6 +195,14 @@ export {
   StructuredContentFormatter,
 } from "@brains/utils";
 
+// From @brains/core
+export type { AppInfo } from "@brains/core";
+export { appInfoSchema } from "@brains/core";
+
+// From @brains/identity-service
+export type { IdentityBody } from "@brains/identity-service";
+export { identityBodySchema } from "@brains/identity-service";
+
 // Test utilities
 export { MockShell } from "./test/mock-shell";
 
