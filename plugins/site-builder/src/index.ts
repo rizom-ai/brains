@@ -14,6 +14,10 @@ export { createPreactBuilder } from "./lib/preact-builder";
 export type { SiteContent } from "./types";
 export { siteContentSchema } from "./types";
 
+// Export site info types
+export type { SiteInfo } from "./types/site-info";
+export { SiteInfoSchema } from "./types/site-info";
+
 // Export route types and schemas for other plugins to use
 export type {
   RouteDefinition,

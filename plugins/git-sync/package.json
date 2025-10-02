@@ -11,8 +11,8 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/plugins": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/plugins": "workspace:*",
     "simple-git": "^3.21.0"
   },
   "devDependencies": {

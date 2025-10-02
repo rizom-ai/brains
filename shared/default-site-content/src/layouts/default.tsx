@@ -1,6 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
 import { Footer } from "../footer";
-import type { SiteInfo } from "@brains/site-builder-plugin/src/types/site-info";
+import type { SiteInfo } from "@brains/site-builder-plugin";
 
 export interface DefaultLayoutProps {
   sections: ComponentChildren[]; // JSX elements for sections

@@ -11,16 +11,16 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@brains/utils": "workspace:*",
     "@brains/templates": "workspace:*",
+    "@brains/utils": "workspace:*",
     "lucide-preact": "^0.460.0",
     "preact": "^10.19.3"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "^1.1.17",
-    "eslint": "^8.48.0",
-    "typescript": "^5.7.3"
+    "@types/bun": "^1.1.14",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
   }
 }

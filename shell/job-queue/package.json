@@ -27,8 +27,8 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.14",
-    "@types/node": "^22.10.2",
+    "@types/node": "^20.0.0",
     "drizzle-kit": "^0.31.4",
-    "typescript": "~5.7.2"
+    "typescript": "^5.3.3"
   }
 }

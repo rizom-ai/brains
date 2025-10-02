@@ -27,15 +27,15 @@
     "@brains/app": "workspace:*",
     "@brains/cli": "workspace:*",
     "@brains/default-site-content": "workspace:*",
-    "@brains/product-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/matrix": "workspace:*",
+    "@brains/product-site-content": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/summary": "workspace:*",
     "@brains/webserver": "workspace:*",
-    "preact": "^10.26.9"
+    "preact": "^10.19.3"
   },
   "devDependencies": {
     "@types/bun": "latest",

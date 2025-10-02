@@ -1,0 +1,50 @@
+{
+  "$schema": "https://unpkg.com/syncpack@latest/dist/schema.json",
+  "versionGroups": [
+    {
+      "label": "Use workspace protocol for internal packages",
+      "dependencies": ["@brains/**"],
+      "dependencyTypes": ["dev", "prod"],
+      "pinVersion": "workspace:*"
+    },
+    {
+      "label": "Pin Bun types",
+      "dependencies": ["@types/bun", "bun-types"],
+      "dependencyTypes": ["dev"],
+      "policy": "sameRange"
+    },
+    {
+      "label": "Sync TypeScript versions",
+      "dependencies": ["typescript"],
+      "dependencyTypes": ["dev"],
+      "policy": "sameRange"
+    },
+    {
+      "label": "Sync Zod versions",
+      "dependencies": ["zod"],
+      "dependencyTypes": ["dev", "prod"],
+      "policy": "sameRange"
+    },
+    {
+      "label": "Sync Preact versions",
+      "dependencies": ["preact"],
+      "dependencyTypes": ["dev", "prod"],
+      "policy": "sameRange"
+    }
+  ],
+  "semverGroups": [
+    {
+      "label": "Use caret ranges for all dependencies",
+      "dependencies": ["**"],
+      "dependencyTypes": ["dev", "prod", "peer"],
+      "range": "^"
+    }
+  ],
+  "sortFirst": ["name", "version", "description", "keywords", "license", "author"],
+  "sortAz": [
+    "scripts",
+    "dependencies",
+    "devDependencies",
+    "peerDependencies"
+  ]
+}

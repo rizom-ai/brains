@@ -23,14 +23,14 @@
     "postcss": "^8.5.6",
     "preact": "^10.19.3",
     "preact-render-to-string": "^6.3.1",
-    "tailwindcss": "^4.0.0"
+    "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
-    "@types/bun": "^1.1.17",
-    "eslint": "^8.48.0",
-    "typescript": "^5.7.3",
-    "@types/react": "^18.2.0"
+    "@types/bun": "^1.1.14",
+    "@types/react": "^19.0.3",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
   }
 }

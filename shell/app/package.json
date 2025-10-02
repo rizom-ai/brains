@@ -14,16 +14,16 @@
   "dependencies": {
     "@brains/ai-service": "workspace:*",
     "@brains/core": "workspace:*",
-    "@brains/permission-service": "workspace:*",
-    "@brains/utils": "workspace:*",
     "@brains/matrix": "workspace:*",
-    "@brains/mcp": "workspace:*"
+    "@brains/mcp": "workspace:*",
+    "@brains/permission-service": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^20.17.10",
-    "typescript": "^5.3.3",
-    "eslint": "^8.57.0"
+    "@types/node": "^20.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
   },
   "files": [
     "src",

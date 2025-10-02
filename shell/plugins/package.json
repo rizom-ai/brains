@@ -13,19 +13,19 @@
     "lint:fix": "eslint src test --fix"
   },
   "dependencies": {
-    "@brains/utils": "workspace:*",
     "@brains/command-registry": "workspace:*",
+    "@brains/datasource": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/permission-service": "workspace:*",
-    "@brains/datasource": "workspace:*"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.14",
     "eslint": "^8.56.0",
     "ts-pattern": "^5.0.0",
-    "typescript": "~5.7.2",
-    "@brains/identity-service": "workspace:*"
+    "typescript": "^5.3.3"
   }
 }

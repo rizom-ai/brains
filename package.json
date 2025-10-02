@@ -1,17 +1,17 @@
 {
   "name": "rizom-brains",
   "version": "0.0.0",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0"
-  },
   "devDependencies": {
-    "eslint": "^8.48.0",
+    "@manypkg/cli": "^0.25.1",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "eslint": "^8.56.0",
     "husky": "^9.0.11",
     "ink-testing-library": "^4.0.0",
     "lint-staged": "^15.2.0",
     "prettier": "^3.0.3",
+    "syncpack": "^13.0.4",
     "turbo": "latest",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
   },
   "engines": {
     "bun": ">=1.0.0"
@@ -40,13 +40,22 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
+    "clean:all": "turbo run clean && rm -rf node_modules .turbo",
     "prepare": "husky install",
     "version:sync": "bun scripts/sync-versions.ts",
     "version:set": "bun scripts/sync-versions.ts && git add -A && git commit -m 'chore: sync package versions'",
     "brain:deploy": "./deploy/scripts/deploy-brain.sh",
     "brain:deploy:ts": "bun deploy/scripts/deploy.ts",
     "brain:build": "./scripts/build-release.sh",
-    "brain:docker": "./deploy/scripts/deploy-docker.sh"
+    "brain:docker": "./deploy/scripts/deploy-docker.sh",
+    "deps:check": "syncpack list-mismatches",
+    "deps:fix": "syncpack fix-mismatches",
+    "deps:format": "syncpack format",
+    "deps:update": "syncpack update",
+    "workspace:check": "manypkg check",
+    "workspace:fix": "manypkg fix",
+    "workspace:graph": "turbo run build --graph",
+    "workspace:affected": "turbo run test --filter=[HEAD^1]"
   },
   "trustedDependencies": [
     "@matrix-org/matrix-sdk-crypto-nodejs"

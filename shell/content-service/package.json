@@ -14,18 +14,18 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@brains/utils": "workspace:*",
+    "@brains/ai-service": "workspace:*",
+    "@brains/datasource": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/entity-service": "workspace:*",
-    "@brains/ai-service": "workspace:*",
-    "@brains/datasource": "workspace:*"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.6.3"
+    "typescript": "^5.3.3"
   },
   "files": [
     "src"

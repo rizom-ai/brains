@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Reference/legacy code
+old-code-reference/
+sample-code/
+
+# Generated files
+*.config.js
+*.config.mjs
+
+# Cache directories
+.turbo/
+.cache/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Data directories
+data/
+cache/
+brain-data/
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+
+# Test artifacts
+coverage/
+*.lcov
+
+# Matrix storage
+.matrix-storage/
+
+# Environment files
+.env*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Website build artifacts
+website/
+.astro-work/

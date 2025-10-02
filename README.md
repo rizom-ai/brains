@@ -111,6 +111,8 @@ The project follows a **tool-first architecture** where all functionality is exp
 
 This is a Turborepo monorepo using Bun for package management and runtime.
 
+### Common Commands
+
 ```bash
 # Install dependencies
 bun install
@@ -126,6 +128,34 @@ bun run lint
 
 # Build all packages
 bun run build
+```
+
+### Workspace Management
+
+```bash
+# Check for dependency version mismatches
+bun run deps:check
+
+# Fix dependency version mismatches
+bun run deps:fix
+
+# Format all package.json files consistently
+bun run deps:format
+
+# Update outdated dependencies
+bun run deps:update
+
+# Check workspace package.json files for issues
+bun run workspace:check
+
+# Fix workspace package.json issues
+bun run workspace:fix
+
+# Visualize the dependency graph
+bun run workspace:graph
+
+# Run tests only on packages affected by recent changes
+bun run workspace:affected
 ```
 
 ### Package Development
