@@ -198,4 +198,14 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     }
     return this.context.getIdentity();
   }
+
+  /**
+   * Get app metadata (model and version)
+   */
+  public getAppInfo() {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.getAppInfo();
+  }
 }

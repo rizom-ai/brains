@@ -78,6 +78,9 @@ export interface IShell {
   // Identity
   getIdentity(): IdentityBody;
 
+  // App metadata
+  getAppInfo(): { model: string; version: string };
+
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;

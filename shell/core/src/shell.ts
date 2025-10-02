@@ -606,6 +606,16 @@ export class Shell implements IShell {
   }
 
   /**
+   * Get app metadata (model and version)
+   */
+  public getAppInfo(): { model: string; version: string } {
+    return {
+      model: this.config.name || "brain-app",
+      version: this.config.version || "1.0.0",
+    };
+  }
+
+  /**
    * Register core DataSources that are built into the shell
    */
   private registerCoreDataSources(): void {

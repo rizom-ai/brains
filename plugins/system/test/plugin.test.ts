@@ -77,6 +77,10 @@ describe("SystemPlugin", () => {
           lastActive: new Date().toISOString(),
         },
       ],
+      getAppInfo: () => ({
+        model: "test-brain",
+        version: "1.2.3",
+      }),
     } as InterfacePluginContext;
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
@@ -196,6 +200,17 @@ describe("SystemPlugin", () => {
       expect(conversations).toBeDefined();
       expect(conversations.length).toBe(1);
       expect(conversations[0]?.id).toBe("conv-1");
+    });
+  });
+
+  describe("getAppInfo", () => {
+    it("should return app model and version from shell", () => {
+      const appInfo = plugin.getAppInfo();
+
+      expect(appInfo).toEqual({
+        model: "test-brain",
+        version: "1.2.3",
+      });
     });
   });
 });

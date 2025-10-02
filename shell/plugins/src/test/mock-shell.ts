@@ -523,9 +523,18 @@ export class MockShell implements IShell {
   getIdentity(): IdentityBody {
     // Return a default identity for testing
     return {
+      name: "Test Brain",
       role: "Test Assistant",
       purpose: "Testing purposes",
       values: ["reliability", "accuracy"],
+    };
+  }
+
+  // App metadata
+  getAppInfo(): { model: string; version: string } {
+    return {
+      model: "test-brain",
+      version: "1.0.0",
     };
   }
 

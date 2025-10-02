@@ -29,6 +29,7 @@ const config = defineConfig({
 
   // Define team-brain's identity
   identity: {
+    name: "Marco",
     role: "Team knowledge coordinator",
     purpose:
       "Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization",

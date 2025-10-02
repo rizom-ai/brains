@@ -28,6 +28,9 @@ export interface CorePluginContext {
   // Brain identity
   getIdentity: () => IdentityBody;
 
+  // App metadata
+  getAppInfo: () => { model: string; version: string };
+
   // Inter-plugin messaging
   sendMessage: MessageSender;
   subscribe: <T = unknown, R = unknown>(
@@ -101,6 +104,9 @@ export function createCorePluginContext(
 
     // Identity
     getIdentity: () => shell.getIdentity(),
+
+    // App metadata
+    getAppInfo: () => shell.getAppInfo(),
 
     // Messaging
     sendMessage,

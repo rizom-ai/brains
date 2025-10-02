@@ -76,6 +76,10 @@ export async function getStandardConfigWithDirectories(): Promise<StandardConfig
  * Shell configuration schema
  */
 export const shellConfigSchema = z.object({
+  // App metadata
+  name: z.string().default("brain-app"),
+  version: z.string().default("1.0.0"),
+
   // Database configuration (required - no defaults)
   database: z.object({
     url: z.string(),
