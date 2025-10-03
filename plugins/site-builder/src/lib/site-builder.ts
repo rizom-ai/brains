@@ -112,7 +112,7 @@ export class SiteBuilder implements ISiteBuilder {
         primary: primaryItems,
         secondary: secondaryItems,
       },
-      copyright: siteConfig.copyright || defaultCopyright,
+      copyright: siteConfig.copyright ?? defaultCopyright,
     };
   }
 

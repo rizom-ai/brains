@@ -17,8 +17,11 @@ describe("IdentityService", () => {
     IdentityService.resetInstance();
 
     // Default implementations
-    mockGetEntityImpl = async () => null;
-    mockCreateEntityImpl = async () => ({
+    mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
+    mockCreateEntityImpl = async (): Promise<{
+      entityId: string;
+      jobId: string;
+    }> => ({
       entityId: "identity",
       jobId: "job-123",
     });
@@ -82,7 +85,7 @@ Help with academic research
       };
 
       // Control mock behavior to return the entity
-      mockGetEntityImpl = async () => mockEntity;
+      mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
 
       // Initialize to load the entity into cache
       await identityService.initialize();
@@ -99,7 +102,7 @@ Help with academic research
   describe("initialize", () => {
     it("should create default identity entity when none exists", async () => {
       // Mock behavior: no existing identity
-      mockGetEntityImpl = async () => null;
+      mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
 
       await identityService.initialize();
 
@@ -144,7 +147,7 @@ Existing purpose
         updated: new Date().toISOString(),
       };
 
-      mockGetEntityImpl = async () => mockEntity;
+      mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
 
       await identityService.initialize();
 
@@ -154,10 +157,10 @@ Existing purpose
 
     it("should handle errors during entity creation gracefully", async () => {
       // Mock behavior: no existing entity
-      mockGetEntityImpl = async () => null;
+      mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
 
       // Mock behavior: createEntity throws error
-      mockCreateEntityImpl = async () => {
+      mockCreateEntityImpl = async (): Promise<never> => {
         throw new Error("Database error");
       };
 
@@ -169,7 +172,7 @@ Existing purpose
   describe("refreshCache", () => {
     it("should reload identity from database", async () => {
       // Mock behavior: return test entity
-      mockGetEntityImpl = async () => ({
+      mockGetEntityImpl = async (): Promise<IdentityEntity> => ({
         id: "identity",
         entityType: "identity",
         content: "test content",
@@ -232,7 +235,7 @@ Existing purpose
       );
 
       // Mock behavior: no existing identity
-      mockGetEntityImpl = async () => null;
+      mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
 
       await customService.initialize();
 

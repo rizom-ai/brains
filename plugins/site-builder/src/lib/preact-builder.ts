@@ -55,7 +55,7 @@ export class PreactBuilder implements StaticSiteBuilder {
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress("Processing Tailwind CSS");
-    await this.processStyles(context.themeCSS || "");
+    await this.processStyles(context.themeCSS ?? "");
 
     // Set up hydration for interactive components
     onProgress("Setting up component hydration");
@@ -116,7 +116,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     );
 
     // Get the layout component (guaranteed to exist)
-    const layoutName = route.layout || "default";
+    const layoutName = route.layout ?? "default";
     const LayoutComponent = context.layouts[layoutName];
 
     if (!LayoutComponent) {
@@ -143,8 +143,8 @@ export class PreactBuilder implements StaticSiteBuilder {
     // For now, we'll use a simple default head
     // In a real implementation, we'd collect head props from the Head component
     const headProps: HeadProps = {
-      title: route.title || siteInfo.title || "Personal Brain",
-      description: route.description || siteInfo.description,
+      title: route.title ?? siteInfo.title ?? "Personal Brain",
+      description: route.description ?? siteInfo.description,
     };
 
     if (route.path !== "/") {

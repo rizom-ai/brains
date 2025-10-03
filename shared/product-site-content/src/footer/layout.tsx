@@ -31,7 +31,7 @@ export const FooterLayout = ({
 
         {/* Copyright */}
         <div className="text-center text-theme-light text-sm">
-          {copyright || defaultCopyright}
+          {copyright ?? defaultCopyright}
         </div>
       </div>
     </footer>

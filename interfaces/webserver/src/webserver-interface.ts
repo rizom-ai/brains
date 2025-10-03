@@ -60,9 +60,9 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         const isRunning = status.preview || status.production;
 
         const previewUrl = `http://localhost:${this.config.previewPort}`;
-        const productionUrl = this.config.productionDomain
-          ? this.config.productionDomain
-          : `http://localhost:${this.config.productionPort}`;
+        const productionUrl =
+          this.config.productionDomain ??
+          `http://localhost:${this.config.productionPort}`;
 
         const urls: string[] = [];
         if (status.preview) {

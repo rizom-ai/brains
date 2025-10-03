@@ -4,6 +4,7 @@ import { MatrixInterface } from "../src";
 import { createInterfacePluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import { PermissionService } from "@brains/permission-service";
+import type { IConversationService } from "@brains/conversation-service";
 
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
@@ -45,7 +46,7 @@ describe("Matrix Interface - Channel Name Integration", () => {
     startConversationMock = mock().mockResolvedValue("test-conversation-id");
     const originalGetConversationService =
       mockShell.getConversationService.bind(mockShell);
-    mockShell.getConversationService = () => {
+    mockShell.getConversationService = (): IConversationService => {
       const service = originalGetConversationService();
       service.startConversation = startConversationMock;
       service.addMessage = mock().mockResolvedValue(undefined);

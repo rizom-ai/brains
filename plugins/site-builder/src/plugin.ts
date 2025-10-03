@@ -328,7 +328,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Entity types to exclude from auto-rebuild
     const excludedTypes = ["base"];
 
-    const scheduleRebuild = () => {
+    const scheduleRebuild = (): void => {
       // If rebuild already scheduled, do nothing
       if (pendingRebuild) return;
 

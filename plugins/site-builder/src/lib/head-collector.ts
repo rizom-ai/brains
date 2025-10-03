@@ -19,9 +19,7 @@ export class HeadCollector {
 
   setHeadProps(props: HeadProps): void {
     // Only keep the first Head component's props (usually from the page)
-    if (!this.headProps) {
-      this.headProps = props;
-    }
+    this.headProps ??= props;
   }
 
   getHeadProps(): HeadProps | null {
@@ -76,7 +74,7 @@ export class HeadCollector {
         `<meta property="og:description" content="${this.escapeHtml(description)}">`,
       );
     }
-    tags.push(`<meta property="og:type" content="${ogType || "website"}">`);
+    tags.push(`<meta property="og:type" content="${ogType ?? "website"}">`);
     if (ogImage) {
       tags.push(
         `<meta property="og:image" content="${this.escapeHtml(ogImage)}">`,
@@ -85,7 +83,7 @@ export class HeadCollector {
 
     // Twitter Card
     tags.push(
-      `<meta name="twitter:card" content="${twitterCard || "summary_large_image"}">`,
+      `<meta name="twitter:card" content="${twitterCard ?? "summary_large_image"}">`,
     );
     tags.push(
       `<meta name="twitter:title" content="${this.escapeHtml(title)}">`,

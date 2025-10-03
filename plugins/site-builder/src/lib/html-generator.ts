@@ -15,7 +15,7 @@ export function createHTMLShell(content: string, headContent?: string): string {
   return `<!DOCTYPE html>
 <html lang="en" class="h-full" data-theme="dark">
 <head>
-    ${headContent || defaultHead}
+    ${headContent ?? defaultHead}
 </head>
 <body class="h-full font-sans">
   <div id="root" class="min-h-screen">

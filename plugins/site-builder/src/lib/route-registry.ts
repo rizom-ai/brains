@@ -109,7 +109,7 @@ export class RouteRegistry {
         items.push({
           label: route.navigation.label ?? route.title,
           href: path,
-          priority: route.navigation.priority ?? 50,
+          priority: route.navigation.priority,
         });
       }
     }

@@ -54,7 +54,7 @@ export class SiteInfoDataSource implements DataSource {
         primary: primaryItems,
         secondary: secondaryItems,
       },
-      copyright: this.siteConfig.copyright || defaultCopyright,
+      copyright: this.siteConfig.copyright ?? defaultCopyright,
     };
 
     this.logger.debug("SiteInfoDataSource returning", {
