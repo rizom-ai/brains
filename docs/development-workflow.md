@@ -2,6 +2,63 @@
 
 This document outlines the development workflow and best practices for the Personal Brain Rebuild project.
 
+## Development Setup
+
+### Prerequisites
+
+- **Bun**: Version 1.1.0 or later
+- **Node.js**: Version 20+ (for compatibility with some tools)
+- **Git**: For version control
+- **SQLite**: Included with most systems
+
+### Initial Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/brains.git
+cd brains
+
+# Install dependencies
+bun install
+
+# Copy environment configuration
+cp example.env .env
+
+# Edit .env and add your API keys
+# Minimum required: ANTHROPIC_API_KEY
+
+# Initialize the database
+bun run --filter @brains/test-brain init
+
+# Run the development server
+bun run --filter @brains/test-brain dev
+```
+
+### Development Tools
+
+Recommended VS Code extensions:
+
+- **ESLint**: For linting support
+- **Prettier**: For code formatting
+- **Bun for Visual Studio Code**: Bun runtime support
+- **TypeScript and JavaScript**: Enhanced language support
+
+### Local Development
+
+```bash
+# Start the CLI interface
+bun run --filter @brains/cli dev
+
+# Start the MCP server
+bun run --filter @brains/mcp dev
+
+# Start the web server
+bun run --filter @brains/webserver dev
+
+# Start all interfaces (using test-brain app)
+bun run --filter @brains/test-brain dev
+```
+
 ## Iteration Cycles
 
 The project follows a small, incremental iteration cycle approach to ensure quality and maintain stability.
@@ -66,36 +123,105 @@ git commit --no-verify -m "Your message"
 
 ### Environment Variables
 
-- The project follows the existing .env approach
+- The project uses .env files for configuration
 - Use the `example.env` file as a template
 - Never commit actual .env files to the repository
-- Use environment variable validation with zod-env
+- Environment variables are validated using Zod schemas
+
+### Required Environment Variables
+
+```bash
+# AI Service Configuration
+ANTHROPIC_API_KEY=your-api-key-here
+
+# Database Configuration (optional, defaults to local SQLite)
+DATABASE_PATH=./data/brain.db
+
+# Server Configuration
+PORT=3000
+HOST=localhost
+
+# Matrix Bot Configuration (if using Matrix interface)
+MATRIX_HOMESERVER=https://matrix.org
+MATRIX_USER_ID=@bot:matrix.org
+MATRIX_ACCESS_TOKEN=your-token
+MATRIX_DEVICE_ID=your-device-id
+
+# Deployment Configuration
+DOCKER_REGISTRY=your-registry.com
+APP_NAME=personal-brain
+```
 
 ### Managing .env Files
 
 1. Copy `example.env` to `.env` for local development
-2. Add any required API keys or configuration values
-3. For CI/CD, set up environment variables in the GitHub repository settings
+2. Add required API keys and configuration values
+3. For production, use environment-specific .env files (.env.production)
+4. For CI/CD, set up environment variables in GitHub repository settings
 
 ## Package Management and Monorepo
 
-As the project uses Turborepo for package management:
+The project uses Turborepo with Bun workspaces for package management:
 
 ### Package Organization
 
-- Stable components that reach maturity should be moved to separate packages
-- Each package should have its own:
-  - Package.json
-  - Tests
-  - Documentation
-  - Build configuration
+```
+brains/
+├── apps/                  # Application instances
+│   ├── test-brain/       # Reference implementation
+│   ├── team-brain/       # Team collaboration instance
+│   └── app/             # High-level framework
+├── interfaces/           # User interfaces
+│   ├── cli/             # Command-line interface
+│   ├── matrix/          # Matrix bot interface
+│   ├── mcp/             # MCP transport layer
+│   └── webserver/       # HTTP server
+├── plugins/             # Feature extensions
+│   ├── link/            # Web content capture
+│   ├── summary/         # AI summarization
+│   ├── topics/          # Topic extraction
+│   └── ...             # Other plugins
+├── shell/              # Core infrastructure
+│   ├── core/           # Central shell
+│   ├── entity-service/ # Entity management
+│   ├── ai-service/     # AI integration
+│   └── ...            # Other services
+└── shared/            # Cross-cutting concerns
+    ├── utils/         # Common utilities
+    └── ui-library/    # Shared UI components
+```
 
 ### Working with Turborepo
 
-- Use `turbo run build` to build all packages
-- Use `turbo run test` to run tests across all packages
-- Use `turbo run lint` to run linting across all packages
-- Use workspaces to manage dependencies between packages
+Common commands for monorepo management:
+
+```bash
+# Build all packages
+bun run build
+
+# Run tests across all packages
+bun test
+
+# Run linting across all packages
+bun run lint
+bun run lint:fix  # Auto-fix issues
+
+# Type checking
+bun run typecheck
+
+# Run specific task in specific package
+bun run --filter @brains/link test
+bun run --filter @brains/cli build
+
+# Install dependencies
+bun install  # Installs all workspace dependencies
+```
+
+### Package Dependencies
+
+- Use workspace protocol for internal dependencies: `"@brains/utils": "workspace:*"`
+- Keep external dependencies at the package level where they're used
+- Shared configuration packages use peer dependencies
 
 ## Testing Strategy
 
@@ -112,35 +238,64 @@ As the project uses Turborepo for package management:
 - Test files should be named with `.test.ts` suffix
 - Use descriptive test names that explain the expected behavior
 
-### Example Unit Test
+### Example Unit Tests
+
+Testing a plugin with the provided harness:
 
 ```typescript
-import { beforeEach, describe, expect, test, mock } from "bun:test";
-import { SomeComponent } from "./someComponent";
-import { Dependency } from "./dependency";
+import { describe, it, expect, beforeEach } from "bun:test";
+import { createCorePluginHarness } from "@brains/plugins/test";
+import { LinkPlugin } from "../src";
 
-// Mock dependencies
-mock.module("./dependency", () => ({
-  Dependency: {
-    getInstance: () => ({
-      doSomething: () => "mocked result",
-    }),
-    resetInstance: () => {},
-  },
-}));
+describe("LinkPlugin", () => {
+  let harness: ReturnType<typeof createCorePluginHarness>;
+  let plugin: LinkPlugin;
 
-describe("SomeComponent", () => {
-  // Reset singleton before each test
-  beforeEach(() => {
-    SomeComponent.resetInstance();
+  beforeEach(async () => {
+    harness = createCorePluginHarness();
+    plugin = new LinkPlugin();
+    await harness.installPlugin(plugin);
   });
 
-  test("should perform expected behavior", () => {
-    // Test the behavior, not the implementation
-    const component = SomeComponent.getInstance();
-    const result = component.performAction();
+  it("should capture link content", async () => {
+    const result = await harness.executeTool("link_capture", {
+      url: "https://example.com",
+      conversationId: "test-conv",
+    });
 
-    expect(result).toBe("expected result");
+    expect(result.success).toBe(true);
+    expect(result.data).toHaveProperty("entityId");
+  });
+});
+```
+
+Testing a service component:
+
+```typescript
+import { describe, it, expect, beforeEach } from "bun:test";
+import { EntityService } from "../src";
+import { createMockDatabase } from "../test/helpers";
+
+describe("EntityService", () => {
+  let entityService: EntityService;
+
+  beforeEach(() => {
+    const db = createMockDatabase();
+    entityService = EntityService.createFresh({ db });
+  });
+
+  it("should create and retrieve entities", async () => {
+    const entity = {
+      entityType: "link",
+      title: "Test Link",
+      content: "Test content",
+    };
+
+    const { entityId } = await entityService.createEntity(entity);
+    expect(entityId).toBeTruthy();
+
+    const retrieved = await entityService.getEntity("link", entityId);
+    expect(retrieved).toMatchObject(entity);
   });
 });
 ```

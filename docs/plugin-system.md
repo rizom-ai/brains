@@ -26,6 +26,21 @@ Base class for plugins that provide core functionality:
 - SiteBuilderPlugin - Static site generation with Preact/Tailwind
 - SummaryPlugin - Content summarization and daily digests
 - TopicsPlugin - AI-powered topic extraction
+- PluginExamples - Example plugins demonstrating all plugin types
+
+### ServicePlugin
+
+Base class for plugins that provide shared services to other plugins:
+
+- Shared functionality accessible by other plugins
+- Service registration with the service registry
+- Cross-plugin communication support
+
+**Use Cases:**
+
+- Shared data access layers
+- Common utility services
+- Cross-cutting concerns
 
 ### InterfacePlugin
 
@@ -76,15 +91,28 @@ Plugins receive a typed context object based on their plugin type:
 ```typescript
 interface CorePluginContext {
   shell: Shell;
-  entityService: EntityService;
-  aiService: AIService;
-  messageBus: MessageBus;
-  commandRegistry: CommandRegistry;
-  mcpTransport: IMCPTransport;
-  jobQueue: JobQueueService;
-  contentGenerator: ContentGenerator;
-  conversationService: ConversationService;
+  entityService: IEntityService;
+  aiService: IAIService;
+  messageBus: IMessageBus;
+  commandRegistry: ICommandRegistry;
+  mcpService: IMCPService;
+  jobQueue: IJobQueueService;
+  contentService: IContentService;
+  conversationService: IConversationService;
+  identityService: IIdentityService;
+  permissionService: IPermissionService;
+  embeddingService: IEmbeddingService;
+  datasourceRegistry: IDatasourceRegistry;
+  templateRegistry: ITemplateRegistry;
   logger: Logger;
+}
+```
+
+### ServicePluginContext
+
+```typescript
+interface ServicePluginContext extends CorePluginContext {
+  serviceRegistry: IServiceRegistry;
 }
 ```
 
@@ -92,8 +120,8 @@ interface CorePluginContext {
 
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
-  daemonRegistry: DaemonRegistry;
-  renderService: RenderService;
+  daemonRegistry: IDaemonRegistry;
+  renderService: IRenderService;
 }
 ```
 
@@ -161,14 +189,28 @@ All plugin types have standardized test harnesses:
 
 ```typescript
 // Test any CorePlugin
-const harness = createCorePluginTestHarness(plugin);
-await harness.initialize();
+import { createCorePluginHarness } from "@brains/plugins/test";
+
+const harness = createCorePluginHarness();
+const plugin = new MyPlugin();
+const capabilities = await harness.installPlugin(plugin);
+
+// Execute tools
 const result = await harness.executeTool("tool-name", { input: "data" });
 
+// Test ServicePlugin
+import { createServicePluginHarness } from "@brains/plugins/test";
+
+const harness = createServicePluginHarness();
+const plugin = new MyServicePlugin();
+await harness.installPlugin(plugin);
+
 // Test InterfacePlugin
-const harness = createInterfacePluginTestHarness(plugin);
-await harness.initialize();
-await harness.startDaemon();
+import { createInterfacePluginHarness } from "@brains/plugins/test";
+
+const harness = createInterfacePluginHarness();
+const plugin = new MyInterfacePlugin();
+await harness.installPlugin(plugin);
 ```
 
 ## Best Practices

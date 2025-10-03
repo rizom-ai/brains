@@ -20,54 +20,72 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 
 - **shell/core**: Central shell with plugin management and core infrastructure
 - **shell/ai-service**: AI text and object generation using Anthropic
-- **shell/app**: Application initialization and lifecycle management
 - **shell/command-registry**: Command registration and management
-- **shell/content-generator**: Template-based content generation system
+- **shell/content-service**: Template-based content generation system
 - **shell/conversation-service**: Conversation and message management with memory
 - **shell/daemon-registry**: Long-running process management
+- **shell/datasource**: Data source registry for extensible data fetching
 - **shell/embedding-service**: Text embeddings via FastEmbed
 - **shell/entity-service**: Entity CRUD operations and search with vector support
+- **shell/identity-service**: User identity and preferences management
 - **shell/job-queue**: Background job processing system with progress tracking
 - **shell/mcp-service**: MCP server and tool/resource registration
 - **shell/messaging-service**: Event-driven messaging with pub/sub
+- **shell/permission-service**: Permission and access control
 - **shell/plugins**: Plugin base classes and interfaces
 - **shell/render-service**: Route registry and view template management
 - **shell/service-registry**: Component registration and dependency injection
+- **shell/templates**: Template registry and management system
 
 ### Shared Packages (Cross-Cutting Concerns)
 
-- **shared/content-management**: Content operations and management
-- **shared/default-site-content**: Default templates and formatters
+- **shared/default-site-content**: Default templates and formatters for site generation
+- **shared/product-site-content**: Product-specific site content and templates
+- **shared/theme-default**: Default theme for web interfaces
 - **shared/ui-library**: Shared UI components (Ink-based)
-- **shared/utils**: Common utilities (logging, markdown, permissions, formatters)
+- **shared/utils**: Common utilities (logging, markdown, permissions, formatters, Zod)
 - **shared/eslint-config**: Shared ESLint configuration
 - **shared/typescript-config**: Shared TypeScript configuration
 
 ### Interface Packages (User Interfaces)
 
-- **interfaces/cli**: Command-line interface using Ink
-- **interfaces/matrix**: Matrix bot interface (includes setup utility)
+- **interfaces/cli**: Command-line interface using Ink with React components
+- **interfaces/matrix**: Matrix bot interface with E2E encryption support
 - **interfaces/mcp**: MCP transport layer (stdio and HTTP)
+- **interfaces/webserver**: HTTP server for static site serving
 
 ### Plugin Packages (Feature Extensions)
 
 - **plugins/directory-sync**: Import/export entities to/from file system
 - **plugins/git-sync**: Sync entities with Git repositories
 - **plugins/link**: Web content capture with AI-powered extraction
+- **plugins/plugin-examples**: Example plugins demonstrating all plugin types
 - **plugins/site-builder**: Static site generation with Preact and Tailwind CSS v4
 - **plugins/summary**: AI-powered content summarization and daily digests
 - **plugins/system**: System information and health checks
 - **plugins/topics**: AI-powered topic extraction from entities
-- **interfaces/webserver**: Static site server
 
 ### Application Packages
 
 - **apps/test-brain**: Reference implementation and testing
 - **apps/team-brain**: Team collaboration instance with custom configuration
+- **apps/app**: High-level application framework with simplified API
 
 ## Key Components
 
-### 1. Shell Core (shell/core)
+### 1. App Framework (@brains/app)
+
+High-level application framework that simplifies brain creation:
+
+**Features:**
+
+- Simplified configuration API
+- Automatic plugin loading
+- Built-in interfaces (CLI, MCP, Matrix, Webserver)
+- Environment-based configuration
+- Docker and deployment support
+
+### 2. Shell Core (shell/core)
 
 The shell provides the core infrastructure and extension points for plugins:
 
@@ -77,9 +95,9 @@ The shell provides the core infrastructure and extension points for plugins:
 - Entity Framework with base types and adapters
 - Database initialization and configuration
 - Shell configuration management
-- Template system for queries and responses
+- Service coordination and lifecycle management
 
-### 2. MCP Service Architecture
+### 3. MCP Service Architecture
 
 The MCP architecture is split between core service and transport layer:
 
@@ -97,13 +115,14 @@ The MCP architecture is split between core service and transport layer:
 - Routes requests to MCP service
 - Handles transport-specific logging requirements
 
-### 3. Plugin System
+### 4. Plugin System
 
 The plugin system uses direct registration with shell services:
 
 **Plugin Types:**
 
 - **CorePlugin**: Provides tools, resources, commands, and handlers
+- **ServicePlugin**: Provides shared services for other plugins
 - **InterfacePlugin**: Provides user interfaces and daemons
 - **MessageInterfacePlugin**: Specialized for message-based interfaces
 
@@ -114,7 +133,7 @@ The plugin system uses direct registration with shell services:
 3. Plugins register capabilities directly with registries
 4. No event-based registration (eliminates timing issues)
 
-### 4. Entity Framework
+### 5. Entity Framework
 
 The entity framework uses a functional approach:
 
@@ -123,7 +142,7 @@ The entity framework uses a functional approach:
 - **Entity Adapters**: Convert between entities and markdown storage
 - **Entity Service**: Unified CRUD operations with vector search
 
-### 5. Conversation Memory System
+### 6. Conversation Memory System
 
 The conversation service provides memory capabilities:
 

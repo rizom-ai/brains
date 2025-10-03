@@ -60,53 +60,58 @@ Entities are **NOT** defined in the shell package. Instead:
    - EntityService for CRUD operations
    - EntityAdapter interface
 
-2. **Context plugins define their entities**:
-   - Note Context → Note entity
-   - Task Context → Task entity
-   - Profile Context → Profile entity
+2. **Plugins define their entities**:
+   - Link Plugin → LinkEntity (web content capture)
+   - Summary Plugin → SummaryEntity (AI-generated summaries)
+   - Topics Plugin → TopicEntity (extracted topics)
 
-Each context plugin is responsible for:
+Each plugin is responsible for:
 
 - Defining its entity schema
 - Creating factory functions
 - Implementing entity adapters
 - Registering with the shell's EntityRegistry
 
-### Entity Creation in Context Plugins
+### Entity Creation in Plugins
 
-Each context plugin defines its own entities:
+Each plugin defines its own entities:
 
 ```typescript
-// packages/note-context/src/entities/note.ts
+// plugins/link/src/entities/link-entity.ts
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { baseEntitySchema } from "@brains/shell";
+import { baseEntitySchema } from "@brains/plugins";
 
 // 1. Define entity-specific schema
-export const noteSchema = baseEntitySchema.extend({
-  entityType: z.literal("note"),
-  category: z.string().optional(),
-  priority: z.enum(["low", "medium", "high"]).default("medium"),
+export const linkEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("link"),
+  url: z.string().url(),
+  description: z.string().optional(),
+  summary: z.string().optional(),
+  author: z.string().optional(),
+  publishDate: z.string().optional(),
+  images: z.array(z.string()).default([]),
+  metadata: z.record(z.unknown()).default({}),
 });
 
 // 2. Infer the type (pure data, no methods)
-export type Note = z.infer<typeof noteSchema>;
+export type LinkEntity = z.infer<typeof linkEntitySchema>;
 
 // 3. Create factory function
-export function createNote(
+export function createLinkEntity(
   input: Omit<
-    z.input<typeof noteSchema>,
+    z.input<typeof linkEntitySchema>,
     "id" | "created" | "updated" | "entityType"
   > & {
     id?: string;
   },
-): Note {
+): LinkEntity {
   const now = new Date().toISOString();
-  return noteSchema.parse({
+  return linkEntitySchema.parse({
     id: input.id ?? nanoid(12),
     created: now,
     updated: now,
-    entityType: "note",
+    entityType: "link",
     ...input,
   });
 }
@@ -143,91 +148,116 @@ export interface EntityAdapter<T extends BaseEntity> {
   generateFrontMatter?(entity: T): string;
 }
 
-// Example implementation for Note (content-heavy entity)
-class NoteAdapter implements EntityAdapter<Note> {
-  entityType = "note";
-  schema = noteSchema;
+// Example implementation for LinkEntity (content-heavy entity)
+class LinkAdapter implements EntityAdapter<LinkEntity> {
+  entityType = "link";
+  schema = linkEntitySchema;
 
-  toMarkdown(note: Note): string {
-    // For notes, we only store content and entity-specific fields
-    // Title is in database, so we don't duplicate it in markdown
-    const frontmatter =
-      note.category || note.priority !== "medium"
-        ? this.generateFrontMatter(note)
-        : "";
+  toMarkdown(entity: LinkEntity): string {
+    // Store URL and metadata in frontmatter
+    const frontmatter = matter.stringify("", {
+      url: entity.url,
+      description: entity.description,
+      summary: entity.summary,
+      author: entity.author,
+      publishDate: entity.publishDate,
+      images: entity.images,
+      metadata: entity.metadata,
+    });
 
-    return `${frontmatter}${note.content}`;
+    // Main content is the body
+    return `${frontmatter}${entity.content}`;
   }
 
-  fromMarkdown(markdown: string): Partial<Note> {
+  fromMarkdown(markdown: string): Partial<LinkEntity> {
     const { data, content } = matter(markdown);
 
     // Return only entity-specific fields
     // Core fields (id, title, created, etc.) will come from database
     return {
       content: content.trim(),
-      category: data.category as string | undefined,
-      priority: (data.priority as "low" | "medium" | "high") || "medium",
+      url: data.url as string,
+      description: data.description as string | undefined,
+      summary: data.summary as string | undefined,
+      author: data.author as string | undefined,
+      publishDate: data.publishDate as string | undefined,
+      images: (data.images as string[]) || [],
+      metadata: (data.metadata as Record<string, unknown>) || {},
     };
   }
 
-  generateFrontMatter(note: Note): string {
-    const metadata: Record<string, unknown> = {};
-    if (note.category) metadata.category = note.category;
-    if (note.priority !== "medium") metadata.priority = note.priority;
+  generateFrontMatter(entity: LinkEntity): string {
+    const metadata: Record<string, unknown> = {
+      url: entity.url,
+    };
+    if (entity.description) metadata.description = entity.description;
+    if (entity.summary) metadata.summary = entity.summary;
+    if (entity.author) metadata.author = entity.author;
+    if (entity.publishDate) metadata.publishDate = entity.publishDate;
+    if (entity.images?.length) metadata.images = entity.images;
+    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
+      metadata.metadata = entity.metadata;
+    }
 
-    return Object.keys(metadata).length > 0
-      ? matter.stringify("", metadata)
-      : "";
+    return matter.stringify("", metadata);
   }
 }
 
-// Example implementation for Profile (metadata-heavy entity)
-class ProfileAdapter implements EntityAdapter<Profile> {
-  entityType = "profile";
-  schema = profileSchema;
+// Example implementation for SummaryEntity (metadata-heavy entity)
+class SummaryAdapter implements EntityAdapter<SummaryEntity> {
+  entityType = "summary";
+  schema = summaryEntitySchema;
 
-  toMarkdown(profile: Profile): string {
-    // For profiles, most data is in frontmatter
+  toMarkdown(entity: SummaryEntity): string {
+    // Most data in frontmatter for summaries
     const frontmatter = matter.stringify("", {
-      name: profile.name,
-      email: profile.email,
-      avatar: profile.avatar,
-      links: profile.links,
-      skills: profile.skills,
+      summaryType: entity.summaryType,
+      conversationId: entity.conversationId,
+      entityIds: entity.entityIds,
+      messageCount: entity.messageCount,
+      dateRange: entity.dateRange,
+      metadata: entity.metadata,
     });
 
-    // Bio is the main content
-    return `${frontmatter}${profile.bio || ""}`;
+    // Content is the summary text
+    return `${frontmatter}${entity.content}`;
   }
 
-  fromMarkdown(markdown: string): Partial<Profile> {
+  fromMarkdown(markdown: string): Partial<SummaryEntity> {
     const { data, content } = matter(markdown);
 
     return {
-      name: data.name as string,
-      email: data.email as string,
-      bio: content.trim() || undefined,
-      avatar: data.avatar as string | undefined,
-      links: data.links as string[] | undefined,
-      skills: data.skills as string[] | undefined,
+      content: content.trim(),
+      summaryType: data.summaryType as
+        | "daily"
+        | "weekly"
+        | "monthly"
+        | "custom",
+      conversationId: data.conversationId as string,
+      entityIds: (data.entityIds as string[]) || [],
+      messageCount: (data.messageCount as number) || 0,
+      dateRange: data.dateRange as { start: string; end: string },
+      metadata: (data.metadata as Record<string, unknown>) || {},
     };
   }
 
-  extractMetadata(entity: Note): Record<string, unknown> {
+  extractMetadata(entity: SummaryEntity): Record<string, unknown> {
     return {
       id: entity.id,
       title: entity.title,
       tags: entity.tags,
-      category: entity.category,
-      priority: entity.priority,
+      summaryType: entity.summaryType,
+      conversationId: entity.conversationId,
+      entityIds: entity.entityIds,
+      messageCount: entity.messageCount,
+      dateRange: entity.dateRange,
       created: entity.created,
       updated: entity.updated,
       entityType: entity.entityType,
     };
   }
 
-  generateFrontMatter(entity: Note): string {
+  generateFrontMatter(entity: SummaryEntity): string {
     const metadata = this.extractMetadata(entity);
     return matter.stringify("", metadata);
   }
@@ -271,58 +301,60 @@ export class EntityRegistry {
 
 ## Common Entity Types
 
-### Note Entity
+### LinkEntity
+
+Web content capture with AI extraction:
 
 ```typescript
-const noteSchema = baseEntitySchema.extend({
-  entityType: z.literal("note"),
-  category: z.string().optional(),
-  priority: z.enum(["low", "medium", "high"]).default("medium"),
-  format: z.enum(["markdown", "text"]).default("markdown"),
+const linkEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("link"),
+  url: z.string().url(),
+  description: z.string().optional(),
+  summary: z.string().optional(),
+  author: z.string().optional(),
+  publishDate: z.string().optional(),
+  images: z.array(z.string()).default([]),
+  metadata: z.record(z.unknown()).default({}),
 });
 
-type Note = z.infer<typeof noteSchema> & IContentModel;
-
-function createNote(input: CreateNoteInput): Note {
-  // Implementation as shown above
-}
+type LinkEntity = z.infer<typeof linkEntitySchema>;
 ```
 
-### Profile Entity
+### SummaryEntity
+
+AI-generated summaries and daily digests:
 
 ```typescript
-const profileSchema = baseEntitySchema.extend({
-  entityType: z.literal("profile"),
-  name: z.string(),
-  bio: z.string().optional(),
-  skills: z.array(z.string()).default([]),
-  experience: z.array(experienceSchema).default([]),
+const summaryEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("summary"),
+  summaryType: z.enum(["daily", "weekly", "monthly", "custom"]),
+  conversationId: z.string(),
+  entityIds: z.array(z.string()).default([]),
+  messageCount: z.number().default(0),
+  dateRange: z.object({
+    start: z.string().datetime(),
+    end: z.string().datetime(),
+  }),
+  metadata: z.record(z.unknown()).default({}),
 });
 
-type Profile = z.infer<typeof profileSchema> & IContentModel;
-
-function createProfile(input: CreateProfileInput): Profile {
-  // Factory implementation
-}
+type SummaryEntity = z.infer<typeof summaryEntitySchema>;
 ```
 
-### Website Section Entity
+### TopicEntity
+
+Extracted topics from conversations:
 
 ```typescript
-const websiteSectionSchema = baseEntitySchema.extend({
-  entityType: z.literal("website_section"),
-  sectionType: z.enum(["hero", "about", "services", "contact"]),
-  status: z.enum(["draft", "review", "published"]).default("draft"),
-  quality: z.number().min(0).max(100).optional(),
+const topicEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("topic"),
+  conversationId: z.string(),
+  importance: z.enum(["low", "medium", "high"]),
+  relatedEntities: z.array(z.string()).default([]),
+  metadata: z.record(z.unknown()).default({}),
 });
 
-type WebsiteSection = z.infer<typeof websiteSectionSchema> & IContentModel;
-
-function createWebsiteSection(
-  input: CreateWebsiteSectionInput,
-): WebsiteSection {
-  // Factory implementation
-}
+type TopicEntity = z.infer<typeof topicEntitySchema>;
 ```
 
 ## Database Storage
@@ -432,19 +464,25 @@ export class EntityService {
 
 ## Plugin Registration
 
-Context plugins register their entity types:
+Plugins register their entity types during initialization:
 
 ```typescript
-// In a context plugin
-const noteContext: ContextPlugin = {
-  id: "note",
-  version: "1.0.0",
+// In LinkPlugin
+export class LinkPlugin extends CorePlugin {
+  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+    const { entityService, logger } = context;
 
-  register({ entityRegistry }) {
-    // Register the note entity type
-    entityRegistry.registerEntityType("note", noteSchema, new NoteAdapter());
-  },
-};
+    // Register the link entity adapter
+    const adapter = new LinkAdapter();
+    entityService.registerEntityAdapter(adapter);
+
+    // Register tools, resources, etc.
+    return {
+      tools: [...],
+      resources: [...],
+    };
+  }
+}
 ```
 
 ## Best Practices

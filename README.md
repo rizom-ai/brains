@@ -62,35 +62,60 @@ The project follows a **tool-first architecture** where all functionality is exp
 
 ### Core Packages
 
-#### Shell Core
+#### Shell (Core Infrastructure)
 
-- **@brains/core**: Shell orchestrator and core infrastructure
-- **@brains/app**: High-level application framework
-- **@brains/entity-service**: Entity management with database and embeddings
-- **@brains/plugins**: Plugin infrastructure (BasePlugin → CorePlugin → ServicePlugin/InterfacePlugin)
-- **@brains/messaging-service**: Inter-component messaging bus
-- **@brains/job-queue**: Background job processing and batch operations
+- **@brains/core**: Shell orchestrator and plugin management
+- **@brains/ai-service**: AI text and object generation using Anthropic
+- **@brains/command-registry**: Command registration and execution
+- **@brains/content-service**: Template-based content generation
+- **@brains/conversation-service**: Conversation and message management
+- **@brains/daemon-registry**: Long-running process management
+- **@brains/datasource**: Extensible data source registry
+- **@brains/embedding-service**: Text embeddings via FastEmbed
+- **@brains/entity-service**: Entity CRUD with vector search
+- **@brains/identity-service**: User identity and preferences
+- **@brains/job-queue**: Background job processing with progress
+- **@brains/mcp-service**: MCP server and tool registration
+- **@brains/messaging-service**: Event-driven pub/sub messaging
 - **@brains/permission-service**: Permission and access control
-- **@brains/render-service**: View and template registration system
+- **@brains/plugins**: Plugin base classes and interfaces
+- **@brains/render-service**: Route and view template management
+- **@brains/service-registry**: Component registration and DI
+- **@brains/templates**: Template registry and management
 
 #### Interfaces
 
-- **@brains/cli**: Command-line interface
-- **@brains/matrix**: Matrix chat interface
-- **@brains/mcp**: MCP (Model Context Protocol) server
-- **@brains/webserver**: Web server interface
+- **@brains/cli**: Interactive command-line interface using Ink
+- **@brains/matrix**: Matrix bot with E2E encryption support
+- **@brains/mcp**: MCP transport layer (stdio and HTTP)
+- **@brains/webserver**: HTTP server for static sites
 
 #### Plugins
 
-- **@brains/git-sync**: Git synchronization plugin
-- **@brains/directory-sync**: File system synchronization
-- **@brains/topics**: Topic extraction and management
-- **@brains/site-builder-plugin**: Static site generation
+- **@brains/directory-sync**: Import/export entities to file system
+- **@brains/git-sync**: Sync entities with Git repositories
+- **@brains/link**: Web content capture with AI extraction
+- **@brains/plugin-examples**: Example plugin implementations
+- **@brains/site-builder**: Static site generation with Preact/Tailwind
+- **@brains/summary**: AI-powered summarization and daily digests
+- **@brains/system**: System information and health checks
+- **@brains/topics**: AI-powered topic extraction
 
 #### Shared
 
-- **@brains/utils**: Common utilities and shared types
-- **@brains/content-management**: Content generation and management utilities
+- **@brains/default-site-content**: Default templates and formatters
+- **@brains/product-site-content**: Product-specific site content
+- **@brains/theme-default**: Default theme for web interfaces
+- **@brains/ui-library**: Shared UI components (Ink-based)
+- **@brains/utils**: Common utilities (logging, markdown, Zod)
+- **@brains/eslint-config**: Shared ESLint configuration
+- **@brains/typescript-config**: Shared TypeScript configuration
+
+#### Applications
+
+- **@brains/test-brain**: Reference implementation for testing
+- **@brains/team-brain**: Team collaboration instance
+- **@brains/app**: High-level application framework
 
 ### Key Concepts
 
@@ -104,7 +129,9 @@ The project follows a **tool-first architecture** where all functionality is exp
 - [Architecture Overview](docs/architecture-overview.md)
 - [Plugin System](docs/plugin-system.md)
 - [Entity Model](docs/entity-model.md)
+- [Messaging System](docs/messaging-system.md)
 - [Development Workflow](docs/development-workflow.md)
+- [Deployment Guide](docs/deployment-guide.md)
 - [Tech Stack](docs/tech-stack.md)
 
 ## Development
@@ -172,7 +199,31 @@ bun run lint      # Lint
 ## Examples
 
 - [Test Brain App](apps/test-brain): Example brain application with CLI and Matrix interfaces
-- [MCP Interface](interfaces/mcp/): MCP server implementation
+- [Team Brain App](apps/team-brain): Team collaboration instance with custom configuration
+- [MCP Interface](interfaces/mcp/): MCP server implementation with stdio and HTTP transports
+- [Plugin Examples](plugins/plugin-examples): Example implementations of all plugin types
+
+## Deployment
+
+The application supports multiple deployment strategies:
+
+- **Docker**: Single container or docker-compose orchestration
+- **Binary**: Standalone executable compiled with Bun
+- **Cloud**: Automated deployment to Hetzner Cloud with Terraform
+- **Systemd**: Linux service with automatic startup
+
+See the [Deployment Guide](docs/deployment-guide.md) for detailed instructions.
+
+### Quick Deploy with Docker
+
+```bash
+# Build and run with Docker
+docker build -t personal-brain .
+docker run -d -p 3000:3000 --env-file .env personal-brain
+
+# Or use docker-compose
+docker-compose up -d
+```
 
 ## Contributing
 

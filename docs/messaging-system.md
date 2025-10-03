@@ -82,128 +82,109 @@ export class MessageBus {
 }
 ```
 
-### Message Schema
+### Message Types
 
-All messages are defined using Zod schemas for validation:
+Messages in the system use simple event-based patterns:
 
 ```typescript
-import { z } from "zod";
-
-/**
- * Base message schema
- */
-export const baseMessageSchema = z.object({
-  id: z.string().uuid(),
-  timestamp: z.string().datetime(),
-  type: z.string(),
-  source: z.string().optional(),
-  target: z.string().optional(),
-});
-
-export type BaseMessage = z.infer<typeof baseMessageSchema>;
-
-/**
- * Message response schema
- */
-export const messageResponseSchema = z.object({
-  id: z.string().uuid(),
-  requestId: z.string().uuid(),
-  success: z.boolean(),
-  data: z.any().optional(),
-  error: z
-    .object({
-      message: z.string(),
-      code: z.string().optional(),
-    })
-    .optional(),
-  timestamp: z.string().datetime(),
-});
-
-export type MessageResponse = z.infer<typeof messageResponseSchema>;
-
 /**
  * Message handler type
  */
-export type MessageHandler = (
-  message: BaseMessage,
-) => Promise<MessageResponse | null>;
+export type MessageHandler<T = unknown> = (payload: T) => Promise<void> | void;
+
+/**
+ * Async message handler for background processing
+ */
+export type AsyncMessageHandler<T = unknown> = (payload: T) => Promise<void>;
+
+/**
+ * Message subscription
+ */
+export interface MessageSubscription {
+  unsubscribe: () => void;
+}
 ```
 
-### Context-Specific Message Schemas
+### Plugin Message Events
 
-Each context defines its own message schemas that extend the base:
+Plugins emit and subscribe to events through the message bus:
 
 ```typescript
 /**
- * Note message schemas
+ * Common message events
  */
-export const createNoteMessageSchema = baseMessageSchema.extend({
-  type: z.literal("note.create"),
-  payload: z.object({
-    title: z.string(),
-    content: z.string(),
-    tags: z.array(z.string()).optional(),
-  }),
-});
+// Entity events
+export const ENTITY_CREATED = "entity:created";
+export const ENTITY_UPDATED = "entity:updated";
+export const ENTITY_DELETED = "entity:deleted";
 
-export type CreateNoteMessage = z.infer<typeof createNoteMessageSchema>;
+// Job events
+export const JOB_STARTED = "job:started";
+export const JOB_COMPLETED = "job:completed";
+export const JOB_FAILED = "job:failed";
+export const JOB_PROGRESS = "job:progress";
 
-export const getNoteMessageSchema = baseMessageSchema.extend({
-  type: z.literal("note.get"),
-  payload: z.object({
-    id: z.string().uuid(),
-  }),
-});
+// Summary plugin events
+export const SUMMARY_DIGEST_REQUESTED = "summary:digest:requested";
+export const SUMMARY_CREATED = "summary:created";
 
-export type GetNoteMessage = z.infer<typeof getNoteMessageSchema>;
+// Link plugin events
+export const LINK_CAPTURE_REQUESTED = "link:capture:requested";
+export const LINK_CAPTURED = "link:captured";
 
-// More message schemas...
+// Topic plugin events
+export const TOPICS_EXTRACTION_REQUESTED = "topics:extraction:requested";
+export const TOPICS_EXTRACTED = "topics:extracted";
 ```
 
-### Message Factory
+### Event Payloads
 
-A factory helps create properly typed messages:
+Events carry typed payloads for data:
 
 ```typescript
 /**
- * Factory for creating messages with proper types
+ * Entity event payloads
  */
-export class MessageFactory {
-  /**
-   * Create a note creation message
-   */
-  static createNoteMessage(
-    title: string,
-    content: string,
-    tags?: string[],
-  ): CreateNoteMessage {
-    return {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      type: "note.create",
-      payload: {
-        title,
-        content,
-        tags,
-      },
-    };
-  }
+export interface EntityCreatedPayload {
+  entityId: string;
+  entityType: string;
+  title: string;
+}
 
-  /**
-   * Create a note retrieval message
-   */
-  static getNoteMessage(id: string): GetNoteMessage {
-    return {
-      id: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      type: "note.get",
-      payload: {
-        id,
-      },
-    };
-  }
+export interface EntityUpdatedPayload {
+  entityId: string;
+  entityType: string;
+  changes: Record<string, unknown>;
+}
 
-  // More factory methods...
+export interface EntityDeletedPayload {
+  entityId: string;
+  entityType: string;
+}
+
+/**
+ * Job event payloads
+ */
+export interface JobStartedPayload {
+  jobId: string;
+  type: string;
+  description?: string;
+}
+
+export interface JobProgressPayload {
+  jobId: string;
+  progress: number;
+  status: string;
+}
+
+export interface JobCompletedPayload {
+  jobId: string;
+  result?: unknown;
+}
+
+export interface JobFailedPayload {
+  jobId: string;
+  error: string;
 }
 ```
 
@@ -212,62 +193,56 @@ export class MessageFactory {
 Plugins register message handlers during initialization:
 
 ```typescript
-// In note-plugin/src/index.ts
-const notePlugin: Plugin = {
-  id: "note-plugin",
-  version: "1.0.0",
-  dependencies: ["core"],
+// In SummaryPlugin
+export class SummaryPlugin extends CorePlugin {
+  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+    const { messageBus, logger, jobQueue } = context;
 
-  async register(context: PluginContext): Promise<PluginCapabilities> {
-    const { messageBus, logger } = context;
+    // Subscribe to digest request events
+    const unsubscribe = messageBus.subscribe<DigestRequestPayload>(
+      SUMMARY_DIGEST_REQUESTED,
+      async (payload) => {
+        logger.info("Handling digest request", payload);
 
-    // Subscribe to message handlers
-    messageBus.subscribe("note:create", async (message) => {
-      logger.info("Handling note:create message");
-      const { title, content, tags } = message.payload;
+        // Queue the digest job
+        const jobId = await jobQueue.addJob({
+          type: "summary:digest",
+          data: {
+            conversationId: payload.conversationId,
+            period: payload.period,
+          },
+        });
 
-      // Create note using entity service
-      const entityService = context.registry.get<EntityService>("entityService");
-      const note = createNote({
-        title,
-        content,
-        tags: tags || [],
-      });
-
-      const savedNote = await entityService.saveEntity(note);
-
-      // Return response
-      return {
-        success: true,
-        data: savedNote,
-      };
-    });
-
-    // Subscribe to more message types...
-    messageBus.subscribe("note:get", async (message) => {
-      const { id } = message.payload;
-      const entityService = context.registry.get<EntityService>("entityService");
-      const note = await entityService.getEntity(id);
-
-      if (!note) {
-        return {
-          success: false,
-          error: "Note not found",
-        };
+        // Emit job started event
+        await messageBus.publish(JOB_STARTED, {
+          jobId,
+          type: "summary:digest",
+          description: `Generating ${payload.period} digest`,
+        });
       }
+    );
 
-      return {
-        success: true,
-        data: note,
-      };
-    });
+    // Subscribe to job completion events
+    messageBus.subscribe<JobCompletedPayload>(
+      JOB_COMPLETED,
+      async (payload) => {
+        if (payload.jobId.startsWith("summary:")) {
+          // Emit summary created event
+          await messageBus.publish(SUMMARY_CREATED, {
+            entityId: payload.result.entityId,
+            summaryType: payload.result.summaryType,
+          });
+        }
+      }
+    );
 
     return {
       tools: [...],
       resources: [...],
+      handlers: [...],
     };
-  },
-};
+  }
+}
 ```
 
 ## Message Validation
@@ -290,80 +265,90 @@ export function validateMessage<T extends z.ZodType>(
 }
 ```
 
-## Cross-Context Communication
+## Cross-Plugin Communication
 
-Contexts communicate with each other through messages:
+Plugins communicate with each other through events:
 
 ```typescript
-// ProfilePlugin using NotePlugin via messages
-async function saveProfileWithNotes(
-  messageBus: MessageBus,
-  profile: Profile,
-  notes: string[],
-): Promise<Profile> {
-  // Save profile
-  const savedProfile = await entityService.saveEntity(profile);
+// LinkPlugin triggering summary generation
+export class LinkPlugin extends CorePlugin {
+  async captureLink(url: string): Promise<LinkEntity> {
+    const { messageBus, entityService } = this.context;
 
-  // Create notes linked to the profile
-  for (const noteText of notes) {
-    const response = await messageBus.send(
-      "note:create",
-      {
-        title: `Note for ${profile.name}`,
-        content: noteText,
-        tags: ["profile", profile.id],
-      },
-      "profile-plugin",
-    );
+    // Capture and save link
+    const linkEntity = await this.processUrl(url);
+    const saved = await entityService.createEntity(linkEntity);
 
-    if (!response.success) {
-      logger.warn("Failed to create note", { error: response.error });
-    }
+    // Emit link captured event
+    await messageBus.publish(LINK_CAPTURED, {
+      entityId: saved.entityId,
+      url: linkEntity.url,
+      title: linkEntity.title,
+    });
+
+    // Request summary generation
+    await messageBus.publish(SUMMARY_DIGEST_REQUESTED, {
+      conversationId: this.conversationId,
+      entityIds: [saved.entityId],
+      period: "custom",
+    });
+
+    return linkEntity;
   }
+}
 
-  return savedProfile;
+// TopicsPlugin listening to link events
+export class TopicsPlugin extends CorePlugin {
+  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+    const { messageBus } = context;
+
+    // Listen for new links to extract topics
+    messageBus.subscribe(LINK_CAPTURED, async (payload) => {
+      await this.extractTopicsFromEntity(payload.entityId);
+    });
+
+    return { ... };
+  }
 }
 ```
 
 ## Error Handling
 
-Messages include standard error handling patterns:
+Event handlers should handle errors gracefully:
 
 ```typescript
 // Handler with error handling
-messageBus.subscribe("note:get", async (message) => {
+messageBus.subscribe<EntityCreatedPayload>(ENTITY_CREATED, async (payload) => {
   try {
-    const { id } = message.payload;
-    const entityService = registry.get<EntityService>("entityService");
+    // Process the entity creation
+    await processNewEntity(payload);
 
-    const note = await entityService.getEntity(id);
-
-    if (!note) {
-      return {
-        success: false,
-        error: "Note not found",
-      };
-    }
-
-    return {
-      success: true,
-      data: note,
-    };
+    logger.info("Entity processed successfully", {
+      entityId: payload.entityId,
+      entityType: payload.entityType,
+    });
   } catch (error) {
-    return {
-      success: false,
+    logger.error("Failed to process entity", {
       error: error instanceof Error ? error.message : "Unknown error",
-    };
+      entityId: payload.entityId,
+    });
+
+    // Optionally emit failure event
+    await messageBus.publish(JOB_FAILED, {
+      jobId: `process-${payload.entityId}`,
+      error: error.message,
+    });
   }
 });
 
-// Using the message bus with error handling
-const response = await messageBus.send("note:get", { id: "123" });
-
-if (response.success) {
-  console.log("Note found:", response.data);
-} else {
-  console.error("Error:", response.error);
+// Publishing events with error handling
+try {
+  await messageBus.publish(LINK_CAPTURE_REQUESTED, {
+    url: "https://example.com",
+    conversationId: "conv-123",
+  });
+} catch (error) {
+  logger.error("Failed to publish event", { error });
 }
 ```
 
@@ -372,56 +357,61 @@ if (response.success) {
 Messages and handlers are easy to test:
 
 ```typescript
-// Testing a message handler
-describe("Note message handlers", () => {
-  let messageBus: MessageBus;
-  let entityService: EntityService;
+// Testing event handlers in a plugin
+import { describe, it, expect, beforeEach } from "bun:test";
+import { createCorePluginHarness } from "@brains/plugins/test";
+import { SummaryPlugin } from "../src";
 
-  beforeEach(() => {
-    const logger = createMockLogger();
-    messageBus = MessageBus.createFresh(logger);
-    entityService = createMockEntityService();
+describe("SummaryPlugin message handlers", () => {
+  let harness: ReturnType<typeof createCorePluginHarness>;
+  let plugin: SummaryPlugin;
 
-    // Subscribe handler
-    messageBus.subscribe("note:create", async (message) => {
-      const note = createNote(message.payload);
-      const savedNote = await entityService.saveEntity(note);
-      return { success: true, data: savedNote };
+  beforeEach(async () => {
+    harness = createCorePluginHarness();
+    plugin = new SummaryPlugin();
+    await harness.installPlugin(plugin);
+  });
+
+  it("should handle digest request event", async () => {
+    const messageBus = harness.getShell().getMessageBus();
+    const jobQueue = harness.getShell().getJobQueue();
+
+    // Mock job queue
+    const addJobSpy = vi.spyOn(jobQueue, "addJob");
+
+    // Publish event
+    await messageBus.publish(SUMMARY_DIGEST_REQUESTED, {
+      conversationId: "conv-123",
+      period: "daily",
+    });
+
+    // Verify job was queued
+    expect(addJobSpy).toHaveBeenCalledWith({
+      type: "summary:digest",
+      data: {
+        conversationId: "conv-123",
+        period: "daily",
+      },
     });
   });
 
-  test("should create a note", async () => {
-    // Send message
-    const response = await messageBus.send(
-      "note:create",
-      {
-        title: "Test Note",
-        content: "This is a test note",
-        tags: ["test"],
-      },
-      "test",
-    );
+  it("should emit entity created event after summary creation", async () => {
+    const messageBus = harness.getShell().getMessageBus();
 
-    // Verify response
-    expect(response.success).toBe(true);
-    expect(response.data).toHaveProperty("id");
-    expect(response.data.title).toBe("Test Note");
+    // Subscribe to entity created events
+    const entityCreatedHandler = vi.fn();
+    messageBus.subscribe(ENTITY_CREATED, entityCreatedHandler);
 
-    // Verify entity service was called
-    expect(entityService.saveEntity).toHaveBeenCalledWith(
+    // Trigger summary creation
+    await plugin.createDailySummary("conv-123");
+
+    // Verify event was emitted
+    expect(entityCreatedHandler).toHaveBeenCalledWith(
       expect.objectContaining({
-        entityType: "note",
-        title: "Test Note",
-        content: "This is a test note",
+        entityType: "summary",
+        entityId: expect.any(String),
       }),
     );
-  });
-
-  test("should handle missing handler", async () => {
-    const response = await messageBus.send("unknown:message", {});
-
-    expect(response.success).toBe(false);
-    expect(response.error).toContain("No handler found");
   });
 });
 ```
