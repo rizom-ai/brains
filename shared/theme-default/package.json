@@ -10,11 +10,15 @@
     "src"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {},
   "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   }
 }
