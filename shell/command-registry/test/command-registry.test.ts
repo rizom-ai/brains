@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { CommandRegistry } from "../src/command-registry";
 import { createSilentLogger } from "@brains/utils";
 import { MessageBus } from "@brains/messaging-service";

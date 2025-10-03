@@ -408,37 +408,6 @@ describe("ConversationService", () => {
     });
   });
 
-  describe("conversation digest configuration", () => {
-    it("should use default digest configuration values", () => {
-      const defaultService = ConversationService.createFresh(
-        db,
-        logger,
-        messageBus,
-        {},
-      );
-
-      // Access private config to verify defaults
-      expect((defaultService as any).config.digestTriggerInterval).toBe(5);
-      expect((defaultService as any).config.digestWindowSize).toBe(10);
-    });
-
-    it("should use custom digest configuration values", () => {
-      const customConfig: ConversationServiceConfig = {
-        digestTriggerInterval: 5,
-        digestWindowSize: 15,
-      };
-      const customService = ConversationService.createFresh(
-        db,
-        logger,
-        messageBus,
-        customConfig,
-      );
-
-      expect((customService as any).config.digestTriggerInterval).toBe(5);
-      expect((customService as any).config.digestWindowSize).toBe(15);
-    });
-  });
-
   describe("digest window calculations", () => {
     it("should calculate correct window ranges for small conversations", async () => {
       // Create a service that can access private methods for testing

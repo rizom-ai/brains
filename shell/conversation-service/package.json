@@ -15,8 +15,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run src/migrate.ts",
     "db:push": "drizzle-kit push",

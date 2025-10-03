@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, z } from "@brains/utils";
 import type { PluginTool, PluginResource } from "../src/types";
 
 describe("MCPService", () => {
@@ -16,9 +16,9 @@ describe("MCPService", () => {
     const unsubscribeFn = mock(() => {});
     const sendMock = mock(() =>
       Promise.resolve({ success: true, data: "test" }),
-    );
+    ) as IMessageBus["send"];
     mockMessageBus = {
-      send: sendMock as any,
+      send: sendMock,
       subscribe: mock(() => unsubscribeFn),
       unsubscribe: mock(() => {}),
     };
@@ -63,11 +63,8 @@ describe("MCPService", () => {
         name: "test:tool",
         description: "Test tool",
         inputSchema: {
-          type: "object",
-          properties: {
-            input: { type: "string" },
-          },
-        } as any,
+          input: z.string(),
+        },
         visibility: "anchor",
         handler: async () => ({ success: true }),
       };
