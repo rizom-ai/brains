@@ -21,6 +21,12 @@ export const webserverConfigSchema = z.object({
     .string()
     .optional()
     .describe("Public domain for production server (e.g., https://babal.io)"),
+  previewDomain: z
+    .string()
+    .optional()
+    .describe(
+      "Public domain for preview server (e.g., https://preview.babal.io)",
+    ),
 });
 
 export type WebserverConfig = z.infer<typeof webserverConfigSchema>;

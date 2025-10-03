@@ -61,8 +61,14 @@ const config = defineConfig({
         process.env["GIT_SYNC_URL"] ||
         "https://github.com/username/test-brain-backup",
       authToken: process.env["GIT_SYNC_TOKEN"],
+      authorName: "Test Brain",
+      authorEmail: "test-brain@rizom.ai",
     }),
-    new WebserverInterface({}),
+    new WebserverInterface({
+      productionDomain: process.env["DOMAIN"]
+        ? `https://${process.env["DOMAIN"]}`
+        : undefined,
+    }),
     siteBuilderPlugin({
       templates,
       routes,

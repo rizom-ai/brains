@@ -248,6 +248,7 @@ apps/test-brain/.brain-repo/
 *.old/
 *-backup/
 *-old/
+backups/
 
 # Temporary directories
 tmp/

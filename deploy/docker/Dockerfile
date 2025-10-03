@@ -12,9 +12,9 @@ COPY . .
 # Install dependencies (skip postinstall scripts to avoid slow Matrix download)
 RUN bun install --ignore-scripts
 
-# CRITICAL: Download Matrix native binary for Linux
+# CRITICAL: Download Matrix native binary for Linux and install git for git-sync plugin
 # We skipped postinstall scripts to save time, so we need to download the binary manually
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git && \
     cd /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && \
     PACKAGE_VERSION=$(cat package.json | grep '"version"' | cut -d'"' -f4) && \
     echo "Downloading Matrix SDK crypto binary v${PACKAGE_VERSION}..." && \
