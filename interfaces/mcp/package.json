@@ -10,8 +10,8 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings 0 src",
-    "lint:fix": "eslint --fix src",
+    "lint": "eslint --max-warnings 0 .",
+    "lint:fix": "eslint --fix .",
     "test": "bun test"
   },
   "dependencies": {

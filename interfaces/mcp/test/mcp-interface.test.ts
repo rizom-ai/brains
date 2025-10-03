@@ -45,7 +45,8 @@ describe("MCPInterface", () => {
       expect(capabilities.tools).toHaveLength(0);
       // MCP interface provides entity types resource
       expect(capabilities.resources).toHaveLength(1);
-      expect(capabilities.resources?.[0]?.uri).toBe("entity://types");
+      if (!capabilities.resources[0]) throw new Error("No resources");
+      expect(capabilities.resources[0].uri).toBe("entity://types");
     });
 
     it("should register with http transport and anchor permissions", async () => {
@@ -59,7 +60,8 @@ describe("MCPInterface", () => {
       expect(capabilities.tools).toHaveLength(0);
       // MCP interface provides entity types resource
       expect(capabilities.resources).toHaveLength(1);
-      expect(capabilities.resources?.[0]?.uri).toBe("entity://types");
+      if (!capabilities.resources[0]) throw new Error("No resources");
+      expect(capabilities.resources[0].uri).toBe("entity://types");
     });
   });
 

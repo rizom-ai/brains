@@ -93,7 +93,7 @@ async function makeRequest(
 }
 
 describe("StreamableHTTPServer", () => {
-  let server: StreamableHTTPServer;
+  let server: StreamableHTTPServer | undefined;
   let mockLogger: TransportLogger;
   let testPort = 13337; // Use a different port for each test to avoid conflicts
 
@@ -106,10 +106,11 @@ describe("StreamableHTTPServer", () => {
       warn: mock(() => {}),
     };
     testPort++; // Increment port for each test
+    server = undefined; // Reset server for each test
   });
 
   afterEach(async () => {
-    if (server && server.isRunning()) {
+    if (server?.isRunning()) {
       await server.stop();
     }
   });
@@ -247,6 +248,7 @@ describe("StreamableHTTPServer", () => {
     });
 
     test("should connect MCP server", () => {
+      if (!server) throw new Error("Server not initialized");
       server.connectMCPServer(mcpServer);
       expect(mockLogger.debug).toHaveBeenCalledWith(
         "MCP server connected to StreamableHTTP transport",
@@ -350,6 +352,7 @@ describe("StreamableHTTPServer", () => {
     });
 
     test("should track active sessions", async () => {
+      if (!server) throw new Error("Server not initialized");
       expect(server.getSessionCount()).toBe(0);
 
       // Initialize a session
