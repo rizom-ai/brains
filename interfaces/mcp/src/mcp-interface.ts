@@ -103,7 +103,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         let message = "MCP server not running";
         if (isRunning) {
           if (this.config.transport === "http") {
-            message = `MCP HTTP: http://localhost:${this.config.httpPort}/mcp`;
+            const apiUrl = this.config.domain
+              ? `https://api.${this.config.domain}/mcp`
+              : `http://localhost:${this.config.httpPort}/mcp`;
+            message = `MCP HTTP: ${apiUrl}`;
           } else {
             message = "MCP stdio server running";
           }

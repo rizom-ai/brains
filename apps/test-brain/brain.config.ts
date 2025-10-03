@@ -46,6 +46,7 @@ const config = defineConfig({
     new LinkPlugin({}),
     new MCPInterface({
       authToken: process.env["MCP_AUTH_TOKEN"],
+      domain: process.env["DOMAIN"],
     }),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",

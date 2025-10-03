@@ -10,6 +10,10 @@ export const mcpConfigSchema = z.object({
     .string()
     .describe("Bearer token for HTTP transport authentication")
     .optional(),
+  domain: z
+    .string()
+    .describe("Domain for deriving public API URL (e.g., 'example.com')")
+    .optional(),
 });
 
 export type MCPConfig = z.infer<typeof mcpConfigSchema>;
