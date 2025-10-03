@@ -61,9 +61,8 @@ export function createListCommand(
         // Format for CLI
         const formatted = displaySummaries
           .map((summary) => {
-            const conversationId =
-              summary.metadata?.conversationId ?? "unknown";
-            const entryCount = summary.metadata.entryCount ?? 0;
+            const conversationId = summary.metadata.conversationId;
+            const entryCount = summary.metadata.entryCount;
             const lastUpdated = new Date(summary.updated).toLocaleDateString();
 
             // Get first entry title as preview

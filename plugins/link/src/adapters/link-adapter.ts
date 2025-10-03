@@ -43,12 +43,12 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
           key: "source",
           label: "Source",
           type: "custom",
-          formatter: (value: unknown) => {
+          formatter: (value: unknown): string => {
             if (!value) return "";
             const source = linkSourceSchema.parse(value);
             return SourceListFormatter.format([source]);
           },
-          parser: (text: string) => {
+          parser: (text: string): unknown => {
             if (!text || text.trim() === "") return undefined;
             const sources = SourceListFormatter.parse(text);
             return sources[0];

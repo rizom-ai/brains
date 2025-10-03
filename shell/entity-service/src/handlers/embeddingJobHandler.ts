@@ -161,7 +161,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
             {
               entityType: data.entityType,
               entityId: data.id,
-              metadata: data.metadata || {},
+              metadata: data.metadata,
             },
             "entity-service",
             undefined,

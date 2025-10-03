@@ -167,7 +167,7 @@ export class DigestHandler {
       this.logger.debug("Summary updated successfully", {
         conversationId: digest.conversationId,
         action: decision.action,
-        entryCount: summaryEntity.metadata?.entryCount,
+        entryCount: summaryEntity.metadata.entryCount,
       });
     } catch (error) {
       this.logger.error("Failed to process digest", {

@@ -70,7 +70,7 @@ export class SummaryService {
 
     let totalEntries = 0;
     for (const summary of summaries) {
-      totalEntries += summary.metadata.entryCount ?? 0;
+      totalEntries += summary.metadata.entryCount;
     }
 
     return {

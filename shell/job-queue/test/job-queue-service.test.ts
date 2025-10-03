@@ -716,7 +716,7 @@ describe("JobQueueService", () => {
       // Mark one as processing by dequeuing it
       const processingJob = await service.dequeue();
       expect(processingJob).toBeTruthy();
-      const dequeuedId = processingJob?.id || "";
+      const dequeuedId = processingJob?.id ?? "";
 
       // Complete one job
       await service.complete(completedId, {});
