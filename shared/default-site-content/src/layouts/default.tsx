@@ -22,14 +22,14 @@ export function DefaultLayout({
     <div className="flex flex-col min-h-screen bg-theme">
       {/* Simple header with site title */}
       <header className="py-4 border-b border-theme-border">
-        <div className="container mx-auto px-4 max-w-6xl flex justify-between items-center">
+        <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div className="font-bold text-xl text-theme">{siteInfo.title}</div>
-          <nav className="flex gap-4">
+          <nav className="flex flex-wrap gap-3 sm:gap-4">
             {siteInfo.navigation.primary.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
-                className="text-theme hover:text-brand transition-colors"
+                className="text-theme hover:text-brand transition-colors text-sm sm:text-base"
               >
                 {item.label}
               </a>

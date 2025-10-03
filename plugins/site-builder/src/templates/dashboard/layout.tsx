@@ -37,7 +37,10 @@ const DashboardRender = ({
       <h2 className="text-2xl font-bold mb-4 text-theme">System Dashboard</h2>
 
       {/* Interactive controls - match static template structure */}
-      <div className="mb-4 flex gap-4" data-hydrate-controls="true">
+      <div
+        className="mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4"
+        data-hydrate-controls="true"
+      >
         <input
           type="text"
           placeholder="Filter types..."
@@ -48,7 +51,7 @@ const DashboardRender = ({
                   onFilterChange((e.target as HTMLInputElement).value)
               : undefined
           }
-          className="px-3 py-2 bg-theme border border-theme rounded text-theme placeholder-theme-muted"
+          className="px-4 py-2 bg-theme border border-theme rounded text-theme placeholder-theme-muted sm:flex-1"
         />
         <button
           onClick={onSortChange}
