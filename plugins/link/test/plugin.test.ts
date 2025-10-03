@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { LinkPlugin, createLinkPlugin } from "../src/index";
+import type { LinkPlugin } from "../src/index";
+import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
 
 describe("LinkPlugin", () => {

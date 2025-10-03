@@ -3,7 +3,7 @@ import { FileOperations } from "../src/lib/file-operations";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseEntity } from "@brains/plugins";
 
 describe("FileOperations", () => {
   let fileOps: FileOperations;
@@ -17,7 +17,7 @@ describe("FileOperations", () => {
 
     // Create a minimal mock entity service
     mockEntityService = {
-      serializeEntity: (entity: any) => {
+      serializeEntity: (entity: BaseEntity) => {
         return `# ${entity.id}\n\n${entity.content}`;
       },
       deserializeEntity: (_content: string, _entityType: string) => {

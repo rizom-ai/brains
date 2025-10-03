@@ -73,6 +73,7 @@ describe("DirectorySync AutoSync", () => {
       // Get the DirectorySync instance
       const directorySync = plugin.getDirectorySync();
       expect(directorySync).toBeDefined();
+      if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create a test entity
       const entity = {
@@ -85,7 +86,7 @@ describe("DirectorySync AutoSync", () => {
       };
 
       // Write the entity directly (simulating what the handler does)
-      await directorySync!.fileOps.writeEntity(entity);
+      await directorySync.fileOps.writeEntity(entity);
 
       // Check that file was created
       const filePath = join(testDir, "test-entity.md");
@@ -100,6 +101,7 @@ describe("DirectorySync AutoSync", () => {
 
       const directorySync = plugin.getDirectorySync();
       expect(directorySync).toBeDefined();
+      if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create initial entity
       const entity = {
@@ -111,7 +113,7 @@ describe("DirectorySync AutoSync", () => {
         updated: new Date().toISOString(),
       };
 
-      await directorySync!.fileOps.writeEntity(entity);
+      await directorySync.fileOps.writeEntity(entity);
 
       // Update entity
       const updatedEntity = {
@@ -120,7 +122,7 @@ describe("DirectorySync AutoSync", () => {
         updated: new Date().toISOString(),
       };
 
-      await directorySync!.fileOps.writeEntity(updatedEntity);
+      await directorySync.fileOps.writeEntity(updatedEntity);
 
       // Check that file was updated
       const filePath = join(testDir, "test-entity.md");
@@ -134,6 +136,7 @@ describe("DirectorySync AutoSync", () => {
 
       const directorySync = plugin.getDirectorySync();
       expect(directorySync).toBeDefined();
+      if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create initial entity
       const entity = {
@@ -145,7 +148,7 @@ describe("DirectorySync AutoSync", () => {
         updated: new Date().toISOString(),
       };
 
-      await directorySync!.fileOps.writeEntity(entity);
+      await directorySync.fileOps.writeEntity(entity);
 
       const filePath = join(testDir, "test-entity.md");
       expect(existsSync(filePath)).toBe(true);
@@ -184,6 +187,7 @@ describe("DirectorySync AutoSync", () => {
 
       const directorySync = plugin.getDirectorySync();
       expect(directorySync).toBeDefined();
+      if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create two entities
       const entity1 = {
@@ -204,8 +208,8 @@ describe("DirectorySync AutoSync", () => {
         updated: new Date().toISOString(),
       };
 
-      await directorySync!.fileOps.writeEntity(entity1);
-      await directorySync!.fileOps.writeEntity(entity2);
+      await directorySync.fileOps.writeEntity(entity1);
+      await directorySync.fileOps.writeEntity(entity2);
 
       // Both files should exist
       expect(existsSync(join(testDir, "entity-1.md"))).toBe(true);

@@ -7,8 +7,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
     "@brains/job-queue": "workspace:*",

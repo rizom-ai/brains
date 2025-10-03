@@ -74,7 +74,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.registerDataSource(navigationDataSource);
 
     // Register SiteInfoDataSource
-    const siteConfig = this.config.siteConfig || {
+    const siteConfig = this.config.siteConfig ?? {
       title: "Personal Brain",
       description: "A knowledge management system",
     };

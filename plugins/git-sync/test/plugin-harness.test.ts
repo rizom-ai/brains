@@ -18,7 +18,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     mkdirSync(testRepoPath, { recursive: true });
 
     // Set test environment variable to use our test path
-    process.env.GIT_SYNC_TEST_PATH = testRepoPath;
+    process.env["GIT_SYNC_TEST_PATH"] = testRepoPath;
 
     // Create test harness
     harness = createCorePluginHarness<GitSyncPlugin>();
@@ -26,16 +26,22 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     // Set up message subscriptions for mocking dependencies
     harness.subscribe("sync:status:request", async () => {
       return {
-        syncPath: testRepoPath,
-        isInitialized: true,
-        watchEnabled: false,
+        success: true,
+        data: {
+          syncPath: testRepoPath,
+          isInitialized: true,
+          watchEnabled: false,
+        },
       };
     });
 
     harness.subscribe("entity:export:request", async () => {
       return {
-        entityIds: [],
-        errors: [],
+        success: true,
+        data: {
+          entityIds: [],
+          errors: [],
+        },
       };
     });
 
@@ -63,7 +69,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     }
 
     // Clean up environment variable
-    delete process.env.GIT_SYNC_TEST_PATH;
+    delete process.env["GIT_SYNC_TEST_PATH"];
   });
 
   describe("Basic Plugin Tests", () => {
@@ -71,7 +77,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       // Verify capabilities
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools?.length).toBe(2);
+      expect(capabilities.tools.length).toBe(2);
 
       // Verify tool names
       const toolNames = capabilities.tools.map((t) => t.name);
@@ -81,7 +87,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
 
     it("should provide commands", () => {
       expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands?.length).toBe(1);
+      expect(capabilities.commands.length).toBe(1);
 
       const commandNames = capabilities.commands.map((c) => c.name);
       expect(commandNames).toContain("git-sync");

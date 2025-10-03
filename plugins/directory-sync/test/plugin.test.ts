@@ -95,20 +95,20 @@ describe("DirectorySyncPlugin", () => {
     it("should register plugin and provide tools", () => {
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools?.length).toBeGreaterThan(0);
+      expect(capabilities.tools.length).toBeGreaterThan(0);
     });
 
     it("should provide expected tools", () => {
-      const toolNames = capabilities.tools?.map((t) => t.name) || [];
+      const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("directory-sync:sync");
       expect(toolNames.length).toBe(1);
     });
 
     it("should provide commands", () => {
       expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands?.length).toBeGreaterThan(0);
+      expect(capabilities.commands.length).toBeGreaterThan(0);
 
-      const commandNames = capabilities.commands?.map((c) => c.name) || [];
+      const commandNames = capabilities.commands.map((c) => c.name);
       expect(commandNames).toContain("directory-sync");
       expect(commandNames.length).toBe(1);
     });
@@ -128,18 +128,19 @@ describe("DirectorySyncPlugin", () => {
 
     it("should handle sync operation", async () => {
       // Sync using the tool
-      const syncTool = capabilities.tools?.find(
+      const syncTool = capabilities.tools.find(
         (t) => t.name === "directory-sync:sync",
       );
       expect(syncTool).toBeDefined();
+      if (!syncTool) throw new Error("Sync tool not found");
 
-      const syncResult = (await syncTool!.handler(
+      const syncResult = (await syncTool.handler(
         {},
         {
           interfaceType: "test",
           userId: "test-user",
         },
-      )) as any;
+      )) as { status?: string; batchId?: string };
 
       // Should either complete immediately if no operations needed
       // or queue a batch job
@@ -155,7 +156,7 @@ describe("DirectorySyncPlugin", () => {
   describe("Message Handling", () => {
     it("should respond to sync status requests", async () => {
       const response = await harness.sendMessage<
-        {},
+        Record<string, never>,
         { syncPath: string; isInitialized: boolean; watchEnabled: boolean }
       >("sync:status:request", {}, "test");
 

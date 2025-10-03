@@ -14,7 +14,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "clean": "rm -rf .turbo"
   },
   "dependencies": {

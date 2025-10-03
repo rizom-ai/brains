@@ -117,6 +117,6 @@ export class HeadCollector {
       '"': "&quot;",
       "'": "&#039;",
     };
-    return text.replace(/[&<>"']/g, (m) => map[m] || m);
+    return text.replace(/[&<>"']/g, (m) => map[m] ?? m);
   }
 }

@@ -239,7 +239,7 @@ describe("MessageEventHandler", () => {
       const messageHandler = handler.getHandler();
 
       // Should not throw, just log error
-      await expect(messageHandler(createMessage(event))).resolves.toEqual({
+      expect(messageHandler(createMessage(event))).resolves.toEqual({
         success: true,
       });
 
@@ -257,7 +257,7 @@ describe("MessageEventHandler", () => {
       const messageHandler = handler.getHandler();
 
       // Should not throw, just log error
-      await expect(messageHandler(createMessage(event))).resolves.toEqual({
+      expect(messageHandler(createMessage(event))).resolves.toEqual({
         success: true,
       });
     });

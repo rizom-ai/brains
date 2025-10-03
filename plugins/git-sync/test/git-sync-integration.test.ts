@@ -2,13 +2,18 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import { createCorePluginHarness } from "@brains/plugins/test";
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
+import {
+  createServicePluginHarness,
+  createCorePluginHarness,
+} from "@brains/plugins/test";
+import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import simpleGit, { SimpleGit } from "simple-git";
+import type { SimpleGit } from "simple-git";
+import simpleGit from "simple-git";
 
 describe("Git-Sync with Directory-Sync Integration", () => {
+  let dirHarness: ReturnType<typeof createServicePluginHarness>;
   let harness: ReturnType<typeof createCorePluginHarness>;
   let gitPlugin: GitSyncPlugin;
   let dirPlugin: DirectorySyncPlugin;
@@ -31,17 +36,16 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     // Set environment variable for git-sync to use same directory as directory-sync
     process.env["GIT_SYNC_TEST_PATH"] = testDir;
 
-    // Create test harness
+    // Create test harnesses
+    dirHarness = createServicePluginHarness();
     harness = createCorePluginHarness();
 
     // Install directory-sync plugin first
     dirPlugin = new DirectorySyncPlugin({
       syncPath: testDir,
-      watchEnabled: false,
       initialSync: false,
-      debug: false,
     });
-    await harness.installPlugin(dirPlugin);
+    await dirHarness.installPlugin(dirPlugin);
 
     // Install git-sync plugin
     gitPlugin = new GitSyncPlugin({
@@ -60,6 +64,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
 
   afterEach(async () => {
     // Clean up
+    dirHarness.reset();
     harness.reset();
 
     // Clean up test directories
@@ -83,8 +88,10 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     it("should set up remote repository", async () => {
       const remotes = await git.getRemotes(true);
       expect(remotes.length).toBeGreaterThan(0);
-      expect(remotes[0].name).toBe("origin");
-      expect(remotes[0].refs.push).toContain(remoteDir);
+      const origin = remotes[0];
+      if (!origin) throw new Error("No remote found");
+      expect(origin.name).toBe("origin");
+      expect(origin.refs.push).toContain(remoteDir);
     });
   });
 
@@ -98,13 +105,16 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       writeFileSync(filePath, "# Hero Section\n\nWelcome!");
 
       // Sync through git-sync plugin tool (handles commit, push, pull)
-      const syncTool = gitCapabilities.tools?.find(
+      const syncTool = gitCapabilities.tools.find(
         (t) => t.name === "git-sync:sync",
       );
       expect(syncTool).toBeDefined();
       if (!syncTool) throw new Error("Sync tool not found");
 
-      const syncResult = await syncTool.handler({});
+      const syncResult = await syncTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
       expect(syncResult).toBeDefined();
 
       // Verify file was committed with correct path
@@ -134,49 +144,65 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       });
       writeFileSync(filePath, "# React Topic\n\nReact content");
 
-      const syncTool = gitCapabilities.tools?.find(
+      const syncTool = gitCapabilities.tools.find(
         (t) => t.name === "git-sync:sync",
       );
       if (!syncTool) throw new Error("Sync tool not found");
-      await syncTool.handler({});
+      await syncTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
 
-      const statusTool = gitCapabilities.tools?.find(
+      const statusTool = gitCapabilities.tools.find(
         (t) => t.name === "git-sync:status",
       );
       if (!statusTool) throw new Error("Status tool not found");
-      const statusResult = await statusTool.handler({});
+      const statusResult = await statusTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
 
       // Should be clean after sync
-      expect(statusResult?.data?.hasChanges).toBe(false);
+      if (!statusResult.data) throw new Error("No data in status result");
+      expect(statusResult.data["hasChanges"]).toBe(false);
     });
   });
 
   describe("Status and Sync Operations", () => {
     it("should report accurate status", async () => {
-      const statusTool = gitCapabilities.tools?.find(
+      const statusTool = gitCapabilities.tools.find(
         (t) => t.name === "git-sync:status",
       );
       if (!statusTool) throw new Error("Status tool not found");
-      const statusResult = await statusTool.handler({});
+      const statusResult = await statusTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
 
-      expect(statusResult?.data?.isRepo).toBe(true);
-      expect(statusResult?.data?.hasChanges).toBe(false);
-      expect(statusResult?.data?.branch).toBe("main");
-      expect(statusResult?.data?.ahead).toBe(0);
-      expect(statusResult?.data?.behind).toBe(0);
+      if (!statusResult.data) throw new Error("No data in status result");
+      expect(statusResult.data["isRepo"]).toBe(true);
+      expect(statusResult.data["hasChanges"]).toBe(false);
+      expect(statusResult.data["branch"]).toBe("main");
+      expect(statusResult.data["ahead"]).toBe(0);
+      expect(statusResult.data["behind"]).toBe(0);
     });
 
     it("should detect uncommitted changes", async () => {
       writeFileSync(join(testDir, "test.md"), "# Test");
 
-      const statusTool = gitCapabilities.tools?.find(
+      const statusTool = gitCapabilities.tools.find(
         (t) => t.name === "git-sync:status",
       );
       if (!statusTool) throw new Error("Status tool not found");
-      const statusResult = await statusTool.handler({});
-      expect(statusResult?.data?.hasChanges).toBe(true);
-      expect(statusResult?.data?.files.length).toBe(1);
-      expect(statusResult?.data?.files[0].path).toBe("test.md");
+      const statusResult = await statusTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
+      if (!statusResult.data) throw new Error("No data in status result");
+      expect(statusResult.data["hasChanges"]).toBe(true);
+      const files = statusResult.data["files"];
+      expect(Array.isArray(files) && files.length).toBe(1);
+      expect(Array.isArray(files) && files[0].path).toBe("test.md");
     });
   });
 });

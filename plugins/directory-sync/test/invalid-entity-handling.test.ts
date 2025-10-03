@@ -19,38 +19,53 @@ describe("Invalid Entity Handling", () => {
 
     // Create mock entity service that can simulate failures
     mockEntityService = {
-      serializeEntity: (entity: BaseEntity) => {
+      serializeEntity: (entity: BaseEntity): string => {
         return `# ${entity.id}\n\n${entity.content}`;
       },
-      deserializeEntity: (_content: string, _entityType: string) => {
+      deserializeEntity: (
+        _content: string,
+        _entityType: string,
+      ): Partial<BaseEntity> => {
         if (deserializeError) {
           throw deserializeError;
         }
         return { metadata: {} };
       },
-      getEntity: async (_entityType: string, _id: string) => {
+      getEntity: async (
+        _entityType: string,
+        _id: string,
+      ): Promise<BaseEntity | null> => {
         return null; // No existing entities
       },
-      createEntity: async (entity: Partial<BaseEntity>) => {
+      createEntity: async (
+        entity: Partial<BaseEntity>,
+      ): Promise<{ entityId: string; jobId: string }> => {
         return { entityId: entity.id ?? "test-id", jobId: "test-job" };
       },
-      updateEntity: async (_entity: BaseEntity) => {
+      updateEntity: async (
+        _entity: BaseEntity,
+      ): Promise<{ entityId: string; jobId: string }> => {
         return { entityId: _entity.id, jobId: "test-job" };
       },
-      upsertEntity: async (entity: Partial<BaseEntity>) => {
+      upsertEntity: async (
+        entity: Partial<BaseEntity>,
+      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
         return {
           entityId: entity.id ?? "test-id",
           jobId: "test-job",
           created: true,
         };
       },
-      deleteEntity: async (_entityType: string, _id: string) => {
+      deleteEntity: async (
+        _entityType: string,
+        _id: string,
+      ): Promise<boolean> => {
         return true;
       },
       listEntities: async (
         _entityType: string,
         _options?: { limit?: number; offset?: number },
-      ) => {
+      ): Promise<BaseEntity[]> => {
         return [];
       },
       search: async (
@@ -61,16 +76,18 @@ describe("Invalid Entity Handling", () => {
           sortBy?: string;
           sortDirection?: "asc" | "desc";
         },
-      ) => {
+      ): Promise<BaseEntity[]> => {
         return [];
       },
-      getEntityTypes: () => {
+      getEntityTypes: (): string[] => {
         return ["note", "summary", "topic"];
       },
-      hasEntityType: (entityType: string) => {
+      hasEntityType: (entityType: string): boolean => {
         return ["note", "summary", "topic"].includes(entityType);
       },
-      getAsyncJobStatus: async (_jobId: string) => {
+      getAsyncJobStatus: async (
+        _jobId: string,
+      ): Promise<{ status: "completed"; progress: number }> => {
         return { status: "completed" as const, progress: 100 };
       },
       storeEntityWithEmbedding: async (_data: {
@@ -82,10 +99,10 @@ describe("Invalid Entity Handling", () => {
         updated: number;
         contentWeight: number;
         embedding: Float32Array;
-      }) => {
+      }): Promise<void> => {
         // Mock implementation - does nothing
       },
-    };
+    } as unknown as IEntityService;
 
     // Create directory sync instance
     dirSync = new DirectorySync({
@@ -186,9 +203,9 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(invalidFile, "Invalid content");
 
       // Make only the invalid file fail
-      let callCount = 0;
-      mockEntityService.deserializeEntity = (content: string) => {
-        callCount++;
+      mockEntityService.deserializeEntity = (
+        content: string,
+      ): Partial<BaseEntity> => {
         if (content.includes("Invalid")) {
           throw new Error("Invalid format");
         }
@@ -370,7 +387,9 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(join(testDir, "note", "valid.md"), "# Valid");
       writeFileSync(join(testDir, "note", "invalid.md"), "Invalid");
 
-      mockEntityService.deserializeEntity = (content: string) => {
+      mockEntityService.deserializeEntity = (
+        content: string,
+      ): Partial<BaseEntity> => {
         if (content.includes("Invalid")) {
           throw new Error("Invalid");
         }

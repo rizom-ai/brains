@@ -2,6 +2,8 @@
  * Test fixtures for link entities
  */
 
+import type { LinkEntity } from "../../src";
+
 export const mockLinkContent = {
   simple: `# Test Article
 
@@ -84,7 +86,9 @@ example.com
 2025-01-30T10:00:00.000Z`,
 };
 
-export const mockLinkEntity = (content: string = mockLinkContent.simple) => ({
+export const mockLinkEntity = (
+  content: string = mockLinkContent.simple,
+): LinkEntity => ({
   id: "link-1",
   entityType: "link" as const,
   content,

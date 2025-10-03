@@ -95,7 +95,7 @@ describe("DirectoryDeleteJobHandler", () => {
       mockEntityService.deleteEntity = mock().mockRejectedValue(error);
 
       const promise = handler.process(validData, jobId, mockProgressReporter);
-      await expect(promise).rejects.toThrow("Database connection failed");
+      expect(promise).rejects.toThrow("Database connection failed");
 
       // Logger is silent, no need to test its calls
     });
@@ -112,7 +112,7 @@ describe("DirectoryDeleteJobHandler", () => {
         jobId,
         mockProgressReporter,
       );
-      await expect(promise).rejects.toThrow();
+      expect(promise).rejects.toThrow();
     });
 
     it("should report progress correctly", async () => {

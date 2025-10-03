@@ -1,6 +1,5 @@
 /** @jsxImportSource react */
 import { describe, test, expect } from "bun:test";
-import React from "react";
 import { render } from "ink-testing-library";
 import { ProgressBar } from "../src/components/ProgressBar";
 

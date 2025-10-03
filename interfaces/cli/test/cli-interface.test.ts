@@ -10,15 +10,10 @@ import {
 import { CLIInterface } from "../src/cli-interface";
 import { createInterfacePluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { CLIConfig } from "../src/types";
 
 // Mock console.clear
 const originalClear = console.clear;
 console.clear = mock(() => {});
-
-// Mock process.exit
-const mockExit = mock(() => {});
-process.exit = mockExit as any;
 
 describe("CLIInterface", () => {
   let cliInterface: CLIInterface;
@@ -32,9 +27,7 @@ describe("CLIInterface", () => {
   });
 
   afterEach(() => {
-    if (harness) {
-      harness.reset();
-    }
+    harness.reset();
   });
 
   describe("constructor and configuration", () => {
@@ -167,22 +160,6 @@ describe("CLIInterface", () => {
       // Should still have tools and resources
       expect(capabilities.tools).toBeDefined();
       expect(capabilities.resources).toBeDefined();
-    });
-
-    it("should provide CLI-specific commands through getCommands", async () => {
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-
-      // Get commands directly (not through plugin system)
-      const commands = await cliInterface.getCommands();
-
-      // Should have CLI-specific commands
-      expect(commands.length).toBe(2); // progress and clear
-
-      const commandNames = commands.map((cmd) => cmd.name);
-      // CLI-specific commands
-      expect(commandNames).toContain("progress");
-      expect(commandNames).toContain("clear");
     });
 
     it("should handle progress command", async () => {

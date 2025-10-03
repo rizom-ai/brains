@@ -116,7 +116,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     );
 
     // Get the layout component (guaranteed to exist)
-    const layoutName = route.layout ?? "default";
+    const layoutName = route.layout;
     const LayoutComponent = context.layouts[layoutName];
 
     if (!LayoutComponent) {
@@ -143,8 +143,8 @@ export class PreactBuilder implements StaticSiteBuilder {
     // For now, we'll use a simple default head
     // In a real implementation, we'd collect head props from the Head component
     const headProps: HeadProps = {
-      title: route.title ?? siteInfo.title ?? "Personal Brain",
-      description: route.description ?? siteInfo.description,
+      title: route.title,
+      description: route.description,
     };
 
     if (route.path !== "/") {

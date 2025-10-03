@@ -17,7 +17,9 @@ describe("CLI Interface - Channel Name Integration", () => {
     const mockShell = harness.getShell();
     const originalGetConversationService =
       mockShell.getConversationService.bind(mockShell);
-    mockShell.getConversationService = () => {
+    mockShell.getConversationService = (): ReturnType<
+      typeof originalGetConversationService
+    > => {
       const service = originalGetConversationService();
       service.startConversation = startConversationMock;
       return service;
@@ -34,6 +36,7 @@ describe("CLI Interface - Channel Name Integration", () => {
     expect(startConversationMock).toHaveBeenCalled();
     const call = startConversationMock.mock.calls[0];
     expect(call).toBeDefined();
+    if (!call) throw new Error("No call found");
 
     // The metadata parameter should contain channelName: "CLI Terminal"
     const metadata = call[3]; // Fourth parameter is metadata

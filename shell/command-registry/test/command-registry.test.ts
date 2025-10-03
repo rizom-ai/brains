@@ -1,19 +1,16 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { CommandRegistry } from "../src/command-registry";
 import { createSilentLogger } from "@brains/utils";
-import { MessageBus } from "@brains/messaging-service";
 import { PermissionService } from "@brains/permission-service";
 import type { Command } from "../src/types";
 
 describe("CommandRegistry", () => {
   let registry: CommandRegistry;
-  let messageBus: MessageBus;
   let permissionService: PermissionService;
 
   beforeEach(() => {
     CommandRegistry.resetInstance();
     const logger = createSilentLogger();
-    messageBus = MessageBus.getInstance(logger);
 
     // Create a PermissionService with test configuration
     permissionService = new PermissionService({

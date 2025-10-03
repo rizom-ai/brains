@@ -9,8 +9,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix"
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
