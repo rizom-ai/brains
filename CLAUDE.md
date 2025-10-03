@@ -1,5 +1,7 @@
 # CLAUDE.md - Guidelines for Personal Brain Rebuild Project
 
+> **Note**: For plugin and interface development, see [CLAUDE-PLUGINS-INTERFACES.md](./CLAUDE-PLUGINS-INTERFACES.md) for specialized guidelines.
+
 ## Your Role as an Elite Code Assistant
 
 As Claude, you are serving as an elite code assistant for the Personal Brain Rebuild project. Your objective is to help implement a modern, maintainable, and extensible architecture that follows best practices while maintaining compatibility with existing systems.
@@ -110,8 +112,9 @@ Refer to these documents for detailed architecture information:
 - **Plugin System**: `docs/plugin-system.md`
 - **Entity Model**: `docs/entity-model.md`
 - **Messaging System**: `docs/messaging-system.md`
-- **Query Processor**: (integrated into shell core)
 - **Development Workflow**: `docs/development-workflow.md`
+- **Deployment Guide**: `docs/deployment-guide.md`
+- **Plugin/Interface Development**: `CLAUDE-PLUGINS-INTERFACES.md` (specialized guidelines)
 
 ## Implementation Status & Next Priorities
 
