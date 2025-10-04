@@ -94,10 +94,10 @@ export class GitSync {
 
     // Parse the URL and insert authentication
     const url = new URL(this.gitUrl);
-    // For GitHub, GitLab, etc., use token as username with 'x-oauth-basic' as password
-    // or just the token as password with any username
+    // GitHub PATs should be used as the username with empty password
+    // Format: https://TOKEN@github.com/user/repo.git (no colon after token)
     url.username = this.authToken;
-    url.password = "x-oauth-basic"; // GitHub convention
+    url.password = "";
     return url.toString();
   }
 
@@ -142,22 +142,21 @@ export class GitSync {
         await this.git.addRemote("origin", this.getAuthenticatedUrl());
       }
     } else {
-      // Repository already exists, check if remote matches
+      // Repository already exists, always update remote to use authenticated URL
+      const authUrl = this.getAuthenticatedUrl();
+
+      // First check if origin exists
       const remotes = await this.git.getRemotes(true);
       const origin = remotes.find((r) => r.name === "origin");
 
-      if (origin && origin.refs.fetch !== this.gitUrl) {
-        this.logger.warn("Remote URL mismatch, updating", {
-          current: origin.refs.fetch,
-          expected: this.gitUrl,
-        });
-        await this.git.remote([
-          "set-url",
-          "origin",
-          this.getAuthenticatedUrl(),
-        ]);
-      } else if (!origin && this.gitUrl) {
-        await this.git.addRemote("origin", this.getAuthenticatedUrl());
+      if (origin) {
+        // Always update to ensure we have the authenticated URL
+        this.logger.debug("Updating remote URL with authentication");
+        await this.git.remote(["set-url", "origin", authUrl]);
+      } else if (this.gitUrl) {
+        // No origin, add it with authentication
+        this.logger.debug("Adding remote with authentication");
+        await this.git.addRemote("origin", authUrl);
       }
     }
 
@@ -307,17 +306,25 @@ export class GitSync {
    * Push changes to remote
    */
   async push(): Promise<void> {
+    // Origin is already configured with authentication
+    this.logger.debug("Pushing to origin", { branch: this.branch });
+
     try {
       // Try to push with upstream tracking on first push
       await this.git.push("origin", this.branch, ["--set-upstream"]);
       this.logger.info("Pushed changes to remote");
-    } catch {
-      // If that fails, try a regular push
+    } catch (firstError) {
+      this.logger.warn("First push attempt failed", { error: firstError });
+
+      // If that fails, try a regular push without --set-upstream
       try {
         await this.git.push("origin", this.branch);
         this.logger.info("Pushed changes to remote");
       } catch (fallbackError) {
-        this.logger.error("Failed to push changes", { error: fallbackError });
+        this.logger.error("Both push attempts failed", {
+          firstError,
+          fallbackError,
+        });
         throw new Error(
           `Failed to push changes to remote repository: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`,
         );
@@ -327,9 +334,26 @@ export class GitSync {
 
   /**
    * Pull changes from remote
+   * @returns true if pull succeeded, false if remote branch doesn't exist
    */
-  async pull(): Promise<void> {
+  async pull(): Promise<boolean> {
     try {
+      // Origin is already configured with authentication
+      this.logger.debug("Pulling from origin", { branch: this.branch });
+
+      // First check if the remote branch exists
+      try {
+        await this.git.fetch("origin", this.branch);
+      } catch (fetchError) {
+        const errorMessage =
+          fetchError instanceof Error ? fetchError.message : String(fetchError);
+        if (errorMessage.includes("couldn't find remote ref")) {
+          this.logger.info("Remote branch doesn't exist yet, skipping pull");
+          return false; // Return false to indicate branch doesn't exist
+        }
+        throw fetchError;
+      }
+
       // Pull with merge strategy (not rebase) and allow unrelated histories
       await this.git.pull("origin", this.branch, {
         "--no-rebase": null,
@@ -350,6 +374,8 @@ export class GitSync {
           result: importResponse.data,
         });
       }
+
+      return true; // Return true for successful pull
     } catch (error) {
       this.logger.error("Failed to pull changes", { error });
       throw new Error(
@@ -360,20 +386,14 @@ export class GitSync {
 
   /**
    * Perform full sync (commit local changes, pull, push)
+   * @param manualSync - Whether this sync was triggered manually (always push if true)
    */
-  async sync(): Promise<void> {
-    this.logger.debug("Starting sync");
+  async sync(manualSync = false): Promise<void> {
+    this.logger.debug("Starting sync", { manual: manualSync });
 
     try {
       // Get initial status to check for local changes
       const initialStatus = await this.getStatus();
-
-      // Determine if we need to push (before pull complicates state)
-      // Push if we have local changes OR if we're already ahead
-      const shouldPush =
-        this.autoPush &&
-        initialStatus.remote &&
-        (initialStatus.hasChanges || initialStatus.ahead > 0);
 
       // Commit any local changes FIRST (including deletions)
       // This ensures deletions are preserved before pulling
@@ -383,18 +403,39 @@ export class GitSync {
       }
 
       // Now pull remote changes (after local changes are safely committed)
+      let remoteBranchExists = true;
       if (initialStatus.remote) {
         try {
-          await this.pull();
+          // pull() returns false if remote branch doesn't exist
+          remoteBranchExists = await this.pull();
         } catch (error) {
           this.logger.warn("Pull failed", { error });
+          throw error;
         }
       }
 
-      // Push if we determined we should (based on initial status)
+      // Get status after commit and pull to see current state
+      const currentStatus = await this.getStatus();
+
+      // Push if:
+      // 1. Manual sync (always push on manual sync if we have commits)
+      // 2. AutoPush is enabled and we have changes or are ahead
+      // 3. Remote branch doesn't exist and we have commits to push
+      const shouldPush =
+        (manualSync && currentStatus.lastCommit) ||
+        (this.autoPush &&
+          initialStatus.remote &&
+          (currentStatus.hasChanges || currentStatus.ahead > 0)) ||
+        (!remoteBranchExists && currentStatus.lastCommit);
+
       if (shouldPush) {
         await this.push();
-        this.logger.info("Auto-pushed changes to remote");
+        this.logger.info("Pushed changes to remote", {
+          manual: manualSync,
+          createBranch: !remoteBranchExists,
+        });
+      } else if (!remoteBranchExists && !currentStatus.lastCommit) {
+        this.logger.debug("No commits to push to create remote branch");
       }
 
       this.logger.info("Sync completed successfully");

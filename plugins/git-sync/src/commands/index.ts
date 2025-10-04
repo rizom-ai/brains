@@ -9,7 +9,7 @@ export function createGitSyncCommands(gitSync: GitSync): Command[] {
       usage: "/git-sync",
       handler: async (_args, _context): Promise<CommandResponse> => {
         try {
-          await gitSync.sync();
+          await gitSync.sync(true); // Pass true for manual sync
 
           // Get status to show summary
           const status = await gitSync.getStatus();

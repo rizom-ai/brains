@@ -63,7 +63,7 @@ const config = defineConfig({
         "https://github.com/username/test-brain-backup",
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Test Brain",
-      authorEmail: "test-brain@rizom.ai",
+      authorEmail: "yeehaa@rizom.ai",
     }),
     new WebserverInterface({
       productionDomain: process.env["DOMAIN"]

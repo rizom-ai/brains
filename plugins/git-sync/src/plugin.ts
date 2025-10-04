@@ -78,8 +78,30 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
       // Only pull if we have a remote
       if (status.remote) {
         try {
-          await git.pull();
-          this.logger.info("Successfully pulled and imported initial content");
+          const remoteBranchExists = await git.pull();
+          if (remoteBranchExists) {
+            this.logger.info(
+              "Successfully pulled and imported initial content",
+            );
+          } else {
+            this.logger.info(
+              "Remote branch doesn't exist yet, will create on first push",
+            );
+
+            // If we have commits and autoPush is enabled, push to create the branch
+            if (status.lastCommit && this.config.autoPush) {
+              try {
+                await git.push();
+                this.logger.info(
+                  "Pushed initial commits to create remote branch",
+                );
+              } catch (pushError) {
+                this.logger.warn("Failed to push initial commits", {
+                  pushError,
+                });
+              }
+            }
+          }
         } catch (error) {
           this.logger.warn("Failed to pull during post-init", { error });
         }

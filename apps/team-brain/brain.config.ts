@@ -67,15 +67,21 @@ const config = defineConfig({
       deviceDisplayName: "Team Brain",
     }),
     directorySync({
-      seedContent: false, // Disable seed content when using git-sync restore
+      seedContent: true, // Enable seed content for initial setup
     }),
     new GitSyncPlugin({
       gitUrl:
         process.env["GIT_SYNC_URL"] ||
         "https://github.com/username/team-brain-backup",
       authToken: process.env["GIT_SYNC_TOKEN"],
+      authorName: "Team Brain",
+      authorEmail: "yeehaa@rizom.ai",
     }),
-    new WebserverInterface({}),
+    new WebserverInterface({
+      productionDomain: process.env["DOMAIN"]
+        ? `https://${process.env["DOMAIN"]}`
+        : undefined,
+    }),
     siteBuilderPlugin({
       templates,
       routes,
