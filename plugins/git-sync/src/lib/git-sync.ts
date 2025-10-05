@@ -293,8 +293,59 @@ export class GitSync {
   async commit(message?: string): Promise<void> {
     const finalMessage = message ?? this.formatCommitMessage();
 
+    // Check for conflict markers before committing
+    const status = await this.git.status();
+
+    // Check if we have conflicted files
+    if (status.conflicted.length > 0) {
+      this.logger.warn(
+        "Found conflicted files, resolving with remote version",
+        {
+          files: status.conflicted,
+        },
+      );
+
+      // Resolve conflicts by taking remote version
+      for (const file of status.conflicted) {
+        await this.git.raw(["checkout", "--theirs", file]);
+      }
+    }
+
     // Stage all changes including deletions (equivalent to git add -A)
     await this.git.add(["-A"]);
+
+    // Final safety check: ensure no conflict markers in staged files
+    const diff = await this.git.diff(["--cached", "--name-only"]);
+    const files = diff.split("\n").filter((f) => f.trim());
+
+    for (const file of files) {
+      if (!file) continue;
+
+      try {
+        // Check file content for conflict markers
+        const content = await this.git.show([`:${file}`]);
+        if (
+          content.includes("<<<<<<<") ||
+          content.includes("=======") ||
+          content.includes(">>>>>>>")
+        ) {
+          this.logger.error(
+            "Conflict markers detected in file, aborting commit",
+            { file },
+          );
+          throw new Error(
+            `Conflict markers found in ${file}. Manual intervention required.`,
+          );
+        }
+      } catch (error) {
+        // If we can't read the file (deleted, binary, etc.), skip the check
+        if (!error?.toString().includes("Conflict markers found")) {
+          // Only skip if it's not our own error
+          continue;
+        }
+        throw error;
+      }
+    }
 
     // Commit
     await this.git.commit(finalMessage);
@@ -354,10 +405,12 @@ export class GitSync {
         throw fetchError;
       }
 
-      // Pull with merge strategy (not rebase) and allow unrelated histories
+      // Pull with merge strategy, auto-resolving conflicts using remote version
       await this.git.pull("origin", this.branch, {
         "--no-rebase": null,
         "--allow-unrelated-histories": null,
+        "--strategy=recursive": null,
+        "-X": "theirs", // Automatically resolve conflicts using remote version
       });
       this.logger.info("Pulled changes from remote");
 
@@ -421,12 +474,17 @@ export class GitSync {
       // 1. Manual sync (always push on manual sync if we have commits)
       // 2. AutoPush is enabled and we have changes or are ahead
       // 3. Remote branch doesn't exist and we have commits to push
+      const manualSyncWithCommit =
+        manualSync && Boolean(currentStatus.lastCommit);
+      const autoPushCondition =
+        this.autoPush &&
+        Boolean(initialStatus.remote) &&
+        (currentStatus.hasChanges || currentStatus.ahead > 0);
+      const needsInitialPush =
+        !remoteBranchExists && Boolean(currentStatus.lastCommit);
+
       const shouldPush =
-        (manualSync && currentStatus.lastCommit) ||
-        (this.autoPush &&
-          initialStatus.remote &&
-          (currentStatus.hasChanges || currentStatus.ahead > 0)) ||
-        (!remoteBranchExists && currentStatus.lastCommit);
+        manualSyncWithCommit || autoPushCondition || needsInitialPush;
 
       if (shouldPush) {
         await this.push();
