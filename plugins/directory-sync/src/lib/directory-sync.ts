@@ -217,10 +217,13 @@ export class DirectorySync {
    * Export all entities to directory
    */
   async exportEntities(entityTypes?: string[]): Promise<ExportResult> {
-    this.logger.debug("Exporting entities to directory");
-
     const typesToExport =
       entityTypes ?? this.entityTypes ?? this.entityService.getEntityTypes();
+
+    this.logger.debug("Exporting entities to directory", {
+      entityTypes: typesToExport,
+    });
+
     const result: ExportResult = {
       exported: 0,
       failed: 0,
@@ -233,6 +236,11 @@ export class DirectorySync {
         limit: 1000, // Get all entities
       });
 
+      this.logger.debug("Processing entity type for export", {
+        entityType,
+        count: entities.length,
+      });
+
       for (const entity of entities) {
         const exportResult = await this.processEntityExport(entity);
 
@@ -243,8 +251,6 @@ export class DirectorySync {
               entityType,
               id: entity.id,
             });
-          } else {
-            this.logger.debug("Exported entity", { entityType, id: entity.id });
           }
         } else {
           result.failed++;

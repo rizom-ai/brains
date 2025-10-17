@@ -459,62 +459,64 @@ export class GitSync {
     this.logger.debug("Starting sync", { manual: manualSync });
 
     try {
-      // Get initial status to check for local changes
+      // Get initial status to check for remote
       const initialStatus = await this.getStatus();
 
-      // Track if we made a commit during this sync
-      let madeCommit = false;
-
-      // Commit any local changes FIRST (including deletions)
-      // This ensures deletions are preserved before pulling
-      if (initialStatus.hasChanges) {
-        await this.commit();
-        this.logger.info("Committed local changes");
-        madeCommit = true;
-      }
-
-      // Only pull if we didn't make a commit
-      // If we made a commit, we just want to push it, not pull and potentially create merge conflicts
+      // STEP 1: Pull from remote if it exists (get latest changes)
       let remoteBranchExists = true;
-      if (initialStatus.remote && !madeCommit) {
+      if (initialStatus.remote) {
         try {
-          // pull() returns false if remote branch doesn't exist
           remoteBranchExists = await this.pull();
         } catch (error) {
           this.logger.warn("Pull failed", { error });
           throw error;
         }
-      } else if (madeCommit) {
-        this.logger.debug("Skipping pull because we made a local commit");
       }
 
-      // Get status after commit and pull to see current state
+      // STEP 2: Commit any local changes (after pulling)
       const currentStatus = await this.getStatus();
+      if (currentStatus.hasChanges) {
+        await this.commit();
+        this.logger.info("Committed local changes");
+      }
+
+      // STEP 3: Check if we need to push
+      const finalStatus = await this.getStatus();
+
+      // Check if branch is tracking remote by getting branch info
+      const branchInfo = await this.git.branch();
+      const currentBranch = branchInfo.branches[branchInfo.current];
+      const isTrackingRemote =
+        currentBranch && "tracking" in currentBranch && currentBranch.tracking;
 
       // Push if:
-      // 1. Manual sync (always push on manual sync if we have commits)
-      // 2. AutoPush is enabled and we made a commit (or have uncommitted changes or are ahead)
-      // 3. Remote branch doesn't exist and we have commits to push
-      const manualSyncWithCommit =
-        manualSync && Boolean(currentStatus.lastCommit);
-      const autoPushCondition =
-        this.autoPush &&
-        Boolean(initialStatus.remote) &&
-        (madeCommit || currentStatus.hasChanges || currentStatus.ahead > 0);
-      const needsInitialPush =
-        !remoteBranchExists && Boolean(currentStatus.lastCommit);
-
+      // 1. Manual sync and we have commits
+      // 2. AutoPush enabled and we're ahead of remote
+      // 3. AutoPush enabled and branch isn't tracking (can't determine ahead count)
+      // 4. Remote branch doesn't exist and we have commits
       const shouldPush =
-        manualSyncWithCommit || autoPushCondition || needsInitialPush;
+        (manualSync && Boolean(finalStatus.lastCommit)) ||
+        (this.autoPush && finalStatus.ahead > 0) ||
+        (this.autoPush &&
+          !isTrackingRemote &&
+          Boolean(finalStatus.lastCommit)) ||
+        (!remoteBranchExists && Boolean(finalStatus.lastCommit));
 
       if (shouldPush) {
         await this.push();
         this.logger.info("Pushed changes to remote", {
           manual: manualSync,
+          ahead: finalStatus.ahead,
+          tracking: isTrackingRemote,
           createBranch: !remoteBranchExists,
         });
-      } else if (!remoteBranchExists && !currentStatus.lastCommit) {
-        this.logger.debug("No commits to push to create remote branch");
+      } else {
+        this.logger.debug("No push needed", {
+          ahead: finalStatus.ahead,
+          tracking: isTrackingRemote,
+          autoPush: this.autoPush,
+          remoteBranchExists,
+        });
       }
 
       this.logger.info("Sync completed successfully");

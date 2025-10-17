@@ -127,15 +127,17 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Queue initial sync after all plugins are initialized
     if (this.config.initialSync) {
       context.subscribe("system:plugins:ready", async () => {
-        this.debug("All plugins initialized, starting initial sync");
         const batchResult = await this.queueSyncJob(context, "initial");
 
-        if (batchResult !== `empty-sync-${Date.now()}`) {
+        if (!batchResult.startsWith("empty-sync-")) {
           // Job was queued, wait for it to complete by actually calling sync
           // Since we're in an async context, we can await the actual operation
           try {
             const directorySync = this.requireDirectorySync();
-            await directorySync.sync();
+
+            // For initial sync, only export DB entities to files
+            // Don't import - files may contain old seed content that would overwrite DB
+            await directorySync.exportEntities();
             this.debug("Initial sync completed");
 
             // Emit message when initial sync actually completes
@@ -149,8 +151,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
               error: error instanceof Error ? error.message : String(error),
             });
           }
-        } else {
-          this.debug("No sync operations needed");
         }
 
         return { success: true };
