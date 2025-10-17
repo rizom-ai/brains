@@ -139,10 +139,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             this.debug("Initial sync completed");
 
             // Emit message when initial sync actually completes
-            context.sendMessage("sync:initial:completed", { success: true });
+            await context.sendMessage("sync:initial:completed", {
+              success: true,
+            });
           } catch (error) {
             this.error("Initial sync failed", error);
-            context.sendMessage("sync:initial:completed", {
+            await context.sendMessage("sync:initial:completed", {
               success: false,
               error: error instanceof Error ? error.message : String(error),
             });
