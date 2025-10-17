@@ -13,6 +13,10 @@ import {
   DefaultLayout,
   MinimalLayout,
 } from "@brains/default-site-content";
+import {
+  templates as readmeTemplates,
+  routes as readmeRoutes,
+} from "@brains/readme-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
@@ -83,8 +87,8 @@ const config = defineConfig({
         : undefined,
     }),
     siteBuilderPlugin({
-      templates,
-      routes,
+      templates: { ...templates, ...readmeTemplates },
+      routes: [...routes, ...readmeRoutes],
       layouts: {
         default: DefaultLayout,
         minimal: MinimalLayout,

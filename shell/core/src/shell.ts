@@ -36,7 +36,11 @@ import { createShellConfig } from "./config";
 import type { RenderService } from "@brains/render-service";
 import type { DataSourceRegistry } from "@brains/datasource";
 import { ShellInitializer } from "./initialization/shellInitializer";
-import { SystemStatsDataSource, AIContentDataSource } from "./datasources";
+import {
+  SystemStatsDataSource,
+  AIContentDataSource,
+  EntityDataSource,
+} from "./datasources";
 import type { IdentityService } from "@brains/identity-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ShellDependencies } from "./types/shell-types";
@@ -627,6 +631,11 @@ export class Shell implements IShell {
     );
     this.dataSourceRegistry.register(aiContentDataSource);
     this.logger.debug("Registered AI Content DataSource");
+
+    // Register the Entity DataSource for fetching entity content
+    const entityDataSource = new EntityDataSource(this.entityService);
+    this.dataSourceRegistry.register(entityDataSource);
+    this.logger.debug("Registered Entity DataSource");
 
     this.logger.debug("Core DataSources registered");
   }
