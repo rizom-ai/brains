@@ -9,7 +9,7 @@ describe("Git-Sync Implementation Verification", () => {
   describe("Automatic Conflict Resolution", () => {
     it("should configure pull with 'theirs' merge strategy", () => {
       // Verify the pull method uses the correct flags
-      expect(gitSyncSource).toContain('"-X": "theirs"');
+      expect(gitSyncSource).toContain('"-Xtheirs": null');
       expect(gitSyncSource).toContain('"--strategy=recursive": null');
     });
 

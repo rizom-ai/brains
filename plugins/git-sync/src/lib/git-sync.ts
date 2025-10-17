@@ -405,12 +405,24 @@ export class GitSync {
         throw fetchError;
       }
 
+      // Check for local changes before pulling
+      const status = await this.git.status();
+      if (!status.isClean()) {
+        this.logger.info(
+          "Found local changes before pull, committing them first",
+          {
+            files: status.files.map((f) => f.path),
+          },
+        );
+        await this.commit("Pre-pull commit: preserving local changes");
+      }
+
       // Pull with merge strategy, auto-resolving conflicts using remote version
       await this.git.pull("origin", this.branch, {
         "--no-rebase": null,
         "--allow-unrelated-histories": null,
         "--strategy=recursive": null,
-        "-X": "theirs", // Automatically resolve conflicts using remote version
+        "-Xtheirs": null, // Automatically resolve conflicts using remote version
       });
       this.logger.info("Pulled changes from remote");
 
