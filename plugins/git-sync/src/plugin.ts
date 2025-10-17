@@ -109,6 +109,24 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
       return { success: true };
     });
+
+    // Listen for directory-sync initial sync completion
+    // When directory-sync exports entities on startup, commit and push them
+    context.subscribe("sync:initial:completed", async () => {
+      this.logger.debug(
+        "Initial sync completed by directory-sync, syncing git",
+      );
+
+      const git = this.getGitSync();
+      try {
+        await git.sync();
+        this.logger.info("Synced git after initial directory sync");
+      } catch (error) {
+        this.logger.warn("Failed to sync git after initial sync", { error });
+      }
+
+      return { success: true };
+    });
   }
 
   /**

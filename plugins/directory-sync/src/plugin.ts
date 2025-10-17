@@ -128,8 +128,29 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     if (this.config.initialSync) {
       context.subscribe("system:plugins:ready", async () => {
         this.debug("All plugins initialized, starting initial sync");
-        const jobId = await this.queueSyncJob(context, "initial");
-        this.debug("Queued initial sync job", { jobId });
+        const batchResult = await this.queueSyncJob(context, "initial");
+
+        if (batchResult !== `empty-sync-${Date.now()}`) {
+          // Job was queued, wait for it to complete by actually calling sync
+          // Since we're in an async context, we can await the actual operation
+          try {
+            const directorySync = this.requireDirectorySync();
+            await directorySync.sync();
+            this.debug("Initial sync completed");
+
+            // Emit message when initial sync actually completes
+            context.sendMessage("sync:initial:completed", { success: true });
+          } catch (error) {
+            this.error("Initial sync failed", error);
+            context.sendMessage("sync:initial:completed", {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        } else {
+          this.debug("No sync operations needed");
+        }
+
         return { success: true };
       });
     }

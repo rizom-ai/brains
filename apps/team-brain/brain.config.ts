@@ -72,6 +72,7 @@ const config = defineConfig({
     }),
     directorySync({
       seedContent: true, // Enable seed content for initial setup
+      initialSync: true, // Export all entities on startup
     }),
     new GitSyncPlugin({
       gitUrl:
@@ -80,6 +81,8 @@ const config = defineConfig({
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Team Brain",
       authorEmail: "yeehaa@rizom.ai",
+      autoSync: true, // Periodically commit and push changes
+      autoPush: true, // Automatically push commits to remote
     }),
     new WebserverInterface({
       productionDomain: process.env["DOMAIN"]

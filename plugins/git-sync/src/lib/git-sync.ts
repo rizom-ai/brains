@@ -405,15 +405,17 @@ export class GitSync {
         throw fetchError;
       }
 
-      // Check for local changes before pulling
+      // Check for local changes before pulling - this should not happen if called from sync()
+      // but might happen if pull() is called directly
       const status = await this.git.status();
       if (!status.isClean()) {
-        this.logger.info(
-          "Found local changes before pull, committing them first",
+        this.logger.warn(
+          "Found uncommitted changes before pull - this may cause conflicts",
           {
             files: status.files.map((f) => f.path),
           },
         );
+        // Commit them to prevent pull from failing
         await this.commit("Pre-pull commit: preserving local changes");
       }
 
@@ -460,16 +462,21 @@ export class GitSync {
       // Get initial status to check for local changes
       const initialStatus = await this.getStatus();
 
+      // Track if we made a commit during this sync
+      let madeCommit = false;
+
       // Commit any local changes FIRST (including deletions)
       // This ensures deletions are preserved before pulling
       if (initialStatus.hasChanges) {
         await this.commit();
         this.logger.info("Committed local changes");
+        madeCommit = true;
       }
 
-      // Now pull remote changes (after local changes are safely committed)
+      // Only pull if we didn't make a commit
+      // If we made a commit, we just want to push it, not pull and potentially create merge conflicts
       let remoteBranchExists = true;
-      if (initialStatus.remote) {
+      if (initialStatus.remote && !madeCommit) {
         try {
           // pull() returns false if remote branch doesn't exist
           remoteBranchExists = await this.pull();
@@ -477,6 +484,8 @@ export class GitSync {
           this.logger.warn("Pull failed", { error });
           throw error;
         }
+      } else if (madeCommit) {
+        this.logger.debug("Skipping pull because we made a local commit");
       }
 
       // Get status after commit and pull to see current state
@@ -484,14 +493,14 @@ export class GitSync {
 
       // Push if:
       // 1. Manual sync (always push on manual sync if we have commits)
-      // 2. AutoPush is enabled and we have changes or are ahead
+      // 2. AutoPush is enabled and we made a commit (or have uncommitted changes or are ahead)
       // 3. Remote branch doesn't exist and we have commits to push
       const manualSyncWithCommit =
         manualSync && Boolean(currentStatus.lastCommit);
       const autoPushCondition =
         this.autoPush &&
         Boolean(initialStatus.remote) &&
-        (currentStatus.hasChanges || currentStatus.ahead > 0);
+        (madeCommit || currentStatus.hasChanges || currentStatus.ahead > 0);
       const needsInitialPush =
         !remoteBranchExists && Boolean(currentStatus.lastCommit);
 
