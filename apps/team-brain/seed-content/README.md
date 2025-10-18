@@ -98,6 +98,18 @@ No commands needed!
 
 ---
 
+## Exercise: Topics & Summaries
+
+**Hands-on practice**
+
+1. Have a conversation about a project (3-4 messages)
+2. Use `/topics-list` to see extracted topics
+3. Use `/summary-list` to see summaries
+4. Visit https://babal.io
+5. Click into a topic to see related content
+
+---
+
 ## Browse Your Knowledge
 
 **Website access**
