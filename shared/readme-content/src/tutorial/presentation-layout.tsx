@@ -47,13 +47,14 @@ export const PresentationLayout = ({
             window.addEventListener('DOMContentLoaded', () => {
               if (window.Reveal) {
                 window.Reveal.initialize({
-                  hash: true,
-                  slideNumber: true,
-                  transition: 'slide',
                   controls: true,
                   progress: true,
-                  center: true,
-                  embedded: false,
+                  disableLayout: true,
+                  display: 'flex',
+                  hash: true,
+                  margin: 0.1,
+                  minScale: 0.1,
+                  maxScale: 2.0,
                 });
               }
             });
@@ -68,23 +69,50 @@ export const PresentationLayout = ({
             .presentation-section {
               width: 100%;
               height: 100vh;
+              height: 100dvh; /* Use dynamic viewport height for mobile */
               overflow: hidden;
-              background-color: var(--color-bg);
             }
 
             .reveal {
-              width: 100%;
+              font-family: var(--font-sans);
+              background: linear-gradient(to bottom left, #ffffff, #fce5c6 80%, #a8c4ff);
+            }
+
+            .reveal .slides section.stack {
+              justify-content: center;
+            }
+
+            .reveal .slides section:not(.stack) {
+              padding: 2rem;
               height: 100%;
+              align-items: flex-start;
+              justify-content: center;
+              flex-direction: column;
+              max-width: 800px;
+              color: #1a1a1a;
             }
 
-            /* Use brain theme colors */
-            .reveal .slides {
-              background-color: var(--color-bg);
+            @media (min-width: 640px) {
+              .reveal .slides section:not(.stack) {
+                padding: 3rem;
+              }
             }
 
-            .reveal .slides section {
-              background-color: var(--color-bg);
-              color: var(--color-text);
+            /* Mobile optimizations */
+            @media (max-width: 640px) {
+              .reveal h1 {
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+              }
+
+              .reveal h2 {
+                font-size: 2rem;
+                margin-bottom: 0.75rem;
+              }
+
+              .reveal .slides section {
+                padding: 1.5rem !important;
+              }
             }
 
             /* Typography - use theme variables */
@@ -95,41 +123,114 @@ export const PresentationLayout = ({
             .reveal h5,
             .reveal h6 {
               color: var(--color-text);
-              font-family: var(--font-sans);
+              font-family: var(--font-heading);
               font-weight: 700;
             }
 
             .reveal h1 {
-              color: var(--color-brand);
-              font-size: 3em;
+              color: #2e007d;
+              font-size: var(--text-h1-mobile);
+              line-height: 1;
+              font-weight: 700;
+              margin-bottom: 0.5rem;
+              text-align: left;
+            }
+
+            @media (min-width: 640px) {
+              .reveal h1 {
+                font-size: var(--text-h1);
+              }
             }
 
             .reveal h2 {
-              color: var(--color-brand-dark);
-              font-size: 2em;
+              color: #2e007d;
+              font-size: var(--text-h2-mobile);
+              line-height: 1;
+              font-weight: 700;
+              margin-bottom: 0.5rem;
+              text-align: left;
+            }
+
+            @media (min-width: 640px) {
+              .reveal h2 {
+                font-size: var(--text-h2);
+              }
+            }
+
+            .reveal h3 {
+              color: #1a1a1a;
+              font-size: var(--text-h3-mobile);
+              line-height: 1;
+              font-weight: 700;
+              margin-bottom: 1rem;
+              text-align: left;
+            }
+
+            @media (min-width: 640px) {
+              .reveal h3 {
+                font-size: var(--text-h3);
+              }
+            }
+
+            .reveal h4 {
+              color: #2e007d;
+              font-size: var(--text-h4);
+              font-weight: 700;
+              margin-top: 2rem;
+              margin-bottom: 1rem;
+              text-align: left;
             }
 
             .reveal p,
             .reveal li {
-              color: var(--color-text-muted);
+              color: #1a1a1a;
               font-family: var(--font-sans);
+              font-size: var(--text-body-mobile);
+              line-height: 1.5;
+              margin-bottom: 1rem;
+              text-align: left;
+            }
+
+            @media (min-width: 640px) {
+              .reveal p,
+              .reveal li {
+                font-size: var(--text-body);
+              }
             }
 
             .reveal a {
-              color: var(--color-brand);
-              text-decoration: none;
+              color: #e7640a;
+              text-decoration: underline;
+              font-weight: 900;
             }
 
             .reveal a:hover {
-              color: var(--color-brand-dark);
+              color: #93c5fd;
             }
 
-            .reveal strong {
-              color: var(--color-text);
-            }
-
+            .reveal strong,
             .reveal em {
-              color: var(--color-text-muted);
+              color: #e7640a;
+            }
+
+            .reveal ul,
+            .reveal ol {
+              margin-left: 1.5rem;
+              text-align: left;
+            }
+
+            .reveal li {
+              list-style-position: outside;
+              margin-top: 0.5rem;
+              margin-bottom: 0.5rem;
+            }
+
+            .reveal ul li {
+              list-style-type: disc;
+            }
+
+            .reveal ol li {
+              list-style-type: decimal;
             }
 
             /* Code styling */
@@ -166,24 +267,30 @@ export const PresentationLayout = ({
               color: var(--color-text-muted);
             }
 
-            /* Controls - use theme colors */
+            /* Controls and progress */
             .reveal .controls {
-              color: var(--color-brand);
+              color: #93c5fd;
             }
 
-            /* Progress bar - use theme colors */
             .reveal .progress {
-              background: var(--color-border);
+              background: #1e3a8a;
             }
 
             .reveal .progress span {
-              background: var(--color-brand);
+              background: #60a5fa;
             }
 
             /* Slide number */
             .reveal .slide-number {
-              color: var(--color-text-muted);
-              background-color: var(--color-bg-subtle);
+              color: var(--color-text);
+              background-color: transparent;
+              font-family: var(--font-mono);
+              font-size: 0.875rem;
+            }
+
+            /* Remove default reveal.js centered text */
+            .reveal .slides section * {
+              text-align: inherit;
             }
           `,
         }}

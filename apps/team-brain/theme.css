@@ -1,46 +1,119 @@
-/* Custom Theme for Test Brain - Green/Teal Theme */
+/* Rizom Brand Theme - Extracted from rizom.ai */
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+/*
+ * Rizom uses custom fonts: Kobe (geometric display) and Nitti (monospace)
+ * Using web alternatives that closely match the design:
+ * - Space Grotesk: Geometric sans-serif similar to Kobe
+ * - JetBrains Mono: Clean monospace similar to Nitti
+ */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Brand Colors - Green/Teal theme */
-  --color-brand: #10b981;
-  --color-brand-dark: #059669;
-  --color-brand-light: #34d399;
-  --color-accent: #14b8a6;
-  --color-accent-dark: #0d9488;
-  
-  /* Typography - Distinctive Google Fonts */
-  --font-sans: 'Bebas Neue', Impact, sans-serif;
-  --font-mono: 'Space Mono', 'Courier New', monospace;
-  
-  /* Spacing - Slightly more spacious */
-  --spacing-md: 1.25rem;
+  /* Brand Colors - From Figma Brand Guide */
+  --color-brand: #3921d7;
+  --color-brand-dark: #2e007d;
+  --color-brand-darker: #0e0027;
+  --color-brand-light: #a8c4ff;
+
+  --color-accent: #e7640a;
+  --color-accent-dark: #b34f08;
+  --color-accent-light: #fce5c6;
+
+  --color-yellow: #ffc31d;
+
+  /* Typography - Web alternatives to Kobe and Kokoro */
+  --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Text Colors - Using brand colors */
+  --color-text: #2e007d;
+  --color-text-muted: #3921d7;
+  --color-text-light: #6b7280;
+  --color-text-inverse: #ffffff;
+
+  /* Background Colors - Gradient inspired by rizom.ai */
+  --color-bg: #ffffff;
+  --color-bg-gradient-via: #fce5c6;
+  --color-bg-gradient-to: #a8c4ff;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #f9fafb;
+  --color-bg-muted: #e5e7eb;
+  --color-bg-dark: #0e0027;
+
+  /* Gradient Colors - Inspired by rizom.ai, using Figma colors */
+  --color-gradient-start: #ffffff;
+  --color-gradient-via: #fce5c6;
+  --color-gradient-end: #a8c4ff;
+
+  /* Border Colors */
+  --color-border: #e5e7eb;
+  --color-border-light: rgba(255, 255, 255, 0.8);
+
+  /* Typography Scale - Inspired by rizom.ai presentation */
+  --text-h1: 8rem;          /* 128px Desktop - bold impact */
+  --text-h1-mobile: 3.75rem; /* 60px Mobile */
+  --text-h2: 4.5rem;        /* 72px Desktop */
+  --text-h2-mobile: 3rem;   /* 48px Mobile */
+  --text-h3: 3rem;          /* 48px Desktop */
+  --text-h3-mobile: 2.25rem; /* 36px Mobile */
+  --text-h4: 1.875rem;      /* 30px */
+  --text-body: 1.875rem;    /* 30px Desktop */
+  --text-body-mobile: 1.5rem; /* 24px Mobile */
+
+  /* Spacing - Clean, generous */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
-  --spacing-xl: 2.5rem;
-  
-  /* Border Radius - More rounded */
+  --spacing-xl: 3rem;
+  --spacing-2xl: 4rem;
+
+  /* Border Radius - Subtle */
+  --radius-sm: 0.375rem;
   --radius-base: 0.5rem;
   --radius-lg: 0.75rem;
-  
-  /* Shadows - Softer shadows */
-  --shadow-sm: 0 1px 3px rgba(16, 185, 129, 0.05);
-  --shadow-base: 0 2px 6px rgba(16, 185, 129, 0.08);
-  --shadow-lg: 0 10px 20px rgba(16, 185, 129, 0.1);
+  --radius-xl: 1rem;
+
+  /* Shadows - Subtle, branded */
+  --shadow-sm: 0 2px 8px rgba(57, 33, 215, 0.05);
+  --shadow-base: 0 4px 16px rgba(57, 33, 215, 0.08);
+  --shadow-lg: 0 12px 32px rgba(57, 33, 215, 0.12);
 }
 
 /* Dark theme overrides */
 [data-theme="dark"] {
-  /* Brand Colors - Adjusted for dark mode */
-  --color-brand: #34d399;
-  --color-brand-dark: #10b981;
-  --color-brand-light: #6ee7b7;
-  --color-accent: #2dd4bf;
-  --color-accent-dark: #14b8a6;
-  
-  /* Background Colors - Darker with green tint */
-  --color-bg: #0a0f0d;
-  --color-bg-subtle: #111918;
-  --color-bg-muted: #1a2422;
+  /* Brand Colors - Inverted for dark mode */
+  --color-brand: #5842e6;
+  --color-brand-dark: #3921d7;
+  --color-brand-darker: #2e007d;
+  --color-brand-light: #7861ff;
+
+  --color-accent: #ff7b1f;
+  --color-accent-dark: #e7640a;
+  --color-accent-light: #fffcf6;
+
+  --color-yellow: #ffc31d;
+
+  /* Text Colors - Dark Mode */
+  --color-text: #ffffff;
+  --color-text-muted: #d1d5db;
+  --color-text-light: #9ca3af;
+  --color-text-inverse: #0e0027;
+
+  /* Background Colors - Dark Mode */
+  --color-bg: #0e0027;
+  --color-bg-card: #2e007d;
+  --color-bg-subtle: #1a1a2e;
+  --color-bg-muted: #2e007d;
+  --color-bg-dark: #000000;
+
+  /* Gradient Colors - Dark Mode */
+  --color-gradient-start: #0e0027;
+  --color-gradient-end: #2e007d;
+
+  /* Border Colors - Dark Mode */
+  --color-border: #2e007d;
+  --color-border-light: rgba(255, 255, 255, 0.1);
 }

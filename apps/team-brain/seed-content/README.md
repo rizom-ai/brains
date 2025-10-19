@@ -1,8 +1,8 @@
-# Welcome to Team Brain! 🧠
+# Welcome to Team Brain!
 
 **Your team's knowledge management system**
 
-Get started in 60 minutes
+Get started in 30 minutes
 
 ---
 
@@ -35,8 +35,8 @@ Scout automatically:
 **Verify it's working**
 
 1. Open your Matrix room
-2. Send: `Hello Scout!`
-3. Wait for response (2-5 seconds)
+2. Send: `Hello @scout!`
+3. Wait for response
 
 ✓ Team Brain is ready!
 
@@ -48,9 +48,9 @@ Scout automatically:
 
 Try these:
 
-- "What projects are we working on?"
-- "What did we decide about authentication?"
-- "What tools does the team use?"
+- @scout, what projects are we working on?
+- Did we decide about a documentation tool @scout
+- @scout, what tools does the team use?
 
 Scout searches everything you've captured
 
