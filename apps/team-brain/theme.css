@@ -51,14 +51,14 @@
   --color-border: #e5e7eb;
   --color-border-light: rgba(255, 255, 255, 0.8);
 
-  /* Typography Scale - Inspired by rizom.ai presentation */
-  --text-h1: 8rem;          /* 128px Desktop - bold impact */
-  --text-h1-mobile: 3.75rem; /* 60px Mobile */
-  --text-h2: 4.5rem;        /* 72px Desktop */
-  --text-h2-mobile: 3rem;   /* 48px Mobile */
-  --text-h3: 3rem;          /* 48px Desktop */
-  --text-h3-mobile: 2.25rem; /* 36px Mobile */
-  --text-h4: 1.875rem;      /* 30px */
+  /* Typography Scale - Balanced for readability */
+  --text-h1: 4.5rem;        /* 72px Desktop */
+  --text-h1-mobile: 3rem;   /* 48px Mobile */
+  --text-h2: 3rem;          /* 48px Desktop */
+  --text-h2-mobile: 2.25rem; /* 36px Mobile */
+  --text-h3: 2.25rem;       /* 36px Desktop */
+  --text-h3-mobile: 1.875rem; /* 30px Mobile */
+  --text-h4: 1.5rem;        /* 24px */
   --text-body: 1.875rem;    /* 30px Desktop */
   --text-body-mobile: 1.5rem; /* 24px Mobile */
 

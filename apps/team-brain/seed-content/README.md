@@ -1,12 +1,10 @@
-# Welcome to Team Brain!
+# Get Started with Recall
 
-**Your team's knowledge management system**
-
-Get started in 30 minutes
+**Instant recall of team knowledge**
 
 ---
 
-## What is Team Brain?
+## What is Recall?
 
 Transform scattered knowledge into unified intelligence
 
@@ -38,7 +36,7 @@ Scout automatically:
 2. Send: `Hello @scout!`
 3. Wait for response
 
-✓ Team Brain is ready!
+✓ Recall is ready!
 
 ---
 
@@ -48,9 +46,9 @@ Scout automatically:
 
 Try these:
 
-- @scout, what projects are we working on?
-- Did we decide about a documentation tool @scout
-- @scout, what tools does the team use?
+- `@scout`, what projects are we working on?
+- Did we decide about a documentation tool `@scout`
+- `@scout`, what tools does the team use?
 
 Scout searches everything you've captured
 
@@ -61,10 +59,9 @@ Scout searches everything you've captured
 **Share URLs, Scout does the rest**
 
 1. Paste any URL in chat
-2. Wait 10-20 seconds
-3. Scout extracts content
-4. Generates summary
-5. Identifies topics
+2. Scout extracts content
+3. Generates summary
+4. Identifies topics
 
 No commands needed!
 
@@ -74,11 +71,10 @@ No commands needed!
 
 **Hands-on practice**
 
-1. Share a technical article URL
-2. Share a documentation page URL
-3. Share a blog post URL
-4. Visit https://babal.io
-5. Find all 3 links captured
+1. Share an article URL
+2. Type `!link-list`
+3. Visit https://preview.babal.io/links
+4. Find your links captured in both places
 
 ---
 
@@ -103,8 +99,8 @@ No commands needed!
 **Hands-on practice**
 
 1. Have a conversation about a project (3-4 messages)
-2. Use `/topics-list` to see extracted topics
-3. Use `/summary-list` to see summaries
+2. Use `!topics-list` to see extracted topics
+3. Use `!summary-list` to see summaries
 4. Visit https://babal.io
 5. Click into a topic to see related content
 
@@ -125,7 +121,7 @@ Visit https://babal.io to:
 
 ## Daily Habits
 
-**Make Team Brain effective**
+**Make Recall effective**
 
 ✓ Share links as they come up
 ✓ Ask Scout when you need info
@@ -155,7 +151,7 @@ Use `/git-sync` to trigger manual sync
 
 **Connect to AI assistants**
 
-Team Brain works with Claude Desktop
+Recall works with Claude Desktop
 
 Endpoint: `https://api.babal.io/mcp`
 
@@ -201,10 +197,11 @@ Ask Claude to search team knowledge
 
 **Essential Commands**
 
-- `/help` - Show all commands
-- `/topics-list` - View topics
-- `/summary-list` - View summaries
-- `/git-sync` - Manual sync
+- `!help` - Show all commands
+- `!topics-list` - View topics
+- `!summary-list` - View summaries
+
+---
 
 **Key URLs**
 
@@ -241,6 +238,6 @@ Start capturing your team's knowledge
 
 Every link, every decision, every insight
 
-**Team Brain - Collective knowledge, competitive advantage**
+**Recall - Your team's knowledge, instantly accessible**
 
 _Powered by Rizom_

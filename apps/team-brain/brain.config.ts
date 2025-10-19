@@ -68,7 +68,7 @@ const config = defineConfig({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@teambrain-dev:rizom.ai",
-      deviceDisplayName: "Team Brain",
+      deviceDisplayName: "Recall",
     }),
     directorySync({
       seedContent: true, // Enable seed content for initial setup
@@ -77,9 +77,9 @@ const config = defineConfig({
     new GitSyncPlugin({
       gitUrl:
         process.env["GIT_SYNC_URL"] ||
-        "https://github.com/username/team-brain-backup",
+        "https://github.com/username/recall-backup",
       authToken: process.env["GIT_SYNC_TOKEN"],
-      authorName: "Team Brain",
+      authorName: "Recall",
       authorEmail: "yeehaa@rizom.ai",
       autoSync: true, // Periodically commit and push changes
       autoPush: true, // Automatically push commits to remote

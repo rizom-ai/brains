@@ -1,6 +1,6 @@
-# Team Brain App
+# Recall for Teams
 
-A collaborative knowledge management application for teams using the Personal Brain shell architecture.
+Collaborative knowledge management powered by AI.
 
 ## Development
 

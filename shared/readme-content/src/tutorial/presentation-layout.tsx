@@ -90,6 +90,13 @@ export const PresentationLayout = ({
               flex-direction: column;
               max-width: 800px;
               color: #1a1a1a;
+              text-align: left;
+            }
+
+            /* Override reveal.js default centering */
+            .reveal .slides > section,
+            .reveal .slides > section > section {
+              text-align: left;
             }
 
             @media (min-width: 640px) {
@@ -213,23 +220,27 @@ export const PresentationLayout = ({
               color: #e7640a;
             }
 
-            .reveal ul,
-            .reveal ol {
-              margin-left: 1.5rem;
+            .reveal .slides section ul,
+            .reveal .slides section ol {
+              display: block;
+              margin-left: 0;
+              padding-left: 2rem;
               text-align: left;
             }
 
-            .reveal li {
+            .reveal .slides section li {
+              display: list-item;
               list-style-position: outside;
               margin-top: 0.5rem;
               margin-bottom: 0.5rem;
+              text-align: left;
             }
 
-            .reveal ul li {
+            .reveal .slides section ul li {
               list-style-type: disc;
             }
 
-            .reveal ol li {
+            .reveal .slides section ol li {
               list-style-type: decimal;
             }
 
@@ -288,9 +299,17 @@ export const PresentationLayout = ({
               font-size: 0.875rem;
             }
 
-            /* Remove default reveal.js centered text */
-            .reveal .slides section * {
-              text-align: inherit;
+            /* Override any remaining centered text from reveal.js */
+            .reveal .slides section h1,
+            .reveal .slides section h2,
+            .reveal .slides section h3,
+            .reveal .slides section h4,
+            .reveal .slides section h5,
+            .reveal .slides section h6,
+            .reveal .slides section p,
+            .reveal .slides section div,
+            .reveal .slides section span {
+              text-align: left;
             }
           `,
         }}
