@@ -22,11 +22,9 @@ export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
     .string()
     .optional()
-    .describe("Output directory for preview builds")
-    .default("./dist/site-preview"),
+    .describe("Output directory for preview builds"),
   productionOutputDir: z
     .string()
-    .optional()
     .describe("Output directory for production builds")
     .default("./dist/site-production"),
   workingDir: z

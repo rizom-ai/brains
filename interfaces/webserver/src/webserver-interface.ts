@@ -32,10 +32,12 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
     // Initialize server manager with validated config
     this.serverManager = new ServerManager({
       logger: context.logger,
-      previewDistDir: this.config.previewDistDir,
       productionDistDir: this.config.productionDistDir,
-      previewPort: this.config.previewPort,
       productionPort: this.config.productionPort,
+      ...(this.config.previewDistDir && {
+        previewDistDir: this.config.previewDistDir,
+      }),
+      ...(this.config.previewPort && { previewPort: this.config.previewPort }),
     });
   }
 
@@ -48,8 +50,14 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         // Ensure dist directory exists
         await this.ensureDistDirectories();
 
-        // Auto-start both preview and production servers
-        await this.serverManager.startPreviewServer();
+        // Auto-start servers based on configuration
+        if (this.config.previewPort && this.config.previewDistDir) {
+          await this.serverManager.startPreviewServer();
+          this.logger.info("Preview server enabled");
+        } else {
+          this.logger.info("Preview server disabled (not configured)");
+        }
+
         await this.serverManager.startProductionServer();
       },
       stop: async (): Promise<void> => {
@@ -107,8 +115,8 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private async ensureDistDirectories(): Promise<void> {
     const { mkdir, writeFile } = await import("fs/promises");
 
-    // Create preview dist directory if it doesn't exist
-    if (!existsSync(this.config.previewDistDir)) {
+    // Create preview dist directory if configured and doesn't exist
+    if (this.config.previewDistDir && !existsSync(this.config.previewDistDir)) {
       await mkdir(this.config.previewDistDir, { recursive: true });
       await writeFile(
         join(this.config.previewDistDir, "index.html"),

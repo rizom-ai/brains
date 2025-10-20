@@ -115,8 +115,10 @@ export function createSiteBuilderTools(
       inputSchema: {
         environment: z
           .enum(["preview", "production"])
-          .default("preview")
-          .describe("Build environment"),
+          .optional()
+          .describe(
+            "Build environment (defaults to production, or preview if configured)",
+          ),
         clean: z
           .boolean()
           .default(true)
@@ -132,7 +134,7 @@ export function createSiteBuilderTools(
         context: ToolContext,
       ): Promise<ToolResponse> => {
         const buildSchema = z.object({
-          environment: z.enum(["preview", "production"]).default("preview"),
+          environment: z.enum(["preview", "production"]).optional(),
           clean: z.boolean().default(true),
           includeAssets: z.boolean().default(true),
         });
@@ -143,17 +145,26 @@ export function createSiteBuilderTools(
           throw new Error("Site builder not initialized");
         }
 
+        // Determine default environment based on config
+        const defaultEnv = config.previewOutputDir ? "preview" : "production";
+        const environment = params.environment ?? defaultEnv;
+
+        // Validate environment is available
+        if (environment === "preview" && !config.previewOutputDir) {
+          throw new Error("Preview environment not configured");
+        }
+
         // Determine output directory based on environment
         const outputDir =
-          params.environment === "production"
+          environment === "production"
             ? config.productionOutputDir
-            : config.previewOutputDir;
+            : config.previewOutputDir!;
 
         // Enqueue the build job
         const jobId = await pluginContext.enqueueJob(
           "site-build",
           {
-            environment: params.environment,
+            environment,
             outputDir,
             workingDir: config.workingDir,
             enableContentGeneration: false,
@@ -172,10 +183,10 @@ export function createSiteBuilderTools(
 
         return {
           success: true,
-          message: `Site build job queued for ${params.environment} environment`,
+          message: `Site build job queued for ${environment} environment`,
           data: {
             jobId,
-            environment: params.environment,
+            environment,
           },
         };
       },

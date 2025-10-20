@@ -92,9 +92,16 @@ export function createSiteBuilderCommands(
       description: "Build static site from existing content",
       usage: "/site-build [production]",
       handler: async (args, commandContext): Promise<CommandResponse> => {
-        // Parse environment from args (default to preview)
+        // Determine default environment based on config
+        const defaultEnv = config.previewOutputDir ? "preview" : "production";
+
+        // Parse environment from args
         const environment = (
-          args[0] === "production" ? "production" : "preview"
+          args[0] === "production"
+            ? "production"
+            : args[0] === "preview"
+              ? "preview"
+              : defaultEnv
         ) as "preview" | "production";
 
         if (!context) {
@@ -106,12 +113,21 @@ export function createSiteBuilderCommands(
         }
 
         try {
+          // Validate environment is available
+          if (environment === "preview" && !config.previewOutputDir) {
+            return {
+              type: "message",
+              message:
+                "❌ Preview environment not configured. Use `/site-build production` or configure preview in your settings.",
+            };
+          }
+
           // Build site directly (same logic as build-site tool)
           // Choose output directory based on environment
           const outputDir =
             environment === "production"
               ? config.productionOutputDir
-              : config.previewOutputDir;
+              : config.previewOutputDir!;
 
           const jobData = {
             environment,

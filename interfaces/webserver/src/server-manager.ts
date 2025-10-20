@@ -9,9 +9,9 @@ import { existsSync } from "fs";
 
 export interface ServerManagerOptions {
   logger: Logger;
-  previewDistDir: string;
+  previewDistDir?: string;
   productionDistDir: string;
-  previewPort: number;
+  previewPort?: number;
   productionPort: number;
 }
 
@@ -35,9 +35,13 @@ export class ServerManager {
     this.logger = options.logger;
     // Resolve paths relative to process.cwd()
     this.options = {
-      ...options,
-      previewDistDir: resolve(process.cwd(), options.previewDistDir),
+      logger: options.logger,
       productionDistDir: resolve(process.cwd(), options.productionDistDir),
+      productionPort: options.productionPort,
+      ...(options.previewDistDir && {
+        previewDistDir: resolve(process.cwd(), options.previewDistDir),
+      }),
+      ...(options.previewPort && { previewPort: options.previewPort }),
     };
   }
 
@@ -45,6 +49,11 @@ export class ServerManager {
    * Create preview server app
    */
   private createPreviewApp(): Hono {
+    if (!this.options.previewDistDir) {
+      throw new Error("Preview dist dir not configured");
+    }
+
+    const previewDistDir = this.options.previewDistDir;
     const app = new Hono();
 
     // Add middleware
@@ -60,13 +69,13 @@ export class ServerManager {
     app.use(
       "/*",
       serveStatic({
-        root: this.options.previewDistDir,
+        root: previewDistDir,
         rewriteRequestPath: (path) => {
           // Handle clean URLs
           if (!path.includes(".") && path !== "/") {
             // First try directory with index.html
             const indexPath = path + "/index.html";
-            const fullIndexPath = join(this.options.previewDistDir, indexPath);
+            const fullIndexPath = join(previewDistDir, indexPath);
             if (existsSync(fullIndexPath)) {
               return indexPath;
             }
@@ -80,7 +89,7 @@ export class ServerManager {
 
     // 404 handler
     app.notFound(async (c) => {
-      const notFoundPath = join(this.options.previewDistDir, "404.html");
+      const notFoundPath = join(previewDistDir, "404.html");
       if (existsSync(notFoundPath)) {
         const file = await Bun.file(notFoundPath).text();
         return c.html(file, 404);
@@ -126,7 +135,10 @@ export class ServerManager {
           if (!path.includes(".") && path !== "/") {
             // First try directory with index.html
             const indexPath = path + "/index.html";
-            const fullIndexPath = join(this.options.previewDistDir, indexPath);
+            const fullIndexPath = join(
+              this.options.productionDistDir,
+              indexPath,
+            );
             if (existsSync(fullIndexPath)) {
               return indexPath;
             }
@@ -155,6 +167,11 @@ export class ServerManager {
    * Start the preview server
    */
   async startPreviewServer(): Promise<string> {
+    if (!this.options.previewPort || !this.options.previewDistDir) {
+      this.logger.warn("Preview server not configured, skipping");
+      return "";
+    }
+
     if (this.servers.preview) {
       this.logger.warn("Preview server already running");
       return `http://localhost:${this.options.previewPort}`;

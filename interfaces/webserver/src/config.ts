@@ -6,13 +6,13 @@ import { z } from "@brains/utils";
 export const webserverConfigSchema = z.object({
   previewDistDir: z
     .string()
-    .describe("Directory for preview site files")
-    .default("./dist/site-preview"),
+    .optional()
+    .describe("Directory for preview site files"),
   productionDistDir: z
     .string()
     .describe("Directory for production site files")
     .default("./dist/site-production"),
-  previewPort: z.number().describe("Port for preview server").default(4321),
+  previewPort: z.number().optional().describe("Port for preview server"),
   productionPort: z
     .number()
     .describe("Port for production server")

@@ -342,12 +342,24 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
       rebuildTimer = setTimeout(async () => {
         pendingRebuild = false;
-        this.logger.debug("Auto-triggering site rebuild after content changes");
+
+        // Determine target environment based on config
+        const environment = this.config.previewOutputDir
+          ? "preview"
+          : "production";
+        const outputDir =
+          environment === "production"
+            ? this.config.productionOutputDir
+            : this.config.previewOutputDir!;
+
+        this.logger.debug(
+          `Auto-triggering ${environment} site rebuild after content changes`,
+        );
 
         try {
           await context.enqueueJob("site-build", {
-            environment: "preview",
-            outputDir: this.config.previewOutputDir,
+            environment,
+            outputDir,
             workingDir: this.config.workingDir,
             enableContentGeneration: true,
             metadata: {

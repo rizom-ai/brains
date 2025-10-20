@@ -220,6 +220,11 @@ EOF
 
         # Create Caddyfile
         log_info "Creating Caddyfile..."
+
+        # Check if preview is configured in env file
+        PREVIEW_DOMAIN=$(grep -E "^PREVIEW_DOMAIN=" "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "")
+
+        # Base Caddyfile with production and API
         cat << EOF | $SSH_CMD "cat > $APP_DIR/Caddyfile"
 {
     email admin@$DOMAIN
@@ -235,9 +240,15 @@ $DOMAIN {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 }
+EOF
+
+        # Add preview block only if configured
+        if [ -n "$PREVIEW_DOMAIN" ]; then
+            log_info "Preview environment detected, adding preview subdomain..."
+            cat << EOF | $SSH_CMD "cat >> $APP_DIR/Caddyfile"
 
 # Preview site
-preview.$DOMAIN {
+$PREVIEW_DOMAIN {
     reverse_proxy personal-brain:4321
 
     header {
@@ -246,6 +257,11 @@ preview.$DOMAIN {
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 }
+EOF
+        fi
+
+        # Add API endpoint
+        cat << EOF | $SSH_CMD "cat >> $APP_DIR/Caddyfile"
 
 # API endpoint (MCP server)
 api.$DOMAIN {
@@ -325,10 +341,15 @@ main() {
     deploy_app_files
     start_containers
 
+    # Check if preview is configured (read from env file)
+    PREVIEW_DOMAIN=$(grep -E "^PREVIEW_DOMAIN=" "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "")
+
     if [ -n "$DOMAIN" ]; then
         log_info "✅ Deployment complete!"
         log_info "Production site: https://$DOMAIN"
-        log_info "Preview site: https://preview.$DOMAIN"
+        if [ -n "$PREVIEW_DOMAIN" ]; then
+            log_info "Preview site: https://$PREVIEW_DOMAIN"
+        fi
         log_info "API (MCP): https://api.$DOMAIN/mcp"
         log_info ""
         log_info "API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
@@ -336,7 +357,9 @@ main() {
         log_info "✅ Deployment complete!"
         log_info "API (MCP): http://$SERVER_IP:3333/mcp"
         log_info "Production site: http://$SERVER_IP:8080"
-        log_info "Preview site: http://$SERVER_IP:4321"
+        if [ -n "$PREVIEW_DOMAIN" ]; then
+            log_info "Preview site: http://$SERVER_IP:4321"
+        fi
         log_info ""
         log_info "API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
     fi
