@@ -1,6 +1,6 @@
 # Get Started with Recall
 
-**Instant recall of team knowledge**
+**Your team's collective brain**
 
 ---
 
@@ -9,17 +9,17 @@
 Transform scattered knowledge into unified intelligence
 
 - Capture links automatically
-- Organize with AI
+- Organize conversations with AI
 - Search everything
 - Collaborate seamlessly
 
 ---
 
-## Meet Scout
+## Meet Recall
 
 Your AI knowledge coordinator
 
-Scout automatically:
+Recall automatically:
 
 - Maintains documentation
 - Tracks decisions
@@ -33,7 +33,7 @@ Scout automatically:
 **Verify it's working**
 
 1. Open your Matrix room
-2. Send: `Hello @scout!`
+2. Send: `Hello @recall!`
 3. Wait for response
 
 ✓ Recall is ready!
@@ -46,17 +46,17 @@ Scout automatically:
 
 Try these:
 
-- `@scout`, what projects are we working on?
-- Did we decide about a documentation tool `@scout`
-- `@scout`, what tools does the team use?
+- `@recall`, what projects are we working on?
+- Did we decide about a documentation tool `@recall`
+- `@recall`, what tools does the team use?
 
-Scout searches everything you've captured
+Recall searches everything you've captured
 
 ---
 
 ## Capture Links
 
-**Share URLs, Scout does the rest**
+**Share URLs, Recall does the rest**
 
 1. Paste any URL in chat
 2. Scout extracts content
@@ -80,9 +80,9 @@ No commands needed!
 
 ## Automatic Organization
 
-**Scout organizes everything**
+**Recall organizes everything**
 
-**Topics:** Extracted from content
+**Topics:** Extracted from conversations
 
 - No manual tagging needed
 - Updated automatically
@@ -90,7 +90,7 @@ No commands needed!
 **Summaries:** Created from conversations
 
 - Key points captured
-- Daily digests available
+- Digests available
 
 ---
 
@@ -198,10 +198,9 @@ Ask Claude to search team knowledge
 **Essential Commands**
 
 - `!help` - Show all commands
+- `!link-list` - View captured links
 - `!topics-list` - View topics
 - `!summary-list` - View summaries
-
----
 
 **Key URLs**
 
@@ -211,24 +210,13 @@ Ask Claude to search team knowledge
 
 ---
 
-## Get Started Now
-
-**Your first task**
-
-1. Ask Scout 3 questions
-2. Capture 3 links
-3. Visit the website
-4. See your knowledge grow
-
----
-
 ## Support
 
 **Need help?**
 
 Admin: @yeehaa:rizom.ai
 
-Check `/help` for all commands
+Check `!help` for all commands
 
 ---
 

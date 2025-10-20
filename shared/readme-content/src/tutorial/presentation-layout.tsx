@@ -88,7 +88,7 @@ export const PresentationLayout = ({
               align-items: flex-start;
               justify-content: center;
               flex-direction: column;
-              max-width: 800px;
+              max-width: 900px;
               color: #1a1a1a;
               text-align: left;
             }
@@ -99,9 +99,27 @@ export const PresentationLayout = ({
               text-align: left;
             }
 
+            /* Tablet and up */
             @media (min-width: 640px) {
               .reveal .slides section:not(.stack) {
-                padding: 3rem;
+                padding: 3rem 4rem;
+                max-width: 1000px;
+              }
+            }
+
+            /* Desktop and up */
+            @media (min-width: 1024px) {
+              .reveal .slides section:not(.stack) {
+                padding: 4rem 6rem;
+                max-width: 1200px;
+              }
+            }
+
+            /* Large desktop */
+            @media (min-width: 1440px) {
+              .reveal .slides section:not(.stack) {
+                padding: 5rem 8rem;
+                max-width: 1400px;
               }
             }
 
