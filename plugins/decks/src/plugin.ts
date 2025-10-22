@@ -8,6 +8,8 @@ import {
 import { z } from "@brains/utils";
 import { DeckFormatter } from "./formatters/deck-formatter";
 import { deckTemplate } from "./templates/deck-template";
+import { deckListTemplate } from "./templates/deck-list";
+import { DeckDataSource } from "./datasources/deck-datasource";
 import { createDecksCommands } from "./commands";
 import packageJson from "../package.json";
 
@@ -30,9 +32,14 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     const formatter = new DeckFormatter();
     context.registerEntityType("deck", formatter.schema, formatter);
 
-    // Register deck detail template
+    // Register deck datasource
+    const datasource = new DeckDataSource(context.entityService, this.logger);
+    context.registerDataSource(datasource);
+
+    // Register deck templates
     context.registerTemplates({
       "deck-detail": deckTemplate,
+      "deck-list": deckListTemplate,
     });
 
     this.logger.info("Decks plugin registered successfully");
