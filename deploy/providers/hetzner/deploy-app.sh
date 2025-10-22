@@ -224,20 +224,35 @@ EOF
         # Check if preview is configured in env file
         PREVIEW_DOMAIN=$(grep -E "^PREVIEW_DOMAIN=" "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "")
 
-        # Base Caddyfile with production and API
+        # Base Caddyfile with production site and MCP API
         cat << EOF | $SSH_CMD "cat > $APP_DIR/Caddyfile"
 {
     email admin@$DOMAIN
 }
 
-# Production site
+# Production site with MCP API
 $DOMAIN {
-    reverse_proxy personal-brain:8080
+    # MCP API endpoint (must come before general proxy)
+    handle /mcp* {
+        reverse_proxy personal-brain:3333
 
-    header {
-        X-Frame-Options "SAMEORIGIN"
-        X-Content-Type-Options "nosniff"
-        Referrer-Policy "strict-origin-when-cross-origin"
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+        }
+    }
+
+    # Production site (catch-all)
+    handle {
+        reverse_proxy personal-brain:8080
+
+        header {
+            X-Frame-Options "SAMEORIGIN"
+            X-Content-Type-Options "nosniff"
+            Referrer-Policy "strict-origin-when-cross-origin"
+        }
     }
 }
 EOF
@@ -259,22 +274,6 @@ $PREVIEW_DOMAIN {
 }
 EOF
         fi
-
-        # Add API endpoint
-        cat << EOF | $SSH_CMD "cat >> $APP_DIR/Caddyfile"
-
-# API endpoint (MCP server)
-api.$DOMAIN {
-    reverse_proxy personal-brain:3333
-
-    header {
-        X-Content-Type-Options "nosniff"
-        Access-Control-Allow-Origin "*"
-        Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-        Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-    }
-}
-EOF
     else
         # Without domain - direct port access
         cat << EOF | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
@@ -350,12 +349,12 @@ main() {
         if [ -n "$PREVIEW_DOMAIN" ]; then
             log_info "Preview site: https://$PREVIEW_DOMAIN"
         fi
-        log_info "API (MCP): https://api.$DOMAIN/mcp"
+        log_info "MCP API: https://$DOMAIN/mcp"
         log_info ""
         log_info "API requires Bearer token authentication if MCP_AUTH_TOKEN is set"
     else
         log_info "✅ Deployment complete!"
-        log_info "API (MCP): http://$SERVER_IP:3333/mcp"
+        log_info "MCP API: http://$SERVER_IP:3333/mcp"
         log_info "Production site: http://$SERVER_IP:8080"
         if [ -n "$PREVIEW_DOMAIN" ]; then
             log_info "Preview site: http://$SERVER_IP:4321"

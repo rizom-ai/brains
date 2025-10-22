@@ -10,7 +10,6 @@ export function createSystemCommands(
       name: "search",
       description: "Search your knowledge base",
       usage: "/search <query>",
-      visibility: "public",
       handler: async (args, _context): Promise<CommandResponse> => {
         if (args.length === 0) {
           return {
@@ -67,7 +66,6 @@ export function createSystemCommands(
       name: "get",
       description: "Get a specific entity by ID",
       usage: "/get <entity-id> [entity-type]",
-      visibility: "public",
       handler: async (args, _context): Promise<CommandResponse> => {
         if (args.length === 0) {
           return {

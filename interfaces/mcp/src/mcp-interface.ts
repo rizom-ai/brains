@@ -104,7 +104,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         if (isRunning) {
           if (this.config.transport === "http") {
             const apiUrl = this.config.domain
-              ? `https://api.${this.config.domain}/mcp`
+              ? `https://${this.config.domain}/mcp`
               : `http://localhost:${this.config.httpPort}/mcp`;
             message = `MCP HTTP: ${apiUrl}`;
           } else {

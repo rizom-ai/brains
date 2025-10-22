@@ -1,30 +1,20 @@
 # Get Started with Recall
 
-**Your team's collective brain**
+**Transform scattered knowledge into unified intelligence**
 
 ---
 
-## What is Recall?
-
-Transform scattered knowledge into unified intelligence
-
-- Capture links automatically
-- Organize conversations with AI
-- Search everything
-- Collaborate seamlessly
+# Meet Your Team's Collective Brain
 
 ---
 
-## Meet Recall
+## Recall provides
 
-Your AI knowledge coordinator
-
-Recall automatically:
-
-- Maintains documentation
-- Tracks decisions
-- Extracts topics
 - Provides instant answers
+- Capture links automatically
+- Summarizes conversations
+- Extracts topics
+- Collaborate seamlessly
 
 ---
 
@@ -32,17 +22,17 @@ Recall automatically:
 
 **Verify it's working**
 
-1. Open your Matrix room
-2. Send: `Hello @recall!`
+1. Go to: [https://matrix.to/#/#recall-room:rizom.ai](https://matrix.to/#/#recall-room:rizom.ai)
+2. Send: `Hi @recall, how can you help me today?`
 3. Wait for response
 
 ✓ Recall is ready!
 
 ---
 
-## Ask Questions
+## Exercise
 
-**Get answers from team knowledge**
+**Recall answers from team knowledge**
 
 Try these:
 
@@ -54,9 +44,11 @@ Recall searches everything you've captured
 
 ---
 
-## Capture Links
+# Automatic Organization
 
-**Share URLs, Recall does the rest**
+---
+
+## Capture Links
 
 1. Paste any URL in chat
 2. Scout extracts content
@@ -67,93 +59,75 @@ No commands needed!
 
 ---
 
-## Exercise: Capture Content
-
-**Hands-on practice**
+## Exercise
 
 1. Share an article URL
-2. Type `!link-list`
-3. Visit https://preview.babal.io/links
-4. Find your links captured in both places
+2. Visit https://recall.rizom.ai/links
+3. Find your links captured in both places
 
 ---
 
-## Automatic Organization
+## Topic Extraction
 
-**Recall organizes everything**
-
-**Topics:** Extracted from conversations
-
+- Just talk like you normally would
+- Common topics are extracted from the conversations
 - No manual tagging needed
-- Updated automatically
+- Topics are automatically updated over time
 
-**Summaries:** Created from conversations
+---
+
+## Summary Generation
 
 - Key points captured
 - Digests available
 
 ---
 
-## Exercise: Topics & Summaries
-
-**Hands-on practice**
+## Exercise
 
 1. Have a conversation about a project (3-4 messages)
-2. Use `!topics-list` to see extracted topics
-3. Use `!summary-list` to see summaries
-4. Visit https://babal.io
-5. Click into a topic to see related content
+2. Visit [https://recall.rizom.ai/topics](https://recall.rizom.ai/topics)
+3. Visit [https://recall.rizom.ai/summaries](https://recall.rizom.ai/summaries)
 
 ---
 
-## Browse Your Knowledge
-
-**Website access**
-
-Visit https://babal.io to:
-
-- See all captured content
-- Browse by topics
-- Read summaries
-- Search everything
+## Make Recall effective
 
 ---
 
-## Daily Habits
+# Daily Habits
 
-**Make Recall effective**
+**Start building your team's knowledge!**
 
 ✓ Share links as they come up
-✓ Ask Scout when you need info
+✓ Ask Recall when you need info
 ✓ Check topics weekly
 ✓ Visit website regularly
 
-Start building your team's knowledge!
+---
+
+# Advanced Features
 
 ---
 
-## Advanced: Git Sync
+## Edit content anywhere
 
-**Edit content anywhere**
-
-All knowledge stored as Markdown in Git
+**All knowledge stored as Markdown in Git**
 
 - Edit in Obsidian, VS Code, HackMD
 - Version control for all changes
 - Sync automatically
 - Collaborate with Git workflows
 
-Use `/git-sync` to trigger manual sync
+Use `!git-sync` to trigger manual sync
 
 ---
 
-## Advanced: MCP Integration
+## Connect to AI assistants
 
-**Connect to AI assistants**
+**Recall works with MCP clients such as Claude Desktop**
 
-Recall works with Claude Desktop
-
-Endpoint: `https://api.babal.io/mcp`
+Endpoint: [https://recall.rizom.ai/mcp](https://recall.rizom.ai/mcp)
 
 Ask Claude to search team knowledge
 
@@ -163,69 +137,64 @@ Ask Claude to search team knowledge
 
 ---
 
-## How It Works
-
-**AI Processing**
-
-- Claude AI extracts content
-- Semantic topic analysis
-- Automatic summarization
-- 10-30 seconds per link
-
-**Storage**
-
-- Markdown files (human-readable)
-- Git repository (version control)
-- SQLite database (fast search)
-- Vector embeddings (semantic search)
+# How It Works
 
 ---
 
-## Your Data, Your Control
+## Knowledge Processing
 
-**Privacy & Security**
+- AI extracts content
+- Semantic topic analysis
+- Automatic summarization
 
-✓ Private or self-hosted Git
-✓ Your own infrastructure
+---
+
+## Storage
+
+- Markdown files (human-readable)
+- Git repository (version control)
+- SQLite database with vector embeddings (fast, semantic search)
+
+---
+
+## Privacy & Security
+
+✓ Host data on Github or self-hosted Git
 ✓ E2E encryption supported
-✓ Complete data portability
+✓ SQLite provides complete data portability
 ✓ Can run on-premises
 
 ---
 
-## Quick Reference
+# Quick Reference
+
+---
 
 **Essential Commands**
 
 - `!help` - Show all commands
-- `!link-list` - View captured links
-- `!topics-list` - View topics
-- `!summary-list` - View summaries
+- `!identity` - Show the agent's identity
+
+---
 
 **Key URLs**
 
-- Website: https://babal.io
-- Preview: https://preview.babal.io
-- API: https://api.babal.io/mcp
+- Website: [https://recall.rizom.ai](https://recall.rizom.ai)
+- API: [https://recall.rizom.ai/mcp](https://recall.rizom.ai/mcp)
+
+- Recall Content: [https://github.com/rizom-ai/team-brain-content](https://github.com/rizom-ai/team-brain-content)
+- Brains Code: [https://github.com/rizom-ai/brains](https://github.com/rizom-ai/brains)
 
 ---
 
-## Support
+## Start capturing your team's knowledge
 
-**Need help?**
-
-Admin: @yeehaa:rizom.ai
-
-Check `!help` for all commands
+Need help: `@yeehaa:rizom.ai`
 
 ---
 
-## You're Ready! 🎉
+# Recall: Powered by Rizom
 
-Start capturing your team's knowledge
+**Capture every link, every decision, every insight**
 
-Every link, every decision, every insight
-
-**Recall - Your team's knowledge, instantly accessible**
-
-_Powered by Rizom_
+---
