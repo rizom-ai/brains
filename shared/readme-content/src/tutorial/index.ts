@@ -1,5 +1,4 @@
 export { TutorialLayout } from "./layout";
-export { PresentationLayout } from "./presentation-layout";
 export { TutorialContentSchema, type TutorialContent } from "./schema";
 export { TutorialFormatter } from "./formatter";
 

@@ -1,6 +1,9 @@
 import type { JSX } from "preact";
-import type { TutorialContent } from "./schema";
 import { markdownToHtml } from "@brains/utils";
+
+export interface PresentationLayoutProps {
+  markdown: string;
+}
 
 /**
  * Presentation layout for reveal.js
@@ -9,7 +12,7 @@ import { markdownToHtml } from "@brains/utils";
  */
 export const PresentationLayout = ({
   markdown,
-}: TutorialContent): JSX.Element => {
+}: PresentationLayoutProps): JSX.Element => {
   // Split markdown by slide separators (---)
   const slides = markdown.split(/^---$/gm).map((slide) => slide.trim());
 

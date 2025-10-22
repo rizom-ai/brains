@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import type { TutorialContent } from "./schema";
 import { markdownToHtml } from "@brains/utils";
-import { PresentationLayout } from "./presentation-layout";
+import { PresentationLayout } from "@brains/ui-library";
 
 /**
  * Tutorial layout - auto-detects presentation mode
