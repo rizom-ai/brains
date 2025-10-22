@@ -1,4 +1,4 @@
-# Slides Plugin - Implementation Plan
+# Decks Plugin - Implementation Plan
 
 ## Philosophy
 
@@ -9,7 +9,7 @@
 
 ## Plugin Structure
 
-### 1. Entity Type: `slide`
+### 1. Entity Type: `deck`
 
 **Schema:**
 
@@ -18,14 +18,15 @@
   id: string;           // filename without .md
   title: string;        // from frontmatter
   description?: string; // from frontmatter
-  tags?: string[];     // from frontmatter
-  content: string;     // markdown with --- separators
+  author?: string;      // from frontmatter
+  date?: string;        // from frontmatter (ISO date string)
+  content: string;      // markdown with --- separators
   created: Date;
   updated: Date;
 }
 ```
 
-**Storage:** `brain-data/slides/my-presentation.md`
+**Storage:** `brain-data/decks/my-presentation.md`
 
 **Example File:**
 
@@ -33,7 +34,8 @@
 ---
 title: TypeScript Introduction
 description: Learn TypeScript basics
-tags: [typescript, programming]
+author: Jane Developer
+date: 2025-10-22
 ---
 
 # Welcome
@@ -55,18 +57,19 @@ Introduction to TypeScript
 Questions?
 ```
 
-### 2. Minimal Adapter
+### 2. Deck Formatter with Validation
 
-**File:** `plugins/slides/src/adapters/slide-adapter.ts`
+**File:** `plugins/decks/src/formatters/deck-formatter.ts`
 
-- `toMarkdown()` - serialize with frontmatter
-- `fromMarkdown()` - parse frontmatter + content
-- Simple, like LinkAdapter or SummaryAdapter
-- No complex formatting needed
+- `toMarkdown()` - serialize with frontmatter + validate slide structure
+- `fromMarkdown()` - parse frontmatter + content + validate slide structure
+- Validates presence of `---` slide separators on both parse and serialize
+- Throws descriptive errors if markdown is not a valid presentation
+- Similar round-trip functionality as other entity formatters
 
-### 3. Presentation Template
+### 3. Deck Template
 
-**File:** `plugins/slides/src/templates/slide-template.ts`
+**File:** `plugins/decks/src/templates/deck-template.ts`
 
 - Uses `PresentationLayout` from `@brains/ui-library`
 - Auto-detects `---` separators
@@ -75,16 +78,16 @@ Questions?
 
 ### 4. Site Integration
 
-- DynamicRouteGenerator creates `/slides/[id]` routes automatically
-- Uses existing pattern (looks for `slide-detail` template)
+- DynamicRouteGenerator creates `/decks/[id]` routes automatically
+- Uses existing pattern (looks for `deck-detail` template)
 - No manual route configuration needed
 
-### 5. Optional: Single List Command
+### 5. Single List Command
 
-**File:** `plugins/slides/src/commands/index.ts`
+**File:** `plugins/decks/src/commands/index.ts`
 
-- `/slides` - list all presentations
-- Optional - can use `/search slide` instead
+- `/decks-list` - list all presentation decks
+- Optional - can use `/search deck` instead
 - Minimal implementation (~50 lines)
 
 ## Workflow
@@ -93,11 +96,12 @@ Questions?
 
 ```bash
 # Just create a markdown file
-cat > brain-data/slides/my-talk.md << 'EOF'
+cat > brain-data/decks/my-talk.md << 'EOF'
 ---
 title: My Presentation
 description: About TypeScript
-tags: [typescript, coding]
+author: Jane Developer
+date: 2025-10-22
 ---
 
 # Welcome
@@ -117,13 +121,13 @@ Introduction slide
 EOF
 
 # Git tracks it automatically
-git add brain-data/slides/my-talk.md
+git add brain-data/decks/my-talk.md
 git commit -m "Add TypeScript presentation"
 ```
 
 ### Viewing Presentations
 
-- Navigate to `/slides/my-talk`
+- Navigate to `/decks/my-talk`
 - Auto-generated route shows Reveal.js presentation
 - Slide separators (`---`) detected automatically
 
@@ -137,22 +141,22 @@ git commit -m "Add TypeScript presentation"
 ## Files to Create
 
 ```
-plugins/slides/
+plugins/decks/
 ├── src/
-│   ├── adapters/
-│   │   └── slide-adapter.ts        (~80 lines)
+│   ├── formatters/
+│   │   └── deck-formatter.ts       (~100 lines, includes validation)
 │   ├── entities/
-│   │   └── slide-schema.ts         (~30 lines)
+│   │   └── deck-schema.ts          (~40 lines)
 │   ├── templates/
-│   │   └── slide-template.ts       (~25 lines)
+│   │   └── deck-template.ts        (~25 lines)
 │   ├── commands/
-│   │   └── index.ts                (~50 lines, optional)
+│   │   └── index.ts                (~50 lines)
 │   └── plugin.ts                   (~60 lines)
 ├── package.json
 └── tsconfig.json
 ```
 
-**Total:** ~250 lines of code for full plugin
+**Total:** ~275 lines of code for full plugin
 
 ## Implementation Pattern
 
@@ -162,12 +166,12 @@ Follow existing plugins:
 - Summary plugin (~500 lines total)
 - Topics plugin (~450 lines total)
 
-Slides plugin will be even simpler (~250 lines) since it doesn't need:
+Decks plugin will be even simpler (~275 lines) since it doesn't need:
 
 - AI integration
-- Complex parsing
+- Complex parsing beyond slide validation
 - External API calls
-- Custom commands for CRUD operations
+- Custom commands for CRUD operations (use files + git)
 
 ## Benefits
 
@@ -195,47 +199,86 @@ Slides plugin will be even simpler (~250 lines) since it doesn't need:
 - Generic presentation template in `@brains/default-site-content` ✅
 - Auto-detection of `---` separators ✅
 
-### Phase 3 (Slides Plugin)
+### Phase 3 (Decks Plugin)
 
-- Define `slide` entity type
-- Create slide adapter
-- Register slide template
+- Define `deck` entity type with author/date metadata
+- Create deck formatter with validation
+- Register deck template
 - DynamicRouteGenerator picks it up automatically
 
 ## Technical Details
 
-### Slide Schema (Zod)
+### Deck Schema (Zod)
 
 ```typescript
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/entity-service";
 
-export const slideSchema = baseEntitySchema.extend({
+export const deckSchema = baseEntitySchema.extend({
   title: z.string().describe("Presentation title"),
   description: z.string().optional().describe("Brief description"),
-  tags: z.array(z.string()).optional().describe("Tags for categorization"),
+  author: z.string().optional().describe("Author name"),
+  date: z.string().optional().describe("Presentation date (ISO format)"),
 });
 
-export type SlideEntity = z.infer<typeof slideSchema>;
+export type DeckEntity = z.infer<typeof deckSchema>;
 ```
 
-### Adapter Pattern
+### Formatter Pattern with Validation
 
 ```typescript
-export class SlideAdapter extends EntityAdapter<SlideEntity> {
-  entityType = "slide" as const;
-  schema = slideSchema;
+export class DeckFormatter {
+  entityType = "deck" as const;
+  schema = deckSchema;
 
-  toMarkdown(entity: SlideEntity): string {
-    return generateMarkdownWithFrontmatter(entity.content, entity.metadata);
+  /**
+   * Parse markdown into a deck entity
+   * Validates that content has proper slide structure
+   */
+  fromMarkdown(markdown: string): DeckEntity {
+    const { frontmatter, content } = parseMarkdownWithFrontmatter(markdown);
+
+    // Validate presentation structure - must have slide separators
+    const hasSlides = /^---$/gm.test(content);
+    if (!hasSlides) {
+      throw new Error(
+        `Invalid deck: markdown must contain slide separators (---) to be a valid presentation`,
+      );
+    }
+
+    // Optional: count slides for metadata
+    const slideCount = content.split(/^---$/gm).length;
+
+    return this.schema.parse({
+      id: frontmatter.id,
+      title: frontmatter.title,
+      description: frontmatter.description,
+      author: frontmatter.author,
+      date: frontmatter.date,
+      content,
+      slideCount, // Optional metadata
+      created: frontmatter.created || new Date(),
+      updated: frontmatter.updated || new Date(),
+    });
   }
 
-  fromMarkdown(markdown: string): SlideEntity {
-    const { frontmatter, content } = parseMarkdownWithFrontmatter(markdown);
-    return this.schema.parse({
-      ...frontmatter,
-      content,
-      // ... timestamps
+  /**
+   * Serialize deck entity to markdown
+   * Validates before serializing to prevent corrupted data
+   */
+  toMarkdown(entity: DeckEntity): string {
+    // Validate before serializing
+    if (!/^---$/gm.test(entity.content)) {
+      throw new Error(
+        `Cannot serialize deck: content must contain slide separators (---)`,
+      );
+    }
+
+    return generateMarkdownWithFrontmatter(entity.content, {
+      title: entity.title,
+      description: entity.description,
+      author: entity.author,
+      date: entity.date,
     });
   }
 }
@@ -244,9 +287,9 @@ export class SlideAdapter extends EntityAdapter<SlideEntity> {
 ### Template Registration
 
 ```typescript
-export const slideTemplate = createTemplate<{ markdown: string }>({
-  name: "slide-detail",
-  description: "Render a presentation as Reveal.js slides",
+export const deckTemplate = createTemplate<{ markdown: string }>({
+  name: "deck-detail",
+  description: "Render a presentation deck as Reveal.js slides",
   schema: z.object({ markdown: z.string() }),
   dataSourceId: "shell:entities",
   requiredPermission: "public",
@@ -259,12 +302,14 @@ export const slideTemplate = createTemplate<{ markdown: string }>({
 
 ## Success Criteria
 
-1. Can create presentation by creating markdown file in `brain-data/slides/`
-2. Presentation appears in search results
-3. Can view presentation at `/slides/[id]` route
-4. Reveal.js renders slides from `---` separators
-5. Git tracks all changes to presentations
-6. Can tag and categorize presentations via frontmatter
+1. Can create presentation by creating markdown file in `brain-data/decks/`
+2. Deck formatter validates slide structure on parse and serialize
+3. Invalid markdown (without `---` separators) throws descriptive error
+4. Presentation appears in search results
+5. Can view presentation at `/decks/[id]` route
+6. Reveal.js renders slides from `---` separators
+7. Git tracks all changes to presentations
+8. Can add author and date metadata via frontmatter
 
 ## Future Enhancements (Not in Initial Scope)
 
