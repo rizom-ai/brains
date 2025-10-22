@@ -20,6 +20,7 @@ import {
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
+import { DecksPlugin } from "@brains/decks";
 import defaultTheme, { customizeTheme } from "@brains/theme-default";
 import customThemeCSS from "./theme.css" with { type: "text" };
 
@@ -61,6 +62,7 @@ const config = defineConfig({
     new TopicsPlugin({}),
     new SummaryPlugin({}),
     new LinkPlugin({}),
+    new DecksPlugin(),
     new MCPInterface({
       authToken: process.env["MCP_AUTH_TOKEN"],
     }),
