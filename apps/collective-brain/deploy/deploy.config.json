@@ -1,0 +1,21 @@
+{
+  "name": "collective-brain",
+  "displayName": "Rizom Collective Brain",
+  "serviceName": "rizom-collective",
+  "binaryName": "brain",
+  "description": "Rizom Collective Knowledge Hub",
+  "defaultPort": 3333,
+  "installPath": "/opt/rizom-collective",
+  "dataPath": "/opt/rizom-collective/data",
+  "user": "rizom-collective",
+  "group": "rizom-collective",
+  "build": {
+    "entryPoint": "brain.config.ts",
+    "outputName": "brain"
+  },
+  "platforms": ["linux-x64", "linux-arm64"],
+  "deployment": {
+    "useDocker": true,
+    "dockerImage": "rizom-collective"
+  }
+}

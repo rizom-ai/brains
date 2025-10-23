@@ -83,6 +83,11 @@ const config = defineConfig({
       productionDomain: process.env["DOMAIN"]
         ? `https://${process.env["DOMAIN"]}`
         : undefined,
+      previewDomain: process.env["PREVIEW_DOMAIN"]
+        ? `https://${process.env["PREVIEW_DOMAIN"]}`
+        : undefined,
+      previewDistDir: "./dist/site-preview",
+      previewPort: 4321,
     }),
     siteBuilderPlugin({
       templates,
@@ -91,6 +96,7 @@ const config = defineConfig({
         default: DefaultLayout,
         minimal: MinimalLayout,
       },
+      previewOutputDir: "./dist/site-preview",
       siteConfig: {
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
