@@ -37,7 +37,7 @@ export class RenderService implements IViewTemplateRegistry {
     const parts = name.split(":");
     const pluginId = parts.length >= 2 && parts[0] ? parts[0] : "shell";
 
-    return {
+    const viewTemplate: ViewTemplate<unknown> = {
       name,
       schema: template.schema,
       description: template.description,
@@ -45,6 +45,12 @@ export class RenderService implements IViewTemplateRegistry {
       renderers: { web: template.layout.component },
       interactive: template.layout.interactive ?? false,
     };
+
+    if (template.layout.routeLayout) {
+      viewTemplate.routeLayout = template.layout.routeLayout;
+    }
+
+    return viewTemplate;
   }
 
   list(): ViewTemplate<unknown>[] {

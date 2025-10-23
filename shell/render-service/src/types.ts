@@ -78,6 +78,9 @@ export interface ViewTemplate<T = unknown> {
   // Mark components that need client-side hydration
   interactive: boolean;
 
+  // Route layout preference for dynamically generated routes
+  routeLayout?: string;
+
   // Content source information (preserved from ContentTemplate)
   providerId?: string; // For provider-based data fetching
   formatter?: ContentFormatter<T>; // For parsing stored content

@@ -24,5 +24,6 @@ export const deckTemplate = createTemplate<DeckTemplateData>({
   layout: {
     component: PresentationLayout,
     interactive: false,
+    routeLayout: "minimal",
   },
 });

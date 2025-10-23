@@ -38,6 +38,8 @@ export interface Template
   layout?: {
     component?: ComponentType<unknown>;
     interactive?: boolean;
+    // Route/page layout to use when rendering this template (e.g., "minimal", "default")
+    routeLayout?: string;
   };
 
   // Data sourcing capability (optional)
@@ -53,6 +55,7 @@ export function createTemplate<T>(
     layout?: {
       component?: ComponentType<T>;
       interactive?: boolean;
+      routeLayout?: string;
     };
   },
 ): Template {
@@ -70,6 +73,9 @@ export function createTemplate<T>(
     }
     if (layout.component) {
       result.layout.component = createTypedComponent(schema, layout.component);
+    }
+    if (layout.routeLayout !== undefined) {
+      result.layout.routeLayout = layout.routeLayout;
     }
   }
 

@@ -99,13 +99,20 @@ export class DynamicRouteGenerator {
           `Found ${entities.length} ${entityType} entities to generate routes for`,
         );
 
+        // Get template to check for route layout preference
+        const templates = this.context.listViewTemplates();
+        const detailTemplate = templates.find(
+          (t) => t.name === detailTemplateName,
+        );
+        const layout = detailTemplate?.routeLayout ?? "default";
+
         for (const entity of entities) {
           const detailRoute: RouteDefinition = {
             id: `${entityType}-${entity.id}`,
             path: `/${this.pluralize(entityType)}/${entity.id}`,
             title: `${this.capitalize(entityType)}: ${entity.id}`,
             description: `View ${entityType} details`,
-            layout: "default",
+            layout,
             sections: [
               {
                 id: "detail",
