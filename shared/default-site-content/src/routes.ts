@@ -7,9 +7,9 @@ export const routes = [
     description: "Your AI-powered knowledge hub",
     layout: "minimal", // Use minimal layout without header
     navigation: {
-      show: false, // Site title links to home, so no separate nav item needed
+      show: true, // Show in footer
       label: "Home",
-      slot: "primary",
+      slot: "secondary", // Footer only
       priority: 10,
     },
     sections: [{ id: "intro", template: "intro" }],
@@ -23,7 +23,7 @@ export const routes = [
     navigation: {
       show: true,
       label: "About",
-      slot: "primary",
+      slot: "secondary", // Footer only
       priority: 90,
     },
     sections: [

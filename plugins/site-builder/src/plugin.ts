@@ -112,8 +112,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       navigation: {
         show: true,
         label: "Dashboard",
-        slot: "primary",
-        priority: 90, // Last item
+        slot: "secondary", // Footer only
+        priority: 100, // Last item in footer
       },
       sections: [
         {

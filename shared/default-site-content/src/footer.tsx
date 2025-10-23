@@ -3,24 +3,35 @@ import type { JSX } from "preact";
 interface NavigationItem {
   label: string;
   href: string;
+  priority: number;
 }
 
 interface FooterProps {
-  navigation: NavigationItem[];
+  primaryNavigation: NavigationItem[];
+  secondaryNavigation: NavigationItem[];
   copyright?: string;
 }
 
-export const Footer = ({ navigation, copyright }: FooterProps): JSX.Element => {
+export const Footer = ({
+  primaryNavigation,
+  secondaryNavigation,
+  copyright,
+}: FooterProps): JSX.Element => {
   const currentYear = new Date().getFullYear();
+
+  // Combine and sort navigation items by priority
+  const allNavigation = [...primaryNavigation, ...secondaryNavigation].sort(
+    (a, b) => a.priority - b.priority,
+  );
 
   return (
     <footer className="footer py-8 border-t border-theme-border">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Simple navigation links */}
-        {navigation.length > 0 && (
+        {allNavigation.length > 0 && (
           <nav className="footer-navigation mb-4">
             <ul className="flex flex-wrap justify-center gap-6">
-              {navigation.map((item) => (
+              {allNavigation.map((item) => (
                 <li key={item.href}>
                   <a
                     href={item.href}

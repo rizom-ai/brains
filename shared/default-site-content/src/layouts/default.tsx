@@ -45,7 +45,10 @@ export function DefaultLayout({
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
 
-      <Footer navigation={siteInfo.navigation.primary} />
+      <Footer
+        primaryNavigation={siteInfo.navigation.primary}
+        secondaryNavigation={siteInfo.navigation.secondary}
+      />
     </div>
   );
 }
