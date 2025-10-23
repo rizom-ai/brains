@@ -5,7 +5,7 @@ export const routes = [
     path: "/about",
     title: "About Recall",
     description: "Getting started guide and tutorial for Recall",
-    layout: "minimal",
+    layout: "default",
     navigation: {
       show: true,
       label: "About",
