@@ -134,10 +134,7 @@ export function createSiteBuilderCommands(
             outputDir,
             workingDir: config.workingDir,
             enableContentGeneration: false,
-            siteConfig: config.siteConfig ?? {
-              title: "Personal Brain",
-              description: "A knowledge management system",
-            },
+            siteConfig: config.siteConfig,
           };
 
           const metadata: JobContext = {

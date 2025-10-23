@@ -18,6 +18,10 @@ export function createTestConfig(
     previewOutputDir: "./dist/site-preview",
     productionOutputDir: "./dist/site-production",
     workingDir: "./.preact-work",
+    siteConfig: {
+      title: "Test Site",
+      description: "Test site for unit tests",
+    },
     layouts: {
       default: TestLayout,
     },

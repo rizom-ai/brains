@@ -134,7 +134,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     };
 
     // Create head collector for SSR
-    const headCollector = new HeadCollector();
+    const headCollector = new HeadCollector(context.siteConfig.title);
 
     // Render the layout component
     // TODO: Pass headCollector through context when we implement proper context support
@@ -154,7 +154,11 @@ export class PreactBuilder implements StaticSiteBuilder {
     headCollector.setHeadProps(headProps);
 
     // Create full HTML page with head data
-    const html = createHTMLShell(layoutHtml, headCollector.generateHeadHTML());
+    const html = createHTMLShell(
+      layoutHtml,
+      headCollector.generateHeadHTML(),
+      context.siteConfig.title,
+    );
 
     // Determine output path
     const outputPath =

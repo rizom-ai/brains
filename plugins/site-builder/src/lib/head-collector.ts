@@ -16,6 +16,11 @@ export interface HeadProps {
  */
 export class HeadCollector {
   private headProps: HeadProps | null = null;
+  private defaultTitle: string;
+
+  constructor(defaultTitle: string) {
+    this.defaultTitle = defaultTitle;
+  }
 
   setHeadProps(props: HeadProps): void {
     // Only keep the first Head component's props (usually from the page)
@@ -51,7 +56,7 @@ export class HeadCollector {
     tags.push('<link rel="stylesheet" href="/styles/main.css">');
 
     if (!this.headProps) {
-      tags.push("<title>Personal Brain</title>");
+      tags.push(`<title>${this.escapeHtml(this.defaultTitle)}</title>`);
       return tags.join("\n    ");
     }
 

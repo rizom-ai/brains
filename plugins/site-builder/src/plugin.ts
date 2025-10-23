@@ -74,10 +74,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     context.registerDataSource(navigationDataSource);
 
     // Register SiteInfoDataSource
-    const siteConfig = this.config.siteConfig ?? {
-      title: "Personal Brain",
-      description: "A knowledge management system",
-    };
+    const siteConfig = this.config.siteConfig;
     const siteInfoDataSource = new SiteInfoDataSource(
       this._routeRegistry,
       {
@@ -168,6 +165,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.logger.child("SiteBuildJobHandler"),
       this.siteBuilder,
       this.layouts,
+      this.config.siteConfig,
       this.config.themeCSS,
     );
     context.registerJobHandler("site-build", siteBuildHandler);

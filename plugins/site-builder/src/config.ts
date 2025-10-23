@@ -40,10 +40,9 @@ export const siteBuilderConfigSchema = z.object({
       copyright: z.string().optional(),
     })
     .default({
-      title: "Personal Brain",
+      title: "Rizom Brains",
       description: "A knowledge management system",
-    })
-    .optional(),
+    }),
   themeCSS: z
     .string()
     .describe("Custom CSS theme overrides to inject into builds")

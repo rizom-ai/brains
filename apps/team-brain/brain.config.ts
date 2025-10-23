@@ -94,6 +94,10 @@ const config = defineConfig({
         default: DefaultLayout,
         minimal: MinimalLayout,
       },
+      siteConfig: {
+        title: "Recall",
+        description: "Your team's AI-powered knowledge hub",
+      },
       themeCSS,
     }),
   ],

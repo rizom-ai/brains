@@ -1,7 +1,7 @@
 import type { JobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
 import type { SiteBuilder } from "../lib/site-builder";
-import type { LayoutComponent } from "../config";
+import type { LayoutComponent, SiteBuilderConfig } from "../config";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
@@ -18,6 +18,7 @@ export class SiteBuildJobHandler
     private logger: Logger,
     private siteBuilder: SiteBuilder,
     private layouts: Record<string, LayoutComponent>,
+    private defaultSiteConfig: SiteBuilderConfig["siteConfig"],
     private themeCSS?: string,
   ) {}
 
@@ -56,10 +57,7 @@ export class SiteBuildJobHandler
           enableContentGeneration: data.enableContentGeneration,
           environment: data.environment,
           cleanBeforeBuild: true,
-          siteConfig: data.siteConfig ?? {
-            title: "Personal Brain",
-            description: "A knowledge management system",
-          },
+          siteConfig: data.siteConfig ?? this.defaultSiteConfig,
           layouts: this.layouts,
           themeCSS: this.themeCSS,
         },
