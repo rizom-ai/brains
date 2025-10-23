@@ -158,6 +158,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       layoutHtml,
       headCollector.generateHeadHTML(),
       context.siteConfig.title,
+      context.siteConfig.themeMode,
     );
 
     // Determine output path

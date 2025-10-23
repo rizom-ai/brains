@@ -22,6 +22,7 @@ export interface BuildContext {
     description: string;
     url?: string;
     copyright?: string;
+    themeMode?: "light" | "dark";
   };
   getContent: (
     route: RouteDefinition,

@@ -6,6 +6,7 @@ export function createHTMLShell(
   content: string,
   headContent?: string,
   defaultTitle?: string,
+  themeMode?: "light" | "dark",
 ): string {
   // Default head content if none provided
   const defaultHead = `
@@ -16,8 +17,11 @@ export function createHTMLShell(
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/styles/main.css">`;
 
+  const themeAttr =
+    (themeMode ?? "light") === "dark" ? ' data-theme="dark"' : "";
+
   return `<!DOCTYPE html>
-<html lang="en" class="h-full" data-theme="dark">
+<html lang="en" class="h-full"${themeAttr}>
 <head>
     ${headContent ?? defaultHead}
 </head>

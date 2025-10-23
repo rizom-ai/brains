@@ -103,6 +103,7 @@ const config = defineConfig({
         url: process.env["DOMAIN"]
           ? `https://${process.env["DOMAIN"]}`
           : undefined,
+        themeMode: "light",
       },
       themeCSS: defaultTheme,
     }),

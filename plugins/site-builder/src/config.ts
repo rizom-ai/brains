@@ -38,6 +38,7 @@ export const siteBuilderConfigSchema = z.object({
       description: z.string(),
       url: z.string().optional(),
       copyright: z.string().optional(),
+      themeMode: z.enum(["light", "dark"]).optional(),
     })
     .default({
       title: "Rizom Brains",

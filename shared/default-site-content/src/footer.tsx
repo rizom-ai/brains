@@ -28,7 +28,7 @@ export const Footer = ({
   );
 
   return (
-    <footer className="footer py-8 border-t border-theme-border">
+    <footer className="footer py-8 bg-brand">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Navigation links in two rows */}
         <nav className="footer-navigation mb-4 space-y-3">
@@ -39,7 +39,7 @@ export const Footer = ({
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className="text-theme-muted hover:text-brand transition-colors text-sm"
+                    className="text-theme-inverse hover:text-brand-light transition-colors text-sm"
                   >
                     {item.label}
                   </a>
@@ -54,7 +54,7 @@ export const Footer = ({
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className="text-theme-muted hover:text-brand transition-colors text-sm"
+                    className="text-theme-inverse hover:text-brand-light transition-colors text-sm"
                   >
                     {item.label}
                   </a>
@@ -66,7 +66,7 @@ export const Footer = ({
 
         {/* Simple credit line */}
         <div className="text-center">
-          <p className="text-sm text-theme-muted">
+          <p className="text-sm text-theme-inverse">
             {copyright ?? `Powered by Rizom • © ${currentYear}`}
           </p>
         </div>

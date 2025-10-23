@@ -192,10 +192,9 @@ export class SiteBuilder implements ISiteBuilder {
         siteConfig: {
           title: siteConfig.title,
           description: siteConfig.description,
-          ...(siteConfig.url !== undefined && { url: siteConfig.url }),
-          ...(siteConfig.copyright !== undefined && {
-            copyright: siteConfig.copyright,
-          }),
+          ...(siteConfig.url && { url: siteConfig.url }),
+          ...(siteConfig.copyright && { copyright: siteConfig.copyright }),
+          ...(siteConfig.themeMode && { themeMode: siteConfig.themeMode }),
         },
         getContent: async (
           route: RouteDefinition,
