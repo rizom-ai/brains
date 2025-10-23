@@ -1,6 +1,6 @@
 ---
-title: Tutorial
-description: First steps to get started with Rizom
+title: Recall Tutorial
+description: First steps to get started with our team's collective brain
 author: Yeehaa
 ---
 
