@@ -23,7 +23,12 @@ export function DefaultLayout({
       {/* Simple header with site title */}
       <header className="py-4 border-b border-theme-border">
         <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <div className="font-bold text-xl text-theme">{siteInfo.title}</div>
+          <a
+            href="/"
+            className="font-bold text-xl text-theme hover:text-brand transition-colors"
+          >
+            {siteInfo.title}
+          </a>
           <nav className="flex flex-wrap gap-3 sm:gap-4">
             {siteInfo.navigation.primary.map((item) => (
               <a

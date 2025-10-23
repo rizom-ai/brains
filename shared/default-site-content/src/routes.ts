@@ -4,10 +4,10 @@ export const routes = [
     id: "home",
     path: "/",
     title: "Home",
-    description: "Personal Brain Overview",
+    description: "Your AI-powered knowledge hub",
     layout: "minimal", // Use minimal layout without header
     navigation: {
-      show: true,
+      show: false, // Site title links to home, so no separate nav item needed
       label: "Home",
       slot: "primary",
       priority: 10,
