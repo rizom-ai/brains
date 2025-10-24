@@ -17,8 +17,7 @@ export function createHTMLShell(
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/styles/main.css">`;
 
-  const themeAttr =
-    (themeMode ?? "light") === "dark" ? ' data-theme="dark"' : "";
+  const themeAttr = ` data-theme="${themeMode ?? "light"}"`;
 
   return `<!DOCTYPE html>
 <html lang="en" class="h-full"${themeAttr}>

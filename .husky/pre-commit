@@ -2,6 +2,10 @@
 echo "☔️ Checking workspace..."
 bun run workspace:check
 
+# Fix directory permissions (prevent Docker permission issues)
+echo "🔒 Fixing directory permissions..."
+find . -type d -perm 700 ! -path "./.git/*" ! -path "*/node_modules/*" -exec chmod 755 {} \; 2>/dev/null || true
+
 # Check dependency versions
 echo "🔍 Checking dependency versions..."
 bun run deps:check

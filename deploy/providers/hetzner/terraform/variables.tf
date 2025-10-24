@@ -12,7 +12,7 @@ variable "app_name" {
 variable "server_type" {
   description = "Server type"
   type        = string
-  default     = "cx22"
+  default     = "cpx11"
 }
 
 variable "location" {
