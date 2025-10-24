@@ -178,6 +178,18 @@
   .border-brand-light { border-color: var(--color-brand-light); }
   .hover\:border-brand-light:hover { border-color: var(--color-brand-light); }
   .hover\:border-theme-inverse:hover { border-color: var(--color-text-inverse); }
+
+  /* Navigation text - brand in light mode, accent in dark mode */
+  .text-nav { color: var(--color-brand); }
+  [data-theme="dark"] .text-nav { color: var(--color-accent); }
+
+  /* Logo text - brand in light mode, white in dark mode */
+  .text-logo { color: var(--color-brand); }
+  [data-theme="dark"] .text-logo { color: var(--palette-white); }
+
+  /* Header background - theme bg in light, brand blue in dark */
+  .bg-header { background-color: var(--color-bg); }
+  [data-theme="dark"] .bg-header { background-color: var(--color-brand); }
   
   /* Gradients - Tailwind v4 format */
   .from-gradient-start { 

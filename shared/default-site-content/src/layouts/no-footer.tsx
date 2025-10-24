@@ -19,11 +19,11 @@ export function NoFooterLayout({
   return (
     <div className="flex flex-col min-h-screen bg-theme">
       {/* Simple header with site title */}
-      <header className="py-4 bg-footer border-b border-white/10">
+      <header className="py-4 bg-header border-b border-white/10">
         <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <a
             href="/"
-            className="font-bold text-xl text-white hover:text-accent transition-colors"
+            className="font-bold text-xl text-nav hover:text-accent transition-colors"
           >
             {siteInfo.title}
           </a>
@@ -32,7 +32,7 @@ export function NoFooterLayout({
               <a
                 key={item.href}
                 href={item.href}
-                className="text-white hover:text-accent transition-colors text-sm sm:text-base"
+                className="text-nav hover:text-accent transition-colors text-sm sm:text-base"
               >
                 {item.label}
               </a>
