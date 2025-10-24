@@ -19,10 +19,28 @@ export function createHTMLShell(
 
   const themeAttr = ` data-theme="${themeMode ?? "dark"}"`;
 
+  // Theme toggle script - runs immediately to prevent flash
+  const themeScript = `
+    <script>
+      (function() {
+        const stored = localStorage.getItem('theme');
+        const theme = stored || '${themeMode ?? "dark"}';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        window.toggleTheme = function() {
+          const current = document.documentElement.getAttribute('data-theme');
+          const next = current === 'dark' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', next);
+          localStorage.setItem('theme', next);
+        };
+      })();
+    </script>`;
+
   return `<!DOCTYPE html>
 <html lang="en" class="h-full"${themeAttr}>
 <head>
     ${headContent ?? defaultHead}
+    ${themeScript}
 </head>
 <body class="h-full font-sans">
   <div id="root" class="min-h-screen">
