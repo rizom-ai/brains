@@ -129,8 +129,8 @@
     --color-border: var(--palette-dark-bg-muted);
     --color-border-light: rgba(255, 255, 255, 0.1);
 
-    /* Footer - Dark mode uses bright purple for pop */
-    --color-footer: var(--palette-purple);
+    /* Footer - Dark mode uses dark purple for grounded feel */
+    --color-footer: var(--palette-dark-purple);
   }
 }
 

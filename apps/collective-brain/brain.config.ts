@@ -10,6 +10,7 @@ import {
   routes as defaultRoutes,
   DefaultLayout,
   MinimalLayout,
+  NoFooterLayout,
 } from "@brains/default-site-content";
 import defaultTheme from "@brains/theme-default";
 
@@ -18,6 +19,7 @@ const routes = defaultRoutes.map((route) => {
   if (route.id === "home") {
     return {
       ...route,
+      layout: "no-footer", // Use no-footer layout with custom CTA
       title: "Rizom Collective",
       description: "The Rizom collective's knowledge hub",
       navigation: {
@@ -32,6 +34,11 @@ const routes = defaultRoutes.map((route) => {
             entityType: "base",
             query: { id: "HOME" },
           },
+        },
+        {
+          id: "cta",
+          template: "footer-cta",
+          content: {}, // Static content - no data needed
         },
       ],
     };
@@ -95,6 +102,7 @@ const config = defineConfig({
       layouts: {
         default: DefaultLayout,
         minimal: MinimalLayout,
+        "no-footer": NoFooterLayout,
       },
       previewOutputDir: "./dist/site-preview",
       siteConfig: {
