@@ -5,33 +5,86 @@
 /* Theme Layer - CSS Custom Properties for theming */
 @layer theme {
   :root {
-    /* Brand Colors - From Figma */
-    --color-brand: #3921D7;        /* Blue/Primary */
-    --color-brand-dark: #2E007D;   /* Blue/Dark 1 */
-    --color-brand-light: #3921D7;
-    --color-accent: #E7640A;       /* Orange/Primary */
-    --color-accent-dark: #c2410c;
+    /* ============================================
+       BASE COLOR PALETTE - Define colors once
+       All colors from Figma design system
+       ============================================ */
 
-    /* Semantic Colors - From Figma */
-    --color-text: #0E0027;         /* Blue/Dark 2 */
-    --color-text-muted: #2E007D;   /* Blue/Dark 1 */
-    --color-text-light: #3921D7;   /* Blue/Primary */
-    --color-text-inverse: #FFFFFF; /* White */
+    /* Brand Blues */
+    --palette-brand-blue: #3921D7;           /* Primary brand blue */
+    --palette-brand-blue-dark-1: #2E007D;    /* Dark blue 1 */
+    --palette-brand-blue-dark-2: #0E0027;    /* Dark blue 2 */
 
-    /* Background Colors - From Figma with gradient */
-    --color-bg: #FFFFFF;           /* White */
-    --color-bg-gradient: linear-gradient(181deg, #FFF -5.4%, #FFFCF6 73.01%, #FFEFDA 89.61%, #A8C4FF 101.63%);
-    --color-bg-subtle: #FFFCF6;
-    --color-bg-muted: #FFEFDA;
-    --color-bg-dark: #2E007D;      /* Blue/Dark 1 */
+    /* Brand Orange */
+    --palette-orange: #E7640A;               /* Primary orange */
+    --palette-orange-dark: #c2410c;          /* Dark orange */
+
+    /* Neutrals - Light */
+    --palette-white: #FFFFFF;
+    --palette-warm-white: #FFFCF6;
+    --palette-warm-beige: #FFEFDA;
+    --palette-light-blue: #A8C4FF;
+    --palette-gray-border: #e2e8f0;
+
+    /* Neutrals - Dark */
+    --palette-dark-bg: #0f1114;
+    --palette-dark-bg-subtle: #1a1d23;
+    --palette-dark-bg-muted: #2d3748;
+    --palette-black: #000000;
+
+    /* Dark mode gradient colors */
+    --palette-purple: #6B2FA0;
+    --palette-warm-red: #8B3A1A;
+    --palette-dark-purple: #2A1F3A;
+    --palette-very-dark-blue: #1E2845;  /* Lighter dark blue for footer/gradient end */
+
+    /* Dark mode text colors */
+    --palette-text-light: #f7fafc;
+    --palette-text-muted-dark: #a0aec0;
+    --palette-text-subtle-dark: #718096;
+    --palette-text-inverse-dark: #1a202c;
+    --palette-light-orange: #FFE0BD;      /* Very light peach for dark mode headings */
+
+    /* ============================================
+       SEMANTIC COLORS - Reference base palette
+       ============================================ */
+
+    /* Brand Colors */
+    --color-brand: var(--palette-brand-blue);
+    --color-brand-dark: var(--palette-brand-blue-dark-1);
+    --color-brand-light: var(--palette-brand-blue);
+    --color-accent: var(--palette-orange);
+    --color-accent-dark: var(--palette-orange-dark);
+
+    /* Text Colors */
+    --color-text: var(--palette-brand-blue-dark-2);
+    --color-text-muted: var(--palette-brand-blue-dark-1);
+    --color-text-light: var(--palette-brand-blue);
+    --color-text-inverse: var(--palette-white);
+
+    /* Background Colors */
+    --color-bg: var(--palette-white);
+    --color-bg-subtle: var(--palette-warm-white);
+    --color-bg-muted: var(--palette-warm-beige);
+    --color-bg-dark: var(--palette-brand-blue-dark-1);
 
     /* Gradient Colors */
-    --color-gradient-start: #FFFCF6;
-    --color-gradient-end: #FFEFDA;
+    --color-gradient-start: var(--palette-warm-white);
+    --color-gradient-end: var(--palette-light-blue);
+    --color-bg-gradient: linear-gradient(
+      181deg,
+      var(--palette-white) -5.4%,
+      var(--palette-warm-white) 73.01%,
+      var(--palette-warm-beige) 89.61%,
+      var(--palette-light-blue) 150%
+    );
 
     /* Border Colors */
-    --color-border: #e2e8f0;
+    --color-border: var(--palette-gray-border);
     --color-border-light: rgba(255, 255, 255, 0.8);
+
+    /* Footer */
+    --color-footer: var(--palette-brand-blue);
 
     /* Typography */
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
@@ -42,32 +95,42 @@
 
   /* Dark theme */
   [data-theme="dark"] {
-    /* Brand Colors - Adjusted for dark mode */
-    --color-brand: #8b92ff;
-    --color-brand-dark: #6366f1;
-    --color-brand-light: #c4c7ff;
-    --color-accent: #ff7a45;
-    --color-accent-dark: #ea580c;
-    
-    /* Semantic Colors - Dark mode */
-    --color-text: #f7fafc;
-    --color-text-muted: #a0aec0;
-    --color-text-light: #718096;
-    --color-text-inverse: #1a202c;
-    
+    /* Brand Colors - Same as light mode */
+    --color-brand: var(--palette-brand-blue);
+    --color-brand-dark: var(--palette-brand-blue-dark-1);
+    --color-brand-light: var(--palette-brand-blue);
+    --color-accent: var(--palette-orange);
+    --color-accent-dark: var(--palette-orange-dark);
+
+    /* Text Colors - Dark mode */
+    --color-text: var(--palette-text-light);
+    --color-text-muted: var(--palette-text-muted-dark);
+    --color-text-light: var(--palette-text-subtle-dark);
+    --color-text-inverse: var(--palette-white);  /* White text on dark backgrounds */
+
     /* Background Colors - Dark mode */
-    --color-bg: #0f1114;
-    --color-bg-subtle: #1a1d23;
-    --color-bg-muted: #2d3748;
-    --color-bg-dark: #000000;
-    
+    --color-bg: var(--palette-dark-bg);
+    --color-bg-subtle: var(--palette-dark-bg-subtle);
+    --color-bg-muted: var(--palette-dark-bg-muted);
+    --color-bg-dark: var(--palette-black);
+
     /* Gradient Colors - Dark mode */
-    --color-gradient-start: #1a1d23;
-    --color-gradient-end: #2d3748;
-    
+    --color-gradient-start: var(--palette-dark-bg-subtle);
+    --color-gradient-end: var(--palette-purple);
+    --color-bg-gradient: linear-gradient(
+      181deg,
+      var(--palette-brand-blue) -5.4%,
+      var(--palette-purple) 40%,
+      var(--palette-warm-red) 73.01%,
+      var(--palette-purple) 140%
+    );
+
     /* Border Colors - Dark mode */
-    --color-border: #2d3748;
+    --color-border: var(--palette-dark-bg-muted);
     --color-border-light: rgba(255, 255, 255, 0.1);
+
+    /* Footer - Dark mode uses bright purple for pop */
+    --color-footer: var(--palette-purple);
   }
 }
 
@@ -92,7 +155,8 @@
   .bg-brand-light { background-color: var(--color-brand-light); }
   .bg-accent { background-color: var(--color-accent); }
   .bg-accent-dark { background-color: var(--color-accent-dark); }
-  
+  .bg-footer { background-color: var(--color-footer); }
+
   /* Interactive states */
   .hover\:bg-brand:hover { background-color: var(--color-brand); }
   .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
@@ -147,22 +211,61 @@
 /* Prose styles for dark mode */
 @layer utilities {
   .prose {
-    color: var(--color-text-muted);
-  }
-  
-  .prose h1,
-  .prose h2,
-  .prose h3,
-  .prose h4,
-  .prose h5,
-  .prose h6 {
     color: var(--color-text);
+  }
+
+  /* Main headings - Blue/Dark 1 (#2E007D) */
+  .prose h1 {
+    color: var(--color-text-muted);
     font-family: var(--font-heading);
     font-weight: 700;
+    font-size: 90px;
+    line-height: 1;
+    letter-spacing: -0.02em;
   }
-  
-  .prose p {
+
+  .prose h2 {
     color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 72px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    border-bottom: none;
+    text-decoration: none;
+  }
+
+  /* Subheadings - Blue/Primary (#3921D7) */
+  .prose h3 {
+    color: var(--color-text-light);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 50px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .prose h4 {
+    color: var(--color-text-light);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .prose h5,
+  .prose h6 {
+    color: var(--color-text-light);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 1.2;
+  }
+
+  /* Body text - Blue/Dark 2 (#0E0027) */
+  .prose p {
+    color: var(--color-text);
   }
   
   .prose strong {
@@ -170,7 +273,7 @@
   }
   
   .prose em {
-    color: var(--color-text-muted);
+    color: var(--palette-orange);
   }
   
   .prose blockquote {
@@ -194,6 +297,24 @@
   
   .prose a:hover {
     color: var(--color-brand-dark);
+  }
+
+  /* Dark mode heading colors - lighter peach for contrast across gradient */
+  [data-theme="dark"] .prose h1,
+  [data-theme="dark"] .prose h2 {
+    color: var(--palette-light-orange);
+  }
+
+  [data-theme="dark"] .prose h3,
+  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h5,
+  [data-theme="dark"] .prose h6 {
+    color: var(--palette-warm-white);
+  }
+
+  /* Dark mode italic - medium orange for emphasis */
+  [data-theme="dark"] .prose em {
+    color: #FFA366;
   }
 }
 

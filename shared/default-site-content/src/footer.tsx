@@ -28,7 +28,7 @@ export const Footer = ({
   );
 
   return (
-    <footer className="footer py-8 bg-brand">
+    <footer className="footer py-8 bg-footer">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Navigation links in two rows */}
         <nav className="footer-navigation mb-4 space-y-3">
