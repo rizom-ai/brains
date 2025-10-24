@@ -38,7 +38,6 @@ const routes = defaultRoutes.map((route) => {
         {
           id: "cta",
           template: "footer-cta",
-          content: {}, // Static content - no data needed
         },
       ],
     };

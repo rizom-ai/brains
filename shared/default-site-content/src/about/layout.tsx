@@ -21,7 +21,7 @@ export const AboutLayout = ({ markdown }: AboutContent): JSX.Element => {
   const htmlContent = markdownToHtml(markdown);
 
   return (
-    <section className="about-section flex-grow min-h-screen bg-theme-gradient">
+    <section className="about-section flex-grow min-h-screen">
       <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
         <article
           className="prose prose-lg max-w-none

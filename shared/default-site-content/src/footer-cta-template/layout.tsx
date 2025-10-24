@@ -5,6 +5,6 @@ import { FooterCTA } from "../footer-cta";
 /**
  * Footer CTA section - can be added to any page
  */
-export const FooterCTALayout = (_content: FooterCTAContent): JSX.Element => {
-  return <FooterCTA />;
+export const FooterCTALayout = (content: FooterCTAContent): JSX.Element => {
+  return <FooterCTA {...content} />;
 };

@@ -1,71 +1,85 @@
 import type { JSX } from "preact";
 
-export const FooterCTA = (): JSX.Element => {
+export interface FooterCTAProps {
+  heading: string;
+  buttonText: string;
+  buttonLink: string;
+}
+
+export const FooterCTA = ({
+  heading,
+  buttonText,
+  buttonLink,
+}: FooterCTAProps): JSX.Element => {
   return (
-    <section className="relative bg-footer overflow-hidden py-24">
-      {/* Wavy top border decoration */}
-      <div className="absolute top-0 left-0 right-0 h-16 overflow-hidden">
-        <svg
-          className="absolute top-0 w-full h-full"
-          viewBox="0 0 1728 95"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0 23C144 23 144 0 288 0C432 0 432 23 576 23C720 23 720 46 864 46C1008 46 1008 23 1152 23C1296 23 1296 0 1440 0C1584 0 1584 23 1728 23V95H0V23Z"
-            className="fill-theme"
-          />
-        </svg>
-      </div>
+    <div className="relative">
+      {/* Wavy line separator above CTA - from Figma design */}
+      <svg
+        className="w-full"
+        viewBox="0 0 1728 80"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="none"
+        style={{ height: "60px", display: "block", marginBottom: "-1px" }}
+      >
+        <path
+          d="M978.454 57.8634C960.836 57.912 950.318 7.74213 934.233 7.76909C916.692 7.80144 907.2 62.7447 892.081 62.7662C883.888 62.7824 869.804 1.10003 851.844 0C836.726 0.0215691 827.233 55.9276 809.693 55.96C793.608 55.9869 783.627 5.81708 766.009 5.86561C749.923 5.90875 742.814 47.7421 726.143 47.7475C710.927 47.7475 702.42 12.8864 685.554 12.8972C670.094 12.9133 662.437 42.1988 644.965 42.215C629.144 42.2312 620.423 18.2247 602.922 18.2571C587.159 18.284 580.332 37.788 562.333 37.8581C545.701 37.9174 536.413 21.3361 518.834 21.4439C503.11 21.5356 497.739 34.8923 480.423 35.0163C464.397 35.1296 456.75 23.7788 438.379 23.7896C421.806 23.8057 416.2 33.0481 397.791 33.1722C380.553 33.2854 373.951 25.2617 355.014 25.2994C338.724 25.3318 334.749 31.2902 316.604 31.5005C299.552 31.6947 294.844 26.5342 276.015 26.4749C258.094 26.421 254.295 31.0746 235.426 31.1662C216.597 31.2579 213.003 26.6583 194.105 26.8093C176.36 26.9495 169.826 31.0799 152.062 30.6647C147.12 30.5461 142.813 30.1147 139.287 29.5917C134.648 28.9015 129.316 28.4863 123.808 28.4863H0V80H1728V35.2428H1620.67C1615.17 35.2428 1609.83 34.8276 1605.2 34.1374C1601.66 33.6143 1597.36 33.1829 1592.42 33.0643C1574.66 32.6491 1568.12 36.7796 1550.38 36.9198C1531.49 37.0708 1527.9 32.4712 1509.06 32.5628C1490.19 32.6545 1486.39 37.3134 1468.47 37.2541C1449.64 37.2002 1444.93 32.0344 1427.88 32.2285C1409.73 32.4388 1405.76 38.3973 1389.47 38.4296C1370.53 38.4674 1363.94 30.4437 1346.69 30.5569C1328.28 30.6755 1322.68 39.9233 1306.1 39.9395C1287.73 39.9557 1280.09 28.6049 1264.06 28.7127C1246.74 28.8314 1241.37 42.1881 1225.65 42.2851C1208.07 42.393 1198.78 25.8063 1182.15 25.871C1164.14 25.9411 1157.32 45.445 1141.56 45.472C1124.06 45.5043 1115.34 21.4979 1099.52 21.514C1082.04 21.5302 1074.39 50.8211 1058.93 50.8319C1042.05 50.8481 1033.56 15.9761 1018.34 15.9815C1001.67 15.9815 994.559 57.8203 978.474 57.8634Z"
+          className="fill-footer"
+        />
+      </svg>
 
-      {/* Left decorative circles */}
-      <div className="absolute left-[-200px] bottom-0 w-[600px] h-[600px] opacity-20">
-        <div className="absolute inset-0">
-          {[...Array(10)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute inset-0 border-2 border-white rounded-full"
-              style={{
-                transform: `scale(${1 - i * 0.1})`,
-                opacity: 1 - i * 0.1,
-              }}
-            />
-          ))}
+      <section
+        className="relative bg-footer overflow-hidden py-24"
+        style={{ marginTop: "-1px" }}
+      >
+        {/* Left decorative circles */}
+        <div className="absolute left-[-200px] bottom-[-150px] w-[600px] h-[600px] opacity-20">
+          <div className="absolute inset-0">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute inset-0 border-2 border-white rounded-full"
+                style={{
+                  transform: `scale(${1 - i * 0.05})`,
+                  opacity: 1 - i * 0.05,
+                }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Right decorative circles */}
-      <div className="absolute right-[-200px] top-0 w-[600px] h-[600px] opacity-20">
-        <div className="absolute inset-0">
-          {[...Array(10)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute inset-0 border-2 border-white rounded-full"
-              style={{
-                transform: `scale(${1 - i * 0.1})`,
-                opacity: 1 - i * 0.1,
-              }}
-            />
-          ))}
+        {/* Right decorative circles */}
+        <div className="absolute right-[-200px] top-0 w-[600px] h-[600px] opacity-20">
+          <div className="absolute inset-0">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute inset-0 border-2 border-white rounded-full"
+                style={{
+                  transform: `scale(${1 - i * 0.05})`,
+                  opacity: 1 - i * 0.05,
+                }}
+              />
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="font-heading font-bold text-white text-7xl leading-tight mb-12">
-            Rizom can help your team reach its full potential
-            <span className="text-accent">.</span>
-          </h2>
-          <a
-            href="#contact"
-            className="inline-block bg-white text-accent font-heading font-bold text-4xl px-12 py-6 rounded-lg hover:bg-opacity-90 transition-all"
-          >
-            Tune in to Rizom
-          </a>
+        {/* Content */}
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="font-heading font-bold text-white text-7xl leading-tight mb-12">
+              {heading}
+              <span className="text-accent">.</span>
+            </h2>
+            <a
+              href={buttonLink}
+              className="inline-block bg-white text-accent font-heading font-bold text-4xl px-12 py-6 rounded-lg hover:bg-opacity-90 transition-all"
+            >
+              {buttonText}
+            </a>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 };

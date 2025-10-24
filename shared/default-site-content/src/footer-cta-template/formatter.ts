@@ -5,7 +5,11 @@ export class FooterCTAFormatter extends StructuredContentFormatter<FooterCTACont
   constructor() {
     super(footerCTASchema, {
       title: "Footer CTA",
-      mappings: [],
+      mappings: [
+        { key: "heading", label: "Heading", type: "string" },
+        { key: "buttonText", label: "Button Text", type: "string" },
+        { key: "buttonLink", label: "Button Link", type: "string" },
+      ],
     });
   }
 }

@@ -157,6 +157,12 @@
   .bg-accent-dark { background-color: var(--color-accent-dark); }
   .bg-footer { background-color: var(--color-footer); }
 
+  /* SVG fill colors using theme variables */
+  .fill-theme { fill: var(--color-bg); }
+  .fill-brand { fill: var(--color-brand); }
+  .fill-accent { fill: var(--color-accent); }
+  .fill-footer { fill: var(--color-footer); }
+
   /* Interactive states */
   .hover\:bg-brand:hover { background-color: var(--color-brand); }
   .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }

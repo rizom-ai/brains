@@ -11,8 +11,10 @@ export const footerCTATemplate = createTemplate<FooterCTAContent>({
   name: "footer-cta",
   description: "Call-to-action footer section",
   schema: footerCTASchema,
-  basePrompt: "", // No AI generation needed
-  dataSourceId: "shell:entities",
+  basePrompt: `Generate a compelling call-to-action for the footer section.
+Include a powerful heading that encourages action, button text that is clear and actionable, and a button link (use # for anchor links or full URLs).
+The CTA should align with the brain's purpose and motivate users to engage.`,
+  dataSourceId: "shell:ai-content",
   requiredPermission: "public",
   formatter: new FooterCTAFormatter(),
   layout: {

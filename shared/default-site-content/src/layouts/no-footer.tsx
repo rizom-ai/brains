@@ -41,7 +41,9 @@ export function NoFooterLayout({
         </div>
       </header>
 
-      <main className="flex-grow flex flex-col bg-theme">{sections}</main>
+      <main className="flex-grow flex flex-col bg-theme-gradient">
+        {sections}
+      </main>
     </div>
   );
 }
