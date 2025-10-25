@@ -25,8 +25,8 @@ export function NoFooterLayout({
   return (
     <div className="flex flex-col min-h-screen bg-theme">
       {/* Simple header with site title */}
-      <header className="py-4 bg-header border-b border-white/10">
-        <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+      <header className="py-4 bg-header">
+        <div className="container mx-auto px-4 max-w-6xl flex flex-row justify-between items-center gap-3">
           <a
             href="/"
             className="font-bold text-xl text-nav hover:text-accent transition-colors"
