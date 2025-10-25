@@ -1,5 +1,11 @@
 import type { JSX } from "preact";
 
+declare global {
+  interface Window {
+    toggleTheme?: () => void;
+  }
+}
+
 export interface FooterCTAProps {
   heading: string;
   buttonText: string;
@@ -77,6 +83,40 @@ export const FooterCTA = ({
             >
               {buttonText}
             </a>
+            {/* Theme toggle */}
+            <div className="mt-8">
+              <button
+                // @ts-expect-error - onclick is valid HTML attribute for SSR
+                onclick="toggleTheme()"
+                type="button"
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                <svg
+                  className="w-5 h-5 text-white transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    className="sun-icon"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  />
+                  <path
+                    className="moon-icon"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    transform="rotate(45 12 12)"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </section>
