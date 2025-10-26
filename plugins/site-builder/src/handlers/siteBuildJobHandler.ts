@@ -18,7 +18,7 @@ export class SiteBuildJobHandler
     private logger: Logger,
     private siteBuilder: SiteBuilder,
     private layouts: Record<string, LayoutComponent>,
-    private defaultSiteConfig: SiteBuilderConfig["siteConfig"],
+    private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
     private themeCSS?: string,
   ) {}
 

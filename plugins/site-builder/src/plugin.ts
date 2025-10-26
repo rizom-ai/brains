@@ -26,6 +26,9 @@ import { createSiteBuilderTools } from "./tools";
 import { createSiteBuilderCommands } from "./commands";
 import type { SiteBuilderConfig, LayoutComponent } from "./config";
 import { siteBuilderConfigSchema } from "./config";
+import { SiteInfoService } from "./services/site-info-service";
+import { siteInfoSchema } from "./services/site-info-schema";
+import { SiteInfoAdapter } from "./services/site-info-adapter";
 import packageJson from "../package.json";
 
 /**
@@ -37,6 +40,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteContentService?: SiteContentService;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
+  private siteInfoService?: SiteInfoService;
   private layouts: Record<string, LayoutComponent>;
 
   /**
@@ -73,18 +77,25 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
     context.registerDataSource(navigationDataSource);
 
-    // Register SiteInfoDataSource
-    const siteConfig = this.config.siteConfig;
+    // Register site-info entity type BEFORE initializing service
+    context.registerEntityType(
+      "site-info",
+      siteInfoSchema,
+      new SiteInfoAdapter(),
+    );
+
+    // Initialize SiteInfoService (after entity type is registered)
+    this.siteInfoService = SiteInfoService.getInstance(
+      context.entityService,
+      context.logger,
+      this.config.siteInfo,
+    );
+    await this.siteInfoService.initialize();
+
+    // Register SiteInfoDataSource with service
     const siteInfoDataSource = new SiteInfoDataSource(
       this._routeRegistry,
-      {
-        title: siteConfig.title,
-        description: siteConfig.description,
-        ...(siteConfig.url !== undefined && { url: siteConfig.url }),
-        ...(siteConfig.copyright !== undefined && {
-          copyright: siteConfig.copyright,
-        }),
-      },
+      this.siteInfoService,
       context.logger.child("SiteInfoDataSource"),
     );
     context.registerDataSource(siteInfoDataSource);
@@ -151,13 +162,14 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger.child("SiteBuilder"),
       context,
       this.routeRegistry,
+      this.siteInfoService,
     );
 
     // Initialize the site content service with route registry
     this.siteContentService = new SiteContentService(
       context,
       this.routeRegistry,
-      this.config.siteConfig,
+      this.config.siteInfo,
     );
 
     // Register site-build job handler (site-specific, not a content operation)
@@ -165,7 +177,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.logger.child("SiteBuildJobHandler"),
       this.siteBuilder,
       this.layouts,
-      this.config.siteConfig,
+      this.config.siteInfo,
       this.config.themeCSS,
     );
     context.registerJobHandler("site-build", siteBuildHandler);

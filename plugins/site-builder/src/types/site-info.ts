@@ -1,12 +1,11 @@
 import { z } from "@brains/utils";
+import { siteInfoBodySchema } from "../services/site-info-schema";
 
 /**
  * Schema for site information
+ * Extends the body schema with navigation (added by datasource)
  */
-export const SiteInfoSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  url: z.string().optional(),
+export const SiteInfoSchema = siteInfoBodySchema.extend({
   navigation: z.object({
     primary: z.array(
       z.object({
@@ -23,7 +22,7 @@ export const SiteInfoSchema = z.object({
       }),
     ),
   }),
-  copyright: z.string(),
+  copyright: z.string(), // Override: datasource always provides copyright (uses default if not in entity)
 });
 
 export type SiteInfo = z.infer<typeof SiteInfoSchema>;

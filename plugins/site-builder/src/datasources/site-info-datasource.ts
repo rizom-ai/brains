@@ -2,10 +2,11 @@ import type { DataSource } from "@brains/datasource";
 import type { Logger } from "@brains/plugins";
 import { type z as zType } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
+import type { SiteInfoService } from "../services/site-info-service";
 
 /**
  * DataSource that provides comprehensive site-wide information
- * Combines site configuration with navigation data from RouteRegistry
+ * Combines site info from entity/service with navigation data from RouteRegistry
  */
 export class SiteInfoDataSource implements DataSource {
   public readonly id = "site:info";
@@ -15,12 +16,7 @@ export class SiteInfoDataSource implements DataSource {
 
   constructor(
     private readonly routeRegistry: RouteRegistry,
-    private readonly siteConfig: {
-      title: string;
-      description: string;
-      url?: string;
-      copyright?: string;
-    },
+    private readonly siteInfoService: SiteInfoService,
     private readonly logger: Logger,
   ) {
     this.logger.debug("SiteInfoDataSource initialized");
@@ -37,28 +33,30 @@ export class SiteInfoDataSource implements DataSource {
   ): Promise<T> {
     this.logger.debug("SiteInfoDataSource fetch called");
 
+    // Get site info from service (entity or defaults)
+    const siteInfoBody = this.siteInfoService.getSiteInfo();
+
     // Get navigation items for both slots
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
     const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
 
     // Generate default copyright if not provided
     const currentYear = new Date().getFullYear();
-    const defaultCopyright = `© ${currentYear} ${this.siteConfig.title}. All rights reserved.`;
+    const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
 
-    // Build complete site info
+    // Build complete site info (merge body with navigation)
     const siteInfo = {
-      title: this.siteConfig.title,
-      description: this.siteConfig.description,
-      ...(this.siteConfig.url && { url: this.siteConfig.url }),
+      ...siteInfoBody,
       navigation: {
         primary: primaryItems,
         secondary: secondaryItems,
       },
-      copyright: this.siteConfig.copyright ?? defaultCopyright,
+      copyright: siteInfoBody.copyright ?? defaultCopyright,
     };
 
     this.logger.debug("SiteInfoDataSource returning", {
       title: siteInfo.title,
+      hasCTA: !!siteInfo.cta,
       navigationItemCounts: {
         primary: primaryItems.length,
         secondary: secondaryItems.length,

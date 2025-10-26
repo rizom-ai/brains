@@ -18,6 +18,7 @@ import { join } from "path";
 import type { RouteRegistry } from "./route-registry";
 import { DynamicRouteGenerator } from "./dynamic-route-generator";
 import type { SiteInfo } from "../types/site-info";
+import type { SiteInfoService } from "../services/site-info-service";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -27,6 +28,7 @@ export class SiteBuilder implements ISiteBuilder {
   private context: ServicePluginContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private routeRegistry: RouteRegistry;
+  private siteInfoService: SiteInfoService;
 
   /**
    * Set the default static site builder factory for all instances
@@ -41,12 +43,14 @@ export class SiteBuilder implements ISiteBuilder {
     logger: Logger,
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
+    siteInfoService: SiteInfoService,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
       SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
       routeRegistry,
+      siteInfoService,
     );
     return SiteBuilder.instance;
   }
@@ -59,6 +63,7 @@ export class SiteBuilder implements ISiteBuilder {
     logger: Logger,
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
+    siteInfoService: SiteInfoService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
   ): SiteBuilder {
     return new SiteBuilder(
@@ -66,6 +71,7 @@ export class SiteBuilder implements ISiteBuilder {
       staticSiteBuilderFactory ?? SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
       routeRegistry,
+      siteInfoService,
     );
   }
 
@@ -74,11 +80,13 @@ export class SiteBuilder implements ISiteBuilder {
     staticSiteBuilderFactory: StaticSiteBuilderFactory,
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
+    siteInfoService: SiteInfoService,
   ) {
     this.logger = logger;
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
     this.routeRegistry = routeRegistry;
+    this.siteInfoService = siteInfoService;
 
     // Factory is now encapsulated within the site builder
 
@@ -89,30 +97,26 @@ export class SiteBuilder implements ISiteBuilder {
   /**
    * Build site information directly from available data
    */
-  private async getSiteInfo(siteConfig: {
-    title: string;
-    description: string;
-    url?: string;
-    copyright?: string;
-  }): Promise<SiteInfo> {
-    // Get navigation items directly from the route registry
+  private async getSiteInfo(): Promise<SiteInfo> {
+    // Get site info from service (entity or defaults)
+    const siteInfoBody = this.siteInfoService.getSiteInfo();
+
+    // Get navigation items for both slots
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
     const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
 
     // Generate default copyright if not provided
     const currentYear = new Date().getFullYear();
-    const defaultCopyright = `© ${currentYear} ${siteConfig.title}. All rights reserved.`;
+    const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
 
-    // Build the complete site info
+    // Build complete site info (merge body with navigation)
     return {
-      title: siteConfig.title,
-      description: siteConfig.description,
-      ...(siteConfig.url && { url: siteConfig.url }),
+      ...siteInfoBody,
       navigation: {
         primary: primaryItems,
         secondary: secondaryItems,
       },
-      copyright: siteConfig.copyright ?? defaultCopyright,
+      copyright: siteInfoBody.copyright ?? defaultCopyright,
     };
   }
 
@@ -207,16 +211,7 @@ export class SiteBuilder implements ISiteBuilder {
         },
         layouts: parsedOptions.layouts,
         getSiteInfo: async () => {
-          return this.getSiteInfo({
-            title: parsedOptions.siteConfig.title,
-            description: parsedOptions.siteConfig.description,
-            ...(parsedOptions.siteConfig.url !== undefined && {
-              url: parsedOptions.siteConfig.url,
-            }),
-            ...(parsedOptions.siteConfig.copyright !== undefined && {
-              copyright: parsedOptions.siteConfig.copyright,
-            }),
-          });
+          return this.getSiteInfo();
         },
         ...(parsedOptions.themeCSS !== undefined && {
           themeCSS: parsedOptions.themeCSS,

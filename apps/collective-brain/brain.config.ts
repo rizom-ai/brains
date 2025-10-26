@@ -35,10 +35,6 @@ const routes = defaultRoutes.map((route) => {
             query: { id: "HOME" },
           },
         },
-        {
-          id: "cta",
-          template: "footer-cta",
-        },
       ],
     };
   }
@@ -104,13 +100,18 @@ const config = defineConfig({
         "no-footer": NoFooterLayout,
       },
       previewOutputDir: "./dist/site-preview",
-      siteConfig: {
+      siteInfo: {
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
         url: process.env["DOMAIN"]
           ? `https://${process.env["DOMAIN"]}`
           : undefined,
-        themeMode: "light",
+        themeMode: "dark",
+        cta: {
+          heading: "Unlock your full potential",
+          buttonText: "Join Rizom",
+          buttonLink: "https://www.linkedin.com/company/rizom-collective",
+        },
       },
       themeCSS: defaultTheme,
     }),

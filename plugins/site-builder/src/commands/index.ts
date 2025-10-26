@@ -134,7 +134,7 @@ export function createSiteBuilderCommands(
             outputDir,
             workingDir: config.workingDir,
             enableContentGeneration: false,
-            siteConfig: config.siteConfig,
+            siteConfig: config.siteInfo,
           };
 
           const metadata: JobContext = {

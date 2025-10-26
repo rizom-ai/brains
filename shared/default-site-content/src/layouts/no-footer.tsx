@@ -1,5 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
+import { FooterCTA } from "../footer-cta";
 
 declare global {
   interface Window {
@@ -23,7 +24,7 @@ export function NoFooterLayout({
   siteInfo,
 }: NoFooterLayoutProps): JSX.Element {
   return (
-    <div className="flex flex-col min-h-screen bg-theme">
+    <div className="flex flex-col min-h-screen bg-theme-gradient">
       {/* Simple header with site title */}
       <header className="py-4 bg-header">
         <div className="container mx-auto px-4 max-w-6xl flex flex-row justify-between items-center gap-3">
@@ -47,9 +48,16 @@ export function NoFooterLayout({
         </div>
       </header>
 
-      <main className="flex-grow flex flex-col bg-theme-gradient">
-        {sections}
-      </main>
+      <main className="flex-grow flex flex-col">{sections}</main>
+
+      {/* Render CTA footer if configured */}
+      {siteInfo.cta && (
+        <FooterCTA
+          heading={siteInfo.cta.heading}
+          buttonText={siteInfo.cta.buttonText}
+          buttonLink={siteInfo.cta.buttonLink}
+        />
+      )}
     </div>
   );
 }

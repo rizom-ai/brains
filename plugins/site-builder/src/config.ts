@@ -32,16 +32,23 @@ export const siteBuilderConfigSchema = z.object({
     .optional()
     .describe("Working directory for builds")
     .default("./.preact-work"),
-  siteConfig: z
+  siteInfo: z
     .object({
       title: z.string(),
       description: z.string(),
       url: z.string().optional(),
       copyright: z.string().optional(),
       themeMode: z.enum(["light", "dark"]).optional(),
+      cta: z
+        .object({
+          heading: z.string(),
+          buttonText: z.string(),
+          buttonLink: z.string(),
+        })
+        .optional(),
     })
     .default({
-      title: "Rizom Brains",
+      title: "Personal Brain",
       description: "A knowledge management system",
     }),
   themeCSS: z

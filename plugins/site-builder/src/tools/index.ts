@@ -168,7 +168,7 @@ export function createSiteBuilderTools(
             outputDir,
             workingDir: config.workingDir,
             enableContentGeneration: false,
-            siteConfig: config.siteConfig,
+            siteConfig: config.siteInfo,
           },
           {
             source: `plugin:${pluginId}`,
