@@ -51,13 +51,7 @@ export function NoFooterLayout({
       <main className="flex-grow flex flex-col">{sections}</main>
 
       {/* Render CTA footer if configured */}
-      {siteInfo.cta && (
-        <FooterCTA
-          heading={siteInfo.cta.heading}
-          buttonText={siteInfo.cta.buttonText}
-          buttonLink={siteInfo.cta.buttonLink}
-        />
-      )}
+      <FooterCTA siteInfo={siteInfo} />
     </div>
   );
 }

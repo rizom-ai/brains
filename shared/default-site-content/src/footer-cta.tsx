@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import type { SiteInfo } from "@brains/site-builder-plugin";
 
 declare global {
   interface Window {
@@ -7,16 +8,23 @@ declare global {
 }
 
 export interface FooterCTAProps {
-  heading: string;
-  buttonText: string;
-  buttonLink: string;
+  siteInfo: SiteInfo;
 }
 
-export const FooterCTA = ({
-  heading,
-  buttonText,
-  buttonLink,
-}: FooterCTAProps): JSX.Element => {
+export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
+  // Return null if no CTA is configured
+  if (!siteInfo.cta) return null;
+
+  // Extract CTA values
+  const { heading, buttonText, buttonLink } = siteInfo.cta;
+
+  // Sort navigation items by priority
+  const sortedPrimary = [...siteInfo.navigation.primary].sort(
+    (a, b) => a.priority - b.priority,
+  );
+  const sortedSecondary = [...siteInfo.navigation.secondary].sort(
+    (a, b) => a.priority - b.priority,
+  );
   return (
     <div className="relative">
       {/* Wavy line separator above CTA - from Figma design */}
@@ -118,6 +126,49 @@ export const FooterCTA = ({
               </button>
             </div>
           </div>
+
+          {/* Navigation links */}
+          <nav className="mt-16 space-y-3">
+            {/* Secondary navigation (first row) - meta pages */}
+            {sortedSecondary.length > 0 && (
+              <ul className="flex flex-wrap justify-center gap-6">
+                {sortedSecondary.map((item) => (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      className="text-white hover:text-accent transition-colors text-sm"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {/* Primary navigation (second row) - content */}
+            {sortedPrimary.length > 0 && (
+              <ul className="flex flex-wrap justify-center gap-6">
+                {sortedPrimary.map((item) => (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      className="text-white hover:text-accent transition-colors text-sm"
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </nav>
+
+          {/* Copyright */}
+          {siteInfo.copyright && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-white opacity-80">
+                {siteInfo.copyright}
+              </p>
+            </div>
+          )}
         </div>
       </section>
     </div>
