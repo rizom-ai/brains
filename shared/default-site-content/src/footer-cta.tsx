@@ -74,27 +74,26 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
             </h2>
             <LinkButton
               href={buttonLink}
-              variant="primary"
               size="xl"
               external
-              className="bg-white text-accent font-heading font-bold hover:bg-opacity-90"
+              className="bg-white text-accent font-heading font-bold hover:bg-opacity-90 transition-colors"
             >
               {buttonText}
             </LinkButton>
-            {/* Theme toggle */}
-            <div className="mt-8">
-              <ThemeToggle variant="default" size="md" />
-            </div>
           </div>
 
           {/* Navigation links */}
           <nav className="mt-16 space-y-3">
-            {/* Secondary navigation (first row) - meta pages */}
+            {/* Secondary navigation + theme toggle (first row) */}
             <NavLinks
               items={siteInfo.navigation.secondary}
               linkClassName="text-white hover:text-accent transition-colors text-sm"
-            />
-            {/* Primary navigation (second row) - content */}
+            >
+              <li>
+                <ThemeToggle variant="default" size="md" />
+              </li>
+            </NavLinks>
+            {/* Primary navigation (second row) */}
             <NavLinks
               items={siteInfo.navigation.primary}
               linkClassName="text-white hover:text-accent transition-colors text-sm"

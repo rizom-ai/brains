@@ -16,23 +16,25 @@ export interface LinkButtonProps {
 export function LinkButton({
   href,
   children,
-  variant = "accent",
+  variant,
   size = "md",
   external = false,
   className = "",
 }: LinkButtonProps): JSX.Element {
   // Base classes
   const baseClasses =
-    "inline-block font-semibold rounded-lg transition-colors text-center";
+    "inline-block font-semibold transition-colors text-center";
 
-  // Variant classes
-  const variantClasses = {
-    primary:
-      "bg-brand text-theme-inverse hover:bg-brand-dark focus:ring-brand/20",
-    accent:
-      "bg-accent text-theme-inverse hover:bg-accent-dark focus:ring-accent/20",
-    secondary: "bg-theme-muted text-theme hover:bg-theme-muted-dark",
-  };
+  // Variant classes (only applied if variant is specified)
+  const variantClasses = variant
+    ? {
+        primary:
+          "bg-brand text-theme-inverse hover:bg-brand-dark focus:ring-brand/20",
+        accent:
+          "bg-accent text-theme-inverse hover:bg-accent-dark focus:ring-accent/20",
+        secondary: "bg-theme-muted text-theme hover:bg-theme-muted-dark",
+      }[variant]
+    : "";
 
   // Size classes
   const sizeClasses = {
@@ -44,9 +46,9 @@ export function LinkButton({
 
   const classes = [
     baseClasses,
-    variantClasses[variant],
+    variantClasses,
     sizeClasses[size],
-    "focus:outline-none focus:ring-4",
+    variant && "focus:outline-none focus:ring-4",
     className,
   ]
     .filter(Boolean)

@@ -22,22 +22,30 @@ export function ThemeToggle({
     dark: "bg-gray-800 hover:bg-gray-700 text-white",
   };
 
-  // Size classes
-  const sizeClasses = {
-    sm: "p-1.5 w-4 h-4",
-    md: "p-2 w-5 h-5",
-    lg: "p-3 w-6 h-6",
+  // Button padding
+  const buttonPadding = {
+    sm: "p-1.5",
+    md: "p-2",
+    lg: "p-3",
+  };
+
+  // Icon size
+  const iconSize = {
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
 
   const buttonClasses = [
     "rounded-full transition-colors",
     variantClasses[variant],
+    buttonPadding[size],
     className,
   ]
     .filter(Boolean)
     .join(" ");
 
-  const iconSizeClass = sizeClasses[size];
+  const iconSizeClass = iconSize[size];
 
   return (
     <button
