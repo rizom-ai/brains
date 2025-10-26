@@ -320,5 +320,89 @@ Content`;
       expect(parsed.url).toBeUndefined();
       expect(parsed.cta).toBeUndefined();
     });
+
+    it("should preserve socialLinks array through roundtrip", () => {
+      const originalData = {
+        title: "Rizom",
+        description: "The Rizom collective's knowledge hub",
+        socialLinks: [
+          {
+            platform: "linkedin" as const,
+            url: "https://www.linkedin.com/company/rizom-collective",
+            label: "Follow us on LinkedIn",
+          },
+          {
+            platform: "github" as const,
+            url: "https://github.com/rizom-ai",
+            label: "View our code on GitHub",
+          },
+          {
+            platform: "email" as const,
+            url: "mailto:contact@rizom.ai",
+            label: "Email us",
+          },
+        ],
+      };
+
+      // Create content
+      const content = adapter.createSiteInfoContent(originalData);
+
+      // Parse it back
+      const parsed = adapter.parseSiteInfoBody(content);
+
+      // Should preserve all data including socialLinks
+      expect(parsed.title).toBe(originalData.title);
+      expect(parsed.description).toBe(originalData.description);
+      expect(parsed.socialLinks).toEqual(originalData.socialLinks);
+    });
+
+    it("should parse socialLinks from properly formatted markdown", () => {
+      const markdown = `# Site Information
+
+## Title
+Rizom
+
+## Description
+The Rizom collective's knowledge hub
+
+## Social Links
+
+### Social Link 1
+
+#### Platform
+linkedin
+
+#### URL
+https://www.linkedin.com/company/rizom-collective
+
+#### Label
+Follow us on LinkedIn
+
+### Social Link 2
+
+#### Platform
+github
+
+#### URL
+https://github.com/rizom-ai
+
+#### Label
+View our code on GitHub`;
+
+      const result = adapter.parseSiteInfoBody(markdown);
+
+      expect(result.socialLinks).toEqual([
+        {
+          platform: "linkedin",
+          url: "https://www.linkedin.com/company/rizom-collective",
+          label: "Follow us on LinkedIn",
+        },
+        {
+          platform: "github",
+          url: "https://github.com/rizom-ai",
+          label: "View our code on GitHub",
+        },
+      ]);
+    });
   });
 });

@@ -25,8 +25,10 @@ export class SiteInfoAdapter implements EntityAdapter<SiteInfoEntity> {
     const mappings: Array<{
       key: string;
       label: string;
-      type: "string" | "object";
+      type: "string" | "object" | "array";
       children?: Array<{ key: string; label: string; type: "string" }>;
+      itemType?: "object";
+      itemMappings?: Array<{ key: string; label: string; type: "string" }>;
     }> = [
       { key: "title", label: "Title", type: "string" },
       { key: "description", label: "Description", type: "string" },
@@ -51,6 +53,19 @@ export class SiteInfoAdapter implements EntityAdapter<SiteInfoEntity> {
           { key: "heading", label: "Heading", type: "string" },
           { key: "buttonText", label: "Button Text", type: "string" },
           { key: "buttonLink", label: "Button Link", type: "string" },
+        ],
+      });
+    }
+    if (!data || data.socialLinks !== undefined) {
+      mappings.push({
+        key: "socialLinks",
+        label: "Social Links",
+        type: "array",
+        itemType: "object",
+        itemMappings: [
+          { key: "platform", label: "Platform", type: "string" },
+          { key: "url", label: "URL", type: "string" },
+          { key: "label", label: "Label", type: "string" },
         ],
       });
     }

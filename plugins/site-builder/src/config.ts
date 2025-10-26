@@ -1,6 +1,7 @@
 import { z } from "@brains/utils";
 import type { Template } from "@brains/plugins";
 import { RouteDefinitionSchema } from "./types/routes";
+import { siteInfoBodySchema } from "./services/site-info-schema";
 
 /**
  * Configuration schema for the site builder plugin
@@ -32,25 +33,10 @@ export const siteBuilderConfigSchema = z.object({
     .optional()
     .describe("Working directory for builds")
     .default("./.preact-work"),
-  siteInfo: z
-    .object({
-      title: z.string(),
-      description: z.string(),
-      url: z.string().optional(),
-      copyright: z.string().optional(),
-      themeMode: z.enum(["light", "dark"]).optional(),
-      cta: z
-        .object({
-          heading: z.string(),
-          buttonText: z.string(),
-          buttonLink: z.string(),
-        })
-        .optional(),
-    })
-    .default({
-      title: "Personal Brain",
-      description: "A knowledge management system",
-    }),
+  siteInfo: siteInfoBodySchema.default({
+    title: "Personal Brain",
+    description: "A knowledge management system",
+  }),
   themeCSS: z
     .string()
     .describe("Custom CSS theme overrides to inject into builds")

@@ -9,3 +9,5 @@ export { WavyDivider } from "./WavyDivider";
 export type { WavyDividerProps } from "./WavyDivider";
 export { PresentationLayout } from "./PresentationLayout";
 export type { PresentationLayoutProps } from "./PresentationLayout";
+export { SocialLinks } from "./SocialLinks";
+export type { SocialLinksProps, SocialLink } from "./SocialLinks";

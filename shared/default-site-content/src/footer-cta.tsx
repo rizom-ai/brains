@@ -5,6 +5,7 @@ import {
   ThemeToggle,
   NavLinks,
   WavyDivider,
+  SocialLinks,
 } from "@brains/ui-library";
 
 declare global {
@@ -100,12 +101,20 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
             />
           </nav>
 
-          {/* Copyright */}
-          {siteInfo.copyright && (
-            <div className="mt-6 text-center">
-              <p className="text-sm text-white opacity-80">
-                {siteInfo.copyright}
-              </p>
+          {/* Copyright and Social Links */}
+          {(siteInfo.copyright || siteInfo.socialLinks) && (
+            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+              {siteInfo.copyright && (
+                <p className="text-sm text-white opacity-80">
+                  {siteInfo.copyright}
+                </p>
+              )}
+              {siteInfo.socialLinks && siteInfo.socialLinks.length > 0 && (
+                <SocialLinks
+                  links={siteInfo.socialLinks}
+                  iconClassName="w-5 h-5 text-white opacity-80 hover:opacity-100"
+                />
+              )}
             </div>
           )}
         </div>

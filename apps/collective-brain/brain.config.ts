@@ -112,6 +112,23 @@ const config = defineConfig({
           buttonText: "Join Rizom",
           buttonLink: "https://www.linkedin.com/company/rizom-collective",
         },
+        socialLinks: [
+          {
+            platform: "linkedin",
+            url: "https://www.linkedin.com/company/rizom-collective",
+            label: "Follow us on LinkedIn",
+          },
+          {
+            platform: "github",
+            url: "https://github.com/rizom-ai",
+            label: "View our code on GitHub",
+          },
+          {
+            platform: "email",
+            url: "mailto:contact@rizom.ai",
+            label: "Email us",
+          },
+        ],
       },
       themeCSS: defaultTheme,
     }),
