@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
-import { LinkButton } from "@brains/ui-library";
+import {
+  LinkButton,
+  ThemeToggle,
+  NavLinks,
+  WavyDivider,
+} from "@brains/ui-library";
 
 declare global {
   interface Window {
@@ -19,29 +24,10 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
   // Extract CTA values
   const { heading, buttonText, buttonLink } = siteInfo.cta;
 
-  // Sort navigation items by priority
-  const sortedPrimary = [...siteInfo.navigation.primary].sort(
-    (a, b) => a.priority - b.priority,
-  );
-  const sortedSecondary = [...siteInfo.navigation.secondary].sort(
-    (a, b) => a.priority - b.priority,
-  );
   return (
     <div className="relative">
       {/* Wavy line separator above CTA - from Figma design */}
-      <svg
-        className="w-full"
-        viewBox="0 0 1728 80"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="none"
-        style={{ height: "60px", display: "block", marginBottom: "-1px" }}
-      >
-        <path
-          d="M978.454 57.8634C960.836 57.912 950.318 7.74213 934.233 7.76909C916.692 7.80144 907.2 62.7447 892.081 62.7662C883.888 62.7824 869.804 1.10003 851.844 0C836.726 0.0215691 827.233 55.9276 809.693 55.96C793.608 55.9869 783.627 5.81708 766.009 5.86561C749.923 5.90875 742.814 47.7421 726.143 47.7475C710.927 47.7475 702.42 12.8864 685.554 12.8972C670.094 12.9133 662.437 42.1988 644.965 42.215C629.144 42.2312 620.423 18.2247 602.922 18.2571C587.159 18.284 580.332 37.788 562.333 37.8581C545.701 37.9174 536.413 21.3361 518.834 21.4439C503.11 21.5356 497.739 34.8923 480.423 35.0163C464.397 35.1296 456.75 23.7788 438.379 23.7896C421.806 23.8057 416.2 33.0481 397.791 33.1722C380.553 33.2854 373.951 25.2617 355.014 25.2994C338.724 25.3318 334.749 31.2902 316.604 31.5005C299.552 31.6947 294.844 26.5342 276.015 26.4749C258.094 26.421 254.295 31.0746 235.426 31.1662C216.597 31.2579 213.003 26.6583 194.105 26.8093C176.36 26.9495 169.826 31.0799 152.062 30.6647C147.12 30.5461 142.813 30.1147 139.287 29.5917C134.648 28.9015 129.316 28.4863 123.808 28.4863H0V80H1728V35.2428H1620.67C1615.17 35.2428 1609.83 34.8276 1605.2 34.1374C1601.66 33.6143 1597.36 33.1829 1592.42 33.0643C1574.66 32.6491 1568.12 36.7796 1550.38 36.9198C1531.49 37.0708 1527.9 32.4712 1509.06 32.5628C1490.19 32.6545 1486.39 37.3134 1468.47 37.2541C1449.64 37.2002 1444.93 32.0344 1427.88 32.2285C1409.73 32.4388 1405.76 38.3973 1389.47 38.4296C1370.53 38.4674 1363.94 30.4437 1346.69 30.5569C1328.28 30.6755 1322.68 39.9233 1306.1 39.9395C1287.73 39.9557 1280.09 28.6049 1264.06 28.7127C1246.74 28.8314 1241.37 42.1881 1225.65 42.2851C1208.07 42.393 1198.78 25.8063 1182.15 25.871C1164.14 25.9411 1157.32 45.445 1141.56 45.472C1124.06 45.5043 1115.34 21.4979 1099.52 21.514C1082.04 21.5302 1074.39 50.8211 1058.93 50.8319C1042.05 50.8481 1033.56 15.9761 1018.34 15.9815C1001.67 15.9815 994.559 57.8203 978.474 57.8634Z"
-          className="fill-footer"
-        />
-      </svg>
+      <WavyDivider />
 
       <section
         className="relative bg-footer overflow-hidden py-24"
@@ -97,72 +83,22 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
             </LinkButton>
             {/* Theme toggle */}
             <div className="mt-8">
-              <button
-                // @ts-expect-error - onclick is valid HTML attribute for SSR
-                onclick="toggleTheme()"
-                type="button"
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-                aria-label="Toggle dark mode"
-              >
-                <svg
-                  className="w-5 h-5 text-white transition-colors"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    className="sun-icon"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-                  />
-                  <path
-                    className="moon-icon"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-                    transform="rotate(45 12 12)"
-                  />
-                </svg>
-              </button>
+              <ThemeToggle variant="default" size="md" />
             </div>
           </div>
 
           {/* Navigation links */}
           <nav className="mt-16 space-y-3">
             {/* Secondary navigation (first row) - meta pages */}
-            {sortedSecondary.length > 0 && (
-              <ul className="flex flex-wrap justify-center gap-6">
-                {sortedSecondary.map((item) => (
-                  <li key={item.href}>
-                    <a
-                      href={item.href}
-                      className="text-white hover:text-accent transition-colors text-sm"
-                    >
-                      {item.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <NavLinks
+              items={siteInfo.navigation.secondary}
+              linkClassName="text-white hover:text-accent transition-colors text-sm"
+            />
             {/* Primary navigation (second row) - content */}
-            {sortedPrimary.length > 0 && (
-              <ul className="flex flex-wrap justify-center gap-6">
-                {sortedPrimary.map((item) => (
-                  <li key={item.href}>
-                    <a
-                      href={item.href}
-                      className="text-white hover:text-accent transition-colors text-sm"
-                    >
-                      {item.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <NavLinks
+              items={siteInfo.navigation.primary}
+              linkClassName="text-white hover:text-accent transition-colors text-sm"
+            />
           </nav>
 
           {/* Copyright */}

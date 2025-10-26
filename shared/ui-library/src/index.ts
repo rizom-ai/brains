@@ -1,5 +1,11 @@
 export { default as Button } from "./Button";
 export { LinkButton } from "./LinkButton";
 export type { LinkButtonProps } from "./LinkButton";
+export { ThemeToggle } from "./ThemeToggle";
+export type { ThemeToggleProps } from "./ThemeToggle";
+export { NavLinks } from "./NavLinks";
+export type { NavLinksProps, NavigationItem } from "./NavLinks";
+export { WavyDivider } from "./WavyDivider";
+export type { WavyDividerProps } from "./WavyDivider";
 export { PresentationLayout } from "./PresentationLayout";
 export type { PresentationLayoutProps } from "./PresentationLayout";

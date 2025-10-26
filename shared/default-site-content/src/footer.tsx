@@ -1,10 +1,5 @@
 import type { JSX } from "preact";
-
-interface NavigationItem {
-  label: string;
-  href: string;
-  priority: number;
-}
+import { NavLinks, type NavigationItem } from "@brains/ui-library";
 
 interface FooterProps {
   primaryNavigation: NavigationItem[];
@@ -19,49 +14,21 @@ export const Footer = ({
 }: FooterProps): JSX.Element => {
   const currentYear = new Date().getFullYear();
 
-  // Sort each navigation group by priority
-  const sortedPrimary = [...primaryNavigation].sort(
-    (a, b) => a.priority - b.priority,
-  );
-  const sortedSecondary = [...secondaryNavigation].sort(
-    (a, b) => a.priority - b.priority,
-  );
-
   return (
     <footer className="footer py-8 bg-footer">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Navigation links in two rows */}
         <nav className="footer-navigation mb-4 space-y-3">
           {/* Secondary navigation (first row) - meta pages */}
-          {sortedSecondary.length > 0 && (
-            <ul className="flex flex-wrap justify-center gap-6">
-              {sortedSecondary.map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    className="text-theme-inverse hover:text-brand-light transition-colors text-sm"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+          <NavLinks
+            items={secondaryNavigation}
+            linkClassName="text-theme-inverse hover:text-brand-light transition-colors text-sm"
+          />
           {/* Primary navigation (second row) - content */}
-          {sortedPrimary.length > 0 && (
-            <ul className="flex flex-wrap justify-center gap-6">
-              {sortedPrimary.map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    className="text-theme-inverse hover:text-brand-light transition-colors text-sm"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+          <NavLinks
+            items={primaryNavigation}
+            linkClassName="text-theme-inverse hover:text-brand-light transition-colors text-sm"
+          />
         </nav>
 
         {/* Simple credit line */}
