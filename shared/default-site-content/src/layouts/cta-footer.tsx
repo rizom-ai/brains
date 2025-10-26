@@ -1,6 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
 import { FooterCTA } from "../footer-cta";
+import { LinkButton } from "@brains/ui-library";
 
 declare global {
   interface Window {
@@ -47,14 +48,15 @@ export function CTAFooterLayout({
               ))}
             </nav>
             {siteInfo.cta && (
-              <a
+              <LinkButton
                 href={siteInfo.cta.buttonLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-theme-inverse font-semibold px-4 py-2 rounded-lg hover:bg-accent-dark transition-colors text-sm whitespace-nowrap"
+                variant="accent"
+                size="sm"
+                external
+                className="whitespace-nowrap"
               >
                 {siteInfo.cta.buttonText}
-              </a>
+              </LinkButton>
             )}
           </div>
         </div>

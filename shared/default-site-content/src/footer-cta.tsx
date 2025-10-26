@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
+import { LinkButton } from "@brains/ui-library";
 
 declare global {
   interface Window {
@@ -85,14 +86,15 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
               {heading}
               <span className="text-accent">.</span>
             </h2>
-            <a
+            <LinkButton
               href={buttonLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block bg-white text-accent font-heading font-bold text-4xl px-12 py-6 rounded-lg hover:bg-opacity-90 transition-all"
+              variant="primary"
+              size="xl"
+              external
+              className="bg-white text-accent font-heading font-bold hover:bg-opacity-90"
             >
               {buttonText}
-            </a>
+            </LinkButton>
             {/* Theme toggle */}
             <div className="mt-8">
               <button
