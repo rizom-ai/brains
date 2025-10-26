@@ -10,7 +10,7 @@ import {
   routes as defaultRoutes,
   DefaultLayout,
   MinimalLayout,
-  NoFooterLayout,
+  CTAFooterLayout,
 } from "@brains/default-site-content";
 import defaultTheme from "@brains/theme-default";
 
@@ -19,7 +19,7 @@ const routes = defaultRoutes.map((route) => {
   if (route.id === "home") {
     return {
       ...route,
-      layout: "no-footer", // Use no-footer layout with custom CTA
+      layout: "cta-footer", // Use CTA footer layout
       title: "Rizom Collective",
       description: "The Rizom collective's knowledge hub",
       navigation: {
@@ -97,7 +97,7 @@ const config = defineConfig({
       layouts: {
         default: DefaultLayout,
         minimal: MinimalLayout,
-        "no-footer": NoFooterLayout,
+        "cta-footer": CTAFooterLayout,
       },
       previewOutputDir: "./dist/site-preview",
       siteInfo: {

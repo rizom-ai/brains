@@ -8,7 +8,7 @@ declare global {
   }
 }
 
-export interface NoFooterLayoutProps {
+export interface CTAFooterLayoutProps {
   sections: ComponentChildren[]; // JSX elements for sections
   title: string;
   description: string;
@@ -17,12 +17,12 @@ export interface NoFooterLayoutProps {
 }
 
 /**
- * Layout without footer - for pages with custom CTA sections
+ * Layout with CTA footer - for pages with prominent call-to-action
  */
-export function NoFooterLayout({
+export function CTAFooterLayout({
   sections,
   siteInfo,
-}: NoFooterLayoutProps): JSX.Element {
+}: CTAFooterLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme-gradient">
       {/* Simple header with site title */}
@@ -34,17 +34,29 @@ export function NoFooterLayout({
           >
             {siteInfo.title}
           </a>
-          <nav className="flex flex-wrap gap-3 sm:gap-4">
-            {siteInfo.navigation.primary.map((item) => (
+          <div className="flex items-center gap-3 sm:gap-6">
+            <nav className="flex flex-wrap gap-3 sm:gap-4">
+              {siteInfo.navigation.primary.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="text-nav hover:text-accent transition-colors text-sm sm:text-base"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+            {siteInfo.cta && (
               <a
-                key={item.href}
-                href={item.href}
-                className="text-nav hover:text-accent transition-colors text-sm sm:text-base"
+                href={siteInfo.cta.buttonLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-accent text-theme-inverse font-semibold px-4 py-2 rounded-lg hover:bg-accent-dark transition-colors text-sm whitespace-nowrap"
               >
-                {item.label}
+                {siteInfo.cta.buttonText}
               </a>
-            ))}
-          </nav>
+            )}
+          </div>
         </div>
       </header>
 

@@ -12,7 +12,7 @@ import {
   routes,
   DefaultLayout,
   MinimalLayout,
-  NoFooterLayout,
+  CTAFooterLayout,
 } from "@brains/default-site-content";
 import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
@@ -94,7 +94,7 @@ const config = defineConfig({
       layouts: {
         default: DefaultLayout,
         minimal: MinimalLayout,
-        "no-footer": NoFooterLayout,
+        "cta-footer": CTAFooterLayout,
       },
       siteConfig: {
         title: "Recall",

@@ -87,6 +87,8 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
             </h2>
             <a
               href={buttonLink}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-block bg-white text-accent font-heading font-bold text-4xl px-12 py-6 rounded-lg hover:bg-opacity-90 transition-all"
             >
               {buttonText}
