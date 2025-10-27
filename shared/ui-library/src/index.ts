@@ -11,3 +11,5 @@ export { PresentationLayout } from "./PresentationLayout";
 export type { PresentationLayoutProps } from "./PresentationLayout";
 export { SocialLinks } from "./SocialLinks";
 export type { SocialLinksProps, SocialLink } from "./SocialLinks";
+export { FooterContent } from "./FooterContent";
+export type { FooterContentProps } from "./FooterContent";

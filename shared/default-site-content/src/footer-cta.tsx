@@ -1,12 +1,6 @@
 import type { JSX } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
-import {
-  LinkButton,
-  ThemeToggle,
-  NavLinks,
-  WavyDivider,
-  SocialLinks,
-} from "@brains/ui-library";
+import { LinkButton, WavyDivider, FooterContent } from "@brains/ui-library";
 
 declare global {
   interface Window {
@@ -83,40 +77,17 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
             </LinkButton>
           </div>
 
-          {/* Navigation links */}
-          <nav className="mt-16 space-y-3">
-            {/* Secondary navigation + theme toggle (first row) */}
-            <NavLinks
-              items={siteInfo.navigation.secondary}
-              linkClassName="text-white hover:text-accent transition-colors text-sm"
-            >
-              <li>
-                <ThemeToggle variant="default" size="md" />
-              </li>
-            </NavLinks>
-            {/* Primary navigation (second row) */}
-            <NavLinks
-              items={siteInfo.navigation.primary}
-              linkClassName="text-white hover:text-accent transition-colors text-sm"
+          {/* Footer content (navigation, copyright, social links) */}
+          <div className="mt-16">
+            <FooterContent
+              primaryNav={siteInfo.navigation.primary}
+              secondaryNav={siteInfo.navigation.secondary}
+              copyright={siteInfo.copyright}
+              socialLinks={siteInfo.socialLinks}
+              showThemeToggle={true}
+              variant="cta"
             />
-          </nav>
-
-          {/* Copyright and Social Links */}
-          {(siteInfo.copyright || siteInfo.socialLinks) && (
-            <div className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-              {siteInfo.copyright && (
-                <p className="text-sm text-white opacity-80">
-                  {siteInfo.copyright}
-                </p>
-              )}
-              {siteInfo.socialLinks && siteInfo.socialLinks.length > 0 && (
-                <SocialLinks
-                  links={siteInfo.socialLinks}
-                  iconClassName="w-5 h-5 text-white opacity-80 hover:opacity-100"
-                />
-              )}
-            </div>
-          )}
+          </div>
         </div>
       </section>
     </div>

@@ -48,6 +48,8 @@ export function DefaultLayout({
       <Footer
         primaryNavigation={siteInfo.navigation.primary}
         secondaryNavigation={siteInfo.navigation.secondary}
+        copyright={siteInfo.copyright}
+        socialLinks={siteInfo.socialLinks}
       />
     </div>
   );

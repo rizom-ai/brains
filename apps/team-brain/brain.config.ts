@@ -18,11 +18,7 @@ import { TopicsPlugin } from "@brains/topics";
 import { LinkPlugin } from "@brains/link";
 import { SummaryPlugin } from "@brains/summary";
 import { DecksPlugin } from "@brains/decks";
-import defaultTheme, { customizeTheme } from "@brains/theme-default";
-import customThemeCSS from "./theme.css" with { type: "text" };
-
-// Use team-brain's custom theme
-const themeCSS = customizeTheme(defaultTheme, customThemeCSS);
+import defaultTheme from "@brains/theme-default";
 
 const config = defineConfig({
   name: "team-brain",
@@ -96,12 +92,29 @@ const config = defineConfig({
         minimal: MinimalLayout,
         "cta-footer": CTAFooterLayout,
       },
-      siteConfig: {
+      siteInfo: {
         title: "Recall",
         description: "Your team's AI-powered knowledge hub",
         themeMode: "dark",
+        socialLinks: [
+          {
+            platform: "linkedin",
+            url: "https://www.linkedin.com/company/rizom-collective",
+            label: "Follow us on LinkedIn",
+          },
+          {
+            platform: "github",
+            url: "https://github.com/rizom-ai",
+            label: "View our code on GitHub",
+          },
+          {
+            platform: "email",
+            url: "mailto:contact@rizom.ai",
+            label: "Email us",
+          },
+        ],
       },
-      themeCSS,
+      themeCSS: defaultTheme,
     }),
   ],
 });
