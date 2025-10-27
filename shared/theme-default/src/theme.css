@@ -61,6 +61,7 @@
     --color-text-muted: var(--palette-brand-blue-dark-1);
     --color-text-light: var(--palette-brand-blue);
     --color-text-inverse: var(--palette-white);
+    --color-heading: var(--palette-brand-blue-dark-1);  /* Heading color */
 
     /* Background Colors */
     --color-bg: var(--palette-white);
@@ -118,6 +119,7 @@
     --color-text-muted: var(--palette-text-muted-dark);
     --color-text-light: var(--palette-text-subtle-dark);
     --color-text-inverse: var(--palette-white);  /* White text on dark backgrounds */
+    --color-heading: var(--palette-light-orange);  /* Light orange for dark mode headings */
 
     /* Background Colors - Dark mode */
     --color-bg: var(--palette-dark-bg);

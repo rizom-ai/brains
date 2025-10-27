@@ -78,7 +78,7 @@ export const PresentationLayout = ({
 
             .reveal {
               font-family: var(--font-sans);
-              background: linear-gradient(to bottom left, #ffffff, #fce5c6 80%, #a8c4ff);
+              background: var(--color-bg-gradient);
             }
 
             .reveal .slides section.stack {
@@ -92,7 +92,7 @@ export const PresentationLayout = ({
               justify-content: center;
               flex-direction: column;
               max-width: 900px;
-              color: #1a1a1a;
+              color: var(--color-text);
               text-align: left;
             }
 
@@ -150,13 +150,12 @@ export const PresentationLayout = ({
             .reveal h4,
             .reveal h5,
             .reveal h6 {
-              color: var(--color-text);
               font-family: var(--font-heading);
               font-weight: 700;
             }
 
             .reveal h1 {
-              color: #2e007d;
+              color: var(--color-heading);
               font-size: var(--text-h1-mobile);
               line-height: 1;
               font-weight: 700;
@@ -171,7 +170,7 @@ export const PresentationLayout = ({
             }
 
             .reveal h2 {
-              color: #2e007d;
+              color: var(--color-heading);
               font-size: var(--text-h2-mobile);
               line-height: 1;
               font-weight: 700;
@@ -186,7 +185,7 @@ export const PresentationLayout = ({
             }
 
             .reveal h3 {
-              color: #1a1a1a;
+              color: var(--color-heading);
               font-size: var(--text-h3-mobile);
               line-height: 1;
               font-weight: 700;
@@ -201,7 +200,7 @@ export const PresentationLayout = ({
             }
 
             .reveal h4 {
-              color: #2e007d;
+              color: var(--color-heading);
               font-size: var(--text-h4);
               font-weight: 700;
               margin-top: 2rem;
@@ -209,9 +208,19 @@ export const PresentationLayout = ({
               text-align: left;
             }
 
+            .reveal h5,
+            .reveal h6 {
+              color: var(--color-heading);
+              font-size: 1.25rem;
+              font-weight: 700;
+              margin-top: 1.5rem;
+              margin-bottom: 0.75rem;
+              text-align: left;
+            }
+
             .reveal p,
             .reveal li {
-              color: #1a1a1a;
+              color: var(--color-text);
               font-family: var(--font-sans);
               font-size: var(--text-body-mobile);
               line-height: 1.5;
@@ -227,18 +236,18 @@ export const PresentationLayout = ({
             }
 
             .reveal a {
-              color: #e7640a;
+              color: var(--color-accent);
               text-decoration: underline;
               font-weight: 900;
             }
 
             .reveal a:hover {
-              color: #93c5fd;
+              color: var(--color-brand-light);
             }
 
             .reveal strong,
             .reveal em {
-              color: #e7640a;
+              color: var(--color-accent);
             }
 
             .reveal .slides section ul,
@@ -301,15 +310,15 @@ export const PresentationLayout = ({
 
             /* Controls and progress */
             .reveal .controls {
-              color: #93c5fd;
+              color: var(--color-brand-light);
             }
 
             .reveal .progress {
-              background: #1e3a8a;
+              background: var(--color-bg-muted);
             }
 
             .reveal .progress span {
-              background: #60a5fa;
+              background: var(--color-brand);
             }
 
             /* Slide number */
