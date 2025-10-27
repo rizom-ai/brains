@@ -91,6 +91,17 @@
     --font-heading: 'Space Grotesk', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Typography Scale - For presentations and large displays */
+    --text-h1: 8rem;          /* 128px Desktop - bold impact */
+    --text-h1-mobile: 3.75rem; /* 60px Mobile */
+    --text-h2: 4.5rem;        /* 72px Desktop */
+    --text-h2-mobile: 3rem;   /* 48px Mobile */
+    --text-h3: 3rem;          /* 48px Desktop */
+    --text-h3-mobile: 2.25rem; /* 36px Mobile */
+    --text-h4: 1.875rem;      /* 30px */
+    --text-body: 1.875rem;    /* 30px Desktop - for presentations */
+    --text-body-mobile: 1.5rem; /* 24px Mobile */
   }
 
   /* Dark theme */
