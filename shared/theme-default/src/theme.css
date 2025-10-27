@@ -154,6 +154,7 @@
   .text-theme-muted { color: var(--color-text-muted); }
   .text-theme-light { color: var(--color-text-light); }
   .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-heading { color: var(--color-heading); }
   .text-brand { color: var(--color-brand); }
   .text-accent { color: var(--color-accent); }
   

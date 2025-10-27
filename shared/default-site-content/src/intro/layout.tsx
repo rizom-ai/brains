@@ -22,10 +22,10 @@ export const IntroLayout = ({
       <div className="container mx-auto px-4 max-w-7xl py-12 relative">
         {/* Main intro - centered and prominent */}
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-theme">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 text-heading">
             {tagline}
           </h1>
-          <p className="text-xl md:text-2xl text-theme-muted leading-relaxed">
+          <p className="text-xl md:text-2xl text-theme leading-relaxed">
             {description}
           </p>
         </div>
