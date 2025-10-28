@@ -1,3 +1,8 @@
+# Redirect www to non-www
+www.{{domain}} {
+    redir https://{{domain}}{uri} permanent
+}
+
 {{domain}} {
     # Enable compression
     encode gzip
