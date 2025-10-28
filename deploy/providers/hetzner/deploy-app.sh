@@ -219,60 +219,23 @@ networks:
 EOF
 
         # Create Caddyfile
-        log_info "Creating Caddyfile..."
+        log_info "Creating Caddyfile from template..."
 
         # Check if preview is configured in env file
         PREVIEW_DOMAIN=$(grep -E "^PREVIEW_DOMAIN=" "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "")
 
-        # Base Caddyfile with production site and MCP API
-        cat << EOF | $SSH_CMD "cat > $APP_DIR/Caddyfile"
-{
-    email admin@$DOMAIN
-}
+        # Path to templates
+        TEMPLATE_DIR="$PROVIDER_DIR/templates"
+        CADDY_TEMPLATE="$TEMPLATE_DIR/Caddyfile.template"
+        PREVIEW_TEMPLATE="$TEMPLATE_DIR/Caddyfile-preview.template"
 
-# Production site with MCP API
-$DOMAIN {
-    # MCP API endpoint (must come before general proxy)
-    handle /mcp* {
-        reverse_proxy personal-brain:3333
-
-        header {
-            X-Content-Type-Options "nosniff"
-            Access-Control-Allow-Origin "*"
-            Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-            Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-        }
-    }
-
-    # Production site (catch-all)
-    handle {
-        reverse_proxy personal-brain:8080
-
-        header {
-            X-Frame-Options "SAMEORIGIN"
-            X-Content-Type-Options "nosniff"
-            Referrer-Policy "strict-origin-when-cross-origin"
-        }
-    }
-}
-EOF
+        # Generate Caddyfile from template
+        sed "s|{{domain}}|$DOMAIN|g" "$CADDY_TEMPLATE" | $SSH_CMD "cat > $APP_DIR/Caddyfile"
 
         # Add preview block only if configured
         if [ -n "$PREVIEW_DOMAIN" ]; then
             log_info "Preview environment detected, adding preview subdomain..."
-            cat << EOF | $SSH_CMD "cat >> $APP_DIR/Caddyfile"
-
-# Preview site
-$PREVIEW_DOMAIN {
-    reverse_proxy personal-brain:4321
-
-    header {
-        X-Frame-Options "SAMEORIGIN"
-        X-Content-Type-Options "nosniff"
-        Referrer-Policy "strict-origin-when-cross-origin"
-    }
-}
-EOF
+            sed "s|{{preview_domain}}|$PREVIEW_DOMAIN|g" "$PREVIEW_TEMPLATE" | $SSH_CMD "cat >> $APP_DIR/Caddyfile"
         fi
     else
         # Without domain - direct port access

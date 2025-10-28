@@ -1,0 +1,34 @@
+{
+    email admin@{{domain}}
+}
+
+# Redirect www to non-www
+www.{{domain}} {
+    redir https://{{domain}}{uri} permanent
+}
+
+# Production site with MCP API
+{{domain}} {
+    # MCP API endpoint (must come before general proxy)
+    handle /mcp* {
+        reverse_proxy personal-brain:3333
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+        }
+    }
+
+    # Production site (catch-all)
+    handle {
+        reverse_proxy personal-brain:8080
+
+        header {
+            X-Frame-Options "SAMEORIGIN"
+            X-Content-Type-Options "nosniff"
+            Referrer-Policy "strict-origin-when-cross-origin"
+        }
+    }
+}
