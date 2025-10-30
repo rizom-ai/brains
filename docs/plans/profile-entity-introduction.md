@@ -1,11 +1,11 @@
-# Owner Entity Introduction
+# Profile Entity Introduction
 
 ## Overview
 
-Introduce a new `owner` entity to properly separate three distinct concerns that are currently conflated:
+Introduce a new `profile` entity to properly separate three distinct concerns that are currently conflated:
 
 1. **Identity** - The brain's AI personality and behavior
-2. **Owner** - The person/organization operating the brain (NEW)
+2. **Profile** - The person/organization's public presence (NEW)
 3. **Site-info** - The website's presentation and configuration
 
 ## Problem Statement
@@ -13,20 +13,20 @@ Introduce a new `owner` entity to properly separate three distinct concerns that
 Currently, site-info mixes two different concerns:
 
 - **Website presentation**: title, description, CTA, theme
-- **Owner information**: socialLinks, contact info, copyright
+- **Profile information**: socialLinks, contact info, bio
 
 This creates confusion:
 
 ```typescript
 // Current collective-brain config
 identity: {
-  name: "Rizom",  // Actually the OWNER name, not the brain's!
+  name: "Rizom",  // Actually the person/org name, not the brain's!
   role: "...",    // This IS the brain's role
 }
 
 siteInfo: {
   title: "Rizom",      // Site title
-  socialLinks: [...],  // OWNER's social links, not site's
+  socialLinks: [...],  // Person/org's social links, not site's
 }
 ```
 
@@ -56,17 +56,17 @@ Coordinate collective knowledge, facilitate collaboration...
 - innovation
 ```
 
-### 2. Owner (Person/Organization) - NEW
+### 2. Profile (Person/Organization) - NEW
 
-**Purpose**: Information about who operates the brain
+**Purpose**: Public profile of the person/organization
 **Fields**: name, bio, socialLinks, contact info
 **Example**:
 
 ```yaml
-type: owner
-slug: owner
+type: profile
+slug: profile
 ---
-# Owner
+# Profile
 
 ## Name
 Rizom
@@ -104,32 +104,32 @@ Button: Join Rizom
 Link: https://linkedin.com/company/rizom-collective
 ```
 
-## Owner Entity Design
+## Profile Entity Design
 
 ### Schema
 
-**Location**: `shell/owner-service/src/schema.ts`
+**Location**: `shell/profile-service/src/schema.ts`
 
 ```typescript
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**
- * Owner entity schema
- * Represents the person or organization operating the brain
+ * Profile entity schema
+ * Represents the public profile of the person or organization
  */
-export const ownerSchema = baseEntitySchema.extend({
-  id: z.literal("owner"),
-  entityType: z.literal("owner"),
+export const profileSchema = baseEntitySchema.extend({
+  id: z.literal("profile"),
+  entityType: z.literal("profile"),
 });
 
-export type OwnerEntity = z.infer<typeof ownerSchema>;
+export type ProfileEntity = z.infer<typeof profileSchema>;
 
 /**
- * Owner body schema - information about the brain's operator
+ * Profile body schema - public profile information
  */
-export const ownerBodySchema = z.object({
-  name: z.string().describe("Owner's name (person or organization)"),
+export const profileBodySchema = z.object({
+  name: z.string().describe("Name (person or organization)"),
   bio: z.string().optional().describe("Short biography or description"),
   website: z.string().optional().describe("Primary website URL"),
   email: z.string().optional().describe("Contact email"),
@@ -147,23 +147,23 @@ export const ownerBodySchema = z.object({
     .describe("Social media and contact links"),
 });
 
-export type OwnerBody = z.infer<typeof ownerBodySchema>;
+export type ProfileBody = z.infer<typeof profileBodySchema>;
 ```
 
 ### Service
 
-**Location**: `shell/owner-service/src/owner-service.ts`
+**Location**: `shell/profile-service/src/profile-service.ts`
 
 Similar pattern to IdentityService:
 
 - Singleton with getInstance/resetInstance/createFresh
 - Caching for performance
-- Default owner creation if none exists
-- `getOwner()` convenience method
+- Default profile creation if none exists
+- `getProfile()` convenience method
 
 ### Adapter
 
-**Location**: `shell/owner-service/src/adapter.ts`
+**Location**: `shell/profile-service/src/adapter.ts`
 
 - Markdown parsing and generation
 - Structured content formatting
@@ -173,9 +173,9 @@ Similar pattern to IdentityService:
 
 ### Data Reorganization
 
-**From site-info to owner**:
+**From site-info to profile**:
 
-- `socialLinks` → owner entity
+- `socialLinks` → profile entity
 - Contact information
 - Any biographical data
 
@@ -188,38 +188,38 @@ Similar pattern to IdentityService:
 
 ### Implementation Steps
 
-#### Phase 1: Create Owner Service Package
+#### Phase 1: Create Profile Service Package
 
-1. Create `shell/owner-service/` package
+1. Create `shell/profile-service/` package
 2. Create schema (`src/schema.ts`)
 3. Create adapter (`src/adapter.ts`)
-4. Create service (`src/owner-service.ts`)
+4. Create service (`src/profile-service.ts`)
 5. Create `src/index.ts` exports
 6. Add package.json
 7. Run typecheck: `bun run typecheck`
 
 #### Phase 2: Update Site Builder Plugin
 
-1. Add owner-service dependency
-2. Update site builder to read both owner and site-info
-3. Merge owner.socialLinks into site data
+1. Add profile-service dependency
+2. Update site builder to read both profile and site-info
+3. Merge profile.socialLinks into site data
 4. Update types to reflect split
 5. Run typecheck: `bun run typecheck`
 6. Update plugin tests
 
-#### Phase 3: Create Owner Seed Content (collective-brain first)
+#### Phase 3: Create Profile Seed Content (collective-brain first)
 
-1. Create `apps/collective-brain/seed-content/owner.md`
+1. Create `apps/collective-brain/seed-content/profile.md`
 2. Populate with Rizom org data:
    - name: "Rizom"
    - bio: "Open-source collective..."
    - socialLinks: LinkedIn, GitHub, Email
 3. Test brain startup
 
-#### Phase 4: Update Site-info (remove owner data)
+#### Phase 4: Update Site-info (remove profile data)
 
 1. Update `apps/collective-brain/seed-content/site-info.md`
-2. Remove socialLinks (now in owner)
+2. Remove socialLinks (now in profile)
 3. Keep: title, description, CTA, copyright
 4. Test site generation
 
@@ -228,8 +228,8 @@ Similar pattern to IdentityService:
 **Goal**: Config should only contain code/structure, not data. All entity data should come from seed-content.
 
 1. Remove `identity` object from brain.config.ts (data now in seed-content/identity.md)
-2. Remove `siteInfo` object from brain.config.ts (data now in seed-content/site-info.md and owner.md)
-3. Verify site builder reads from entities (owner and site-info)
+2. Remove `siteInfo` object from brain.config.ts (data now in seed-content/site-info.md and profile.md)
+3. Verify site builder reads from entities (profile and site-info)
 4. Run typecheck: `bun run typecheck`
 5. Test full site build
 
@@ -289,19 +289,19 @@ const config = defineConfig({
 
 ### Unit Tests
 
-- [ ] Owner schema validation works
-- [ ] OwnerAdapter parses markdown correctly
-- [ ] OwnerService caches and provides owner data
-- [ ] Site builder merges owner and site-info data
+- [ ] Profile schema validation works
+- [ ] ProfileAdapter parses markdown correctly
+- [ ] ProfileService caches and provides profile data
+- [ ] Site builder merges profile and site-info data
 - [ ] Type checking passes across all packages
 
 ### Integration Tests
 
-- [ ] collective-brain starts with owner entity
-- [ ] Site builder reads owner.socialLinks
+- [ ] collective-brain starts with profile entity
+- [ ] Site builder reads profile.socialLinks
 - [ ] Social links display in footer
-- [ ] team-brain owner entity created correctly
-- [ ] test-brain owner entity created correctly
+- [ ] team-brain profile entity created correctly
+- [ ] test-brain profile entity created correctly
 
 ### Manual Validation
 
@@ -315,7 +315,7 @@ bun test
 # Start collective-brain (test first)
 bun apps/collective-brain/brain.config.ts
 
-# Verify owner entity exists
+# Verify profile entity exists
 # Check social links in generated site
 # Verify site-info no longer has socialLinks
 
@@ -329,15 +329,15 @@ For brains already running with socialLinks in site-info:
 **Migration script** (run once on deployment):
 
 ```typescript
-async function migrateSocialLinksToOwner(entityService: EntityService) {
+async function migrateSocialLinksToProfile(entityService: EntityService) {
   // Get existing site-info
   const siteInfo = await entityService.getEntity("site-info", "site-info");
 
   if (siteInfo?.body?.socialLinks) {
-    // Create owner entity with social links
+    // Create profile entity with social links
     await entityService.createEntity({
-      type: "owner",
-      slug: "owner",
+      type: "profile",
+      slug: "profile",
       body: {
         name: siteInfo.body.title, // Use site title as starting point
         socialLinks: siteInfo.body.socialLinks,
@@ -357,12 +357,12 @@ async function migrateSocialLinksToOwner(entityService: EntityService) {
 
 ## Success Criteria
 
-1. ✅ Owner service package created in `shell/owner-service/`
-2. ✅ Owner schema, adapter, and service implemented
-3. ✅ Site builder reads from both owner and site-info
-4. ✅ collective-brain has owner entity with social links
-5. ✅ team-brain has owner entity
-6. ✅ test-brain has owner entity
+1. ✅ Profile service package created in `shell/profile-service/`
+2. ✅ Profile schema, adapter, and service implemented
+3. ✅ Site builder reads from both profile and site-info
+4. ✅ collective-brain has profile entity with social links
+5. ✅ team-brain has profile entity
+6. ✅ test-brain has profile entity
 7. ✅ Site-info no longer contains socialLinks
 8. ✅ All tests passing
 9. ✅ TypeScript strict mode satisfied
@@ -372,25 +372,25 @@ async function migrateSocialLinksToOwner(entityService: EntityService) {
 
 ### New Files
 
-- `shell/owner-service/package.json`
-- `shell/owner-service/src/schema.ts`
-- `shell/owner-service/src/adapter.ts`
-- `shell/owner-service/src/owner-service.ts`
-- `shell/owner-service/src/index.ts`
-- `apps/collective-brain/seed-content/owner.md`
-- `apps/team-brain/seed-content/owner.md`
-- `apps/test-brain/seed-content/owner.md`
+- `shell/profile-service/package.json`
+- `shell/profile-service/src/schema.ts`
+- `shell/profile-service/src/adapter.ts`
+- `shell/profile-service/src/profile-service.ts`
+- `shell/profile-service/src/index.ts`
+- `apps/collective-brain/seed-content/profile.md`
+- `apps/team-brain/seed-content/profile.md`
+- `apps/test-brain/seed-content/profile.md`
 
 ### Modified Files
 
-- `plugins/site-builder/src/plugin.ts` - Read owner entity
+- `plugins/site-builder/src/plugin.ts` - Read profile entity
 - `plugins/site-builder/src/services/site-info-schema.ts` - Remove socialLinks
 - `apps/collective-brain/seed-content/site-info.md` - Remove socialLinks
 - `apps/team-brain/seed-content/site-info.md` - Remove socialLinks
 - `apps/test-brain/seed-content/site-info.md` - Remove socialLinks
-- `apps/collective-brain/brain.config.ts` - Remove identity and siteInfo objects (data moved to entities)
-- `apps/team-brain/brain.config.ts` - Remove identity and siteInfo objects (data moved to entities)
-- `apps/test-brain/brain.config.ts` - Remove identity and siteInfo objects (data moved to entities)
+- `apps/collective-brain/brain.config.ts` - Remove identity and siteInfo data objects (moved to entities)
+- `apps/team-brain/brain.config.ts` - Remove identity and siteInfo data objects (moved to entities)
+- `apps/test-brain/brain.config.ts` - Remove identity and siteInfo data objects (moved to entities)
 
 ## Architecture Benefits
 
@@ -399,10 +399,10 @@ async function migrateSocialLinksToOwner(entityService: EntityService) {
 ```
 site-info entity
   ├─ website presentation (title, CTA)
-  └─ owner information (socialLinks) ← WRONG!
+  └─ profile information (socialLinks) ← WRONG!
 
 identity entity
-  └─ name: "Rizom" ← Actually owner name, not brain!
+  └─ name: "Rizom" ← Actually person/org name, not brain!
 ```
 
 ### After (Separated)
@@ -411,8 +411,8 @@ identity entity
 identity entity
   └─ Brain AI personality (role, purpose, values)
 
-owner entity (NEW)
-  └─ Person/org info (name, bio, socialLinks)
+profile entity (NEW)
+  └─ Person/org public profile (name, bio, socialLinks)
 
 site-info entity
   └─ Website presentation (title, description, CTA)
@@ -420,9 +420,9 @@ site-info entity
 
 ## Timeline Estimate
 
-- **Phase 1** (Owner service): 2-3 hours
+- **Phase 1** (Profile service): 2-3 hours
 - **Phase 2** (Site builder): 1-2 hours
-- **Phase 3** (Collective-brain owner): 1 hour
+- **Phase 3** (Collective-brain profile): 1 hour
 - **Phase 4** (Update site-info): 30 minutes
 - **Phase 5** (Brain config): 30 minutes
 - **Phase 6** (Other brains): 1-2 hours
@@ -432,12 +432,12 @@ site-info entity
 
 ## Notes
 
-- Owner is about **who operates the brain** (person/organization)
-- Identity is about **the brain's AI personality**
-- Site-info is about **the website's presentation**
-- This matches the real-world model: a person (owner) operates an AI (identity) and publishes a website (site-info)
-- Social links belong to the owner, not the website
-- Copyright stays in site-info as it's about content rights, not the owner's identity
+- Profile is the **public profile** of the person/organization (name, bio, socialLinks)
+- Identity is about **the brain's AI personality** (role, purpose, values)
+- Site-info is about **the website's presentation** (title, description, CTA)
+- This matches the real-world model: a person/org (profile) operates an AI (identity) and publishes a website (site-info)
+- Social links belong to the profile, not the website
+- Copyright stays in site-info as it's about content rights, not the profile
 
 ### Config vs Entities Principle
 
