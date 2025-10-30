@@ -223,12 +223,56 @@ Similar pattern to IdentityService:
 3. Keep: title, description, CTA, copyright
 4. Test site generation
 
-#### Phase 5: Update Brain Config
+#### Phase 5: Update Brain Config (Remove Data Duplication)
 
-1. Remove socialLinks from siteInfo in brain.config.ts
-2. Verify site builder reads from owner entity
-3. Run typecheck: `bun run typecheck`
-4. Test full site build
+**Goal**: Config should only contain code/structure, not data. All entity data should come from seed-content.
+
+1. Remove `identity` object from brain.config.ts (data now in seed-content/identity.md)
+2. Remove `siteInfo` object from brain.config.ts (data now in seed-content/site-info.md and owner.md)
+3. Verify site builder reads from entities (owner and site-info)
+4. Run typecheck: `bun run typecheck`
+5. Test full site build
+
+**Before** (brain.config.ts):
+
+```typescript
+const config = defineConfig({
+  name: "rizom",
+
+  identity: {  // ❌ Remove - belongs in entity
+    name: "Rizom",
+    role: "...",
+    purpose: "...",
+    values: [...]
+  },
+
+  siteBuilderPlugin({
+    siteInfo: {  // ❌ Remove - belongs in entities
+      title: "Rizom",
+      socialLinks: [...],
+      cta: {...}
+    }
+  })
+});
+```
+
+**After** (brain.config.ts):
+
+```typescript
+const config = defineConfig({
+  name: "rizom",
+  // ✅ No identity - comes from seed-content/identity.md
+  // ✅ No siteInfo - comes from seed-content/site-info.md and owner.md
+
+  siteBuilderPlugin({
+    templates,
+    routes,
+    layouts,
+    navigation: {...},  // Structural config stays
+    themeMode: "dark",  // Structural config stays
+  })
+});
+```
 
 #### Phase 6: Migrate Other Brains
 
@@ -344,7 +388,9 @@ async function migrateSocialLinksToOwner(entityService: EntityService) {
 - `apps/collective-brain/seed-content/site-info.md` - Remove socialLinks
 - `apps/team-brain/seed-content/site-info.md` - Remove socialLinks
 - `apps/test-brain/seed-content/site-info.md` - Remove socialLinks
-- `apps/collective-brain/brain.config.ts` - Remove socialLinks from siteInfo config
+- `apps/collective-brain/brain.config.ts` - Remove identity and siteInfo objects (data moved to entities)
+- `apps/team-brain/brain.config.ts` - Remove identity and siteInfo objects (data moved to entities)
+- `apps/test-brain/brain.config.ts` - Remove identity and siteInfo objects (data moved to entities)
 
 ## Architecture Benefits
 
@@ -392,3 +438,20 @@ site-info entity
 - This matches the real-world model: a person (owner) operates an AI (identity) and publishes a website (site-info)
 - Social links belong to the owner, not the website
 - Copyright stays in site-info as it's about content rights, not the owner's identity
+
+### Config vs Entities Principle
+
+**Brain config (brain.config.ts)** should contain:
+
+- ✅ Code: plugin instantiation, imports, route logic
+- ✅ Structure: navigation, themeMode, layouts
+- ✅ Environment variables: process.env references
+- ✅ Permissions: security rules
+
+**Entities (seed-content/\*.md)** should contain:
+
+- ✅ Data: identity, owner info, site content
+- ✅ Content: descriptions, text, links
+- ✅ Instance-specific values: names, titles, bios
+
+**Rule**: If it can be edited via MCP/Matrix/UI, it belongs in an entity, not config.
