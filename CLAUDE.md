@@ -133,12 +133,9 @@ Refer to these documents for detailed architecture information:
 
 ### 🚧 Next Priorities
 
-1. Documentation updates - Reflect current architecture
-2. Health checks for all services - Production readiness
-3. Database backup/restore - Data safety
-4. Blog plugin - Long-form content (planning complete)
-5. Task plugin - Task and project management
-6. Performance optimization - Batch operations, vector search
+1. Blog plugin - Long-form content (planning complete)
+2. Task plugin - Task and project management
+3. Performance optimization - Batch operations, vector search
 
 ## Code Quality Checklist
 
