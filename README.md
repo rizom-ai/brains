@@ -73,7 +73,8 @@ The project follows a **tool-first architecture** where all functionality is exp
 - **@brains/datasource**: Extensible data source registry
 - **@brains/embedding-service**: Text embeddings via FastEmbed
 - **@brains/entity-service**: Entity CRUD with vector search
-- **@brains/identity-service**: User identity and preferences
+- **@brains/identity-service**: Brain identity (AI personality) management
+- **@brains/profile-service**: Profile (person/organization) data management
 - **@brains/job-queue**: Background job processing with progress
 - **@brains/mcp-service**: MCP server and tool registration
 - **@brains/messaging-service**: Event-driven pub/sub messaging

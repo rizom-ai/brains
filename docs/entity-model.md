@@ -301,7 +301,117 @@ export class EntityRegistry {
 
 ## Common Entity Types
 
-### LinkEntity
+### Core Entity Types
+
+These entity types are part of the core system and managed by shell services:
+
+#### IdentityEntity
+
+Brain identity and AI personality configuration:
+
+```typescript
+const identityBodySchema = z.object({
+  role: z.string().describe("The brain's role or function"),
+  purpose: z.string().describe("The brain's purpose or mission"),
+  values: z
+    .array(z.string())
+    .describe("Core values guiding the brain's behavior"),
+});
+
+const identitySchema = baseEntitySchema.extend({
+  id: z.literal("identity"),
+  entityType: z.literal("identity"),
+});
+
+type IdentityEntity = z.infer<typeof identitySchema>;
+type IdentityBody = z.infer<typeof identityBodySchema>;
+```
+
+Managed by: `shell/identity-service`
+
+#### ProfileEntity
+
+Person or organization profile information:
+
+```typescript
+const profileBodySchema = z.object({
+  name: z.string().describe("Name (person or organization)"),
+  description: z.string().optional().describe("Short description or biography"),
+  website: z.string().optional().describe("Primary website URL"),
+  email: z.string().optional().describe("Contact email"),
+  socialLinks: z
+    .array(
+      z.object({
+        platform: z
+          .enum(["github", "instagram", "linkedin", "email", "website"])
+          .describe("Social media platform"),
+        url: z.string().describe("Profile or contact URL"),
+        label: z.string().optional().describe("Optional display label"),
+      }),
+    )
+    .optional()
+    .describe("Social media and contact links"),
+});
+
+const profileSchema = baseEntitySchema.extend({
+  id: z.literal("profile"),
+  entityType: z.literal("profile"),
+});
+
+type ProfileEntity = z.infer<typeof profileSchema>;
+type ProfileBody = z.infer<typeof profileBodySchema>;
+```
+
+Managed by: `shell/profile-service`
+
+#### SiteInfoEntity
+
+Website presentation and configuration:
+
+```typescript
+const siteInfoBodySchema = z.object({
+  title: z.string().describe("The site's title"),
+  description: z.string().describe("The site's description"),
+  url: z.string().optional().describe("The site's canonical URL"),
+  copyright: z.string().optional().describe("Copyright notice text"),
+  themeMode: z
+    .enum(["light", "dark"])
+    .optional()
+    .describe("Default theme mode"),
+  cta: z
+    .object({
+      heading: z.string().describe("Main CTA heading text"),
+      buttonText: z.string().describe("Call-to-action button text"),
+      buttonLink: z.string().describe("URL or anchor for the CTA button"),
+    })
+    .optional()
+    .describe("Call-to-action configuration"),
+});
+
+const siteInfoSchema = baseEntitySchema.extend({
+  id: z.literal("site-info"),
+  entityType: z.literal("site-info"),
+});
+
+type SiteInfoEntity = z.infer<typeof siteInfoSchema>;
+type SiteInfoBody = z.infer<typeof siteInfoBodySchema>;
+```
+
+Managed by: `plugins/site-builder` (SiteInfoService)
+
+**Note**: The three core entity types serve distinct purposes:
+
+- **identity**: AI personality and behavior (brain's role, purpose, values)
+- **profile**: Person/organization's public presence (name, bio, social links)
+- **site-info**: Website presentation (title, description, CTA, theme)
+
+At runtime, site-builder merges site-info and profile data (e.g., socialLinks from profile) to create the complete site configuration.
+
+### Plugin Entity Types
+
+These entity types are defined by plugins for specific features:
+
+#### LinkEntity
 
 Web content capture with AI extraction:
 

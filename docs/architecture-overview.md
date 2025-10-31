@@ -27,7 +27,8 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 - **shell/datasource**: Data source registry for extensible data fetching
 - **shell/embedding-service**: Text embeddings via FastEmbed
 - **shell/entity-service**: Entity CRUD operations and search with vector support
-- **shell/identity-service**: User identity and preferences management
+- **shell/identity-service**: Brain identity (AI personality) management
+- **shell/profile-service**: Profile (person/organization) data management
 - **shell/job-queue**: Background job processing system with progress tracking
 - **shell/mcp-service**: MCP server and tool/resource registration
 - **shell/messaging-service**: Event-driven messaging with pub/sub
