@@ -29,6 +29,11 @@ import { siteBuilderConfigSchema } from "./config";
 import { SiteInfoService } from "./services/site-info-service";
 import { siteInfoSchema } from "./services/site-info-schema";
 import { SiteInfoAdapter } from "./services/site-info-adapter";
+import {
+  ProfileService,
+  profileSchema,
+  ProfileAdapter,
+} from "@brains/profile-service";
 import packageJson from "../package.json";
 
 /**
@@ -41,6 +46,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
   private siteInfoService?: SiteInfoService;
+  private profileService?: ProfileService;
   private layouts: Record<string, LayoutComponent>;
 
   /**
@@ -92,10 +98,21 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
     await this.siteInfoService.initialize();
 
-    // Register SiteInfoDataSource with service
+    // Register profile entity type
+    context.registerEntityType("profile", profileSchema, new ProfileAdapter());
+
+    // Initialize ProfileService
+    this.profileService = ProfileService.getInstance(
+      context.entityService,
+      context.logger,
+    );
+    await this.profileService.initialize();
+
+    // Register SiteInfoDataSource with services
     const siteInfoDataSource = new SiteInfoDataSource(
       this._routeRegistry,
       this.siteInfoService,
+      this.profileService,
       context.logger.child("SiteInfoDataSource"),
     );
     context.registerDataSource(siteInfoDataSource);

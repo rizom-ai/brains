@@ -3,20 +3,22 @@ import type { Logger } from "@brains/plugins";
 import { type z as zType } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
 import type { SiteInfoService } from "../services/site-info-service";
+import type { ProfileService } from "@brains/profile-service";
 
 /**
  * DataSource that provides comprehensive site-wide information
- * Combines site info from entity/service with navigation data from RouteRegistry
+ * Combines site info, profile (socialLinks), and navigation data
  */
 export class SiteInfoDataSource implements DataSource {
   public readonly id = "site:info";
   public readonly name = "Site Information DataSource";
   public readonly description =
-    "Provides comprehensive site-wide information including metadata and navigation";
+    "Provides comprehensive site-wide information including metadata, profile, and navigation";
 
   constructor(
     private readonly routeRegistry: RouteRegistry,
     private readonly siteInfoService: SiteInfoService,
+    private readonly profileService: ProfileService,
     private readonly logger: Logger,
   ) {
     this.logger.debug("SiteInfoDataSource initialized");
@@ -36,6 +38,9 @@ export class SiteInfoDataSource implements DataSource {
     // Get site info from service (entity or defaults)
     const siteInfoBody = this.siteInfoService.getSiteInfo();
 
+    // Get profile info from service (for socialLinks)
+    const profileBody = this.profileService.getProfile();
+
     // Get navigation items for both slots
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
     const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
@@ -44,9 +49,11 @@ export class SiteInfoDataSource implements DataSource {
     const currentYear = new Date().getFullYear();
     const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
 
-    // Build complete site info (merge body with navigation)
+    // Build complete site info (merge site-info, profile.socialLinks, and navigation)
     const siteInfo = {
       ...siteInfoBody,
+      // socialLinks now comes from profile entity only
+      socialLinks: profileBody.socialLinks,
       navigation: {
         primary: primaryItems,
         secondary: secondaryItems,
@@ -57,6 +64,8 @@ export class SiteInfoDataSource implements DataSource {
     this.logger.debug("SiteInfoDataSource returning", {
       title: siteInfo.title,
       hasCTA: !!siteInfo.cta,
+      hasSocialLinks: !!siteInfo.socialLinks,
+      socialLinksCount: siteInfo.socialLinks?.length ?? 0,
       navigationItemCounts: {
         primary: primaryItems.length,
         secondary: secondaryItems.length,
