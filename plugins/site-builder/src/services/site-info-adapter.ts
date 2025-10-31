@@ -78,10 +78,15 @@ export class SiteInfoAdapter implements EntityAdapter<SiteInfoEntity> {
 
   /**
    * Create site info content from components
+   * Validates input data through Zod schema
    */
-  public createSiteInfoContent(params: SiteInfoBody): string {
-    const formatter = this.createFormatter(params);
-    return formatter.format(params);
+  public createSiteInfoContent(
+    params: z.input<typeof siteInfoBodySchema>,
+  ): string {
+    // Validate and normalize through Zod schema
+    const validatedData = siteInfoBodySchema.parse(params);
+    const formatter = this.createFormatter(validatedData);
+    return formatter.format(validatedData);
   }
 
   /**
