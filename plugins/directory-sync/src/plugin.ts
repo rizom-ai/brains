@@ -136,16 +136,16 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
           // Do full bidirectional sync: Files → DB, then DB → Files
           // This imports seed content and ensures everything is in sync
-          this.info("Starting initial bidirectional sync");
+          this.debug("Starting initial bidirectional sync");
           const syncResult = await directorySync.sync();
-          this.info("Initial sync completed", {
+          this.debug("Initial sync completed", {
             imported: syncResult.import.imported,
             jobCount: syncResult.import.jobIds.length,
           });
 
           // Wait for all embedding jobs to complete before initializing services
           if (syncResult.import.jobIds.length > 0) {
-            this.info(
+            this.debug(
               "Waiting for embedding generation to complete for imported entities",
             );
             await this.waitForJobs(
@@ -153,7 +153,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
               syncResult.import.jobIds,
               "embedding",
             );
-            this.info("All embedding jobs completed");
+            this.debug("All embedding jobs completed");
           }
 
           // Emit message when initial sync AND embedding jobs complete
@@ -187,9 +187,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     const isEmpty = this.isBrainDataEmpty(brainDataPath);
 
     if (isEmpty && existsSync(seedContentPath)) {
-      this.info("Copying seed content to brain-data directory");
+      this.debug("Copying seed content to brain-data directory");
       await this.copyDirectory(seedContentPath, brainDataPath);
-      this.info("Seed content copied successfully");
+      this.debug("Seed content copied successfully");
     } else if (isEmpty) {
       this.debug(
         "No seed content directory found, starting with empty brain-data",
@@ -534,7 +534,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       }
 
       if (allComplete) {
-        this.info(`All ${operationType} jobs completed`, {
+        this.debug(`All ${operationType} jobs completed`, {
           total: jobIds.length,
           completed: completedCount,
           failed: failedCount,
