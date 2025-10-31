@@ -59,7 +59,7 @@ Coordinate collective knowledge, facilitate collaboration...
 ### 2. Profile (Person/Organization) - NEW
 
 **Purpose**: Public profile of the person/organization
-**Fields**: name, bio, socialLinks, contact info
+**Fields**: name, description, socialLinks, contact info
 **Example**:
 
 ```yaml
@@ -71,7 +71,7 @@ slug: profile
 ## Name
 Rizom
 
-## Bio
+## Description
 Open-source collective building privacy-first tools
 
 ## Social Links
@@ -130,7 +130,7 @@ export type ProfileEntity = z.infer<typeof profileSchema>;
  */
 export const profileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
-  bio: z.string().optional().describe("Short biography or description"),
+  description: z.string().optional().describe("Short description or biography"),
   website: z.string().optional().describe("Primary website URL"),
   email: z.string().optional().describe("Contact email"),
   socialLinks: z
@@ -176,8 +176,8 @@ Similar pattern to IdentityService:
 **From site-info to profile**:
 
 - `socialLinks` → profile entity
-- Contact information
-- Any biographical data
+- Contact information (email, website)
+- Any biographical/description data
 
 **Stays in site-info**:
 
@@ -188,17 +188,26 @@ Similar pattern to IdentityService:
 
 ### Implementation Steps
 
-#### Phase 1: Create Profile Service Package
+#### Phase 1: Create Profile Service Package ✅ COMPLETED
 
-1. Create `shell/profile-service/` package
-2. Create schema (`src/schema.ts`)
-3. Create adapter (`src/adapter.ts`)
-4. Create service (`src/profile-service.ts`)
-5. Create `src/index.ts` exports
-6. Add package.json
-7. Run typecheck: `bun run typecheck`
+1. ✅ Create `shell/profile-service/` package
+2. ✅ Create schema (`src/schema.ts`)
+3. ✅ Create adapter (`src/adapter.ts`)
+4. ✅ Create service (`src/profile-service.ts`)
+5. ✅ Create `src/index.ts` exports
+6. ✅ Add package.json
+7. ✅ Add tsconfig.json
+8. ✅ Run typecheck: `bun run typecheck`
+9. ✅ All tests passing (25 tests)
+10. ✅ Committed and pushed: `49a397b5`
 
-#### Phase 2: Update Site Builder Plugin
+**Notes:**
+
+- Used `description` field instead of `bio` for clarity
+- Implemented proper Zod validation using `z.input<typeof schema>` to handle `exactOptionalPropertyTypes`
+- Established pattern for optional fields in adapters using StructuredContentFormatter
+
+#### Phase 2: Update Site Builder Plugin ⏳ PENDING
 
 1. Add profile-service dependency
 2. Update site builder to read both profile and site-info
@@ -207,23 +216,25 @@ Similar pattern to IdentityService:
 5. Run typecheck: `bun run typecheck`
 6. Update plugin tests
 
-#### Phase 3: Create Profile Seed Content (collective-brain first)
+**Note:** Before implementing this phase, we should revisit site-info service to create a proper adapter following the same pattern as profile-service and identity-service. Currently, site-info has custom behavior that differs from other services.
+
+#### Phase 3: Create Profile Seed Content (collective-brain first) ⏳ PENDING
 
 1. Create `apps/collective-brain/seed-content/profile.md`
 2. Populate with Rizom org data:
    - name: "Rizom"
-   - bio: "Open-source collective..."
+   - description: "Open-source collective..."
    - socialLinks: LinkedIn, GitHub, Email
 3. Test brain startup
 
-#### Phase 4: Update Site-info (remove profile data)
+#### Phase 4: Update Site-info (remove profile data) ⏳ PENDING
 
 1. Update `apps/collective-brain/seed-content/site-info.md`
 2. Remove socialLinks (now in profile)
 3. Keep: title, description, CTA, copyright
 4. Test site generation
 
-#### Phase 5: Update Brain Config (Remove Data Duplication)
+#### Phase 5: Update Brain Config (Remove Data Duplication) ⏳ PENDING
 
 **Goal**: Config should only contain code/structure, not data. All entity data should come from seed-content.
 
@@ -274,12 +285,12 @@ const config = defineConfig({
 });
 ```
 
-#### Phase 6: Migrate Other Brains
+#### Phase 6: Migrate Other Brains ⏳ PENDING
 
 1. Repeat Phase 3-5 for team-brain
 2. Repeat Phase 3-5 for test-brain
 
-#### Phase 7: Update Site-info Schema
+#### Phase 7: Update Site-info Schema ⏳ PENDING
 
 1. Remove socialLinks from site-info schema
 2. Update documentation
@@ -289,11 +300,11 @@ const config = defineConfig({
 
 ### Unit Tests
 
-- [ ] Profile schema validation works
-- [ ] ProfileAdapter parses markdown correctly
-- [ ] ProfileService caches and provides profile data
+- [x] Profile schema validation works
+- [x] ProfileAdapter parses markdown correctly
+- [x] ProfileService caches and provides profile data
 - [ ] Site builder merges profile and site-info data
-- [ ] Type checking passes across all packages
+- [x] Type checking passes across all packages
 
 ### Integration Tests
 
@@ -359,14 +370,16 @@ async function migrateSocialLinksToProfile(entityService: EntityService) {
 
 1. ✅ Profile service package created in `shell/profile-service/`
 2. ✅ Profile schema, adapter, and service implemented
-3. ✅ Site builder reads from both profile and site-info
-4. ✅ collective-brain has profile entity with social links
-5. ✅ team-brain has profile entity
-6. ✅ test-brain has profile entity
-7. ✅ Site-info no longer contains socialLinks
-8. ✅ All tests passing
+3. ⏳ Site builder reads from both profile and site-info
+4. ⏳ collective-brain has profile entity with social links
+5. ⏳ team-brain has profile entity
+6. ⏳ test-brain has profile entity
+7. ⏳ Site-info no longer contains socialLinks
+8. ✅ All profile-service tests passing (25/25)
 9. ✅ TypeScript strict mode satisfied
-10. ✅ Generated sites show social links correctly
+10. ⏳ Generated sites show social links correctly
+
+**Status: Phase 1 Complete (1/7 phases)**
 
 ## Files Changed Summary
 
@@ -455,3 +468,25 @@ site-info entity
 - ✅ Instance-specific values: names, titles, bios
 
 **Rule**: If it can be edited via MCP/Matrix/UI, it belongs in an entity, not config.
+
+## Additional Tasks
+
+### Site-info Adapter Standardization (Pre-Phase 2)
+
+**Priority**: Should be completed before Phase 2
+
+**Issue**: The site-info service currently has custom behavior that differs from the standard adapter pattern used by identity-service and profile-service.
+
+**Goal**: Create a proper site-info adapter following the EntityAdapter pattern with:
+
+- Zod schema validation using `z.input<typeof schema>`
+- StructuredContentFormatter for markdown parsing
+- Standard adapter methods (toMarkdown, fromMarkdown, extractMetadata, etc.)
+- Proper handling of optional fields with exactOptionalPropertyTypes
+
+**Benefits**:
+
+- Consistency across all entity services
+- Easier to maintain and extend
+- Better type safety
+- Follows established patterns
