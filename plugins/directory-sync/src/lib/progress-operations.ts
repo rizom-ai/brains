@@ -38,6 +38,7 @@ export class ProgressOperations {
       quarantined: 0,
       quarantinedFiles: [],
       errors: [],
+      jobIds: [],
     };
 
     // Get all files to process
@@ -62,6 +63,7 @@ export class ProgressOperations {
       result.skipped += batchResult.skipped;
       result.failed += batchResult.failed;
       result.errors.push(...batchResult.errors);
+      result.jobIds.push(...batchResult.jobIds);
 
       // Report progress
       const processed = Math.min(i + batchSize, totalFiles);

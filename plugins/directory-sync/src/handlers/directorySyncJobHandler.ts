@@ -63,6 +63,7 @@ export class DirectorySyncJobHandler
       quarantined: 0,
       quarantinedFiles: [],
       errors: [],
+      jobIds: [],
     };
 
     let exportResult: ExportResult = {

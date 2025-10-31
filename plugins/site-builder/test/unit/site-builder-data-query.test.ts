@@ -72,6 +72,7 @@ describe("SiteBuilder dataQuery handling", () => {
       mockContext as ServicePluginContext,
       mockRouteRegistry as RouteRegistry,
       mockSiteInfoService as SiteInfoService,
+      { getProfile: () => ({ name: "Test" }) } as any, // Mock ProfileService
       () => mockStaticSiteBuilder,
     );
   });

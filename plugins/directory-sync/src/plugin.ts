@@ -127,30 +127,45 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Queue initial sync after all plugins are initialized
     if (this.config.initialSync) {
       context.subscribe("system:plugins:ready", async () => {
-        const batchResult = await this.queueSyncJob(context, "initial");
+        await this.queueSyncJob(context, "initial");
 
-        if (!batchResult.startsWith("empty-sync-")) {
-          // Job was queued, wait for it to complete by actually calling sync
-          // Since we're in an async context, we can await the actual operation
-          try {
-            const directorySync = this.requireDirectorySync();
+        // Always do initial sync (bidirectional) even if queueSyncJob says empty
+        // This ensures seed content is loaded into DB before services initialize
+        try {
+          const directorySync = this.requireDirectorySync();
 
-            // For initial sync, only export DB entities to files
-            // Don't import - files may contain old seed content that would overwrite DB
-            await directorySync.exportEntities();
-            this.debug("Initial sync completed");
+          // Do full bidirectional sync: Files → DB, then DB → Files
+          // This imports seed content and ensures everything is in sync
+          this.info("Starting initial bidirectional sync");
+          const syncResult = await directorySync.sync();
+          this.info("Initial sync completed", {
+            imported: syncResult.import.imported,
+            jobCount: syncResult.import.jobIds.length,
+          });
 
-            // Emit message when initial sync actually completes
-            await context.sendMessage("sync:initial:completed", {
-              success: true,
-            });
-          } catch (error) {
-            this.error("Initial sync failed", error);
-            await context.sendMessage("sync:initial:completed", {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            });
+          // Wait for all embedding jobs to complete before initializing services
+          if (syncResult.import.jobIds.length > 0) {
+            this.info(
+              "Waiting for embedding generation to complete for imported entities",
+            );
+            await this.waitForJobs(
+              context,
+              syncResult.import.jobIds,
+              "embedding",
+            );
+            this.info("All embedding jobs completed");
           }
+
+          // Emit message when initial sync AND embedding jobs complete
+          await context.sendMessage("sync:initial:completed", {
+            success: true,
+          });
+        } catch (error) {
+          this.error("Initial sync failed", error);
+          await context.sendMessage("sync:initial:completed", {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
         }
 
         return { success: true };
@@ -481,6 +496,60 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         },
       });
     });
+  }
+
+  /**
+   * Wait for a set of jobs to complete
+   */
+  private async waitForJobs(
+    context: ServicePluginContext,
+    jobIds: string[],
+    operationType: string,
+  ): Promise<void> {
+    const maxWaitTime = 30000; // 30 seconds max
+    const checkInterval = 100; // Check every 100ms
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitTime) {
+      // Check status of all jobs
+      const statuses = await Promise.all(
+        jobIds.map((id) => context.getJobStatus(id)),
+      );
+
+      // Count job states
+      let allComplete = true;
+      let failedCount = 0;
+      let completedCount = 0;
+
+      for (const status of statuses) {
+        if (!status) continue;
+
+        if (status.status === "pending" || status.status === "processing") {
+          allComplete = false;
+        } else if (status.status === "failed") {
+          failedCount++;
+        } else if (status.status === "completed") {
+          completedCount++;
+        }
+      }
+
+      if (allComplete) {
+        this.info(`All ${operationType} jobs completed`, {
+          total: jobIds.length,
+          completed: completedCount,
+          failed: failedCount,
+        });
+        return;
+      }
+
+      // Wait before checking again
+      await new Promise((resolve) => setTimeout(resolve, checkInterval));
+    }
+
+    // Timeout - log warning but don't fail
+    this.warn(
+      `Timeout waiting for ${operationType} jobs to complete after ${maxWaitTime}ms`,
+    );
   }
 
   /**

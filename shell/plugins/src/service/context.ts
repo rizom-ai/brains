@@ -7,8 +7,12 @@ import type {
 } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
-import type { JobHandler, BatchOperation } from "@brains/job-queue";
-import type { JobOptions } from "@brains/job-queue";
+import type {
+  JobHandler,
+  BatchOperation,
+  JobInfo,
+  JobOptions,
+} from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { ViewTemplate, RenderService } from "@brains/render-service";
 import type {
@@ -64,6 +68,7 @@ export interface ServicePluginContext extends CorePluginContext {
     type: string,
     handler: JobHandler<string, T, R>,
   ) => void;
+  getJobStatus: (jobId: string) => Promise<JobInfo | null>;
 
   // View template access
   getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
@@ -199,6 +204,9 @@ export function createServicePluginContext(
       // Add plugin scope to the type for explicit registration
       const scopedType = `${pluginId}:${type}`;
       jobQueueService.registerHandler(scopedType, handler, pluginId);
+    },
+    getJobStatus: async (jobId: string): Promise<JobInfo | null> => {
+      return jobQueueService.getStatus(jobId);
     },
 
     // View template access

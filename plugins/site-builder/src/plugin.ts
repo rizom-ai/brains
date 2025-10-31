@@ -90,23 +90,33 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       new SiteInfoAdapter(),
     );
 
-    // Initialize SiteInfoService (after entity type is registered)
+    // Create SiteInfoService instance (don't initialize yet - wait for seed content)
     this.siteInfoService = SiteInfoService.getInstance(
       context.entityService,
       context.logger,
       this.config.siteInfo,
     );
-    await this.siteInfoService.initialize();
 
     // Register profile entity type
     context.registerEntityType("profile", profileSchema, new ProfileAdapter());
 
-    // Initialize ProfileService
+    // Create ProfileService instance (don't initialize yet - wait for seed content)
     this.profileService = ProfileService.getInstance(
       context.entityService,
       context.logger,
     );
-    await this.profileService.initialize();
+
+    // Initialize both services after seed content is loaded
+    context.subscribe("sync:initial:completed", async () => {
+      this.logger.info(
+        "sync:initial:completed received, initializing services",
+      );
+      await this.siteInfoService?.initialize();
+      this.logger.info("SiteInfoService initialized");
+      await this.profileService?.initialize();
+      this.logger.info("ProfileService initialized");
+      return { success: true };
+    });
 
     // Register SiteInfoDataSource with services
     const siteInfoDataSource = new SiteInfoDataSource(
@@ -180,6 +190,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context,
       this.routeRegistry,
       this.siteInfoService,
+      this.profileService,
     );
 
     // Initialize the site content service with route registry

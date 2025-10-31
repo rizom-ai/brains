@@ -25,14 +25,8 @@ const config = defineConfig({
   version: "1.0.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
-  // Define team-brain's identity
-  identity: {
-    name: "Marco",
-    role: "Team knowledge coordinator",
-    purpose:
-      "Maintain team documentation, track decisions, and facilitate knowledge sharing across the organization",
-    values: ["collaboration", "transparency", "accessibility", "actionability"],
-  },
+  // Identity data now comes from seed-content/identity/identity.md entity
+  // No need to define it here
 
   // Configure centralized permissions
   permissions: {
@@ -92,28 +86,7 @@ const config = defineConfig({
         minimal: MinimalLayout,
         "cta-footer": CTAFooterLayout,
       },
-      siteInfo: {
-        title: "Recall",
-        description: "Your team's AI-powered knowledge hub",
-        themeMode: "dark",
-        socialLinks: [
-          {
-            platform: "linkedin",
-            url: "https://www.linkedin.com/company/rizom-collective",
-            label: "Follow us on LinkedIn",
-          },
-          {
-            platform: "github",
-            url: "https://github.com/rizom-ai",
-            label: "View our code on GitHub",
-          },
-          {
-            platform: "email",
-            url: "mailto:contact@rizom.ai",
-            label: "Email us",
-          },
-        ],
-      },
+      // siteInfo data comes from seed-content/site-info/site-info.md entity
       themeCSS: defaultTheme,
     }),
   ],

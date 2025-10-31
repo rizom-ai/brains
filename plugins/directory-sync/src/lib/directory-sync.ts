@@ -384,11 +384,14 @@ export class DirectorySync {
         updated: rawEntity.updated.toISOString(),
       };
 
-      await this.entityService.upsertEntity(entity);
+      const upsertResult = await this.entityService.upsertEntity(entity);
       result.imported++;
+      result.jobIds.push(upsertResult.jobId); // Track job for waiting
       this.logger.debug("Imported entity from directory", {
         path: filePath,
         entityType: rawEntity.entityType,
+        id: rawEntity.id,
+        jobId: upsertResult.jobId,
       });
 
       // Mark as recovered in error log if it was previously quarantined
@@ -520,6 +523,7 @@ export class DirectorySync {
       quarantined: 0,
       quarantinedFiles: [],
       errors: [],
+      jobIds: [],
     };
 
     // Get all files to process

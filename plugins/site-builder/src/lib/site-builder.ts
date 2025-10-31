@@ -19,6 +19,7 @@ import type { RouteRegistry } from "./route-registry";
 import { DynamicRouteGenerator } from "./dynamic-route-generator";
 import type { SiteInfo } from "../types/site-info";
 import type { SiteInfoService } from "../services/site-info-service";
+import type { ProfileService } from "@brains/profile-service";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -29,6 +30,7 @@ export class SiteBuilder implements ISiteBuilder {
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private routeRegistry: RouteRegistry;
   private siteInfoService: SiteInfoService;
+  private profileService: ProfileService;
 
   /**
    * Set the default static site builder factory for all instances
@@ -44,6 +46,7 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
+    profileService: ProfileService,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
@@ -51,6 +54,7 @@ export class SiteBuilder implements ISiteBuilder {
       context,
       routeRegistry,
       siteInfoService,
+      profileService,
     );
     return SiteBuilder.instance;
   }
@@ -64,6 +68,7 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
+    profileService: ProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
   ): SiteBuilder {
     return new SiteBuilder(
@@ -72,6 +77,7 @@ export class SiteBuilder implements ISiteBuilder {
       context,
       routeRegistry,
       siteInfoService,
+      profileService,
     );
   }
 
@@ -81,12 +87,14 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
+    profileService: ProfileService,
   ) {
     this.logger = logger;
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
     this.routeRegistry = routeRegistry;
     this.siteInfoService = siteInfoService;
+    this.profileService = profileService;
 
     // Factory is now encapsulated within the site builder
 
@@ -101,6 +109,9 @@ export class SiteBuilder implements ISiteBuilder {
     // Get site info from service (entity or defaults)
     const siteInfoBody = this.siteInfoService.getSiteInfo();
 
+    // Get profile info from service (for socialLinks)
+    const profileBody = this.profileService.getProfile();
+
     // Get navigation items for both slots
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
     const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
@@ -109,9 +120,11 @@ export class SiteBuilder implements ISiteBuilder {
     const currentYear = new Date().getFullYear();
     const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
 
-    // Build complete site info (merge body with navigation)
+    // Build complete site info (merge site-info, profile.socialLinks, and navigation)
     return {
       ...siteInfoBody,
+      // socialLinks now comes from profile entity only
+      socialLinks: profileBody.socialLinks,
       navigation: {
         primary: primaryItems,
         secondary: secondaryItems,

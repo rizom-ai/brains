@@ -122,6 +122,10 @@ export class ProfileService {
    */
   private async loadProfile(): Promise<void> {
     try {
+      this.logger.debug("Querying for profile entity", {
+        entityType: "profile",
+        id: "profile",
+      });
       const profile = (await this.entityService.getEntity(
         "profile",
         "profile",
@@ -131,12 +135,13 @@ export class ProfileService {
 
       if (profile) {
         const profileData = this.adapter.parseProfileBody(profile.content);
-        this.logger.debug("Profile loaded", {
+        this.logger.debug("Profile loaded from database", {
           name: profileData.name,
           email: profileData.email,
+          socialLinksCount: profileData.socialLinks?.length ?? 0,
         });
       } else {
-        this.logger.debug("No profile found in database");
+        this.logger.warn("No profile found in database after query");
       }
     } catch (error) {
       this.logger.warn("Failed to load profile", { error });

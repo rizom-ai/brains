@@ -109,6 +109,7 @@ export interface ImportResult {
     path: string;
     error: string;
   }>;
+  jobIds: string[]; // Job IDs for async embedding generation
 }
 
 /**

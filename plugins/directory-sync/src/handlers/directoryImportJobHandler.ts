@@ -62,6 +62,7 @@ export class DirectoryImportJobHandler
       quarantined: 0,
       quarantinedFiles: [],
       errors: [],
+      jobIds: [],
     };
 
     try {

@@ -53,13 +53,8 @@ const config = defineConfig({
   version: "0.1.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
-  // Define Rizom collective's identity
-  identity: {
-    name: "Rizom",
-    role: "Collective knowledge coordinator",
-    purpose: "Share the vision, projects, and values of the Rizom collective",
-    values: ["openness", "collaboration", "innovation", "community"],
-  },
+  // Identity data now comes from seed-content/identity/identity.md entity
+  // No need to define it here
 
   // Configure centralized permissions
   permissions: {
@@ -100,36 +95,7 @@ const config = defineConfig({
         "cta-footer": CTAFooterLayout,
       },
       previewOutputDir: "./dist/site-preview",
-      siteInfo: {
-        title: "Rizom",
-        description: "The Rizom collective's knowledge hub",
-        url: process.env["DOMAIN"]
-          ? `https://${process.env["DOMAIN"]}`
-          : undefined,
-        themeMode: "dark",
-        cta: {
-          heading: "Unlock your full potential",
-          buttonText: "Join Rizom",
-          buttonLink: "https://www.linkedin.com/company/rizom-collective",
-        },
-        socialLinks: [
-          {
-            platform: "linkedin",
-            url: "https://www.linkedin.com/company/rizom-collective",
-            label: "Follow us on LinkedIn",
-          },
-          {
-            platform: "github",
-            url: "https://github.com/rizom-ai",
-            label: "View our code on GitHub",
-          },
-          {
-            platform: "email",
-            url: "mailto:contact@rizom.ai",
-            label: "Email us",
-          },
-        ],
-      },
+      // siteInfo data comes from seed-content/site-info/site-info.md entity
       themeCSS: defaultTheme,
     }),
   ],

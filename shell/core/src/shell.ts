@@ -177,7 +177,19 @@ export class Shell implements IShell {
         this.pluginManager,
       );
 
-      // Emit event to signal all plugins are initialized
+      // Register job handlers for content operations BEFORE emitting ready event
+      // This ensures handlers are registered before plugins start enqueueing jobs
+      shellInitializer.registerJobHandlers(
+        this.jobQueueService,
+        this.contentService,
+        this.entityService,
+      );
+
+      // Start the job queue worker BEFORE emitting ready event
+      // This ensures worker is running before plugins start enqueueing jobs
+      await this.jobQueueWorker.start();
+
+      // Emit event to signal all plugins are initialized AND worker is ready
       await this.messageBus.send(
         "system:plugins:ready",
         {
@@ -190,16 +202,6 @@ export class Shell implements IShell {
         true, // broadcast
       );
       this.logger.debug("Emitted system:plugins:ready event");
-
-      // Register job handlers for content operations
-      shellInitializer.registerJobHandlers(
-        this.jobQueueService,
-        this.contentService,
-        this.entityService,
-      );
-
-      // Start the job queue worker
-      await this.jobQueueWorker.start();
 
       // Start the job progress monitor
       this.jobProgressMonitor.start();

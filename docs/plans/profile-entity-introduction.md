@@ -224,31 +224,34 @@ Similar pattern to IdentityService:
 - All 103 site-builder tests pass
 - Typecheck passes across all packages
 
-#### Phase 3: Create Profile Seed Content (collective-brain first) ⏳ PENDING
+#### Phase 3: Create Profile Seed Content (collective-brain first) ✅ COMPLETED
 
-1. Create `apps/collective-brain/seed-content/profile.md`
-2. Populate with Rizom org data:
+1. ✅ Created `apps/collective-brain/seed-content/profile/profile.md`
+2. ✅ Populated with Rizom org data:
    - name: "Rizom"
    - description: "Open-source collective..."
-   - socialLinks: LinkedIn, GitHub, Email
-3. Test brain startup
+   - socialLinks: LinkedIn, GitHub, Email (3 links)
+3. ✅ Fixed directory-sync to wait for embedding jobs before initializing services
+4. ✅ Fixed job queue worker to start before `system:plugins:ready` event
+5. ✅ Brain starts successfully and loads profile entity
 
-#### Phase 4: Update Site-info (remove profile data) ⏳ PENDING
+#### Phase 4: Update Site-info (remove profile data) ✅ COMPLETED
 
-1. Update `apps/collective-brain/seed-content/site-info.md`
-2. Remove socialLinks (now in profile)
-3. Keep: title, description, CTA, copyright
-4. Test site generation
+1. ✅ Created `apps/collective-brain/seed-content/site-info/site-info.md`
+2. ✅ Removed socialLinks (now in profile entity)
+3. ✅ Kept: title, description, CTA, copyright, themeMode
+4. ✅ Site generation works with social links from profile
 
-#### Phase 5: Update Brain Config (Remove Data Duplication) ⏳ PENDING
+#### Phase 5: Update Brain Config (Remove Data Duplication) ✅ COMPLETED
 
 **Goal**: Config should only contain code/structure, not data. All entity data should come from seed-content.
 
-1. Remove `identity` object from brain.config.ts (data now in seed-content/identity.md)
-2. Remove `siteInfo` object from brain.config.ts (data now in seed-content/site-info.md and profile.md)
-3. Verify site builder reads from entities (profile and site-info)
-4. Run typecheck: `bun run typecheck`
-5. Test full site build
+1. ✅ Removed `identity` object from brain.config.ts (data now in seed-content/identity/identity.md)
+2. ✅ Removed `siteInfo` data from brain.config.ts (data now in seed-content/site-info/site-info.md and profile/profile.md)
+3. ✅ Site builder reads from entities (profile and site-info)
+4. ✅ Fixed SiteBuilder.getSiteInfo() to fetch socialLinks from ProfileService
+5. ✅ Typecheck passes: `bun run typecheck`
+6. ✅ Full site build works with social links visible in footer
 
 **Before** (brain.config.ts):
 
@@ -291,10 +294,11 @@ const config = defineConfig({
 });
 ```
 
-#### Phase 6: Migrate Other Brains ⏳ PENDING
+#### Phase 6: Migrate Other Brains ✅ COMPLETED
 
-1. Repeat Phase 3-5 for team-brain
-2. Repeat Phase 3-5 for test-brain
+1. ✅ Created seed content for team-brain (identity, profile, site-info)
+2. ✅ Created seed content for test-brain (identity, profile, site-info)
+3. ✅ All brains now use seed content instead of hardcoded config
 
 #### Phase 7: Update Site-info Schema ⏳ PENDING
 
@@ -309,16 +313,17 @@ const config = defineConfig({
 - [x] Profile schema validation works
 - [x] ProfileAdapter parses markdown correctly
 - [x] ProfileService caches and provides profile data
-- [ ] Site builder merges profile and site-info data
+- [x] Site builder merges profile and site-info data
 - [x] Type checking passes across all packages
+- [x] Directory-sync waits for embedding jobs (74 tests pass)
 
 ### Integration Tests
 
-- [ ] collective-brain starts with profile entity
-- [ ] Site builder reads profile.socialLinks
-- [ ] Social links display in footer
-- [ ] team-brain profile entity created correctly
-- [ ] test-brain profile entity created correctly
+- [x] collective-brain starts with profile entity
+- [x] Site builder reads profile.socialLinks
+- [x] Social links display in footer
+- [x] team-brain profile entity created correctly
+- [x] test-brain profile entity created correctly
 
 ### Manual Validation
 
@@ -377,15 +382,15 @@ async function migrateSocialLinksToProfile(entityService: EntityService) {
 1. ✅ Profile service package created in `shell/profile-service/`
 2. ✅ Profile schema, adapter, and service implemented
 3. ✅ Site builder reads from both profile and site-info
-4. ⏳ collective-brain has profile entity with social links
-5. ⏳ team-brain has profile entity
-6. ⏳ test-brain has profile entity
-7. ⏳ Site-info no longer contains socialLinks
-8. ✅ All tests passing (25 profile-service + 103 site-builder)
+4. ✅ collective-brain has profile entity with social links
+5. ✅ team-brain has profile entity
+6. ✅ test-brain has profile entity
+7. ✅ Site-info seed content no longer contains socialLinks
+8. ✅ All tests passing (74 directory-sync + 25 profile-service + 103 site-builder)
 9. ✅ TypeScript strict mode satisfied
-10. ⏳ Generated sites show social links correctly
+10. ✅ Generated sites show social links correctly from profile entity
 
-**Status: Phase 2 Complete (2/7 phases)**
+**Status: Phase 6 Complete (6/7 phases)** - Only Phase 7 (schema cleanup) remains
 
 ## Files Changed Summary
 
