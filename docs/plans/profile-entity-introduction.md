@@ -207,16 +207,22 @@ Similar pattern to IdentityService:
 - Implemented proper Zod validation using `z.input<typeof schema>` to handle `exactOptionalPropertyTypes`
 - Established pattern for optional fields in adapters using StructuredContentFormatter
 
-#### Phase 2: Update Site Builder Plugin ⏳ PENDING
+#### Phase 2: Update Site Builder Plugin ✅ COMPLETED
 
-1. Add profile-service dependency
-2. Update site builder to read both profile and site-info
-3. Merge profile.socialLinks into site data
-4. Update types to reflect split
-5. Run typecheck: `bun run typecheck`
-6. Update plugin tests
+1. ✅ Add profile-service dependency
+2. ✅ Register profile entity type in site-builder
+3. ✅ Initialize ProfileService alongside SiteInfoService
+4. ✅ Update SiteInfoDataSource to fetch socialLinks from profile
+5. ✅ Run typecheck: `bun run typecheck`
+6. ✅ All tests passing (103 tests)
+7. ✅ Committed and pushed: `33f03009`
 
-**Note:** Before implementing this phase, we should revisit site-info service to create a proper adapter following the same pattern as profile-service and identity-service. Currently, site-info has custom behavior that differs from other services.
+**Implementation Notes:**
+
+- socialLinks now comes ONLY from profile entity (no fallback to site-info)
+- SiteInfoDataSource merges data from profile, site-info, and navigation
+- All 103 site-builder tests pass
+- Typecheck passes across all packages
 
 #### Phase 3: Create Profile Seed Content (collective-brain first) ⏳ PENDING
 
@@ -370,16 +376,16 @@ async function migrateSocialLinksToProfile(entityService: EntityService) {
 
 1. ✅ Profile service package created in `shell/profile-service/`
 2. ✅ Profile schema, adapter, and service implemented
-3. ⏳ Site builder reads from both profile and site-info
+3. ✅ Site builder reads from both profile and site-info
 4. ⏳ collective-brain has profile entity with social links
 5. ⏳ team-brain has profile entity
 6. ⏳ test-brain has profile entity
 7. ⏳ Site-info no longer contains socialLinks
-8. ✅ All profile-service tests passing (25/25)
+8. ✅ All tests passing (25 profile-service + 103 site-builder)
 9. ✅ TypeScript strict mode satisfied
 10. ⏳ Generated sites show social links correctly
 
-**Status: Phase 1 Complete (1/7 phases)**
+**Status: Phase 2 Complete (2/7 phases)**
 
 ## Files Changed Summary
 
