@@ -471,22 +471,25 @@ site-info entity
 
 ## Additional Tasks
 
-### Site-info Adapter Standardization (Pre-Phase 2)
+### Site-info Adapter Standardization (Pre-Phase 2) ✅ COMPLETED
 
-**Priority**: Should be completed before Phase 2
+**Priority**: Should be completed before Phase 2 - **DONE**
 
-**Issue**: The site-info service currently has custom behavior that differs from the standard adapter pattern used by identity-service and profile-service.
+**Issue**: The site-info service had custom behavior that differed from the standard adapter pattern used by identity-service and profile-service.
 
-**Goal**: Create a proper site-info adapter following the EntityAdapter pattern with:
+**Implemented** (Commit `99037e8f`):
 
-- Zod schema validation using `z.input<typeof schema>`
-- StructuredContentFormatter for markdown parsing
-- Standard adapter methods (toMarkdown, fromMarkdown, extractMetadata, etc.)
-- Proper handling of optional fields with exactOptionalPropertyTypes
+- ✅ Added Zod validation using `z.input<typeof siteInfoBodySchema>`
+- ✅ Explicit `.parse()` call for validation
+- ✅ Proper handling of optional fields with exactOptionalPropertyTypes
+- ✅ All 29 tests passing (17 adapter + 12 service)
+- ✅ Typecheck passes
 
-**Benefits**:
+**Implementation Notes**:
 
-- Consistency across all entity services
-- Easier to maintain and extend
-- Better type safety
-- Follows established patterns
+- Preserved site-info's intentional **dynamic formatter behavior**
+- Unlike profile-service (which includes all field headers), site-info only includes field headers for fields that have values
+- This makes generated markdown cleaner when optional fields aren't used
+- Pattern now consistent: all adapters use `z.input` + `.parse()` for validation
+
+**Ready for Phase 2**
