@@ -56,19 +56,6 @@ export class SiteInfoAdapter implements EntityAdapter<SiteInfoEntity> {
         ],
       });
     }
-    if (!data || data.socialLinks !== undefined) {
-      mappings.push({
-        key: "socialLinks",
-        label: "Social Links",
-        type: "array",
-        itemType: "object",
-        itemMappings: [
-          { key: "platform", label: "Platform", type: "string" },
-          { key: "url", label: "URL", type: "string" },
-          { key: "label", label: "Label", type: "string" },
-        ],
-      });
-    }
 
     return new StructuredContentFormatter(siteInfoBodySchema, {
       title: "Site Information",

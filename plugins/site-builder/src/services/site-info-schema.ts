@@ -36,21 +36,6 @@ export const siteInfoBodySchema = z.object({
     })
     .optional()
     .describe("Call-to-action configuration"),
-  socialLinks: z
-    .array(
-      z.object({
-        platform: z
-          .enum(["github", "instagram", "linkedin", "email", "website"])
-          .describe("Supported social media platform"),
-        url: z.string().describe("URL to the social media profile or contact"),
-        label: z
-          .string()
-          .optional()
-          .describe("Optional aria-label for accessibility"),
-      }),
-    )
-    .optional()
-    .describe("Social media links configuration"),
 });
 
 /**
