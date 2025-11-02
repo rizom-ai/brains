@@ -1,3 +1,4 @@
+// Types for CSS imports are defined in types.d.ts
 // Export theme CSS as a string for Bun imports
 import themeCSS from "./theme.css" with { type: "text" };
 
