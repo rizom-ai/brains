@@ -274,19 +274,12 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
 
 ## Apps (Example Applications)
 
-### `apps/test-brain`
-
-- **Purpose**: Reference implementation
-- **Features**:
-  - Demonstrates all plugins
-  - Environment-based config
-  - Example data
-  - Deployment scripts
+Brain applications combine plugins and interfaces to create complete systems.
 
 ## Dependency Flow
 
 ```
-apps/test-brain
+apps/team-brain
     ├── interfaces/*    (via plugin registration)
     ├── plugins/*       (via plugin registration)
     ├── shell/app       (for initialization)
@@ -374,7 +367,7 @@ bun run lint
 bun run build
 
 # Create standalone executable
-bun build apps/test-brain/src/index.ts --compile --outfile=brain
+bun build apps/team-brain/brain.config.ts --compile --outfile=brain
 ```
 
 ## Benefits of 4-Directory Structure

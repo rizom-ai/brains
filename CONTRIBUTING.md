@@ -101,7 +101,7 @@ bun run workspace:affected
 
 The repository is organized into:
 
-- **`apps/`** - Brain applications (test-brain, team-brain)
+- **`apps/`** - Brain applications (team-brain, collective-brain)
 - **`shell/`** - Core infrastructure packages
 - **`plugins/`** - Functionality plugins (system, git-sync, topics, etc.)
 - **`interfaces/`** - Interface implementations (cli, matrix, mcp, webserver)

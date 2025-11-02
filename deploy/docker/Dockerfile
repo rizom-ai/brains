@@ -1,8 +1,8 @@
 # Simple working Dockerfile - just run with Bun, no compilation
 FROM oven/bun:1.2.13-debian
 
-# Accept app name as build argument (defaults to test-brain)
-ARG APP_NAME=test-brain
+# Accept app name as build argument (defaults to team-brain)
+ARG APP_NAME=team-brain
 
 WORKDIR /app
 

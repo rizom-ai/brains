@@ -28,10 +28,10 @@ cp example.env .env
 # Minimum required: ANTHROPIC_API_KEY
 
 # Initialize the database
-bun run --filter @brains/test-brain init
+bun run --filter @brains/team-brain init
 
 # Run the development server
-bun run --filter @brains/test-brain dev
+bun run --filter @brains/team-brain dev
 ```
 
 ### Development Tools
@@ -55,8 +55,8 @@ bun run --filter @brains/mcp dev
 # Start the web server
 bun run --filter @brains/webserver dev
 
-# Start all interfaces (using test-brain app)
-bun run --filter @brains/test-brain dev
+# Start all interfaces (using team-brain app)
+bun run --filter @brains/team-brain dev
 ```
 
 ## Iteration Cycles
@@ -168,8 +168,8 @@ The project uses Turborepo with Bun workspaces for package management:
 ```
 brains/
 ├── apps/                  # Application instances
-│   ├── test-brain/       # Reference implementation
 │   ├── team-brain/       # Team collaboration instance
+│   ├── collective-brain/ # Collective knowledge brain
 │   └── app/             # High-level framework
 ├── interfaces/           # User interfaces
 │   ├── cli/             # Command-line interface

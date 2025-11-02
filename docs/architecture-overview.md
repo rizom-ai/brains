@@ -68,8 +68,8 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 
 ### Application Packages
 
-- **apps/test-brain**: Reference implementation and testing
 - **apps/team-brain**: Team collaboration instance with custom configuration
+- **apps/collective-brain**: Collective knowledge brain with comprehensive plugin setup
 - **apps/app**: High-level application framework with simplified API
 
 ## Key Components

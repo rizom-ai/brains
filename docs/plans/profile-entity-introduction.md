@@ -300,11 +300,14 @@ const config = defineConfig({
 2. ✅ Created seed content for test-brain (identity, profile, site-info)
 3. ✅ All brains now use seed content instead of hardcoded config
 
-#### Phase 7: Update Site-info Schema ⏳ PENDING
+#### Phase 7: Update Site-info Schema ✅ COMPLETED
 
-1. Remove socialLinks from site-info schema
-2. Update documentation
-3. Run full test suite
+1. ✅ Removed socialLinks from site-info schema (siteInfoBodySchema)
+2. ✅ Removed socialLinks handling from SiteInfoAdapter
+3. ✅ Updated SiteInfo type to include socialLinks from profile entity
+4. ✅ Removed obsolete tests referencing socialLinks in site-info
+5. ✅ Full test suite passes (101 site-builder tests pass)
+6. ✅ Typecheck passes across all packages
 
 ## Testing Checklist
 
@@ -386,11 +389,12 @@ async function migrateSocialLinksToProfile(entityService: EntityService) {
 5. ✅ team-brain has profile entity
 6. ✅ test-brain has profile entity
 7. ✅ Site-info seed content no longer contains socialLinks
-8. ✅ All tests passing (74 directory-sync + 25 profile-service + 103 site-builder)
+8. ✅ All tests passing (74 directory-sync + 25 profile-service + 101 site-builder)
 9. ✅ TypeScript strict mode satisfied
 10. ✅ Generated sites show social links correctly from profile entity
+11. ✅ Site-info schema no longer includes socialLinks (Phase 7 complete)
 
-**Status: Phase 6 Complete (6/7 phases)** - Only Phase 7 (schema cleanup) remains
+**Status: ALL PHASES COMPLETE (7/7)** - Profile entity introduction fully implemented
 
 ## Files Changed Summary
 

@@ -17,12 +17,12 @@ The Personal Brain application supports multiple deployment strategies:
 The simplest way to run the application for development:
 
 ```bash
-# Using the test-brain app
-cd apps/test-brain
+# Using the team-brain app
+cd apps/team-brain
 bun run dev
 
-# Or using the high-level app framework
-cd apps/app
+# Or using the collective-brain app
+cd apps/collective-brain
 bun run dev
 ```
 
@@ -88,7 +88,7 @@ services:
 
 ```bash
 # Compile to single executable
-bun build apps/test-brain/src/index.ts \
+bun build apps/team-brain/brain.config.ts \
   --compile \
   --outfile dist/personal-brain
 

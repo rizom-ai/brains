@@ -15,7 +15,7 @@ Personal Brain provides:
 
 ## Quick Start
 
-### Using the Test Brain App
+### Using the Team Brain App
 
 ```bash
 # Clone the repository
@@ -28,8 +28,8 @@ bun install
 # Build packages
 bun run build
 
-# Run the test brain app
-cd apps/test-brain
+# Run the team brain app
+cd apps/team-brain
 bun run dev
 
 # In another terminal, test with the CLI
@@ -114,8 +114,8 @@ The project follows a **tool-first architecture** where all functionality is exp
 
 #### Applications
 
-- **@brains/test-brain**: Reference implementation for testing
 - **@brains/team-brain**: Team collaboration instance
+- **@brains/collective-brain**: Collective knowledge brain
 - **@brains/app**: High-level application framework
 
 ### Key Concepts
@@ -199,8 +199,8 @@ bun run lint      # Lint
 
 ## Examples
 
-- [Test Brain App](apps/test-brain): Example brain application with CLI and Matrix interfaces
 - [Team Brain App](apps/team-brain): Team collaboration instance with custom configuration
+- [Collective Brain App](apps/collective-brain): Collective knowledge brain with comprehensive plugin setup
 - [MCP Interface](interfaces/mcp/): MCP server implementation with stdio and HTTP transports
 - [Plugin Examples](plugins/plugin-examples): Example implementations of all plugin types
 
