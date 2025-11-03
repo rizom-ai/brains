@@ -19,6 +19,8 @@ import {
   SeriesListTemplate,
   type SeriesListProps,
 } from "./templates/series-list";
+import { blogGenerationTemplate } from "./templates/generation-template";
+import { blogExcerptTemplate } from "./templates/excerpt-template";
 import packageJson from "../package.json";
 
 /**
@@ -83,6 +85,8 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
+      generation: blogGenerationTemplate,
+      excerpt: blogExcerptTemplate,
     });
 
     // Register blog routes with site-builder
