@@ -58,7 +58,7 @@ export function createGenerateTool(
           "profile",
           "PROFILE",
         );
-        if (!profile || !profile.metadata) {
+        if (!profile?.metadata) {
           return {
             success: false,
             error: "Profile entity not found or invalid",

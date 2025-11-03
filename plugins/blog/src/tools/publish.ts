@@ -32,7 +32,7 @@ export function createPublishTool(
 
         // Get blog post entity
         const post = await context.entityService.getEntity("blog", id);
-        if (!post || !post.metadata) {
+        if (!post?.metadata) {
           return {
             success: false,
             error: `Blog post not found: ${id}`,
