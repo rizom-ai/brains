@@ -14,7 +14,7 @@ export const generateInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Topic or prompt for AI to generate blog post content from (required if title/content not provided)",
+      "Topic or prompt for AI to generate blog post content from (uses default prompt if not provided)",
     ),
   title: z
     .string()
@@ -58,15 +58,11 @@ export function createGenerateTool(
 
         // Case 1: AI generates everything (title, content, excerpt)
         if (!title || !content) {
-          if (!prompt) {
-            return {
-              success: false,
-              error:
-                "Either provide title and content, or provide a prompt for AI to generate them",
-            };
-          }
+          const defaultPrompt =
+            "Write an insightful blog post about a topic from my knowledge base that would be valuable to share";
+          const finalPrompt = prompt ?? defaultPrompt;
 
-          const generationPrompt = `${prompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`;
+          const generationPrompt = `${finalPrompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`;
 
           const generated = await context.generateContent<{
             title: string;
