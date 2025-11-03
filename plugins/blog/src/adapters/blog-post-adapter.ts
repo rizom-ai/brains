@@ -14,7 +14,7 @@ import {
 // Schema for parsing frontmatter
 const frontmatterSchema = z.object({
   id: z.string(),
-  entityType: z.literal("blog"),
+  entityType: z.literal("post"),
   created: z.string().datetime(),
   updated: z.string().datetime(),
   metadata: blogPostMetadataSchema,
@@ -24,7 +24,7 @@ const frontmatterSchema = z.object({
  * Entity adapter for blog post entities
  */
 export class BlogPostAdapter implements EntityAdapter<BlogPost> {
-  public readonly entityType = "blog" as const;
+  public readonly entityType = "post" as const;
   public readonly schema = blogPostSchema;
 
   /**
@@ -63,7 +63,7 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
 
     return {
       id: metadata.id,
-      entityType: "blog",
+      entityType: "post",
       content: markdown, // Store full markdown including frontmatter
       created: metadata.created,
       updated: metadata.updated,

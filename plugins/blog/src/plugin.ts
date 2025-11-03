@@ -44,8 +44,8 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
   ): Promise<void> {
     this.pluginContext = context;
 
-    // Register blog entity type
-    context.registerEntityType("blog", blogPostSchema, blogPostAdapter);
+    // Register post entity type
+    context.registerEntityType("post", blogPostSchema, blogPostAdapter);
 
     // Register blog datasource
     const blogDataSource = new BlogDataSource(
@@ -56,8 +56,8 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
 
     // Register blog templates
     context.registerTemplates({
-      "blog-list": createTemplate<BlogListProps>({
-        name: "blog-list",
+      "post-list": createTemplate<BlogListProps>({
+        name: "post-list",
         description: "Blog list page template",
         schema: z.object({ posts: z.array(blogPostSchema) }),
         dataSourceId: "blog:entities",
@@ -67,8 +67,8 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
-      "blog-detail": createTemplate<BlogPostProps>({
-        name: "blog-detail",
+      "post-detail": createTemplate<BlogPostProps>({
+        name: "post-detail",
         description: "Individual blog post template",
         schema: z.object({
           post: blogPostSchema,
@@ -83,8 +83,8 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
-      "blog-series": createTemplate<SeriesListProps>({
-        name: "blog-series",
+      "post-series": createTemplate<SeriesListProps>({
+        name: "post-series",
         description: "Blog series list template",
         schema: z.object({
           seriesName: z.string(),
@@ -109,7 +109,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     context.registerJobHandler("generation", blogGenerationHandler);
 
     this.logger.info(
-      "Blog plugin registered successfully (routes auto-generated at /blogs/)",
+      "Blog plugin registered successfully (routes auto-generated at /posts/)",
     );
   }
 

@@ -158,7 +158,7 @@ export class BlogGenerationJobHandler
       let finalSeriesIndex = seriesIndex;
       if (seriesName && !seriesIndex) {
         const seriesPosts =
-          await this.context.entityService.listEntities("blog");
+          await this.context.entityService.listEntities("post");
         const postsInSeries = seriesPosts.filter(
           (p) =>
             p.metadata &&
@@ -178,7 +178,7 @@ export class BlogGenerationJobHandler
       // Create entity with slug as ID (for human-readable URLs)
       const result = await this.context.entityService.createEntity({
         id: slug,
-        entityType: "blog",
+        entityType: "post",
         content,
         metadata: {
           title,

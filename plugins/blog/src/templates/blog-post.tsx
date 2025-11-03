@@ -75,7 +75,7 @@ export const BlogPostTemplate = ({
                       <span>{seriesPost.metadata.title}</span>
                     ) : (
                       <a
-                        href={`/blog/${seriesPost.metadata.slug}`}
+                        href={`/posts/${seriesPost.metadata.slug}`}
                         className="hover:text-brand"
                       >
                         {seriesPost.metadata.title}
@@ -116,7 +116,7 @@ export const BlogPostTemplate = ({
           <nav className="flex justify-between items-center border-t border-theme pt-6">
             {prevPost ? (
               <a
-                href={`/blog/${prevPost.metadata.slug}`}
+                href={`/posts/${prevPost.metadata.slug}`}
                 className="text-brand hover:underline"
               >
                 ← Previous: {prevPost.metadata.title}
@@ -126,7 +126,7 @@ export const BlogPostTemplate = ({
             )}
             {nextPost && (
               <a
-                href={`/blog/${nextPost.metadata.slug}`}
+                href={`/posts/${nextPost.metadata.slug}`}
                 className="text-brand hover:underline text-right"
               >
                 Next: {nextPost.metadata.title} →

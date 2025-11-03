@@ -46,14 +46,14 @@ describe("BlogPlugin", () => {
     });
 
     it("should have correct entity type and schema", () => {
-      expect(adapter.entityType).toBe("blog");
+      expect(adapter.entityType).toBe("post");
       expect(adapter.schema).toBeDefined();
     });
 
     it("should convert entity to markdown with frontmatter", () => {
       const entity: BlogPost = {
         id: "test-post-1",
-        entityType: "blog",
+        entityType: "post",
         content: "# My First Blog Post\n\nThis is the content of my blog post.",
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
@@ -71,7 +71,7 @@ describe("BlogPlugin", () => {
       // Should contain frontmatter
       expect(markdown).toContain("---");
       expect(markdown).toContain("id: test-post-1");
-      expect(markdown).toContain("entityType: blog");
+      expect(markdown).toContain("entityType: post");
       expect(markdown).toContain("title: My First Blog Post");
       expect(markdown).toContain("slug: my-first-blog-post");
       expect(markdown).toContain("status: draft");
@@ -86,7 +86,7 @@ describe("BlogPlugin", () => {
     it("should convert markdown with frontmatter to entity", () => {
       const markdown = `---
 id: test-post-2
-entityType: blog
+entityType: post
 created: "2025-01-30T12:00:00.000Z"
 updated: "2025-01-30T12:00:00.000Z"
 metadata:
@@ -105,7 +105,7 @@ This is another blog post.`;
       const partialEntity = adapter.fromMarkdown(markdown);
 
       expect(partialEntity.id).toBe("test-post-2");
-      expect(partialEntity.entityType).toBe("blog");
+      expect(partialEntity.entityType).toBe("post");
       expect(partialEntity.created).toBe("2025-01-30T12:00:00.000Z");
       expect(partialEntity.updated).toBe("2025-01-30T12:00:00.000Z");
       expect(partialEntity.content).toBe(markdown);
@@ -119,7 +119,7 @@ This is another blog post.`;
     it("should extract metadata for search/filtering", () => {
       const entity: BlogPost = {
         id: "test-post-3",
-        entityType: "blog",
+        entityType: "post",
         content: "Content here",
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
@@ -149,7 +149,7 @@ This is another blog post.`;
     it("should handle optional metadata fields", () => {
       const entity: BlogPost = {
         id: "test-post-4",
-        entityType: "blog",
+        entityType: "post",
         content: "Minimal content",
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
@@ -177,7 +177,7 @@ This is another blog post.`;
     it("should handle series metadata", () => {
       const entity: BlogPost = {
         id: "test-post-5",
-        entityType: "blog",
+        entityType: "post",
         content: "Series post content",
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
@@ -206,7 +206,7 @@ This is another blog post.`;
     it("should handle cover image metadata", () => {
       const entity: BlogPost = {
         id: "test-post-6",
-        entityType: "blog",
+        entityType: "post",
         content: "Post with cover image",
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",

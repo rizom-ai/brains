@@ -22,7 +22,7 @@ export const blogPostMetadataSchema = z.object({
  * Metadata field contains structured blog post metadata (frontmatter)
  */
 export const blogPostSchema = baseEntitySchema.extend({
-  entityType: z.literal("blog"),
+  entityType: z.literal("post"),
   metadata: blogPostMetadataSchema,
 });
 

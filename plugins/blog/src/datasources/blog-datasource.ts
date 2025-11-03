@@ -64,7 +64,7 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
   ): Promise<T> {
     const entity: BlogPost | null = await this.entityService.getEntity(
-      "blog",
+      "post",
       id,
     );
 
@@ -73,7 +73,7 @@ export class BlogDataSource implements DataSource {
     }
 
     // For detail view, also fetch prev/next posts and series posts
-    const allPosts: BlogPost[] = await this.entityService.listEntities("blog", {
+    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
       limit: 1000,
     });
 
@@ -123,7 +123,7 @@ export class BlogDataSource implements DataSource {
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
   ): Promise<T> {
-    const allPosts: BlogPost[] = await this.entityService.listEntities("blog", {
+    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
       limit: 1000,
     });
 
@@ -159,7 +159,7 @@ export class BlogDataSource implements DataSource {
     }
 
     const entities: BlogPost[] = await this.entityService.listEntities(
-      "blog",
+      "post",
       listOptions,
     );
 

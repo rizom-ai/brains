@@ -30,7 +30,7 @@ export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
 
               <h2 className="text-2xl font-semibold mb-2 text-theme">
                 <a
-                  href={`/blog/${post.metadata.slug}`}
+                  href={`/posts/${post.metadata.slug}`}
                   className="hover:text-brand"
                 >
                   {post.metadata.title}
