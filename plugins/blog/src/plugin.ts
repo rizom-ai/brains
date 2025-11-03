@@ -21,6 +21,8 @@ import {
 } from "./templates/series-list";
 import { blogGenerationTemplate } from "./templates/generation-template";
 import { blogExcerptTemplate } from "./templates/excerpt-template";
+import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
+import { BlogDataSource } from "./datasources/blog-datasource";
 import packageJson from "../package.json";
 
 /**
@@ -45,20 +47,28 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     // Register blog entity type
     context.registerEntityType("blog", blogPostSchema, blogPostAdapter);
 
+    // Register blog datasource
+    const blogDataSource = new BlogDataSource(
+      context.entityService,
+      this.logger.child("BlogDataSource"),
+    );
+    context.registerDataSource(blogDataSource);
+
     // Register blog templates
     context.registerTemplates({
       "blog-list": createTemplate<BlogListProps>({
         name: "blog-list",
         description: "Blog list page template",
         schema: z.object({ posts: z.array(blogPostSchema) }),
+        dataSourceId: "blog:entities",
         requiredPermission: "public",
         layout: {
           component: BlogListTemplate,
           interactive: false,
         },
       }),
-      "blog-post": createTemplate<BlogPostProps>({
-        name: "blog-post",
+      "blog-detail": createTemplate<BlogPostProps>({
+        name: "blog-detail",
         description: "Individual blog post template",
         schema: z.object({
           post: blogPostSchema,
@@ -66,6 +76,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           nextPost: blogPostSchema.nullable(),
           seriesPosts: z.array(blogPostSchema).nullable(),
         }),
+        dataSourceId: "blog:entities",
         requiredPermission: "public",
         layout: {
           component: BlogPostTemplate,
@@ -79,6 +90,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           seriesName: z.string(),
           posts: z.array(blogPostSchema),
         }),
+        dataSourceId: "blog:entities",
         requiredPermission: "public",
         layout: {
           component: SeriesListTemplate,
@@ -89,72 +101,16 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       excerpt: blogExcerptTemplate,
     });
 
-    // Register blog routes with site-builder
-    await context.sendMessage("plugin:site-builder:route:register", {
-      pluginId: this.id,
-      routes: [
-        {
-          id: "blog-list",
-          path: "/blog",
-          title: "Blog",
-          description: "Blog posts and articles",
-          navigation: {
-            show: true,
-            label: "Blog",
-            order: 20,
-          },
-          sections: [
-            {
-              id: "blog-list",
-              template: "blog-list", // Will be auto-prefixed to "blog:blog-list"
-              dataQuery: {
-                entityType: "blog",
-              },
-            },
-          ],
-        },
-        {
-          id: "blog-post",
-          path: "/blog/:slug",
-          title: "Blog Post",
-          description: "Individual blog post",
-          navigation: {
-            show: false,
-          },
-          sections: [
-            {
-              id: "blog-post",
-              template: "blog-post", // Will be auto-prefixed to "blog:blog-post"
-              dataQuery: {
-                entityType: "blog",
-                query: { "metadata.slug": ":slug" },
-              },
-            },
-          ],
-        },
-        {
-          id: "blog-series",
-          path: "/blog/series/:seriesName",
-          title: "Blog Series",
-          description: "Blog post series",
-          navigation: {
-            show: false,
-          },
-          sections: [
-            {
-              id: "blog-series",
-              template: "blog-series", // Will be auto-prefixed to "blog:blog-series"
-              dataQuery: {
-                entityType: "blog",
-                query: { "metadata.seriesName": ":seriesName" },
-              },
-            },
-          ],
-        },
-      ],
-    });
+    // Register job handler for blog generation
+    const blogGenerationHandler = new BlogGenerationJobHandler(
+      this.logger.child("BlogGenerationJobHandler"),
+      context,
+    );
+    context.registerJobHandler("generation", blogGenerationHandler);
 
-    this.logger.info("Blog plugin registered successfully");
+    this.logger.info(
+      "Blog plugin registered successfully (routes auto-generated at /blogs/)",
+    );
   }
 
   /**
