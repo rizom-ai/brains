@@ -36,6 +36,26 @@
         "typescript": "^5.3.3",
       },
     },
+    "apps/professional-brain": {
+      "name": "@brains/professional-brain",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/blog": "workspace:*",
+        "@brains/default-site-content": "workspace:*",
+        "@brains/directory-sync": "workspace:*",
+        "@brains/mcp": "workspace:*",
+        "@brains/site-builder-plugin": "workspace:*",
+        "@brains/system": "workspace:*",
+        "@brains/theme-default": "workspace:*",
+        "@brains/webserver": "workspace:*",
+        "preact": "^10.19.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
     "apps/team-brain": {
       "name": "@brains/team-brain",
       "version": "0.1.0",
@@ -231,8 +251,10 @@
       "name": "@brains/site-builder-plugin",
       "version": "0.0.1",
       "dependencies": {
+        "@brains/default-site-content": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/profile-service": "workspace:*",
+        "@brains/theme-default": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
         "@tailwindcss/postcss": "^4.1.13",
         "@tailwindcss/typography": "^0.5.19",
@@ -815,6 +837,8 @@
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
 
     "@brains/product-site-content": ["@brains/product-site-content@workspace:shared/product-site-content"],
+
+    "@brains/professional-brain": ["@brains/professional-brain@workspace:apps/professional-brain"],
 
     "@brains/profile-service": ["@brains/profile-service@workspace:shell/profile-service"],
 

@@ -34,6 +34,14 @@ import {
   profileSchema,
   ProfileAdapter,
 } from "@brains/profile-service";
+import {
+  templates as defaultTemplates,
+  routes as defaultRoutes,
+  DefaultLayout,
+  MinimalLayout,
+  CTAFooterLayout,
+} from "@brains/default-site-content";
+import defaultTheme from "@brains/theme-default";
 import packageJson from "../package.json";
 
 /**
@@ -59,10 +67,28 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     return this._routeRegistry;
   }
 
-  constructor(config: SiteBuilderConfig) {
-    super("site-builder", packageJson, config, siteBuilderConfigSchema);
-    // Store layouts from config (required)
-    this.layouts = config.layouts;
+  constructor(config: Partial<SiteBuilderConfig> = {}) {
+    // Apply defaults for common settings
+    const configWithDefaults = {
+      ...config,
+      previewOutputDir: config.previewOutputDir ?? "./dist/site-preview",
+      templates: config.templates ?? defaultTemplates,
+      routes: config.routes ?? defaultRoutes,
+      layouts: config.layouts ?? {
+        default: DefaultLayout,
+        minimal: MinimalLayout,
+        "cta-footer": CTAFooterLayout,
+      },
+      themeCSS: config.themeCSS ?? defaultTheme,
+    } as SiteBuilderConfig;
+    super(
+      "site-builder",
+      packageJson,
+      configWithDefaults,
+      siteBuilderConfigSchema,
+    );
+    // Store layouts from config
+    this.layouts = configWithDefaults.layouts;
   }
 
   /**
@@ -457,6 +483,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 /**
  * Factory function to create the plugin
  */
-export function siteBuilderPlugin(config: SiteBuilderConfig): Plugin {
+export function siteBuilderPlugin(
+  config: Partial<SiteBuilderConfig> = {},
+): Plugin {
   return new SiteBuilderPlugin(config);
 }

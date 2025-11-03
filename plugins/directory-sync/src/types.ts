@@ -54,7 +54,7 @@ export const directorySyncConfigSchema = z.object({
     .boolean()
     .optional()
     .describe("Copy seed content on first initialization")
-    .default(false),
+    .default(true),
   deleteOnFileRemoval: z
     .boolean()
     .optional()

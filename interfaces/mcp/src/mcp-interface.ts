@@ -33,7 +33,12 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private httpServer: StreamableHTTPServer | undefined;
 
   constructor(config: Partial<MCPConfig> = {}) {
-    super("mcp", packageJson, config, mcpConfigSchema);
+    // Default authToken from environment if not provided
+    const configWithDefaults = {
+      ...config,
+      authToken: config.authToken ?? process.env["MCP_AUTH_TOKEN"],
+    };
+    super("mcp", packageJson, configWithDefaults, mcpConfigSchema);
   }
 
   /**

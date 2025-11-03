@@ -4,9 +4,9 @@ import type { BlogPost } from "../schemas/blog-post";
 
 export interface BlogPostProps {
   post: BlogPost;
-  prevPost?: BlogPost;
-  nextPost?: BlogPost;
-  seriesPosts?: BlogPost[];
+  prevPost: BlogPost | null;
+  nextPost: BlogPost | null;
+  seriesPosts: BlogPost[] | null;
 }
 
 /**

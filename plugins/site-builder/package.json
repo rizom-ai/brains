@@ -16,8 +16,10 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/default-site-content": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile-service": "workspace:*",
+    "@brains/theme-default": "workspace:*",
     "@tailwindcss/cli": "^4.0.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.19",
