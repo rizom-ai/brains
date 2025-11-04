@@ -2,24 +2,40 @@ import { z } from "zod";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**
- * Blog post metadata schema (stored in frontmatter)
+ * Blog post frontmatter schema (stored in content as YAML frontmatter)
+ * Contains all blog post data for human editing
  */
-export const blogPostMetadataSchema = z.object({
-  title: z.string(), // AI-generated
-  slug: z.string(), // Auto-generated from title
+export const blogPostFrontmatterSchema = z.object({
+  title: z.string(),
   status: z.enum(["draft", "published"]),
   publishedAt: z.string().datetime().optional(),
-  excerpt: z.string(), // AI-generated from content
-  author: z.string(), // From profile entity
-  coverImage: z.string().optional(), // Image URL (HackMD CDN, external, etc.)
-  seriesName: z.string().optional(), // Series name
-  seriesIndex: z.number().optional(), // Position in series
+  excerpt: z.string(),
+  author: z.string(),
+  coverImage: z.string().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
 });
+
+export type BlogPostFrontmatter = z.infer<typeof blogPostFrontmatterSchema>;
+
+/**
+ * Blog post metadata schema (duplicates key searchable fields from frontmatter)
+ * Following summary plugin pattern - used for fast filtering without parsing
+ */
+export const blogPostMetadataSchema = z.object({
+  title: z.string(),
+  status: z.enum(["draft", "published"]),
+  publishedAt: z.string().datetime().optional(),
+  seriesName: z.string().optional(),
+  seriesIndex: z.number().optional(),
+});
+
+export type BlogPostMetadata = z.infer<typeof blogPostMetadataSchema>;
 
 /**
  * Blog post entity schema (extends BaseEntity)
- * Content field contains the AI-generated markdown blog post
- * Metadata field contains structured blog post metadata (frontmatter)
+ * Content field contains markdown with frontmatter + blog post body
+ * Metadata field duplicates key fields from frontmatter for fast queries
  */
 export const blogPostSchema = baseEntitySchema.extend({
   entityType: z.literal("post"),
@@ -32,6 +48,10 @@ export const blogPostSchema = baseEntitySchema.extend({
 export type BlogPost = z.infer<typeof blogPostSchema>;
 
 /**
- * Blog post metadata type
+ * Blog post with parsed frontmatter data (used by datasource)
+ * Extends BlogPost with parsed frontmatter and body (markdown without frontmatter) for templates
  */
-export type BlogPostMetadata = z.infer<typeof blogPostMetadataSchema>;
+export const blogPostWithDataSchema = blogPostSchema.extend({
+  frontmatter: blogPostFrontmatterSchema,
+  body: z.string(),
+});

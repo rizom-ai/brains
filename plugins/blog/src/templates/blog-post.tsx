@@ -1,12 +1,12 @@
 import type { JSX } from "preact";
 import { markdownToHtml } from "@brains/utils";
-import type { BlogPost } from "../schemas/blog-post";
+import type { BlogPostWithData } from "../datasources/blog-datasource";
 
 export interface BlogPostProps {
-  post: BlogPost;
-  prevPost: BlogPost | null;
-  nextPost: BlogPost | null;
-  seriesPosts: BlogPost[] | null;
+  post: BlogPostWithData;
+  prevPost: BlogPostWithData | null;
+  nextPost: BlogPostWithData | null;
+  seriesPosts: BlogPostWithData[] | null;
 }
 
 /**
@@ -18,16 +18,16 @@ export const BlogPostTemplate = ({
   nextPost,
   seriesPosts,
 }: BlogPostProps): JSX.Element => {
-  const htmlContent = markdownToHtml(post.content);
+  const htmlContent = markdownToHtml(post.body);
 
   return (
     <section className="blog-post-section flex-grow min-h-screen">
       <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
         {/* Cover Image */}
-        {post.metadata.coverImage && (
+        {post.frontmatter.coverImage && (
           <img
-            src={post.metadata.coverImage}
-            alt={post.metadata.title}
+            src={post.frontmatter.coverImage}
+            alt={post.frontmatter.title}
             className="w-full h-64 object-cover rounded-lg mb-8 shadow-lg"
           />
         )}
@@ -35,16 +35,16 @@ export const BlogPostTemplate = ({
         {/* Post Header */}
         <header className="mb-8">
           <h1 className="text-4xl font-bold mb-4 text-theme">
-            {post.metadata.title}
+            {post.frontmatter.title}
           </h1>
 
           <div className="text-theme-muted mb-4">
-            <span>{post.metadata.author}</span>
-            {post.metadata.publishedAt && (
+            <span>{post.frontmatter.author}</span>
+            {post.frontmatter.publishedAt && (
               <span>
                 {" "}
                 •{" "}
-                {new Date(post.metadata.publishedAt).toLocaleDateString(
+                {new Date(post.frontmatter.publishedAt).toLocaleDateString(
                   undefined,
                   {
                     year: "numeric",
@@ -56,10 +56,10 @@ export const BlogPostTemplate = ({
             )}
           </div>
 
-          {post.metadata.seriesName && seriesPosts && (
+          {post.frontmatter.seriesName && seriesPosts && (
             <div className="bg-theme-subtle p-4 rounded-lg mb-6">
               <h3 className="font-semibold mb-2 text-theme">
-                Series: {post.metadata.seriesName}
+                Series: {post.frontmatter.seriesName}
               </h3>
               <ol className="list-decimal list-inside space-y-1">
                 {seriesPosts.map((seriesPost) => (
@@ -72,16 +72,16 @@ export const BlogPostTemplate = ({
                     }
                   >
                     {seriesPost.id === post.id ? (
-                      <span>{seriesPost.metadata.title}</span>
+                      <span>{seriesPost.frontmatter.title}</span>
                     ) : (
                       <a
-                        href={`/posts/${seriesPost.metadata.slug}`}
+                        href={`/posts/${seriesPost.id}`}
                         className="hover:text-brand"
                       >
-                        {seriesPost.metadata.title}
+                        {seriesPost.frontmatter.title}
                       </a>
                     )}
-                    {seriesPost.metadata.status === "draft" && (
+                    {seriesPost.frontmatter.status === "draft" && (
                       <span className="ml-2 text-xs text-theme-muted">
                         (Draft)
                       </span>
@@ -116,20 +116,20 @@ export const BlogPostTemplate = ({
           <nav className="flex justify-between items-center border-t border-theme pt-6">
             {prevPost ? (
               <a
-                href={`/posts/${prevPost.metadata.slug}`}
+                href={`/posts/${prevPost.id}`}
                 className="text-brand hover:underline"
               >
-                ← Previous: {prevPost.metadata.title}
+                ← Previous: {prevPost.frontmatter.title}
               </a>
             ) : (
               <div />
             )}
             {nextPost && (
               <a
-                href={`/posts/${nextPost.metadata.slug}`}
+                href={`/posts/${nextPost.id}`}
                 className="text-brand hover:underline text-right"
               >
-                Next: {nextPost.metadata.title} →
+                Next: {nextPost.frontmatter.title} →
               </a>
             )}
           </nav>

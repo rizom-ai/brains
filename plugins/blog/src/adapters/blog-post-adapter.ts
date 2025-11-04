@@ -7,21 +7,14 @@ import {
 import { z } from "@brains/utils";
 import {
   blogPostSchema,
-  blogPostMetadataSchema,
+  blogPostFrontmatterSchema,
   type BlogPost,
+  type BlogPostFrontmatter,
 } from "../schemas/blog-post";
-
-// Schema for parsing frontmatter
-const frontmatterSchema = z.object({
-  id: z.string(),
-  entityType: z.literal("post"),
-  created: z.string().datetime(),
-  updated: z.string().datetime(),
-  metadata: blogPostMetadataSchema,
-});
 
 /**
  * Entity adapter for blog post entities
+ * Following summary plugin pattern - frontmatter in content, key fields duplicated in metadata
  */
 export class BlogPostAdapter implements EntityAdapter<BlogPost> {
   public readonly entityType = "post" as const;
@@ -31,43 +24,50 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
    * Convert blog post entity to markdown with frontmatter
    */
   public toMarkdown(entity: BlogPost): string {
-    const metadata: Record<string, unknown> = {
-      id: entity.id,
-      entityType: entity.entityType,
-      created: entity.created,
-      updated: entity.updated,
-      metadata: entity.metadata,
-    };
-
-    // Parse content to extract just the body (without frontmatter if present)
+    // Extract the body content without any existing frontmatter
+    let contentBody = entity.content;
     try {
-      const { content: body } = parseMarkdownWithFrontmatter(
-        entity.content,
-        z.object({}),
-      );
-      return generateMarkdownWithFrontmatter(body, metadata);
+      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
+      contentBody = parsed.content;
     } catch {
-      // Content doesn't have valid frontmatter, use as-is
-      return generateMarkdownWithFrontmatter(entity.content, metadata);
+      // Content doesn't have frontmatter, use as-is
+    }
+
+    // Parse frontmatter from content and regenerate with it
+    try {
+      const { metadata } = parseMarkdownWithFrontmatter(
+        entity.content,
+        blogPostFrontmatterSchema,
+      );
+      return generateMarkdownWithFrontmatter(contentBody, metadata);
+    } catch {
+      // No valid frontmatter, return content as-is
+      return contentBody;
     }
   }
 
   /**
    * Parse markdown with frontmatter to create partial blog post entity
+   * Syncs frontmatter → metadata for key searchable fields
    */
   public fromMarkdown(markdown: string): Partial<BlogPost> {
-    const { metadata } = parseMarkdownWithFrontmatter(
+    // Parse frontmatter
+    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
       markdown,
-      frontmatterSchema,
+      blogPostFrontmatterSchema,
     );
 
+    // Sync key fields from frontmatter to metadata for fast queries
     return {
-      id: metadata.id,
-      entityType: "post",
       content: markdown, // Store full markdown including frontmatter
-      created: metadata.created,
-      updated: metadata.updated,
-      metadata: metadata.metadata,
+      entityType: "post",
+      metadata: {
+        title: frontmatter.title,
+        status: frontmatter.status,
+        publishedAt: frontmatter.publishedAt,
+        seriesName: frontmatter.seriesName,
+        seriesIndex: frontmatter.seriesIndex,
+      },
     };
   }
 
@@ -75,15 +75,7 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
    * Extract metadata for search/filtering
    */
   public extractMetadata(entity: BlogPost): Record<string, unknown> {
-    return {
-      title: entity.metadata.title,
-      slug: entity.metadata.slug,
-      status: entity.metadata.status,
-      publishedAt: entity.metadata.publishedAt,
-      author: entity.metadata.author,
-      seriesName: entity.metadata.seriesName,
-      seriesIndex: entity.metadata.seriesIndex,
-    };
+    return entity.metadata;
   }
 
   /**
@@ -101,15 +93,37 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
    * Generate frontmatter for blog post entity
    */
   public generateFrontMatter(entity: BlogPost): string {
-    const metadata: Record<string, unknown> = {
-      id: entity.id,
-      entityType: entity.entityType,
-      created: entity.created,
-      updated: entity.updated,
-      metadata: entity.metadata,
-    };
+    // Parse frontmatter from content and regenerate it
+    try {
+      const { metadata } = parseMarkdownWithFrontmatter(
+        entity.content,
+        blogPostFrontmatterSchema,
+      );
+      return generateFrontmatter(metadata);
+    } catch {
+      return "";
+    }
+  }
 
-    return generateFrontmatter(metadata);
+  /**
+   * Parse blog post frontmatter from entity content
+   */
+  public parsePostFrontmatter(entity: BlogPost): BlogPostFrontmatter {
+    const { metadata } = parseMarkdownWithFrontmatter(
+      entity.content,
+      blogPostFrontmatterSchema,
+    );
+    return metadata;
+  }
+
+  /**
+   * Create blog post content with frontmatter
+   */
+  public createPostContent(
+    frontmatter: BlogPostFrontmatter,
+    body: string,
+  ): string {
+    return generateMarkdownWithFrontmatter(body, frontmatter);
   }
 }
 

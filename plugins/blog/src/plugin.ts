@@ -7,7 +7,7 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { blogPostSchema } from "./schemas/blog-post";
+import { blogPostSchema, blogPostWithDataSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
@@ -55,11 +55,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     context.registerDataSource(blogDataSource);
 
     // Register blog templates
+    // Datasource transforms BlogPost → BlogPostWithData (adds parsed frontmatter)
     context.registerTemplates({
       "post-list": createTemplate<BlogListProps>({
         name: "post-list",
         description: "Blog list page template",
-        schema: z.object({ posts: z.array(blogPostSchema) }),
+        schema: z.object({ posts: z.array(blogPostWithDataSchema) }),
         dataSourceId: "blog:entities",
         requiredPermission: "public",
         layout: {
@@ -71,10 +72,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         name: "post-detail",
         description: "Individual blog post template",
         schema: z.object({
-          post: blogPostSchema,
-          prevPost: blogPostSchema.nullable(),
-          nextPost: blogPostSchema.nullable(),
-          seriesPosts: z.array(blogPostSchema).nullable(),
+          post: blogPostWithDataSchema,
+          prevPost: blogPostWithDataSchema.nullable(),
+          nextPost: blogPostWithDataSchema.nullable(),
+          seriesPosts: z.array(blogPostWithDataSchema).nullable(),
         }),
         dataSourceId: "blog:entities",
         requiredPermission: "public",
@@ -88,7 +89,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         description: "Blog series list template",
         schema: z.object({
           seriesName: z.string(),
-          posts: z.array(blogPostSchema),
+          posts: z.array(blogPostWithDataSchema),
         }),
         dataSourceId: "blog:entities",
         requiredPermission: "public",

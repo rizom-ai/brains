@@ -1,8 +1,8 @@
 import type { JSX } from "preact";
-import type { BlogPost } from "../schemas/blog-post";
+import type { BlogPostWithData } from "../datasources/blog-datasource";
 
 export interface BlogListProps {
-  posts: BlogPost[];
+  posts: BlogPostWithData[];
 }
 
 /**
@@ -20,45 +20,46 @@ export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
               key={post.id}
               className="blog-post-preview bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow"
             >
-              {post.metadata.coverImage && (
+              {post.frontmatter.coverImage && (
                 <img
-                  src={post.metadata.coverImage}
-                  alt={post.metadata.title}
+                  src={post.frontmatter.coverImage}
+                  alt={post.frontmatter.title}
                   className="w-full h-48 object-cover rounded-lg mb-4"
                 />
               )}
 
               <h2 className="text-2xl font-semibold mb-2 text-theme">
-                <a
-                  href={`/posts/${post.metadata.slug}`}
-                  className="hover:text-brand"
-                >
-                  {post.metadata.title}
+                <a href={`/posts/${post.id}`} className="hover:text-brand">
+                  {post.frontmatter.title}
                 </a>
               </h2>
 
               <div className="text-sm text-theme-muted mb-3">
-                <span>{post.metadata.author}</span>
-                {post.metadata.publishedAt && (
+                <span>{post.frontmatter.author}</span>
+                {post.frontmatter.publishedAt && (
                   <span>
                     {" "}
-                    • {new Date(post.metadata.publishedAt).toLocaleDateString()}
+                    •{" "}
+                    {new Date(
+                      post.frontmatter.publishedAt,
+                    ).toLocaleDateString()}
                   </span>
                 )}
-                {post.metadata.status === "draft" && (
+                {post.frontmatter.status === "draft" && (
                   <span className="ml-2 px-2 py-1 bg-theme-muted rounded text-xs">
                     Draft
                   </span>
                 )}
               </div>
 
-              {post.metadata.seriesName && (
+              {post.frontmatter.seriesName && (
                 <div className="text-sm text-brand mb-3">
-                  {post.metadata.seriesName} - Part {post.metadata.seriesIndex}
+                  {post.frontmatter.seriesName} - Part{" "}
+                  {post.frontmatter.seriesIndex}
                 </div>
               )}
 
-              <p className="text-theme-muted">{post.metadata.excerpt}</p>
+              <p className="text-theme-muted">{post.frontmatter.excerpt}</p>
             </article>
           ))}
 

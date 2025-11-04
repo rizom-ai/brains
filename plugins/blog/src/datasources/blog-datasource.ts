@@ -1,7 +1,9 @@
 import type { DataSource } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { BlogPost } from "../schemas/blog-post";
+import type { BlogPost, BlogPostFrontmatter } from "../schemas/blog-post";
+import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -14,6 +16,31 @@ const entityFetchQuerySchema = z.object({
     })
     .optional(),
 });
+
+/**
+ * Blog post with parsed frontmatter data
+ * Metadata has key fields for fast filtering, frontmatter has all display data
+ * Body is the markdown content without frontmatter (for rendering)
+ */
+export type BlogPostWithData = BlogPost & {
+  frontmatter: BlogPostFrontmatter;
+  body: string;
+};
+
+/**
+ * Parse frontmatter and extract body from entity (following summary pattern)
+ */
+function parsePostData(entity: BlogPost): BlogPostWithData {
+  const parsed = parseMarkdownWithFrontmatter(
+    entity.content,
+    blogPostFrontmatterSchema,
+  );
+  return {
+    ...entity,
+    frontmatter: parsed.metadata,
+    body: parsed.content, // Markdown without frontmatter
+  };
+}
 
 /**
  * DataSource for fetching and transforming blog post entities
@@ -72,12 +99,15 @@ export class BlogDataSource implements DataSource {
       throw new Error(`Blog post not found: ${id}`);
     }
 
+    // Parse frontmatter for full post data
+    const post = parsePostData(entity);
+
     // For detail view, also fetch prev/next posts and series posts
     const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
       limit: 1000,
     });
 
-    // Sort by publishedAt (or created if not published)
+    // Sort by publishedAt (from metadata) or created if not published
     const sortedPosts = allPosts.sort((a, b) => {
       const aDate = a.metadata.publishedAt ?? a.created;
       const bDate = b.metadata.publishedAt ?? b.created;
@@ -85,13 +115,15 @@ export class BlogDataSource implements DataSource {
     });
 
     const currentIndex = sortedPosts.findIndex((p) => p.id === id);
-    const prevPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
-    const nextPost =
+    const prevEntity = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
+    const nextEntity =
       currentIndex < sortedPosts.length - 1
         ? sortedPosts[currentIndex + 1]
         : null;
+    const prevPost = prevEntity ? parsePostData(prevEntity) : null;
+    const nextPost = nextEntity ? parsePostData(nextEntity) : null;
 
-    // Get series posts if this is part of a series
+    // Get series posts if this is part of a series (using metadata.seriesName)
     let seriesPosts = null;
     const seriesName = entity.metadata.seriesName;
     if (seriesName) {
@@ -103,11 +135,12 @@ export class BlogDataSource implements DataSource {
           const aIndex = a.metadata.seriesIndex ?? 0;
           const bIndex = b.metadata.seriesIndex ?? 0;
           return aIndex - bIndex;
-        });
+        })
+        .map(parsePostData);
     }
 
     const detailData = {
-      post: entity,
+      post,
       prevPost,
       nextPost,
       seriesPosts,
@@ -127,13 +160,15 @@ export class BlogDataSource implements DataSource {
       limit: 1000,
     });
 
+    // Filter and sort using metadata
     const seriesPosts = allPosts
       .filter((p) => p.metadata.seriesName === seriesName)
       .sort((a, b) => {
         const aIndex = a.metadata.seriesIndex ?? 0;
         const bIndex = b.metadata.seriesIndex ?? 0;
         return aIndex - bIndex;
-      });
+      })
+      .map(parsePostData); // Parse frontmatter for full data
 
     const seriesData = {
       seriesName,
@@ -163,7 +198,8 @@ export class BlogDataSource implements DataSource {
       listOptions,
     );
 
-    // Sort by publishedAt (published first), then by created date, newest first
+    // Sort by publishedAt (from metadata), newest first
+    // Published posts come before unpublished
     const sortedPosts = entities.sort((a, b) => {
       const aPublished = a.metadata.publishedAt;
       const bPublished = b.metadata.publishedAt;
@@ -179,8 +215,11 @@ export class BlogDataSource implements DataSource {
       return aPublished ? -1 : 1;
     });
 
+    // Parse frontmatter for full data
+    const postsWithData = sortedPosts.map(parsePostData);
+
     const listData = {
-      posts: sortedPosts,
+      posts: postsWithData,
     };
 
     return outputSchema.parse(listData);

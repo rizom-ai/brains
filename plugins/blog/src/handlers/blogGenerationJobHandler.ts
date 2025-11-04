@@ -3,6 +3,7 @@ import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ProfileAdapter } from "@brains/profile-service";
+import type { BlogPostFrontmatter } from "../schemas/blog-post";
 
 /**
  * Input schema for blog generation job
@@ -176,19 +177,36 @@ export class BlogGenerationJobHandler
       });
 
       // Create entity with slug as ID (for human-readable URLs)
+      // Store all data in frontmatter, duplicate key fields in metadata for fast queries
+      const { blogPostAdapter } = await import("../adapters/blog-post-adapter");
+
+      // Create frontmatter with all post data
+      const frontmatter: BlogPostFrontmatter = {
+        title,
+        status: "draft" as const,
+        excerpt: finalExcerpt,
+        author,
+        ...(coverImage && { coverImage }),
+        ...(seriesName && { seriesName }),
+        ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
+      };
+
+      const postContent = blogPostAdapter.createPostContent(
+        frontmatter,
+        content,
+      );
+
+      // Duplicate key searchable fields in metadata for fast queries (following summary pattern)
       const result = await this.context.entityService.createEntity({
         id: slug,
         entityType: "post",
-        content,
+        content: postContent,
         metadata: {
-          title,
-          slug,
-          status: "draft" as const,
-          excerpt: finalExcerpt,
-          author,
-          ...(coverImage && { coverImage }),
-          ...(seriesName && { seriesName }),
-          ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
+          title: frontmatter.title,
+          status: frontmatter.status,
+          publishedAt: frontmatter.publishedAt, // undefined for drafts, which is fine
+          seriesName: frontmatter.seriesName,
+          seriesIndex: frontmatter.seriesIndex,
         },
       });
 
