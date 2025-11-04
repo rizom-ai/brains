@@ -1,0 +1,387 @@
+import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { createPublishTool } from "../src/tools/publish";
+import type { ServicePluginContext, ToolContext } from "@brains/plugins";
+import type { BlogPost } from "../src/schemas/blog-post";
+
+// Mock ToolContext for handler calls
+const mockToolContext: ToolContext = {
+  userId: "test-user",
+  interfaceType: "test",
+};
+
+describe("Publish Tool", () => {
+  let mockContext: ServicePluginContext;
+  let publishTool: ReturnType<typeof createPublishTool>;
+
+  const createMockPost = (
+    id: string,
+    title: string,
+    status: "draft" | "published",
+    publishedAt?: string,
+  ): BlogPost => ({
+    id,
+    entityType: "post",
+    content: `---
+title: ${title}
+status: ${status}
+${publishedAt ? `publishedAt: "${publishedAt}"` : ""}
+excerpt: Test excerpt
+author: Test Author
+---
+
+# ${title}
+
+Post content here`,
+    created: "2025-01-01T10:00:00.000Z",
+    updated: "2025-01-01T10:00:00.000Z",
+    metadata: {
+      title,
+      status,
+      publishedAt,
+    },
+  });
+
+  beforeEach(() => {
+    const mockGetEntity = mock(() => Promise.resolve(null));
+    const mockUpdateEntity = mock(() =>
+      Promise.resolve({ entityId: "", entity: {} }),
+    );
+    const mockListEntities = mock(() => Promise.resolve([]));
+    const mockEnqueueJob = mock(() => Promise.resolve());
+
+    mockContext = {
+      entityService: {
+        getEntity: mockGetEntity,
+        updateEntity: mockUpdateEntity,
+        listEntities: mockListEntities,
+        createEntity: mock(() => Promise.resolve({})),
+        deleteEntity: mock(() => Promise.resolve({})),
+      },
+      enqueueJob: mockEnqueueJob,
+    } as unknown as ServicePluginContext;
+
+    publishTool = createPublishTool(mockContext, "blog");
+  });
+
+  describe("tool metadata", () => {
+    it("should have correct tool name", () => {
+      expect(publishTool.name).toBe("blog:publish");
+    });
+
+    it("should have descriptive description", () => {
+      expect(publishTool.description).toContain("Publish");
+      expect(publishTool.description).toContain("blog post");
+    });
+
+    it("should have correct input schema", () => {
+      expect(publishTool.inputSchema).toBeDefined();
+      expect(publishTool.inputSchema["id"]).toBeDefined();
+    });
+  });
+
+  describe("publishing draft posts", () => {
+    it("should publish a draft post successfully", async () => {
+      const draftPost = createMockPost("test-post", "My Draft Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockImplementation(() => Promise.resolve(draftPost));
+
+      const result = await publishTool.handler(
+        { id: "test-post" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("published successfully");
+      expect(result.message).toContain("My Draft Post");
+
+      // Verify updateEntity was called
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      expect(updateCall).toBeDefined();
+
+      const updatedPost = updateCall?.[0] as BlogPost;
+      expect(updatedPost.id).toBe("test-post");
+      expect(updatedPost.metadata.status).toBe("published");
+      expect(updatedPost.metadata.publishedAt).toBeDefined();
+    });
+
+    it("should set publishedAt timestamp when publishing", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const beforePublish = new Date().toISOString();
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockImplementation(() => Promise.resolve(draftPost));
+
+      await publishTool.handler({ id: "test-post" }, mockToolContext);
+
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      if (!updateCall) throw new Error("updateEntity not called");
+      const updatedPost = updateCall[0] as BlogPost;
+
+      expect(updatedPost.metadata.publishedAt).toBeDefined();
+      const publishedAt = updatedPost.metadata.publishedAt;
+      if (!publishedAt) throw new Error("publishedAt not set");
+      expect(new Date(publishedAt).getTime()).toBeGreaterThanOrEqual(
+        new Date(beforePublish).getTime(),
+      );
+    });
+
+    it("should update frontmatter with published status", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+
+      await publishTool.handler({ id: "test-post" }, mockToolContext);
+
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      const updatedPost = updateCall?.[0] as BlogPost;
+
+      // Content should have updated frontmatter
+      expect(updatedPost.content).toContain("status: published");
+      expect(updatedPost.content).toContain("publishedAt:");
+    });
+
+    it("should preserve existing post content and metadata", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+
+      await publishTool.handler({ id: "test-post" }, mockToolContext);
+
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      const updatedPost = updateCall?.[0] as BlogPost;
+
+      // Check that original content is preserved
+      expect(updatedPost.content).toContain("# Test Post");
+      expect(updatedPost.content).toContain("Post content here");
+      expect(updatedPost.metadata.title).toBe("Test Post");
+    });
+  });
+
+  describe("re-publishing published posts", () => {
+    it("should update publishedAt when re-publishing", async () => {
+      const publishedPost = createMockPost(
+        "test-post",
+        "Published Post",
+        "published",
+        "2025-01-01T10:00:00.000Z",
+      );
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(publishedPost);
+
+      const beforePublish = new Date().toISOString();
+
+      await publishTool.handler({ id: "test-post" }, mockToolContext);
+
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      const updatedPost = updateCall?.[0] as BlogPost;
+
+      // Should have new publishedAt timestamp
+      expect(updatedPost.metadata.publishedAt).not.toBe(
+        "2025-01-01T10:00:00.000Z",
+      );
+      const publishedAt = updatedPost.metadata.publishedAt ?? "";
+      expect(new Date(publishedAt).getTime()).toBeGreaterThanOrEqual(
+        new Date(beforePublish).getTime(),
+      );
+    });
+  });
+
+  describe("error handling", () => {
+    it("should return error when post not found", async () => {
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(null);
+
+      const result = await publishTool.handler(
+        { id: "nonexistent" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toContain("not found");
+      expect(result["error"]).toContain("nonexistent");
+    });
+
+    it("should return error when post has no content", async () => {
+      const invalidPost = {
+        id: "test-post",
+        entityType: "post",
+        content: "",
+        created: "2025-01-01T10:00:00.000Z",
+        updated: "2025-01-01T10:00:00.000Z",
+        metadata: { title: "Test", status: "draft" },
+      };
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(invalidPost);
+
+      const result = await publishTool.handler(
+        { id: "test-post" },
+        mockToolContext,
+      );
+
+      // Should fail due to invalid frontmatter parsing
+      expect(result.success).toBe(false);
+      expect(result["error"]).toBeDefined();
+    });
+
+    it("should handle updateEntity errors gracefully", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+      (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mockRejectedValue(new Error("Database error"));
+
+      const result = await publishTool.handler(
+        { id: "test-post" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toContain("Database error");
+    });
+
+    it("should validate input schema", async () => {
+      const result = await publishTool.handler({}, mockToolContext);
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toBeDefined();
+    });
+
+    it("should handle invalid input gracefully", async () => {
+      const result = await publishTool.handler({ id: 123 }, mockToolContext); // Wrong type
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toBeDefined();
+    });
+  });
+
+  describe("series posts", () => {
+    it("should preserve series metadata when publishing", async () => {
+      const seriesPost: BlogPost = {
+        id: "series-post",
+        entityType: "post",
+        content: `---
+title: Series Part 1
+status: draft
+excerpt: Test excerpt
+author: Test Author
+seriesName: My Series
+seriesIndex: 1
+---
+
+# Series Part 1
+
+Content`,
+        created: "2025-01-01T10:00:00.000Z",
+        updated: "2025-01-01T10:00:00.000Z",
+        metadata: {
+          title: "Series Part 1",
+          status: "draft",
+          seriesName: "My Series",
+          seriesIndex: 1,
+        },
+      };
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(seriesPost);
+
+      await publishTool.handler({ id: "series-post" }, mockToolContext);
+
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      const updatedPost = updateCall?.[0] as BlogPost;
+
+      expect(updatedPost.metadata.seriesName).toBe("My Series");
+      expect(updatedPost.metadata.seriesIndex).toBe(1);
+      expect(updatedPost.content).toContain("seriesName: My Series");
+      expect(updatedPost.content).toContain("seriesIndex: 1");
+    });
+  });
+
+  describe("integration with messaging system", () => {
+    it("should trigger entity:updated message via updateEntity", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+
+      await publishTool.handler({ id: "test-post" }, mockToolContext);
+
+      // Verify updateEntity was called (which triggers entity:updated)
+      expect(
+        (mockContext.entityService.updateEntity as ReturnType<typeof mock>).mock
+          .calls.length,
+      ).toBe(1);
+    });
+
+    it("should not directly enqueue site-build job", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+
+      await publishTool.handler({ id: "test-post" }, mockToolContext);
+
+      // Should NOT call enqueueJob (relies on entity:updated message instead)
+      expect(
+        (mockContext.enqueueJob as ReturnType<typeof mock>).mock.calls.length,
+      ).toBe(0);
+    });
+  });
+
+  describe("return data", () => {
+    it("should return updated post data on success", async () => {
+      const draftPost = createMockPost("test-post", "Test Post", "draft");
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+      (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({
+        entityId: "test-post",
+        entity: draftPost,
+      });
+
+      const result = await publishTool.handler(
+        { id: "test-post" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect((result.data as Record<string, unknown>)["post"]).toBeDefined();
+      expect(
+        ((result.data as Record<string, unknown>)["post"] as BlogPost).id,
+      ).toBe("test-post");
+    });
+  });
+});
