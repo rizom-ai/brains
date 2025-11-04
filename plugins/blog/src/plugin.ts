@@ -11,6 +11,7 @@ import { blogPostSchema, blogPostWithDataSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
+import { createGenerateRSSTool } from "./tools/generate-rss";
 import type { BlogConfig } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -22,7 +23,16 @@ import {
 import { blogGenerationTemplate } from "./templates/generation-template";
 import { blogExcerptTemplate } from "./templates/excerpt-template";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
-import { BlogDataSource } from "./datasources/blog-datasource";
+import {
+  BlogDataSource,
+  type BlogPostWithData,
+} from "./datasources/blog-datasource";
+import { generateRSSFeed } from "./rss/feed-generator";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import type { BlogPost } from "./schemas/blog-post";
+import { blogPostFrontmatterSchema } from "./schemas/blog-post";
+import { promises as fs } from "fs";
+import { join } from "path";
 import packageJson from "../package.json";
 
 /**
@@ -53,6 +63,14 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       this.logger.child("BlogDataSource"),
     );
     context.registerDataSource(blogDataSource);
+
+    // Register RSS datasource
+    const { RSSDataSource } = await import("./datasources/rss-datasource");
+    const rssDataSource = new RSSDataSource(
+      context.entityService,
+      this.logger.child("RSSDataSource"),
+    );
+    context.registerDataSource(rssDataSource);
 
     // Register blog templates
     // Datasource transforms BlogPost → BlogPostWithData (adds parsed frontmatter)
@@ -109,8 +127,107 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     );
     context.registerJobHandler("generation", blogGenerationHandler);
 
+    // Subscribe to site:build:completed to auto-generate RSS feed
+    context.subscribe("site:build:completed", async (message) => {
+      try {
+        const payload = message.payload as {
+          outputDir: string;
+          environment: string;
+          siteConfig?: { title?: string; description?: string; url?: string };
+        };
+
+        this.logger.info(
+          `Received site:build:completed event for ${payload.environment} environment`,
+        );
+
+        // Generate RSS for all builds
+        // Preview: include all posts, Production: only published posts
+        await this.generateRSSFeed(context, payload, payload.environment);
+      } catch (error) {
+        this.logger.error("Failed to generate RSS feed", error);
+      }
+      return { success: true };
+    });
+
     this.logger.info(
       "Blog plugin registered successfully (routes auto-generated at /posts/)",
+    );
+  }
+
+  /**
+   * Auto-generate RSS feed after site build
+   */
+  private async generateRSSFeed(
+    context: ServicePluginContext,
+    payload: {
+      outputDir: string;
+      siteConfig?: { title?: string; description?: string; url?: string };
+    },
+    environment: string,
+  ): Promise<void> {
+    const isPreview = environment === "preview";
+    this.logger.info(
+      `Auto-generating RSS feed after site build (${isPreview ? "all posts" : "published only"})`,
+    );
+
+    // Fetch all posts
+    const allPosts: BlogPost[] = await context.entityService.listEntities(
+      "post",
+      { limit: 1000 },
+    );
+
+    // Filter posts based on environment
+    // Preview: include all posts, Production: only published posts
+    const filteredPosts: BlogPostWithData[] = allPosts
+      .filter((p) => {
+        if (isPreview) {
+          // Preview: include all posts
+          return true;
+        } else {
+          // Production: only published posts with publishedAt date
+          return p.metadata.status === "published" && p.metadata.publishedAt;
+        }
+      })
+      .map((entity) => {
+        const parsed = parseMarkdownWithFrontmatter(
+          entity.content,
+          blogPostFrontmatterSchema,
+        );
+        return {
+          ...entity,
+          frontmatter: parsed.metadata,
+          body: parsed.content,
+        };
+      });
+
+    if (filteredPosts.length === 0) {
+      this.logger.info(
+        `No ${isPreview ? "" : "published "}posts found, skipping RSS generation`,
+      );
+      return;
+    }
+
+    // Use site config or fallback to defaults
+    const siteUrl = payload.siteConfig?.url ?? "https://example.com";
+    const siteTitle = payload.siteConfig?.title ?? "Blog";
+    const siteDescription =
+      payload.siteConfig?.description ?? "Latest blog posts";
+
+    // Generate RSS XML
+    const xml = generateRSSFeed(filteredPosts, {
+      title: siteTitle,
+      description: siteDescription,
+      link: siteUrl,
+      language: "en-us",
+      includeAllPosts: isPreview, // Preview: all posts, Production: published only
+    });
+
+    // Write RSS feed to output directory
+    const feedPath = join(payload.outputDir, "feed.xml");
+    await fs.writeFile(feedPath, xml, "utf-8");
+
+    this.logger.info(
+      `RSS feed generated successfully with ${filteredPosts.length} posts at ${feedPath}`,
     );
   }
 
@@ -125,6 +242,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     return [
       createGenerateTool(this.pluginContext, this.config, this.id),
       createPublishTool(this.pluginContext, this.id),
+      createGenerateRSSTool(this.pluginContext),
     ];
   }
 

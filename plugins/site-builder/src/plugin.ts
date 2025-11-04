@@ -232,6 +232,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.siteBuilder,
       this.layouts,
       this.config.siteInfo,
+      context,
       this.config.themeCSS,
     );
     context.registerJobHandler("site-build", siteBuildHandler);

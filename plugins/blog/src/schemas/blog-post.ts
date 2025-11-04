@@ -14,6 +14,11 @@ export const blogPostFrontmatterSchema = z.object({
   coverImage: z.string().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
+  // SEO metadata (optional, with smart fallbacks)
+  ogImage: z.string().url().optional(),
+  ogDescription: z.string().optional(),
+  twitterCard: z.enum(["summary", "summary_large_image"]).optional(),
+  canonicalUrl: z.string().url().optional(),
 });
 
 export type BlogPostFrontmatter = z.infer<typeof blogPostFrontmatterSchema>;

@@ -1,4 +1,4 @@
-import type { JobHandler } from "@brains/plugins";
+import type { JobHandler, ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
 import type { SiteBuilder } from "../lib/site-builder";
 import type { LayoutComponent, SiteBuilderConfig } from "../config";
@@ -19,6 +19,7 @@ export class SiteBuildJobHandler
     private siteBuilder: SiteBuilder,
     private layouts: Record<string, LayoutComponent>,
     private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
+    private context: ServicePluginContext,
     private themeCSS?: string,
   ) {}
 
@@ -77,6 +78,19 @@ export class SiteBuildJobHandler
         routesBuilt: result.routesBuilt,
         success: result.success,
       });
+
+      // Emit site:build:completed event for other plugins to hook into
+      if (result.success) {
+        this.logger.info(
+          `Emitting site:build:completed event for ${data.environment} environment`,
+        );
+        await this.context.sendMessage("site:build:completed", {
+          outputDir: data.outputDir,
+          environment: data.environment,
+          routesBuilt: result.routesBuilt,
+          siteConfig: data.siteConfig ?? this.defaultSiteConfig,
+        });
+      }
 
       return {
         success: result.success,

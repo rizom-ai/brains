@@ -122,11 +122,28 @@ publishedAt: "2025-01-01T10:00:00.000Z" # Only for published posts
 coverImage: https://example.com/image.jpg # Optional
 seriesName: My Series # Optional
 seriesIndex: 1 # Optional
+
+# SEO Metadata (Optional) - Ready for site-builder integration
+ogImage: https://example.com/og-image.jpg # OpenGraph image (defaults to coverImage)
+ogDescription: Custom social media description # (defaults to excerpt)
+twitterCard: summary_large_image # "summary" or "summary_large_image"
+canonicalUrl: https://example.com/posts/my-post # Canonical URL
 ---
 # Post Content
 
 Your markdown content here...
 ```
+
+### SEO Metadata
+
+The blog plugin includes support for SEO metadata fields in blog post frontmatter:
+
+- **`ogImage`**: OpenGraph image URL for social media previews (defaults to `coverImage`)
+- **`ogDescription`**: OpenGraph description for social media (defaults to `excerpt`)
+- **`twitterCard`**: Twitter card type - `"summary"` or `"summary_large_image"`
+- **`canonicalUrl`**: Canonical URL for duplicate content management
+
+**Status**: Schema support is complete. Full integration with site-builder's HeadCollector for automatic meta tag generation is planned for a future update. Currently, these fields are stored in frontmatter and available for manual use in custom templates.
 
 ## Tools
 
@@ -145,6 +162,10 @@ Queue a job to create a new blog post draft.
   coverImage?: string;    // Cover image URL
   seriesName?: string;    // Series name
   seriesIndex?: number;   // Position in series (auto-incremented if not provided)
+  ogImage?: string;       // OpenGraph image URL for social media
+  ogDescription?: string; // OpenGraph description (falls back to excerpt)
+  twitterCard?: string;   // Twitter card type: "summary" or "summary_large_image"
+  canonicalUrl?: string;  // Canonical URL for SEO
 }
 ```
 
@@ -188,6 +209,49 @@ Publish a blog post (or re-publish to update timestamp).
 # Via MCP/CLI
 blog:publish id="microservices-architecture"
 ```
+
+### `blog:generate-rss`
+
+Generate RSS 2.0 feed XML from published blog posts and write to file.
+
+**Input Schema:**
+
+```typescript
+{
+  outputPath: string;      // Path to write RSS feed XML (e.g., "./site/feed.xml")
+  siteUrl: string;         // Base URL of the website (e.g., "https://example.com")
+  title: string;           // RSS feed title
+  description: string;     // RSS feed description
+  language?: string;       // Language code (defaults to "en-us")
+  copyright?: string;      // Copyright notice
+  managingEditor?: string; // Managing editor email
+  webMaster?: string;      // Webmaster email
+}
+```
+
+**Behavior:**
+
+- Fetches all published blog posts
+- Generates RSS 2.0 compliant XML feed
+- Includes post title, link, description, author, and publication date
+- Writes feed to specified output path
+- Returns success message with post count
+
+**Example:**
+
+```bash
+# Via MCP/CLI
+blog:generate-rss outputPath="./site/feed.xml" siteUrl="https://myblog.com" title="My Blog" description="Latest posts from my blog"
+```
+
+**RSS Feed Features:**
+
+- **RSS 2.0 Compliant**: Follows RSS 2.0 specification with proper XML structure
+- **Automatic Sorting**: Posts sorted by publication date (newest first)
+- **XML Escaping**: Proper escaping of special characters in content
+- **RFC 822 Dates**: Publication dates formatted correctly for RSS readers
+- **Series Support**: Blog series included as `<category>` tags
+- **Self-Reference**: Includes `<atom:link>` for feed discovery
 
 ## Site Builder Integration
 

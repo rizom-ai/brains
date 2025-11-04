@@ -1,0 +1,295 @@
+import { describe, expect, test, mock } from "bun:test";
+import { RSSDataSource } from "../src/datasources/rss-datasource";
+import { createSilentLogger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { BlogPost } from "../src/schemas/blog-post";
+import { z } from "zod";
+
+describe("RSSDataSource", () => {
+  const createMockEntityService = (posts: BlogPost[]): IEntityService =>
+    ({
+      listEntities: mock(async () => posts),
+      getEntity: mock(async () => null),
+      createEntity: mock(() => ({})),
+      updateEntity: mock(() => ({})),
+      deleteEntity: mock(() => true),
+      searchEntities: mock(() => []),
+      getEntityTypes: mock(() => []),
+      registerEntityType: mock(() => {}),
+      getEntityAdapter: mock(() => undefined),
+    }) as unknown as IEntityService;
+
+  const samplePosts: BlogPost[] = [
+    {
+      id: "post-1",
+      entityType: "post",
+      content:
+        "---\ntitle: First Post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1",
+      created: "2025-01-01T10:00:00.000Z",
+      updated: "2025-01-01T10:00:00.000Z",
+      metadata: {
+        title: "First Post",
+        status: "published",
+        publishedAt: "2025-01-15T10:00:00.000Z",
+      },
+    },
+    {
+      id: "post-2",
+      entityType: "post",
+      content:
+        "---\ntitle: Second Post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2",
+      created: "2025-01-02T10:00:00.000Z",
+      updated: "2025-01-02T10:00:00.000Z",
+      metadata: {
+        title: "Second Post",
+        status: "published",
+        publishedAt: "2025-01-10T10:00:00.000Z",
+      },
+    },
+    {
+      id: "draft-post",
+      entityType: "post",
+      content:
+        "---\ntitle: Draft Post\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft content",
+      created: "2025-01-03T10:00:00.000Z",
+      updated: "2025-01-03T10:00:00.000Z",
+      metadata: {
+        title: "Draft Post",
+        status: "draft",
+      },
+    },
+  ];
+
+  describe("metadata", () => {
+    test("should have correct datasource ID", () => {
+      const entityService = createMockEntityService([]);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      expect(datasource.id).toBe("blog:rss");
+    });
+
+    test("should have descriptive name", () => {
+      const entityService = createMockEntityService([]);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      expect(datasource.name).toBe("Blog RSS Feed DataSource");
+    });
+
+    test("should have description mentioning RSS 2.0", () => {
+      const entityService = createMockEntityService([]);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      expect(datasource.description).toContain("RSS 2.0");
+    });
+  });
+
+  describe("fetch", () => {
+    test("should fetch published posts only", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      expect(result.xml).toContain("<title>First Post</title>");
+      expect(result.xml).toContain("<title>Second Post</title>");
+      expect(result.xml).not.toContain("<title>Draft Post</title>");
+    });
+
+    test("should generate valid RSS 2.0 XML", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      expect(result.xml).toContain('<?xml version="1.0"');
+      expect(result.xml).toContain('<rss version="2.0"');
+      expect(result.xml).toContain("</rss>");
+    });
+
+    test("should use query parameters in RSS config", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "Test Blog Title",
+          description: "Test Blog Description",
+          language: "fr-fr",
+          copyright: "© 2025",
+        },
+        outputSchema,
+      );
+
+      expect(result.xml).toContain("<title>Test Blog Title</title>");
+      expect(result.xml).toContain(
+        "<description>Test Blog Description</description>",
+      );
+      expect(result.xml).toContain("<language>fr-fr</language>");
+      expect(result.xml).toContain("<copyright>© 2025</copyright>");
+    });
+
+    test("should default language to en-us", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      expect(result.xml).toContain("<language>en-us</language>");
+    });
+
+    test("should parse frontmatter from post content", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      // Should extract title and author from frontmatter
+      expect(result.xml).toContain("<author>John</author>");
+      expect(result.xml).toContain("<author>Jane</author>");
+      expect(result.xml).toContain("<description>Excerpt 1</description>");
+    });
+
+    test("should validate query parameters", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+
+      // Missing required fields should throw
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(
+        datasource.fetch(
+          {
+            // Missing siteUrl, title, description
+          },
+          outputSchema,
+        ),
+      ).rejects.toThrow();
+    });
+
+    test("should validate invalid URL", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+
+      // eslint-disable-next-line @typescript-eslint/await-thenable
+      await expect(
+        datasource.fetch(
+          {
+            siteUrl: "not-a-url",
+            title: "My Blog",
+            description: "Description",
+          },
+          outputSchema,
+        ),
+      ).rejects.toThrow();
+    });
+
+    test("should return result matching output schema", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      expect(result).toHaveProperty("xml");
+      expect(typeof result.xml).toBe("string");
+    });
+
+    test("should handle no published posts", async () => {
+      const draftPost = samplePosts[2];
+      if (!draftPost) throw new Error("Draft post not found");
+
+      const draftOnly: BlogPost[] = [draftPost]; // Only draft
+      const entityService = createMockEntityService(draftOnly);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      const result = await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      expect(result.xml).toContain("<channel>");
+      expect(result.xml).not.toContain("<item>");
+    });
+
+    test("should list entities with limit 1000", async () => {
+      const entityService = createMockEntityService(samplePosts);
+      const logger = createSilentLogger();
+      const datasource = new RSSDataSource(entityService, logger);
+
+      const outputSchema = z.object({ xml: z.string() });
+      await datasource.fetch(
+        {
+          siteUrl: "https://example.com",
+          title: "My Blog",
+          description: "Blog description",
+        },
+        outputSchema,
+      );
+
+      expect(entityService.listEntities).toHaveBeenCalledWith("post", {
+        limit: 1000,
+      });
+    });
+  });
+});
