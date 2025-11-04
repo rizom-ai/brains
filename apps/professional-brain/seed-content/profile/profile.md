@@ -2,7 +2,7 @@
 
 ## Name
 
-Your Name
+Yeehaa
 
 ## Description
 
@@ -10,11 +10,11 @@ Professional developer, writer, and knowledge worker
 
 ## Website
 
-https://your-website.com
+https://yeehaa.io
 
 ## Email
 
-you@example.com
+yeehaa@rizom.ai
 
 ## Social Links
 
