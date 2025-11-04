@@ -14,14 +14,14 @@ const routes = defaultRoutes.map((route) => {
     return {
       ...route,
       title: "Yeehaa",
-      description: "Personal knowledge base and professional showcase",
+      description: "Latest blog post from my personal knowledge base",
       sections: [
         {
-          id: "main",
-          template: "about",
+          id: "latest-post",
+          template: "blog:post-detail",
           dataQuery: {
-            entityType: "base",
-            query: { id: "HOME" },
+            entityType: "post",
+            query: { latest: true },
           },
         },
       ],

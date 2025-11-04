@@ -11,6 +11,7 @@ const entityFetchQuerySchema = z.object({
   query: z
     .object({
       id: z.string().optional(),
+      latest: z.boolean().optional(),
       "metadata.seriesName": z.string().optional(),
       limit: z.number().optional(),
     })
@@ -66,12 +67,17 @@ export class BlogDataSource implements DataSource {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
 
-    // Case 1: Fetch single post by ID (ID is the slug for human-readable URLs)
+    // Case 1: Fetch latest published post
+    if (params.query?.latest) {
+      return this.fetchLatestPost(outputSchema);
+    }
+
+    // Case 2: Fetch single post by ID (ID is the slug for human-readable URLs)
     if (params.query?.id) {
       return this.fetchSinglePost(params.query.id, outputSchema);
     }
 
-    // Case 2: Fetch posts in a series
+    // Case 3: Fetch posts in a series
     if (params.query?.["metadata.seriesName"]) {
       return this.fetchSeriesPosts(
         params.query["metadata.seriesName"],
@@ -79,8 +85,64 @@ export class BlogDataSource implements DataSource {
       );
     }
 
-    // Case 3: Fetch list of all posts
+    // Case 4: Fetch list of all posts
     return this.fetchPostList(params.query?.limit, outputSchema);
+  }
+
+  /**
+   * Fetch the latest published blog post
+   * Returns in detail format (same as fetchSinglePost) without navigation
+   */
+  private async fetchLatestPost<T>(outputSchema: z.ZodSchema<T>): Promise<T> {
+    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
+      limit: 1000,
+    });
+
+    // Find the most recent published post
+    const publishedPosts = allPosts.filter((p) => p.metadata.publishedAt);
+    if (publishedPosts.length === 0) {
+      throw new Error("No published blog posts found");
+    }
+
+    // Sort by publishedAt, newest first
+    const sortedPosts = publishedPosts.sort((a, b) => {
+      const aDate = a.metadata.publishedAt ?? a.created;
+      const bDate = b.metadata.publishedAt ?? b.created;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
+
+    const latestEntity = sortedPosts[0];
+    if (!latestEntity) {
+      throw new Error("Failed to retrieve latest blog post");
+    }
+
+    const post = parsePostData(latestEntity);
+
+    // For home page, we don't need prev/next navigation
+    // But include series posts if this is part of a series
+    let seriesPosts = null;
+    const seriesName = latestEntity.metadata.seriesName;
+    if (seriesName) {
+      seriesPosts = allPosts
+        .filter(
+          (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
+        )
+        .sort((a, b) => {
+          const aIndex = a.metadata.seriesIndex ?? 0;
+          const bIndex = b.metadata.seriesIndex ?? 0;
+          return aIndex - bIndex;
+        })
+        .map(parsePostData);
+    }
+
+    const detailData = {
+      post,
+      prevPost: null, // No navigation on home page
+      nextPost: null,
+      seriesPosts, // Keep series info if available
+    };
+
+    return outputSchema.parse(detailData);
   }
 
   /**
