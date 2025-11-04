@@ -22,11 +22,13 @@ import {
 } from "./templates/series-list";
 import { blogGenerationTemplate } from "./templates/generation-template";
 import { blogExcerptTemplate } from "./templates/excerpt-template";
+import { homepageTemplate } from "./templates/homepage";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import {
   BlogDataSource,
   type BlogPostWithData,
 } from "./datasources/blog-datasource";
+import { HomepageDataSource } from "./datasources/homepage-datasource";
 import { generateRSSFeed } from "./rss/feed-generator";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { BlogPost } from "./schemas/blog-post";
@@ -63,6 +65,13 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       this.logger.child("BlogDataSource"),
     );
     context.registerDataSource(blogDataSource);
+
+    // Register homepage datasource
+    const homepageDataSource = new HomepageDataSource(
+      context.entityService,
+      this.logger.child("HomepageDataSource"),
+    );
+    context.registerDataSource(homepageDataSource);
 
     // Register RSS datasource
     const { RSSDataSource } = await import("./datasources/rss-datasource");
@@ -116,6 +125,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
+      homepage: homepageTemplate,
       generation: blogGenerationTemplate,
       excerpt: blogExcerptTemplate,
     });

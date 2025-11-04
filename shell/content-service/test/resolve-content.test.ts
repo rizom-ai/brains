@@ -108,6 +108,7 @@ describe("ContentService.resolveContent", () => {
       expect(mockDataSource.fetch).toHaveBeenCalledWith(
         { timeRange: "24h" },
         mockTemplate.schema,
+        undefined, // context parameter (no environment provided)
       );
     });
 
@@ -419,6 +420,7 @@ describe("ContentService.resolveContent", () => {
       expect(mockDataSource.fetch).toHaveBeenCalledWith(
         { test: true },
         mockTemplate.schema,
+        undefined, // context parameter (no environment provided)
       );
     });
   });

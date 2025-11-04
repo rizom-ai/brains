@@ -1,6 +1,19 @@
 import type { z } from "@brains/utils";
 
 /**
+ * Context passed to DataSource operations
+ * Contains internal state that should not be mixed with user query parameters
+ */
+export interface DataSourceContext {
+  /**
+   * Build environment (e.g., "preview" or "production")
+   * Allows datasources to adjust behavior based on environment
+   */
+  environment?: string;
+  // Room for future extensions (user context, permissions, etc.)
+}
+
+/**
  * DataSource Interface
  *
  * Provides data for templates through fetch, generate, or transform operations.
@@ -29,8 +42,13 @@ export interface DataSource {
    * DataSources validate output using the provided schema
    * @param query - Query parameters for fetching data
    * @param outputSchema - Schema for validating output data
+   * @param context - Optional context (environment, etc.)
    */
-  fetch?: <T>(query: unknown, outputSchema: z.ZodSchema<T>) => Promise<T>;
+  fetch?: <T>(
+    query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    context?: DataSourceContext,
+  ) => Promise<T>;
 
   /**
    * Optional: Generate new content

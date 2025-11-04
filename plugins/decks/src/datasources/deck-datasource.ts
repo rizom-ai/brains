@@ -1,4 +1,4 @@
-import type { DataSource } from "@brains/datasource";
+import type { DataSource, DataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
@@ -35,8 +35,13 @@ export class DeckDataSource implements DataSource {
   /**
    * Fetch and transform deck entities to template-ready format
    * Returns { markdown } for single deck or { decks } for multiple
+   * @param context - Optional context (environment, etc.)
    */
-  async fetch<T>(query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
+  async fetch<T>(
+    query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    _context?: DataSourceContext,
+  ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
 

@@ -71,14 +71,16 @@ export function generateRSSFeed(
     .map((post) => {
       const postUrl = `${config.link}/posts/${post.id}`;
       const pubDate = post.frontmatter.publishedAt ?? post.created;
+      const excerpt = post.frontmatter.excerpt ?? "";
+      const author = post.frontmatter.author ?? "Unknown";
 
       return `    <item>
       <title>${escapeXml(post.frontmatter.title)}</title>
       <link>${escapeXml(postUrl)}</link>
       <guid isPermaLink="true">${escapeXml(postUrl)}</guid>
-      <description>${escapeXml(post.frontmatter.excerpt)}</description>
+      <description>${escapeXml(excerpt)}</description>
       <content:encoded><![CDATA[${post.body}]]></content:encoded>
-      <author>${escapeXml(post.frontmatter.author)}</author>
+      <author>${escapeXml(author)}</author>
       <pubDate>${formatRFC822Date(pubDate)}</pubDate>${
         post.frontmatter.seriesName
           ? `

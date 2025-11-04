@@ -8,35 +8,39 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { routes as defaultRoutes } from "@brains/default-site-content";
 
-// Customize routes for Yeehaa
-const routes = defaultRoutes.map((route) => {
-  if (route.id === "home") {
-    return {
-      ...route,
-      title: "Yeehaa",
-      description: "Latest blog post from my personal knowledge base",
-      sections: [
-        {
-          id: "latest-post",
-          template: "blog:post-detail",
-          dataQuery: {
-            entityType: "post",
-            query: { latest: true },
-          },
-        },
-      ],
-    };
-  }
-  if (route.id === "about") {
-    return {
-      ...route,
-      title: "About Yeehaa",
-      description: "Learn more about Yeehaa and this knowledge base",
-      // Keep default sections querying README
-    };
-  }
-  return route;
-});
+// Define routes for Yeehaa
+const routes = [
+  {
+    id: "home",
+    path: "/",
+    title: "Yeehaa",
+    description: "Personal knowledge base and blog",
+    layout: "minimal",
+    navigation: { show: true, label: "Home", slot: "secondary", priority: 10 },
+    sections: [
+      {
+        id: "homepage",
+        template: "blog:homepage",
+        dataQuery: {},
+      },
+    ],
+  },
+  {
+    id: "about",
+    path: "/about",
+    title: "About Yeehaa",
+    description: "Learn more about Yeehaa and this knowledge base",
+    layout: "default",
+    navigation: { show: true, label: "About", slot: "secondary", priority: 90 },
+    sections: [
+      {
+        id: "about",
+        template: "about",
+        dataQuery: { entityType: "base", query: { id: "README" } },
+      },
+    ],
+  },
+];
 
 const config = defineConfig({
   name: "professional",

@@ -56,6 +56,8 @@ export interface ResolutionOptions {
   transformFormat?: string;
   /** Static fallback content */
   fallback?: unknown;
+  /** Build environment (e.g., "preview" or "production") passed to datasources */
+  environment?: string;
 }
 
 /**

@@ -150,9 +150,16 @@ export class ContentService implements IContentService {
         try {
           // DataSource handles fetching and any needed transformation internally
           if (dataSource.fetch) {
+            // Build context with environment if provided
+            const context =
+              options?.environment !== undefined
+                ? { environment: options.environment }
+                : undefined;
+
             const data = await dataSource.fetch(
               options?.dataParams,
               template.schema,
+              context,
             );
             if (data !== undefined) {
               this.dependencies.logger.debug(

@@ -1,6 +1,7 @@
 import type { ProgressCallback, Logger } from "@brains/plugins";
 import { ProgressReporter } from "@brains/plugins";
 import type { ServicePluginContext, Template } from "@brains/plugins";
+import type { ResolutionOptions } from "@brains/content-service";
 import type { SectionDefinition, RouteDefinition } from "../types/routes";
 import type {
   ISiteBuilder,
@@ -217,7 +218,11 @@ export class SiteBuilder implements ISiteBuilder {
           route: RouteDefinition,
           section: SectionDefinition,
         ) => {
-          return this.getContentForSection(section, route);
+          return this.getContentForSection(
+            section,
+            route,
+            parsedOptions.environment,
+          );
         },
         getViewTemplate: (name: string) => {
           return this.context.getViewTemplate(name);
@@ -293,6 +298,7 @@ export class SiteBuilder implements ISiteBuilder {
   private async getContentForSection(
     section: SectionDefinition,
     route: { id: string },
+    environment?: string,
   ): Promise<unknown> {
     // If no template, only static content is possible
     if (!section.template) {
@@ -306,12 +312,19 @@ export class SiteBuilder implements ISiteBuilder {
     if (section.dataQuery) {
       // Use the context's resolveContent helper with DataSource params
       // DataSource will handle any necessary transformations internally
-      const content = await this.context.resolveContent(templateName, {
+      const options: ResolutionOptions = {
         // Parameters for DataSource fetch
         dataParams: section.dataQuery,
         // Static fallback content from section definition
         fallback: section.content,
-      });
+      };
+
+      // Only pass environment if it's defined
+      if (environment !== undefined) {
+        options.environment = environment;
+      }
+
+      const content = await this.context.resolveContent(templateName, options);
 
       return content ?? null;
     }

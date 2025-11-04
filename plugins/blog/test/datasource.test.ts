@@ -169,7 +169,7 @@ Content for ${title}`,
           { entityType: "post", query: { latest: true } },
           schema,
         ),
-      ).rejects.toThrow("No published blog posts found");
+      ).rejects.toThrow("NO_PUBLISHED_POSTS");
     });
 
     it("should include series posts if latest post is part of a series", async () => {
@@ -500,7 +500,11 @@ Content for ${title}`,
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch({ entityType: "post" }, schema);
+      const result = await datasource.fetch(
+        { entityType: "post" },
+        schema,
+        { environment: "preview" }, // Preview mode shows all posts
+      );
 
       expect(result.posts).toHaveLength(3);
       expect(result.posts[0].frontmatter.status).toBe("published");

@@ -1,4 +1,4 @@
-import type { DataSource } from "@brains/datasource";
+import type { DataSource, DataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
@@ -34,8 +34,13 @@ export class TopicsDataSource implements DataSource {
   /**
    * Fetch and transform topic entities to template-ready format
    * Returns TopicDetailData for single topic or TopicListData for multiple
+   * @param context - Optional context (environment, etc.)
    */
-  async fetch<T>(query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
+  async fetch<T>(
+    query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    _context?: DataSourceContext,
+  ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
     const adapter = new TopicAdapter();

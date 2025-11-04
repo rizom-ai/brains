@@ -1,4 +1,4 @@
-import type { DataSource } from "@brains/datasource";
+import type { DataSource, DataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -62,19 +62,24 @@ export class BlogDataSource implements DataSource {
 
   /**
    * Fetch and transform blog post entities to template-ready format
+   * @param context - Optional context (environment, etc.)
    */
-  async fetch<T>(query: unknown, outputSchema: z.ZodSchema<T>): Promise<T> {
+  async fetch<T>(
+    query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    context?: DataSourceContext,
+  ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
 
     // Case 1: Fetch latest published post
     if (params.query?.latest) {
-      return this.fetchLatestPost(outputSchema);
+      return this.fetchLatestPost(outputSchema, context);
     }
 
     // Case 2: Fetch single post by ID (ID is the slug for human-readable URLs)
     if (params.query?.id) {
-      return this.fetchSinglePost(params.query.id, outputSchema);
+      return this.fetchSinglePost(params.query.id, outputSchema, context);
     }
 
     // Case 3: Fetch posts in a series
@@ -82,18 +87,23 @@ export class BlogDataSource implements DataSource {
       return this.fetchSeriesPosts(
         params.query["metadata.seriesName"],
         outputSchema,
+        context,
       );
     }
 
     // Case 4: Fetch list of all posts
-    return this.fetchPostList(params.query?.limit, outputSchema);
+    return this.fetchPostList(params.query?.limit, outputSchema, context);
   }
 
   /**
    * Fetch the latest published blog post
    * Returns in detail format (same as fetchSinglePost) without navigation
+   * Throws error if no published posts exist (site builder will skip section)
    */
-  private async fetchLatestPost<T>(outputSchema: z.ZodSchema<T>): Promise<T> {
+  private async fetchLatestPost<T>(
+    outputSchema: z.ZodSchema<T>,
+    _context?: DataSourceContext,
+  ): Promise<T> {
     const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
       limit: 1000,
     });
@@ -101,7 +111,8 @@ export class BlogDataSource implements DataSource {
     // Find the most recent published post
     const publishedPosts = allPosts.filter((p) => p.metadata.publishedAt);
     if (publishedPosts.length === 0) {
-      throw new Error("No published blog posts found");
+      this.logger.info("No published blog posts found for homepage");
+      throw new Error("NO_PUBLISHED_POSTS");
     }
 
     // Sort by publishedAt, newest first
@@ -151,6 +162,7 @@ export class BlogDataSource implements DataSource {
   private async fetchSinglePost<T>(
     id: string,
     outputSchema: z.ZodSchema<T>,
+    _context?: DataSourceContext,
   ): Promise<T> {
     const entity: BlogPost | null = await this.entityService.getEntity(
       "post",
@@ -217,6 +229,7 @@ export class BlogDataSource implements DataSource {
   private async fetchSeriesPosts<T>(
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
+    _context?: DataSourceContext,
   ): Promise<T> {
     const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
       limit: 1000,
@@ -246,6 +259,7 @@ export class BlogDataSource implements DataSource {
   private async fetchPostList<T>(
     limit: number | undefined,
     outputSchema: z.ZodSchema<T>,
+    context?: DataSourceContext,
   ): Promise<T> {
     const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
       {};
@@ -260,9 +274,15 @@ export class BlogDataSource implements DataSource {
       listOptions,
     );
 
+    // Filter based on environment
+    const isPreview = context?.environment === "preview";
+    const filteredPosts = isPreview
+      ? entities // Preview: show all posts (draft and published)
+      : entities.filter((p) => p.metadata.publishedAt); // Production: only published
+
     // Sort by publishedAt (from metadata), newest first
     // Published posts come before unpublished
-    const sortedPosts = entities.sort((a, b) => {
+    const sortedPosts = filteredPosts.sort((a, b) => {
       const aPublished = a.metadata.publishedAt;
       const bPublished = b.metadata.publishedAt;
 

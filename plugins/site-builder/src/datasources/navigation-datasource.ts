@@ -1,4 +1,4 @@
-import type { DataSource } from "@brains/datasource";
+import type { DataSource, DataSourceContext } from "@brains/datasource";
 import type { Logger } from "@brains/plugins";
 import { z, type z as zType } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
@@ -30,8 +30,13 @@ export class NavigationDataSource implements DataSource {
    * Fetch navigation data based on query parameters
    * @param query - Query parameters for filtering navigation items
    * @param outputSchema - Schema for validating output format
+   * @param context - Optional context (environment, etc.)
    */
-  async fetch<T>(query: unknown, outputSchema: zType.ZodSchema<T>): Promise<T> {
+  async fetch<T>(
+    query: unknown,
+    outputSchema: zType.ZodSchema<T>,
+    _context?: DataSourceContext,
+  ): Promise<T> {
     // Parse and validate query parameters
     const params = navigationQuerySchema.parse(query ?? {});
 
