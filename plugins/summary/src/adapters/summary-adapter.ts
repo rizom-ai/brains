@@ -5,24 +5,20 @@ import {
   generateFrontmatter,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { summarySchema } from "../schemas/summary";
-import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
-
-// Schema for parsing frontmatter metadata
-const summaryFrontmatterSchema = z.object({
-  conversationId: z.string(),
-  channelName: z.string(),
-  channelId: z.string(),
-  interfaceType: z.string(),
-  entryCount: z.number(),
-  totalMessages: z.number(),
-});
+import { summarySchema, summaryMetadataSchema } from "../schemas/summary";
+import type {
+  SummaryEntity,
+  SummaryLogEntry,
+  SummaryMetadata,
+} from "../schemas/summary";
 
 /**
  * Adapter for summary entities with simplified log-based structure
  * Entries are prepended (newest first) for optimization
  */
-export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
+export class SummaryAdapter
+  implements EntityAdapter<SummaryEntity, SummaryMetadata>
+{
   public readonly entityType = "summary";
   public readonly schema = summarySchema;
 
@@ -155,7 +151,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
     // Parse with required frontmatter fields
     const { metadata, content: contentBody } = parseMarkdownWithFrontmatter(
       markdown,
-      summaryFrontmatterSchema,
+      summaryMetadataSchema,
     );
 
     // Parse entries from content body
@@ -184,7 +180,7 @@ export class SummaryAdapter implements EntityAdapter<SummaryEntity> {
   /**
    * Extract metadata for storage
    */
-  public extractMetadata(entity: SummaryEntity): Record<string, unknown> {
+  public extractMetadata(entity: SummaryEntity): SummaryMetadata {
     return entity.metadata;
   }
 

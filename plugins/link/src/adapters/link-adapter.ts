@@ -12,12 +12,13 @@ import {
   type LinkEntity,
   type LinkBody,
   type LinkSource,
+  type LinkMetadata,
 } from "../schemas/link";
 
 /**
  * Link adapter for managing link entities with structured content
  */
-export class LinkAdapter implements EntityAdapter<LinkEntity> {
+export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
   public readonly entityType = "link" as const;
   public readonly schema = linkSchema;
 
@@ -125,10 +126,10 @@ export class LinkAdapter implements EntityAdapter<LinkEntity> {
 
   /**
    * Extract metadata from entity
+   * Links don't use metadata for filtering
    */
-  public extractMetadata(entity: LinkEntity): Record<string, unknown> {
-    // Return the entity's metadata if it exists
-    return entity.metadata ?? {};
+  public extractMetadata(_entity: LinkEntity): LinkMetadata {
+    return {};
   }
 
   /**

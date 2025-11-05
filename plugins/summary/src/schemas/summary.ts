@@ -27,6 +27,20 @@ export const summaryBodySchema = z.object({
 export type SummaryBody = z.infer<typeof summaryBodySchema>;
 
 /**
+ * Summary metadata schema (stored in frontmatter for fast queries)
+ */
+export const summaryMetadataSchema = z.object({
+  conversationId: z.string(),
+  channelName: z.string(),
+  channelId: z.string(),
+  interfaceType: z.string(),
+  entryCount: z.number(),
+  totalMessages: z.number(),
+});
+
+export type SummaryMetadata = z.infer<typeof summaryMetadataSchema>;
+
+/**
  * Summary entity schema - one per conversation
  */
 export const summarySchema = z.object({
@@ -35,14 +49,7 @@ export const summarySchema = z.object({
   content: z.string(), // Structured markdown with log entries
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  metadata: z.object({
-    conversationId: z.string(),
-    channelName: z.string(),
-    channelId: z.string(),
-    interfaceType: z.string(),
-    entryCount: z.number(),
-    totalMessages: z.number(),
-  }),
+  metadata: summaryMetadataSchema,
   embedding: z.array(z.number()).optional(),
   source: z.string().optional(),
 });

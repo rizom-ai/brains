@@ -23,6 +23,13 @@ export const linkBodySchema = z.object({
 });
 
 /**
+ * Link metadata schema - empty as links don't use metadata for filtering
+ */
+export const linkMetadataSchema = z.object({});
+
+export type LinkMetadata = z.infer<typeof linkMetadataSchema>;
+
+/**
  * Link entity schema
  */
 export const linkSchema = z.object({
@@ -31,7 +38,7 @@ export const linkSchema = z.object({
   content: z.string(),
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  metadata: z.record(z.string(), z.unknown()),
+  metadata: linkMetadataSchema,
 });
 
 /**
