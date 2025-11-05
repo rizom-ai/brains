@@ -77,7 +77,7 @@ export class EntityQueries {
       content: entityData.content,
       created: entityData.created,
       updated: entityData.updated,
-      metadata: entityData.metadata as Record<string, unknown>,
+      metadata: (entityData.metadata as Record<string, unknown> | null) ?? {},
     };
   }
 
@@ -135,7 +135,7 @@ export class EntityQueries {
         content: row.content,
         created: row.created,
         updated: row.updated,
-        metadata: row.metadata as Record<string, unknown>,
+        metadata: (row.metadata as Record<string, unknown> | null) ?? {},
       })),
       entityType,
     );
