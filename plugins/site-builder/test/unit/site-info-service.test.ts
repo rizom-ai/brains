@@ -88,6 +88,7 @@ Get Started
 https://rizom.ai/join`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       // Control mock behavior to return the entity
@@ -123,6 +124,7 @@ My Site
 A simple website`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
@@ -177,6 +179,7 @@ Existing Site
 Existing description`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
@@ -210,6 +213,7 @@ Existing description`,
         content: "test content",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       });
 
       await siteInfoService.refreshCache();

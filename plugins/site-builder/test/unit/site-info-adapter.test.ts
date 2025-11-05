@@ -20,6 +20,7 @@ describe("SiteInfoAdapter", () => {
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(validSiteInfo)).not.toThrow();
@@ -34,6 +35,7 @@ describe("SiteInfoAdapter", () => {
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidSiteInfo)).toThrow();
@@ -48,6 +50,7 @@ describe("SiteInfoAdapter", () => {
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidSiteInfo)).toThrow();
@@ -75,6 +78,7 @@ describe("SiteInfoAdapter", () => {
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -111,6 +115,7 @@ describe("SiteInfoAdapter", () => {
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -231,6 +236,7 @@ A simple website`;
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const metadata = adapter.extractMetadata(entity);
@@ -250,6 +256,7 @@ A simple website`;
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const result = adapter.generateFrontMatter(entity);

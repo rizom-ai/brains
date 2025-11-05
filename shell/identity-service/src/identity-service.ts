@@ -96,6 +96,7 @@ export class IdentityService {
           id: "identity",
           entityType: "identity",
           content,
+          metadata: {},
         });
 
         // Reload the cache with the newly created entity

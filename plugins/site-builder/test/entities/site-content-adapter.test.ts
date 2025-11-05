@@ -16,6 +16,7 @@ describe("SiteContentAdapter", () => {
         sectionId: "hero",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -43,6 +44,7 @@ This content already had frontmatter.`,
         sectionId: "main",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -62,6 +64,7 @@ This content already had frontmatter.`,
         sectionId: "form",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -112,6 +115,7 @@ title: Some Title
         sectionId: "list",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const metadata = adapter.extractMetadata(entity);
@@ -159,6 +163,7 @@ customField: value
         sectionId: "posts",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const frontmatter = adapter.generateFrontMatter(entity);
@@ -184,6 +189,7 @@ customField: value
         sectionId: "test-section",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const result = adapter.schema.safeParse(entity);

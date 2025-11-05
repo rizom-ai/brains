@@ -89,6 +89,7 @@ export class ProfileService {
           id: "profile",
           entityType: "profile",
           content,
+          metadata: {},
         });
 
         // Reload the cache with the newly created entity

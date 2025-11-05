@@ -86,6 +86,7 @@ github
 https://github.com/rizom-ai`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       // Control mock behavior to return the entity
@@ -146,6 +147,7 @@ https://github.com/rizom-ai`,
 Existing Profile`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       mockGetEntityImpl = async (): Promise<ProfileEntity> => mockEntity;
@@ -179,6 +181,7 @@ Existing Profile`,
         content: "test content",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       });
 
       await profileService.refreshCache();

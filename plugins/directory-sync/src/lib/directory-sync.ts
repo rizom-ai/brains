@@ -380,6 +380,7 @@ export class DirectorySync {
         entityType: rawEntity.entityType,
         content: rawEntity.content,
         ...parsedEntity,
+        metadata: parsedEntity.metadata ?? {},
         created: existing?.created ?? rawEntity.created.toISOString(),
         updated: rawEntity.updated.toISOString(),
       };

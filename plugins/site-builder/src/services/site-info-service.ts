@@ -98,6 +98,7 @@ export class SiteInfoService {
           id: "site-info",
           entityType: "site-info",
           content,
+          metadata: {},
         });
 
         // Reload the cache with the newly created entity

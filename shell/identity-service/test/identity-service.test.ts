@@ -82,6 +82,7 @@ Help with academic research
 - accuracy`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       // Control mock behavior to return the entity
@@ -145,6 +146,7 @@ Existing purpose
 - existing value`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
@@ -178,6 +180,7 @@ Existing purpose
         content: "test content",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       });
 
       await identityService.refreshCache();

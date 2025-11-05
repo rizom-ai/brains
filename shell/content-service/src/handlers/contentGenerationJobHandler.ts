@@ -151,6 +151,7 @@ export class ContentGenerationJobHandler
             id: data.entityId,
             entityType: data.entityType,
             content: formattedContent,
+            metadata: {},
             routeId,
             sectionId,
           };

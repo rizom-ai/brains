@@ -49,6 +49,7 @@ function createNote(input: Partial<Note>): Note {
     updated: new Date().toISOString(),
     tags: [],
     category: undefined,
+    metadata: {},
   };
 
   return { ...defaults, ...input };
@@ -266,6 +267,7 @@ describe("EntityService", (): void => {
       updated: "2023-01-01T00:00:00.000Z",
       title: "Test Note",
       tags: ["test"],
+      metadata: {},
     };
 
     const markdown = entityService.serializeEntity(testEntity);
@@ -325,6 +327,7 @@ describe("EntityService", (): void => {
       content: "New content",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
+      metadata: {},
     };
 
     // Mock getEntity to return null (entity doesn't exist)
@@ -360,6 +363,7 @@ describe("EntityService", (): void => {
       content: "Initial content",
       created: "2023-01-01T00:00:00.000Z",
       updated: "2023-01-01T00:00:00.000Z",
+      metadata: {},
     };
 
     const updatedEntity: BaseEntity = {
@@ -404,6 +408,7 @@ describe("EntityService", (): void => {
       content: "Test content",
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
+      metadata: {},
     };
 
     const options = { priority: 5, maxRetries: 10 };

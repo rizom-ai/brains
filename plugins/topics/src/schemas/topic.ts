@@ -14,7 +14,7 @@ export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
  */
 export const topicEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("topic"),
-  metadata: topicMetadataSchema.optional(),
+  metadata: topicMetadataSchema,
 });
 
 export type TopicEntity = z.infer<typeof topicEntitySchema>;

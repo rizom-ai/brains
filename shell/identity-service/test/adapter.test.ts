@@ -20,6 +20,7 @@ describe("IdentityAdapter", () => {
         content: "", // BaseEntity requires content field
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(validIdentity)).not.toThrow();
@@ -37,6 +38,7 @@ describe("IdentityAdapter", () => {
         values: ["clarity"],
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidIdentity)).toThrow();
@@ -54,6 +56,7 @@ describe("IdentityAdapter", () => {
         values: ["clarity"],
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidIdentity)).toThrow();
@@ -77,6 +80,7 @@ describe("IdentityAdapter", () => {
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -184,6 +188,7 @@ Help organize research papers and maintain literature review notes.
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const metadata = adapter.extractMetadata(entity);
@@ -203,6 +208,7 @@ Help organize research papers and maintain literature review notes.
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const result = adapter.generateFrontMatter(entity);

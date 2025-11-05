@@ -77,6 +77,7 @@ describe("Decks Commands", () => {
           author: "Test Author",
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
+          metadata: {},
         },
         {
           id: "test-deck-2",
@@ -85,6 +86,7 @@ describe("Decks Commands", () => {
           title: "Another Deck",
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
+          metadata: {},
         },
       ];
 
@@ -117,6 +119,7 @@ describe("Decks Commands", () => {
         title: `Deck ${i}`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       }));
 
       const commands = createDecksCommands(context, logger);

@@ -20,6 +20,7 @@ describe("DeckFormatter", () => {
         title: "Test Presentation",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(validDeck)).not.toThrow();
@@ -35,6 +36,7 @@ describe("DeckFormatter", () => {
         title: "Test Presentation",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidDeck)).toThrow();
@@ -52,6 +54,7 @@ describe("DeckFormatter", () => {
         author: "Jane Developer",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = formatter.toMarkdown(entity);
@@ -72,6 +75,7 @@ describe("DeckFormatter", () => {
         title: "Invalid Deck",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => formatter.toMarkdown(entity)).toThrow(
@@ -88,6 +92,7 @@ describe("DeckFormatter", () => {
         description: "Optional description",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = formatter.toMarkdown(entity);
@@ -167,6 +172,7 @@ title: Minimal Deck
         author: "Test Author",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const metadata = formatter.extractMetadata(entity);
@@ -184,6 +190,7 @@ title: Minimal Deck
         title: "Test Deck",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const metadata = formatter.extractMetadata(entity);
@@ -203,6 +210,7 @@ title: Minimal Deck
         title: "My Presentation",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const title = formatter.generateTitle(entity);
@@ -221,6 +229,7 @@ title: Minimal Deck
         description: "This is a test presentation",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const summary = formatter.generateSummary(entity);
@@ -236,6 +245,7 @@ title: Minimal Deck
         title: "Test Deck",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const summary = formatter.generateSummary(entity);
@@ -320,6 +330,7 @@ description: Test description
         description: "Test description",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const result = formatter.generateFrontMatter(entity);

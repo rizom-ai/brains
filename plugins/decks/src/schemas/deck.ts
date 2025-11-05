@@ -10,6 +10,7 @@ export const deckSchema = z.object({
   content: z.string().describe("Markdown content with slide separators (---)"),
   created: z.string().datetime(),
   updated: z.string().datetime(),
+  metadata: z.record(z.string(), z.unknown()),
 
   // Frontmatter fields
   title: z.string().describe("Presentation title"),

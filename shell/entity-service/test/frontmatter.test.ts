@@ -29,6 +29,7 @@ describe("Frontmatter Utilities", () => {
     priority: 1,
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-02T00:00:00Z",
+    metadata: {},
   };
 
   describe("extractMetadata", () => {
@@ -40,6 +41,7 @@ describe("Frontmatter Utilities", () => {
         tags: ["test", "important"],
         category: "work",
         priority: 1,
+        metadata: {},
       });
 
       // System fields should not be included
@@ -84,6 +86,7 @@ describe("Frontmatter Utilities", () => {
         title: "Test Note",
         category: "work",
         priority: 1,
+        metadata: {},
       });
     });
 

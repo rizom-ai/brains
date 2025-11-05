@@ -31,11 +31,12 @@ type Note = z.infer<typeof noteSchema>;
  */
 type CreateNoteInput = Omit<
   z.input<typeof noteSchema>,
-  "id" | "created" | "updated" | "entityType"
+  "id" | "created" | "updated" | "entityType" | "metadata"
 > & {
   id?: string;
   created?: string;
   updated?: string;
+  metadata?: Record<string, unknown>;
 };
 
 /**
@@ -48,6 +49,7 @@ function createNote(input: CreateNoteInput): Note {
     updated: new Date().toISOString(),
     entityType: "note",
     ...input,
+    metadata: input.metadata ?? {},
   });
 
   return validated;
@@ -227,6 +229,7 @@ describe("EntityRegistry", (): void => {
       updated: new Date().toISOString(),
       tags: ["test", "registry"],
       category: "testing",
+      metadata: {},
     };
 
     // Test validation - registry validates data structure

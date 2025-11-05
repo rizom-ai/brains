@@ -20,6 +20,7 @@ describe("ProfileAdapter", () => {
         content: "", // BaseEntity requires content field
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(validProfile)).not.toThrow();
@@ -34,6 +35,7 @@ describe("ProfileAdapter", () => {
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidProfile)).toThrow();
@@ -48,6 +50,7 @@ describe("ProfileAdapter", () => {
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       expect(() => schema.parse(invalidProfile)).toThrow();
@@ -77,6 +80,7 @@ describe("ProfileAdapter", () => {
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -108,6 +112,7 @@ describe("ProfileAdapter", () => {
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const markdown = adapter.toMarkdown(entity);
@@ -247,6 +252,7 @@ Open-source collective building privacy-first tools`;
         content,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const metadata = adapter.extractMetadata(entity);
@@ -267,6 +273,7 @@ Open-source collective building privacy-first tools`;
         content: "",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
+        metadata: {},
       };
 
       const result = adapter.generateFrontMatter(entity);

@@ -182,6 +182,7 @@ export class DirectoryImportJobHandler
               entityType: rawEntity.entityType,
               content: rawEntity.content,
               ...parsedEntity,
+              metadata: parsedEntity.metadata ?? {},
               created: rawEntity.created.toISOString(),
               updated: rawEntity.updated.toISOString(),
             };

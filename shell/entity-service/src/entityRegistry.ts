@@ -49,10 +49,13 @@ export class EntityRegistry implements IEntityRegistry {
   /**
    * Register a new entity type with its schema and adapter
    */
-  registerEntityType<TEntity extends BaseEntity>(
+  registerEntityType<
+    TEntity extends BaseEntity<TMetadata>,
+    TMetadata = Record<string, unknown>,
+  >(
     type: string,
     schema: z.ZodType<unknown>,
-    adapter: EntityAdapter<TEntity>,
+    adapter: EntityAdapter<TEntity, TMetadata>,
   ): void {
     this.logger.debug(`Registering entity type: ${type}`);
 
@@ -67,7 +70,10 @@ export class EntityRegistry implements IEntityRegistry {
 
     // Register schema and adapter
     this.entitySchemas.set(type, schema);
-    this.entityAdapters.set(type, adapter);
+    this.entityAdapters.set(
+      type,
+      adapter as EntityAdapter<BaseEntity<Record<string, unknown>>>,
+    );
 
     this.logger.debug(`Registered entity type: ${type}`);
   }
@@ -88,14 +94,17 @@ export class EntityRegistry implements IEntityRegistry {
   /**
    * Get adapter for a specific entity type
    */
-  getAdapter<T extends BaseEntity>(type: string): EntityAdapter<T> {
+  getAdapter<
+    TEntity extends BaseEntity<TMetadata>,
+    TMetadata = Record<string, unknown>,
+  >(type: string): EntityAdapter<TEntity, TMetadata> {
     const adapter = this.entityAdapters.get(type);
     if (!adapter) {
       throw new Error(
         `Entity type registration failed for ${type}: No adapter registered for entity type`,
       );
     }
-    return adapter as EntityAdapter<T>;
+    return adapter as EntityAdapter<TEntity, TMetadata>;
   }
 
   /**

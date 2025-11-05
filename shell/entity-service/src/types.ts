@@ -29,13 +29,21 @@ export const baseEntitySchema = z.object({
   content: z.string(),
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()),
 });
 
 /**
- * Base entity type
+ * Base entity type - generic to support typed metadata
+ * TMetadata defaults to Record<string, unknown> for backward compatibility
  */
-export type BaseEntity = z.infer<typeof baseEntitySchema>;
+export interface BaseEntity<TMetadata = Record<string, unknown>> {
+  id: string;
+  entityType: string;
+  content: string;
+  created: string;
+  updated: string;
+  metadata: TMetadata;
+}
 
 /**
  * Entity input type for creation - allows partial entities with optional system fields
@@ -61,20 +69,26 @@ export interface SearchResult<T extends BaseEntity = BaseEntity> {
 /**
  * Interface for entity adapter - handles conversion between entities and markdown
  * following the hybrid storage model
+ *
+ * @template TEntity - The full entity type
+ * @template TMetadata - The metadata type (defaults to Record<string, unknown>)
  */
-export interface EntityAdapter<T extends BaseEntity> {
+export interface EntityAdapter<
+  TEntity extends BaseEntity<TMetadata>,
+  TMetadata = Record<string, unknown>,
+> {
   entityType: string;
-  schema: z.ZodSchema<T>;
+  schema: z.ZodSchema<TEntity>;
 
   // Convert entity to markdown content (may include frontmatter for entity-specific fields)
-  toMarkdown(entity: T): string;
+  toMarkdown(entity: TEntity): string;
 
   // Extract entity-specific fields from markdown
-  // Returns Partial<T> as core fields come from database
-  fromMarkdown(markdown: string): Partial<T>;
+  // Returns Partial<TEntity> as core fields come from database
+  fromMarkdown(markdown: string): Partial<TEntity>;
 
-  // Extract metadata from entity for search/filtering
-  extractMetadata(entity: T): Record<string, unknown>;
+  // Extract metadata from entity for search/filtering - now strongly typed
+  extractMetadata(entity: TEntity): TMetadata;
 
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
@@ -83,7 +97,7 @@ export interface EntityAdapter<T extends BaseEntity> {
   ): TFrontmatter;
 
   // Generate frontmatter for markdown
-  generateFrontMatter(entity: T): string;
+  generateFrontMatter(entity: TEntity): string;
 }
 
 /**
@@ -201,15 +215,23 @@ export interface EntityService extends ICoreEntityService {
  * Entity Registry interface for managing entity types and their schemas/adapters
  */
 export interface EntityRegistry {
-  registerEntityType<TEntity extends BaseEntity>(
+  registerEntityType<
+    TEntity extends BaseEntity<TMetadata>,
+    TMetadata = Record<string, unknown>,
+  >(
     type: string,
     schema: z.ZodType<unknown>,
-    adapter: EntityAdapter<TEntity>,
+    adapter: EntityAdapter<TEntity, TMetadata>,
   ): void;
 
   getSchema(type: string): z.ZodType<unknown>;
 
-  getAdapter<T extends BaseEntity>(type: string): EntityAdapter<T>;
+  getAdapter<
+    TEntity extends BaseEntity<TMetadata>,
+    TMetadata = Record<string, unknown>,
+  >(
+    type: string,
+  ): EntityAdapter<TEntity, TMetadata>;
 
   hasEntityType(type: string): boolean;
 
