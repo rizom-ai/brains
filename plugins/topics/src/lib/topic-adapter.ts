@@ -1,8 +1,6 @@
 import type { EntityAdapter } from "@brains/plugins";
 import {
   parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-  generateFrontmatter,
   StructuredContentFormatter,
 } from "@brains/plugins";
 import { z, SourceListFormatter } from "@brains/utils";
@@ -13,21 +11,13 @@ import {
   type TopicEntity,
   type TopicBody,
   type TopicSource,
+  type TopicMetadata,
 } from "../schemas/topic";
-
-// Schema for parsing frontmatter metadata
-const topicFrontmatterSchema = z.object({
-  keywords: z.array(z.string()).optional(),
-  sourceCount: z.number().optional(),
-});
-
-// Type for topic metadata
-type TopicMetadata = z.infer<typeof topicFrontmatterSchema>;
 
 /**
  * Entity adapter for Topic entities
  */
-export class TopicAdapter implements EntityAdapter<TopicEntity> {
+export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
   public readonly entityType = "topic";
   public readonly schema = topicEntitySchema;
 
@@ -73,75 +63,30 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
   }
 
   /**
-   * Convert topic entity to markdown with frontmatter if metadata exists
+   * Convert topic entity to markdown
+   * Topics don't use frontmatter - return content as-is
    */
   public toMarkdown(entity: TopicEntity): string {
-    // Extract the body content without any existing frontmatter
-    let contentBody = entity.content;
-    try {
-      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
-      contentBody = parsed.content;
-    } catch {
-      // Content doesn't have frontmatter, use as-is
-    }
-
-    // Always include metadata as frontmatter if it exists
-    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
-      return generateMarkdownWithFrontmatter(contentBody, entity.metadata);
-    }
-
-    return contentBody;
+    return entity.content;
   }
 
   /**
-   * Extract topic-specific fields from markdown, including frontmatter
+   * Extract topic-specific fields from markdown
+   * Topics don't use metadata - all information is in the content body
    */
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
-    // Try to extract metadata from frontmatter
-    let metadata: TopicMetadata = {};
-    let contentBody = markdown;
-
-    try {
-      const parsed = parseMarkdownWithFrontmatter(
-        markdown,
-        topicFrontmatterSchema,
-      );
-      metadata = parsed.metadata;
-      contentBody = parsed.content;
-    } catch {
-      // No frontmatter, use entire content as body
-    }
-
-    // Parse the topic body to get keywords and sources
-    const topicMetadata: TopicMetadata = {};
-    try {
-      const parsed = this.parseTopicBody(contentBody);
-      if (parsed.keywords.length > 0) {
-        topicMetadata.keywords = parsed.keywords;
-      }
-      if (parsed.sources.length > 0) {
-        topicMetadata.sourceCount = parsed.sources.length;
-      }
-    } catch {
-      // Parsing failed, no additional metadata
-    }
-
     return {
       content: markdown, // Keep full markdown including frontmatter
       entityType: "topic",
-      metadata: { ...topicMetadata, ...metadata }, // Merge parsed and frontmatter metadata
+      metadata: {}, // Topics don't use metadata for filtering
     };
   }
 
   /**
    * Extract metadata for search/filtering
+   * Topics don't use metadata for filtering
    */
-  public extractMetadata(entity: TopicEntity): Record<string, unknown> {
-    // Return entity metadata if it exists
-    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
-      return entity.metadata;
-    }
-
+  public extractMetadata(_entity: TopicEntity): TopicMetadata {
     return {};
   }
 
@@ -158,14 +103,9 @@ export class TopicAdapter implements EntityAdapter<TopicEntity> {
 
   /**
    * Generate frontmatter for the entity
+   * Topics don't use frontmatter
    */
-  public generateFrontMatter(entity: TopicEntity): string {
-    const metadata = this.extractMetadata(entity);
-
-    if (Object.keys(metadata).length > 0) {
-      return generateFrontmatter(metadata);
-    }
-
+  public generateFrontMatter(_entity: TopicEntity): string {
     return "";
   }
 
