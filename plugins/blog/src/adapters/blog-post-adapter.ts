@@ -10,13 +10,16 @@ import {
   blogPostFrontmatterSchema,
   type BlogPost,
   type BlogPostFrontmatter,
+  type BlogPostMetadata,
 } from "../schemas/blog-post";
 
 /**
  * Entity adapter for blog post entities
  * Following summary plugin pattern - frontmatter in content, key fields duplicated in metadata
  */
-export class BlogPostAdapter implements EntityAdapter<BlogPost> {
+export class BlogPostAdapter
+  implements EntityAdapter<BlogPost, BlogPostMetadata>
+{
   public readonly entityType = "post" as const;
   public readonly schema = blogPostSchema;
 
@@ -88,7 +91,7 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
   /**
    * Extract metadata for search/filtering
    */
-  public extractMetadata(entity: BlogPost): Record<string, unknown> {
+  public extractMetadata(entity: BlogPost): BlogPostMetadata {
     return entity.metadata;
   }
 

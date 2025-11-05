@@ -104,9 +104,10 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     _context?: DataSourceContext,
   ): Promise<T> {
-    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
-      limit: 1000,
-    });
+    const allPosts: BlogPost[] =
+      await this.entityService.listEntities<BlogPost>("post", {
+        limit: 1000,
+      });
 
     // Find the most recent published post
     const publishedPosts = allPosts.filter((p) => p.metadata.publishedAt);
@@ -165,14 +166,15 @@ export class BlogDataSource implements DataSource {
     _context?: DataSourceContext,
   ): Promise<T> {
     // Query by slug in metadata
-    const entities: BlogPost[] = await this.entityService.listEntities("post", {
-      filter: {
-        metadata: {
-          slug,
+    const entities: BlogPost[] =
+      await this.entityService.listEntities<BlogPost>("post", {
+        filter: {
+          metadata: {
+            slug,
+          },
         },
-      },
-      limit: 1,
-    });
+        limit: 1,
+      });
 
     const entity = entities[0];
     if (!entity) {
@@ -183,9 +185,10 @@ export class BlogDataSource implements DataSource {
     const post = parsePostData(entity);
 
     // For detail view, also fetch prev/next posts and series posts
-    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
-      limit: 1000,
-    });
+    const allPosts: BlogPost[] =
+      await this.entityService.listEntities<BlogPost>("post", {
+        limit: 1000,
+      });
 
     // Sort by publishedAt (from metadata) or created if not published
     const sortedPosts = allPosts.sort((a, b) => {
@@ -237,9 +240,10 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     _context?: DataSourceContext,
   ): Promise<T> {
-    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
-      limit: 1000,
-    });
+    const allPosts: BlogPost[] =
+      await this.entityService.listEntities<BlogPost>("post", {
+        limit: 1000,
+      });
 
     // Filter and sort using metadata
     const seriesPosts = allPosts
@@ -275,10 +279,8 @@ export class BlogDataSource implements DataSource {
       listOptions.limit = 1000;
     }
 
-    const entities: BlogPost[] = await this.entityService.listEntities(
-      "post",
-      listOptions,
-    );
+    const entities: BlogPost[] =
+      await this.entityService.listEntities<BlogPost>("post", listOptions);
 
     // Filter based on environment
     const isPreview = context?.environment === "preview";
