@@ -114,6 +114,7 @@ export class EntitySerializer {
           content: entityData.content,
           created: new Date(entityData.created).toISOString(),
           updated: new Date(entityData.updated).toISOString(),
+          metadata: entityData.metadata,
 
           // Fields from metadata (includes title, tags, entity-specific fields)
           ...entityData.metadata,
