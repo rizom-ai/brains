@@ -7,6 +7,7 @@ import { baseEntitySchema } from "@brains/entity-service";
  */
 export const blogPostFrontmatterSchema = z.object({
   title: z.string(),
+  slug: z.string().optional(), // Auto-generated from title if not provided
   status: z.enum(["draft", "published"]),
   publishedAt: z.string().datetime().optional(),
   excerpt: z.string(),
@@ -29,6 +30,7 @@ export type BlogPostFrontmatter = z.infer<typeof blogPostFrontmatterSchema>;
  */
 export const blogPostMetadataSchema = z.object({
   title: z.string(),
+  slug: z.string(), // Required in metadata for fast slug-based queries
   status: z.enum(["draft", "published"]),
   publishedAt: z.string().datetime().optional(),
   seriesName: z.string().optional(),

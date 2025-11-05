@@ -16,6 +16,7 @@ describe("Publish Tool", () => {
   const createMockPost = (
     id: string,
     title: string,
+    slug: string,
     status: "draft" | "published",
     publishedAt?: string,
   ): BlogPost => ({
@@ -23,6 +24,7 @@ describe("Publish Tool", () => {
     entityType: "post",
     content: `---
 title: ${title}
+slug: ${slug}
 status: ${status}
 ${publishedAt ? `publishedAt: "${publishedAt}"` : ""}
 excerpt: Test excerpt
@@ -36,6 +38,7 @@ Post content here`,
     updated: "2025-01-01T10:00:00.000Z",
     metadata: {
       title,
+      slug,
       status,
       publishedAt,
     },
@@ -81,7 +84,12 @@ Post content here`,
 
   describe("publishing draft posts", () => {
     it("should publish a draft post successfully", async () => {
-      const draftPost = createMockPost("test-post", "My Draft Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "My Draft Post",
+        "my-draft-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>
@@ -109,7 +117,12 @@ Post content here`,
     });
 
     it("should set publishedAt timestamp when publishing", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
       const beforePublish = new Date().toISOString();
 
       (
@@ -133,7 +146,12 @@ Post content here`,
     });
 
     it("should update frontmatter with published status", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>
@@ -152,7 +170,12 @@ Post content here`,
     });
 
     it("should preserve existing post content and metadata", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>
@@ -177,6 +200,7 @@ Post content here`,
       const publishedPost = createMockPost(
         "test-post",
         "Published Post",
+        "published-post",
         "published",
         "2025-01-01T10:00:00.000Z",
       );
@@ -228,7 +252,7 @@ Post content here`,
         content: "",
         created: "2025-01-01T10:00:00.000Z",
         updated: "2025-01-01T10:00:00.000Z",
-        metadata: { title: "Test", status: "draft" },
+        metadata: { title: "Test", slug: "test", status: "draft" },
       };
 
       (
@@ -246,7 +270,12 @@ Post content here`,
     });
 
     it("should handle updateEntity errors gracefully", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>
@@ -268,7 +297,9 @@ Post content here`,
       const result = await publishTool.handler({}, mockToolContext);
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      expect(result["error"]).toContain(
+        "Either 'id' or 'slug' must be provided",
+      );
     });
 
     it("should handle invalid input gracefully", async () => {
@@ -276,6 +307,83 @@ Post content here`,
 
       expect(result.success).toBe(false);
       expect(result["error"]).toBeDefined();
+    });
+  });
+
+  describe("publish by slug", () => {
+    it("should publish a post by slug", async () => {
+      const draftPost = createMockPost(
+        "test-post",
+        "My Draft Post",
+        "my-draft-post",
+        "draft",
+      );
+
+      (
+        mockContext.entityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue([draftPost]);
+
+      const result = await publishTool.handler(
+        { slug: "my-draft-post" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("published successfully");
+      expect(result.message).toContain("My Draft Post");
+
+      // Verify updateEntity was called
+      const updateCall = (
+        mockContext.entityService.updateEntity as ReturnType<typeof mock>
+      ).mock.calls[0];
+      expect(updateCall).toBeDefined();
+
+      const updatedPost = updateCall?.[0] as BlogPost;
+      expect(updatedPost.metadata.status).toBe("published");
+      expect(updatedPost.metadata.publishedAt).toBeDefined();
+    });
+
+    it("should return error when slug not found", async () => {
+      (
+        mockContext.entityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue([]);
+
+      const result = await publishTool.handler(
+        { slug: "nonexistent-slug" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toContain("not found");
+      expect(result["error"]).toContain("nonexistent-slug");
+    });
+
+    it("should prefer id over slug when both provided", async () => {
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
+
+      (
+        mockContext.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(draftPost);
+
+      await publishTool.handler(
+        { id: "test-post", slug: "other-slug" },
+        mockToolContext,
+      );
+
+      // Should call getEntity (for ID lookup), not listEntities (for slug lookup)
+      expect(
+        (mockContext.entityService.getEntity as ReturnType<typeof mock>).mock
+          .calls.length,
+      ).toBe(1);
+      expect(
+        (mockContext.entityService.listEntities as ReturnType<typeof mock>).mock
+          .calls.length,
+      ).toBe(0);
     });
   });
 
@@ -300,6 +408,7 @@ Content`,
         updated: "2025-01-01T10:00:00.000Z",
         metadata: {
           title: "Series Part 1",
+          slug: "series-part-1",
           status: "draft",
           seriesName: "My Series",
           seriesIndex: 1,
@@ -326,7 +435,12 @@ Content`,
 
   describe("integration with messaging system", () => {
     it("should trigger entity:updated message via updateEntity", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>
@@ -342,7 +456,12 @@ Content`,
     });
 
     it("should not directly enqueue site-build job", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>
@@ -359,7 +478,12 @@ Content`,
 
   describe("return data", () => {
     it("should return updated post data on success", async () => {
-      const draftPost = createMockPost("test-post", "Test Post", "draft");
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
 
       (
         mockContext.entityService.getEntity as ReturnType<typeof mock>

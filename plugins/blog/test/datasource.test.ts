@@ -13,6 +13,7 @@ describe("BlogDataSource", () => {
   const createMockPost = (
     id: string,
     title: string,
+    slug: string,
     status: "draft" | "published",
     publishedAt?: string,
     seriesName?: string,
@@ -22,6 +23,7 @@ describe("BlogDataSource", () => {
     entityType: "post",
     content: `---
 title: ${title}
+slug: ${slug}
 status: ${status}
 ${publishedAt ? `publishedAt: "${publishedAt}"` : ""}
 excerpt: Excerpt for ${title}
@@ -37,6 +39,7 @@ Content for ${title}`,
     updated: "2025-01-01T10:00:00.000Z",
     metadata: {
       title,
+      slug,
       status,
       publishedAt,
       seriesName,
@@ -70,18 +73,21 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Older Post",
+          "older-post",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
         createMockPost(
           "post-2",
           "Latest Post",
+          "latest-post",
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
         createMockPost(
           "post-3",
           "Middle Post",
+          "middle-post",
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
@@ -115,13 +121,15 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Published Post",
+          "published-post",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
-        createMockPost("post-2", "Draft Post", "draft"),
+        createMockPost("post-2", "Draft Post", "draft-post", "draft"),
         createMockPost(
           "post-3",
           "Another Published",
+          "another-published",
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
@@ -149,8 +157,8 @@ Content for ${title}`,
 
     it("should throw error when no published posts exist", async () => {
       const posts: BlogPost[] = [
-        createMockPost("post-1", "Draft 1", "draft"),
-        createMockPost("post-2", "Draft 2", "draft"),
+        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
+        createMockPost("post-2", "Draft 2", "draft-2", "draft"),
       ];
 
       (
@@ -177,6 +185,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Series Part 1",
+          "series-part-1",
           "published",
           "2025-01-01T10:00:00.000Z",
           "My Series",
@@ -185,6 +194,7 @@ Content for ${title}`,
         createMockPost(
           "post-2",
           "Series Part 2",
+          "series-part-2",
           "published",
           "2025-01-02T10:00:00.000Z",
           "My Series",
@@ -193,6 +203,7 @@ Content for ${title}`,
         createMockPost(
           "post-3",
           "Latest Post",
+          "latest-post",
           "published",
           "2025-01-03T10:00:00.000Z",
           "My Series",
@@ -229,6 +240,7 @@ Content for ${title}`,
       const targetPost = createMockPost(
         "post-2",
         "Middle Post",
+        "middle-post",
         "published",
         "2025-01-02T10:00:00.000Z",
       );
@@ -237,6 +249,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Older Post",
+          "older-post",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
@@ -244,17 +257,16 @@ Content for ${title}`,
         createMockPost(
           "post-3",
           "Newer Post",
+          "newer-post",
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
       ];
 
-      (
-        mockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(targetPost);
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(allPosts);
+      // First call: fetch by slug, Second call: fetch all for navigation
+      (mockEntityService.listEntities as ReturnType<typeof mock>)
+        .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPosts);
 
       const schema = z.object({
         post: z.any(),
@@ -264,7 +276,7 @@ Content for ${title}`,
       });
 
       const result = await datasource.fetch(
-        { entityType: "post", query: { id: "post-2" } },
+        { entityType: "post", query: { id: "middle-post" } },
         schema,
       );
 
@@ -276,8 +288,8 @@ Content for ${title}`,
 
     it("should throw error when post not found", async () => {
       (
-        mockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(null);
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue([]);
 
       const schema = z.object({
         post: z.any(),
@@ -288,16 +300,17 @@ Content for ${title}`,
 
       expect(
         datasource.fetch(
-          { entityType: "post", query: { id: "nonexistent" } },
+          { entityType: "post", query: { id: "nonexistent-slug" } },
           schema,
         ),
-      ).rejects.toThrow("Blog post not found: nonexistent");
+      ).rejects.toThrow("Blog post not found with slug: nonexistent-slug");
     });
 
     it("should include series posts when post is part of a series", async () => {
       const targetPost = createMockPost(
         "post-2",
         "Series Part 2",
+        "series-part-2",
         "published",
         "2025-01-02T10:00:00.000Z",
         "My Series",
@@ -308,6 +321,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Series Part 1",
+          "series-part-1",
           "published",
           "2025-01-01T10:00:00.000Z",
           "My Series",
@@ -317,6 +331,7 @@ Content for ${title}`,
         createMockPost(
           "post-3",
           "Series Part 3",
+          "series-part-3",
           "published",
           "2025-01-03T10:00:00.000Z",
           "My Series",
@@ -325,17 +340,16 @@ Content for ${title}`,
         createMockPost(
           "post-4",
           "Other Post",
+          "other-post",
           "published",
           "2025-01-04T10:00:00.000Z",
         ),
       ];
 
-      (
-        mockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(targetPost);
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(allPosts);
+      // First call: fetch by slug, Second call: fetch all for navigation
+      (mockEntityService.listEntities as ReturnType<typeof mock>)
+        .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPosts);
 
       const schema = z.object({
         post: z.any(),
@@ -345,7 +359,7 @@ Content for ${title}`,
       });
 
       const result = await datasource.fetch(
-        { entityType: "post", query: { id: "post-2" } },
+        { entityType: "post", query: { id: "series-part-2" } },
         schema,
       );
 
@@ -360,6 +374,7 @@ Content for ${title}`,
       const targetPost = createMockPost(
         "post-1",
         "First Post",
+        "first-post",
         "published",
         "2025-01-03T10:00:00.000Z",
       );
@@ -369,17 +384,16 @@ Content for ${title}`,
         createMockPost(
           "post-2",
           "Older Post",
+          "older-post",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
       ];
 
-      (
-        mockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(targetPost);
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(allPosts);
+      // First call: fetch by slug, Second call: fetch all for navigation
+      (mockEntityService.listEntities as ReturnType<typeof mock>)
+        .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPosts);
 
       const schema = z.object({
         post: z.any(),
@@ -389,7 +403,7 @@ Content for ${title}`,
       });
 
       const result = await datasource.fetch(
-        { entityType: "post", query: { id: "post-1" } },
+        { entityType: "post", query: { id: "first-post" } },
         schema,
       );
 
@@ -402,6 +416,7 @@ Content for ${title}`,
       const targetPost = createMockPost(
         "post-2",
         "Oldest Post",
+        "oldest-post",
         "published",
         "2025-01-01T10:00:00.000Z",
       );
@@ -410,18 +425,17 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Newer Post",
+          "newer-post",
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
         targetPost,
       ];
 
-      (
-        mockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(targetPost);
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(allPosts);
+      // First call: fetch by slug, Second call: fetch all for navigation
+      (mockEntityService.listEntities as ReturnType<typeof mock>)
+        .mockResolvedValueOnce([targetPost])
+        .mockResolvedValueOnce(allPosts);
 
       const schema = z.object({
         post: z.any(),
@@ -431,7 +445,7 @@ Content for ${title}`,
       });
 
       const result = await datasource.fetch(
-        { entityType: "post", query: { id: "post-2" } },
+        { entityType: "post", query: { id: "oldest-post" } },
         schema,
       );
 
@@ -447,18 +461,21 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Oldest",
+          "oldest",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
         createMockPost(
           "post-2",
           "Newest",
+          "newest",
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
         createMockPost(
           "post-3",
           "Middle",
+          "middle",
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
@@ -482,14 +499,15 @@ Content for ${title}`,
 
     it("should put published posts before drafts", async () => {
       const posts: BlogPost[] = [
-        createMockPost("post-1", "Draft 1", "draft"),
+        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
         createMockPost(
           "post-2",
           "Published",
           "published",
+          "published",
           "2025-01-01T10:00:00.000Z",
         ),
-        createMockPost("post-3", "Draft 2", "draft"),
+        createMockPost("post-3", "Draft 2", "draft-2", "draft"),
       ];
 
       (
@@ -517,18 +535,21 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Post 1",
+          "post-1",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
         createMockPost(
           "post-2",
           "Post 2",
+          "post-2",
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
         createMockPost(
           "post-3",
           "Post 3",
+          "post-3",
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
@@ -569,6 +590,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Test Post",
+          "test-post",
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
@@ -599,6 +621,7 @@ Content for ${title}`,
         createMockPost(
           "post-3",
           "Series Part 3",
+          "series-part-3",
           "published",
           "2025-01-03T10:00:00.000Z",
           "My Series",
@@ -607,6 +630,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Series Part 1",
+          "series-part-1",
           "published",
           "2025-01-01T10:00:00.000Z",
           "My Series",
@@ -615,6 +639,7 @@ Content for ${title}`,
         createMockPost(
           "post-2",
           "Series Part 2",
+          "series-part-2",
           "published",
           "2025-01-02T10:00:00.000Z",
           "My Series",
@@ -623,6 +648,7 @@ Content for ${title}`,
         createMockPost(
           "other",
           "Other Post",
+          "other-post",
           "published",
           "2025-01-04T10:00:00.000Z",
           "Other Series",
@@ -656,6 +682,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Series Part 1",
+          "series-part-1",
           "published",
           "2025-01-01T10:00:00.000Z",
           "My Series",
@@ -664,6 +691,7 @@ Content for ${title}`,
         createMockPost(
           "post-2",
           "Series Part 2",
+          "series-part-2",
           "draft",
           undefined,
           "My Series",
@@ -716,6 +744,7 @@ Content for ${title}`,
         createMockPost(
           "post-1",
           "Series Part 1",
+          "series-part-1",
           "published",
           "2025-01-01T10:00:00.000Z",
           "My Series",
@@ -723,6 +752,7 @@ Content for ${title}`,
         createMockPost(
           "post-2",
           "Series Part 2",
+          "series-part-2",
           "published",
           "2025-01-02T10:00:00.000Z",
           "My Series",

@@ -4,7 +4,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import {
   blogPostSchema,
   blogPostFrontmatterSchema,
@@ -22,6 +22,7 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
 
   /**
    * Convert blog post entity to markdown with frontmatter
+   * Merges auto-generated metadata (like slug) back into frontmatter
    */
   public toMarkdown(entity: BlogPost): string {
     // Extract the body content without any existing frontmatter
@@ -35,11 +36,19 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
 
     // Parse frontmatter from content and regenerate with it
     try {
-      const { metadata } = parseMarkdownWithFrontmatter(
+      const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
         entity.content,
         blogPostFrontmatterSchema,
       );
-      return generateMarkdownWithFrontmatter(contentBody, metadata);
+
+      // Merge auto-generated slug from metadata if missing in frontmatter
+      // This ensures the slug gets written back to the file after auto-generation
+      const completeFrontmatter = {
+        ...frontmatter,
+        slug: frontmatter.slug ?? entity.metadata.slug,
+      };
+
+      return generateMarkdownWithFrontmatter(contentBody, completeFrontmatter);
     } catch {
       // No valid frontmatter, return content as-is
       return contentBody;
@@ -49,6 +58,7 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
   /**
    * Parse markdown with frontmatter to create partial blog post entity
    * Syncs frontmatter → metadata for key searchable fields
+   * Auto-generates slug from title if not provided in frontmatter
    */
   public fromMarkdown(markdown: string): Partial<BlogPost> {
     // Parse frontmatter
@@ -57,12 +67,16 @@ export class BlogPostAdapter implements EntityAdapter<BlogPost> {
       blogPostFrontmatterSchema,
     );
 
+    // Auto-generate slug from title if not provided
+    const slug = frontmatter.slug ?? slugify(frontmatter.title);
+
     // Sync key fields from frontmatter to metadata for fast queries
     return {
       content: markdown, // Store full markdown including frontmatter
       entityType: "post",
       metadata: {
         title: frontmatter.title,
+        slug, // Generated from title if not in frontmatter
         status: frontmatter.status,
         publishedAt: frontmatter.publishedAt,
         seriesName: frontmatter.seriesName,

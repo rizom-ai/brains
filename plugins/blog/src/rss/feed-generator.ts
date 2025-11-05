@@ -69,7 +69,7 @@ export function generateRSSFeed(
   // Generate XML
   const items = filteredPosts
     .map((post) => {
-      const postUrl = `${config.link}/posts/${post.id}`;
+      const postUrl = `${config.link}/posts/${post.metadata.slug}`;
       const pubDate = post.frontmatter.publishedAt ?? post.created;
       const excerpt = post.frontmatter.excerpt ?? "";
       const author = post.frontmatter.author ?? "Unknown";

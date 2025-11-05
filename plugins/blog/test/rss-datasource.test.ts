@@ -24,11 +24,12 @@ describe("RSSDataSource", () => {
       id: "post-1",
       entityType: "post",
       content:
-        "---\ntitle: First Post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1",
+        "---\ntitle: First Post\nslug: first-post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1",
       created: "2025-01-01T10:00:00.000Z",
       updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title: "First Post",
+        slug: "first-post",
         status: "published",
         publishedAt: "2025-01-15T10:00:00.000Z",
       },
@@ -37,11 +38,12 @@ describe("RSSDataSource", () => {
       id: "post-2",
       entityType: "post",
       content:
-        "---\ntitle: Second Post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2",
+        "---\ntitle: Second Post\nslug: second-post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2",
       created: "2025-01-02T10:00:00.000Z",
       updated: "2025-01-02T10:00:00.000Z",
       metadata: {
         title: "Second Post",
+        slug: "second-post",
         status: "published",
         publishedAt: "2025-01-10T10:00:00.000Z",
       },
@@ -50,11 +52,12 @@ describe("RSSDataSource", () => {
       id: "draft-post",
       entityType: "post",
       content:
-        "---\ntitle: Draft Post\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft content",
+        "---\ntitle: Draft Post\nslug: draft-post\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft content",
       created: "2025-01-03T10:00:00.000Z",
       updated: "2025-01-03T10:00:00.000Z",
       metadata: {
         title: "Draft Post",
+        slug: "draft-post",
         status: "draft",
       },
     },

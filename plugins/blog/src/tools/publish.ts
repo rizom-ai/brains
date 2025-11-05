@@ -13,7 +13,8 @@ import { blogPostAdapter } from "../adapters/blog-post-adapter";
  * Input schema for blog:publish tool
  */
 export const publishInputSchema = z.object({
-  id: z.string().describe("Blog post ID"),
+  id: z.string().optional().describe("Blog post ID"),
+  slug: z.string().optional().describe("Blog post slug"),
 });
 
 export type PublishInput = z.infer<typeof publishInputSchema>;
@@ -32,17 +33,39 @@ export function createPublishTool(
     inputSchema: publishInputSchema.shape,
     handler: async (input: unknown): Promise<ToolResponse> => {
       try {
-        const { id } = publishInputSchema.parse(input);
+        const { id, slug } = publishInputSchema.parse(input);
 
-        // Get blog post entity
-        const post = await context.entityService.getEntity<BlogPost>(
-          "post",
-          id,
-        );
-        if (!post?.content) {
+        // Validate that at least one identifier is provided
+        if (!id && !slug) {
           return {
             success: false,
-            error: `Blog post not found: ${id}`,
+            error: "Either 'id' or 'slug' must be provided",
+          };
+        }
+
+        // Get blog post entity by ID or slug
+        let post: BlogPost | null = null;
+
+        if (id) {
+          // Try to get by ID first
+          post = await context.entityService.getEntity<BlogPost>("post", id);
+        } else if (slug) {
+          // Search by slug in metadata
+          const posts = await context.entityService.listEntities<BlogPost>(
+            "post",
+            {
+              filter: { metadata: { slug } },
+              limit: 1,
+            },
+          );
+          post = posts[0] ?? null;
+        }
+
+        if (!post?.content) {
+          const identifier = id ?? slug;
+          return {
+            success: false,
+            error: `Blog post not found: ${identifier}`,
           };
         }
 
@@ -72,6 +95,7 @@ export function createPublishTool(
           content: updatedContent,
           metadata: {
             title: updatedFrontmatter.title,
+            slug: updatedFrontmatter.slug ?? post.metadata.slug, // Preserve existing slug if not in frontmatter
             status: updatedFrontmatter.status,
             publishedAt: updatedFrontmatter.publishedAt,
             seriesName: updatedFrontmatter.seriesName,

@@ -11,11 +11,12 @@ describe("Generate RSS Tool", () => {
       id: "post-1",
       entityType: "post",
       content:
-        "---\ntitle: First Post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1",
+        "---\ntitle: First Post\nslug: first-post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1",
       created: "2025-01-01T10:00:00.000Z",
       updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title: "First Post",
+        slug: "first-post",
         status: "published",
         publishedAt: "2025-01-15T10:00:00.000Z",
       },
@@ -24,11 +25,12 @@ describe("Generate RSS Tool", () => {
       id: "post-2",
       entityType: "post",
       content:
-        "---\ntitle: Second Post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2",
+        "---\ntitle: Second Post\nslug: second-post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2",
       created: "2025-01-02T10:00:00.000Z",
       updated: "2025-01-02T10:00:00.000Z",
       metadata: {
         title: "Second Post",
+        slug: "second-post",
         status: "published",
         publishedAt: "2025-01-10T10:00:00.000Z",
       },
@@ -139,11 +141,12 @@ describe("Generate RSS Tool", () => {
           id: "draft",
           entityType: "post",
           content:
-            "---\ntitle: Draft\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft",
+            "---\ntitle: Draft\nslug: draft\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft",
           created: "2025-01-03T10:00:00.000Z",
           updated: "2025-01-03T10:00:00.000Z",
           metadata: {
             title: "Draft",
+            slug: "draft",
             status: "draft",
           },
         },
@@ -409,8 +412,8 @@ describe("Generate RSS Tool", () => {
       );
 
       const content = await fs.readFile(testOutputPath, "utf-8");
-      expect(content).toContain("https://myblog.com/posts/post-1");
-      expect(content).toContain("https://myblog.com/posts/post-2");
+      expect(content).toContain("https://myblog.com/posts/first-post");
+      expect(content).toContain("https://myblog.com/posts/second-post");
     });
 
     test("should handle site URL without trailing slash", async () => {
@@ -428,7 +431,7 @@ describe("Generate RSS Tool", () => {
       );
 
       const content = await fs.readFile(testOutputPath, "utf-8");
-      expect(content).toContain("https://example.com/posts/post-1");
+      expect(content).toContain("https://example.com/posts/first-post");
     });
   });
 });

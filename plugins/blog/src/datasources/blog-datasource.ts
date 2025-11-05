@@ -77,7 +77,7 @@ export class BlogDataSource implements DataSource {
       return this.fetchLatestPost(outputSchema, context);
     }
 
-    // Case 2: Fetch single post by ID (ID is the slug for human-readable URLs)
+    // Case 2: Fetch single post by slug (for human-readable URLs)
     if (params.query?.id) {
       return this.fetchSinglePost(params.query.id, outputSchema, context);
     }
@@ -157,20 +157,26 @@ export class BlogDataSource implements DataSource {
   }
 
   /**
-   * Fetch a single blog post by ID
+   * Fetch a single blog post by slug
    */
   private async fetchSinglePost<T>(
-    id: string,
+    slug: string,
     outputSchema: z.ZodSchema<T>,
     _context?: DataSourceContext,
   ): Promise<T> {
-    const entity: BlogPost | null = await this.entityService.getEntity(
-      "post",
-      id,
-    );
+    // Query by slug in metadata
+    const entities: BlogPost[] = await this.entityService.listEntities("post", {
+      filter: {
+        metadata: {
+          slug,
+        },
+      },
+      limit: 1,
+    });
 
+    const entity = entities[0];
     if (!entity) {
-      throw new Error(`Blog post not found: ${id}`);
+      throw new Error(`Blog post not found with slug: ${slug}`);
     }
 
     // Parse frontmatter for full post data
@@ -188,7 +194,7 @@ export class BlogDataSource implements DataSource {
       return new Date(bDate).getTime() - new Date(aDate).getTime();
     });
 
-    const currentIndex = sortedPosts.findIndex((p) => p.id === id);
+    const currentIndex = sortedPosts.findIndex((p) => p.id === entity.id);
     const prevEntity = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
     const nextEntity =
       currentIndex < sortedPosts.length - 1

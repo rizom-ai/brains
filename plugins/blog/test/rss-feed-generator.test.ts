@@ -7,16 +7,18 @@ describe("RSS Feed Generator", () => {
     {
       id: "post-1",
       entityType: "post",
-      content: "---\ntitle: First Post\n---\nContent 1",
+      content: "---\ntitle: First Post\nslug: first-post\n---\nContent 1",
       created: "2025-01-01T10:00:00.000Z",
       updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title: "First Post",
+        slug: "first-post",
         status: "published",
         publishedAt: "2025-01-15T10:00:00.000Z",
       },
       frontmatter: {
         title: "First Post",
+        slug: "first-post",
         status: "published",
         publishedAt: "2025-01-15T10:00:00.000Z",
         excerpt: "First post excerpt",
@@ -27,16 +29,18 @@ describe("RSS Feed Generator", () => {
     {
       id: "post-2",
       entityType: "post",
-      content: "---\ntitle: Second Post\n---\nContent 2",
+      content: "---\ntitle: Second Post\nslug: second-post\n---\nContent 2",
       created: "2025-01-02T10:00:00.000Z",
       updated: "2025-01-02T10:00:00.000Z",
       metadata: {
         title: "Second Post",
+        slug: "second-post",
         status: "published",
         publishedAt: "2025-01-10T10:00:00.000Z",
       },
       frontmatter: {
         title: "Second Post",
+        slug: "second-post",
         status: "published",
         publishedAt: "2025-01-10T10:00:00.000Z",
         excerpt: "Second post excerpt",
@@ -116,15 +120,17 @@ describe("RSS Feed Generator", () => {
         {
           id: "draft-post",
           entityType: "post",
-          content: "---\ntitle: Draft\n---\nDraft content",
+          content: "---\ntitle: Draft\nslug: draft-post\n---\nDraft content",
           created: "2025-01-03T10:00:00.000Z",
           updated: "2025-01-03T10:00:00.000Z",
           metadata: {
             title: "Draft Post",
+            slug: "draft-post",
             status: "draft",
           },
           frontmatter: {
             title: "Draft Post",
+            slug: "draft-post",
             status: "draft",
             excerpt: "Draft excerpt",
             author: "Author",
@@ -163,8 +169,12 @@ describe("RSS Feed Generator", () => {
         link: "https://example.com",
       });
 
-      expect(xml).toContain("<link>https://example.com/posts/post-1</link>");
-      expect(xml).toContain("<link>https://example.com/posts/post-2</link>");
+      expect(xml).toContain(
+        "<link>https://example.com/posts/first-post</link>",
+      );
+      expect(xml).toContain(
+        "<link>https://example.com/posts/second-post</link>",
+      );
     });
 
     test("should include guid with isPermaLink=true", () => {
@@ -175,7 +185,7 @@ describe("RSS Feed Generator", () => {
       });
 
       expect(xml).toContain(
-        '<guid isPermaLink="true">https://example.com/posts/post-1</guid>',
+        '<guid isPermaLink="true">https://example.com/posts/first-post</guid>',
       );
     });
 

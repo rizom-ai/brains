@@ -107,10 +107,16 @@ export class DynamicRouteGenerator {
         const layout = detailTemplate?.routeLayout ?? "default";
 
         for (const entity of entities) {
+          // Use slug for URL if available (e.g., blog posts), otherwise use entity ID
+          const urlSlug =
+            entity.metadata && "slug" in entity.metadata
+              ? (entity.metadata["slug"] as string)
+              : entity.id;
+
           const detailRoute: RouteDefinition = {
             id: `${entityType}-${entity.id}`,
-            path: `/${this.pluralize(entityType)}/${entity.id}`,
-            title: `${this.capitalize(entityType)}: ${entity.id}`,
+            path: `/${this.pluralize(entityType)}/${urlSlug}`,
+            title: `${this.capitalize(entityType)}: ${urlSlug}`,
             description: `View ${entityType} details`,
             layout,
             sections: [
@@ -119,7 +125,7 @@ export class DynamicRouteGenerator {
                 template: detailTemplateName,
                 dataQuery: {
                   entityType,
-                  query: { id: entity.id },
+                  query: { id: urlSlug }, // Pass slug as id for datasource lookup
                 },
               },
             ],

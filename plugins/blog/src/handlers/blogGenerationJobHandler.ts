@@ -1,6 +1,6 @@
 import type { JobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ProfileAdapter } from "@brains/profile-service";
 import type { BlogPostFrontmatter } from "../schemas/blog-post";
@@ -124,17 +124,14 @@ export class BlogGenerationJobHandler
         });
       }
 
-      // Generate slug from title (will be used as entity ID)
+      // Generate slug from title (will be stored in metadata for URL routing)
       await progressReporter.report({
         progress: 60,
         total: 100,
         message: "Creating blog post entity",
       });
 
-      const slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, "");
+      const slug = slugify(title);
 
       const finalExcerpt = excerpt;
 
@@ -176,13 +173,14 @@ export class BlogGenerationJobHandler
         message: "Saving blog post to database",
       });
 
-      // Create entity with slug as ID (for human-readable URLs)
+      // Create entity with auto-generated ID (nanoid)
       // Store all data in frontmatter, duplicate key fields in metadata for fast queries
       const { blogPostAdapter } = await import("../adapters/blog-post-adapter");
 
-      // Create frontmatter with all post data
+      // Create frontmatter with all post data including slug
       const frontmatter: BlogPostFrontmatter = {
         title,
+        slug, // Store slug in frontmatter for user visibility
         status: "draft" as const,
         excerpt: finalExcerpt,
         author,
@@ -197,12 +195,13 @@ export class BlogGenerationJobHandler
       );
 
       // Duplicate key searchable fields in metadata for fast queries (following summary pattern)
+      // ID will be auto-generated (nanoid), slug will be used for URL routing
       const result = await this.context.entityService.createEntity({
-        id: slug,
         entityType: "post",
         content: postContent,
         metadata: {
           title: frontmatter.title,
+          slug: frontmatter.slug, // Store slug in metadata for fast lookups
           status: frontmatter.status,
           publishedAt: frontmatter.publishedAt, // undefined for drafts, which is fine
           seriesName: frontmatter.seriesName,
