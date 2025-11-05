@@ -102,15 +102,16 @@ export interface EntityAdapter<
 
 /**
  * List entities options
+ * Generic over metadata type for type-safe filtering
  */
-export interface ListOptions {
+export interface ListOptions<TMetadata = Record<string, unknown>> {
   limit?: number;
   offset?: number;
   sortBy?: "created" | "updated";
   sortDirection?: "asc" | "desc";
   filter?: {
-    // Flexible metadata filter - can query any frontmatter field
-    metadata?: Record<string, unknown>;
+    // Typed metadata filter - partial match on metadata fields
+    metadata?: Partial<TMetadata>;
   };
 }
 
