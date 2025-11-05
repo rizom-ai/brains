@@ -108,13 +108,14 @@ export class EntitySearch {
         const adapter = this.entityRegistry.getAdapter(row.entityType);
         const parsedContent = adapter.fromMarkdown(row.content);
 
-        const metadata = row.metadata as Record<string, unknown>;
+        const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
         const entity = this.entityRegistry.validateEntity<T>(row.entityType, {
           id: row.id,
           entityType: row.entityType,
           content: row.content,
           created: new Date(row.created).toISOString(),
           updated: new Date(row.updated).toISOString(),
+          metadata,
           ...metadata,
           ...parsedContent,
         });
