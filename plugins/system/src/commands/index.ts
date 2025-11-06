@@ -42,7 +42,7 @@ export function createSystemCommands(
                 (entity.content.length > 200 ? "..." : "");
 
               return [
-                `**${entity.metadata?.["title"] ?? entity.id}**`,
+                `**${entity.metadata["title"] ?? entity.id}**`,
                 `Type: ${entity.entityType} | Score: ${result.score.toFixed(2)}`,
                 ``,
                 preview,
@@ -92,7 +92,7 @@ export function createSystemCommands(
           const formatted = [
             `ID: ${entity.id}`,
             `Type: ${entity.entityType}`,
-            `Title: ${entity.metadata?.["title"] ?? "Untitled"}`,
+            `Title: ${entity.metadata["title"] ?? "Untitled"}`,
             `Created: ${new Date(entity.created).toLocaleString()}`,
             `Updated: ${new Date(entity.updated).toLocaleString()}`,
             ``,
