@@ -3,7 +3,7 @@ import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { ProfileAdapter } from "@brains/profile-service";
-import type { BlogPostFrontmatter } from "../schemas/blog-post";
+import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
 /**
  * Input schema for blog generation job
@@ -156,13 +156,9 @@ export class BlogGenerationJobHandler
       let finalSeriesIndex = seriesIndex;
       if (seriesName && !seriesIndex) {
         const seriesPosts =
-          await this.context.entityService.listEntities("post");
+          await this.context.entityService.listEntities<BlogPost>("post");
         const postsInSeries = seriesPosts.filter(
-          (p) =>
-            p.metadata &&
-            (p.metadata as Record<string, unknown>)["seriesName"] ===
-              seriesName &&
-            (p.metadata as Record<string, unknown>)["publishedAt"],
+          (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
         );
         finalSeriesIndex = postsInSeries.length + 1;
       }
