@@ -51,7 +51,7 @@ export function FooterContent({
       </nav>
 
       {/* Bottom row: Copyright (left) | Theme Toggle (center) | Social Links (right) */}
-      {(copyright ||
+      {(!!copyright ||
         showThemeToggle ||
         (socialLinks && socialLinks.length > 0)) && (
         <div
