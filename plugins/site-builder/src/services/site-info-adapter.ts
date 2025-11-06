@@ -5,13 +5,16 @@ import {
   siteInfoBodySchema,
   type SiteInfoEntity,
   type SiteInfoBody,
+  type SiteInfoMetadata,
 } from "./site-info-schema";
 
 /**
  * Entity adapter for SiteInfo entities
  * Uses structured content formatting - all data in markdown body, no frontmatter
  */
-export class SiteInfoAdapter implements EntityAdapter<SiteInfoEntity> {
+export class SiteInfoAdapter
+  implements EntityAdapter<SiteInfoEntity, SiteInfoMetadata>
+{
   public readonly entityType = "site-info";
   public readonly schema = siteInfoSchema;
 
@@ -108,13 +111,10 @@ export class SiteInfoAdapter implements EntityAdapter<SiteInfoEntity> {
 
   /**
    * Extract metadata for search/filtering
+   * Site-info doesn't use metadata for filtering
    */
-  public extractMetadata(entity: SiteInfoEntity): Record<string, unknown> {
-    const siteInfoData = this.parseSiteInfoBody(entity.content);
-    return {
-      title: siteInfoData.title,
-      themeMode: siteInfoData.themeMode,
-    };
+  public extractMetadata(_entity: SiteInfoEntity): SiteInfoMetadata {
+    return {};
   }
 
   /**

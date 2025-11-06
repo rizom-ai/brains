@@ -2,12 +2,20 @@ import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**
+ * Site info metadata schema - empty as site-info doesn't use metadata for filtering
+ */
+export const siteInfoMetadataSchema = z.object({});
+
+export type SiteInfoMetadata = z.infer<typeof siteInfoMetadataSchema>;
+
+/**
  * Site info entity schema
  * Site info data (title, description, CTA, etc.) is stored in content field as structured markdown
  */
 export const siteInfoSchema = baseEntitySchema.extend({
   id: z.literal("site-info"),
   entityType: z.literal("site-info"),
+  metadata: siteInfoMetadataSchema,
 });
 
 /**

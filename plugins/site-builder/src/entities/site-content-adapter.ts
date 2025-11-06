@@ -1,5 +1,5 @@
 import type { EntityAdapter } from "@brains/plugins";
-import type { SiteContent } from "../types";
+import type { SiteContent, SiteContentMetadata } from "../types";
 import { siteContentSchema } from "../types";
 import {
   generateMarkdownWithFrontmatter,
@@ -20,7 +20,9 @@ const frontmatterSchema = z.object({
 /**
  * Entity adapter for site content
  */
-export class SiteContentAdapter implements EntityAdapter<SiteContent> {
+export class SiteContentAdapter
+  implements EntityAdapter<SiteContent, SiteContentMetadata>
+{
   public readonly entityType = "site-content";
   public readonly schema = siteContentSchema;
 
@@ -68,11 +70,8 @@ export class SiteContentAdapter implements EntityAdapter<SiteContent> {
     return result;
   }
 
-  public extractMetadata(entity: SiteContent): Record<string, unknown> {
-    return {
-      routeId: entity.routeId,
-      sectionId: entity.sectionId,
-    };
+  public extractMetadata(_entity: SiteContent): SiteContentMetadata {
+    return {};
   }
 
   public parseFrontMatter<TFrontmatter>(

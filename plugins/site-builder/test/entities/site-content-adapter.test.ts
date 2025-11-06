@@ -106,7 +106,7 @@ title: Some Title
   });
 
   describe("extractMetadata", () => {
-    it("should extract routeId and sectionId as metadata", () => {
+    it("should return empty metadata (site-content doesn't use metadata)", () => {
       const entity: SiteContent = {
         id: "test-id",
         entityType: "site-content",
@@ -120,10 +120,7 @@ title: Some Title
 
       const metadata = adapter.extractMetadata(entity);
 
-      expect(metadata).toEqual({
-        routeId: "products",
-        sectionId: "list",
-      });
+      expect(metadata).toEqual({});
     });
   });
 

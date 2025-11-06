@@ -223,7 +223,7 @@ A simple website`;
   });
 
   describe("extractMetadata", () => {
-    it("should extract title and themeMode as metadata", () => {
+    it("should return empty metadata (site-info doesn't use metadata)", () => {
       const content = adapter.createSiteInfoContent({
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
@@ -241,10 +241,7 @@ A simple website`;
 
       const metadata = adapter.extractMetadata(entity);
 
-      expect(metadata).toEqual({
-        title: "Rizom",
-        themeMode: "dark",
-      });
+      expect(metadata).toEqual({});
     });
   });
 

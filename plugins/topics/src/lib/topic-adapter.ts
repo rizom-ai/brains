@@ -3,7 +3,8 @@ import {
   parseMarkdownWithFrontmatter,
   StructuredContentFormatter,
 } from "@brains/plugins";
-import { z, SourceListFormatter } from "@brains/utils";
+import type { z } from "@brains/utils";
+import { SourceListFormatter } from "@brains/utils";
 import {
   topicEntitySchema,
   topicBodySchema,
