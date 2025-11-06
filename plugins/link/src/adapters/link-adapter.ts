@@ -1,7 +1,6 @@
 import type { EntityAdapter } from "@brains/plugins";
 import {
   parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
   StructuredContentFormatter,
 } from "@brains/plugins";
 import { z, SourceListFormatter } from "@brains/utils";
@@ -100,10 +99,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
    * Convert entity to markdown with metadata in frontmatter
    */
   public toMarkdown(entity: LinkEntity): string {
-    // If entity has metadata, include it as frontmatter
-    if (entity.metadata && Object.keys(entity.metadata).length > 0) {
-      return generateMarkdownWithFrontmatter(entity.content, entity.metadata);
-    }
+    // Links don't use metadata, just return content as-is
     return entity.content;
   }
 
