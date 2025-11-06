@@ -49,8 +49,8 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
       // Get title from frontmatter
       const title =
         frontmatter["title"] ??
-        entity.metadata?.["title"] ??
-        entity.metadata?.["name"];
+        entity.metadata["title"] ??
+        entity.metadata["name"];
 
       // Remove first line if it matches the title
       if (title) {
