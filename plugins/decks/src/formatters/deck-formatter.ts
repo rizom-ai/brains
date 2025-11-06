@@ -101,7 +101,7 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
    * Generate a brief summary for search results
    */
   public generateSummary(entity: DeckEntity): string {
-    return entity.description || `Presentation: ${entity.title}`;
+    return entity.description ?? `Presentation: ${entity.title}`;
   }
 
   /**
