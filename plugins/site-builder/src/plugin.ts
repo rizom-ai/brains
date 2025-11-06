@@ -415,7 +415,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         const outputDir =
           environment === "production"
             ? this.config.productionOutputDir
-            : this.config.previewOutputDir!;
+            : (this.config.previewOutputDir ?? this.config.productionOutputDir); // Fallback to production (environment check ensures this exists)
 
         this.logger.debug(
           `Auto-triggering ${environment} site rebuild after content changes`,

@@ -109,7 +109,7 @@ export class DynamicRouteGenerator {
         for (const entity of entities) {
           // Use slug for URL if available (e.g., blog posts), otherwise use entity ID
           const urlSlug =
-            entity.metadata && "slug" in entity.metadata
+            "slug" in entity.metadata
               ? (entity.metadata["slug"] as string)
               : entity.id;
 

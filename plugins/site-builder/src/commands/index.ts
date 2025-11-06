@@ -127,7 +127,7 @@ export function createSiteBuilderCommands(
           const outputDir =
             environment === "production"
               ? config.productionOutputDir
-              : config.previewOutputDir!;
+              : (config.previewOutputDir ?? config.productionOutputDir); // Fallback to production (guard above ensures this exists for preview)
 
           const jobData = {
             environment,

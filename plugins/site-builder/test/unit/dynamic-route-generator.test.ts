@@ -49,8 +49,16 @@ describe("DynamicRouteGenerator", () => {
       // Set up entity type and entities
       entityTypes.push("topic");
       entities.set("topic", [
-        { id: "intro-to-ai", entityType: "topic" },
-        { id: "machine-learning", entityType: "topic" },
+        {
+          id: "intro-to-ai",
+          entityType: "topic",
+          metadata: { slug: "intro-to-ai" },
+        },
+        {
+          id: "machine-learning",
+          entityType: "topic",
+          metadata: { slug: "machine-learning" },
+        },
       ]);
 
       // Set up templates
@@ -109,8 +117,12 @@ describe("DynamicRouteGenerator", () => {
 
     test("should handle multiple entity types", async () => {
       entityTypes.push("topic", "profile");
-      entities.set("topic", [{ id: "topic1", entityType: "topic" }]);
-      entities.set("profile", [{ id: "user1", entityType: "profile" }]);
+      entities.set("topic", [
+        { id: "topic1", entityType: "topic", metadata: {} },
+      ]);
+      entities.set("profile", [
+        { id: "user1", entityType: "profile", metadata: {} },
+      ]);
 
       templates.push(
         {

@@ -5,6 +5,7 @@ import { createSilentLogger } from "@brains/utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
 import type { SiteInfoService } from "../../src/services/site-info-service";
+import type { ProfileService } from "@brains/profile-service";
 import { TestLayout } from "../test-helpers";
 
 describe("SiteBuilder dataQuery handling", () => {
@@ -67,12 +68,16 @@ describe("SiteBuilder dataQuery handling", () => {
     };
 
     // Create SiteBuilder instance with mock static site builder
+    const mockProfileService: Partial<ProfileService> = {
+      getProfile: () => ({ name: "Test" }),
+    };
+
     siteBuilder = SiteBuilder.createFresh(
       logger,
       mockContext as ServicePluginContext,
       mockRouteRegistry as RouteRegistry,
       mockSiteInfoService as SiteInfoService,
-      { getProfile: () => ({ name: "Test" }) } as any, // Mock ProfileService
+      mockProfileService as ProfileService,
       () => mockStaticSiteBuilder,
     );
   });

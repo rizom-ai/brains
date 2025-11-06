@@ -158,7 +158,7 @@ export function createSiteBuilderTools(
         const outputDir =
           environment === "production"
             ? config.productionOutputDir
-            : config.previewOutputDir!;
+            : (config.previewOutputDir ?? config.productionOutputDir); // Fallback to production (guard above ensures this exists for preview)
 
         // Enqueue the build job
         const jobId = await pluginContext.enqueueJob(
