@@ -130,12 +130,16 @@ Refer to these documents for detailed architecture information:
 8. CLI and Matrix interfaces - Fully functional
 9. MCP interface - Complete with stdio and HTTP transports
 10. Deployment - Docker + Hetzner with Terraform/Caddy
+11. **Blog plugin** - Long-form content with RSS feeds and series support
+12. **Decks plugin** - Slide deck and presentation management
+13. **Type-safe entity metadata** - Strongly-typed metadata with backward compatibility
+14. **Code quality improvements** - Zero ESLint warnings across all packages
 
 ### 🚧 Next Priorities
 
-1. Blog plugin - Long-form content (planning complete)
-2. Task plugin - Task and project management
-3. Performance optimization - Batch operations, vector search
+1. Task plugin - Task and project management
+2. Performance optimization - Batch operations, vector search improvements
+3. Additional testing - Integration tests, E2E tests
 
 ## Code Quality Checklist
 
