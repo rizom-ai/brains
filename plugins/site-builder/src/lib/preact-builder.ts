@@ -10,6 +10,7 @@ import type { Logger } from "@brains/plugins";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
 import { HeadCollector, type HeadProps } from "./head-collector";
+import { HeadProvider } from "./head-context";
 import type { ComponentChildren } from "preact";
 import { join } from "path";
 import { promises as fs } from "fs";
@@ -136,22 +137,28 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Create head collector for SSR
     const headCollector = new HeadCollector(context.siteConfig.title);
 
-    // Render the layout component
-    // TODO: Pass headCollector through context when we implement proper context support
-    const layoutHtml = render(h(LayoutComponent, layoutProps));
+    // Wrap the layout with HeadProvider so components can use the Head component
+    const layoutWithProvider = h(HeadProvider, {
+      headCollector,
+      children: h(LayoutComponent, layoutProps),
+    });
 
-    // For now, we'll use a simple default head
-    // In a real implementation, we'd collect head props from the Head component
-    const headProps: HeadProps = {
-      title: route.title,
-      description: route.description,
-    };
+    // Render the layout component with context support
+    const layoutHtml = render(layoutWithProvider);
 
-    if (route.path !== "/") {
-      headProps.canonicalUrl = route.path;
+    // Set default head props if no Head component was rendered
+    if (!headCollector.getHeadProps()) {
+      const headProps: HeadProps = {
+        title: route.title,
+        description: route.description,
+      };
+
+      if (route.path !== "/") {
+        headProps.canonicalUrl = route.path;
+      }
+
+      headCollector.setHeadProps(headProps);
     }
-
-    headCollector.setHeadProps(headProps);
 
     // Create full HTML page with head data
     const html = createHTMLShell(
