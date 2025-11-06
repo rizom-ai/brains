@@ -528,7 +528,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           allComplete = false;
         } else if (status.status === "failed") {
           failedCount++;
-        } else if (status.status === "completed") {
+        } else {
+          // Must be "completed" after narrowing
           completedCount++;
         }
       }
