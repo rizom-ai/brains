@@ -1,7 +1,7 @@
 import { createContext } from "preact";
 import { useContext } from "preact/hooks";
 import type { HeadCollector, HeadProps } from "./head-collector";
-import type { ComponentChildren } from "preact";
+import type { ComponentChildren, VNode } from "preact";
 
 /**
  * Context for sharing the HeadCollector during SSR
@@ -19,7 +19,7 @@ export interface HeadProviderProps {
 export function HeadProvider({
   headCollector,
   children,
-}: HeadProviderProps): JSX.Element {
+}: HeadProviderProps): VNode {
   return (
     <HeadContext.Provider value={headCollector}>
       {children}

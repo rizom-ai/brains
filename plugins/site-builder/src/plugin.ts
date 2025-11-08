@@ -6,6 +6,7 @@ import type {
   Command,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { createId } from "@brains/utils";
 import { siteContentSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
@@ -56,6 +57,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteInfoService?: SiteInfoService;
   private profileService?: ProfileService;
   private layouts: Record<string, LayoutComponent>;
+  private unsubscribeFunctions: Array<() => void> = [];
 
   /**
    * Get the route registry, throwing if not initialized
@@ -385,44 +387,30 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
   /**
    * Set up automatic site rebuilding when content changes
+   * Uses job queue deduplication instead of timers for debouncing
    */
   private setupAutoRebuild(context: ServicePluginContext): void {
-    let pendingRebuild = false;
-    let rebuildTimer: NodeJS.Timeout | undefined;
-
     // Entity types to exclude from auto-rebuild
     const excludedTypes = ["base"];
 
-    const scheduleRebuild = (): void => {
-      // If rebuild already scheduled, do nothing
-      if (pendingRebuild) return;
+    const scheduleRebuild = async (): Promise<void> => {
+      // Determine target environment based on config
+      const environment = this.config.previewOutputDir
+        ? "preview"
+        : "production";
+      const outputDir =
+        environment === "production"
+          ? this.config.productionOutputDir
+          : (this.config.previewOutputDir ?? this.config.productionOutputDir);
 
-      pendingRebuild = true;
-      this.logger.debug("Scheduling site rebuild in 5 seconds");
+      this.logger.debug(
+        `Auto-triggering ${environment} site rebuild after content changes`,
+      );
 
-      // Clear any existing timer (defensive programming)
-      if (rebuildTimer) {
-        clearTimeout(rebuildTimer);
-      }
-
-      rebuildTimer = setTimeout(async () => {
-        pendingRebuild = false;
-
-        // Determine target environment based on config
-        const environment = this.config.previewOutputDir
-          ? "preview"
-          : "production";
-        const outputDir =
-          environment === "production"
-            ? this.config.productionOutputDir
-            : (this.config.previewOutputDir ?? this.config.productionOutputDir); // Fallback to production (environment check ensures this exists)
-
-        this.logger.debug(
-          `Auto-triggering ${environment} site rebuild after content changes`,
-        );
-
-        try {
-          await context.enqueueJob("site-build", {
+      try {
+        await context.enqueueJob(
+          "site-build",
+          {
             environment,
             outputDir,
             workingDir: this.config.workingDir,
@@ -431,53 +419,94 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
               trigger: "auto-rebuild",
               timestamp: new Date().toISOString(),
             },
-          });
-        } catch (error) {
-          this.logger.error("Failed to enqueue auto-rebuild", error);
-        }
-      }, 5000); // 5 second delay
+          },
+          {
+            priority: 0,
+            source: this.id,
+            metadata: {
+              rootJobId: createId(),
+              operationType: "content_operations" as const,
+            },
+            deduplication: "skip", // Skip if rebuild already PENDING
+          },
+        );
+        this.logger.debug("Site rebuild enqueued (with deduplication)");
+      } catch (error) {
+        this.logger.error("Failed to enqueue auto-rebuild", { error });
+      }
     };
 
-    // Subscribe to entity events
-    context.subscribe("entity:created", async (message) => {
-      const { entityType } = message.payload as { entityType: string };
-      this.logger.debug(
-        `Received entity:created event for type: ${entityType}`,
-      );
-      if (!excludedTypes.includes(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        scheduleRebuild();
-      }
-      return { success: true };
-    });
+    // Subscribe to entity events and store unsubscribe functions
+    const unsubscribeCreated = context.subscribe(
+      "entity:created",
+      async (message) => {
+        const { entityType } = message.payload as { entityType: string };
+        this.logger.debug(
+          `Received entity:created event for type: ${entityType}`,
+        );
+        if (!excludedTypes.includes(entityType)) {
+          this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
+          await scheduleRebuild();
+        }
+        return { success: true };
+      },
+    );
 
-    context.subscribe("entity:updated", async (message) => {
-      const { entityType } = message.payload as { entityType: string };
-      this.logger.debug(
-        `Received entity:updated event for type: ${entityType}`,
-      );
-      if (!excludedTypes.includes(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        scheduleRebuild();
-      }
-      return { success: true };
-    });
+    const unsubscribeUpdated = context.subscribe(
+      "entity:updated",
+      async (message) => {
+        const { entityType } = message.payload as { entityType: string };
+        this.logger.debug(
+          `Received entity:updated event for type: ${entityType}`,
+        );
+        if (!excludedTypes.includes(entityType)) {
+          this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
+          await scheduleRebuild();
+        }
+        return { success: true };
+      },
+    );
 
-    context.subscribe("entity:deleted", async (message) => {
-      const { entityType } = message.payload as { entityType: string };
-      this.logger.debug(
-        `Received entity:deleted event for type: ${entityType}`,
-      );
-      if (!excludedTypes.includes(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        scheduleRebuild();
-      }
-      return { success: true };
-    });
+    const unsubscribeDeleted = context.subscribe(
+      "entity:deleted",
+      async (message) => {
+        const { entityType } = message.payload as { entityType: string };
+        this.logger.debug(
+          `Received entity:deleted event for type: ${entityType}`,
+        );
+        if (!excludedTypes.includes(entityType)) {
+          this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
+          await scheduleRebuild();
+        }
+        return { success: true };
+      },
+    );
+
+    // Store all unsubscribe functions for cleanup
+    this.unsubscribeFunctions.push(
+      unsubscribeCreated,
+      unsubscribeUpdated,
+      unsubscribeDeleted,
+    );
 
     this.logger.debug("Auto-rebuild enabled for all entity types except", {
       excludedTypes,
     });
+    this.logger.debug("Using job queue deduplication for rebuild debouncing");
+  }
+
+  /**
+   * Cleanup subscriptions on shutdown
+   */
+  protected override async onShutdown(): Promise<void> {
+    this.logger.debug("Shutting down site-builder plugin");
+
+    // Unsubscribe from all event subscriptions
+    for (const unsubscribe of this.unsubscribeFunctions) {
+      unsubscribe();
+    }
+    this.unsubscribeFunctions = [];
+    this.logger.debug("Cleaned up all event subscriptions");
   }
 }
 

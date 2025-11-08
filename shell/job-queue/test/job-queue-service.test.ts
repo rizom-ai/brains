@@ -868,4 +868,318 @@ describe("JobQueueService", () => {
       expect(activeJobs[2]?.id).toBe(job1);
     });
   });
+
+  describe("Job deduplication", () => {
+    beforeEach(() => {
+      service.registerHandler("shell:embedding", testHandler);
+      service.registerHandler("site-build", testHandler);
+    });
+
+    it("should allow duplicate jobs when deduplication is 'none' (default)", async () => {
+      const id1 = await service.enqueue("shell:embedding", testEntity, {
+        source: "test",
+        metadata: defaultTestMetadata,
+        deduplication: "none",
+      });
+
+      const id2 = await service.enqueue("shell:embedding", testEntity, {
+        source: "test",
+        metadata: defaultTestMetadata,
+        deduplication: "none",
+      });
+
+      expect(id1).not.toBe(id2);
+      const jobs = await service.getActiveJobs(["shell:embedding"]);
+      expect(jobs.length).toBe(2);
+    });
+
+    it("should skip duplicate job when one is already PENDING", async () => {
+      const id1 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      const id2 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      // Should return same ID (skipped)
+      expect(id1).toBe(id2);
+
+      const jobs = await service.getActiveJobs(["site-build"]);
+      expect(jobs.length).toBe(1);
+      expect(jobs[0]?.status).toBe("pending");
+    });
+
+    it("should allow enqueueing when job is PROCESSING (not PENDING)", async () => {
+      // Enqueue and start processing first job
+      const id1 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      // Dequeue to move to PROCESSING state
+      const job1 = await service.dequeue();
+      expect(job1?.id).toBe(id1);
+      expect(job1?.status).toBe("processing");
+
+      // Now enqueue another - should succeed since first is PROCESSING (not PENDING)
+      const id2 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      expect(id1).not.toBe(id2);
+
+      const jobs = await service.getActiveJobs(["site-build"]);
+      expect(jobs.length).toBe(2); // 1 PROCESSING + 1 PENDING
+
+      const processingJobs = jobs.filter((j) => j.status === "processing");
+      const pendingJobs = jobs.filter((j) => j.status === "pending");
+
+      expect(processingJobs.length).toBe(1);
+      expect(pendingJobs.length).toBe(1);
+    });
+
+    it("should skip when PENDING exists even if PROCESSING also exists", async () => {
+      // Job 1: enqueue and process
+      const id1 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+      await service.dequeue(); // PROCESSING
+
+      // Job 2: enqueue (PENDING)
+      const id2 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      // Job 3: should skip because job 2 is PENDING
+      const id3 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      expect(id2).toBe(id3); // Skipped
+      expect(id1).not.toBe(id2);
+
+      const jobs = await service.getActiveJobs(["site-build"]);
+      expect(jobs.length).toBe(2); // 1 PROCESSING + 1 PENDING (not 3)
+    });
+
+    it("should use deduplicationKey for fine-grained deduplication", async () => {
+      // Two different site builds with different keys
+      const id1 = await service.enqueue(
+        "site-build",
+        { key: "app-1" },
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+          deduplicationKey: "app-1",
+        },
+      );
+
+      const id2 = await service.enqueue(
+        "site-build",
+        { key: "app-2" },
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+          deduplicationKey: "app-2",
+        },
+      );
+
+      expect(id1).not.toBe(id2);
+
+      const jobs = await service.getActiveJobs(["site-build"]);
+      expect(jobs.length).toBe(2); // Both should exist (different keys)
+
+      // Third enqueue with same key as first should skip
+      const id3 = await service.enqueue(
+        "site-build",
+        { key: "app-1" },
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+          deduplicationKey: "app-1",
+        },
+      );
+
+      expect(id3).toBe(id1); // Skipped
+
+      const jobs2 = await service.getActiveJobs(["site-build"]);
+      expect(jobs2.length).toBe(2); // Still only 2
+    });
+
+    it("should replace pending job when deduplication is 'replace'", async () => {
+      const id1 = await service.enqueue(
+        "site-build",
+        { version: 1 },
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "replace",
+        },
+      );
+
+      // Second enqueue should cancel first and create new one
+      const id2 = await service.enqueue(
+        "site-build",
+        { version: 2 },
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "replace",
+        },
+      );
+
+      expect(id1).not.toBe(id2);
+
+      // Check that first job was marked as failed
+      const job1 = await service.getStatus(id1);
+      expect(job1?.status).toBe("failed");
+      expect(job1?.lastError).toContain("Replaced");
+
+      // Second job should be pending
+      const job2 = await service.getStatus(id2);
+      expect(job2?.status).toBe("pending");
+
+      // Only one active job
+      const activeJobs = await service.getActiveJobs(["site-build"]);
+      expect(activeJobs.length).toBe(1);
+      expect(activeJobs[0]?.id).toBe(id2);
+    });
+
+    it("should coalesce by updating timestamp when deduplication is 'coalesce'", async () => {
+      const id1 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "coalesce",
+        },
+      );
+
+      const job1Before = await service.getStatus(id1);
+      const originalScheduledFor = job1Before?.scheduledFor;
+
+      // Wait a bit
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Second enqueue should return same ID and update timestamp
+      const id2 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "coalesce",
+        },
+      );
+
+      expect(id1).toBe(id2); // Same job
+
+      const job1After = await service.getStatus(id1);
+      expect(job1After?.scheduledFor).toBeGreaterThan(
+        originalScheduledFor ?? 0,
+      );
+
+      // Still only one job
+      const activeJobs = await service.getActiveJobs(["site-build"]);
+      expect(activeJobs.length).toBe(1);
+    });
+
+    it("should respect deduplication across different job types independently", async () => {
+      service.registerHandler("other-job", testHandler);
+
+      const siteBuild1 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      const otherJob1 = await service.enqueue(
+        "other-job",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      const siteBuild2 = await service.enqueue(
+        "site-build",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      const otherJob2 = await service.enqueue(
+        "other-job",
+        {},
+        {
+          source: "test",
+          metadata: defaultTestMetadata,
+          deduplication: "skip",
+        },
+      );
+
+      // Each type should have skipped its duplicate
+      expect(siteBuild1).toBe(siteBuild2);
+      expect(otherJob1).toBe(otherJob2);
+      expect(siteBuild1).not.toBe(otherJob1);
+
+      const activeJobs = await service.getActiveJobs();
+      expect(activeJobs.length).toBe(2); // One per type
+    });
+  });
 });

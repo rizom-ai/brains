@@ -162,6 +162,68 @@ describe("DynamicRouteGenerator", () => {
       expect(routeRegistry.get("/topics")).toBeDefined();
       expect(routeRegistry.get("/profiles")).toBeDefined();
     });
+
+    test("should remove routes for deleted entities on regeneration", async () => {
+      // Set up entity type and entities
+      entityTypes.push("blog");
+      entities.set("blog", [
+        {
+          id: "post-1",
+          entityType: "blog",
+          metadata: { slug: "post-1" },
+        },
+        {
+          id: "post-2",
+          entityType: "blog",
+          metadata: { slug: "post-2" },
+        },
+      ]);
+
+      // Set up templates
+      templates.push(
+        {
+          name: "blog:blog-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "blog:blog-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+      );
+
+      // Generate routes
+      await generator.generateEntityRoutes();
+
+      // Should have 1 index route + 2 detail routes
+      expect(routeRegistry.size()).toBe(3);
+      expect(routeRegistry.get("/blogs")).toBeDefined();
+      expect(routeRegistry.get("/blogs/post-1")).toBeDefined();
+      expect(routeRegistry.get("/blogs/post-2")).toBeDefined();
+
+      // Delete one entity
+      entities.set("blog", [
+        {
+          id: "post-2",
+          entityType: "blog",
+          metadata: { slug: "post-2" },
+        },
+      ]);
+
+      // Regenerate routes
+      await generator.generateEntityRoutes();
+
+      // Should now have 1 index route + 1 detail route
+      expect(routeRegistry.size()).toBe(2);
+      expect(routeRegistry.get("/blogs")).toBeDefined();
+      expect(routeRegistry.get("/blogs/post-1")).toBeUndefined(); // Deleted
+      expect(routeRegistry.get("/blogs/post-2")).toBeDefined(); // Still exists
+    });
   });
 
   describe("pluralization", () => {

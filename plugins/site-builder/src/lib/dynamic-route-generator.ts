@@ -17,7 +17,25 @@ export class DynamicRouteGenerator {
   async generateEntityRoutes(): Promise<void> {
     const logger = this.context.logger.child("DynamicRouteGenerator");
 
-    // Get all registered entity types from entity service
+    // STEP 1: Clear all previously generated dynamic routes
+    // This prevents accumulation of routes for deleted entities
+    const allRoutes = this.routeRegistry.list();
+    let clearedCount = 0;
+    for (const route of allRoutes) {
+      if (route.sourceEntityType) {
+        // Dynamic routes have this marker
+        this.routeRegistry.unregister(route.path);
+        clearedCount++;
+      }
+    }
+
+    if (clearedCount > 0) {
+      logger.debug(
+        `Cleared ${clearedCount} dynamic routes before regeneration`,
+      );
+    }
+
+    // STEP 2: Regenerate routes from current entity state
     const entityTypes = this.context.entityService.getEntityTypes();
     logger.debug(`Found ${entityTypes.length} entity types`, { entityTypes });
 

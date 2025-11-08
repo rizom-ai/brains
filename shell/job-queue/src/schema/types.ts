@@ -27,6 +27,18 @@ export const JobContextSchema = z.object({
 export type JobContext = z.infer<typeof JobContextSchema>;
 
 /**
+ * Deduplication strategy for job queue
+ */
+export const DeduplicationStrategyEnum = z.enum([
+  "none", // No deduplication (default behavior)
+  "skip", // Skip if PENDING job exists (allows queueing if only PROCESSING)
+  "replace", // Cancel pending job and create new one
+  "coalesce", // Update existing job's timestamp
+]);
+
+export type DeduplicationStrategy = z.infer<typeof DeduplicationStrategyEnum>;
+
+/**
  * Job options for job creation
  */
 export interface JobOptions {
@@ -35,6 +47,8 @@ export interface JobOptions {
   delayMs?: number; // Initial delay before processing
   source: string; // Source identifier for job progress events
   metadata: JobContext; // Additional metadata for job progress events (required)
+  deduplication?: DeduplicationStrategy; // Deduplication strategy (default: "none")
+  deduplicationKey?: string; // Optional key for fine-grained deduplication
 }
 
 /**

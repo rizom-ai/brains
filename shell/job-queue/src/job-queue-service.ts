@@ -119,6 +119,48 @@ export class JobQueueService implements IJobQueueService {
   }
 
   /**
+   * Check for duplicate jobs based on deduplication strategy
+   * Returns the duplicate job if one should block this enqueue, null otherwise
+   */
+  private async checkForDuplicate(
+    type: string,
+    deduplicationStrategy?: string,
+    deduplicationKey?: string,
+  ): Promise<JobInfo | null> {
+    if (!deduplicationStrategy || deduplicationStrategy === "none") {
+      return null;
+    }
+
+    // Get all active jobs of this type
+    const activeJobs = await this.getActiveJobs([type]);
+
+    // Filter by deduplication key if provided
+    const matchingJobs = deduplicationKey
+      ? activeJobs.filter((job) => {
+          try {
+            const data = JSON.parse(job.data);
+            return data.deduplicationKey === deduplicationKey;
+          } catch {
+            return false;
+          }
+        })
+      : activeJobs;
+
+    if (matchingJobs.length === 0) {
+      return null;
+    }
+
+    // For "skip": only skip if PENDING duplicate exists
+    // Allow if only PROCESSING (ensures eventual consistency)
+    if (deduplicationStrategy === "skip") {
+      return matchingJobs.find((j) => j.status === JOB_STATUS.PENDING) ?? null;
+    }
+
+    // For "replace"/"coalesce": return any active duplicate
+    return matchingJobs[0] ?? null;
+  }
+
+  /**
    * Enqueue a job for processing
    */
   public async enqueue(
@@ -128,6 +170,51 @@ export class JobQueueService implements IJobQueueService {
   ): Promise<string> {
     // Use the type exactly as provided - callers should be explicit about scope
     const scopedType = type;
+
+    // Check for duplicates BEFORE validation
+    const duplicate = await this.checkForDuplicate(
+      scopedType,
+      options?.deduplication,
+      options?.deduplicationKey,
+    );
+
+    if (duplicate) {
+      if (options?.deduplication === "skip") {
+        this.logger.debug("Skipping duplicate job (already pending)", {
+          type: scopedType,
+          existingJobId: duplicate.id,
+        });
+        return duplicate.id;
+      }
+
+      if (options?.deduplication === "replace") {
+        this.logger.debug("Replacing duplicate job", {
+          type: scopedType,
+          oldJobId: duplicate.id,
+        });
+        // Cancel the old job
+        await this.db
+          .update(jobQueue)
+          .set({
+            status: JOB_STATUS.FAILED,
+            lastError: "Replaced by newer job",
+          })
+          .where(eq(jobQueue.id, duplicate.id));
+      }
+
+      if (options?.deduplication === "coalesce") {
+        this.logger.debug("Coalescing with existing job", {
+          type: scopedType,
+          existingJobId: duplicate.id,
+        });
+        // Update timestamp to "refresh" the job
+        await this.db
+          .update(jobQueue)
+          .set({ scheduledFor: Date.now() })
+          .where(eq(jobQueue.id, duplicate.id));
+        return duplicate.id;
+      }
+    }
 
     // Get handler and validate data
     const handler = this.handlerRegistry.getHandler(scopedType);
@@ -144,10 +231,15 @@ export class JobQueueService implements IJobQueueService {
     const now = Date.now();
     const id = createId();
 
+    // Include deduplicationKey in job data for filtering
+    const dataWithKey = options?.deduplicationKey
+      ? { ...parsedData, deduplicationKey: options.deduplicationKey }
+      : parsedData;
+
     const jobData = {
       id,
       type: scopedType,
-      data: JSON.stringify(parsedData),
+      data: JSON.stringify(dataWithKey),
       status: JOB_STATUS.PENDING,
       priority: options?.priority ?? 0,
       maxRetries: options?.maxRetries ?? 3,

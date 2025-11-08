@@ -6,7 +6,12 @@ import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
-import { routes as defaultRoutes } from "@brains/default-site-content";
+import {
+  routes as defaultRoutes,
+  DefaultLayout,
+  MinimalLayout,
+} from "@brains/default-site-content";
+import defaultTheme from "@brains/theme-default";
 
 // Define routes for Yeehaa
 const routes = [
@@ -15,7 +20,7 @@ const routes = [
     path: "/",
     title: "Yeehaa",
     description: "Personal knowledge base and blog",
-    layout: "minimal",
+    layout: "default",
     navigation: { show: true, label: "Home", slot: "secondary", priority: 10 },
     sections: [
       {
@@ -69,6 +74,11 @@ const config = defineConfig({
     blogPlugin({}),
     siteBuilderPlugin({
       routes, // Custom routes with Yeehaa branding
+      layouts: {
+        default: DefaultLayout,
+        minimal: MinimalLayout,
+      },
+      themeCSS: defaultTheme,
     }),
   ],
 });
