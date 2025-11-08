@@ -165,6 +165,16 @@ deploy_app_files() {
     log_info "Copying environment file..."
     $SCP_CMD "$ENV_FILE" "root@$SERVER_IP:$APP_DIR/.env"
 
+    # Copy memory monitor script
+    log_info "Copying memory monitor script..."
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/scripts"
+    if [ -f "$SCRIPT_DIR/memory-monitor.sh" ]; then
+        $SCP_CMD "$SCRIPT_DIR/memory-monitor.sh" "root@$SERVER_IP:$APP_DIR/memory-monitor.sh"
+        $SSH_CMD "chmod +x $APP_DIR/memory-monitor.sh"
+        log_info "Memory monitor script deployed to $APP_DIR/memory-monitor.sh"
+        log_info "To enable: Add to crontab: 0 */6 * * * $APP_DIR/memory-monitor.sh >> /var/log/memory-monitor.log 2>&1"
+    fi
+
     # Create docker-compose.yml
     log_info "Creating docker-compose.yml..."
 
@@ -196,6 +206,12 @@ services:
       - "3333"
       - "8080"
       - "4321"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   caddy:
     image: caddy:2-alpine
@@ -261,6 +277,12 @@ services:
       - "4321:4321"
     networks:
       - personal-brain-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   personal-brain-net:

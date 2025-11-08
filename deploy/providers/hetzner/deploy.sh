@@ -240,7 +240,7 @@ deploy_infrastructure() {
 
     # Continue with new infrastructure deployment
     # Extract app configuration
-    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx22"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx22")
+    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx33"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx33")
 
     # Build and push Docker image
     build_and_push_docker_image
@@ -404,7 +404,7 @@ destroy_infrastructure() {
     terraform destroy \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
-        -var="server_type=cx22" \
+        -var="server_type=cx33" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -auto-approve
     

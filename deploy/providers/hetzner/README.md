@@ -72,7 +72,7 @@ Set in `deploy/providers/hetzner/config.env`:
 - `REGISTRY_TOKEN` - Registry access token/password
 - `SSH_PUBLIC_KEY_PATH` - Optional: Path to SSH key (auto-detected)
 - `HETZNER_LOCATION` - Optional: Data center (fsn1, nbg1, hel1, ash)
-- `HETZNER_SERVER_TYPE` - Optional: Server size (default: cx22)
+- `HETZNER_SERVER_TYPE` - Optional: Server size (default: cx33)
 
 ### App Configuration
 

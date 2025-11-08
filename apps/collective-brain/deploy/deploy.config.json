@@ -16,6 +16,9 @@
   "platforms": ["linux-x64", "linux-arm64"],
   "deployment": {
     "useDocker": true,
-    "dockerImage": "rizom-collective"
+    "dockerImage": "rizom-collective",
+    "serverSize": {
+      "hetzner": "ccx13"
+    }
   }
 }
