@@ -1,5 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
 import { Footer } from "../footer";
+import { Header } from "@brains/ui-library";
 import type { SiteInfo } from "@brains/site-builder-plugin";
 
 export interface DefaultLayoutProps {
@@ -20,28 +21,11 @@ export function DefaultLayout({
 }: DefaultLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme">
-      {/* Simple header with site title */}
-      <header className="py-4 border-b border-theme-border">
-        <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-          <a
-            href="/"
-            className="font-bold text-xl text-theme hover:text-brand transition-colors"
-          >
-            {siteInfo.title}
-          </a>
-          <nav className="flex flex-wrap gap-3 sm:gap-4">
-            {siteInfo.navigation.primary.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="text-theme hover:text-brand transition-colors text-sm sm:text-base"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </header>
+      <Header
+        title={siteInfo.title}
+        navigation={siteInfo.navigation.primary}
+        variant="default"
+      />
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
 
