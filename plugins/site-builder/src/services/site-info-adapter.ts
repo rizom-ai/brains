@@ -28,10 +28,12 @@ export class SiteInfoAdapter
     const mappings: Array<{
       key: string;
       label: string;
-      type: "string" | "object" | "array";
+      type: "string" | "object" | "array" | "custom";
       children?: Array<{ key: string; label: string; type: "string" }>;
       itemType?: "object";
       itemMappings?: Array<{ key: string; label: string; type: "string" }>;
+      formatter?: (value: unknown) => string;
+      parser?: (text: string) => unknown;
     }> = [
       { key: "title", label: "Title", type: "string" },
       { key: "description", label: "Description", type: "string" },
@@ -40,6 +42,15 @@ export class SiteInfoAdapter
     // Add optional fields only if they have values
     if (!data || data.url !== undefined) {
       mappings.push({ key: "url", label: "URL", type: "string" });
+    }
+    if (!data || data.logo !== undefined) {
+      mappings.push({
+        key: "logo",
+        label: "Logo",
+        type: "custom",
+        formatter: (value: unknown) => String(value),
+        parser: (text: string) => text.trim().toLowerCase() === "true",
+      });
     }
     if (!data || data.copyright !== undefined) {
       mappings.push({ key: "copyright", label: "Copyright", type: "string" });

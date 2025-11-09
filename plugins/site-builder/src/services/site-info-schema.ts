@@ -32,6 +32,10 @@ export const siteInfoBodySchema = z.object({
   description: z.string().describe("The site's description"),
   url: z.string().optional().describe("The site's canonical URL"),
   copyright: z.string().optional().describe("Copyright notice text"),
+  logo: z
+    .boolean()
+    .optional()
+    .describe("Whether to display logo instead of title text in header"),
   themeMode: z
     .enum(["light", "dark"])
     .optional()

@@ -201,6 +201,14 @@
   .text-logo { color: var(--color-brand); }
   [data-theme="dark"] .text-logo { color: var(--palette-white); }
 
+  /* Logo color variable - brand in light mode, white in dark mode */
+  :root {
+    --color-logo: var(--color-brand);
+  }
+  [data-theme="dark"] {
+    --color-logo: var(--palette-white);
+  }
+
   /* Header background - theme bg in light, brand blue in dark */
   .bg-header { background-color: var(--color-bg); }
   [data-theme="dark"] .bg-header { background-color: var(--color-brand); }

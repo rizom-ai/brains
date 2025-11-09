@@ -1,6 +1,7 @@
 import type { VNode } from "preact";
 import { LinkButton } from "./LinkButton";
 import type { NavigationItem } from "./NavLinks";
+import { Logo } from "./Logo";
 
 /**
  * CTA configuration interface
@@ -16,9 +17,15 @@ export interface CTAConfig {
  */
 export interface HeaderProps {
   /**
-   * Site title to display in header
+   * Site title to display in header (shown as text if logo not provided)
    */
   title: string;
+
+  /**
+   * Optional logo to display instead of title text
+   * If true, displays Logo component; if false/undefined, displays title text
+   */
+  logo?: boolean;
 
   /**
    * Primary navigation items
@@ -48,6 +55,7 @@ export interface HeaderProps {
  */
 export function Header({
   title,
+  logo,
   navigation,
   cta,
   variant = "default",
@@ -73,9 +81,19 @@ export function Header({
   return (
     <header className={headerClass}>
       <div className={containerClass}>
-        <a href="/" className={titleClass}>
-          {title}
-        </a>
+        {logo ? (
+          <a
+            href="/"
+            className="flex items-center"
+            style={{ color: "var(--color-logo)" }}
+          >
+            <Logo variant="full" height={32} />
+          </a>
+        ) : (
+          <a href="/" className={titleClass}>
+            {title}
+          </a>
+        )}
         {variant === "cta" ? (
           <div className="flex items-center gap-3 sm:gap-6">
             <nav className="flex flex-wrap gap-3 sm:gap-4">

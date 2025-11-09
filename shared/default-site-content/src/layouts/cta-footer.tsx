@@ -30,6 +30,7 @@ export function CTAFooterLayout({
         title={siteInfo.title}
         navigation={siteInfo.navigation.primary}
         variant="cta"
+        {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
         {...(siteInfo.cta ? { cta: siteInfo.cta } : {})}
       />
 

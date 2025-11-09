@@ -12,6 +12,10 @@ The Rizom collective's knowledge hub
 
 https://rizom.ai
 
+## Logo
+
+true
+
 ## Theme Mode
 
 dark

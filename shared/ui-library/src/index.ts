@@ -15,3 +15,5 @@ export { FooterContent } from "./FooterContent";
 export type { FooterContentProps } from "./FooterContent";
 export { Header } from "./Header";
 export type { HeaderProps, CTAConfig } from "./Header";
+export { Logo } from "./Logo";
+export type { LogoProps } from "./Logo";

@@ -32,13 +32,15 @@ export class DirectorySyncJobHandler
 {
   private logger: Logger;
   private directorySync: DirectorySync;
+  private context: ServicePluginContext;
 
   constructor(
     logger: Logger,
-    _context: ServicePluginContext,
+    context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
     this.logger = logger;
+    this.context = context;
     this.directorySync = directorySync;
   }
 
@@ -85,16 +87,22 @@ export class DirectorySyncJobHandler
       );
 
       if (syncDirection === "import") {
-        // Import only - report 100% after import
+        // Import only - wait for jobs and report 100%
+        await this.waitForImportJobs(importResult.jobIds, progressReporter);
         await progressReporter.report({
           progress: 100,
           message: `Import complete: ${importResult.imported} imported`,
         });
       } else {
-        // Both directions - report 50% after import
+        // Both directions - wait for import jobs before export
         await progressReporter.report({
           progress: 50,
           message: `Imported ${importResult.imported} entities`,
+        });
+        await this.waitForImportJobs(importResult.jobIds, progressReporter);
+        await progressReporter.report({
+          progress: 56,
+          message: `Processing complete, starting export`,
         });
       }
     }
@@ -168,6 +176,65 @@ export class DirectorySyncJobHandler
       this.logger.error("Export phase failed", { error });
       throw error;
     }
+  }
+
+  /**
+   * Wait for import jobs to complete before export
+   * This prevents race condition where export reads stale data from DB
+   */
+  private async waitForImportJobs(
+    jobIds: string[],
+    reporter: ProgressReporter,
+  ): Promise<void> {
+    if (jobIds.length === 0) {
+      return;
+    }
+
+    this.logger.debug(`Waiting for ${jobIds.length} import jobs to complete`);
+
+    const { entityService } = this.context;
+    const maxWaitTime = 60000; // 60 seconds max
+    const pollInterval = 200; // Poll every 200ms
+    const startTime = Date.now();
+
+    const pollJobs = async (): Promise<void> => {
+      // Check all jobs
+      const statuses = await Promise.all(
+        jobIds.map((id) => entityService.getAsyncJobStatus(id)),
+      );
+
+      // Count completed/failed jobs
+      const completed = statuses.filter(
+        (s) => s && (s.status === "completed" || s.status === "failed"),
+      ).length;
+
+      // All done!
+      if (completed === jobIds.length) {
+        this.logger.debug("All import jobs completed");
+        return;
+      }
+
+      // Timeout check
+      if (Date.now() - startTime > maxWaitTime) {
+        this.logger.warn(
+          `Timeout waiting for import jobs (${completed}/${jobIds.length} completed)`,
+        );
+        return;
+      }
+
+      // Report progress
+      const percentage = Math.round((completed / jobIds.length) * 100);
+      await reporter.report({
+        progress: 50 + Math.round(percentage * 0.05), // 50-55% range
+        message: `Processing ${completed}/${jobIds.length} entities`,
+      });
+
+      // Wait and poll again
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      return pollJobs();
+    };
+
+    return pollJobs();
   }
 
   validateAndParse(data: unknown): DirectorySyncJobData | null {

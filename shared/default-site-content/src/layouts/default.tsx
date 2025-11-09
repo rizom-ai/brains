@@ -25,6 +25,7 @@ export function DefaultLayout({
         title={siteInfo.title}
         navigation={siteInfo.navigation.primary}
         variant="default"
+        {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
       />
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
