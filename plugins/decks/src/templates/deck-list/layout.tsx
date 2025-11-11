@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { DeckListData } from "./schema";
+import { Card, CardTitle, CardMetadata } from "@brains/ui-library";
 
 export const DeckListLayout = ({ decks }: DeckListData): JSX.Element => {
   return (
@@ -16,30 +17,24 @@ export const DeckListLayout = ({ decks }: DeckListData): JSX.Element => {
 
       <div className="space-y-6">
         {decks.map((deck) => (
-          <article
-            key={deck.id}
-            className="deck-card bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow border border-theme"
-          >
-            <h2 className="text-xl font-semibold mb-2">
-              <a
-                href={`/decks/${deck.id}`}
-                className="text-brand hover:text-brand-dark"
-              >
-                {deck.title}
-              </a>
-            </h2>
+          <Card key={deck.id} variant="vertical">
+            <CardTitle href={`/decks/${deck.id}`} className="text-xl">
+              {deck.title}
+            </CardTitle>
 
             {deck.description && (
               <p className="text-theme-muted mb-4">{deck.description}</p>
             )}
 
-            <div className="flex justify-between text-sm text-theme-muted">
-              {deck.author && <span>By {deck.author}</span>}
-              <time dateTime={deck.updated}>
-                Updated {new Date(deck.updated).toLocaleDateString()}
-              </time>
-            </div>
-          </article>
+            <CardMetadata>
+              <div className="flex justify-between text-sm text-theme-muted">
+                {deck.author && <span>By {deck.author}</span>}
+                <time dateTime={deck.updated}>
+                  Updated {new Date(deck.updated).toLocaleDateString()}
+                </time>
+              </div>
+            </CardMetadata>
+          </Card>
         ))}
       </div>
 

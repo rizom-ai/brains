@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { LinkListData } from "./schema";
+import { Card, CardTitle, CardMetadata } from "@brains/ui-library";
 
 export const LinkListLayout = ({
   links,
@@ -16,26 +17,18 @@ export const LinkListLayout = ({
 
       <div className="space-y-4">
         {links.map((link) => (
-          <article
-            key={link.id}
-            className="link-card bg-theme-subtle rounded-lg p-5 hover:shadow-lg transition-shadow border border-theme"
-          >
+          <Card key={link.id} variant="vertical">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold mb-1 truncate">
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand hover:text-brand-dark"
-                  >
-                    {link.title}
-                  </a>
-                </h2>
+                <CardTitle href={link.url} className="text-lg mb-1 truncate">
+                  {link.title}
+                </CardTitle>
 
-                <p className="text-sm text-theme-muted mb-2 truncate">
-                  {link.domain}
-                </p>
+                <CardMetadata className="mb-2">
+                  <p className="text-sm text-theme-muted truncate">
+                    {link.domain}
+                  </p>
+                </CardMetadata>
 
                 <p className="text-theme mb-2 font-medium">
                   {link.description}
@@ -61,22 +54,24 @@ export const LinkListLayout = ({
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-theme-muted">
-                  <time dateTime={link.capturedAt}>
-                    Captured {new Date(link.capturedAt).toLocaleDateString()}
-                  </time>
-                  {link.source.type === "conversation" && (
-                    <>
-                      <span>•</span>
-                      <a
-                        href={`/summaries/${link.source.id}`}
-                        className="text-brand hover:text-brand-dark"
-                      >
-                        {link.source.title}
-                      </a>
-                    </>
-                  )}
-                </div>
+                <CardMetadata>
+                  <div className="flex items-center gap-3 text-xs text-theme-muted">
+                    <time dateTime={link.capturedAt}>
+                      Captured {new Date(link.capturedAt).toLocaleDateString()}
+                    </time>
+                    {link.source.type === "conversation" && (
+                      <>
+                        <span>•</span>
+                        <a
+                          href={`/summaries/${link.source.id}`}
+                          className="text-brand hover:text-brand-dark"
+                        >
+                          {link.source.title}
+                        </a>
+                      </>
+                    )}
+                  </div>
+                </CardMetadata>
               </div>
 
               <div className="flex-shrink-0">
@@ -105,7 +100,7 @@ export const LinkListLayout = ({
                 </a>
               </div>
             </div>
-          </article>
+          </Card>
         ))}
       </div>
 

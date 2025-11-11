@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { SummaryListData } from "./schema";
+import { Card, CardTitle, CardMetadata } from "@brains/ui-library";
 
 export const SummaryListLayout = ({
   summaries,
@@ -18,41 +19,37 @@ export const SummaryListLayout = ({
 
       <div className="space-y-6">
         {summaries.map((summary) => (
-          <article
-            key={summary.id}
-            className="summary-card bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow border border-theme"
-          >
-            <h2 className="text-xl font-semibold mb-2">
-              <a
-                href={`/summaries/${summary.id}`}
-                className="text-brand hover:text-brand-dark"
-              >
-                {summary.channelName}
-              </a>
-            </h2>
+          <Card key={summary.id} variant="vertical">
+            <CardTitle href={`/summaries/${summary.id}`} className="text-xl">
+              {summary.channelName}
+            </CardTitle>
 
             <p className="text-theme-muted mb-4">
               Latest: {summary.latestEntry}
             </p>
 
-            <div className="flex items-center gap-4 mb-3 text-sm text-theme-muted">
-              <span className="px-2 py-1 bg-theme rounded-full">
-                {summary.entryCount} entries
-              </span>
-              <span className="px-2 py-1 bg-theme rounded-full">
-                {summary.totalMessages} messages
-              </span>
-            </div>
+            <CardMetadata className="mb-3">
+              <div className="flex items-center gap-4 text-sm text-theme-muted">
+                <span className="px-2 py-1 bg-theme rounded-full">
+                  {summary.entryCount} entries
+                </span>
+                <span className="px-2 py-1 bg-theme rounded-full">
+                  {summary.totalMessages} messages
+                </span>
+              </div>
+            </CardMetadata>
 
-            <div className="flex justify-between text-sm text-theme-muted">
-              <time dateTime={summary.created}>
-                Created {new Date(summary.created).toLocaleDateString()}
-              </time>
-              <time dateTime={summary.updated}>
-                Updated {new Date(summary.updated).toLocaleDateString()}
-              </time>
-            </div>
-          </article>
+            <CardMetadata>
+              <div className="flex justify-between text-sm text-theme-muted">
+                <time dateTime={summary.created}>
+                  Created {new Date(summary.created).toLocaleDateString()}
+                </time>
+                <time dateTime={summary.updated}>
+                  Updated {new Date(summary.updated).toLocaleDateString()}
+                </time>
+              </div>
+            </CardMetadata>
+          </Card>
         ))}
       </div>
 
