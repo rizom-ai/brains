@@ -17,3 +17,7 @@ export { Header } from "./Header";
 export type { HeaderProps, CTAConfig } from "./Header";
 export { Logo } from "./Logo";
 export type { LogoProps } from "./Logo";
+export { ProseContent } from "./ProseContent";
+export type { ProseContentProps } from "./ProseContent";
+export { ProseHeading } from "./ProseHeading";
+export type { ProseHeadingProps, HeadingLevel } from "./ProseHeading";

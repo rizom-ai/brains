@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { BlogPostWithData } from "../datasources/blog-datasource";
+import { PostMetadata } from "./PostMetadata";
 
 export interface BlogListProps {
   posts: BlogPostWithData[];
@@ -37,23 +38,12 @@ export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
                 </a>
               </h2>
 
-              <div className="text-sm text-theme-muted mb-3">
-                <span>{post.frontmatter.author}</span>
-                {post.frontmatter.publishedAt && (
-                  <span>
-                    {" "}
-                    •{" "}
-                    {new Date(
-                      post.frontmatter.publishedAt,
-                    ).toLocaleDateString()}
-                  </span>
-                )}
-                {post.frontmatter.status === "draft" && (
-                  <span className="ml-2 px-2 py-1 bg-theme-muted rounded text-xs">
-                    Draft
-                  </span>
-                )}
-              </div>
+              <PostMetadata
+                author={post.frontmatter.author}
+                publishedAt={post.frontmatter.publishedAt}
+                status={post.frontmatter.status}
+                className="mb-3"
+              />
 
               {post.frontmatter.seriesName && (
                 <div className="text-sm text-brand mb-3">
