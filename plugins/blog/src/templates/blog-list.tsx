@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { BlogPostWithData } from "../datasources/blog-datasource";
+import { Card, CardImage, CardTitle, CardMetadata } from "@brains/ui-library";
 import { PostMetadata } from "./PostMetadata";
 
 export interface BlogListProps {
@@ -17,43 +18,39 @@ export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
 
         <div className="space-y-8">
           {posts.map((post) => (
-            <article
-              key={post.id}
-              className="blog-post-preview bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow"
-            >
+            <Card key={post.id} variant="vertical">
               {post.frontmatter.coverImage && (
-                <img
+                <CardImage
                   src={post.frontmatter.coverImage}
                   alt={post.frontmatter.title}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
+                  size="large"
+                  className="mb-4"
                 />
               )}
 
-              <h2 className="text-2xl font-semibold mb-2 text-theme">
-                <a
-                  href={`/posts/${post.metadata.slug}`}
-                  className="hover:text-brand"
-                >
-                  {post.frontmatter.title}
-                </a>
-              </h2>
+              <CardTitle href={`/posts/${post.metadata.slug}`}>
+                {post.frontmatter.title}
+              </CardTitle>
 
-              <PostMetadata
-                author={post.frontmatter.author}
-                publishedAt={post.frontmatter.publishedAt}
-                status={post.frontmatter.status}
-                className="mb-3"
-              />
+              <CardMetadata>
+                <PostMetadata
+                  author={post.frontmatter.author}
+                  publishedAt={post.frontmatter.publishedAt}
+                  status={post.frontmatter.status}
+                />
+              </CardMetadata>
 
               {post.frontmatter.seriesName && (
-                <div className="text-sm text-brand mb-3">
-                  {post.frontmatter.seriesName} - Part{" "}
-                  {post.frontmatter.seriesIndex}
-                </div>
+                <CardMetadata>
+                  <div className="text-sm text-brand">
+                    {post.frontmatter.seriesName} - Part{" "}
+                    {post.frontmatter.seriesIndex}
+                  </div>
+                </CardMetadata>
               )}
 
               <p className="text-theme-muted">{post.frontmatter.excerpt}</p>
-            </article>
+            </Card>
           ))}
 
           {posts.length === 0 && (
