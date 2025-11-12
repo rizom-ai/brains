@@ -24,6 +24,7 @@
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/system": "workspace:*",
     "@brains/theme-default": "workspace:*",
+    "@brains/theme-yeehaa": "workspace:*",
     "@brains/webserver": "workspace:*",
     "preact": "^10.19.3"
   },

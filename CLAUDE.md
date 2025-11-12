@@ -137,9 +137,10 @@ Refer to these documents for detailed architecture information:
 
 ### 🚧 Next Priorities
 
-1. Task plugin - Task and project management
-2. Performance optimization - Batch operations, vector search improvements
-3. Additional testing - Integration tests, E2E tests
+1. Performance optimization - Batch operations, vector search improvements
+2. Additional testing - Integration tests, E2E tests
+3. UI component library expansion - Additional reusable components
+4. Roadmap plugin - Outcome-based goal tracking with milestone management and evidence linking
 
 ## Code Quality Checklist
 

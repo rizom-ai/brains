@@ -11,7 +11,7 @@ import {
   DefaultLayout,
   MinimalLayout,
 } from "@brains/default-site-content";
-import defaultTheme from "@brains/theme-default";
+import yeehaaTheme from "@brains/theme-yeehaa";
 
 // Define routes for Yeehaa
 const routes = [
@@ -78,7 +78,9 @@ const config = defineConfig({
         default: DefaultLayout,
         minimal: MinimalLayout,
       },
-      themeCSS: defaultTheme,
+      themeCSS: yeehaaTheme,
+      previewOutputDir: "./dist/site-preview",
+      productionOutputDir: "./dist/site-production",
     }),
   ],
 });

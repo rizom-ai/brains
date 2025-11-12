@@ -1,0 +1,506 @@
+/* Minimalist designer font - Jost for everything */
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Theme Layer - CSS Custom Properties for theming */
+@layer theme {
+  :root {
+    /* ============================================
+       BASE COLOR PALETTE - Yellow/Red Theme
+       ============================================ */
+
+    /* Brand Colors - Yellow/Orange/Red */
+    --palette-brand-yellow: #FCD34D;         /* Bright yellow */
+    --palette-brand-orange: #FB923C;         /* Orange */
+    --palette-brand-red: #DC2626;            /* Red */
+    --palette-brand-dark-red: #991B1B;       /* Dark red */
+    --palette-brand-amber: #F59E0B;          /* Amber */
+
+    /* Accent Colors */
+    --palette-accent-orange: #EA580C;        /* Deep orange accent */
+    --palette-accent-yellow: #FDE047;        /* Light yellow accent */
+
+    /* Gradient Colors - Light mode palette */
+
+    /* Neutrals - Light */
+    --palette-white: #FFFFFF;
+    --palette-near-white: #F9F9F9;
+    --palette-warm-white: #FFFCF6;
+    --palette-warm-cream: #FFF7E6;
+    --palette-light-amber: #FDE68A;
+    --palette-gray-border: #e2e8f0;
+
+    /* Neutrals - Dark */
+    --palette-dark-bg: #0f1114;
+    --palette-dark-bg-subtle: #1a1d23;
+    --palette-dark-bg-muted: #2d3748;
+    --palette-black: #000000;
+
+    /* Dark mode gradient colors */
+
+    /* Dark mode text colors */
+    --palette-text-light: #f7fafc;
+    --palette-text-muted-dark: #a0aec0;
+    --palette-text-subtle-dark: #718096;
+    --palette-text-inverse-dark: #1a202c;
+    --palette-light-yellow: #FEF3C7;         /* Very light yellow for dark mode headings */
+
+    /* ============================================
+       SEMANTIC COLORS - Reference base palette
+       ============================================ */
+
+    /* Brand Colors - Red primary (for links), Yellow secondary */
+    --color-brand: var(--palette-brand-red);
+    --color-brand-dark: var(--palette-brand-dark-red);
+    --color-brand-light: var(--palette-brand-red);
+    --color-accent: var(--palette-brand-yellow);
+    --color-accent-dark: var(--palette-brand-yellow);
+
+    /* Text Colors */
+    --color-text: #292524;                   /* Warm dark gray */
+    --color-text-muted: #57534e;             /* Warm medium gray */
+    --color-text-light: var(--palette-brand-red);
+    --color-text-inverse: var(--palette-white);
+    --color-heading: var(--color-text);
+
+    /* Selection/Highlight Colors */
+    --color-selection: var(--palette-brand-red);  /* Active/selected state color */
+    --color-selection-bg: var(--palette-brand-red);  /* Text selection background */
+    --color-selection-text: var(--palette-white);    /* Text selection text color */
+
+    /* Background Colors - Bright yellow everywhere */
+    --color-bg: var(--palette-brand-yellow);
+    --color-bg-subtle: var(--palette-brand-yellow);
+    --color-bg-muted: var(--palette-brand-yellow);
+    --color-bg-dark: var(--palette-brand-dark-red);
+
+    /* Gradient Colors - Light mode: Simple white → red → yellow */
+    --color-gradient-start: var(--palette-white);
+    --color-gradient-end: var(--palette-brand-yellow);
+    --color-bg-gradient: linear-gradient(
+      181deg,
+      var(--palette-white) 0%,
+      var(--palette-brand-red) 80%,
+      var(--palette-brand-yellow) 130%
+    );
+
+    /* Border Colors */
+    --color-border: var(--palette-gray-border);
+    --color-border-light: rgba(255, 255, 255, 0.8);
+
+    /* Footer - Bright yellow background with dark text */
+    --color-footer: var(--palette-brand-yellow);
+    --color-footer-text: var(--color-text);
+
+    /* Typography */
+    --font-sans: 'Jost', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-heading: 'Jost', ui-sans-serif, system-ui, sans-serif;
+
+    /* Prose (typography plugin) color overrides */
+    --tw-prose-headings: var(--color-text);
+    --tw-prose-body: var(--color-text);
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Typography Scale - For presentations and large displays */
+    --text-h1: 8rem;          /* 128px Desktop - bold impact */
+    --text-h1-mobile: 3.75rem; /* 60px Mobile */
+    --text-h2: 4.5rem;        /* 72px Desktop */
+    --text-h2-mobile: 3rem;   /* 48px Mobile */
+    --text-h3: 3rem;          /* 48px Desktop */
+    --text-h3-mobile: 2.25rem; /* 36px Mobile */
+    --text-h4: 1.875rem;      /* 30px */
+    --text-body: 1.875rem;    /* 30px Desktop - for presentations */
+    --text-body-mobile: 1.5rem; /* 24px Mobile */
+  }
+
+  /* Dark theme - Minimal black with yellow/red accents */
+  [data-theme="dark"] {
+    /* Brand Colors - Red primary (for links), Yellow secondary */
+    --color-brand: var(--palette-brand-red);
+    --color-brand-dark: var(--palette-brand-dark-red);
+    --color-brand-light: var(--palette-brand-red);
+    --color-accent: var(--palette-brand-yellow);
+    --color-accent-dark: var(--palette-brand-yellow);
+
+    /* Text Colors - Dark mode */
+    --color-text: var(--palette-text-light);
+    --color-text-muted: var(--palette-text-muted-dark);
+    --color-text-light: var(--palette-text-subtle-dark);
+    --color-text-inverse: var(--palette-white);
+    --color-heading: var(--color-text);
+
+    /* Selection/Highlight Colors - Dark mode */
+    --color-selection: var(--palette-brand-red);
+    --color-selection-bg: var(--palette-brand-red);
+    --color-selection-text: var(--palette-white);
+
+    /* Background Colors - Minimal: pure black everywhere */
+    --color-bg: var(--palette-black);
+    --color-bg-subtle: var(--palette-black);
+    --color-bg-muted: var(--palette-black);
+    --color-bg-dark: var(--palette-black);
+
+    /* Gradient Colors - Dark mode: Simple black → red → yellow */
+    --color-gradient-start: var(--palette-black);
+    --color-gradient-end: var(--palette-brand-yellow);
+    --color-bg-gradient: linear-gradient(
+      181deg,
+      var(--palette-black) 0%,
+      var(--palette-brand-red) 80%,
+      var(--palette-brand-yellow) 130%
+    );
+
+    /* Border Colors - Dark mode */
+    --color-border: var(--palette-dark-bg-muted);
+    --color-border-light: rgba(255, 255, 255, 0.1);
+
+    /* Footer - Minimal: black background with white text */
+    --color-footer: var(--palette-black);
+    --color-footer-text: var(--color-text);
+
+    /* Prose (typography plugin) color overrides - Dark mode */
+    --tw-prose-headings: var(--color-text);
+    --tw-prose-body: var(--color-text);
+  }
+}
+
+/* Utility classes that use theme variables */
+@layer utilities {
+  /* Text colors using theme variables */
+  .text-theme { color: var(--color-text); }
+  .text-theme-muted { color: var(--color-text-muted); }
+  .text-theme-light { color: var(--color-text-light); }
+  .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-heading { color: var(--color-heading); }
+  .text-brand { color: var(--color-brand); }
+  .text-accent { color: var(--color-accent); }
+  .text-selection { color: var(--color-selection); }
+
+  /* Background colors using theme variables */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-gradient { background: var(--color-bg-gradient); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-theme-muted { background-color: var(--color-bg-muted); }
+  .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .bg-brand { background-color: var(--color-brand); }
+  .bg-brand-dark { background-color: var(--color-brand-dark); }
+  .bg-brand-light { background-color: var(--color-brand-light); }
+  .bg-accent { background-color: var(--color-accent); }
+  .bg-accent-dark { background-color: var(--color-accent-dark); }
+  .bg-footer {
+    background-color: var(--color-footer);
+  }
+
+  /* Footer text color override - make text-theme-inverse use footer text color in footer */
+  .bg-footer .text-theme-inverse {
+    color: var(--color-footer-text);
+  }
+
+  /* Footer theme toggle - make it visible on white/black backgrounds */
+  .bg-footer button[aria-label="Toggle dark mode"] {
+    background-color: var(--palette-black) !important;
+    color: var(--palette-white) !important;
+  }
+  .bg-footer button[aria-label="Toggle dark mode"]:hover {
+    background-color: var(--color-brand) !important;
+    color: var(--palette-black) !important;
+  }
+
+  /* Dark mode - invert button colors */
+  [data-theme="dark"] .bg-footer button[aria-label="Toggle dark mode"] {
+    background-color: var(--palette-white) !important;
+    color: var(--palette-black) !important;
+  }
+  [data-theme="dark"] .bg-footer button[aria-label="Toggle dark mode"]:hover {
+    background-color: var(--color-brand) !important;
+    color: var(--palette-black) !important;
+  }
+
+  /* SVG fill colors using theme variables */
+  .fill-theme { fill: var(--color-bg); }
+  .fill-brand { fill: var(--color-brand); }
+  .fill-accent { fill: var(--color-accent); }
+  .fill-footer { fill: var(--color-footer); }
+
+  /* Text selection highlighting */
+  ::selection {
+    background-color: var(--color-selection-bg);
+    color: var(--color-selection-text);
+  }
+
+  /* Override prose heading colors to match body text */
+  article.prose h1,
+  article.prose h2,
+  article.prose h3,
+  article.prose h4,
+  article.prose h5,
+  article.prose h6 {
+    color: inherit;
+  }
+
+  /* Heading weight adjustments */
+  h1, .text-h1 {
+    font-weight: 900;
+  }
+
+  .prose.prose h1 {
+    font-weight: 900;
+  }
+
+  /* Interactive states */
+  .hover\:bg-brand:hover { background-color: var(--color-brand); }
+  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+  .hover\:bg-theme-inverse:hover { background-color: var(--color-text-inverse); }
+  .hover\:text-brand:hover { color: var(--color-brand); }
+  .hover\:text-brand-dark:hover { color: var(--color-brand-dark); }
+  .hover\:text-theme-inverse:hover { color: var(--color-text-inverse); }
+
+  /* Borders */
+  .border-theme { border-color: var(--color-border); }
+  .border-theme-light { border-color: var(--color-border-light); }
+  .border-brand { border-color: var(--color-brand); }
+  .border-brand-light { border-color: var(--color-brand-light); }
+  .hover\:border-brand-light:hover { border-color: var(--color-brand-light); }
+  .hover\:border-theme-inverse:hover { border-color: var(--color-text-inverse); }
+
+  /* Navigation text - orange in light mode, yellow in dark mode */
+  .text-nav { color: var(--color-brand); }
+  [data-theme="dark"] .text-nav { color: var(--palette-brand-yellow); }
+
+  /* Logo text - orange in light mode, yellow in dark mode */
+  .text-logo { color: var(--color-brand); }
+  [data-theme="dark"] .text-logo { color: var(--palette-brand-yellow); }
+
+  /* Logo color variable */
+  :root {
+    --color-logo: var(--color-brand);
+  }
+  [data-theme="dark"] {
+    --color-logo: var(--palette-brand-yellow);
+  }
+
+  /* Header background - theme bg in light, orange in dark */
+  .bg-header { background-color: var(--color-bg); }
+  [data-theme="dark"] .bg-header { background-color: var(--color-brand); }
+
+  /* Theme toggle background - orange in light mode, yellow in dark mode */
+  .bg-theme-toggle { background-color: var(--color-brand); }
+  [data-theme="dark"] .bg-theme-toggle { background-color: var(--palette-brand-yellow); }
+
+  /* Theme toggle hover - red in light, white in dark */
+  .hover-theme-toggle-swap:hover { background-color: var(--color-brand-dark); }
+  [data-theme="dark"] .hover-theme-toggle-swap:hover { background-color: var(--palette-white); }
+
+  /* Theme toggle icon color - white in both modes by default */
+  .text-theme-toggle-icon { color: var(--palette-white); }
+
+  /* Theme toggle icon hover - stays white in light, becomes orange in dark */
+  [data-theme="dark"] .hover-theme-toggle-swap:hover .text-theme-toggle-icon { color: var(--color-brand); }
+
+  /* Gradients - Tailwind v4 format */
+  .from-gradient-start {
+    --tw-gradient-from: var(--color-gradient-start);
+    --tw-gradient-to: rgb(from var(--color-gradient-start) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-gradient-end {
+    --tw-gradient-to: var(--color-gradient-end);
+  }
+  .from-accent {
+    --tw-gradient-from: var(--color-accent);
+    --tw-gradient-to: rgb(from var(--color-accent) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-accent-dark {
+    --tw-gradient-to: var(--color-accent-dark);
+  }
+  .from-brand-dark {
+    --tw-gradient-from: var(--color-brand-dark);
+    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-brand-light {
+    --tw-gradient-from: var(--color-brand-light);
+    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-brand {
+    --tw-gradient-to: var(--color-brand);
+  }
+  .to-theme {
+    --tw-gradient-to: var(--color-bg);
+  }
+}
+
+/* Prose styles for dark mode */
+@layer utilities {
+  .prose {
+    color: var(--color-text);
+  }
+
+  /* Main headings - Red */
+  .prose h1 {
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 90px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .prose h2 {
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 72px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    border-bottom: none;
+    text-decoration: none;
+  }
+
+  /* Subheadings - Orange */
+  .prose h3 {
+    color: var(--color-text-light);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 50px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .prose h4 {
+    color: var(--color-text-light);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .prose h5,
+  .prose h6 {
+    color: var(--color-text-light);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 1.2;
+  }
+
+  /* Body text */
+  .prose p {
+    color: var(--color-text);
+  }
+
+  .prose strong {
+    color: var(--color-text);
+  }
+
+  .prose em {
+    color: var(--palette-brand-orange);
+  }
+
+  .prose blockquote {
+    color: var(--color-text-muted);
+    border-left-color: var(--color-border);
+  }
+
+  .prose code {
+    color: var(--color-text);
+    background-color: var(--color-bg-muted);
+  }
+
+  .prose pre {
+    background-color: var(--color-bg-muted);
+    color: var(--color-text);
+  }
+
+  .prose a {
+    color: var(--color-brand);
+  }
+
+  .prose a:hover {
+    color: var(--color-brand-dark);
+  }
+
+  /* Dark mode heading colors - light yellow for contrast */
+  [data-theme="dark"] .prose h1,
+  [data-theme="dark"] .prose h2 {
+    color: var(--palette-light-yellow);
+  }
+
+  [data-theme="dark"] .prose h3,
+  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h5,
+  [data-theme="dark"] .prose h6 {
+    color: var(--palette-warm-white);
+  }
+
+  /* Dark mode italic - bright orange for emphasis */
+  [data-theme="dark"] .prose em {
+    color: var(--palette-brand-orange);
+  }
+}
+
+/* Hero Background Components */
+@layer components {
+  /* Hero background pattern (dot grid) */
+  .hero-bg-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgb(251 146 60) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+
+  /* CTA background pattern (larger dots) */
+  .cta-bg-pattern {
+    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
+    background-size: 40px 40px;
+  }
+}
+
+/* Blob Animations */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+}
+
+/* Theme toggle icon visibility */
+@layer utilities {
+  /* Show sun in dark mode, moon in light mode */
+  [data-theme="dark"] .sun-icon {
+    display: block;
+  }
+  [data-theme="dark"] .moon-icon {
+    display: none;
+  }
+  [data-theme="light"] .sun-icon {
+    display: none;
+  }
+  [data-theme="light"] .moon-icon {
+    display: block;
+  }
+}
