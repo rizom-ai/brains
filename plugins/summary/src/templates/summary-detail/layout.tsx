@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { SummaryDetailData } from "./schema";
-import { EmptyState, formatDate } from "@brains/ui-library";
+import { EmptyState, BackLink, formatDate } from "@brains/ui-library";
 
 /**
  * Layout that renders structured entries
@@ -68,14 +68,7 @@ export const SummaryDetailLayout = ({
         />
       )}
 
-      <div className="mt-8 pt-6 border-t border-theme">
-        <a
-          href="/summaries"
-          className="text-brand hover:text-brand-dark text-sm"
-        >
-          ← Back to all summaries
-        </a>
-      </div>
+      <BackLink href="/summaries">Back to all summaries</BackLink>
     </div>
   );
 };

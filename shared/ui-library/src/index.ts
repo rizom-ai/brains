@@ -35,3 +35,7 @@ export { ListPageHeader } from "./ListPageHeader";
 export type { ListPageHeaderProps } from "./ListPageHeader";
 export { formatDate } from "./utils/formatDate";
 export type { FormatDateOptions, DateFormatStyle } from "./utils/formatDate";
+export { TagsList } from "./TagsList";
+export type { TagsListProps } from "./TagsList";
+export { BackLink } from "./BackLink";
+export type { BackLinkProps } from "./BackLink";

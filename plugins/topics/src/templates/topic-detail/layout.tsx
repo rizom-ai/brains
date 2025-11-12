@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { TopicDetailData } from "./schema";
-import { formatDate } from "@brains/ui-library";
+import { TagsList, BackLink, formatDate } from "@brains/ui-library";
 
 export const TopicDetailLayout = ({
   title,
@@ -32,16 +32,7 @@ export const TopicDetailLayout = ({
       {keywords.length > 0 && (
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-3 text-theme">Keywords</h2>
-          <div className="flex flex-wrap gap-2">
-            {keywords.map((keyword) => (
-              <span
-                key={keyword}
-                className="px-3 py-1 bg-theme-muted rounded-full text-sm text-theme"
-              >
-                {keyword}
-              </span>
-            ))}
-          </div>
+          <TagsList tags={keywords} maxVisible={keywords.length} size="sm" />
         </section>
       )}
 
@@ -78,11 +69,7 @@ export const TopicDetailLayout = ({
         </section>
       )}
 
-      <nav className="mt-8 pt-8 border-t">
-        <a href="/topics" className="text-brand hover:text-brand-dark">
-          ← Back to Topics
-        </a>
-      </nav>
+      <BackLink href="/topics">Back to Topics</BackLink>
     </article>
   );
 };

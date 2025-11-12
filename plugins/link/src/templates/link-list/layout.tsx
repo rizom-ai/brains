@@ -6,6 +6,7 @@ import {
   CardMetadata,
   ListPageHeader,
   EmptyState,
+  TagsList,
   formatDate,
 } from "@brains/ui-library";
 
@@ -45,21 +46,11 @@ export const LinkListLayout = ({
                   {link.summary}
                 </p>
 
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {link.keywords.slice(0, 4).map((keyword) => (
-                    <span
-                      key={keyword}
-                      className="px-2 py-1 text-xs bg-theme-muted rounded-full text-theme"
-                    >
-                      {keyword}
-                    </span>
-                  ))}
-                  {link.keywords.length > 4 && (
-                    <span className="px-2 py-1 text-xs text-theme-muted">
-                      +{link.keywords.length - 4} more
-                    </span>
-                  )}
-                </div>
+                <TagsList
+                  tags={link.keywords}
+                  maxVisible={4}
+                  className="mb-2"
+                />
 
                 <CardMetadata>
                   <div className="flex items-center gap-3 text-xs text-theme-muted">
