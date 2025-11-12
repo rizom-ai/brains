@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { formatDate } from "@brains/ui-library";
 
 export interface PostMetadataProps {
   author: string;
@@ -21,15 +22,7 @@ export const PostMetadata = ({
     <div className={`text-sm text-theme-muted ${className}`}>
       <span>{author}</span>
       {publishedAt && (
-        <span>
-          {" "}
-          •{" "}
-          {new Date(publishedAt).toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </span>
+        <span> • {formatDate(publishedAt, { style: "long" })}</span>
       )}
       {status === "draft" && (
         <span className="ml-2 px-2 py-1 bg-theme-muted rounded text-xs">

@@ -1,6 +1,13 @@
 import type { JSX } from "preact";
 import type { BlogPostWithData } from "../datasources/blog-datasource";
-import { Card, CardImage, CardTitle, CardMetadata } from "@brains/ui-library";
+import {
+  Card,
+  CardImage,
+  CardTitle,
+  CardMetadata,
+  ListPageHeader,
+  EmptyState,
+} from "@brains/ui-library";
 import { PostMetadata } from "./PostMetadata";
 
 export interface SeriesListProps {
@@ -18,13 +25,13 @@ export const SeriesListTemplate = ({
   return (
     <section className="series-list-section flex-grow min-h-screen">
       <div className="container mx-auto px-6 md:px-8 max-w-4xl py-20">
-        <h1 className="text-4xl font-bold mb-4 text-theme">
-          Series: {seriesName}
-        </h1>
-
-        <p className="text-theme-muted mb-12">
-          {posts.length} {posts.length === 1 ? "post" : "posts"} in this series
-        </p>
+        <ListPageHeader
+          title={`Series: ${seriesName}`}
+          count={posts.length}
+          singularLabel="post"
+          description="in this series"
+          className="mb-4"
+        />
 
         <div className="space-y-6">
           {posts.map((post) => (
@@ -62,9 +69,7 @@ export const SeriesListTemplate = ({
           ))}
 
           {posts.length === 0 && (
-            <p className="text-theme-muted text-center py-12">
-              No posts in this series yet.
-            </p>
+            <EmptyState message="No posts in this series yet." />
           )}
         </div>
       </div>

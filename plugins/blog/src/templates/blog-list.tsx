@@ -1,6 +1,12 @@
 import type { JSX } from "preact";
 import type { BlogPostWithData } from "../datasources/blog-datasource";
-import { Card, CardImage, CardTitle, CardMetadata } from "@brains/ui-library";
+import {
+  Card,
+  CardImage,
+  CardTitle,
+  CardMetadata,
+  EmptyState,
+} from "@brains/ui-library";
 import { PostMetadata } from "./PostMetadata";
 
 export interface BlogListProps {
@@ -53,11 +59,7 @@ export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
             </Card>
           ))}
 
-          {posts.length === 0 && (
-            <p className="text-theme-muted text-center py-12">
-              No blog posts yet.
-            </p>
-          )}
+          {posts.length === 0 && <EmptyState message="No blog posts yet." />}
         </div>
       </div>
     </section>
