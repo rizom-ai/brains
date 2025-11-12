@@ -73,7 +73,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Apply defaults for common settings
     const configWithDefaults = {
       ...config,
-      previewOutputDir: config.previewOutputDir ?? "./dist/site-preview",
+      // Don't default previewOutputDir - let it be undefined if not configured
+      // This allows the build tools to default to production mode
       templates: config.templates ?? defaultTemplates,
       routes: config.routes ?? defaultRoutes,
       layouts: config.layouts ?? {
