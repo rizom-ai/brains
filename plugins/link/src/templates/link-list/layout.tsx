@@ -1,6 +1,13 @@
 import type { JSX } from "preact";
 import type { LinkListData } from "./schema";
-import { Card, CardTitle, CardMetadata } from "@brains/ui-library";
+import {
+  Card,
+  CardTitle,
+  CardMetadata,
+  ListPageHeader,
+  EmptyState,
+  formatDate,
+} from "@brains/ui-library";
 
 export const LinkListLayout = ({
   links,
@@ -8,12 +15,12 @@ export const LinkListLayout = ({
 }: LinkListData): JSX.Element => {
   return (
     <div className="link-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-theme">Captured Links</h1>
-        <p className="text-theme-muted">
-          {totalCount} links captured from conversations and manual additions
-        </p>
-      </div>
+      <ListPageHeader
+        title="Captured Links"
+        count={totalCount}
+        singularLabel="link"
+        description="captured from conversations and manual additions"
+      />
 
       <div className="space-y-4">
         {links.map((link) => (
@@ -57,7 +64,7 @@ export const LinkListLayout = ({
                 <CardMetadata>
                   <div className="flex items-center gap-3 text-xs text-theme-muted">
                     <time dateTime={link.capturedAt}>
-                      Captured {new Date(link.capturedAt).toLocaleDateString()}
+                      Captured {formatDate(link.capturedAt)}
                     </time>
                     {link.source.type === "conversation" && (
                       <>
@@ -105,13 +112,10 @@ export const LinkListLayout = ({
       </div>
 
       {links.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-theme-muted">No links captured yet.</p>
-          <p className="text-sm text-theme-muted mt-2">
-            Links will appear here as they are captured from conversations or
-            added manually.
-          </p>
-        </div>
+        <EmptyState
+          message="No links captured yet."
+          description="Links will appear here as they are captured from conversations or added manually."
+        />
       )}
     </div>
   );

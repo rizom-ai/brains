@@ -1,6 +1,13 @@
 import type { JSX } from "preact";
 import type { TopicListData } from "./schema";
-import { Card, CardTitle, CardMetadata } from "@brains/ui-library";
+import {
+  Card,
+  CardTitle,
+  CardMetadata,
+  ListPageHeader,
+  EmptyState,
+  formatDate,
+} from "@brains/ui-library";
 
 export const TopicListLayout = ({
   topics,
@@ -8,12 +15,12 @@ export const TopicListLayout = ({
 }: TopicListData): JSX.Element => {
   return (
     <div className="topic-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-theme">Topics</h1>
-        <p className="text-theme-muted">
-          Discovered {totalCount} topics from your knowledge base
-        </p>
-      </div>
+      <ListPageHeader
+        title="Topics"
+        count={totalCount}
+        singularLabel="topic"
+        description="discovered from your knowledge base"
+      />
 
       <div className="space-y-6">
         {topics.map((topic) => (
@@ -39,7 +46,7 @@ export const TopicListLayout = ({
               <div className="flex justify-between text-sm text-theme-muted">
                 <span>{topic.sourceCount} sources</span>
                 <time dateTime={topic.updated}>
-                  Updated {new Date(topic.updated).toLocaleDateString()}
+                  Updated {formatDate(topic.updated)}
                 </time>
               </div>
             </CardMetadata>
@@ -48,12 +55,10 @@ export const TopicListLayout = ({
       </div>
 
       {topics.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-theme-muted">No topics discovered yet.</p>
-          <p className="text-sm text-theme-muted mt-2">
-            Topics will appear here as they are extracted from your content.
-          </p>
-        </div>
+        <EmptyState
+          message="No topics discovered yet."
+          description="Topics will appear here as they are extracted from your content."
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { SummaryDetailData } from "./schema";
+import { EmptyState, formatDate } from "@brains/ui-library";
 
 /**
  * Layout that renders structured entries
@@ -21,9 +22,7 @@ export const SummaryDetailLayout = ({
         <div className="flex items-center gap-4 text-theme-muted">
           <span>{entryCount} entries</span>
           <span>{totalMessages} messages</span>
-          <time dateTime={updated}>
-            Last updated {new Date(updated).toLocaleDateString()}
-          </time>
+          <time dateTime={updated}>Last updated {formatDate(updated)}</time>
         </div>
       </div>
 
@@ -39,11 +38,11 @@ export const SummaryDetailLayout = ({
               </h2>
               <div className="flex items-center gap-4 text-sm text-theme-muted">
                 <time dateTime={entry.created}>
-                  Created {new Date(entry.created).toLocaleDateString()}
+                  Created {formatDate(entry.created)}
                 </time>
                 {entry.updated !== entry.created && (
                   <time dateTime={entry.updated}>
-                    Updated {new Date(entry.updated).toLocaleDateString()}
+                    Updated {formatDate(entry.updated)}
                   </time>
                 )}
               </div>
@@ -63,12 +62,10 @@ export const SummaryDetailLayout = ({
       </div>
 
       {entries.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-theme-muted">No summary entries available.</p>
-          <p className="text-sm text-theme-muted mt-2">
-            This conversation hasn't been summarized yet.
-          </p>
-        </div>
+        <EmptyState
+          message="No summary entries available."
+          description="This conversation hasn't been summarized yet."
+        />
       )}
 
       <div className="mt-8 pt-6 border-t border-theme">

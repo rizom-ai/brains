@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { TopicDetailData } from "./schema";
+import { formatDate } from "@brains/ui-library";
 
 export const TopicDetailLayout = ({
   title,
@@ -16,13 +17,9 @@ export const TopicDetailLayout = ({
         <h1 className="text-4xl font-bold mb-4 text-theme">{title}</h1>
 
         <div className="text-sm text-theme-muted mb-4">
-          <time dateTime={created}>
-            Created {new Date(created).toLocaleDateString()}
-          </time>
+          <time dateTime={created}>Created {formatDate(created)}</time>
           {" • "}
-          <time dateTime={updated}>
-            Updated {new Date(updated).toLocaleDateString()}
-          </time>
+          <time dateTime={updated}>Updated {formatDate(updated)}</time>
         </div>
 
         <p className="text-lg text-theme-muted italic">{summary}</p>

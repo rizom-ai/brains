@@ -1,6 +1,13 @@
 import type { JSX } from "preact";
 import type { SummaryListData } from "./schema";
-import { Card, CardTitle, CardMetadata } from "@brains/ui-library";
+import {
+  Card,
+  CardTitle,
+  CardMetadata,
+  ListPageHeader,
+  EmptyState,
+  formatDate,
+} from "@brains/ui-library";
 
 export const SummaryListLayout = ({
   summaries,
@@ -8,14 +15,12 @@ export const SummaryListLayout = ({
 }: SummaryListData): JSX.Element => {
   return (
     <div className="summary-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-theme">
-          Conversation Summaries
-        </h1>
-        <p className="text-theme-muted">
-          {totalCount} conversations have been summarized chronologically
-        </p>
-      </div>
+      <ListPageHeader
+        title="Conversation Summaries"
+        count={totalCount}
+        singularLabel="conversation"
+        description="have been summarized chronologically"
+      />
 
       <div className="space-y-6">
         {summaries.map((summary) => (
@@ -42,10 +47,10 @@ export const SummaryListLayout = ({
             <CardMetadata>
               <div className="flex justify-between text-sm text-theme-muted">
                 <time dateTime={summary.created}>
-                  Created {new Date(summary.created).toLocaleDateString()}
+                  Created {formatDate(summary.created)}
                 </time>
                 <time dateTime={summary.updated}>
-                  Updated {new Date(summary.updated).toLocaleDateString()}
+                  Updated {formatDate(summary.updated)}
                 </time>
               </div>
             </CardMetadata>
@@ -54,12 +59,10 @@ export const SummaryListLayout = ({
       </div>
 
       {summaries.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-theme-muted">No summaries available yet.</p>
-          <p className="text-sm text-theme-muted mt-2">
-            Summaries will appear here as conversations are processed.
-          </p>
-        </div>
+        <EmptyState
+          message="No summaries available yet."
+          description="Summaries will appear here as conversations are processed."
+        />
       )}
     </div>
   );
