@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
 import type { TopicDetailData } from "./schema";
-import { TagsList, BackLink, formatDate } from "@brains/ui-library";
+import {
+  TagsList,
+  BackLink,
+  DetailPageHeader,
+  SourceReferenceCard,
+} from "@brains/ui-library";
 
 export const TopicDetailLayout = ({
   title,
@@ -13,17 +18,12 @@ export const TopicDetailLayout = ({
 }: TopicDetailData): JSX.Element => {
   return (
     <article className="topic-detail-container max-w-4xl mx-auto p-6 bg-theme">
-      <header className="mb-8">
-        <h1 className="text-4xl font-bold mb-4 text-theme">{title}</h1>
-
-        <div className="text-sm text-theme-muted mb-4">
-          <time dateTime={created}>Created {formatDate(created)}</time>
-          {" • "}
-          <time dateTime={updated}>Updated {formatDate(updated)}</time>
-        </div>
-
-        <p className="text-lg text-theme-muted italic">{summary}</p>
-      </header>
+      <DetailPageHeader
+        title={title}
+        created={created}
+        updated={updated}
+        summary={summary}
+      />
 
       <div className="prose prose-lg max-w-none mb-8 text-theme-muted">
         <div dangerouslySetInnerHTML={{ __html: content }} />
@@ -41,29 +41,14 @@ export const TopicDetailLayout = ({
           <h2 className="text-xl font-semibold mb-3 text-theme">Sources</h2>
           <div className="space-y-3">
             {sources.map((source) => (
-              <a
+              <SourceReferenceCard
                 key={source.id}
+                id={source.id}
+                title={source.title}
+                type={source.type}
+                {...(source.excerpt && { excerpt: source.excerpt })}
                 href={`/summaries/${source.id}`}
-                className="block p-4 bg-theme-subtle rounded-lg hover:bg-theme-muted transition-colors border border-theme"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-theme hover:text-brand transition-colors">
-                      {source.title}
-                    </h3>
-                    <p className="text-sm text-theme-muted mt-1">
-                      {source.type === "conversation"
-                        ? "Conversation Summary"
-                        : source.type}
-                    </p>
-                    {source.excerpt && (
-                      <p className="text-sm mt-2 text-theme-muted italic">
-                        {source.excerpt}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </a>
+              />
             ))}
           </div>
         </section>

@@ -7,6 +7,7 @@ import {
   ListPageHeader,
   EmptyState,
   formatDate,
+  StatBadge,
 } from "@brains/ui-library";
 
 export const SummaryListLayout = ({
@@ -35,12 +36,8 @@ export const SummaryListLayout = ({
 
             <CardMetadata className="mb-3">
               <div className="flex items-center gap-4 text-sm text-theme-muted">
-                <span className="px-2 py-1 bg-theme rounded-full">
-                  {summary.entryCount} entries
-                </span>
-                <span className="px-2 py-1 bg-theme rounded-full">
-                  {summary.totalMessages} messages
-                </span>
+                <StatBadge count={summary.entryCount} label="entries" />
+                <StatBadge count={summary.totalMessages} label="messages" />
               </div>
             </CardMetadata>
 
