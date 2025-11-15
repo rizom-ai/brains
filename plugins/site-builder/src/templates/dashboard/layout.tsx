@@ -4,6 +4,7 @@ import { h } from "preact";
 import { useState, useMemo } from "preact/hooks";
 import type { VNode } from "preact";
 import { type DashboardData, type EntityStat } from "./schema";
+import { StatBox } from "@brains/ui-library";
 
 interface DashboardRenderProps {
   data: DashboardData;
@@ -70,10 +71,7 @@ const DashboardRender = ({
       {/* Entity statistics */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         {sortedStats.map((stat) => (
-          <div key={stat.type} className="bg-theme p-4 rounded">
-            <h3 className="font-semibold text-theme">{stat.type}</h3>
-            <p className="text-2xl font-bold text-brand">{stat.count}</p>
-          </div>
+          <StatBox key={stat.type} title={stat.type} count={stat.count} />
         ))}
       </div>
 

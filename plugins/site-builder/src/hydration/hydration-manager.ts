@@ -104,6 +104,7 @@ export class HydrationManager {
           const preactScripts = `  <script src="https://unpkg.com/preact@10/dist/preact.min.js"></script>
   <script src="https://unpkg.com/preact@10/hooks/dist/hooks.umd.js"></script>
   <script src="https://unpkg.com/preact@10/compat/dist/compat.umd.js"></script>
+  <script src="https://unpkg.com/preact@10/jsx-runtime/dist/jsxRuntime.umd.js"></script>
   <script>
     // Make Preact available globally for components
     window.preact = {
@@ -111,6 +112,12 @@ export class HydrationManager {
       hydrate: preact.hydrate,
       render: preact.render,
       Component: preact.Component,
+      Fragment: preact.Fragment,
+      // Automatic JSX runtime functions (allows ui-library components)
+      jsx: jsxRuntime.jsx,
+      jsxs: jsxRuntime.jsxs,
+      jsxDEV: jsxRuntime.jsxDEV,
+      // Hooks
       useState: preactHooks.useState,
       useEffect: preactHooks.useEffect,
       useMemo: preactHooks.useMemo,

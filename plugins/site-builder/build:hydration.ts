@@ -40,7 +40,7 @@ async function buildHydrationScripts() {
             format: "iife", // Immediately Invoked Function Expression
             platform: "browser",
             target: ["es2020"],
-            external: ["preact", "preact/hooks"], // Keep preact external
+            external: ["preact", "preact/hooks", "preact/jsx-runtime"], // Keep preact external
             jsx: "transform",
             jsxFactory: "window.preact.h",
             jsxFragment: "window.preact.Fragment",
@@ -51,7 +51,7 @@ async function buildHydrationScripts() {
             banner: {
               js: `
 // Use global preact from window
-const { h, hydrate, useState, useMemo } = window.preact;
+const { h, hydrate, useState, useMemo, jsx, jsxs } = window.preact;
 `,
             },
             write: true,
