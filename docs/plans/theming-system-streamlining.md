@@ -183,41 +183,43 @@ prose-h1:text-4xl  /* 2.25rem = 36px */
 
 ### The Proper v4 Pattern
 
-**3-Tier Token Hierarchy**:
+**Our Current Setup (Already Good!)**:
+
+We already have a 2-tier hierarchy that works:
 
 ```css
 /* ===== TIER 1: PALETTE TOKENS ===== */
 /* Pure color values - Foundation layer */
 :root {
-  --palette-blue-500: #3921d7;
-  --palette-orange-500: #e7640a;
-  --palette-gray-900: #0e0027;
+  --palette-brand-blue: #3921d7;
+  --palette-orange: #e7640a;
   --palette-white: #ffffff;
 }
 
-/* ===== TIER 2: RUNTIME SEMANTIC TOKENS ===== */
+/* ===== TIER 2: SEMANTIC TOKENS ===== */
 /* Dynamic values that change with theme/mode */
 :root {
-  --runtime-brand: var(--palette-blue-500);
-  --runtime-accent: var(--palette-orange-500);
-  --runtime-text: var(--palette-gray-900);
-  --runtime-bg: var(--palette-white);
+  --color-brand: var(--palette-brand-blue);
+  --color-accent: var(--palette-orange);
+  --color-text: var(--palette-gray-900);
+  --color-bg: var(--palette-white);
 }
 
 [data-theme="dark"] {
-  --runtime-brand: var(--palette-orange-500);
-  --runtime-accent: var(--palette-blue-500);
-  --runtime-text: var(--palette-white);
-  --runtime-bg: var(--palette-gray-900);
+  --color-brand: var(--palette-orange); /* Changes at runtime! */
+  --color-accent: var(--palette-blue-500);
+  --color-text: var(--palette-white);
+  --color-bg: var(--palette-gray-900);
 }
 
-/* ===== TIER 3: THEME TOKENS ===== */
-/* Exposed to Tailwind - generates utilities automatically */
+/* ===== NEW: EXPOSE TO TAILWIND ===== */
+/* Reference existing --color-* variables */
 @theme inline {
-  --color-brand: var(--runtime-brand);
-  --color-accent: var(--runtime-accent);
-  --color-text: var(--runtime-text);
-  --color-bg: var(--runtime-bg);
+  --color-brand: var(--color-brand);
+  --color-accent: var(--color-accent);
+  --color-text: var(--color-text);
+  --color-bg: var(--color-bg);
+  /* ...all other semantic colors */
 }
 
 /* ===== RESULT ===== */
@@ -229,12 +231,14 @@ prose-h1:text-4xl  /* 2.25rem = 36px */
    ...and more! No manual definitions needed! */
 ```
 
+**Key Insight**: We don't need to rename anything! Our existing `--color-*` variables already change at runtime via `[data-theme="dark"]`. We just need to expose them to Tailwind via `@theme inline`.
+
 ### Why `@theme inline`?
 
 The `inline` keyword tells Tailwind to resolve CSS variable values at **runtime** (when the page loads) rather than at **build time**. This is essential for:
 
 1. **Dark mode switching**: Variables change when `[data-theme]` attribute changes
-2. **Multi-site theming**: Different sites can override `--runtime-*` variables
+2. **Multi-site theming**: Different sites can override `--color-*` variables
 3. **Dynamic theming**: JavaScript can change theme colors at runtime
 
 ### What Gets Generated Automatically
@@ -256,9 +260,9 @@ When you use `@theme inline { --color-brand: var(...); }`, Tailwind generates:
 
 1. **CSS-First Configuration**: Use `@plugin`, `@theme`, `@source` directives in CSS
 2. **`@theme inline` for Runtime Values**: Use for colors that change with theme/mode
-3. **Token Hierarchy**: Palette → Runtime → Theme
+3. **Token Hierarchy**: Palette → Semantic (our existing `--color-*` variables)
 4. **Semantic Variables**: Use meaningful names (`--color-brand`, not `--blue-500`)
-5. **Dark Mode**: Use attribute selectors like `[data-theme="dark"]`
+5. **Dark Mode**: Use attribute selectors like `[data-theme="dark"]` to change semantic tokens
 
 ### ❌ v3 Patterns to Avoid
 
@@ -486,21 +490,20 @@ const variantClasses = {
 
 ## Implementation Plan
 
-### Phase 0: Restructure Theme Architecture with `@theme inline` (CRITICAL - FIRST)
+### Phase 0: Add `@theme inline` and Delete Manual Utilities (CRITICAL - FIRST)
 
 **Goal**: Adopt proper Tailwind v4 design token pattern using `@theme inline`.
 
 **Tasks**:
 
-1. **Restructure `shared/theme-default/src/theme.css`**:
-   - Keep palette tokens in `:root`
-   - Add runtime tokens in `:root` and `[data-theme="dark"]`
-   - Add `@theme inline` section with all color tokens
+1. **Update `shared/theme-default/src/theme.css`**:
+   - Keep ALL existing palette and semantic tokens (no renaming!)
+   - Add `@theme inline` section that references existing `--color-*` variables
    - **DELETE** entire `@layer utilities` section (lines 151-263)
-   - Keep only special utilities (gradients, footer overrides)
+   - Keep only special utilities (gradients, footer overrides, animations)
 
-2. **Restructure `shared/theme-yeehaa/src/theme.css`**:
-   - Same restructuring as theme-default
+2. **Update `shared/theme-yeehaa/src/theme.css`**:
+   - Same changes as theme-default
    - **DELETE** entire `@layer utilities` section (lines 168-333)
    - Keep only special utilities
 
@@ -540,7 +543,7 @@ const variantClasses = {
 
 1. **Add prose tokens to `@theme inline`** in both themes:
    - `--color-prose-headings`, `--color-prose-body`, `--color-prose-links`, etc.
-   - Reference `--runtime-*` variables
+   - Reference existing `--color-*` variables
 
 2. **Remove hacky overrides**:
    - Delete `article.prose h1 { color: inherit; }` from yeehaa theme (lines 231-239)
