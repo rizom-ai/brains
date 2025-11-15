@@ -2,12 +2,13 @@
 
 **Status**: Planning
 **Created**: 2025-01-12
-**Priority**: Medium
-**Complexity**: Medium
+**Updated**: 2025-01-12
+**Priority**: High
+**Complexity**: High
 
 ## Overview
 
-This plan addresses inconsistencies in our theming system to create a standardized, maintainable approach for styling components and content. The codebase uses Tailwind v4's CSS-first architecture, and we need to ensure all theming follows v4 best practices.
+This plan addresses inconsistencies in our theming system to create a standardized, maintainable Tailwind v4 design system that supports multi-site theming via CSS variables. **Critical finding**: Our current implementation misses Tailwind v4's most important theming feature—the `@theme` directive—which automatically generates utilities from CSS variables.
 
 ## Current State Analysis
 
@@ -33,11 +34,11 @@ Theme CSS → Site Builder → Tailwind v4 PostCSS → HTML output
 - `@plugin "@tailwindcss/typography"` for prose styling
 - `@source` directive for content detection
 
-**Theming Approach**:
+**Current Theming Approach** (PROBLEMATIC):
 
-- CSS custom properties defined in `@layer theme` (standard CSS, not Tailwind-specific)
-- Utility classes in `@layer utilities` that reference variables
-- Prose customization via `--tw-prose-*` variables in `@layer utilities`
+- CSS custom properties defined in `:root`
+- **Manual** utility classes in `@layer utilities` (200+ lines per theme!)
+- Prose customization via manual `--tw-prose-*` variable setting
 - Dark mode via `[data-theme="dark"]` attribute selector
 
 ### What's Working Well
@@ -46,13 +47,75 @@ Theme CSS → Site Builder → Tailwind v4 PostCSS → HTML output
 ✅ **CSS Variable Foundation**: Semantic naming (`--color-text`, `--color-brand`)
 ✅ **Dark Mode Implementation**: Attribute-based switching works smoothly
 ✅ **Typography Plugin Integration**: Properly loaded via `@plugin` directive
-✅ **Prose Variable Definitions**: Themes define `--tw-prose-*` variables correctly
+✅ **Multi-Site Support**: Different brains can use different themes
+
+### Critical Problem: Missing `@theme` Directive
+
+**The Issue**: Both themes manually define 200+ utility classes like this:
+
+```css
+@layer utilities {
+  .bg-brand {
+    background-color: var(--color-brand);
+  }
+  .text-brand {
+    color: var(--color-brand);
+  }
+  .border-brand {
+    border-color: var(--color-brand);
+  }
+  .bg-accent {
+    background-color: var(--color-accent);
+  }
+  .text-accent {
+    color: var(--color-accent);
+  }
+  .border-accent {
+    border-color: var(--color-accent);
+  }
+  /* ...190+ more manual definitions! */
+}
+```
+
+**This is v3-style theming with v4 tooling.** Tailwind v4's `@theme` directive automatically generates all these utilities from CSS variables.
+
+**Proper v4 approach**:
+
+```css
+@theme inline {
+  --color-brand: var(--runtime-brand);
+  --color-accent: var(--runtime-accent);
+}
+
+/* Tailwind automatically generates:
+   bg-brand, text-brand, border-brand, ring-brand,
+   bg-accent, text-accent, border-accent, ring-accent,
+   ...and all other color utilities! */
+```
+
+**Impact**:
+
+- ❌ 200+ lines of redundant boilerplate per theme
+- ❌ No IDE autocomplete for theme utilities
+- ❌ Error-prone (easy to miss a utility)
+- ❌ Harder to maintain
+- ❌ Doesn't leverage v4's design token features
 
 ## Problems Identified
 
-### 1. Prose Heading Colors Not Applying
+### 1. Manual Utility Definitions (CRITICAL)
 
-**Issue**: The hacky workaround in `theme-yeehaa/src/theme.css` (lines 231-239):
+**Current approach** (both themes):
+
+- Lines 151-263 in `theme-default/src/theme.css`: Manual utility definitions
+- Lines 168-333 in `theme-yeehaa/src/theme.css`: Manual utility definitions
+- Every color utility manually defined: `bg-*`, `text-*`, `border-*`, etc.
+
+**Why this is wrong**: Tailwind v4's `@theme` directive does this automatically!
+
+### 2. Prose Heading Colors Not Applying
+
+**Issue**: Hacky workaround in `theme-yeehaa/src/theme.css` (lines 231-239):
 
 ```css
 /* Override prose heading colors to match body text */
@@ -66,31 +129,26 @@ article.prose h6 {
 }
 ```
 
-**Why it exists**: The `--tw-prose-headings` variable defined in `:root` isn't being picked up by prose elements.
+**Root cause**: Prose variables defined in `:root` but not properly exposed via `@theme`, causing typography plugin to use defaults instead of theme colors.
 
-**Root cause**: Prose variables need to be defined on `.prose` selector in `@layer utilities`, not in `:root`. While the themes DO define variables in the prose utility block, they may not be comprehensive enough or may be overridden.
-
-**Impact**: Headings don't use theme colors, requiring hacky overrides with `color: inherit`.
-
-### 2. Inconsistent Component Styling
+### 3. Inconsistent Component Styling
 
 **Components using theme variables (GOOD)**:
 
 - `Card.tsx`: Uses `bg-theme-subtle`, `border-theme`, `text-theme`
 - `EmptyState.tsx`: Uses `text-theme-muted`
 - `LinkButton.tsx`: Uses `bg-brand`, `bg-accent`, `text-theme-inverse`
-- `CardTitle.tsx`: Uses `text-theme`, `hover:text-brand`
 
-**Components using hardcoded colors (INCONSISTENT)**:
+**Components using hardcoded colors (BAD)**:
 
 - `Button.tsx`: Uses `bg-blue-500 hover:bg-blue-700` (hardcoded blue!)
 - `ThemeToggle.tsx`: Uses `bg-gray-200`, `bg-gray-800`, `text-gray-800` (hardcoded grays!)
 
-**Impact**: These components don't adapt to theme changes and break the theming system's consistency.
+**Impact**: These components don't adapt to theme changes.
 
-### 3. Typography Scale Mismatch
+### 4. Typography Scale Mismatch
 
-**Theme defines scale**:
+**Theme defines scale** (unused dead code):
 
 ```css
 --text-h1: 8rem; /* 128px Desktop */
@@ -101,16 +159,16 @@ article.prose h6 {
 **Components use different sizes**:
 
 ```tsx
-prose-h1:text-4xl  /* 2.25rem = 36px - completely different! */
+prose-h1:text-4xl  /* 2.25rem = 36px */
 ```
 
-**Impact**: Inconsistent typography across the site, theme scale variables go unused.
+**Impact**: Inconsistent typography, unused variables clutter theme files.
 
-### 4. Footer Theme Toggle Visibility
+### 5. Footer Theme Toggle Visibility
 
-**Issue**: Theme toggle button in footer uses semi-transparent white backgrounds (`bg-white/20`) which are invisible on white/yellow backgrounds.
+**Issue**: Theme toggle uses semi-transparent white backgrounds (`bg-white/20`) which are invisible on white/yellow backgrounds.
 
-**Current workaround**: Theme-specific CSS overrides in `theme-yeehaa`:
+**Current workaround** (theme-specific hacks):
 
 ```css
 .bg-footer button[aria-label="Toggle dark mode"] {
@@ -119,72 +177,259 @@ prose-h1:text-4xl  /* 2.25rem = 36px - completely different! */
 }
 ```
 
-**Impact**: Requires theme-specific hacks instead of proper theming.
+**Impact**: Requires `!important` hacks instead of proper theming.
 
-## Tailwind v4 Best Practices
+## Tailwind v4 Design System Best Practices
 
-Our theming system should follow these v4 patterns:
+### The Proper v4 Pattern
+
+**3-Tier Token Hierarchy**:
+
+```css
+/* ===== TIER 1: PALETTE TOKENS ===== */
+/* Pure color values - Foundation layer */
+:root {
+  --palette-blue-500: #3921d7;
+  --palette-orange-500: #e7640a;
+  --palette-gray-900: #0e0027;
+  --palette-white: #ffffff;
+}
+
+/* ===== TIER 2: RUNTIME SEMANTIC TOKENS ===== */
+/* Dynamic values that change with theme/mode */
+:root {
+  --runtime-brand: var(--palette-blue-500);
+  --runtime-accent: var(--palette-orange-500);
+  --runtime-text: var(--palette-gray-900);
+  --runtime-bg: var(--palette-white);
+}
+
+[data-theme="dark"] {
+  --runtime-brand: var(--palette-orange-500);
+  --runtime-accent: var(--palette-blue-500);
+  --runtime-text: var(--palette-white);
+  --runtime-bg: var(--palette-gray-900);
+}
+
+/* ===== TIER 3: THEME TOKENS ===== */
+/* Exposed to Tailwind - generates utilities automatically */
+@theme inline {
+  --color-brand: var(--runtime-brand);
+  --color-accent: var(--runtime-accent);
+  --color-text: var(--runtime-text);
+  --color-bg: var(--runtime-bg);
+}
+
+/* ===== RESULT ===== */
+/* Tailwind automatically generates:
+   bg-brand, text-brand, border-brand, ring-brand, divide-brand,
+   bg-accent, text-accent, border-accent, ring-accent, divide-accent,
+   bg-text, text-text, border-text, ring-text, divide-text,
+   bg-bg, text-bg, border-bg, ring-bg, divide-bg,
+   ...and more! No manual definitions needed! */
+```
+
+### Why `@theme inline`?
+
+The `inline` keyword tells Tailwind to resolve CSS variable values at **runtime** (when the page loads) rather than at **build time**. This is essential for:
+
+1. **Dark mode switching**: Variables change when `[data-theme]` attribute changes
+2. **Multi-site theming**: Different sites can override `--runtime-*` variables
+3. **Dynamic theming**: JavaScript can change theme colors at runtime
+
+### What Gets Generated Automatically
+
+When you use `@theme inline { --color-brand: var(...); }`, Tailwind generates:
+
+- `bg-brand`, `bg-brand/50`, `bg-brand/75`, etc. (background with opacity)
+- `text-brand`, `text-brand/90`, etc. (text color)
+- `border-brand`, `border-brand/20`, etc. (borders)
+- `ring-brand`, `ring-brand/50`, etc. (focus rings)
+- `divide-brand` (divider colors)
+- `outline-brand` (outlines)
+- `accent-brand` (form accents)
+- ...and more!
+
+**No manual utility definitions needed!**
 
 ### ✅ Correct v4 Patterns
 
 1. **CSS-First Configuration**: Use `@plugin`, `@theme`, `@source` directives in CSS
-2. **Prose Customization**: Define `--tw-prose-*` variables on `.prose` selector in `@layer utilities`
-3. **Semantic Variables**: Use CSS custom properties with semantic names
-4. **Dark Mode**: Use attribute selectors like `[data-theme="dark"]`
+2. **`@theme inline` for Runtime Values**: Use for colors that change with theme/mode
+3. **Token Hierarchy**: Palette → Runtime → Theme
+4. **Semantic Variables**: Use meaningful names (`--color-brand`, not `--blue-500`)
+5. **Dark Mode**: Use attribute selectors like `[data-theme="dark"]`
 
 ### ❌ v3 Patterns to Avoid
 
-1. **JavaScript Config**: Don't use `tailwind.config.js` for theming (v4 is CSS-first)
-2. **Theme Extend Object**: Don't configure prose via `theme.extend.typography`
-3. **Plugin Arrays**: Don't add plugins in config, use `@plugin` directive
+1. **Manual Utility Definitions**: Don't write `.bg-brand { background: var(--color-brand); }` manually
+2. **JavaScript Config**: Don't use `tailwind.config.js` for theming (v4 is CSS-first)
+3. **Theme Extend Object**: Don't configure colors via `theme.extend.colors`
+4. **Plugin Arrays**: Don't add plugins in config, use `@plugin` directive
 
 ## Recommended Solutions
 
-### Solution 1: Fix Prose Heading Colors
+### Solution 0: Adopt `@theme inline` Pattern (CRITICAL)
 
-**Approach**: Ensure comprehensive `--tw-prose-*` variable definitions in `@layer utilities`.
+**Approach**: Restructure themes to use Tailwind v4's `@theme` directive for automatic utility generation.
 
-**Implementation**:
+**Implementation** (example for `theme-default`):
 
 ```css
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* ===== PALETTE TOKENS ===== */
+:root {
+  /* Blues */
+  --palette-brand-blue: #3921d7;
+  --palette-brand-blue-dark-1: #2e007d;
+  --palette-brand-blue-dark-2: #0e0027;
+
+  /* Oranges */
+  --palette-orange: #e7640a;
+  --palette-orange-dark: #c2410c;
+
+  /* Neutrals */
+  --palette-white: #ffffff;
+  --palette-warm-white: #fffcf6;
+  --palette-gray-border: #e2e8f0;
+
+  /* Dark mode neutrals */
+  --palette-dark-bg: #0f1114;
+  --palette-text-light: #f7fafc;
+  --palette-text-muted-dark: #a0aec0;
+}
+
+/* ===== RUNTIME SEMANTIC TOKENS ===== */
+:root {
+  /* Brand/Accent */
+  --runtime-brand: var(--palette-brand-blue);
+  --runtime-brand-dark: var(--palette-brand-blue-dark-1);
+  --runtime-accent: var(--palette-orange);
+  --runtime-accent-dark: var(--palette-orange-dark);
+
+  /* Text */
+  --runtime-text: var(--palette-brand-blue-dark-2);
+  --runtime-text-muted: var(--palette-brand-blue-dark-1);
+  --runtime-text-inverse: var(--palette-white);
+
+  /* Backgrounds */
+  --runtime-bg: var(--palette-white);
+  --runtime-bg-subtle: var(--palette-warm-white);
+
+  /* Borders */
+  --runtime-border: var(--palette-gray-border);
+}
+
+[data-theme="dark"] {
+  /* Brand/Accent (same in dark mode for this theme) */
+  --runtime-brand: var(--palette-brand-blue);
+  --runtime-brand-dark: var(--palette-brand-blue-dark-1);
+  --runtime-accent: var(--palette-orange);
+  --runtime-accent-dark: var(--palette-orange-dark);
+
+  /* Text */
+  --runtime-text: var(--palette-text-light);
+  --runtime-text-muted: var(--palette-text-muted-dark);
+  --runtime-text-inverse: var(--palette-brand-blue-dark-2);
+
+  /* Backgrounds */
+  --runtime-bg: var(--palette-dark-bg);
+  --runtime-bg-subtle: var(--palette-dark-bg);
+
+  /* Borders */
+  --runtime-border: rgba(255, 255, 255, 0.1);
+}
+
+/* ===== THEME TOKENS (EXPOSED TO TAILWIND) ===== */
+@theme inline {
+  /* Brand Colors - generates bg-brand, text-brand, border-brand, etc. */
+  --color-brand: var(--runtime-brand);
+  --color-brand-dark: var(--runtime-brand-dark);
+  --color-accent: var(--runtime-accent);
+  --color-accent-dark: var(--runtime-accent-dark);
+
+  /* Text Colors - generates text-theme, text-theme-muted, etc. */
+  --color-theme: var(--runtime-text);
+  --color-theme-muted: var(--runtime-text-muted);
+  --color-theme-inverse: var(--runtime-text-inverse);
+
+  /* Background Colors - generates bg-theme, bg-theme-subtle, etc. */
+  --color-bg-theme: var(--runtime-bg);
+  --color-bg-theme-subtle: var(--runtime-bg-subtle);
+
+  /* Border Colors - generates border-theme, etc. */
+  --color-border-theme: var(--runtime-border);
+
+  /* Prose Colors - for typography plugin */
+  --color-prose-headings: var(--runtime-text);
+  --color-prose-body: var(--runtime-text);
+  --color-prose-links: var(--runtime-brand);
+  --color-prose-bold: var(--runtime-text);
+  --color-prose-code: var(--runtime-text);
+}
+
+/* ===== SPECIAL UTILITIES (NOT AUTO-GENERATED) ===== */
 @layer utilities {
-  .prose {
-    /* Text colors */
-    --tw-prose-body: var(--color-text);
-    --tw-prose-headings: var(--color-text); /* KEY: Use same color as body */
-    --tw-prose-lead: var(--color-text);
-    --tw-prose-links: var(--color-brand);
-    --tw-prose-bold: var(--color-text);
-    --tw-prose-counters: var(--color-text-muted);
-    --tw-prose-bullets: var(--color-text-muted);
-    --tw-prose-hr: var(--color-border);
-    --tw-prose-quotes: var(--color-text-muted);
-    --tw-prose-quote-borders: var(--color-brand);
-    --tw-prose-captions: var(--color-text-muted);
-    --tw-prose-code: var(--color-text);
-    --tw-prose-pre-code: var(--color-text);
-    --tw-prose-pre-bg: var(--color-bg-muted);
-    --tw-prose-th-borders: var(--color-border);
-    --tw-prose-td-borders: var(--color-border);
+  /* Gradients (can't be auto-generated from single colors) */
+  .bg-theme-gradient {
+    background: linear-gradient(
+      181deg,
+      var(--palette-white) -5.4%,
+      var(--palette-warm-white) 73.01%,
+      var(--palette-warm-beige) 89.61%,
+      var(--palette-light-blue) 150%
+    );
   }
 
-  [data-theme="dark"] .prose {
-    /* Dark mode overrides */
-    --tw-prose-body: var(--color-text);
-    --tw-prose-headings: var(--color-text);
-    /* ... etc */
+  /* Footer-specific overrides (if needed) */
+  .bg-footer button[aria-label="Toggle dark mode"]:hover {
+    background-color: var(--runtime-brand);
   }
 }
 ```
 
-**Files to modify**:
+**What this achieves**:
 
-- `shared/theme-default/src/theme.css`
-- `shared/theme-yeehaa/src/theme.css`
+- ✅ 200+ utility class definitions → **0 manual definitions** (auto-generated!)
+- ✅ IDE autocomplete works for theme utilities
+- ✅ Easy to add new colors (just add to `@theme inline`)
+- ✅ Clear separation: Palette → Runtime → Theme
+- ✅ Proper dark mode support
+- ✅ Multi-site theming support
+
+### Solution 1: Fix Prose Heading Colors (via `@theme`)
+
+**Approach**: Use `@theme inline` to expose prose colors to the typography plugin.
+
+**Implementation**:
+
+```css
+@theme inline {
+  /* Prose colors automatically picked up by typography plugin */
+  --color-prose-headings: var(--runtime-text);
+  --color-prose-body: var(--runtime-text);
+  --color-prose-links: var(--runtime-brand);
+  --color-prose-bold: var(--runtime-text);
+  --color-prose-counters: var(--runtime-text-muted);
+  --color-prose-bullets: var(--runtime-text-muted);
+  --color-prose-hr: var(--runtime-border);
+  --color-prose-quotes: var(--runtime-text-muted);
+  --color-prose-quote-borders: var(--runtime-brand);
+  --color-prose-captions: var(--runtime-text-muted);
+  --color-prose-code: var(--runtime-text);
+  --color-prose-pre-code: var(--runtime-text);
+  --color-prose-pre-bg: var(--runtime-bg-subtle);
+  --color-prose-th-borders: var(--runtime-border);
+  --color-prose-td-borders: var(--runtime-border);
+}
+```
 
 **Remove**:
 
 - Hacky `article.prose h1 { color: inherit; }` override
+- Manual prose styling in `@layer utilities`
 
 ### Solution 2: Standardize Component Colors
 
@@ -212,73 +457,104 @@ const variantClasses = {
 
 // AFTER
 const variantClasses = {
-  default: "bg-theme-muted hover:bg-theme text-theme",
-  light: "bg-theme-subtle hover:bg-theme text-theme",
-  dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
+  default: "bg-bg-theme-subtle hover:bg-bg-theme text-theme",
+  light: "bg-bg-theme-subtle hover:bg-bg-theme text-theme",
+  dark: "bg-bg-theme hover:bg-bg-theme-subtle text-theme-inverse",
 };
 ```
 
-**Files to modify**:
+### Solution 3: Typography Scale Cleanup
 
-- `shared/ui-library/src/Button.tsx`
-- `shared/ui-library/src/ThemeToggle.tsx`
+**Approach**: Remove unused typography scale variables.
 
-### Solution 3: Typography Scale Consistency
-
-**Approach**: Decide on one source of truth for typography scale.
-
-**Option A**: Use theme scale variables in components (via Tailwind's `theme()` function if needed)
-**Option B**: Let prose plugin handle all typography, remove custom scale
-**Option C**: Define scale in `@theme` directive and reference throughout
-
-**Recommendation**: Option B - Let prose plugin handle content typography, use Tailwind's default scale for UI components. Remove unused typography scale variables from themes.
-
-**Files to review**:
-
-- `shared/theme-default/src/theme.css` (remove `--text-h1` etc. if unused)
-- `shared/theme-yeehaa/src/theme.css` (remove `--text-h1` etc. if unused)
-- `shared/ui-library/src/ProseContent.tsx` (verify prose handles typography)
-- `shared/ui-library/src/ProseHeading.tsx` (verify consistency)
-
-### Solution 4: Proper Theme Toggle Styling
-
-**Approach**: Define theme-aware toggle variants instead of per-theme overrides.
-
-**Add to theme CSS** (`@layer utilities`):
+**Action**: **DELETE** the following from both theme files:
 
 ```css
-.theme-toggle {
-  background-color: var(--color-bg-muted);
-  color: var(--color-text);
-}
-
-.theme-toggle:hover {
-  background-color: var(--color-brand);
-  color: var(--color-text-inverse);
-}
+--text-h1: 8rem;
+--text-h2: 4.5rem;
+--text-h3: 3rem;
+--text-h4: 1.875rem;
+--text-body: 1.875rem;
+--text-body-mobile: 1.5rem;
 ```
 
-**Update ThemeToggle.tsx** to use `theme-toggle` class.
+**Rationale**:
 
-**Remove**: Theme-specific `!important` overrides for footer buttons.
+- Prose plugin handles content typography with its own scale
+- Tailwind's default scale handles UI typography
+- These variables are dead code (never referenced)
 
 ## Implementation Plan
 
-### Phase 1: Fix Prose Colors (Highest Priority)
+### Phase 0: Restructure Theme Architecture with `@theme inline` (CRITICAL - FIRST)
 
-**Goal**: Make prose headings respect theme colors without hacks.
+**Goal**: Adopt proper Tailwind v4 design token pattern using `@theme inline`.
 
 **Tasks**:
 
-1. Update `shared/theme-yeehaa/src/theme.css`:
-   - Ensure comprehensive `--tw-prose-*` definitions in `.prose` utility
-   - Set `--tw-prose-headings: var(--color-text)`
-   - Remove `article.prose h1 { color: inherit; }` hack
-2. Update `shared/theme-default/src/theme.css`:
-   - Same comprehensive `--tw-prose-*` definitions
-3. Test prose heading colors in both themes, both light/dark modes
+1. **Restructure `shared/theme-default/src/theme.css`**:
+   - Keep palette tokens in `:root`
+   - Add runtime tokens in `:root` and `[data-theme="dark"]`
+   - Add `@theme inline` section with all color tokens
+   - **DELETE** entire `@layer utilities` section (lines 151-263)
+   - Keep only special utilities (gradients, footer overrides)
 
-**Success criteria**: Prose headings use `--color-text` without any hacky overrides.
+2. **Restructure `shared/theme-yeehaa/src/theme.css`**:
+   - Same restructuring as theme-default
+   - **DELETE** entire `@layer utilities` section (lines 168-333)
+   - Keep only special utilities
+
+3. **Verify utility generation**:
+   - Build site and check generated CSS
+   - Verify `bg-brand`, `text-theme`, etc. exist
+   - Test IDE autocomplete
+
+4. **Test multi-site theming**:
+   - Verify professional-brain uses yeehaa theme
+   - Verify collective-brain uses default theme
+   - Test theme switching
+
+**Success criteria**:
+
+- ✅ No manual utility definitions (except gradients/special cases)
+- ✅ `@theme inline` generates all color utilities automatically
+- ✅ IDE autocomplete shows theme utilities
+- ✅ Both themes work in light and dark modes
+- ✅ Multi-site theming works correctly
+
+**Files to modify**:
+
+- `shared/theme-default/src/theme.css`
+- `shared/theme-yeehaa/src/theme.css`
+
+**Lines to delete**:
+
+- theme-default: Lines 151-263 (entire manual utilities section)
+- theme-yeehaa: Lines 168-333 (entire manual utilities section)
+
+### Phase 1: Fix Prose Colors (Modified)
+
+**Goal**: Use `@theme inline` to expose prose colors properly.
+
+**Tasks**:
+
+1. **Add prose tokens to `@theme inline`** in both themes:
+   - `--color-prose-headings`, `--color-prose-body`, `--color-prose-links`, etc.
+   - Reference `--runtime-*` variables
+
+2. **Remove hacky overrides**:
+   - Delete `article.prose h1 { color: inherit; }` from yeehaa theme (lines 231-239)
+
+3. **Test**:
+   - View blog posts in both themes
+   - Verify heading colors match body text
+   - Test light and dark modes
+
+**Success criteria**:
+
+- ✅ Prose headings use theme colors without hacks
+- ✅ No `color: inherit` overrides needed
+- ✅ Works in both themes, both modes
 
 ### Phase 2: Standardize Component Colors
 
@@ -286,59 +562,150 @@ const variantClasses = {
 
 **Tasks**:
 
-1. Update `shared/ui-library/src/Button.tsx`:
+1. **Update `shared/ui-library/src/Button.tsx`**:
    - Replace `bg-blue-500` with `bg-brand`
    - Replace `hover:bg-blue-700` with `hover:bg-brand-dark`
-   - Ensure all button variants use theme classes
-2. Update `shared/ui-library/src/ThemeToggle.tsx`:
-   - Replace hardcoded gray colors with theme classes
-   - Use `bg-theme-muted`, `text-theme`, etc.
-3. Audit other UI components for hardcoded colors
-4. Test all components in both themes, both modes
+   - Test all button variants
 
-**Success criteria**: No component has hardcoded color utilities like `bg-blue-*`, `text-gray-*`.
+2. **Update `shared/ui-library/src/ThemeToggle.tsx`**:
+   - Replace `bg-gray-200`, `bg-gray-800` with theme classes
+   - Use auto-generated utilities from `@theme inline`
 
-### Phase 3: Typography Scale Cleanup (Optional)
+3. **Audit other components**:
+   - Search for `bg-blue`, `bg-gray`, `text-gray`, etc.
+   - Replace with theme utilities
 
-**Goal**: Remove unused typography scale variables or ensure consistent usage.
+4. **Test**:
+   - View all components in both themes
+   - Test light and dark modes
+   - Verify no hardcoded colors remain
 
-**Tasks**:
+**Success criteria**:
 
-1. Determine if `--text-h1`, `--text-h2`, etc. are actually used
-2. If unused, remove from both theme files
-3. If used, document where and ensure consistency
-4. Update ProseContent/ProseHeading if needed
+- ✅ No hardcoded color utilities (`bg-blue-*`, `text-gray-*`)
+- ✅ All components adapt to theme changes
+- ✅ Works in both themes, both modes
 
-**Success criteria**: Typography scale is either used consistently or removed.
+### Phase 3: Typography Scale Cleanup
 
-### Phase 4: Theme Toggle Improvements (Nice to Have)
-
-**Goal**: Theme toggle works properly in all contexts without theme-specific overrides.
-
-**Tasks**:
-
-1. Define `.theme-toggle` utility class in themes
-2. Update ThemeToggle component to use new class
-3. Remove footer-specific `!important` overrides
-4. Test toggle in footer, header, and standalone contexts
-
-**Success criteria**: Theme toggle visible and functional everywhere without per-theme hacks.
-
-### Phase 5: Documentation
-
-**Goal**: Document theming patterns for future developers.
+**Goal**: Remove unused typography scale variables.
 
 **Tasks**:
 
-1. Create `docs/theming-guide.md` with:
-   - v4-specific patterns we use
-   - How to create new themes
-   - Component styling guidelines
-   - Prose customization approach
-2. Add comments to theme files explaining variable usage
-3. Update CLAUDE.md with theming guidelines
+1. **Delete from both theme files**:
 
-**Success criteria**: New developers can create themes and theme-aware components following documented patterns.
+   ```css
+   /* DELETE THESE LINES */
+   --text-h1: 8rem;
+   --text-h2: 4.5rem;
+   --text-h3: 3rem;
+   --text-h4: 1.875rem;
+   --text-body: 1.875rem;
+   --text-body-mobile: 1.5rem;
+   --text-h1-mobile: 3.75rem;
+   --text-h2-mobile: 3rem;
+   --text-h3-mobile: 2.25rem;
+   ```
+
+2. **Verify nothing breaks**:
+   - Grep for `var(--text-h` to check for usage
+   - If found, replace with Tailwind utilities
+
+3. **Test**:
+   - Build site
+   - Verify typography still looks correct
+
+**Success criteria**:
+
+- ✅ Unused variables removed
+- ✅ No references to deleted variables
+- ✅ Typography unchanged visually
+
+### Phase 4: Theme Toggle Improvements
+
+**Goal**: Theme toggle works properly without `!important` hacks.
+
+**Tasks**:
+
+1. **Define toggle colors in runtime tokens**:
+
+   ```css
+   :root {
+     --runtime-toggle-bg: var(--runtime-bg-subtle);
+     --runtime-toggle-hover: var(--runtime-brand);
+   }
+   ```
+
+2. **Add to `@theme inline`**:
+
+   ```css
+   @theme inline {
+     --color-toggle-bg: var(--runtime-toggle-bg);
+     --color-toggle-hover: var(--runtime-toggle-hover);
+   }
+   ```
+
+3. **Update ThemeToggle component**:
+   - Use `bg-toggle-bg`, `hover:bg-toggle-hover`
+
+4. **Remove `!important` hacks** from theme files
+
+**Success criteria**:
+
+- ✅ Theme toggle visible in all contexts
+- ✅ No `!important` overrides
+- ✅ Works in both themes, both modes
+
+### Phase 5: Update Site Builder Integration
+
+**Goal**: Ensure site builder properly injects theme CSS with `@theme inline`.
+
+**Tasks**:
+
+1. **Verify `base.css` doesn't conflict**:
+   - Check if it has `@theme` definitions
+   - Ensure theme CSS is injected before base.css processes
+
+2. **Test build process**:
+   - Run site builder
+   - Verify generated CSS has utility classes
+   - Check for duplicates or conflicts
+
+**Success criteria**:
+
+- ✅ Site builder injects theme CSS correctly
+- ✅ Utilities generated from `@theme inline`
+- ✅ No conflicts or duplicates
+
+### Phase 6: Documentation
+
+**Goal**: Document Tailwind v4 design system patterns for future developers.
+
+**Tasks**:
+
+1. **Create `docs/theming-guide.md`**:
+   - Explain 3-tier token hierarchy
+   - Document `@theme inline` pattern
+   - Show how to add new theme colors
+   - Provide examples of creating new themes
+   - Explain automatic utility generation
+
+2. **Update `CLAUDE.md`**:
+   - Add theming guidelines section
+   - Reference theming-guide.md
+   - Document v4-specific patterns
+
+3. **Add comments to theme files**:
+   - Explain each tier of tokens
+   - Document why `inline` keyword is used
+   - Note which utilities are auto-generated
+
+**Success criteria**:
+
+- ✅ Complete theming guide exists
+- ✅ CLAUDE.md references theming patterns
+- ✅ Theme files have explanatory comments
+- ✅ New developers can create themes following guide
 
 ## Testing Strategy
 
@@ -350,6 +717,7 @@ For each phase:
    - Test light mode
    - Test dark mode
    - Test theme switching
+   - Test multiple brains with different themes
 
 2. **Component Testing**:
    - Verify all themed components render correctly
@@ -357,52 +725,70 @@ For each phase:
    - Check UI components (buttons, cards, toggles)
    - Check footer, header, navigation
 
-3. **Cross-Browser**:
+3. **Build Testing**:
+   - Verify utilities are generated
+   - Check generated CSS for duplicates
+   - Verify file size (should be smaller without manual utilities)
+
+4. **IDE Testing**:
+   - Verify autocomplete shows theme utilities
+   - Check IntelliSense for `bg-brand`, `text-theme`, etc.
+
+5. **Cross-Browser**:
    - Test in Chrome/Edge (Blink)
    - Test in Firefox (Gecko)
    - Test in Safari (WebKit)
 
 ## Success Metrics
 
+- ✅ Uses `@theme inline` for automatic utility generation
+- ✅ No manual utility class definitions (except special cases like gradients)
+- ✅ IDE autocomplete shows theme utilities
 - ✅ No `color: inherit` hacks in theme CSS
 - ✅ No hardcoded color utilities in components (no `bg-blue-*`, `text-gray-*`)
 - ✅ Prose headings correctly colored in all themes/modes
-- ✅ Theme toggle visible in all contexts
+- ✅ Theme toggle visible in all contexts without `!important`
 - ✅ All components adapt to theme changes
-- ✅ Consistent typography throughout site
-- ✅ Documentation exists for theming patterns
+- ✅ Clear 3-tier token hierarchy documented
+- ✅ Comprehensive theming guide exists
 
 ## Risks & Mitigations
 
 **Risk**: Breaking existing themes during refactor
-**Mitigation**: Test both themes after each change, maintain backward compatibility
+**Mitigation**: Test both themes after each phase, maintain visual parity
 
-**Risk**: Prose plugin behavior changes in future v4 updates
-**Mitigation**: Document current v4 version, test after Tailwind updates
+**Risk**: Site builder integration issues with `@theme inline`
+**Mitigation**: Test build process thoroughly, check generated CSS
 
-**Risk**: Components using themes break if variable names change
-**Mitigation**: Don't rename existing variables, only add new ones or improve definitions
+**Risk**: Components referencing old utility names
+**Mitigation**: Keep same naming (`bg-brand`, `text-theme`), just generate differently
 
-**Risk**: Performance impact from more CSS variables
-**Mitigation**: CSS variables have minimal performance cost, modern browsers handle them well
+**Risk**: Prose plugin behavior with `@theme` tokens
+**Mitigation**: Test thoroughly, document current v4 version
+
+**Risk**: Performance impact from `@theme inline`
+**Mitigation**: Minimal impact - CSS variables already used, just generation method changes
 
 ## Future Enhancements
 
-After completing this plan, consider:
+After completing this plan:
 
-1. **Theme Variants**: Support for more than just light/dark (high contrast, colorblind-friendly)
-2. **Dynamic Theming**: Runtime theme switching via JavaScript
-3. **Theme Generator**: CLI tool to scaffold new themes
-4. **Component Theme Props**: Allow per-component theme overrides
-5. **CSS-in-JS Migration**: Evaluate if Tailwind v4's features reduce need for CSS-in-JS
+1. **Theme Variants**: High contrast, colorblind-friendly modes
+2. **Theme Inheritance**: Extend existing themes instead of duplicating
+3. **Runtime Theme Editor**: Visual theme customizer in admin UI
+4. **Design Token Export**: Export tokens to Figma, Sketch, etc.
+5. **Component Theme Props**: Per-component theme overrides
+6. **Automatic Dark Mode**: Generate dark mode from light mode algorithmically
 
 ## References
 
 - [Tailwind CSS v4 Documentation](https://tailwindcss.com/docs)
+- [Tailwind v4 Theme Configuration](https://tailwindcss.com/docs/theme)
 - [Tailwind Typography Plugin](https://github.com/tailwindlabs/tailwindcss-typography)
 - [CSS Custom Properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
-- [Tailwind v4 Alpha Announcement](https://tailwindcss.com/blog/tailwindcss-v4-alpha)
+- [Tailwind v4 Beta Announcement](https://tailwindcss.com/blog/tailwindcss-v4-beta)
 
 ## Changelog
 
 - **2025-01-12**: Initial planning document created
+- **2025-01-12**: Major update - Added `@theme inline` pattern, restructured all phases, added Phase 0 for proper v4 architecture
