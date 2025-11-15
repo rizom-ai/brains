@@ -41,8 +41,9 @@ async function buildHydrationScripts() {
             platform: "browser",
             target: ["es2020"],
             external: ["preact", "preact/hooks"], // Keep preact external
-            jsx: "automatic",
-            jsxImportSource: "preact",
+            jsx: "transform",
+            jsxFactory: "window.preact.h",
+            jsxFragment: "window.preact.Fragment",
             // Replace imports with window.preact references
             define: {
               "import.meta.env.SSR": "false",
