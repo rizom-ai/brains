@@ -22,6 +22,14 @@ export type ProfileEntity = z.infer<typeof profileSchema>;
 export const profileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
   description: z.string().optional().describe("Short description or biography"),
+  tagline: z
+    .string()
+    .optional()
+    .describe("Short, punchy one-liner for homepage"),
+  intro: z
+    .string()
+    .optional()
+    .describe("Optional longer introduction for homepage"),
   website: z.string().optional().describe("Primary website URL"),
   email: z.string().optional().describe("Contact email"),
   socialLinks: z

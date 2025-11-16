@@ -24,6 +24,8 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
       mappings: [
         { key: "name", label: "Name", type: "string" },
         { key: "description", label: "Description", type: "string" },
+        { key: "tagline", label: "Tagline", type: "string" },
+        { key: "intro", label: "Intro", type: "string" },
         { key: "website", label: "Website", type: "string" },
         { key: "email", label: "Email", type: "string" },
         {
