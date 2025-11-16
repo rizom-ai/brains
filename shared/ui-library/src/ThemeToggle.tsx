@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 
 export interface ThemeToggleProps {
-  variant?: "default" | "light" | "dark";
+  variant?: "default" | "light" | "dark" | "footer";
   size?: "sm" | "md" | "lg";
   className?: string;
 }
@@ -20,6 +20,8 @@ export function ThemeToggle({
     default: "bg-white/20 hover:bg-white/30 text-white", // Semi-transparent for overlays
     light: "bg-theme-subtle hover:bg-theme-muted text-theme",
     dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
+    footer:
+      "bg-theme-toggle hover:bg-theme-toggle-hover text-theme-toggle-icon", // Footer-specific colors
   };
 
   // Button padding

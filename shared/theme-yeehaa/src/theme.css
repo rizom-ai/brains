@@ -222,26 +222,6 @@
     color: var(--color-footer-text);
   }
 
-  /* Footer theme toggle - make it visible on white/black backgrounds */
-  .bg-footer button[aria-label="Toggle dark mode"] {
-    background-color: var(--palette-black) !important;
-    color: var(--palette-white) !important;
-  }
-  .bg-footer button[aria-label="Toggle dark mode"]:hover {
-    background-color: var(--color-brand) !important;
-    color: var(--palette-black) !important;
-  }
-
-  /* Dark mode - invert button colors */
-  [data-theme="dark"] .bg-footer button[aria-label="Toggle dark mode"] {
-    background-color: var(--palette-white) !important;
-    color: var(--palette-black) !important;
-  }
-  [data-theme="dark"] .bg-footer button[aria-label="Toggle dark mode"]:hover {
-    background-color: var(--color-brand) !important;
-    color: var(--palette-black) !important;
-  }
-
   /* Text selection highlighting */
   ::selection {
     background-color: var(--color-selection-bg);

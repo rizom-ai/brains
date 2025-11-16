@@ -65,7 +65,7 @@ export function FooterContent({
           {/* Center: Theme Toggle */}
           {showThemeToggle && (
             <div className="flex justify-center">
-              <ThemeToggle variant="default" size="md" />
+              <ThemeToggle variant="footer" size="md" />
             </div>
           )}
 
