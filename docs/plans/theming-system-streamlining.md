@@ -146,9 +146,11 @@ article.prose h6 {
 
 **Impact**: These components don't adapt to theme changes.
 
-### 4. Typography Scale Mismatch
+### 4. Typography Scale Mismatch ~~(RESOLVED - Variables ARE Used)~~
 
-**Theme defines scale** (unused dead code):
+**Status**: ❌ **NOT A PROBLEM** - These variables are actively used by `PresentationLayout.tsx` for the decks plugin.
+
+**Theme defines scale** (for presentations and large displays):
 
 ```css
 --text-h1: 8rem; /* 128px Desktop */
@@ -156,13 +158,20 @@ article.prose h6 {
 --text-h3: 3rem; /* 48px Desktop */
 ```
 
-**Components use different sizes**:
+**Used by**: `shared/ui-library/src/PresentationLayout.tsx` for slide deck typography.
+
+**Prose content uses different sizes** (intentional):
 
 ```tsx
-prose-h1:text-4xl  /* 2.25rem = 36px */
+prose-h1:text-4xl  /* 2.25rem = 36px - for blog posts */
 ```
 
-**Impact**: Inconsistent typography, unused variables clutter theme files.
+**Resolution**: These are two separate use cases:
+
+- Typography scale variables → Used for **presentation slides** (large displays)
+- Prose typography → Used for **blog content** (reading-optimized)
+
+No action needed - this is working as designed.
 
 ### 5. Footer Theme Toggle Visibility
 
@@ -589,40 +598,38 @@ const variantClasses = {
 - ✅ All components adapt to theme changes
 - ✅ Works in both themes, both modes
 
-### Phase 3: Typography Scale Cleanup
+### Phase 3: Typography Scale Cleanup ~~(N/A - Variables ARE Used)~~
 
-**Goal**: Remove unused typography scale variables.
+**Status**: ✅ **SKIPPED** - Investigation revealed these variables are actively used by `PresentationLayout.tsx` for the decks plugin.
 
-**Tasks**:
+**Original Goal**: Remove unused typography scale variables.
 
-1. **Delete from both theme files**:
+**Investigation Results**:
 
-   ```css
-   /* DELETE THESE LINES */
-   --text-h1: 8rem;
-   --text-h2: 4.5rem;
-   --text-h3: 3rem;
-   --text-h4: 1.875rem;
-   --text-body: 1.875rem;
-   --text-body-mobile: 1.5rem;
-   --text-h1-mobile: 3.75rem;
-   --text-h2-mobile: 3rem;
-   --text-h3-mobile: 2.25rem;
-   ```
+Searched for usage with `grep -r "var(--text-h" .` and found:
 
-2. **Verify nothing breaks**:
-   - Grep for `var(--text-h` to check for usage
-   - If found, replace with Tailwind utilities
+```tsx
+// shared/ui-library/src/PresentationLayout.tsx
+font-size: var(--text-h1-mobile);  // Line 159
+font-size: var(--text-h1);         // Line 168
+font-size: var(--text-h2-mobile);  // Line 174
+font-size: var(--text-h2);         // Line 183
+font-size: var(--text-h3-mobile);  // Line 189
+font-size: var(--text-h3);         // Line 198
+font-size: var(--text-h4);         // Line 204
+font-size: var(--text-body-mobile); // Line 225
+font-size: var(--text-body);       // Line 234
+```
 
-3. **Test**:
-   - Build site
-   - Verify typography still looks correct
+**Conclusion**: These variables are essential for presentation slides. They provide large, impactful typography for the decks plugin, separate from the prose typography used in blog content.
+
+**Action Taken**: Updated problem statement in documentation to clarify this is working as designed.
 
 **Success criteria**:
 
-- ✅ Unused variables removed
-- ✅ No references to deleted variables
-- ✅ Typography unchanged visually
+- ✅ Variables verified as in-use
+- ✅ Documentation updated to reflect actual usage
+- ✅ No deletion needed
 
 ### Phase 4: Theme Toggle Improvements
 
