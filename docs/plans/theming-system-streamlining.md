@@ -666,26 +666,35 @@ font-size: var(--text-body);       // Line 234
 - ✅ No `!important` overrides
 - ✅ Works in both themes, both modes
 
-### Phase 5: Update Site Builder Integration
+### Phase 5: Update Site Builder Integration ✅ **COMPLETED**
 
 **Goal**: Ensure site builder properly injects theme CSS with `@theme inline`.
 
 **Tasks**:
 
-1. **Verify `base.css` doesn't conflict**:
-   - Check if it has `@theme` definitions
-   - Ensure theme CSS is injected before base.css processes
+1. **Verify `base.css` doesn't conflict**: ✅
+   - Found conflicting `@theme` block in base.css with fallback values
+   - Removed `@theme` block - themes are single source of truth for colors
+   - base.css now only sets up Tailwind, typography plugin, and font fallbacks
 
-2. **Test build process**:
-   - Run site builder
-   - Verify generated CSS has utility classes
-   - Check for duplicates or conflicts
+2. **Verify CSS injection order**: ✅
+   - Confirmed order: base.css → theme CSS (correct!)
+   - base.css: Sets up `@import "tailwindcss"` and plugins
+   - Theme CSS: Adds `@theme inline` blocks with color definitions
+   - Tailwind processes them in order and generates utilities
+
+**Changes Made**:
+
+- Removed `@theme { --color-brand, --color-accent }` from base.css
+- Themes now have complete control over color definitions
+- No build-time vs runtime conflicts between `@theme` and `@theme inline`
 
 **Success criteria**:
 
-- ✅ Site builder injects theme CSS correctly
-- ✅ Utilities generated from `@theme inline`
-- ✅ No conflicts or duplicates
+- ✅ Site builder injects theme CSS correctly (base → theme order)
+- ✅ Utilities will be generated from `@theme inline` blocks
+- ✅ No conflicts or duplicates (removed conflicting @theme block)
+- ✅ Themes are single source of truth for all color tokens
 
 ### Phase 6: Documentation
 

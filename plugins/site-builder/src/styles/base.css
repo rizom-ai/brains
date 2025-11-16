@@ -2,12 +2,6 @@
 @plugin "@tailwindcss/typography";
 @source "./**/*.html";
 
-/* Theme configuration for custom colors */
-@theme {
-  --color-brand: var(--color-brand, #6366f1);
-  --color-accent: var(--color-accent, #ea580c);
-}
-
 /* Base layer - minimal setup for font fallbacks */
 @layer base {
   body {
