@@ -270,12 +270,12 @@
   .text-logo { color: var(--color-brand); }
   [data-theme="dark"] .text-logo { color: var(--palette-white); }
 
-  /* Logo color variable */
+  /* Logo color variable - orange in light mode, white in dark mode */
   :root {
     --color-logo: var(--color-brand);
   }
   [data-theme="dark"] {
-    --color-logo: var(--palette-brand-yellow);
+    --color-logo: var(--palette-white);
   }
 
   /* Header background - theme bg in light, orange in dark */
@@ -422,17 +422,14 @@
     color: var(--color-brand-dark);
   }
 
-  /* Dark mode heading colors - light yellow for contrast */
+  /* Dark mode heading colors - white for contrast */
   [data-theme="dark"] .prose h1,
-  [data-theme="dark"] .prose h2 {
-    color: var(--palette-light-yellow);
-  }
-
+  [data-theme="dark"] .prose h2,
   [data-theme="dark"] .prose h3,
   [data-theme="dark"] .prose h4,
   [data-theme="dark"] .prose h5,
   [data-theme="dark"] .prose h6 {
-    color: var(--palette-warm-white);
+    color: var(--palette-white);
   }
 
   /* Dark mode italic - bright orange for emphasis */
