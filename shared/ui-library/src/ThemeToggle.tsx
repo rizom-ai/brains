@@ -17,9 +17,9 @@ export function ThemeToggle({
 }: ThemeToggleProps): JSX.Element {
   // Variant classes
   const variantClasses = {
-    default: "bg-white/20 hover:bg-white/30 text-white",
-    light: "bg-gray-200 hover:bg-gray-300 text-gray-800",
-    dark: "bg-gray-800 hover:bg-gray-700 text-white",
+    default: "bg-white/20 hover:bg-white/30 text-white", // Semi-transparent for overlays
+    light: "bg-theme-subtle hover:bg-theme-muted text-theme",
+    dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
   };
 
   // Button padding
