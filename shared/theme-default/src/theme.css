@@ -14,10 +14,12 @@
     --palette-brand-blue: #3921D7;           /* Primary brand blue */
     --palette-brand-blue-dark-1: #2E007D;    /* Dark blue 1 */
     --palette-brand-blue-dark-2: #0E0027;    /* Dark blue 2 */
+    --palette-indigo: #6366f1;               /* Indigo for patterns */
 
     /* Brand Orange */
     --palette-orange: #E7640A;               /* Primary orange */
     --palette-orange-dark: #c2410c;          /* Dark orange */
+    --palette-orange-medium: #FFA366;        /* Medium orange for dark mode emphasis */
 
     /* Neutrals - Light */
     --palette-white: #FFFFFF;
@@ -36,13 +38,11 @@
     --palette-purple: #6B2FA0;
     --palette-warm-red: #8B3A1A;
     --palette-dark-purple: #2A1F3A;
-    --palette-very-dark-blue: #1E2845;  /* Lighter dark blue for footer/gradient end */
 
     /* Dark mode text colors */
     --palette-text-light: #f7fafc;
     --palette-text-muted-dark: #a0aec0;
     --palette-text-subtle-dark: #718096;
-    --palette-text-inverse-dark: #1a202c;
     --palette-light-orange: #FFE0BD;      /* Very light peach for dark mode headings */
 
     /* ============================================
@@ -55,6 +55,9 @@
     --color-brand-light: var(--palette-brand-blue);
     --color-accent: var(--palette-orange);
     --color-accent-dark: var(--palette-orange-dark);
+
+    /* Pattern Colors */
+    --color-pattern-dot: var(--palette-indigo);
 
     /* Text Colors */
     --color-text: var(--palette-brand-blue-dark-2);
@@ -113,6 +116,9 @@
     --color-brand-light: var(--palette-brand-blue);
     --color-accent: var(--palette-orange);
     --color-accent-dark: var(--palette-orange-dark);
+
+    /* Pattern Colors - Same as light mode */
+    --color-pattern-dot: var(--palette-indigo);
 
     /* Text Colors - Dark mode */
     --color-text: var(--palette-text-light);
@@ -177,6 +183,9 @@
   /* Gradient colors */
   --color-gradient-start: var(--color-gradient-start);
   --color-gradient-end: var(--color-gradient-end);
+
+  /* Pattern colors */
+  --color-pattern-dot: var(--color-pattern-dot);
 
   /* Prose/Typography colors - for @tailwindcss/typography plugin */
   --tw-prose-body: var(--color-text);
@@ -249,14 +258,14 @@
   [data-theme="dark"] .bg-theme-toggle { background-color: var(--color-accent); }
 
   /* Theme toggle hover - orange in light, white in dark */
-  .hover-theme-toggle-swap:hover { background-color: var(--color-accent); }
-  [data-theme="dark"] .hover-theme-toggle-swap:hover { background-color: var(--palette-white); }
+  .bg-theme-toggle-hover { background-color: var(--color-accent); }
+  [data-theme="dark"] .bg-theme-toggle-hover { background-color: var(--palette-white); }
 
   /* Theme toggle icon color - white in both modes by default */
   .text-theme-toggle-icon { color: var(--palette-white); }
 
   /* Theme toggle icon hover - stays white in light, becomes brand in dark */
-  [data-theme="dark"] .hover-theme-toggle-swap:hover .text-theme-toggle-icon { color: var(--color-brand); }
+  [data-theme="dark"] .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-brand); }
   
   /* Gradients - Tailwind v4 format */
   .from-gradient-start { 
@@ -358,7 +367,7 @@
   }
   
   .prose em {
-    color: var(--palette-orange);
+    color: var(--color-accent);
   }
   
   .prose blockquote {
@@ -399,7 +408,7 @@
 
   /* Dark mode italic - medium orange for emphasis */
   [data-theme="dark"] .prose em {
-    color: #FFA366;
+    color: var(--palette-orange-medium);
   }
 }
 
@@ -407,7 +416,7 @@
 @layer components {
   /* Hero background pattern (dot grid) */
   .hero-bg-pattern {
-    background-image: radial-gradient(circle at 1px 1px, rgb(99 102 241) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, var(--color-pattern-dot) 1px, transparent 0);
     background-size: 20px 20px;
   }
   

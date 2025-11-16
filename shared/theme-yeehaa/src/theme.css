@@ -13,11 +13,6 @@
     --palette-brand-orange: #FB923C;         /* Orange */
     --palette-brand-red: #DC2626;            /* Red */
     --palette-brand-dark-red: #991B1B;       /* Dark red */
-    --palette-brand-amber: #F59E0B;          /* Amber */
-
-    /* Accent Colors */
-    --palette-accent-orange: #EA580C;        /* Deep orange accent */
-    --palette-accent-yellow: #FDE047;        /* Light yellow accent */
 
     /* Gradient Colors - Light mode palette */
 
@@ -54,6 +49,9 @@
     --color-brand-light: var(--palette-brand-red);
     --color-accent: var(--palette-brand-yellow);
     --color-accent-dark: var(--palette-brand-yellow);
+
+    /* Pattern Colors */
+    --color-pattern-dot: var(--palette-brand-orange);
 
     /* Text Colors */
     --color-text: #292524;                   /* Warm dark gray */
@@ -117,6 +115,9 @@
     --color-brand-light: var(--palette-brand-red);
     --color-accent: var(--palette-brand-yellow);
     --color-accent-dark: var(--palette-brand-yellow);
+
+    /* Pattern Colors - Same as light mode */
+    --color-pattern-dot: var(--palette-brand-orange);
 
     /* Text Colors - Dark mode */
     --color-text: var(--palette-text-light);
@@ -190,6 +191,9 @@
   /* Gradient colors */
   --color-gradient-start: var(--color-gradient-start);
   --color-gradient-end: var(--color-gradient-end);
+
+  /* Pattern colors */
+  --color-pattern-dot: var(--color-pattern-dot);
 
   /* Prose/Typography colors - for @tailwindcss/typography plugin */
   --tw-prose-body: var(--color-text);
@@ -283,14 +287,14 @@
   [data-theme="dark"] .bg-theme-toggle { background-color: var(--palette-brand-yellow); }
 
   /* Theme toggle hover - red in light, white in dark */
-  .hover-theme-toggle-swap:hover { background-color: var(--color-brand-dark); }
-  [data-theme="dark"] .hover-theme-toggle-swap:hover { background-color: var(--palette-white); }
+  .bg-theme-toggle-hover { background-color: var(--color-brand-dark); }
+  [data-theme="dark"] .bg-theme-toggle-hover { background-color: var(--palette-white); }
 
   /* Theme toggle icon color - white in both modes by default */
   .text-theme-toggle-icon { color: var(--palette-white); }
 
   /* Theme toggle icon hover - stays white in light, becomes orange in dark */
-  [data-theme="dark"] .hover-theme-toggle-swap:hover .text-theme-toggle-icon { color: var(--color-brand); }
+  [data-theme="dark"] .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-brand); }
 
   /* Gradients - Tailwind v4 format */
   .from-gradient-start {
@@ -441,7 +445,7 @@
 @layer components {
   /* Hero background pattern (dot grid) */
   .hero-bg-pattern {
-    background-image: radial-gradient(circle at 1px 1px, rgb(251 146 60) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, var(--color-pattern-dot) 1px, transparent 0);
     background-size: 20px 20px;
   }
 
