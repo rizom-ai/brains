@@ -76,6 +76,7 @@ const config = defineConfig({
     }),
     siteBuilderPlugin({
       routes, // Custom routes with Rizom branding
+      previewOutputDir: "./dist/site-preview", // Build to preview by default
     }),
   ],
 });
