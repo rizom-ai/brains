@@ -65,10 +65,10 @@
     --color-selection-bg: var(--palette-brand-red);  /* Text selection background */
     --color-selection-text: var(--palette-white);    /* Text selection text color */
 
-    /* Background Colors - Bright yellow everywhere */
-    --color-bg: var(--palette-brand-yellow);
-    --color-bg-subtle: var(--palette-brand-yellow);
-    --color-bg-muted: var(--palette-brand-yellow);
+    /* Background Colors - Clean white */
+    --color-bg: var(--palette-white);
+    --color-bg-subtle: var(--palette-white);
+    --color-bg-muted: var(--palette-warm-white);
     --color-bg-dark: var(--palette-brand-dark-red);
 
     /* Gradient Colors - Light mode: Simple white → red → yellow */
@@ -85,8 +85,8 @@
     --color-border: var(--palette-gray-border);
     --color-border-light: rgba(255, 255, 255, 0.8);
 
-    /* Footer - Bright yellow background with dark text */
-    --color-footer: var(--palette-brand-yellow);
+    /* Footer - White background with dark text */
+    --color-footer: var(--palette-white);
     --color-footer-text: var(--color-text);
 
     /* Typography */
@@ -339,7 +339,7 @@
 
   /* Main headings - Red */
   .prose h1 {
-    color: var(--color-text-muted);
+    color: var(--palette-black);
     font-family: var(--font-heading);
     font-weight: 700;
     font-size: 90px;
@@ -348,7 +348,7 @@
   }
 
   .prose h2 {
-    color: var(--color-text-muted);
+    color: var(--palette-black);
     font-family: var(--font-heading);
     font-weight: 700;
     font-size: 72px;
