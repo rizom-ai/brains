@@ -164,32 +164,56 @@
   }
 }
 
-/* Utility classes that use theme variables */
+/* ============================================
+   THEME TOKENS - Exposed to Tailwind v4
+   Uses @theme inline for runtime CSS variable resolution
+   Auto-generates: bg-*, text-*, border-*, ring-*, fill-*
+   ============================================ */
+@theme inline {
+  /* Brand colors - same color for bg/text/border */
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-light: var(--color-brand-light);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+
+  /* Selection colors (yeehaa-specific) */
+  --color-selection: var(--color-selection);
+
+  /* Footer */
+  --color-footer: var(--color-footer);
+  --color-footer-text: var(--color-footer-text);
+
+  /* Gradient colors */
+  --color-gradient-start: var(--color-gradient-start);
+  --color-gradient-end: var(--color-gradient-end);
+}
+
+/* Special utility classes that require custom logic
+   These utilities need bg-* and text-* to use different colors */
 @layer utilities {
-  /* Text colors using theme variables */
+  /* Theme utilities - bg uses --color-bg, text uses --color-text */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-theme-muted { background-color: var(--color-bg-muted); }
+  .bg-theme-dark { background-color: var(--color-bg-dark); }
   .text-theme { color: var(--color-text); }
   .text-theme-muted { color: var(--color-text-muted); }
   .text-theme-light { color: var(--color-text-light); }
   .text-theme-inverse { color: var(--color-text-inverse); }
   .text-heading { color: var(--color-heading); }
-  .text-brand { color: var(--color-brand); }
-  .text-accent { color: var(--color-accent); }
   .text-selection { color: var(--color-selection); }
+  .border-theme { border-color: var(--color-border); }
+  .border-theme-light { border-color: var(--color-border-light); }
+  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
 
-  /* Background colors using theme variables */
-  .bg-theme { background-color: var(--color-bg); }
+  /* Hover states for theme utilities */
+  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
+  .hover\:bg-brand:hover { background-color: var(--color-brand); }
+  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+
+  /* Complete gradient background - uses full gradient value */
   .bg-theme-gradient { background: var(--color-bg-gradient); }
-  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
-  .bg-theme-muted { background-color: var(--color-bg-muted); }
-  .bg-theme-dark { background-color: var(--color-bg-dark); }
-  .bg-brand { background-color: var(--color-brand); }
-  .bg-brand-dark { background-color: var(--color-brand-dark); }
-  .bg-brand-light { background-color: var(--color-brand-light); }
-  .bg-accent { background-color: var(--color-accent); }
-  .bg-accent-dark { background-color: var(--color-accent-dark); }
-  .bg-footer {
-    background-color: var(--color-footer);
-  }
 
   /* Footer text color override - make text-theme-inverse use footer text color in footer */
   .bg-footer .text-theme-inverse {
@@ -216,12 +240,6 @@
     color: var(--palette-black) !important;
   }
 
-  /* SVG fill colors using theme variables */
-  .fill-theme { fill: var(--color-bg); }
-  .fill-brand { fill: var(--color-brand); }
-  .fill-accent { fill: var(--color-accent); }
-  .fill-footer { fill: var(--color-footer); }
-
   /* Text selection highlighting */
   ::selection {
     background-color: var(--color-selection-bg);
@@ -246,22 +264,6 @@
   .prose.prose h1 {
     font-weight: 900;
   }
-
-  /* Interactive states */
-  .hover\:bg-brand:hover { background-color: var(--color-brand); }
-  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
-  .hover\:bg-theme-inverse:hover { background-color: var(--color-text-inverse); }
-  .hover\:text-brand:hover { color: var(--color-brand); }
-  .hover\:text-brand-dark:hover { color: var(--color-brand-dark); }
-  .hover\:text-theme-inverse:hover { color: var(--color-text-inverse); }
-
-  /* Borders */
-  .border-theme { border-color: var(--color-border); }
-  .border-theme-light { border-color: var(--color-border-light); }
-  .border-brand { border-color: var(--color-brand); }
-  .border-brand-light { border-color: var(--color-brand-light); }
-  .hover\:border-brand-light:hover { border-color: var(--color-brand-light); }
-  .hover\:border-theme-inverse:hover { border-color: var(--color-text-inverse); }
 
   /* Navigation text - orange in light mode, yellow in dark mode */
   .text-nav { color: var(--color-brand); }
