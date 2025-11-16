@@ -1,8 +1,8 @@
 # Theming System Streamlining Plan
 
-**Status**: Planning
+**Status**: ✅ Completed
 **Created**: 2025-01-12
-**Updated**: 2025-01-12
+**Updated**: 2025-01-16
 **Priority**: High
 **Complexity**: High
 
@@ -696,35 +696,54 @@ font-size: var(--text-body);       // Line 234
 - ✅ No conflicts or duplicates (removed conflicting @theme block)
 - ✅ Themes are single source of truth for all color tokens
 
-### Phase 6: Documentation
+### Phase 6: Documentation ✅ **COMPLETED**
 
 **Goal**: Document Tailwind v4 design system patterns for future developers.
 
 **Tasks**:
 
-1. **Create `docs/theming-guide.md`**:
-   - Explain 3-tier token hierarchy
-   - Document `@theme inline` pattern
-   - Show how to add new theme colors
-   - Provide examples of creating new themes
-   - Explain automatic utility generation
+1. **Create `docs/theming-guide.md`**: ✅
+   - Explained 2-tier token hierarchy (palette → semantic)
+   - Documented `@theme inline` pattern and why "inline" is critical
+   - Showed how to add new theme colors (step-by-step)
+   - Provided examples of creating new themes (two approaches)
+   - Explained automatic utility generation
+   - Added dark mode implementation guide
+   - Added multi-site theming patterns
+   - Added troubleshooting section
+   - Created comprehensive 400+ line guide
 
-2. **Update `CLAUDE.md`**:
-   - Add theming guidelines section
-   - Reference theming-guide.md
-   - Document v4-specific patterns
+2. **Update `CLAUDE.md`**: ✅
+   - Added theming guidelines section after "Key Documentation"
+   - Referenced theming-guide.md prominently
+   - Documented v4-specific patterns (@theme inline)
+   - Added critical rules (DO/DON'T examples)
+   - Added manual utilities vs @theme inline decision guide
+   - Included theme file locations and common patterns reference
 
-3. **Add comments to theme files**:
-   - Explain each tier of tokens
-   - Document why `inline` keyword is used
-   - Note which utilities are auto-generated
+3. **Add comments to theme files**: ✅
+   - Added explanatory comments to `theme-default/src/theme.css`
+   - Added explanatory comments to `theme-yeehaa/src/theme.css`
+   - Explained each tier of tokens (palette vs semantic)
+   - Documented why `inline` keyword is critical (runtime resolution)
+   - Noted which utilities are auto-generated and why
+   - Explained when manual utilities are needed vs @theme inline
+
+**Changes Made**:
+
+- Created `/home/yeehaa/Documents/brains/docs/theming-guide.md` (487 lines)
+- Updated `/home/yeehaa/Documents/brains/CLAUDE.md` with Theming Guidelines section
+- Updated `/home/yeehaa/Documents/brains/shared/theme-default/src/theme.css` with detailed comments
+- Updated `/home/yeehaa/Documents/brains/shared/theme-yeehaa/src/theme.css` with detailed comments
 
 **Success criteria**:
 
-- ✅ Complete theming guide exists
-- ✅ CLAUDE.md references theming patterns
-- ✅ Theme files have explanatory comments
-- ✅ New developers can create themes following guide
+- ✅ Complete theming guide exists with 8 major sections
+- ✅ CLAUDE.md references theming patterns prominently
+- ✅ Theme files have explanatory comments explaining architecture
+- ✅ New developers can create themes following step-by-step guide
+- ✅ Troubleshooting guide helps debug common issues
+- ✅ Critical rules clearly documented (DO vs DON'T)
 
 ## Testing Strategy
 

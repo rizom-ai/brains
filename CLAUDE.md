@@ -115,6 +115,103 @@ Refer to these documents for detailed architecture information:
 - **Development Workflow**: `docs/development-workflow.md`
 - **Deployment Guide**: `docs/deployment-guide.md`
 - **Plugin/Interface Development**: `CLAUDE-PLUGINS-INTERFACES.md` (specialized guidelines)
+- **Theming System**: `docs/theming-guide.md` (comprehensive theming guide)
+
+## Theming Guidelines
+
+The Brains project uses **Tailwind CSS v4** with a custom theming system built on CSS variables and the `@theme inline` directive. For comprehensive documentation, see [docs/theming-guide.md](./docs/theming-guide.md).
+
+### Core Theming Principles
+
+1. **2-Tier Token Hierarchy**:
+   - **Palette Tokens** (`--palette-*`): Raw color values that never change at runtime
+   - **Semantic Tokens** (`--color-*`): Purpose-based names that change for dark mode/themes
+
+2. **@theme inline Directive**:
+   - **ALWAYS use `@theme inline`**, never `@theme` alone
+   - The `inline` keyword enables runtime CSS variable resolution
+   - This is **essential** for dark mode and multi-site theming to work
+
+3. **Auto-Generated Utilities**:
+   - Single `@theme inline` declaration auto-generates: `bg-*`, `text-*`, `border-*`, `ring-*`, `fill-*`
+   - Plus all variants: `hover:`, `focus:`, `dark:`, etc.
+   - No need to write manual utility classes for standard colors
+
+### When Adding New Colors
+
+```css
+/* Step 1: Add palette token (if needed) */
+:root {
+  --palette-success-green: #10b981;
+}
+
+/* Step 2: Add semantic token for both modes */
+:root {
+  --color-success: var(--palette-success-green);
+}
+
+[data-theme="dark"] {
+  --color-success: #34d399; /* Lighter for dark backgrounds */
+}
+
+/* Step 3: Expose to Tailwind */
+@theme inline {
+  --color-success: var(--color-success);
+}
+
+/* Done! Now use: bg-success, text-success, border-success, etc. */
+```
+
+### Manual Utilities vs @theme inline
+
+**Use @theme inline when**: All utilities (bg, text, border) reference the SAME variable
+
+```css
+@theme inline {
+  --color-brand: var(
+    --color-brand
+  ); /* ✅ bg-brand, text-brand all use --color-brand */
+}
+```
+
+**Use manual utilities when**: Different utilities need different variables
+
+```css
+@layer utilities {
+  .bg-theme {
+    background-color: var(--color-bg);
+  } /* Uses --color-bg */
+  .text-theme {
+    color: var(--color-text);
+  } /* Uses --color-text */
+}
+```
+
+### Critical Rules
+
+- ❌ **NEVER** use palette tokens (`--palette-*`) directly in components
+- ✅ **ALWAYS** use semantic tokens (`--color-*`) in components
+- ❌ **NEVER** hardcode colors like `#3921d7` or `bg-blue-500` in theme-aware components
+- ✅ **ALWAYS** use theme utilities like `bg-brand`, `text-accent`, `bg-theme`
+- ❌ **NEVER** use `!important` to force theme colors (use proper specificity instead)
+- ✅ **ALWAYS** test both light and dark modes when modifying themes
+
+### Theme File Locations
+
+- **Default theme**: `shared/theme-default/src/theme.css`
+- **Yeehaa theme**: `shared/theme-yeehaa/src/theme.css`
+- **Base CSS**: `plugins/site-builder/src/styles/base.css` (Tailwind setup only, no colors)
+
+### Common Patterns
+
+See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
+
+- Creating new themes
+- Dark mode implementation
+- Multi-site theming
+- Footer-specific styling
+- Component variants
+- Troubleshooting
 
 ## Implementation Status & Next Priorities
 
