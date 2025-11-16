@@ -262,13 +262,13 @@
     font-weight: 900;
   }
 
-  /* Navigation text - orange in light mode, yellow in dark mode */
+  /* Navigation text - orange in light mode, white in dark mode */
   .text-nav { color: var(--color-brand); }
-  [data-theme="dark"] .text-nav { color: var(--palette-brand-yellow); }
+  [data-theme="dark"] .text-nav { color: var(--palette-white); }
 
-  /* Logo text - orange in light mode, yellow in dark mode */
+  /* Logo text - orange in light mode, white in dark mode */
   .text-logo { color: var(--color-brand); }
-  [data-theme="dark"] .text-logo { color: var(--palette-brand-yellow); }
+  [data-theme="dark"] .text-logo { color: var(--palette-white); }
 
   /* Logo color variable */
   :root {
