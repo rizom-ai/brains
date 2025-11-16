@@ -94,10 +94,6 @@
     /* Typography */
     --font-sans: 'Jost', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-heading: 'Jost', ui-sans-serif, system-ui, sans-serif;
-
-    /* Prose (typography plugin) color overrides */
-    --tw-prose-headings: var(--color-text);
-    --tw-prose-body: var(--color-text);
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
@@ -157,10 +153,6 @@
     /* Footer - Minimal: black background with white text */
     --color-footer: var(--palette-black);
     --color-footer-text: var(--color-text);
-
-    /* Prose (typography plugin) color overrides - Dark mode */
-    --tw-prose-headings: var(--color-text);
-    --tw-prose-body: var(--color-text);
   }
 }
 
@@ -187,6 +179,16 @@
   /* Gradient colors */
   --color-gradient-start: var(--color-gradient-start);
   --color-gradient-end: var(--color-gradient-end);
+
+  /* Prose/Typography colors - for @tailwindcss/typography plugin */
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
 }
 
 /* Special utility classes that require custom logic
@@ -244,16 +246,6 @@
   ::selection {
     background-color: var(--color-selection-bg);
     color: var(--color-selection-text);
-  }
-
-  /* Override prose heading colors to match body text */
-  article.prose h1,
-  article.prose h2,
-  article.prose h3,
-  article.prose h4,
-  article.prose h5,
-  article.prose h6 {
-    color: inherit;
   }
 
   /* Heading weight adjustments */

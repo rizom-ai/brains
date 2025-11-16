@@ -166,6 +166,16 @@
   /* Gradient colors */
   --color-gradient-start: var(--color-gradient-start);
   --color-gradient-end: var(--color-gradient-end);
+
+  /* Prose/Typography colors - for @tailwindcss/typography plugin */
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
 }
 
 /* Special utility classes that require custom logic
