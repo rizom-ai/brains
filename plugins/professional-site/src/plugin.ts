@@ -7,7 +7,7 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { blogPostSchema } from "@brains/blog";
+import { blogPostWithDataSchema } from "@brains/blog";
 import { deckSchema } from "@brains/decks";
 import { profileBodySchema } from "@brains/profile-service";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
@@ -45,7 +45,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     // Register homepage template
     const homepageListSchema = z.object({
       profile: profileBodySchema,
-      posts: z.array(blogPostSchema),
+      posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });
 

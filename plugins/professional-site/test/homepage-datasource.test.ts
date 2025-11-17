@@ -4,7 +4,7 @@ import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
 import { z } from "@brains/utils";
-import { blogPostSchema } from "@brains/blog";
+import { blogPostWithDataSchema } from "@brains/blog";
 import { deckSchema } from "@brains/decks";
 import { profileBodySchema } from "@brains/profile-service";
 
@@ -36,7 +36,17 @@ Essays and presentations on technology`,
   const mockPost: BlogPost = {
     id: "post-1",
     entityType: "post" as const,
-    content: "# Test Post\n\nContent here",
+    content: `---
+title: Test Essay
+slug: test-essay
+status: published
+publishedAt: 2025-01-15T10:00:00.000Z
+excerpt: This is a test excerpt
+author: Test Author
+---
+# Test Post
+
+Content here`,
     created: "2025-01-15T10:00:00.000Z",
     updated: "2025-01-15T10:00:00.000Z",
     metadata: {
@@ -84,7 +94,7 @@ Essays and presentations on technology`,
   it("should fetch profile, posts, and decks", async () => {
     const schema = z.object({
       profile: profileBodySchema,
-      posts: z.array(blogPostSchema),
+      posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });
 
@@ -93,6 +103,7 @@ Essays and presentations on technology`,
     expect(result.profile.name).toBe("Yeehaa");
     expect(result.profile.tagline).toBe("Building tools for thought");
     expect(result.posts).toHaveLength(1);
+    expect(result.posts[0].frontmatter.excerpt).toBe("This is a test excerpt");
     expect(result.decks).toHaveLength(1);
   });
 
@@ -117,7 +128,7 @@ Essays and presentations on technology`,
 
     const schema = z.object({
       profile: profileBodySchema,
-      posts: z.array(blogPostSchema),
+      posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });
 
@@ -140,7 +151,7 @@ Essays and presentations on technology`,
 
     const schema = z.object({
       profile: profileBodySchema,
-      posts: z.array(blogPostSchema),
+      posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });
 

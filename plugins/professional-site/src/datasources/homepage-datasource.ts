@@ -1,8 +1,13 @@
 import type { DataSource, DataSourceContext } from "@brains/datasource";
 import type { IEntityService } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { z } from "@brains/utils";
 import { ProfileAdapter, type ProfileBody } from "@brains/profile-service";
-import type { BlogPost } from "@brains/blog";
+import {
+  type BlogPost,
+  type BlogPostWithData,
+  blogPostFrontmatterSchema,
+} from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
 import type { HomepageListData } from "../templates/homepage-list";
 
@@ -47,7 +52,7 @@ export class HomepageListDataSource implements DataSource {
     });
 
     // Filter published posts and sort by date
-    const posts = allPosts
+    const publishedPosts = allPosts
       .filter((post: BlogPost) => post.metadata.status === "published")
       .sort((a: BlogPost, b: BlogPost) => {
         const dateA = new Date(a.metadata.publishedAt ?? a.created);
@@ -55,6 +60,17 @@ export class HomepageListDataSource implements DataSource {
         return dateB.getTime() - dateA.getTime();
       })
       .slice(0, 20);
+
+    // Parse frontmatter for posts to include excerpt and other display fields
+    const posts: BlogPostWithData[] = publishedPosts.map((post) => {
+      const { metadata: frontmatter, content: body } =
+        parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
+      return {
+        ...post,
+        frontmatter,
+        body,
+      };
+    });
 
     // Fetch recent decks (limit 10)
     const allDecks = await this.entityService.listEntities<DeckEntity>("deck", {

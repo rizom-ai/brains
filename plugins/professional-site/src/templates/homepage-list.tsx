@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProfileBody } from "@brains/profile-service";
-import type { BlogPost } from "@brains/blog";
+import type { BlogPostWithData } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
 
 /**
@@ -8,7 +8,7 @@ import type { DeckEntity } from "@brains/decks";
  */
 export interface HomepageListData {
   profile: ProfileBody;
-  posts: BlogPost[];
+  posts: BlogPostWithData[];
   decks: DeckEntity[];
 }
 
@@ -26,90 +26,130 @@ export const HomepageListLayout = ({
 
   return (
     <div className="homepage-list flex-grow min-h-screen bg-theme">
-      <div className="container mx-auto px-6 md:px-8 max-w-3xl py-12 md:py-20">
-        {/* Header Section */}
-        <header className="mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-heading">
-            {profile.name}
-          </h1>
+      {/* Full-width Hero Section */}
+      <header className="w-full py-20 md:py-32 px-6 md:px-12 text-center bg-theme">
+        <div className="max-w-4xl mx-auto">
           {tagline && (
-            <p className="text-xl md:text-2xl text-theme-muted mb-4">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 text-heading leading-tight tracking-tight">
               {tagline}
-            </p>
+            </h1>
           )}
           {profile.intro && (
-            <p className="text-lg text-theme-muted">{profile.intro}</p>
+            <p className="text-xl md:text-2xl lg:text-3xl text-theme-muted leading-relaxed">
+              {profile.intro}
+            </p>
           )}
-        </header>
+        </div>
+      </header>
 
+      {/* Main Content - Single Column with Header-Left Layout */}
+      <div className="container mx-auto px-6 md:px-12 max-w-6xl py-16 md:py-24">
         {/* Essays Section */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-semibold mb-8 text-heading">Essays</h2>
-          {posts.length === 0 ? (
-            <p className="text-theme-muted italic">No essays yet.</p>
-          ) : (
-            <ul className="space-y-6">
-              {posts.map((post) => (
-                <li key={post.id} className="border-b border-border pb-6">
-                  <a
-                    href={`/posts/${post.metadata.slug}`}
-                    className="group block hover:opacity-80 transition-opacity"
-                  >
-                    <h3 className="text-xl font-medium mb-2 text-brand group-hover:underline">
-                      {post.metadata.title}
-                    </h3>
-                    <time className="text-sm text-theme-muted mb-2 block">
-                      {new Date(
-                        post.metadata.publishedAt || post.created,
-                      ).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </time>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+        <section className="mb-20 md:mb-32">
+          <div className="grid md:grid-cols-[200px_1px_1fr] gap-8 md:gap-12 items-start">
+            <h2 className="text-xl md:text-2xl font-semibold text-heading">
+              Essays
+            </h2>
+            <div className="hidden md:block w-px bg-border h-full min-h-[400px]"></div>
+            <div>
+              {posts.length === 0 ? (
+                <p className="text-theme-muted italic">No essays yet.</p>
+              ) : (
+                <>
+                  <ul className="space-y-10">
+                    {posts.slice(0, 3).map((post) => (
+                      <li key={post.id}>
+                        <a
+                          href={`/posts/${post.metadata.slug}`}
+                          className="group block"
+                        >
+                          <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
+                            {post.metadata.title}
+                          </h3>
+                          <time className="text-sm text-theme-muted block mb-3">
+                            {new Date(
+                              post.metadata.publishedAt || post.created,
+                            ).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </time>
+                          {post.frontmatter.excerpt && (
+                            <p className="text-sm text-theme-muted leading-relaxed">
+                              {post.frontmatter.excerpt}
+                            </p>
+                          )}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  {posts.length > 3 && (
+                    <div className="mt-10">
+                      <a
+                        href="/posts"
+                        className="text-sm font-medium text-heading hover:underline uppercase tracking-wide"
+                      >
+                        Show More →
+                      </a>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Presentations Section */}
         {decks.length > 0 && (
           <section>
-            <h2 className="text-2xl font-semibold mb-8 text-heading">
-              Presentations
-            </h2>
-            <ul className="space-y-6">
-              {decks.map((deck) => {
-                return (
-                  <li key={deck.id} className="border-b border-border pb-6">
-                    <a
-                      href={`/decks/${deck.id}`}
-                      className="group block hover:opacity-80 transition-opacity"
-                    >
-                      <h3 className="text-xl font-medium mb-2 text-brand group-hover:underline">
-                        {deck.title || deck.id}
-                      </h3>
-                      <time className="text-sm text-theme-muted mb-2 block">
-                        {new Date(
-                          deck.updated || deck.created,
-                        ).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </time>
-                      {deck.description && (
-                        <p className="text-theme-muted leading-relaxed">
-                          {deck.description}
-                        </p>
-                      )}
-                    </a>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="grid md:grid-cols-[200px_1px_1fr] gap-8 md:gap-12 items-start">
+              <h2 className="text-xl md:text-2xl font-semibold text-heading">
+                Presentations
+              </h2>
+              <div className="hidden md:block w-px bg-border h-full min-h-[400px]"></div>
+              <div>
+                <>
+                  <ul className="space-y-10">
+                    {decks.slice(0, 3).map((deck) => {
+                      return (
+                        <li key={deck.id}>
+                          <a href={`/decks/${deck.id}`} className="group block">
+                            <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
+                              {deck.title || deck.id}
+                            </h3>
+                            <time className="text-sm text-theme-muted block mb-3">
+                              {new Date(
+                                deck.updated || deck.created,
+                              ).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
+                            </time>
+                            {deck.description && (
+                              <p className="text-sm text-theme-muted leading-relaxed">
+                                {deck.description}
+                              </p>
+                            )}
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {decks.length > 3 && (
+                    <div className="mt-10">
+                      <a
+                        href="/decks"
+                        className="text-sm font-medium text-heading hover:underline uppercase tracking-wide"
+                      >
+                        Show More →
+                      </a>
+                    </div>
+                  )}
+                </>
+              </div>
+            </div>
           </section>
         )}
       </div>

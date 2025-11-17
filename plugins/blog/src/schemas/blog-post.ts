@@ -62,3 +62,5 @@ export const blogPostWithDataSchema = blogPostSchema.extend({
   frontmatter: blogPostFrontmatterSchema,
   body: z.string(),
 });
+
+export type BlogPostWithData = z.infer<typeof blogPostWithDataSchema>;
