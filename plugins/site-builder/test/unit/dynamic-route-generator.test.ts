@@ -331,4 +331,204 @@ describe("DynamicRouteGenerator", () => {
       expect(route?.sections[0]?.template).toBe("new-plugin:topic-list");
     });
   });
+
+  describe("entity route config", () => {
+    test("should use custom label with default pluralName", async () => {
+      // Set up entity type
+      entityTypes.push("post");
+      entities.set("post", [
+        { id: "essay-1", entityType: "post", metadata: { slug: "essay-1" } },
+      ]);
+
+      // Set up templates
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+      );
+
+      // Create generator with entity route config
+      const configuredGenerator = new DynamicRouteGenerator(
+        mockContext,
+        routeRegistry,
+        {
+          post: { label: "Essay" }, // pluralName defaults to 'essays'
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should create routes at /essays (not /posts)
+      const indexRoute = routeRegistry.get("/essays");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.title).toBe("Essays");
+      expect(indexRoute?.navigation?.label).toBe("Essays");
+
+      // Detail route should also use /essays
+      const detailRoute = routeRegistry.get("/essays/essay-1");
+      expect(detailRoute).toBeDefined();
+    });
+
+    test("should use custom label with explicit pluralName", async () => {
+      entityTypes.push("deck");
+      entities.set("deck", [
+        { id: "deck-1", entityType: "deck", metadata: { slug: "deck-1" } },
+      ]);
+
+      templates.push(
+        {
+          name: "decks:deck-list",
+          pluginId: "decks",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "decks:deck-detail",
+          pluginId: "decks",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+      );
+
+      // Explicit pluralName override
+      const configuredGenerator = new DynamicRouteGenerator(
+        mockContext,
+        routeRegistry,
+        {
+          deck: { label: "Presentation", pluralName: "talks" },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should use explicit pluralName
+      const indexRoute = routeRegistry.get("/talks");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.title).toBe("Presentations");
+      expect(indexRoute?.navigation?.label).toBe("Presentations");
+
+      const detailRoute = routeRegistry.get("/talks/deck-1");
+      expect(detailRoute).toBeDefined();
+    });
+
+    test("should handle mixed configured and non-configured entity types", async () => {
+      entityTypes.push("post", "topic");
+      entities.set("post", [
+        { id: "post-1", entityType: "post", metadata: { slug: "post-1" } },
+      ]);
+      entities.set("topic", [
+        { id: "topic-1", entityType: "topic", metadata: { slug: "topic-1" } },
+      ]);
+
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "topics:topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "topics:topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+      );
+
+      // Only configure post, leave topic as default
+      const configuredGenerator = new DynamicRouteGenerator(
+        mockContext,
+        routeRegistry,
+        {
+          post: { label: "Essay" },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Configured entity (post -> essays)
+      const essaysRoute = routeRegistry.get("/essays");
+      expect(essaysRoute).toBeDefined();
+      expect(essaysRoute?.navigation?.label).toBe("Essays");
+
+      // Non-configured entity (topic -> topics, auto-generated)
+      const topicsRoute = routeRegistry.get("/topics");
+      expect(topicsRoute).toBeDefined();
+      expect(topicsRoute?.navigation?.label).toBe("Topics");
+
+      // Detail routes
+      expect(routeRegistry.get("/essays/post-1")).toBeDefined();
+      expect(routeRegistry.get("/topics/topic-1")).toBeDefined();
+    });
+
+    test("should maintain backward compatibility without config", async () => {
+      entityTypes.push("post");
+      entities.set("post", [
+        { id: "post-1", entityType: "post", metadata: { slug: "post-1" } },
+      ]);
+
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+      );
+
+      // No entity route config (undefined)
+      const defaultGenerator = new DynamicRouteGenerator(
+        mockContext,
+        routeRegistry,
+        undefined,
+      );
+
+      await defaultGenerator.generateEntityRoutes();
+
+      // Should use auto-generated values
+      const indexRoute = routeRegistry.get("/posts");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.navigation?.label).toBe("Posts");
+
+      const detailRoute = routeRegistry.get("/posts/post-1");
+      expect(detailRoute).toBeDefined();
+    });
+  });
 });

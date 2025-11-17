@@ -220,6 +220,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.routeRegistry,
       this.siteInfoService,
       this.profileService,
+      this.config.entityRouteConfig,
     );
 
     // Initialize the site content service with route registry

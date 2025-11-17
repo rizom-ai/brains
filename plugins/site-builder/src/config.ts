@@ -19,6 +19,18 @@ export type LayoutComponent = (props: {
   siteInfo: SiteInfo;
 }) => JSX.Element;
 
+/**
+ * Entity route configuration
+ * Allows customizing auto-generated route paths and labels for entity types
+ */
+export type EntityRouteConfig = Record<
+  string,
+  {
+    label: string;
+    pluralName?: string;
+  }
+>;
+
 export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
     .string()
@@ -53,6 +65,22 @@ export const siteBuilderConfigSchema = z.object({
     .boolean()
     .default(true)
     .describe("Automatically rebuild site when content changes"),
+  entityRouteConfig: z
+    .record(
+      z.object({
+        label: z
+          .string()
+          .describe("Display label for entity type (e.g., 'Essay')"),
+        pluralName: z
+          .string()
+          .optional()
+          .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
+      }),
+    )
+    .optional()
+    .describe(
+      "Custom route configuration for entity types (overrides auto-generated paths and labels)",
+    ),
 });
 
 export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {
@@ -60,4 +88,6 @@ export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {
   templates?: Record<string, Template>;
   // Override the layouts field type to be properly typed (required)
   layouts: Record<string, LayoutComponent>;
+  // Override the entityRouteConfig field type to be properly typed
+  entityRouteConfig?: EntityRouteConfig;
 };

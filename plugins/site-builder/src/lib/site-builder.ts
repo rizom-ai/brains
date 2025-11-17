@@ -21,6 +21,7 @@ import { DynamicRouteGenerator } from "./dynamic-route-generator";
 import type { SiteInfo } from "../types/site-info";
 import type { SiteInfoService } from "../services/site-info-service";
 import type { ProfileService } from "@brains/profile-service";
+import type { EntityRouteConfig } from "../config";
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -32,6 +33,7 @@ export class SiteBuilder implements ISiteBuilder {
   private routeRegistry: RouteRegistry;
   private siteInfoService: SiteInfoService;
   private profileService: ProfileService;
+  private entityRouteConfig: EntityRouteConfig | undefined;
 
   /**
    * Set the default static site builder factory for all instances
@@ -48,6 +50,7 @@ export class SiteBuilder implements ISiteBuilder {
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
     profileService: ProfileService,
+    entityRouteConfig?: EntityRouteConfig,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
@@ -56,6 +59,7 @@ export class SiteBuilder implements ISiteBuilder {
       routeRegistry,
       siteInfoService,
       profileService,
+      entityRouteConfig,
     );
     return SiteBuilder.instance;
   }
@@ -71,6 +75,7 @@ export class SiteBuilder implements ISiteBuilder {
     siteInfoService: SiteInfoService,
     profileService: ProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
+    entityRouteConfig?: EntityRouteConfig,
   ): SiteBuilder {
     return new SiteBuilder(
       logger,
@@ -79,6 +84,7 @@ export class SiteBuilder implements ISiteBuilder {
       routeRegistry,
       siteInfoService,
       profileService,
+      entityRouteConfig,
     );
   }
 
@@ -89,6 +95,7 @@ export class SiteBuilder implements ISiteBuilder {
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
     profileService: ProfileService,
+    entityRouteConfig?: EntityRouteConfig,
   ) {
     this.logger = logger;
     this.context = context;
@@ -96,6 +103,7 @@ export class SiteBuilder implements ISiteBuilder {
     this.routeRegistry = routeRegistry;
     this.siteInfoService = siteInfoService;
     this.profileService = profileService;
+    this.entityRouteConfig = entityRouteConfig;
 
     // Factory is now encapsulated within the site builder
 
@@ -176,6 +184,7 @@ export class SiteBuilder implements ISiteBuilder {
       const dynamicRouteGenerator = new DynamicRouteGenerator(
         this.context,
         this.routeRegistry,
+        this.entityRouteConfig,
       );
       await dynamicRouteGenerator.generateEntityRoutes();
 

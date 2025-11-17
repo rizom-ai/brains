@@ -78,6 +78,10 @@ const config = defineConfig({
     professionalSitePlugin(),
     siteBuilderPlugin({
       routes, // Custom routes with Yeehaa branding
+      entityRouteConfig: {
+        post: { label: "Essay" }, // pluralName defaults to 'essays'
+        deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
+      },
       layouts: {
         default: DefaultLayout,
         minimal: MinimalLayout,

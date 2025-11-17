@@ -1,6 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
 import type { RouteDefinition } from "../types/routes";
+import type { EntityRouteConfig } from "../config";
 
 /**
  * Generates dynamic routes for entity types that have matching templates
@@ -9,6 +10,7 @@ export class DynamicRouteGenerator {
   constructor(
     private readonly context: ServicePluginContext,
     private readonly routeRegistry: RouteRegistry,
+    private readonly entityRouteConfig?: EntityRouteConfig,
   ) {}
 
   /**
@@ -68,15 +70,17 @@ export class DynamicRouteGenerator {
 
     // Register index route if we have a list template
     if (listTemplateName) {
+      const { pluralName, label } = this.getEntityDisplayConfig(entityType);
+
       const indexRoute: RouteDefinition = {
         id: `${entityType}-index`,
-        path: `/${this.pluralize(entityType)}`,
-        title: `${this.capitalize(this.pluralize(entityType))}`,
-        description: `Browse all ${this.pluralize(entityType)}`,
+        path: `/${pluralName}`,
+        title: label,
+        description: `Browse all ${pluralName}`,
         layout: "default",
         navigation: {
           show: true,
-          label: `${this.capitalize(this.pluralize(entityType))}`,
+          label,
           slot: "primary",
           priority: 40, // Plugin-registered pages priority
         },
@@ -117,6 +121,9 @@ export class DynamicRouteGenerator {
           `Found ${entities.length} ${entityType} entities to generate routes for`,
         );
 
+        // Get display config for entity type
+        const { pluralName } = this.getEntityDisplayConfig(entityType);
+
         // Get template to check for route layout preference
         const templates = this.context.listViewTemplates();
         const detailTemplate = templates.find(
@@ -133,7 +140,7 @@ export class DynamicRouteGenerator {
 
           const detailRoute: RouteDefinition = {
             id: `${entityType}-${entity.id}`,
-            path: `/${this.pluralize(entityType)}/${urlSlug}`,
+            path: `/${pluralName}/${urlSlug}`,
             title: `${this.capitalize(entityType)}: ${urlSlug}`,
             description: `View ${entityType} details`,
             layout,
@@ -216,6 +223,35 @@ export class DynamicRouteGenerator {
     }
 
     return result;
+  }
+
+  /**
+   * Get display configuration for an entity type
+   * Checks custom config first, falls back to auto-generation
+   */
+  private getEntityDisplayConfig(entityType: string): {
+    pluralName: string;
+    label: string;
+  } {
+    const config = this.entityRouteConfig?.[entityType];
+
+    if (config) {
+      // Use custom config
+      // pluralName is for URL paths, label is always config.label + "s" capitalized
+      const pluralName = config.pluralName ?? config.label.toLowerCase() + "s";
+      const displayLabel = this.capitalize(config.label.toLowerCase() + "s");
+      return {
+        pluralName,
+        label: displayLabel,
+      };
+    }
+
+    // Fall back to auto-generation
+    const pluralName = this.pluralize(entityType);
+    return {
+      pluralName,
+      label: this.capitalize(pluralName),
+    };
   }
 
   /**
