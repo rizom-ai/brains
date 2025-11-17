@@ -1,0 +1,79 @@
+import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { IEntityService } from "@brains/plugins";
+import type { z } from "@brains/utils";
+import { ProfileAdapter, type ProfileBody } from "@brains/profile-service";
+import type { BlogPost } from "@brains/blog";
+import type { DeckEntity } from "@brains/decks";
+import type { HomepageListData } from "../templates/homepage-list";
+
+/**
+ * Homepage list datasource
+ * Fetches profile, recent published posts, and recent decks for homepage display
+ */
+export class HomepageListDataSource implements DataSource {
+  public readonly id = "professional:homepage-list";
+  public readonly name = "Homepage List DataSource";
+  public readonly description =
+    "Fetches profile, blog posts, and presentation decks for homepage";
+
+  constructor(private readonly entityService: IEntityService) {}
+
+  /**
+   * Fetch homepage data
+   */
+  async fetch<T>(
+    _query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    _context?: DataSourceContext,
+  ): Promise<T> {
+    // Fetch profile entity
+    const profileEntities = await this.entityService.listEntities("profile", {
+      limit: 1,
+    });
+    const profileEntity = profileEntities[0];
+    if (!profileEntity) {
+      throw new Error("Profile not found");
+    }
+
+    // Parse profile data using ProfileAdapter
+    const profileAdapter = new ProfileAdapter();
+    const profile: ProfileBody = profileAdapter.parseProfileBody(
+      profileEntity.content,
+    );
+
+    // Fetch recent published posts (limit 20)
+    const allPosts = await this.entityService.listEntities<BlogPost>("post", {
+      limit: 100,
+    });
+
+    // Filter published posts and sort by date
+    const posts = allPosts
+      .filter((post: BlogPost) => post.metadata.status === "published")
+      .sort((a: BlogPost, b: BlogPost) => {
+        const dateA = new Date(a.metadata.publishedAt ?? a.created);
+        const dateB = new Date(b.metadata.publishedAt ?? b.created);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 20);
+
+    // Fetch recent decks (limit 10)
+    const allDecks = await this.entityService.listEntities<DeckEntity>("deck", {
+      limit: 10,
+    });
+
+    // Sort decks by date
+    const decks = allDecks.sort((a: DeckEntity, b: DeckEntity) => {
+      const dateA = new Date(a.updated || a.created);
+      const dateB = new Date(b.updated || b.created);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    const data: HomepageListData = {
+      profile,
+      posts,
+      decks,
+    };
+
+    return outputSchema.parse(data);
+  }
+}

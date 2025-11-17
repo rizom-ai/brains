@@ -7,6 +7,7 @@ import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
+import { professionalSitePlugin } from "@brains/professional-site";
 import {
   routes as defaultRoutes,
   DefaultLayout,
@@ -26,7 +27,7 @@ const routes = [
     sections: [
       {
         id: "homepage",
-        template: "blog:homepage",
+        template: "professional-site:homepage-list",
         dataQuery: {},
       },
     ],
@@ -74,6 +75,7 @@ const config = defineConfig({
     }),
     blogPlugin({}),
     decksPlugin({}),
+    professionalSitePlugin(),
     siteBuilderPlugin({
       routes, // Custom routes with Yeehaa branding
       layouts: {

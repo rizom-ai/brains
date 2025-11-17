@@ -65,8 +65,15 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   }
 }
 
+/**
+ * Factory function to create the decks plugin
+ */
+export function decksPlugin() {
+  return new DecksPlugin();
+}
+
 // Export for use as a plugin
-export default DecksPlugin;
+export default decksPlugin;
 
 // Export public API for external consumers
 export type { DeckEntity } from "./schemas/deck";
