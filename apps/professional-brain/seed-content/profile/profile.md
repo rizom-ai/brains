@@ -8,6 +8,14 @@ Yeehaa
 
 Professional developer, writer, and knowledge worker
 
+## Tagline
+
+Building tools for thought
+
+## Intro
+
+Essays and presentations on technology, productivity, and knowledge management
+
 ## Website
 
 https://yeehaa.io
@@ -18,7 +26,7 @@ yeehaa@rizom.ai
 
 ## Social Links
 
-### 1
+### Social Link 1
 
 #### Platform
 
@@ -32,7 +40,7 @@ https://github.com/yourusername
 
 View my code on GitHub
 
-### 2
+### Social Link 2
 
 #### Platform
 
@@ -46,7 +54,7 @@ https://www.linkedin.com/in/yourprofile
 
 Connect on LinkedIn
 
-### 3
+### Social Link 3
 
 #### Platform
 
