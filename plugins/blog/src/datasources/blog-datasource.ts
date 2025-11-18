@@ -1,9 +1,13 @@
-import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { BlogPost, BlogPostFrontmatter } from "../schemas/blog-post";
-import { blogPostFrontmatterSchema } from "../schemas/blog-post";
+import type { BlogPost } from "../schemas/blog-post";
+import {
+  blogPostFrontmatterSchema,
+  blogPostWithDataSchema,
+  type BlogPostWithData,
+} from "../schemas/blog-post";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -18,29 +22,25 @@ const entityFetchQuerySchema = z.object({
     .optional(),
 });
 
-/**
- * Blog post with parsed frontmatter data
- * Metadata has key fields for fast filtering, frontmatter has all display data
- * Body is the markdown content without frontmatter (for rendering)
- */
-export type BlogPostWithData = BlogPost & {
-  frontmatter: BlogPostFrontmatter;
-  body: string;
-};
+// Re-export for convenience
+export type { BlogPostWithData };
 
 /**
- * Parse frontmatter and extract body from entity (following summary pattern)
+ * Parse frontmatter and extract body from entity
+ * Uses Zod schema to validate the output
  */
 function parsePostData(entity: BlogPost): BlogPostWithData {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
     blogPostFrontmatterSchema,
   );
-  return {
+
+  // Use schema to validate and parse
+  return blogPostWithDataSchema.parse({
     ...entity,
     frontmatter: parsed.metadata,
     body: parsed.content, // Markdown without frontmatter
-  };
+  });
 }
 
 /**
@@ -62,12 +62,12 @@ export class BlogDataSource implements DataSource {
 
   /**
    * Fetch and transform blog post entities to template-ready format
-   * @param context - Optional context (environment, etc.)
+   * @param context - Context with environment and URL generation
    */
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    context?: DataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
@@ -102,7 +102,7 @@ export class BlogDataSource implements DataSource {
    */
   private async fetchLatestPost<T>(
     outputSchema: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context: BaseDataSourceContext,
   ): Promise<T> {
     const allPosts: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", {
@@ -135,7 +135,7 @@ export class BlogDataSource implements DataSource {
     let seriesPosts = null;
     const seriesName = latestEntity.metadata.seriesName;
     if (seriesName) {
-      seriesPosts = allPosts
+      const parsedSeriesPosts = allPosts
         .filter(
           (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
         )
@@ -145,6 +145,8 @@ export class BlogDataSource implements DataSource {
           return aIndex - bIndex;
         })
         .map(parsePostData);
+
+      seriesPosts = parsedSeriesPosts;
     }
 
     const detailData = {
@@ -163,7 +165,7 @@ export class BlogDataSource implements DataSource {
   private async fetchSinglePost<T>(
     slug: string,
     outputSchema: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context: BaseDataSourceContext,
   ): Promise<T> {
     // Query by slug in metadata
     const entities: BlogPost[] =
@@ -210,7 +212,7 @@ export class BlogDataSource implements DataSource {
     let seriesPosts = null;
     const seriesName = entity.metadata.seriesName;
     if (seriesName) {
-      seriesPosts = allPosts
+      const parsedSeriesPosts = allPosts
         .filter(
           (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
         )
@@ -220,6 +222,8 @@ export class BlogDataSource implements DataSource {
           return aIndex - bIndex;
         })
         .map(parsePostData);
+
+      seriesPosts = parsedSeriesPosts;
     }
 
     const detailData = {
@@ -238,7 +242,7 @@ export class BlogDataSource implements DataSource {
   private async fetchSeriesPosts<T>(
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context: BaseDataSourceContext,
   ): Promise<T> {
     const allPosts: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", {
@@ -269,7 +273,7 @@ export class BlogDataSource implements DataSource {
   private async fetchPostList<T>(
     limit: number | undefined,
     outputSchema: z.ZodSchema<T>,
-    context?: DataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
       {};

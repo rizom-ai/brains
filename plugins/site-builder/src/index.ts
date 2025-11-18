@@ -22,6 +22,9 @@ export { siteContentSchema } from "./types";
 export type { SiteInfo } from "./types/site-info";
 export { SiteInfoSchema } from "./types/site-info";
 
+// Export URL generator for datasources to use
+export { EntityUrlGenerator } from "./lib/entity-url-generator";
+
 // Export route types and schemas for other plugins to use
 export type {
   RouteDefinition,

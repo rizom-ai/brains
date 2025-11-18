@@ -12,14 +12,19 @@ export type ComponentType<P = unknown> = (props: P) => VNode;
 /**
  * Helper function to create a type-safe component that automatically parses props
  * using the provided Zod schema
+ *
+ * Supports transformation between schema type and component type (e.g., enrichment)
+ * @param TSchema - Type validated by schema (e.g., with optional url/typeLabel)
+ * @param TComponent - Type expected by component (e.g., with required url/typeLabel)
  */
-export function createTypedComponent<T>(
-  schema: z.ZodType<T>,
-  component: ComponentType<T>,
+export function createTypedComponent<TSchema, TComponent = TSchema>(
+  schema: z.ZodType<TSchema>,
+  component: ComponentType<TComponent>,
 ): ComponentType<unknown> {
   return (props: unknown) => {
     const parsedProps = schema.parse(props);
-    return component(parsedProps);
+    // Cast is safe: external enrichment transforms TSchema → TComponent before component runs
+    return component(parsedProps as unknown as TComponent);
   };
 }
 
@@ -48,12 +53,16 @@ export interface Template
 
 /**
  * Helper to create a template with automatic component wrapping
+ *
+ * Supports transformation between schema type and component type (e.g., enrichment)
+ * @param TSchema - Type validated by schema (datasource output)
+ * @param TComponent - Type expected by component (after enrichment)
  */
-export function createTemplate<T>(
+export function createTemplate<TSchema = unknown, TComponent = TSchema>(
   template: Omit<Template, "layout" | "schema"> & {
-    schema: z.ZodType<T>;
+    schema: z.ZodType<TSchema>;
     layout?: {
-      component?: ComponentType<T>;
+      component?: ComponentType<TComponent>;
       interactive?: boolean;
       routeLayout?: string;
     };
@@ -72,7 +81,10 @@ export function createTemplate<T>(
       result.layout.interactive = layout.interactive;
     }
     if (layout.component) {
-      result.layout.component = createTypedComponent(schema, layout.component);
+      result.layout.component = createTypedComponent<TSchema, TComponent>(
+        schema,
+        layout.component,
+      );
     }
     if (layout.routeLayout !== undefined) {
       result.layout.routeLayout = layout.routeLayout;

@@ -58,6 +58,11 @@ export interface ResolutionOptions {
   fallback?: unknown;
   /** Build environment (e.g., "preview" or "production") passed to datasources */
   environment?: string;
+  /**
+   * URL generator function for entity detail pages - passed to datasources via context
+   * Required for site builds to ensure consistent routing
+   */
+  generateEntityUrl: (entityType: string, slug: string) => string;
 }
 
 /**

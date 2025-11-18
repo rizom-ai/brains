@@ -1,6 +1,17 @@
 import { z } from "@brains/utils";
 
 /**
+ * Deck metadata schema
+ * Key fields stored in metadata for fast queries and URL generation
+ */
+export const deckMetadataSchema = z.object({
+  slug: z.string(), // Generated from title if not provided, used for URLs
+  title: z.string(),
+});
+
+export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
+
+/**
  * Deck entity schema
  * Represents a presentation deck stored as markdown with slide separators
  */
@@ -10,7 +21,7 @@ export const deckSchema = z.object({
   content: z.string().describe("Markdown content with slide separators (---)"),
   created: z.string().datetime(),
   updated: z.string().datetime(),
-  metadata: z.record(z.string(), z.unknown()),
+  metadata: deckMetadataSchema,
 
   // Frontmatter fields
   title: z.string().describe("Presentation title"),
@@ -19,3 +30,24 @@ export const deckSchema = z.object({
 });
 
 export type DeckEntity = z.infer<typeof deckSchema>;
+
+/**
+ * Enriched deck schema (used for validation)
+ * url and typeLabel are optional to allow validation before enrichment
+ */
+export const enrichedDeckSchema = deckSchema.extend({
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+});
+
+/**
+ * Enriched deck type (used by components)
+ * url and typeLabel are required - always present after enrichment
+ */
+export type EnrichedDeck = Omit<
+  z.infer<typeof enrichedDeckSchema>,
+  "url" | "typeLabel"
+> & {
+  url: string;
+  typeLabel: string;
+};

@@ -1,4 +1,4 @@
-import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { z } from "@brains/utils";
@@ -9,7 +9,16 @@ import {
   blogPostFrontmatterSchema,
 } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
-import type { HomepageListData } from "../templates/homepage-list";
+
+/**
+ * Homepage data returned by datasource (non-enriched)
+ * Site-builder will enrich posts and decks with url and typeLabel fields
+ */
+interface HomepageDataSourceOutput {
+  profile: ProfileBody;
+  posts: BlogPostWithData[];
+  decks: DeckEntity[];
+}
 
 /**
  * Homepage list datasource
@@ -29,7 +38,7 @@ export class HomepageListDataSource implements DataSource {
   async fetch<T>(
     _query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context: BaseDataSourceContext,
   ): Promise<T> {
     // Fetch profile entity
     const profileEntities = await this.entityService.listEntities("profile", {
@@ -84,7 +93,7 @@ export class HomepageListDataSource implements DataSource {
       return dateB.getTime() - dateA.getTime();
     });
 
-    const data: HomepageListData = {
+    const data: HomepageDataSourceOutput = {
       profile,
       posts,
       decks,

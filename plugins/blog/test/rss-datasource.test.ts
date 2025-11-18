@@ -3,6 +3,7 @@ import { RSSDataSource } from "../src/datasources/rss-datasource";
 import { createSilentLogger } from "@brains/plugins";
 import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
+import type { BaseDataSourceContext } from "@brains/datasource";
 import { z } from "zod";
 
 describe("RSSDataSource", () => {
@@ -18,6 +19,10 @@ describe("RSSDataSource", () => {
       registerEntityType: mock(() => {}),
       getEntityAdapter: mock(() => undefined),
     }) as unknown as IEntityService;
+
+  const mockContext: BaseDataSourceContext = {
+    environment: "test",
+  };
 
   const samplePosts: BlogPost[] = [
     {
@@ -103,6 +108,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(result.xml).toContain("<title>First Post</title>");
@@ -123,6 +129,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(result.xml).toContain('<?xml version="1.0"');
@@ -145,6 +152,7 @@ describe("RSSDataSource", () => {
           copyright: "© 2025",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(result.xml).toContain("<title>Test Blog Title</title>");
@@ -168,6 +176,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(result.xml).toContain("<language>en-us</language>");
@@ -186,6 +195,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       // Should extract title and author from frontmatter
@@ -209,6 +219,7 @@ describe("RSSDataSource", () => {
             // Missing siteUrl, title, description
           },
           outputSchema,
+          mockContext,
         ),
       ).rejects.toThrow();
     });
@@ -229,6 +240,7 @@ describe("RSSDataSource", () => {
             description: "Description",
           },
           outputSchema,
+          mockContext,
         ),
       ).rejects.toThrow();
     });
@@ -246,6 +258,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(result).toHaveProperty("xml");
@@ -269,6 +282,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(result.xml).toContain("<channel>");
@@ -288,6 +302,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
+        mockContext,
       );
 
       expect(entityService.listEntities).toHaveBeenCalledWith("post", {

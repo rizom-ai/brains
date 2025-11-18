@@ -1,4 +1,4 @@
-import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService } from "@brains/entity-service";
 import type { z } from "@brains/utils";
 
@@ -24,7 +24,7 @@ export class EntityDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context?: BaseDataSourceContext,
   ): Promise<T> {
     // Parse query to extract entityType and id
     const params = query as {

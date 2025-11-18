@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { BlogPostWithData } from "../datasources/blog-datasource";
+import type { EnrichedBlogPost } from "../schemas/blog-post";
 import {
   Card,
   CardImage,
@@ -10,7 +10,7 @@ import {
 import { PostMetadata } from "./PostMetadata";
 
 export interface BlogListProps {
-  posts: BlogPostWithData[];
+  posts: EnrichedBlogPost[];
 }
 
 /**
@@ -34,9 +34,7 @@ export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
                 />
               )}
 
-              <CardTitle href={`/posts/${post.metadata.slug}`}>
-                {post.frontmatter.title}
-              </CardTitle>
+              <CardTitle href={post.url}>{post.frontmatter.title}</CardTitle>
 
               <CardMetadata>
                 <PostMetadata

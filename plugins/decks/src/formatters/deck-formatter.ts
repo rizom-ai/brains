@@ -3,7 +3,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import { deckSchema, type DeckEntity } from "../schemas/deck";
 
 /**
@@ -11,6 +11,7 @@ import { deckSchema, type DeckEntity } from "../schemas/deck";
  */
 const deckFrontmatterSchema = z.object({
   title: z.string(),
+  slug: z.string().optional(), // Optional - auto-generated from title if not provided
   description: z.string().optional(),
   author: z.string().optional(),
 });
@@ -37,6 +38,7 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
 
   /**
    * Convert entity to markdown with frontmatter
+   * Syncs slug from metadata back to frontmatter
    */
   public toMarkdown(entity: DeckEntity): string {
     // Validate before serializing
@@ -47,6 +49,10 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
       title: entity.title,
     };
 
+    // Include slug from metadata if available
+    if (entity.metadata.slug) {
+      frontmatter["slug"] = entity.metadata.slug;
+    }
     if (entity.description !== undefined) {
       frontmatter["description"] = entity.description;
     }
@@ -60,9 +66,10 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
   /**
    * Parse markdown into a deck entity
    * Validates that content has proper slide structure
+   * Auto-generates slug from title if not provided in frontmatter
    */
   public fromMarkdown(markdown: string): Partial<DeckEntity> {
-    const { metadata, content } = parseMarkdownWithFrontmatter(
+    const { metadata: frontmatter, content } = parseMarkdownWithFrontmatter(
       markdown,
       deckFrontmatterSchema,
     );
@@ -70,24 +77,27 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
     // Validate presentation structure
     this.validateSlideStructure(content);
 
+    // Auto-generate slug from title if not provided
+    const slug = frontmatter.slug ?? slugify(frontmatter.title);
+
     return {
       entityType: "deck",
-      content,
-      title: metadata.title,
-      description: metadata.description,
-      author: metadata.author,
+      content, // Store body WITHOUT frontmatter (like original)
+      title: frontmatter.title,
+      description: frontmatter.description,
+      author: frontmatter.author,
+      metadata: {
+        slug, // Generated from title if not in frontmatter
+        title: frontmatter.title,
+      },
     };
   }
 
   /**
-   * Extract metadata from entity
+   * Extract metadata for search/filtering
    */
   public extractMetadata(entity: DeckEntity): Record<string, unknown> {
-    return {
-      title: entity.title,
-      description: entity.description,
-      author: entity.author,
-    };
+    return entity.metadata;
   }
 
   /**

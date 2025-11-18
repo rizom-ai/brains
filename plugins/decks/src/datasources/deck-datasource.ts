@@ -1,4 +1,4 @@
-import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
@@ -35,12 +35,12 @@ export class DeckDataSource implements DataSource {
   /**
    * Fetch and transform deck entities to template-ready format
    * Returns { markdown } for single deck or { decks } for multiple
-   * @param context - Optional context (environment, etc.)
+   * @param context - Context with environment and URL generation
    */
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
@@ -73,7 +73,8 @@ export class DeckDataSource implements DataSource {
       },
     );
 
-    // Transform to DeckListData
+    // Transform to DeckListData (URLs will be added by site-builder enrichment)
+    // Keep entityType, content, and metadata.slug so site-builder can enrich with URLs
     const decks = entities.map((deck) => ({
       id: deck.id,
       title: deck.title,
@@ -81,6 +82,9 @@ export class DeckDataSource implements DataSource {
       author: deck.author,
       updated: deck.updated,
       created: deck.created,
+      entityType: deck.entityType,
+      content: deck.content,
+      metadata: deck.metadata,
     }));
 
     const listData: DeckListData = {

@@ -7,7 +7,7 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { blogPostSchema, blogPostWithDataSchema } from "./schemas/blog-post";
+import { blogPostSchema, enrichedBlogPostSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
@@ -75,11 +75,15 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
 
     // Register blog templates
     // Datasource transforms BlogPost → BlogPostWithData (adds parsed frontmatter)
+    // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     context.registerTemplates({
-      "post-list": createTemplate<BlogListProps>({
+      "post-list": createTemplate<
+        { posts: z.infer<typeof enrichedBlogPostSchema>[] },
+        BlogListProps
+      >({
         name: "post-list",
         description: "Blog list page template",
-        schema: z.object({ posts: z.array(blogPostWithDataSchema) }),
+        schema: z.object({ posts: z.array(enrichedBlogPostSchema) }),
         dataSourceId: "blog:entities",
         requiredPermission: "public",
         layout: {
@@ -87,14 +91,22 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
-      "post-detail": createTemplate<BlogPostProps>({
+      "post-detail": createTemplate<
+        {
+          post: z.infer<typeof enrichedBlogPostSchema>;
+          prevPost: z.infer<typeof enrichedBlogPostSchema> | null;
+          nextPost: z.infer<typeof enrichedBlogPostSchema> | null;
+          seriesPosts: z.infer<typeof enrichedBlogPostSchema>[] | null;
+        },
+        BlogPostProps
+      >({
         name: "post-detail",
         description: "Individual blog post template",
         schema: z.object({
-          post: blogPostWithDataSchema,
-          prevPost: blogPostWithDataSchema.nullable(),
-          nextPost: blogPostWithDataSchema.nullable(),
-          seriesPosts: z.array(blogPostWithDataSchema).nullable(),
+          post: enrichedBlogPostSchema,
+          prevPost: enrichedBlogPostSchema.nullable(),
+          nextPost: enrichedBlogPostSchema.nullable(),
+          seriesPosts: z.array(enrichedBlogPostSchema).nullable(),
         }),
         dataSourceId: "blog:entities",
         requiredPermission: "public",
@@ -103,12 +115,18 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
-      "post-series": createTemplate<SeriesListProps>({
+      "post-series": createTemplate<
+        {
+          seriesName: string;
+          posts: z.infer<typeof enrichedBlogPostSchema>[];
+        },
+        SeriesListProps
+      >({
         name: "post-series",
         description: "Blog series list template",
         schema: z.object({
           seriesName: z.string(),
-          posts: z.array(blogPostWithDataSchema),
+          posts: z.array(enrichedBlogPostSchema),
         }),
         dataSourceId: "blog:entities",
         requiredPermission: "public",
@@ -136,6 +154,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           outputDir: string;
           environment: string;
           siteConfig?: { title?: string; description?: string; url?: string };
+          generateEntityUrl: (entityType: string, slug: string) => string;
         };
 
         this.logger.info(
@@ -144,7 +163,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
 
         // Generate RSS for all builds
         // Preview: include all posts, Production: only published posts
-        await this.generateRSSFeed(context, payload, payload.environment);
+        await this.generateRSSFeed(
+          context,
+          payload,
+          payload.environment,
+          payload.generateEntityUrl,
+        );
       } catch (error) {
         this.logger.error("Failed to generate RSS feed", error);
       }
@@ -166,6 +190,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       siteConfig?: { title?: string; description?: string; url?: string };
     },
     environment: string,
+    generateEntityUrl: (entityType: string, slug: string) => string,
   ): Promise<void> {
     const isPreview = environment === "preview";
     this.logger.info(
@@ -199,6 +224,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           ...entity,
           frontmatter: parsed.metadata,
           body: parsed.content,
+          url: generateEntityUrl("post", entity.metadata.slug),
         };
       });
 

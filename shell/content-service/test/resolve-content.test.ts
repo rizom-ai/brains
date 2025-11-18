@@ -8,6 +8,14 @@ import type { AIService } from "@brains/ai-service";
 import type { DataSourceRegistry, DataSource } from "@brains/datasource";
 import { createSilentLogger } from "@brains/utils";
 
+// Helper function for tests - simple pluralization
+const testGenerateEntityUrl = (entityType: string, slug: string): string => {
+  const pluralName = entityType.endsWith("y")
+    ? entityType.slice(0, -1) + "ies"
+    : entityType + "s";
+  return `/${pluralName}/${slug}`;
+};
+
 describe("ContentService.resolveContent", () => {
   let mockDependencies: ContentServiceDependencies;
   let contentService: ContentService;
@@ -99,6 +107,7 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("dashboard", {
         dataParams: { timeRange: "24h" },
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toEqual({
@@ -108,7 +117,7 @@ describe("ContentService.resolveContent", () => {
       expect(mockDataSource.fetch).toHaveBeenCalledWith(
         { timeRange: "24h" },
         mockTemplate.schema,
-        undefined, // context parameter (no environment provided)
+        {}, // BaseDataSourceContext (empty, no generateEntityUrl)
       );
     });
 
@@ -136,6 +145,7 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("article", {
         fallback: "Default content",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Default content");
@@ -176,6 +186,7 @@ describe("ContentService.resolveContent", () => {
           entityType: "site-content-preview",
           entityId: "article-123",
         },
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toEqual(savedArticle);
@@ -210,6 +221,7 @@ describe("ContentService.resolveContent", () => {
           entityId: "dashboard-123",
         },
         fallback: { cpu: 0, memory: 0 },
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Should skip to fallback since no formatter
@@ -231,6 +243,7 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("simple", {
         fallback: "Fallback content",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fallback content");
@@ -251,6 +264,7 @@ describe("ContentService.resolveContent", () => {
       // Invalid fallback (string instead of object)
       const result = await contentService.resolveContent("typed", {
         fallback: "invalid",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBeNull();
@@ -292,6 +306,7 @@ describe("ContentService.resolveContent", () => {
           entityId: "test-123",
         },
         fallback: "Fallback data",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fresh data");
@@ -324,6 +339,7 @@ describe("ContentService.resolveContent", () => {
           entityId: "test-456",
         },
         fallback: "Fallback data",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Saved data");
@@ -358,6 +374,7 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("error-test", {
         fallback: "Fallback after error",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fallback after error");
@@ -385,6 +402,7 @@ describe("ContentService.resolveContent", () => {
           entityId: "missing",
         },
         fallback: "Fallback after missing entity",
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fallback after missing entity");
@@ -414,13 +432,14 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("simple-sourced", {
         dataParams: { test: true },
+        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Simple data");
       expect(mockDataSource.fetch).toHaveBeenCalledWith(
         { test: true },
         mockTemplate.schema,
-        undefined, // context parameter (no environment provided)
+        {}, // BaseDataSourceContext (empty object)
       );
     });
   });
@@ -440,6 +459,7 @@ describe("ContentService.resolveContent", () => {
         "scoped",
         {
           fallback: "Scoped content",
+          generateEntityUrl: testGenerateEntityUrl,
         },
         "myplugin",
       );
@@ -461,6 +481,7 @@ describe("ContentService.resolveContent", () => {
         "plugin:already-scoped",
         {
           fallback: "Content",
+          generateEntityUrl: testGenerateEntityUrl,
         },
         "otherplugin", // Different plugin, but shouldn't double-scope
       );

@@ -1,21 +1,33 @@
 import { createTemplate } from "@brains/templates";
-import { deckListSchema, type DeckListData } from "./schema";
+import {
+  deckListSchema,
+  type DeckListData,
+  type EnrichedDeckListData,
+} from "./schema";
 import { DeckListLayout } from "./layout";
 import { DeckListFormatter } from "./formatter";
 
-export const deckListTemplate = createTemplate<DeckListData>({
+export const deckListTemplate = createTemplate<
+  DeckListData,
+  EnrichedDeckListData
+>({
   name: "deck-list",
   description: "List view of all presentation decks",
-  schema: deckListSchema,
+  schema: deckListSchema, // Validate datasource output (non-enriched)
   dataSourceId: "decks:entities",
   requiredPermission: "public",
   formatter: new DeckListFormatter(),
   layout: {
-    component: DeckListLayout,
+    component: DeckListLayout, // Component receives enriched data
     interactive: false,
   },
 });
 
 export { DeckListLayout } from "./layout";
-export { deckListSchema, type DeckListData } from "./schema";
+export {
+  deckListSchema,
+  enrichedDeckListSchema,
+  type DeckListData,
+  type EnrichedDeckListData,
+} from "./schema";
 export { DeckListFormatter } from "./formatter";

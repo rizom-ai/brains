@@ -126,14 +126,14 @@ describe("SiteBuilder dataQuery handling", () => {
       // Verify resolveContent was called with correct params (no transformFormat)
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
-        {
+        expect.objectContaining({
           dataParams: {
             entityType: "topic",
             query: { limit: 100 },
           },
           environment: "preview",
           fallback: undefined,
-        },
+        }),
       );
     });
 
@@ -183,14 +183,14 @@ describe("SiteBuilder dataQuery handling", () => {
       // Verify resolveContent was called without transformFormat
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-detail",
-        {
+        expect.objectContaining({
           dataParams: {
             entityType: "topic",
             query: { id: "test-topic" },
           },
           environment: "preview",
           fallback: undefined,
-        },
+        }),
       );
     });
 
@@ -247,25 +247,28 @@ describe("SiteBuilder dataQuery handling", () => {
       }
 
       // Verify static content was resolved normally
-      expect(mockContext.resolveContent).toHaveBeenCalledWith("hero", {
-        savedContent: {
-          entityType: "site-content",
-          entityId: "mixed:static",
-        },
-        fallback: { title: "Static Hero" },
-      });
+      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+        "hero",
+        expect.objectContaining({
+          savedContent: {
+            entityType: "site-content",
+            entityId: "mixed:static",
+          },
+          fallback: { title: "Static Hero" },
+        }),
+      );
 
       // Verify dynamic content used dataQuery params
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
-        {
+        expect.objectContaining({
           dataParams: {
             entityType: "topic",
             query: { limit: 5 },
           },
           environment: "preview",
           fallback: { fallbackTitle: "No topics" },
-        },
+        }),
       );
     });
 
@@ -313,13 +316,13 @@ describe("SiteBuilder dataQuery handling", () => {
       // Should use list format when no query is present
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
-        {
+        expect.objectContaining({
           dataParams: {
             entityType: "topic",
           },
           environment: "preview",
           fallback: undefined,
-        },
+        }),
       );
     });
 
@@ -372,7 +375,7 @@ describe("SiteBuilder dataQuery handling", () => {
       // Should pass all query params through
       expect(mockContext.resolveContent).toHaveBeenCalledWith(
         "topics:topic-list",
-        {
+        expect.objectContaining({
           dataParams: {
             entityType: "topic",
             query: {
@@ -384,7 +387,7 @@ describe("SiteBuilder dataQuery handling", () => {
           },
           environment: "preview",
           fallback: undefined,
-        },
+        }),
       );
     });
   });

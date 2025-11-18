@@ -7,8 +7,8 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { blogPostWithDataSchema } from "@brains/blog";
-import { deckSchema } from "@brains/decks";
+import { enrichedBlogPostSchema } from "@brains/blog";
+import { enrichedDeckSchema } from "@brains/decks";
 import { profileBodySchema } from "@brains/profile-service";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import {
@@ -43,14 +43,18 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     context.registerDataSource(homepageDataSource);
 
     // Register homepage template
+    // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
       profile: profileBodySchema,
-      posts: z.array(blogPostWithDataSchema),
-      decks: z.array(deckSchema),
+      posts: z.array(enrichedBlogPostSchema),
+      decks: z.array(enrichedDeckSchema),
     });
 
     context.registerTemplates({
-      "homepage-list": createTemplate<HomepageListData>({
+      "homepage-list": createTemplate<
+        z.infer<typeof homepageListSchema>,
+        HomepageListData
+      >({
         name: "homepage-list",
         description: "Professional homepage with essays and presentations",
         schema: homepageListSchema,

@@ -1,15 +1,16 @@
 import type { JSX } from "preact";
 import type { ProfileBody } from "@brains/profile-service";
-import type { BlogPostWithData } from "@brains/blog";
-import type { DeckEntity } from "@brains/decks";
+import type { EnrichedBlogPost } from "@brains/blog";
+import type { EnrichedDeck } from "@brains/decks";
 
 /**
  * Homepage data structure
+ * After site-builder enrichment, posts and decks will have url and typeLabel fields
  */
 export interface HomepageListData {
   profile: ProfileBody;
-  posts: BlogPostWithData[];
-  decks: DeckEntity[];
+  posts: EnrichedBlogPost[];
+  decks: EnrichedDeck[];
 }
 
 /**
@@ -59,10 +60,7 @@ export const HomepageListLayout = ({
                   <ul className="space-y-10">
                     {posts.slice(0, 3).map((post) => (
                       <li key={post.id}>
-                        <a
-                          href={`/posts/${post.metadata.slug}`}
-                          className="group block"
-                        >
+                        <a href={post.url} className="group block">
                           <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
                             {post.metadata.title}
                           </h3>
@@ -114,7 +112,7 @@ export const HomepageListLayout = ({
                     {decks.slice(0, 3).map((deck) => {
                       return (
                         <li key={deck.id}>
-                          <a href={`/decks/${deck.id}`} className="group block">
+                          <a href={deck.url} className="group block">
                             <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
                               {deck.title || deck.id}
                             </h3>

@@ -1,6 +1,5 @@
 import type { JSX } from "preact";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { h } from "preact";
 import type { ProductsSection } from "./schema";
 import * as LucideIcons from "lucide-preact";
 import type { LucideIcon } from "lucide-preact";

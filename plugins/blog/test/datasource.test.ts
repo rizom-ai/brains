@@ -2,12 +2,14 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { IEntityService, Logger } from "@brains/plugins";
+import type { BaseDataSourceContext } from "@brains/datasource";
 import { z } from "@brains/utils";
 
 describe("BlogDataSource", () => {
   let datasource: BlogDataSource;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
+  let mockContext: BaseDataSourceContext;
 
   // Sample test data
   const createMockPost = (
@@ -64,6 +66,10 @@ Content for ${title}`,
       deleteEntity: mock(() => ({})),
     } as unknown as IEntityService;
 
+    mockContext = {
+      environment: "test",
+    };
+
     datasource = new BlogDataSource(mockEntityService, mockLogger);
   });
 
@@ -107,6 +113,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-2");
@@ -149,6 +156,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-3");
@@ -176,6 +184,7 @@ Content for ${title}`,
         datasource.fetch(
           { entityType: "post", query: { latest: true } },
           schema,
+          mockContext,
         ),
       ).rejects.toThrow("NO_PUBLISHED_POSTS");
     });
@@ -225,6 +234,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-3");
@@ -278,6 +288,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "middle-post" } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-2");
@@ -302,6 +313,7 @@ Content for ${title}`,
         datasource.fetch(
           { entityType: "post", query: { id: "nonexistent-slug" } },
           schema,
+          mockContext,
         ),
       ).rejects.toThrow("Blog post not found with slug: nonexistent-slug");
     });
@@ -361,6 +373,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "series-part-2" } },
         schema,
+        mockContext,
       );
 
       expect(result.seriesPosts).toBeDefined();
@@ -405,6 +418,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "first-post" } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-1");
@@ -447,6 +461,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { id: "oldest-post" } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-2");
@@ -489,7 +504,11 @@ Content for ${title}`,
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch({ entityType: "post" }, schema);
+      const result = await datasource.fetch(
+        { entityType: "post" },
+        schema,
+        mockContext,
+      );
 
       expect(result.posts).toHaveLength(3);
       expect(result.posts[0].id).toBe("post-2"); // Newest first
@@ -521,7 +540,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post" },
         schema,
-        { environment: "preview" }, // Preview mode shows all posts
+        { ...mockContext, environment: "preview" }, // Preview mode shows all posts
       );
 
       expect(result.posts).toHaveLength(3);
@@ -566,6 +585,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { limit: 2 } },
         schema,
+        mockContext,
       );
 
       expect(result.posts).toHaveLength(3); // Mock returns all, sorting still works
@@ -580,7 +600,11 @@ Content for ${title}`,
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch({ entityType: "post" }, schema);
+      const result = await datasource.fetch(
+        { entityType: "post" },
+        schema,
+        mockContext,
+      );
 
       expect(result.posts).toHaveLength(0);
     });
@@ -604,7 +628,11 @@ Content for ${title}`,
         posts: z.array(z.any()),
       });
 
-      const result = await datasource.fetch({ entityType: "post" }, schema);
+      const result = await datasource.fetch(
+        { entityType: "post" },
+        schema,
+        mockContext,
+      );
 
       expect(result.posts[0].frontmatter).toBeDefined();
       expect(result.posts[0].frontmatter.title).toBe("Test Post");
@@ -668,6 +696,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { "metadata.seriesName": "My Series" } },
         schema,
+        mockContext,
       );
 
       expect(result.seriesName).toBe("My Series");
@@ -711,6 +740,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { "metadata.seriesName": "My Series" } },
         schema,
+        mockContext,
       );
 
       expect(result.posts).toHaveLength(2);
@@ -733,6 +763,7 @@ Content for ${title}`,
           query: { "metadata.seriesName": "Empty Series" },
         },
         schema,
+        mockContext,
       );
 
       expect(result.seriesName).toBe("Empty Series");
@@ -771,6 +802,7 @@ Content for ${title}`,
       const result = await datasource.fetch(
         { entityType: "post", query: { "metadata.seriesName": "My Series" } },
         schema,
+        mockContext,
       );
 
       expect(result.posts).toHaveLength(2);

@@ -9,7 +9,10 @@ import type { Logger } from "@brains/utils";
 import type { ContentService as IContentService } from "./types";
 import type { TemplateRegistry } from "@brains/templates";
 import { TemplateCapabilities } from "@brains/templates";
-import type { DataSourceRegistry } from "@brains/datasource";
+import type {
+  DataSourceRegistry,
+  BaseDataSourceContext,
+} from "@brains/datasource";
 
 /**
  * Dependencies required by ContentService
@@ -150,11 +153,12 @@ export class ContentService implements IContentService {
         try {
           // DataSource handles fetching and any needed transformation internally
           if (dataSource.fetch) {
-            // Build context with environment if provided
-            const context =
-              options?.environment !== undefined
-                ? { environment: options.environment }
-                : undefined;
+            // Build context from options
+            const context: BaseDataSourceContext = {
+              ...(options?.environment !== undefined && {
+                environment: options.environment,
+              }),
+            };
 
             const data = await dataSource.fetch(
               options?.dataParams,

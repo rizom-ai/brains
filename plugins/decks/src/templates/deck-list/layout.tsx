@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { DeckListData } from "./schema";
+import type { EnrichedDeckListData } from "./schema";
 import {
   Card,
   CardTitle,
@@ -9,7 +9,9 @@ import {
   formatDate,
 } from "@brains/ui-library";
 
-export const DeckListLayout = ({ decks }: DeckListData): JSX.Element => {
+export const DeckListLayout = ({
+  decks,
+}: EnrichedDeckListData): JSX.Element => {
   return (
     <div className="deck-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
       <ListPageHeader
@@ -22,7 +24,7 @@ export const DeckListLayout = ({ decks }: DeckListData): JSX.Element => {
       <div className="space-y-6">
         {decks.map((deck) => (
           <Card key={deck.id} variant="vertical">
-            <CardTitle href={`/decks/${deck.id}`} className="text-xl">
+            <CardTitle href={deck.url} className="text-xl">
               {deck.title}
             </CardTitle>
 

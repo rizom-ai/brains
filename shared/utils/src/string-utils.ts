@@ -26,3 +26,18 @@ export function generateIdFromText(text: string, suffix?: string): string {
   }
   return suffix ? `${slug}-${suffix}` : slug;
 }
+
+/**
+ * Simple English pluralization for common cases
+ * Handles: -y → -ies, -s/-x/-ch → -es, default → -s
+ */
+export function pluralize(word: string): string {
+  // Handle common cases
+  if (word.endsWith("y")) {
+    return word.slice(0, -1) + "ies";
+  }
+  if (word.endsWith("s") || word.endsWith("x") || word.endsWith("ch")) {
+    return word + "es";
+  }
+  return word + "s";
+}

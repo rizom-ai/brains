@@ -2,6 +2,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
 import type { RouteDefinition } from "../types/routes";
 import type { EntityRouteConfig } from "../config";
+import { pluralize } from "@brains/utils";
 
 /**
  * Generates dynamic routes for entity types that have matching templates
@@ -150,7 +151,7 @@ export class DynamicRouteGenerator {
                 template: detailTemplateName,
                 dataQuery: {
                   entityType,
-                  query: { id: urlSlug }, // Pass slug as id for datasource lookup
+                  query: { id: entity.id }, // Pass entity ID for datasource lookup
                 },
               },
             ],
@@ -247,7 +248,7 @@ export class DynamicRouteGenerator {
     }
 
     // Fall back to auto-generation
-    const pluralName = this.pluralize(entityType);
+    const pluralName = pluralize(entityType);
     return {
       pluralName,
       label: this.capitalize(pluralName),
@@ -259,19 +260,5 @@ export class DynamicRouteGenerator {
    */
   private capitalize(str: string): string {
     return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
-  /**
-   * Simple pluralization (can be enhanced with proper inflection library)
-   */
-  private pluralize(word: string): string {
-    // Handle common cases
-    if (word.endsWith("y")) {
-      return word.slice(0, -1) + "ies";
-    }
-    if (word.endsWith("s") || word.endsWith("x") || word.endsWith("ch")) {
-      return word + "es";
-    }
-    return word + "s";
   }
 }

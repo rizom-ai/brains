@@ -55,8 +55,8 @@ export const blogPostSchema = baseEntitySchema.extend({
 export type BlogPost = z.infer<typeof blogPostSchema>;
 
 /**
- * Blog post with parsed frontmatter data (used by datasource)
- * Extends BlogPost with parsed frontmatter and body (markdown without frontmatter) for templates
+ * Blog post with parsed frontmatter data (returned by datasource)
+ * Extends BlogPost with parsed frontmatter and body (markdown without frontmatter)
  */
 export const blogPostWithDataSchema = blogPostSchema.extend({
   frontmatter: blogPostFrontmatterSchema,
@@ -64,3 +64,24 @@ export const blogPostWithDataSchema = blogPostSchema.extend({
 });
 
 export type BlogPostWithData = z.infer<typeof blogPostWithDataSchema>;
+
+/**
+ * Enriched blog post schema (used for validation)
+ * url and typeLabel are optional to allow validation before enrichment
+ */
+export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+});
+
+/**
+ * Enriched blog post type (used by components)
+ * url and typeLabel are required - always present after enrichment
+ */
+export type EnrichedBlogPost = Omit<
+  z.infer<typeof enrichedBlogPostSchema>,
+  "url" | "typeLabel"
+> & {
+  url: string;
+  typeLabel: string;
+};

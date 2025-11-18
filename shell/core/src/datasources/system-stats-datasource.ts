@@ -1,4 +1,4 @@
-import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, BaseEntity } from "@brains/entity-service";
 import { z } from "@brains/utils";
 
@@ -50,7 +50,7 @@ export class SystemStatsDataSource implements DataSource {
   async fetch<T>(
     _query: unknown,
     _outputSchema?: z.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context?: BaseDataSourceContext,
   ): Promise<T> {
     // Get entity statistics
     const entityStats = await this.getEntityStats();

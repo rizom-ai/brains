@@ -1,4 +1,4 @@
-import type { DataSource, DataSourceContext } from "@brains/datasource";
+import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { Logger } from "@brains/plugins";
 import { type z as zType } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
@@ -33,7 +33,7 @@ export class SiteInfoDataSource implements DataSource {
   async fetch<T>(
     _query: unknown,
     outputSchema: zType.ZodSchema<T>,
-    _context?: DataSourceContext,
+    _context?: BaseDataSourceContext,
   ): Promise<T> {
     this.logger.debug("SiteInfoDataSource fetch called");
 

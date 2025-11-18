@@ -7,6 +7,7 @@ import {
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
+import { pluralize } from "@brains/utils";
 
 /**
  * Job handler for site building operations
@@ -20,8 +21,26 @@ export class SiteBuildJobHandler
     private layouts: Record<string, LayoutComponent>,
     private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
     private context: ServicePluginContext,
+    private entityRouteConfig?: SiteBuilderConfig["entityRouteConfig"],
     private themeCSS?: string,
   ) {}
+
+  /**
+   * Generate URL for an entity detail page
+   */
+  private generateEntityUrl(entityType: string, slug: string): string {
+    const config = this.entityRouteConfig?.[entityType];
+
+    if (config) {
+      // Use custom config
+      const pluralName = config.pluralName ?? config.label.toLowerCase() + "s";
+      return `/${pluralName}/${slug}`;
+    }
+
+    // Fall back to auto-generated pluralization
+    const pluralName = pluralize(entityType);
+    return `/${pluralName}/${slug}`;
+  }
 
   async process(
     data: SiteBuildJobData,
@@ -89,6 +108,7 @@ export class SiteBuildJobHandler
           environment: data.environment,
           routesBuilt: result.routesBuilt,
           siteConfig: data.siteConfig ?? this.defaultSiteConfig,
+          generateEntityUrl: this.generateEntityUrl.bind(this),
         });
       }
 

@@ -22,6 +22,23 @@ import type { SiteInfo } from "../types/site-info";
 import type { SiteInfoService } from "../services/site-info-service";
 import type { ProfileService } from "@brains/profile-service";
 import type { EntityRouteConfig } from "../config";
+import { baseEntitySchema } from "@brains/entity-service";
+import { z, pluralize } from "@brains/utils";
+
+// Schema for entities with slug metadata (for auto-enrichment)
+const entityWithSlugSchema = baseEntitySchema.extend({
+  metadata: z
+    .object({
+      slug: z.string(),
+    })
+    .passthrough(), // Allow other metadata fields
+});
+
+// Type for enriched entity with url and typeLabel
+type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
+  url: string;
+  typeLabel: string;
+};
 
 export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
@@ -317,6 +334,22 @@ export class SiteBuilder implements ISiteBuilder {
     // Template name will be automatically scoped by the context helper
     const templateName = section.template;
 
+    // Create URL generator function based on entityRouteConfig
+    const generateEntityUrl = (entityType: string, slug: string): string => {
+      const config = this.entityRouteConfig?.[entityType];
+
+      if (config) {
+        // Use custom config
+        const pluralName =
+          config.pluralName ?? config.label.toLowerCase() + "s";
+        return `/${pluralName}/${slug}`;
+      }
+
+      // Fall back to auto-generated pluralization
+      const pluralName = pluralize(entityType);
+      return `/${pluralName}/${slug}`;
+    };
+
     // Check if this section uses dynamic content (DataSource)
     if (section.dataQuery) {
       // Use the context's resolveContent helper with DataSource params
@@ -326,16 +359,20 @@ export class SiteBuilder implements ISiteBuilder {
         dataParams: section.dataQuery,
         // Static fallback content from section definition
         fallback: section.content,
+        // Pass URL generator for datasources to add url fields
+        generateEntityUrl,
+        // Pass environment if defined
+        ...(environment !== undefined && { environment }),
       };
-
-      // Only pass environment if it's defined
-      if (environment !== undefined) {
-        options.environment = environment;
-      }
 
       const content = await this.context.resolveContent(templateName, options);
 
-      return content ?? null;
+      // Auto-enrich data with URLs and typeLabels
+      if (content) {
+        return this.enrichWithUrls(content, generateEntityUrl);
+      }
+
+      return null;
     }
 
     // Use the context's resolveContent helper for static content
@@ -347,8 +384,71 @@ export class SiteBuilder implements ISiteBuilder {
       },
       // Static fallback content from section definition
       fallback: section.content,
+      // Pass URL generator for datasources
+      generateEntityUrl,
     });
 
-    return content ?? null;
+    // Auto-enrich data with URLs and typeLabels
+    if (content) {
+      return this.enrichWithUrls(content, generateEntityUrl);
+    }
+
+    return null;
+  }
+
+  /**
+   * Auto-enrich data with URL and typeLabel fields
+   * Recursively traverses data and adds url/typeLabel to any entity objects
+   */
+  private enrichWithUrls(
+    data: unknown,
+    generateEntityUrl: (entityType: string, slug: string) => string,
+  ): unknown {
+    // Handle null/undefined
+    if (data === null || data === undefined) {
+      return data;
+    }
+
+    // Handle arrays - recursively enrich each item
+    if (Array.isArray(data)) {
+      return data.map((item) => this.enrichWithUrls(item, generateEntityUrl));
+    }
+
+    // Handle objects
+    if (typeof data === "object") {
+      const obj = data as Record<string, unknown>;
+
+      // Recursively enrich all nested objects first
+      const enriched: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        enriched[key] = this.enrichWithUrls(value, generateEntityUrl);
+      }
+
+      // Check if this object is an entity with slug metadata
+      const entityCheck = entityWithSlugSchema.safeParse(obj);
+      if (entityCheck.success) {
+        const entity = entityCheck.data;
+        const entityType = entity.entityType;
+        const slug = entity.metadata.slug;
+
+        // Build properly typed enriched entity
+        const config = this.entityRouteConfig?.[entityType];
+        const enrichedEntity: EnrichedEntity = {
+          ...enriched,
+          ...entity,
+          url: generateEntityUrl(entityType, slug),
+          typeLabel: config
+            ? config.label
+            : entityType.charAt(0).toUpperCase() + entityType.slice(1),
+        };
+
+        return enrichedEntity;
+      }
+
+      return enriched;
+    }
+
+    // Return primitives as-is
+    return data;
   }
 }

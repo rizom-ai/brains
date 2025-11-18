@@ -3,9 +3,11 @@ export { blogConfigSchema, type BlogConfig } from "./config";
 export {
   blogPostSchema,
   blogPostWithDataSchema,
+  enrichedBlogPostSchema,
   blogPostFrontmatterSchema,
   type BlogPost,
   type BlogPostWithData,
+  type EnrichedBlogPost,
   type BlogPostFrontmatter,
 } from "./schemas/blog-post";
 export { blogPostAdapter, BlogPostAdapter } from "./adapters/blog-post-adapter";

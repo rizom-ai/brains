@@ -2,7 +2,7 @@
 export type {
   DataSource,
   DataSourceCapabilities,
-  DataSourceContext,
+  BaseDataSourceContext,
 } from "./types";
 
 // Registry

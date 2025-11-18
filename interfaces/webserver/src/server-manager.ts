@@ -16,8 +16,8 @@ export interface ServerManagerOptions {
 }
 
 interface ServerState {
-  preview: Server | null;
-  production: Server | null;
+  preview: Server<unknown> | null;
+  production: Server<unknown> | null;
 }
 
 /**
