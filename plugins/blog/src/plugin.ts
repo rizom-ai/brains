@@ -76,14 +76,20 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     // Register blog templates
     // Datasource transforms BlogPost → BlogPostWithData (adds parsed frontmatter)
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
+    // Define schema for blog list template
+    const postListSchema = z.object({
+      posts: z.array(enrichedBlogPostSchema),
+      pageTitle: z.string().optional(),
+    });
+
     context.registerTemplates({
       "post-list": createTemplate<
-        { posts: z.infer<typeof enrichedBlogPostSchema>[] },
+        z.infer<typeof postListSchema>,
         BlogListProps
       >({
         name: "post-list",
         description: "Blog list page template",
-        schema: z.object({ posts: z.array(enrichedBlogPostSchema) }),
+        schema: postListSchema,
         dataSourceId: "blog:entities",
         requiredPermission: "public",
         layout: {

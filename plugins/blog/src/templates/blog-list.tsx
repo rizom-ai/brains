@@ -11,16 +11,22 @@ import { PostMetadata } from "./PostMetadata";
 
 export interface BlogListProps {
   posts: EnrichedBlogPost[];
+  pageTitle?: string;
 }
 
 /**
  * Blog list template - displays all blog posts
  */
-export const BlogListTemplate = ({ posts }: BlogListProps): JSX.Element => {
+export const BlogListTemplate = ({
+  posts,
+  pageTitle,
+}: BlogListProps): JSX.Element => {
   return (
-    <section className="blog-list-section flex-grow min-h-screen">
+    <section className="blog-list-section">
       <div className="container mx-auto px-6 md:px-8 max-w-4xl py-20">
-        <h1 className="text-4xl font-bold mb-12 text-theme">Blog Posts</h1>
+        <h1 className="text-4xl font-bold mb-12 text-theme">
+          {pageTitle ?? "Blog Posts"}
+        </h1>
 
         <div className="space-y-8">
           {posts.map((post) => (

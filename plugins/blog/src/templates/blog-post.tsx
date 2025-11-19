@@ -26,7 +26,7 @@ export const BlogPostTemplate = ({
   const htmlContent = markdownToHtml(markdownWithTitle);
 
   return (
-    <section className="blog-post-section flex-grow min-h-screen">
+    <section className="blog-post-section">
       <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
         {/* Cover Image */}
         {post.frontmatter.coverImage && (

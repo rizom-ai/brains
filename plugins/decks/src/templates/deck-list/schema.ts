@@ -13,9 +13,11 @@ export const deckListSchema = z.object({
 // Schema for enriched deck list page data (used by template)
 export const enrichedDeckListSchema = z.object({
   decks: z.array(enrichedDeckSchema),
+  pageTitle: z.string().optional(),
 });
 
 export type DeckListData = z.infer<typeof deckListSchema>;
 export interface EnrichedDeckListData {
   decks: EnrichedDeck[];
+  pageTitle?: string;
 }

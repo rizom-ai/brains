@@ -210,9 +210,16 @@ export class PreactBuilder implements StaticSiteBuilder {
         continue;
       }
 
+      // Inject route title as pageTitle for templates that use it (e.g., list pages)
+      // Templates opt-in by including pageTitle in their schema
+      const contentWithPageTitle =
+        typeof content === "object" && content !== null
+          ? { ...content, pageTitle: route.title }
+          : content;
+
       // Validate content against schema
       try {
-        const validatedContent = template.schema.parse(content);
+        const validatedContent = template.schema.parse(contentWithPageTitle);
 
         // Create component using h() to pass props correctly
         // renderer is already checked to be a function, so we can cast it to ComponentType

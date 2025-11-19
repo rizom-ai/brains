@@ -82,9 +82,9 @@
     --color-border: var(--palette-gray-200);
     --color-border-light: var(--palette-gray-100);
 
-    /* Footer - Light gray background */
-    --color-footer: var(--palette-gray-50);
-    --color-footer-text: var(--palette-gray-900);
+    /* Footer - Same as page background */
+    --color-footer: var(--color-bg);
+    --color-footer-text: var(--color-text);
 
     /* Typography */
     --font-sans: 'Jost', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
@@ -148,9 +148,9 @@
     --color-border: var(--palette-dark-border);
     --color-border-light: rgba(255, 255, 255, 0.1);
 
-    /* Footer - Dark gray background */
-    --color-footer: var(--palette-dark-bg-subtle);
-    --color-footer-text: var(--palette-text-light);
+    /* Footer - Same as page background */
+    --color-footer: var(--color-bg);
+    --color-footer-text: var(--color-text);
   }
 }
 

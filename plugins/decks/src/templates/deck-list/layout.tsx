@@ -11,11 +11,12 @@ import {
 
 export const DeckListLayout = ({
   decks,
+  pageTitle,
 }: EnrichedDeckListData): JSX.Element => {
   return (
     <div className="deck-list-container w-full max-w-4xl mx-auto p-6 bg-theme">
       <ListPageHeader
-        title="Presentation Decks"
+        title={pageTitle ?? "Presentation Decks"}
         count={decks.length}
         singularLabel="presentation"
         description="available"
