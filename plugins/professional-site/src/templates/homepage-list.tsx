@@ -3,6 +3,7 @@ import type { ProfileBody } from "@brains/profile-service";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import { WavyDivider } from "../components/WavyDivider";
+import { CompactFooter } from "../components/CompactFooter";
 
 /**
  * Homepage data structure
@@ -159,7 +160,14 @@ export const HomepageListLayout = ({
         )}
       </div>
 
-      <WavyDivider mirror />
+      <CompactFooter
+        copyright={
+          profile.name
+            ? `© ${new Date().getFullYear()} ${profile.name}`
+            : undefined
+        }
+        socialLinks={profile.socialLinks}
+      />
     </div>
   );
 };

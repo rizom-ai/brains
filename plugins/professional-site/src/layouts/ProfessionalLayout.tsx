@@ -1,5 +1,4 @@
 import type { JSX, ComponentChildren } from "preact";
-import { Footer } from "@brains/default-site-content";
 import type { SiteInfo } from "@brains/site-builder-plugin";
 import { CompactHeader } from "../components/CompactHeader";
 
@@ -28,13 +27,6 @@ export function ProfessionalLayout({
       />
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
-
-      <Footer
-        primaryNavigation={siteInfo.navigation.primary}
-        secondaryNavigation={siteInfo.navigation.secondary}
-        copyright={siteInfo.copyright}
-        socialLinks={siteInfo.socialLinks}
-      />
     </div>
   );
 }
