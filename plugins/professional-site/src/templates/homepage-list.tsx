@@ -14,7 +14,7 @@ export interface HomepageListData {
 }
 
 /**
- * Minimal, clean homepage layout inspired by Ben Evans
+ * Minimal, clean homepage layout
  * Displays profile intro, essays list, and presentations list in separate sections
  */
 export const HomepageListLayout = ({
@@ -28,15 +28,15 @@ export const HomepageListLayout = ({
   return (
     <div className="homepage-list flex-grow min-h-screen bg-theme">
       {/* Full-width Hero Section */}
-      <header className="w-full py-20 md:py-32 px-6 md:px-12 text-center bg-theme">
-        <div className="max-w-4xl mx-auto">
+      <header className="w-full py-24 md:py-40 px-6 md:px-12 bg-theme">
+        <div className="max-w-6xl mx-auto">
           {tagline && (
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-8 text-heading leading-tight tracking-tight">
+            <h1 className="text-5xl md:text-6xl font-bold mb-8 text-heading leading-tight max-w-4xl">
               {tagline}
             </h1>
           )}
           {profile.intro && (
-            <p className="text-xl md:text-2xl lg:text-3xl text-theme-muted leading-relaxed">
+            <p className="text-xl md:text-2xl text-theme-muted leading-relaxed max-w-3xl">
               {profile.intro}
             </p>
           )}
@@ -44,7 +44,7 @@ export const HomepageListLayout = ({
       </header>
 
       {/* Main Content - Single Column with Header-Left Layout */}
-      <div className="container mx-auto px-6 md:px-12 max-w-6xl py-16 md:py-24">
+      <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
         {/* Essays Section */}
         <section className="mb-20 md:mb-32">
           <div className="grid md:grid-cols-[200px_1px_1fr] gap-8 md:gap-12 items-start">
@@ -86,9 +86,9 @@ export const HomepageListLayout = ({
                     <div className="mt-10">
                       <a
                         href="/posts"
-                        className="text-sm font-medium text-heading hover:underline uppercase tracking-wide"
+                        className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
                       >
-                        Show More →
+                        View All Essays →
                       </a>
                     </div>
                   )}
@@ -139,9 +139,9 @@ export const HomepageListLayout = ({
                     <div className="mt-10">
                       <a
                         href="/decks"
-                        className="text-sm font-medium text-heading hover:underline uppercase tracking-wide"
+                        className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
                       >
-                        Show More →
+                        View All Presentations →
                       </a>
                     </div>
                   )}

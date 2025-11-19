@@ -1,6 +1,6 @@
 import { createTemplate } from "@brains/templates";
 import {
-  deckListSchema,
+  enrichedDeckListSchema,
   type DeckListData,
   type EnrichedDeckListData,
 } from "./schema";
@@ -13,7 +13,7 @@ export const deckListTemplate = createTemplate<
 >({
   name: "deck-list",
   description: "List view of all presentation decks",
-  schema: deckListSchema, // Validate datasource output (non-enriched)
+  schema: enrichedDeckListSchema, // Validate with optional url/typeLabel fields
   dataSourceId: "decks:entities",
   requiredPermission: "public",
   formatter: new DeckListFormatter(),

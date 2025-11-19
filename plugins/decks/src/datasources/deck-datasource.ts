@@ -47,14 +47,22 @@ export class DeckDataSource implements DataSource {
 
     const queryId = params.query?.id;
     if (queryId) {
-      // Fetch single deck (detail view)
-      const entity = await this.entityService.getEntity<DeckEntity>(
+      // Fetch single deck (detail view) by slug
+      const entities = await this.entityService.listEntities<DeckEntity>(
         params.entityType,
-        queryId,
+        {
+          filter: {
+            metadata: {
+              slug: queryId,
+            },
+          },
+          limit: 1,
+        },
       );
 
+      const entity = entities[0];
       if (!entity) {
-        throw new Error(`Deck not found: ${queryId}`);
+        throw new Error(`Deck not found with slug: ${queryId}`);
       }
 
       // Return markdown content for presentation layout
@@ -73,27 +81,14 @@ export class DeckDataSource implements DataSource {
       },
     );
 
-    // Transform to DeckListData (URLs will be added by site-builder enrichment)
-    // Keep entityType, content, and metadata.slug so site-builder can enrich with URLs
-    const decks = entities.map((deck) => ({
-      id: deck.id,
-      title: deck.title,
-      description: deck.description,
-      author: deck.author,
-      updated: deck.updated,
-      created: deck.created,
-      entityType: deck.entityType,
-      content: deck.content,
-      metadata: deck.metadata,
-    }));
-
+    // Return DeckEntity[] directly (URLs will be added by site-builder enrichment)
     const listData: DeckListData = {
-      decks,
+      decks: entities,
     };
 
     this.logger.debug("Creating deck list data", {
-      deckCount: decks.length,
-      firstDeck: decks[0]?.id,
+      deckCount: entities.length,
+      firstDeck: entities[0]?.id,
     });
 
     return outputSchema.parse(listData);

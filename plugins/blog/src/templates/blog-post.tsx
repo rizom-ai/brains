@@ -1,15 +1,15 @@
 import type { JSX } from "preact";
 import { markdownToHtml } from "@brains/utils";
 import { ProseContent } from "@brains/ui-library";
-import type { BlogPostWithData } from "../datasources/blog-datasource";
+import type { EnrichedBlogPost } from "../schemas/blog-post";
 import { SeriesNavigation } from "./SeriesNavigation";
 import { PostMetadata } from "./PostMetadata";
 
 export interface BlogPostProps {
-  post: BlogPostWithData;
-  prevPost: BlogPostWithData | null;
-  nextPost: BlogPostWithData | null;
-  seriesPosts: BlogPostWithData[] | null;
+  post: EnrichedBlogPost;
+  prevPost: EnrichedBlogPost | null;
+  nextPost: EnrichedBlogPost | null;
+  seriesPosts: EnrichedBlogPost[] | null;
 }
 
 /**

@@ -151,7 +151,7 @@ export class DynamicRouteGenerator {
                 template: detailTemplateName,
                 dataQuery: {
                   entityType,
-                  query: { id: entity.id }, // Pass entity ID for datasource lookup
+                  query: { id: urlSlug }, // Pass slug for datasource lookup
                 },
               },
             ],

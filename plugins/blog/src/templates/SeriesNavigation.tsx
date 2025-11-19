@@ -1,11 +1,11 @@
 import type { JSX } from "preact";
-import type { BlogPostWithData } from "../datasources/blog-datasource";
+import type { EnrichedBlogPost } from "../schemas/blog-post";
 
 export interface SeriesNavigationProps {
-  currentPost: BlogPostWithData;
-  seriesPosts: BlogPostWithData[] | null;
-  prevPost: BlogPostWithData | null;
-  nextPost: BlogPostWithData | null;
+  currentPost: EnrichedBlogPost;
+  seriesPosts: EnrichedBlogPost[] | null;
+  prevPost: EnrichedBlogPost | null;
+  nextPost: EnrichedBlogPost | null;
 }
 
 /**
@@ -39,10 +39,7 @@ export const SeriesNavigation = ({
                 {seriesPost.id === currentPost.id ? (
                   <span>{seriesPost.frontmatter.title}</span>
                 ) : (
-                  <a
-                    href={`/posts/${seriesPost.metadata.slug}`}
-                    className="hover:text-brand"
-                  >
+                  <a href={seriesPost.url} className="hover:text-brand">
                     {seriesPost.frontmatter.title}
                   </a>
                 )}
@@ -59,10 +56,7 @@ export const SeriesNavigation = ({
       {(prevPost || nextPost) && (
         <nav className="flex justify-between items-center border-t border-theme pt-6 mt-12">
           {prevPost ? (
-            <a
-              href={`/posts/${prevPost.metadata.slug}`}
-              className="text-brand hover:underline"
-            >
+            <a href={prevPost.url} className="text-brand hover:underline">
               ← Previous: {prevPost.frontmatter.title}
             </a>
           ) : (
@@ -70,7 +64,7 @@ export const SeriesNavigation = ({
           )}
           {nextPost && (
             <a
-              href={`/posts/${nextPost.metadata.slug}`}
+              href={nextPost.url}
               className="text-brand hover:underline text-right"
             >
               Next: {nextPost.frontmatter.title} →

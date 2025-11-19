@@ -29,6 +29,7 @@ export { EntityUrlGenerator } from "./lib/entity-url-generator";
 export type {
   RouteDefinition,
   SectionDefinition,
+  NavigationItem,
   RegisterRoutesPayload,
   UnregisterRoutesPayload,
   ListRoutesPayload,
