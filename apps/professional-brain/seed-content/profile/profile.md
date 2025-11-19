@@ -48,7 +48,7 @@ linkedin
 
 #### URL
 
-https://www.linkedin.com/in/yourprofile
+https://www.linkedin.com/in/yeehaa
 
 #### Label
 
@@ -62,8 +62,8 @@ website
 
 #### URL
 
-https://your-website.com
+https://rizom.ai
 
 #### Label
 
-Visit my website
+Visit Rizom's website

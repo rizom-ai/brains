@@ -1,6 +1,7 @@
 ---
 title: Forgotten Futures
-description: bla bla
+slug: forgotten-futures
+description: A critical exploration of AI's evolutionary path, examining how winters shaped the field and proposing intelligence as practice rather than service. Introduces Rizom as living infrastructure for collective intelligence.
 author: Yeehaa
 ---
 

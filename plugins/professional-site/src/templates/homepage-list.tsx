@@ -4,6 +4,7 @@ import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import { WavyDivider } from "../components/WavyDivider";
 import { CompactFooter } from "../components/CompactFooter";
+import { ContentSection, type ContentItem } from "../components/ContentSection";
 
 /**
  * Homepage data structure
@@ -31,6 +32,24 @@ export const HomepageListLayout = ({
   // Use tagline if available, fall back to description
   const tagline = profile.tagline || profile.description;
 
+  // Map posts to ContentItem format
+  const postItems: ContentItem[] = posts.map((post) => ({
+    id: post.id,
+    url: post.url,
+    title: post.metadata.title,
+    date: post.metadata.publishedAt || post.created,
+    description: post.frontmatter.excerpt,
+  }));
+
+  // Map decks to ContentItem format
+  const deckItems: ContentItem[] = decks.map((deck) => ({
+    id: deck.id,
+    url: deck.url,
+    title: deck.title || deck.id,
+    date: deck.updated || deck.created,
+    description: deck.description,
+  }));
+
   return (
     <div className="homepage-list bg-theme">
       {/* Full-width Hero Section */}
@@ -54,109 +73,21 @@ export const HomepageListLayout = ({
       {/* Main Content - Single Column with Header-Left Layout */}
       <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
         {/* Essays Section */}
-        <section className="mb-20 md:mb-32">
-          <div className="grid md:grid-cols-[200px_1px_1fr] gap-8 md:gap-12 items-start">
-            <h2 className="text-xl md:text-2xl font-semibold text-heading">
-              Essays
-            </h2>
-            <div className="hidden md:block w-px bg-border h-full min-h-[400px]"></div>
-            <div>
-              {posts.length === 0 ? (
-                <p className="text-theme-muted italic">No essays yet.</p>
-              ) : (
-                <>
-                  <ul className="space-y-10">
-                    {posts.slice(0, 3).map((post) => (
-                      <li key={post.id}>
-                        <a href={post.url} className="group block">
-                          <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
-                            {post.metadata.title}
-                          </h3>
-                          <time className="text-sm text-theme-muted block mb-3">
-                            {new Date(
-                              post.metadata.publishedAt || post.created,
-                            ).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                          </time>
-                          {post.frontmatter.excerpt && (
-                            <p className="text-sm text-theme-muted leading-relaxed">
-                              {post.frontmatter.excerpt}
-                            </p>
-                          )}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                  {posts.length > 3 && (
-                    <div className="mt-10">
-                      <a
-                        href={postsListUrl}
-                        className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
-                      >
-                        View All Essays →
-                      </a>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </section>
+        <div className="mb-20 md:mb-32">
+          <ContentSection
+            title="Essays"
+            items={postItems}
+            viewAllUrl={postsListUrl}
+          />
+        </div>
 
         {/* Presentations Section */}
-        {decks.length > 0 && (
-          <section>
-            <div className="grid md:grid-cols-[200px_1px_1fr] gap-8 md:gap-12 items-start">
-              <h2 className="text-xl md:text-2xl font-semibold text-heading">
-                Presentations
-              </h2>
-              <div className="hidden md:block w-px bg-border h-full min-h-[400px]"></div>
-              <div>
-                <>
-                  <ul className="space-y-10">
-                    {decks.slice(0, 3).map((deck) => {
-                      return (
-                        <li key={deck.id}>
-                          <a href={deck.url} className="group block">
-                            <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
-                              {deck.title || deck.id}
-                            </h3>
-                            <time className="text-sm text-theme-muted block mb-3">
-                              {new Date(
-                                deck.updated || deck.created,
-                              ).toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </time>
-                            {deck.description && (
-                              <p className="text-sm text-theme-muted leading-relaxed">
-                                {deck.description}
-                              </p>
-                            )}
-                          </a>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {decks.length > 3 && (
-                    <div className="mt-10">
-                      <a
-                        href={decksListUrl}
-                        className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
-                      >
-                        View All Presentations →
-                      </a>
-                    </div>
-                  )}
-                </>
-              </div>
-            </div>
-          </section>
+        {deckItems.length > 0 && (
+          <ContentSection
+            title="Presentations"
+            items={deckItems}
+            viewAllUrl={decksListUrl}
+          />
         )}
       </div>
 

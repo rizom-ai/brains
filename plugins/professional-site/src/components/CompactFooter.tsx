@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { SocialLinks, type SocialLink } from "@brains/ui-library";
+import { SocialLinks, ThemeToggle, type SocialLink } from "@brains/ui-library";
 import { WavyDivider } from "./WavyDivider";
 
 interface CompactFooterProps {
@@ -24,13 +24,16 @@ export const CompactFooter = ({
             {copyright ?? `© ${currentYear}`}
           </div>
 
-          {/* Social Links */}
-          {socialLinks && socialLinks.length > 0 && (
-            <SocialLinks
-              links={socialLinks}
-              iconClassName="w-5 h-5 text-theme-muted opacity-80 hover:opacity-100 transition-opacity"
-            />
-          )}
+          {/* Theme Toggle & Social Links */}
+          <div className="flex items-center gap-6">
+            <ThemeToggle variant="footer" size="sm" />
+            {socialLinks && socialLinks.length > 0 && (
+              <SocialLinks
+                links={socialLinks}
+                iconClassName="w-5 h-5 text-theme-muted opacity-80 hover:opacity-100 transition-opacity"
+              />
+            )}
+          </div>
         </div>
       </div>
     </footer>
