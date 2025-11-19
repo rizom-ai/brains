@@ -15,19 +15,26 @@ import {
   HomepageListLayout,
   type HomepageListData,
 } from "./templates/homepage-list";
+import {
+  type ProfessionalSiteConfig,
+  professionalSiteConfigSchema,
+} from "./config";
 import packageJson from "../package.json";
 
 /**
  * Professional Site Plugin
  * Provides homepage template and datasource for professional brain
  */
-export class ProfessionalSitePlugin extends ServicePlugin<
-  Record<string, never>
-> {
+export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig> {
   public readonly dependencies = ["blog", "decks"];
 
-  constructor() {
-    super("professional-site", packageJson, {}, z.object({}));
+  constructor(config: ProfessionalSiteConfig) {
+    super(
+      "professional-site",
+      packageJson,
+      config,
+      professionalSiteConfigSchema,
+    );
   }
 
   /**
@@ -36,9 +43,18 @@ export class ProfessionalSitePlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    // Compute entity list URLs from config
+    const postsConfig = this.config.entityRouteConfig.post;
+    const decksConfig = this.config.entityRouteConfig.deck;
+
+    const postsListUrl = `/${postsConfig.pluralName ?? postsConfig.label.toLowerCase() + "s"}`;
+    const decksListUrl = `/${decksConfig.pluralName ?? decksConfig.label.toLowerCase() + "s"}`;
+
     // Register homepage datasource
     const homepageDataSource = new HomepageListDataSource(
       context.entityService,
+      postsListUrl,
+      decksListUrl,
     );
     context.registerDataSource(homepageDataSource);
 
@@ -48,6 +64,8 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       profile: profileBodySchema,
       posts: z.array(enrichedBlogPostSchema),
       decks: z.array(enrichedDeckSchema),
+      postsListUrl: z.string(),
+      decksListUrl: z.string(),
     });
 
     context.registerTemplates({
@@ -88,6 +106,6 @@ export class ProfessionalSitePlugin extends ServicePlugin<
 /**
  * Factory function to create the plugin
  */
-export function professionalSitePlugin(): Plugin {
-  return new ProfessionalSitePlugin();
+export function professionalSitePlugin(config: ProfessionalSiteConfig): Plugin {
+  return new ProfessionalSitePlugin(config);
 }

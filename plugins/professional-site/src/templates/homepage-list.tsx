@@ -11,6 +11,8 @@ export interface HomepageListData {
   profile: ProfileBody;
   posts: EnrichedBlogPost[];
   decks: EnrichedDeck[];
+  postsListUrl: string;
+  decksListUrl: string;
 }
 
 /**
@@ -21,17 +23,19 @@ export const HomepageListLayout = ({
   profile,
   posts,
   decks,
+  postsListUrl,
+  decksListUrl,
 }: HomepageListData): JSX.Element => {
   // Use tagline if available, fall back to description
   const tagline = profile.tagline || profile.description;
 
   return (
-    <div className="homepage-list flex-grow min-h-screen bg-theme">
+    <div className="homepage-list bg-theme">
       {/* Full-width Hero Section */}
       <header className="w-full py-24 md:py-40 px-6 md:px-12 bg-theme">
         <div className="max-w-6xl mx-auto">
           {tagline && (
-            <h1 className="text-5xl md:text-6xl font-bold mb-8 text-heading leading-tight max-w-4xl">
+            <h1 className="text-6xl md:text-7xl font-semibold mb-4 text-heading leading-tight max-w-4xl">
               {tagline}
             </h1>
           )}
@@ -85,7 +89,7 @@ export const HomepageListLayout = ({
                   {posts.length > 3 && (
                     <div className="mt-10">
                       <a
-                        href="/posts"
+                        href={postsListUrl}
                         className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
                       >
                         View All Essays →
@@ -138,7 +142,7 @@ export const HomepageListLayout = ({
                   {decks.length > 3 && (
                     <div className="mt-10">
                       <a
-                        href="/decks"
+                        href={decksListUrl}
                         className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
                       >
                         View All Presentations →

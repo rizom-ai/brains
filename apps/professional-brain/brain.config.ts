@@ -18,6 +18,12 @@ import {
 } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-yeehaa";
 
+// Entity route configuration
+const entityRouteConfig = {
+  post: { label: "Essay" }, // pluralName defaults to 'essays'
+  deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
+};
+
 // Define routes for Yeehaa
 const routes = [
   {
@@ -78,13 +84,12 @@ const config = defineConfig({
     }),
     blogPlugin({}),
     decksPlugin({}),
-    professionalSitePlugin(),
+    professionalSitePlugin({
+      entityRouteConfig,
+    }),
     siteBuilderPlugin({
       routes, // Custom routes with Yeehaa branding
-      entityRouteConfig: {
-        post: { label: "Essay" }, // pluralName defaults to 'essays'
-        deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
-      },
+      entityRouteConfig,
       layouts: {
         default: ProfessionalLayout,
         minimal: MinimalLayout,

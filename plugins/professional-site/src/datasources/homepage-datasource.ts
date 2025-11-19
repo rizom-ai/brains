@@ -18,6 +18,8 @@ interface HomepageDataSourceOutput {
   profile: ProfileBody;
   posts: BlogPostWithData[];
   decks: DeckEntity[];
+  postsListUrl: string;
+  decksListUrl: string;
 }
 
 /**
@@ -30,7 +32,11 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  constructor(private readonly entityService: IEntityService) {}
+  constructor(
+    private readonly entityService: IEntityService,
+    private readonly postsListUrl: string,
+    private readonly decksListUrl: string,
+  ) {}
 
   /**
    * Fetch homepage data
@@ -97,6 +103,8 @@ export class HomepageListDataSource implements DataSource {
       profile,
       posts,
       decks,
+      postsListUrl: this.postsListUrl,
+      decksListUrl: this.decksListUrl,
     };
 
     return outputSchema.parse(data);
