@@ -2,6 +2,7 @@ import type { JSX } from "preact";
 import type { ProfileBody } from "@brains/profile-service";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
+import { WavyDivider } from "../components/WavyDivider";
 
 /**
  * Homepage data structure
@@ -46,6 +47,8 @@ export const HomepageListLayout = ({
           )}
         </div>
       </header>
+
+      <WavyDivider />
 
       {/* Main Content - Single Column with Header-Left Layout */}
       <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
@@ -155,6 +158,8 @@ export const HomepageListLayout = ({
           </section>
         )}
       </div>
+
+      <WavyDivider mirror />
     </div>
   );
 };
