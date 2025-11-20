@@ -9,6 +9,9 @@ WORKDIR /app
 # Copy everything
 COPY . .
 
+# Fix permissions (defensive: ensures files are readable even if source has restrictive permissions)
+RUN chmod -R u+rwX,go+rX /app
+
 # Install dependencies (skip postinstall scripts to avoid slow Matrix download)
 RUN bun install --ignore-scripts
 

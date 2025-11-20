@@ -1,0 +1,11 @@
+# Environment files
+.env.production
+
+# Terraform state
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+
+# Local deployment artifacts
+*.log
