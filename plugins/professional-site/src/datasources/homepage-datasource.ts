@@ -61,23 +61,30 @@ export class HomepageListDataSource implements DataSource {
       profileEntity.content,
     );
 
-    // Fetch recent published posts (limit 20)
-    const allPosts = await this.entityService.listEntities<BlogPost>("post", {
-      limit: 100,
-    });
+    // Fetch recent published posts (fetch 20, sort by publishedAt, take 3)
+    const publishedPosts = await this.entityService.listEntities<BlogPost>(
+      "post",
+      {
+        limit: 20,
+        filter: {
+          metadata: {
+            status: "published",
+          },
+        },
+      },
+    );
 
-    // Filter published posts and sort by date
-    const publishedPosts = allPosts
-      .filter((post: BlogPost) => post.metadata.status === "published")
+    // Sort by publishedAt (or created as fallback) and take the 3 most recent
+    const sortedPosts = publishedPosts
       .sort((a: BlogPost, b: BlogPost) => {
         const dateA = new Date(a.metadata.publishedAt ?? a.created);
         const dateB = new Date(b.metadata.publishedAt ?? b.created);
-        return dateB.getTime() - dateA.getTime();
+        return dateB.getTime() - dateA.getTime(); // Newest first
       })
-      .slice(0, 20);
+      .slice(0, 3);
 
     // Parse frontmatter for posts to include excerpt and other display fields
-    const posts: BlogPostWithData[] = publishedPosts.map((post) => {
+    const posts: BlogPostWithData[] = sortedPosts.map((post) => {
       const { metadata: frontmatter, content: body } =
         parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
       return {
@@ -87,16 +94,11 @@ export class HomepageListDataSource implements DataSource {
       };
     });
 
-    // Fetch recent decks (limit 10)
-    const allDecks = await this.entityService.listEntities<DeckEntity>("deck", {
-      limit: 10,
-    });
-
-    // Sort decks by date
-    const decks = allDecks.sort((a: DeckEntity, b: DeckEntity) => {
-      const dateA = new Date(a.updated || a.created);
-      const dateB = new Date(b.updated || b.created);
-      return dateB.getTime() - dateA.getTime();
+    // Fetch recent decks (limit 3 for homepage, sorted at DB level)
+    const decks = await this.entityService.listEntities<DeckEntity>("deck", {
+      limit: 3,
+      sortBy: "updated",
+      sortDirection: "desc",
     });
 
     const data: HomepageDataSourceOutput = {

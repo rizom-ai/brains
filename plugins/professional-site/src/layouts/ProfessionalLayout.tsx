@@ -1,6 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
 import { CompactHeader } from "../components/CompactHeader";
+import { CompactFooter } from "../components/CompactFooter";
 
 export interface ProfessionalLayoutProps {
   sections: ComponentChildren[];
@@ -11,7 +12,7 @@ export interface ProfessionalLayoutProps {
 }
 
 /**
- * Professional site layout with compact header
+ * Professional site layout with compact header and footer
  * Clean and minimal
  */
 export function ProfessionalLayout({
@@ -27,6 +28,11 @@ export function ProfessionalLayout({
       />
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
+
+      <CompactFooter
+        copyright={siteInfo.copyright}
+        socialLinks={siteInfo.socialLinks}
+      />
     </div>
   );
 }

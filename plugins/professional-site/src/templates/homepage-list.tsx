@@ -2,9 +2,8 @@ import type { JSX } from "preact";
 import type { ProfileBody } from "@brains/profile-service";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
+import { ContentSection, type ContentItem } from "@brains/ui-library";
 import { WavyDivider } from "../components/WavyDivider";
-import { CompactFooter } from "../components/CompactFooter";
-import { ContentSection, type ContentItem } from "../components/ContentSection";
 
 /**
  * Homepage data structure
@@ -90,15 +89,6 @@ export const HomepageListLayout = ({
           />
         )}
       </div>
-
-      <CompactFooter
-        copyright={
-          profile.name
-            ? `© ${new Date().getFullYear()} ${profile.name}`
-            : undefined
-        }
-        socialLinks={profile.socialLinks}
-      />
     </div>
   );
 };

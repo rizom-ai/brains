@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { HomepageListDataSource } from "../src/datasources/homepage-datasource";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, ListOptions } from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
 import { z } from "@brains/utils";
@@ -117,12 +117,21 @@ Content here`,
       },
     };
 
-    mockEntityService.listEntities = mock((entityType: string) => {
-      if (entityType === "profile") return [mockProfile];
-      if (entityType === "post") return [mockPost, draftPost];
-      if (entityType === "deck") return [mockDeck];
-      return [];
-    }) as unknown as IEntityService["listEntities"];
+    mockEntityService.listEntities = mock(
+      (entityType: string, options?: ListOptions) => {
+        if (entityType === "profile") return [mockProfile];
+        if (entityType === "post") {
+          // Respect filter parameter - only return published posts if filter requests them
+          const allPosts = [mockPost, draftPost];
+          if (options?.filter?.metadata?.status === "published") {
+            return allPosts.filter((p) => p.metadata.status === "published");
+          }
+          return allPosts;
+        }
+        if (entityType === "deck") return [mockDeck];
+        return [];
+      },
+    ) as unknown as IEntityService["listEntities"];
 
     datasource = new HomepageListDataSource(mockEntityService);
 
