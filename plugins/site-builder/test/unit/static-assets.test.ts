@@ -84,7 +84,7 @@ describe("PreactBuilder - Static Assets", () => {
       }
     });
 
-    const mkdirMock = mock(() => Promise.resolve());
+    const mkdirMock = mock(() => Promise.resolve(undefined));
     const copyFileMock = mock(() => Promise.resolve());
     fs.mkdir = mkdirMock;
     fs.copyFile = copyFileMock;

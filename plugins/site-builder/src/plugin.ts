@@ -44,6 +44,11 @@ import {
 } from "@brains/default-site-content";
 import defaultTheme from "@brains/theme-default";
 import packageJson from "../package.json";
+import { generateRobotsTxt } from "./lib/robots-generator";
+import { generateSitemap } from "./lib/sitemap-generator";
+import type { SiteBuildCompletedPayload } from "./types/job-types";
+import { promises as fs } from "fs";
+import { join } from "path";
 
 /**
  * Site Builder Plugin
@@ -251,6 +256,48 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.setupAutoRebuild(context);
     }
 
+    // Subscribe to site:build:completed to auto-generate SEO files
+    context.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
+      "site:build:completed",
+      async (message) => {
+        try {
+          const payload = message.payload;
+
+          this.logger.info(
+            `Received site:build:completed event for ${payload.environment} environment - generating SEO files`,
+          );
+
+          const baseUrl = payload.siteConfig.url ?? "https://example.com";
+          const routes = this.routeRegistry.list();
+
+          // Generate robots.txt
+          const robotsTxt = generateRobotsTxt(baseUrl, payload.environment);
+          await fs.writeFile(
+            join(payload.outputDir, "robots.txt"),
+            robotsTxt,
+            "utf-8",
+          );
+          this.logger.info(
+            `Generated robots.txt for ${payload.environment} environment`,
+          );
+
+          // Generate sitemap.xml
+          const sitemap = generateSitemap(routes, baseUrl);
+          await fs.writeFile(
+            join(payload.outputDir, "sitemap.xml"),
+            sitemap,
+            "utf-8",
+          );
+          this.logger.info(`Generated sitemap.xml with ${routes.length} URLs`);
+
+          return { success: true };
+        } catch (error) {
+          this.logger.error("Failed to generate SEO files", error);
+          return { success: false };
+        }
+      },
+    );
+
     // Site builder is now encapsulated within the plugin
   }
 
@@ -440,50 +487,50 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     };
 
     // Subscribe to entity events and store unsubscribe functions
-    const unsubscribeCreated = context.subscribe(
-      "entity:created",
-      async (message) => {
-        const { entityType } = message.payload as { entityType: string };
-        this.logger.debug(
-          `Received entity:created event for type: ${entityType}`,
-        );
-        if (!excludedTypes.includes(entityType)) {
-          this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-          await scheduleRebuild();
-        }
-        return { success: true };
-      },
-    );
+    const unsubscribeCreated = context.subscribe<
+      { entityType: string },
+      { success: boolean }
+    >("entity:created", async (message) => {
+      const { entityType } = message.payload;
+      this.logger.debug(
+        `Received entity:created event for type: ${entityType}`,
+      );
+      if (!excludedTypes.includes(entityType)) {
+        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
+        await scheduleRebuild();
+      }
+      return { success: true };
+    });
 
-    const unsubscribeUpdated = context.subscribe(
-      "entity:updated",
-      async (message) => {
-        const { entityType } = message.payload as { entityType: string };
-        this.logger.debug(
-          `Received entity:updated event for type: ${entityType}`,
-        );
-        if (!excludedTypes.includes(entityType)) {
-          this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-          await scheduleRebuild();
-        }
-        return { success: true };
-      },
-    );
+    const unsubscribeUpdated = context.subscribe<
+      { entityType: string },
+      { success: boolean }
+    >("entity:updated", async (message) => {
+      const { entityType } = message.payload;
+      this.logger.debug(
+        `Received entity:updated event for type: ${entityType}`,
+      );
+      if (!excludedTypes.includes(entityType)) {
+        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
+        await scheduleRebuild();
+      }
+      return { success: true };
+    });
 
-    const unsubscribeDeleted = context.subscribe(
-      "entity:deleted",
-      async (message) => {
-        const { entityType } = message.payload as { entityType: string };
-        this.logger.debug(
-          `Received entity:deleted event for type: ${entityType}`,
-        );
-        if (!excludedTypes.includes(entityType)) {
-          this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-          await scheduleRebuild();
-        }
-        return { success: true };
-      },
-    );
+    const unsubscribeDeleted = context.subscribe<
+      { entityType: string },
+      { success: boolean }
+    >("entity:deleted", async (message) => {
+      const { entityType } = message.payload;
+      this.logger.debug(
+        `Received entity:deleted event for type: ${entityType}`,
+      );
+      if (!excludedTypes.includes(entityType)) {
+        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
+        await scheduleRebuild();
+      }
+      return { success: true };
+    });
 
     // Store all unsubscribe functions for cleanup
     this.unsubscribeFunctions.push(

@@ -33,3 +33,18 @@ export interface SiteBuildJobResult {
   errors?: string[];
   warnings?: string[];
 }
+
+/**
+ * Payload for site:build:completed event
+ */
+export interface SiteBuildCompletedPayload {
+  outputDir: string;
+  environment: "preview" | "production";
+  routesBuilt: number;
+  siteConfig: {
+    title?: string;
+    description?: string;
+    url?: string;
+  };
+  generateEntityUrl: (entityType: string, slug: string) => string;
+}

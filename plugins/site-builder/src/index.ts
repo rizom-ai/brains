@@ -25,6 +25,9 @@ export { SiteInfoSchema } from "./types/site-info";
 // Export URL generator for datasources to use
 export { EntityUrlGenerator } from "./lib/entity-url-generator";
 
+// Export event payload types for plugins that subscribe to build events
+export type { SiteBuildCompletedPayload } from "./types/job-types";
+
 // Export route types and schemas for other plugins to use
 export type {
   RouteDefinition,

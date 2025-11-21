@@ -34,6 +34,7 @@ import type { BlogPost } from "./schemas/blog-post";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 import { promises as fs } from "fs";
 import { join } from "path";
+import type { SiteBuildCompletedPayload } from "@brains/site-builder-plugin";
 import packageJson from "../package.json";
 
 /**
@@ -154,32 +155,25 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     context.registerJobHandler("generation", blogGenerationHandler);
 
     // Subscribe to site:build:completed to auto-generate RSS feed
-    context.subscribe("site:build:completed", async (message) => {
-      try {
-        const payload = message.payload as {
-          outputDir: string;
-          environment: string;
-          siteConfig?: { title?: string; description?: string; url?: string };
-          generateEntityUrl: (entityType: string, slug: string) => string;
-        };
+    context.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
+      "site:build:completed",
+      async (message) => {
+        try {
+          const payload = message.payload;
 
-        this.logger.info(
-          `Received site:build:completed event for ${payload.environment} environment`,
-        );
+          this.logger.info(
+            `Received site:build:completed event for ${payload.environment} environment`,
+          );
 
-        // Generate RSS for all builds
-        // Preview: include all posts, Production: only published posts
-        await this.generateRSSFeed(
-          context,
-          payload,
-          payload.environment,
-          payload.generateEntityUrl,
-        );
-      } catch (error) {
-        this.logger.error("Failed to generate RSS feed", error);
-      }
-      return { success: true };
-    });
+          // Generate RSS for all builds
+          // Preview: include all posts, Production: only published posts
+          await this.generateRSSFeed(context, payload);
+        } catch (error) {
+          this.logger.error("Failed to generate RSS feed", error);
+        }
+        return { success: true };
+      },
+    );
 
     this.logger.info(
       "Blog plugin registered successfully (routes auto-generated at /posts/)",
@@ -191,14 +185,9 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
    */
   private async generateRSSFeed(
     context: ServicePluginContext,
-    payload: {
-      outputDir: string;
-      siteConfig?: { title?: string; description?: string; url?: string };
-    },
-    environment: string,
-    generateEntityUrl: (entityType: string, slug: string) => string,
+    payload: SiteBuildCompletedPayload,
   ): Promise<void> {
-    const isPreview = environment === "preview";
+    const isPreview = payload.environment === "preview";
     this.logger.info(
       `Auto-generating RSS feed after site build (${isPreview ? "all posts" : "published only"})`,
     );
@@ -230,7 +219,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           ...entity,
           frontmatter: parsed.metadata,
           body: parsed.content,
-          url: generateEntityUrl("post", entity.metadata.slug),
+          url: payload.generateEntityUrl("post", entity.metadata.slug),
         };
       });
 
