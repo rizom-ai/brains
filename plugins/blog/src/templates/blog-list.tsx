@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
-import { ContentSection, type ContentItem } from "@brains/ui-library";
+import { ContentSection, type ContentItem, Head } from "@brains/ui-library";
 
 export interface BlogListProps {
   posts: EnrichedBlogPost[];
@@ -23,11 +23,17 @@ export const BlogListTemplate = ({
     description: post.frontmatter.excerpt,
   }));
 
+  const title = pageTitle ?? "Essays";
+  const description = `Browse all ${posts.length} ${posts.length === 1 ? "essay" : "essays"}`;
+
   return (
-    <div className="blog-list bg-theme">
-      <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
-        <ContentSection title={pageTitle ?? "Essays"} items={postItems} />
+    <>
+      <Head title={title} description={description} />
+      <div className="blog-list bg-theme">
+        <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
+          <ContentSection title={title} items={postItems} />
+        </div>
       </div>
-    </div>
+    </>
   );
 };

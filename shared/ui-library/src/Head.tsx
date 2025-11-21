@@ -1,18 +1,38 @@
 import { createContext } from "preact";
 import { useContext } from "preact/hooks";
-import type { HeadCollector, HeadProps } from "./head-collector";
 import type { ComponentChildren, VNode } from "preact";
 
 /**
- * Context for sharing the HeadCollector during SSR
+ * Props for head metadata
  */
-export const HeadContext = createContext<HeadCollector | null>(null);
+export interface HeadProps {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogType?: string;
+  twitterCard?: string;
+  canonicalUrl?: string;
+}
+
+/**
+ * Context for sharing the HeadCollector during SSR
+ * The collector is provided by the site builder during rendering
+ */
+export const HeadContext = createContext<HeadCollectorInterface | null>(null);
+
+/**
+ * Interface for HeadCollector to avoid circular dependency
+ * Site builder implements this interface
+ */
+export interface HeadCollectorInterface {
+  setHeadProps(props: HeadProps): void;
+}
 
 /**
  * Provider component that makes HeadCollector available to child components
  */
 export interface HeadProviderProps {
-  headCollector: HeadCollector;
+  headCollector: HeadCollectorInterface;
   children: ComponentChildren;
 }
 
@@ -30,7 +50,7 @@ export function HeadProvider({
 /**
  * Hook to access the HeadCollector from context
  */
-export function useHead(): HeadCollector | null {
+export function useHead(): HeadCollectorInterface | null {
   return useContext(HeadContext);
 }
 

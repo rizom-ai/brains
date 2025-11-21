@@ -10,9 +10,9 @@ export type {
 } from "./lib/static-site-builder";
 export { createPreactBuilder } from "./lib/preact-builder";
 
-// Export Head component and utilities for templates to use
-export { Head, useHead, HeadProvider } from "./lib/head-context";
-export type { HeadProps } from "./lib/head-collector";
+// Re-export Head component and utilities from ui-library for convenience
+export { Head, useHead, HeadProvider } from "@brains/ui-library";
+export type { HeadProps } from "@brains/ui-library";
 
 // Export site content types and schemas
 export type { SiteContent } from "./types";

@@ -1,20 +1,10 @@
-/**
- * Props for head metadata
- */
-export interface HeadProps {
-  title: string;
-  description?: string;
-  ogImage?: string;
-  ogType?: string;
-  twitterCard?: string;
-  canonicalUrl?: string;
-}
+import type { HeadProps, HeadCollectorInterface } from "@brains/ui-library";
 
 /**
  * Simple head collector for SSR
  * Collects head props from components during rendering
  */
-export class HeadCollector {
+export class HeadCollector implements HeadCollectorInterface {
   private headProps: HeadProps | null = null;
   private defaultTitle: string;
 

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import { markdownToHtml } from "@brains/utils";
-import { ProseContent } from "@brains/ui-library";
+import { ProseContent, Head } from "@brains/ui-library";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
 import { SeriesNavigation } from "./SeriesNavigation";
 import { PostMetadata } from "./PostMetadata";
@@ -26,36 +26,46 @@ export const BlogPostTemplate = ({
   const htmlContent = markdownToHtml(markdownWithTitle);
 
   return (
-    <section className="blog-post-section">
-      <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
-        {/* Cover Image */}
-        {post.frontmatter.coverImage && (
-          <img
-            src={post.frontmatter.coverImage}
-            alt={post.frontmatter.title}
-            className="w-full h-64 object-cover rounded-lg mb-8 shadow-lg"
+    <>
+      <Head
+        title={post.frontmatter.title}
+        description={post.frontmatter.excerpt}
+        {...(post.frontmatter.coverImage && {
+          ogImage: post.frontmatter.coverImage,
+        })}
+        ogType="article"
+      />
+      <section className="blog-post-section">
+        <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
+          {/* Cover Image */}
+          {post.frontmatter.coverImage && (
+            <img
+              src={post.frontmatter.coverImage}
+              alt={post.frontmatter.title}
+              className="w-full h-64 object-cover rounded-lg mb-8 shadow-lg"
+            />
+          )}
+
+          {/* Post Metadata */}
+          <PostMetadata
+            author={post.frontmatter.author}
+            publishedAt={post.frontmatter.publishedAt}
+            status={post.frontmatter.status}
+            className="mb-4"
           />
-        )}
 
-        {/* Post Metadata */}
-        <PostMetadata
-          author={post.frontmatter.author}
-          publishedAt={post.frontmatter.publishedAt}
-          status={post.frontmatter.status}
-          className="mb-4"
-        />
+          {/* Series Navigation */}
+          <SeriesNavigation
+            currentPost={post}
+            seriesPosts={seriesPosts}
+            prevPost={prevPost}
+            nextPost={nextPost}
+          />
 
-        {/* Series Navigation */}
-        <SeriesNavigation
-          currentPost={post}
-          seriesPosts={seriesPosts}
-          prevPost={prevPost}
-          nextPost={nextPost}
-        />
-
-        {/* Post Content (includes title as h1) */}
-        <ProseContent html={htmlContent} />
-      </div>
-    </section>
+          {/* Post Content (includes title as h1) */}
+          <ProseContent html={htmlContent} />
+        </div>
+      </section>
+    </>
   );
 };

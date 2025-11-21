@@ -3,6 +3,7 @@ import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { markdownToHtml } from "@brains/utils";
 import { BlogPostTemplate } from "./blog-post";
+import { Head } from "@brains/ui-library";
 
 /**
  * Homepage can show either the latest blog post or markdown content
@@ -45,14 +46,17 @@ export const HomepageTemplate = (props: HomepageContent): JSX.Element => {
   const htmlContent = markdownToHtml(props.content);
 
   return (
-    <section className="homepage-section flex-grow min-h-screen">
-      <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
-        <article
-          className="prose prose-lg dark:prose-invert max-w-none"
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
-      </div>
-    </section>
+    <>
+      <Head title="Home" description="Welcome to my site" />
+      <section className="homepage-section flex-grow min-h-screen">
+        <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
+          <article
+            className="prose prose-lg dark:prose-invert max-w-none"
+            dangerouslySetInnerHTML={{ __html: htmlContent }}
+          />
+        </div>
+      </section>
+    </>
   );
 };
 
