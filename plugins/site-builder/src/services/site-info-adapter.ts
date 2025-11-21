@@ -40,9 +40,6 @@ export class SiteInfoAdapter
     ];
 
     // Add optional fields only if they have values
-    if (!data || data.url !== undefined) {
-      mappings.push({ key: "url", label: "URL", type: "string" });
-    }
     if (!data || data.logo !== undefined) {
       mappings.push({
         key: "logo",

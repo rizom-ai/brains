@@ -102,7 +102,6 @@ https://rizom.ai/join`,
 
       expect(siteInfo.title).toBe("Rizom");
       expect(siteInfo.description).toBe("The Rizom collective's knowledge hub");
-      expect(siteInfo.url).toBe("https://rizom.ai");
       expect(siteInfo.themeMode).toBe("dark");
       expect(siteInfo.cta).toEqual({
         heading: "Join us",
@@ -135,7 +134,6 @@ A simple website`,
 
       expect(siteInfo.title).toBe("My Site");
       expect(siteInfo.description).toBe("A simple website");
-      expect(siteInfo.url).toBeUndefined();
       expect(siteInfo.cta).toBeUndefined();
     });
   });
@@ -255,7 +253,6 @@ Existing description`,
 
       expect(siteInfo.title).toBe("Rizom");
       expect(siteInfo.description).toBe("The Rizom collective's knowledge hub");
-      expect(siteInfo.url).toBe("https://rizom.ai");
       expect(siteInfo.themeMode).toBe("dark");
     });
 

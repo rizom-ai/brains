@@ -62,7 +62,6 @@ describe("SiteInfoAdapter", () => {
       const content = adapter.createSiteInfoContent({
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
-        url: "https://rizom.ai",
         copyright: "© 2025 Rizom",
         themeMode: "dark",
         cta: {
@@ -88,8 +87,6 @@ describe("SiteInfoAdapter", () => {
       expect(markdown).toContain("Rizom");
       expect(markdown).toContain("## Description");
       expect(markdown).toContain("The Rizom collective's knowledge hub");
-      expect(markdown).toContain("## URL");
-      expect(markdown).toContain("https://rizom.ai");
       expect(markdown).toContain("## Theme Mode");
       expect(markdown).toContain("dark");
       expect(markdown).toContain("## CTA");
@@ -138,9 +135,6 @@ Rizom
 ## Description
 The Rizom collective's knowledge hub
 
-## URL
-https://rizom.ai
-
 ## Copyright
 © 2025 Rizom
 
@@ -162,7 +156,6 @@ https://www.linkedin.com/company/rizom-collective`;
 
       expect(result.title).toBe("Rizom");
       expect(result.description).toBe("The Rizom collective's knowledge hub");
-      expect(result.url).toBe("https://rizom.ai");
       expect(result.copyright).toBe("© 2025 Rizom");
       expect(result.themeMode).toBe("dark");
       expect(result.cta).toEqual({
@@ -281,7 +274,6 @@ Content`;
       const originalData = {
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
-        url: "https://rizom.ai",
         copyright: "© 2025 Rizom",
         themeMode: "dark" as const,
         cta: {
@@ -300,7 +292,6 @@ Content`;
       // Should preserve all data
       expect(parsed.title).toBe(originalData.title);
       expect(parsed.description).toBe(originalData.description);
-      expect(parsed.url).toBe(originalData.url);
       expect(parsed.copyright).toBe(originalData.copyright);
       expect(parsed.themeMode).toBe(originalData.themeMode);
       expect(parsed.cta).toEqual(originalData.cta);
@@ -321,7 +312,6 @@ Content`;
       // Should preserve required data
       expect(parsed.title).toBe(originalData.title);
       expect(parsed.description).toBe(originalData.description);
-      expect(parsed.url).toBeUndefined();
       expect(parsed.cta).toBeUndefined();
     });
   });

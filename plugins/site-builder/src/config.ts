@@ -40,6 +40,18 @@ export const siteBuilderConfigSchema = z.object({
     .string()
     .describe("Output directory for production builds")
     .default("./dist/site-production"),
+  previewUrl: z
+    .string()
+    .optional()
+    .describe(
+      "Base URL for preview/staging environment (e.g., https://preview.example.com)",
+    ),
+  productionUrl: z
+    .string()
+    .optional()
+    .describe(
+      "Base URL for production environment (e.g., https://example.com)",
+    ),
   workingDir: z
     .string()
     .optional()

@@ -97,6 +97,8 @@ const config = defineConfig({
       themeCSS: yeehaaTheme,
       previewOutputDir: "./dist/site-preview",
       productionOutputDir: "./dist/site-production",
+      previewUrl: process.env["PREVIEW_DOMAIN"],
+      productionUrl: process.env["DOMAIN"],
     }),
   ],
 });

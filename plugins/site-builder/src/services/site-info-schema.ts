@@ -30,7 +30,6 @@ export type SiteInfoEntity = z.infer<typeof siteInfoSchema>;
 export const siteInfoBodySchema = z.object({
   title: z.string().describe("The site's title"),
   description: z.string().describe("The site's description"),
-  url: z.string().optional().describe("The site's canonical URL"),
   copyright: z.string().optional().describe("Copyright notice text"),
   logo: z
     .boolean()

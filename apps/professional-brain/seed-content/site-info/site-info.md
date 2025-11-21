@@ -10,7 +10,7 @@ Personal knowledge base and professional showcase
 
 ## URL
 
-https://your-domain.com
+https://yeehaa.io
 
 ## Theme Mode
 

@@ -23,6 +23,8 @@ export class SiteBuildJobHandler
     private context: ServicePluginContext,
     private entityRouteConfig?: SiteBuilderConfig["entityRouteConfig"],
     private themeCSS?: string,
+    private previewUrl?: string,
+    private productionUrl?: string,
   ) {}
 
   /**
@@ -103,11 +105,28 @@ export class SiteBuildJobHandler
         this.logger.info(
           `Emitting site:build:completed event for ${data.environment} environment`,
         );
+
+        // Select environment-specific URL from config
+        const configUrl =
+          data.environment === "preview"
+            ? (this.previewUrl ?? this.productionUrl)
+            : this.productionUrl;
+
+        // Build full URL from domain (add https:// if not present)
+        const url = configUrl
+          ? configUrl.startsWith("http://") || configUrl.startsWith("https://")
+            ? configUrl
+            : `https://${configUrl}`
+          : undefined;
+
         await this.context.sendMessage("site:build:completed", {
           outputDir: data.outputDir,
           environment: data.environment,
           routesBuilt: result.routesBuilt,
-          siteConfig: data.siteConfig ?? this.defaultSiteConfig,
+          siteConfig: {
+            ...(data.siteConfig ?? this.defaultSiteConfig),
+            url,
+          },
           generateEntityUrl: this.generateEntityUrl.bind(this),
         });
       }
