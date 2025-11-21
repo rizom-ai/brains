@@ -58,6 +58,10 @@ export class PreactBuilder implements StaticSiteBuilder {
     onProgress("Processing Tailwind CSS");
     await this.processStyles(context.themeCSS ?? "");
 
+    // Copy static assets from public/ directory
+    onProgress("Copying static assets");
+    await this.copyStaticAssets();
+
     // Set up hydration for interactive components
     onProgress("Setting up component hydration");
     const hydrationManager = new HydrationManager(
@@ -301,6 +305,56 @@ export class PreactBuilder implements StaticSiteBuilder {
     }
 
     this.logger.debug("CSS processed successfully with font imports");
+  }
+
+  private async copyStaticAssets(): Promise<void> {
+    this.logger.debug("Copying static assets from public/ directory");
+
+    // Look for public/ directory in the app root (process.cwd())
+    const publicDir = join(process.cwd(), "public");
+
+    try {
+      await fs.access(publicDir);
+    } catch {
+      this.logger.debug("No public/ directory found, skipping static assets");
+      return;
+    }
+
+    // Read all entries in public directory
+    const entries = await fs.readdir(publicDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = join(publicDir, entry.name);
+      const destPath = join(this.outputDir, entry.name);
+
+      if (entry.isDirectory()) {
+        // Recursively copy directories
+        await this.copyDirectory(srcPath, destPath);
+      } else {
+        // Copy file
+        await fs.copyFile(srcPath, destPath);
+        this.logger.debug(`Copied static asset: ${entry.name}`);
+      }
+    }
+
+    this.logger.debug("Static assets copied successfully");
+  }
+
+  private async copyDirectory(src: string, dest: string): Promise<void> {
+    await fs.mkdir(dest, { recursive: true });
+
+    const entries = await fs.readdir(src, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const srcPath = join(src, entry.name);
+      const destPath = join(dest, entry.name);
+
+      if (entry.isDirectory()) {
+        await this.copyDirectory(srcPath, destPath);
+      } else {
+        await fs.copyFile(srcPath, destPath);
+      }
+    }
   }
 }
 
