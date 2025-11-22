@@ -32,3 +32,36 @@ variable "ssh_key_name" {
   type        = string
   default     = "personal-brain-deploy"
 }
+
+variable "domain" {
+  description = "Domain name for the application (used for CDN custom hostname if CDN enabled)"
+  type        = string
+  default     = ""
+}
+
+# Optional: Bunny.net CDN configuration
+variable "bunny_api_key" {
+  description = "Bunny.net API key (optional - CDN disabled if empty)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# Optional: Route53 DNS automation
+variable "route53_zone_id" {
+  description = "AWS Route53 hosted zone ID (optional - DNS automation disabled if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "aws_region" {
+  description = "AWS region for Route53 (DNS is global, but provider needs a region)"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "preview_subdomain" {
+  description = "Preview subdomain name (e.g., 'preview' for preview.yourdomain.com)"
+  type        = string
+  default     = "preview"
+}
