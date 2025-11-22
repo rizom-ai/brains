@@ -1,12 +1,24 @@
 # Bunny.net CDN Module
 # Creates a Pull Zone that acts as a CDN in front of the origin server
 
+terraform {
+  required_providers {
+    bunnynet = {
+      source  = "BunnyWay/bunnynet"
+      version = "~> 0.8"
+    }
+  }
+}
+
 locals {
   # Auto-detect if CDN should be enabled (if API key is provided)
   cdn_enabled = var.bunny_api_key != ""
 
-  # Origin URL construction - use domain if provided, otherwise IP
-  origin_url         = var.domain != "" ? "https://${var.domain}" : "http://${var.origin_ip}"
+  # Origin URL must use server IP (not domain) to avoid circular DNS dependency
+  # Use HTTP because Caddy can't serve HTTPS on IP address (no certificate for IP)
+  # This is industry standard - user→CDN is encrypted, CDN→origin can be HTTP
+  origin_url         = "http://${var.origin_ip}"
+  # Host header tells origin server which virtual host to serve
   origin_host_header = var.domain != "" ? var.domain : var.origin_ip
 }
 
@@ -15,60 +27,39 @@ locals {
 resource "bunnynet_pullzone" "main" {
   count = local.cdn_enabled ? 1 : 0
 
-  name               = var.app_name
-  origin_url         = local.origin_url
-  origin_host_header = local.origin_host_header
+  name = var.app_name
+
+  # Origin configuration
+  origin {
+    type             = "OriginUrl"
+    url              = local.origin_url
+    host_header      = local.origin_host_header
+    # Don't follow Caddy's HTTP→HTTPS redirect, Bunny handles SSL to users
+    follow_redirects = false
+  }
+
+  # Routing configuration
+  routing {
+    tier = "Standard"  # Options: "Standard" or "Volume" (cheaper for high traffic)
+  }
 
   # Privacy settings (enabled by default)
-  log_anonymize_type = 1  # Anonymize last octet of IP
-  enable_logging     = var.enable_logging
+  log_enabled    = var.enable_logging
+  log_anonymized = true  # Anonymize IP addresses
+  log_anonymized_style = "OneDigit"  # Remove last octet of IPv4 (options: "OneDigit" or "Drop")
 
-  # Performance settings
-  enable_cache_slice = true
-  cache_error_responses = false
-
-  # Security settings
-  enable_origin_shield = false  # Enable if needed for additional origin protection
-  enable_smart_cache   = true
-
-  # SSL/TLS
-  enable_tls_1_1 = false  # Disable old TLS versions
-  enable_tls_1   = false
-
-  # Geographic settings (optional - can enable EU-only routing)
-  enable_geo_zone_us = var.enable_geo_zone_us
-  enable_geo_zone_eu = var.enable_geo_zone_eu
-  enable_geo_zone_asia = var.enable_geo_zone_asia
-  enable_geo_zone_sa = var.enable_geo_zone_sa
-  enable_geo_zone_af = var.enable_geo_zone_af
+  # Cache settings
+  cache_enabled = true
+  cache_errors  = false
 }
 
-# Optional: Custom hostname for main domain (yourdomain.com)
-# Add your domain to the Pull Zone so visitors can access via your domain
-# Bunny will auto-provision SSL certificate for your domain
-resource "bunnynet_pullzone_hostname" "custom" {
-  count = local.cdn_enabled && var.domain != "" ? 1 : 0
-
-  pullzone_id = bunnynet_pullzone.main[0].id
-  hostname    = var.domain
-
-  # Force SSL (recommended)
-  force_ssl = true
-
-  # SSL certificate will be auto-provisioned by Bunny via Let's Encrypt
-  # This can take a few minutes after DNS is pointed to Bunny
-}
-
-# Optional: Custom hostname for WWW subdomain (www.yourdomain.com)
-# Allows Bunny to forward www requests to Caddy, which handles the 301 redirect
-resource "bunnynet_pullzone_hostname" "www" {
-  count = local.cdn_enabled && var.domain != "" ? 1 : 0
-
-  pullzone_id = bunnynet_pullzone.main[0].id
-  hostname    = "www.${var.domain}"
-
-  # Force SSL (recommended)
-  force_ssl = true
-
-  # SSL certificate will be auto-provisioned by Bunny via Let's Encrypt
-}
+# NOTE: Custom hostnames are DISABLED for initial deployment
+# After DNS is pointed to Bunny, add custom hostnames via Bunny dashboard:
+# 1. Deploy this to get the .b-cdn.net hostname
+# 2. Point your DNS (CNAME) to the .b-cdn.net hostname
+# 3. Wait for DNS to propagate (check with: dig yourdomain.com)
+# 4. Add custom hostname in Bunny dashboard: Security > Custom Hostnames
+# 5. Enable Force SSL in Bunny dashboard after certificate provisions
+#
+# Terraform can't add custom hostnames automatically because Bunny requires
+# DNS to be pointing to them BEFORE accepting the custom hostname.

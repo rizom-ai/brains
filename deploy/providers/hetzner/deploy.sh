@@ -122,10 +122,17 @@ init_terraform() {
 
     # Only copy .tf files if they don't exist or if state doesn't exist
     # This preserves existing state
+    # TODO: Refactor to run Terraform from source dir with -state flag instead of copying
+    #       This would be cleaner: terraform apply -state=apps/<app>/deploy/terraform-state/terraform.tfstate
     if [ ! -f "$TERRAFORM_STATE_DIR/terraform.tfstate" ] || [ ! -f "$TERRAFORM_STATE_DIR/main.tf" ]; then
         log_info "Setting up Terraform configuration..."
         cp "$TERRAFORM_DIR"/main.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
         cp "$TERRAFORM_DIR"/variables.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
+        # Copy modules directory for Bunny CDN and Route53 DNS
+        if [ -d "$TERRAFORM_DIR/modules" ]; then
+            mkdir -p "$TERRAFORM_STATE_DIR/modules"
+            cp -r "$TERRAFORM_DIR/modules"/* "$TERRAFORM_STATE_DIR/modules/" 2>/dev/null || true
+        fi
     fi
 
     # Initialize in the state directory
@@ -219,6 +226,8 @@ deploy_infrastructure() {
             -var="hcloud_token=$HCLOUD_TOKEN" \
             -var="app_name=$APP_NAME" \
             -var="ssh_key_name=$SSH_KEY_NAME" \
+            -var="domain=${DOMAIN:-}" \
+            -var="bunny_api_key=${BUNNY_API_KEY:-}" \
             >/dev/null 2>&1
 
         # Get server IP
@@ -242,6 +251,15 @@ deploy_infrastructure() {
     # Extract app configuration
     SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx33"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx33")
 
+    # Load DOMAIN from app's environment file (needed for CDN configuration)
+    ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
+    if [ -f "$ENV_FILE" ]; then
+        DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
+        if [ -n "$DOMAIN" ]; then
+            log_info "Domain configured: $DOMAIN"
+        fi
+    fi
+
     # Build and push Docker image
     build_and_push_docker_image
     
@@ -257,6 +275,8 @@ deploy_infrastructure() {
         -var="app_name=$APP_NAME" \
         -var="server_type=$SERVER_TYPE" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
+        -var="domain=${DOMAIN:-}" \
+        -var="bunny_api_key=${BUNNY_API_KEY:-}" \
         >/dev/null 2>&1 || true
 
     # Plan deployment
@@ -266,6 +286,8 @@ deploy_infrastructure() {
         -var="app_name=$APP_NAME" \
         -var="server_type=$SERVER_TYPE" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
+        -var="domain=${DOMAIN:-}" \
+        -var="bunny_api_key=${BUNNY_API_KEY:-}" \
         -out=tfplan
 
     # Apply deployment (Terraform will handle existing resources properly)
@@ -406,6 +428,8 @@ destroy_infrastructure() {
         -var="app_name=$APP_NAME" \
         -var="server_type=cx33" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
+        -var="domain=${DOMAIN:-}" \
+        -var="bunny_api_key=${BUNNY_API_KEY:-}" \
         -auto-approve
     
     cd - > /dev/null

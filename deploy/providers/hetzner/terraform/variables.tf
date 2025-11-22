@@ -46,22 +46,3 @@ variable "bunny_api_key" {
   default     = ""
   sensitive   = true
 }
-
-# Optional: Route53 DNS automation
-variable "route53_zone_id" {
-  description = "AWS Route53 hosted zone ID (optional - DNS automation disabled if empty)"
-  type        = string
-  default     = ""
-}
-
-variable "aws_region" {
-  description = "AWS region for Route53 (DNS is global, but provider needs a region)"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "preview_subdomain" {
-  description = "Preview subdomain name (e.g., 'preview' for preview.yourdomain.com)"
-  type        = string
-  default     = "preview"
-}

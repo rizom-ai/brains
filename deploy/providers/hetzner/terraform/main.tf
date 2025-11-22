@@ -8,10 +8,6 @@ terraform {
       source  = "BunnyWay/bunnynet"
       version = "~> 0.8"
     }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
   }
 }
 
@@ -22,16 +18,6 @@ provider "hcloud" {
 # Optional: Bunny.net CDN provider (only used if bunny_api_key is set)
 provider "bunnynet" {
   api_key = var.bunny_api_key
-}
-
-# Optional: AWS provider for Route53 DNS automation (only used if route53_zone_id is set)
-provider "aws" {
-  region = var.aws_region
-  # AWS credentials can be provided via:
-  # - AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables
-  # - AWS_PROFILE environment variable
-  # - ~/.aws/credentials file
-  # - IAM role (if running on AWS)
 }
 
 # Look up existing SSH key instead of creating one
@@ -128,25 +114,6 @@ module "bunny_cdn" {
   enable_geo_zone_af   = true
 }
 
-# Optional: Route53 DNS Automation
-# Only provisions DNS records if route53_zone_id is provided
-# Automatically points domain to CDN (if enabled) or origin server
-module "route53_dns" {
-  source = "./modules/route53-dns"
-
-  # Required
-  route53_zone_id = var.route53_zone_id
-  origin_ip       = hcloud_server.main.ipv4_address
-
-  # Optional: domain configuration
-  domain            = var.domain
-  preview_subdomain = var.preview_subdomain
-
-  # CDN integration (DNS points to CDN if enabled)
-  cdn_enabled  = module.bunny_cdn.cdn_enabled
-  cdn_hostname = module.bunny_cdn.cdn_hostname
-}
-
 # Outputs
 output "server_ip" {
   value       = hcloud_server.main.ipv4_address
@@ -167,40 +134,30 @@ output "server_name" {
 output "cdn_enabled" {
   value       = module.bunny_cdn.cdn_enabled
   description = "Whether Bunny CDN is enabled"
+  sensitive   = true
 }
 
 output "cdn_hostname" {
   value       = module.bunny_cdn.cdn_hostname
   description = "CDN hostname (empty if CDN disabled)"
+  sensitive   = true
 }
 
 output "cdn_url" {
   value       = module.bunny_cdn.cdn_url
   description = "Full CDN URL (empty if CDN disabled)"
+  sensitive   = true
 }
 
 output "site_endpoint" {
   value       = module.bunny_cdn.cdn_enabled ? module.bunny_cdn.cdn_url : "http://${hcloud_server.main.ipv4_address}"
   description = "Primary site endpoint (CDN URL if enabled, otherwise server IP)"
+  sensitive   = true
 }
 
 output "cdn_status" {
   value       = module.bunny_cdn.cdn_enabled ? "Enabled (Bunny.net) - Privacy-friendly analytics available at bunny.net dashboard" : "Disabled (Direct to origin)"
   description = "CDN status and analytics info"
+  sensitive   = true
 }
 
-# DNS Outputs
-output "dns_enabled" {
-  value       = module.route53_dns.dns_enabled
-  description = "Whether Route53 DNS automation is enabled"
-}
-
-output "dns_records" {
-  value       = module.route53_dns.dns_records_created
-  description = "DNS records created by automation"
-}
-
-output "dns_status" {
-  value       = module.route53_dns.dns_enabled ? "Automated (Route53) - DNS records auto-configured" : "Manual - Update DNS manually to point to ${module.bunny_cdn.cdn_enabled ? "CDN" : "origin IP"}"
-  description = "DNS configuration status"
-}
