@@ -53,6 +53,31 @@ resource "bunnynet_pullzone" "main" {
   cache_errors  = false
 }
 
+# Edge Rule: Redirect MCP API to direct HTTPS origin
+# For security, MCP requests should use end-to-end encryption
+resource "bunnynet_pullzone_edgerule" "mcp_redirect" {
+  count = local.cdn_enabled ? 1 : 0
+
+  pullzone    = bunnynet_pullzone.main[0].id
+  enabled     = true
+  description = "Redirect MCP API to direct HTTPS origin for end-to-end encryption"
+  match_type  = "MatchAll"
+
+  action            = "Redirect"
+  action_parameter1 = "https://${local.origin_host_header}{{path}}"  # Redirect URL with path variable
+  action_parameter2 = "302"                                            # HTTP status code
+
+  triggers = [
+    {
+      type       = "Url"
+      match_type = "MatchAny"
+      patterns   = ["/mcp*"]
+      parameter1 = null
+      parameter2 = null
+    }
+  ]
+}
+
 # NOTE: Custom hostnames are DISABLED for initial deployment
 # After DNS is pointed to Bunny, add custom hostnames via Bunny dashboard:
 # 1. Deploy this to get the .b-cdn.net hostname
