@@ -4,6 +4,7 @@ import { SystemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
+import { GitSyncPlugin } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
@@ -78,6 +79,10 @@ const config = defineConfig({
     new SystemPlugin({}),
     new MCPInterface({}),
     directorySync(),
+    new GitSyncPlugin({
+      gitUrl: process.env["GIT_SYNC_URL"] || "",
+      authToken: process.env["GIT_SYNC_TOKEN"],
+    }),
     new WebserverInterface({
       previewPort: 4321,
       previewDistDir: "./dist/site-preview",
