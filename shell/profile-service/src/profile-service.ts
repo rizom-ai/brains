@@ -5,11 +5,10 @@ import { ProfileAdapter } from "./adapter";
 
 /**
  * Profile Service
- * Caches and provides the person/organization's public profile (name, bio, socialLinks)
+ * Provides the person/organization's public profile (name, bio, socialLinks)
  */
 export class ProfileService {
   private static instance: ProfileService | null = null;
-  private cache: ProfileEntity | null = null;
   private logger: Logger;
   private entityService: IEntityService;
   private adapter: ProfileAdapter;
@@ -73,16 +72,19 @@ export class ProfileService {
   }
 
   /**
-   * Initialize the service and load profile into cache
+   * Initialize the service
    * Creates a default profile if none exists
    */
   public async initialize(): Promise<void> {
-    await this.loadProfile();
+    try {
+      const profile = await this.entityService.getEntity<ProfileEntity>(
+        "profile",
+        "profile",
+      );
 
-    // If no profile exists, create one with default values
-    if (!this.cache) {
-      this.logger.info("No profile found, creating default profile");
-      try {
+      // If no profile exists, create one with default values
+      if (!profile) {
+        this.logger.info("No profile found, creating default profile");
         const content = this.adapter.createProfileContent(this.defaultProfile);
 
         await this.entityService.createEntity({
@@ -92,61 +94,31 @@ export class ProfileService {
           metadata: {},
         });
 
-        // Reload the cache with the newly created entity
-        await this.loadProfile();
         this.logger.info("Default profile created successfully");
-      } catch (error) {
-        this.logger.error("Failed to create default profile", { error });
-      }
-    }
-  }
-
-  /**
-   * Get the profile data (from cache or default)
-   */
-  public getProfile(): ProfileBody {
-    if (this.cache) {
-      return this.adapter.parseProfileBody(this.cache.content);
-    }
-    return this.defaultProfile;
-  }
-
-  /**
-   * Refresh the profile cache from database
-   */
-  public async refreshCache(): Promise<void> {
-    await this.loadProfile();
-  }
-
-  /**
-   * Load profile from database into cache
-   */
-  private async loadProfile(): Promise<void> {
-    try {
-      this.logger.debug("Querying for profile entity", {
-        entityType: "profile",
-        id: "profile",
-      });
-      const profile = (await this.entityService.getEntity(
-        "profile",
-        "profile",
-      )) as ProfileEntity | null;
-
-      this.cache = profile;
-
-      if (profile) {
-        const profileData = this.adapter.parseProfileBody(profile.content);
-        this.logger.debug("Profile loaded from database", {
-          name: profileData.name,
-          email: profileData.email,
-          socialLinksCount: profileData.socialLinks?.length ?? 0,
-        });
-      } else {
-        this.logger.warn("No profile found in database after query");
       }
     } catch (error) {
-      this.logger.warn("Failed to load profile", { error });
-      this.cache = null;
+      this.logger.error("Failed to initialize profile", { error });
     }
+  }
+
+  /**
+   * Get the profile data (from database or default)
+   * Always loads fresh from database to ensure consistency
+   */
+  public async getProfile(): Promise<ProfileBody> {
+    try {
+      // Always load fresh from database to avoid stale cache issues
+      const profile = await this.entityService.getEntity<ProfileEntity>(
+        "profile",
+        "profile",
+      );
+
+      if (profile) {
+        return this.adapter.parseProfileBody(profile.content);
+      }
+    } catch (error) {
+      this.logger.debug("Profile not found, using defaults", { error });
+    }
+    return this.defaultProfile;
   }
 }

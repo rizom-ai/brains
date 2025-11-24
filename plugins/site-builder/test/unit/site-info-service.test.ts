@@ -51,8 +51,8 @@ describe("SiteInfoService", () => {
   });
 
   describe("getSiteInfo", () => {
-    it("should return default site info when cache is null", () => {
-      const siteInfo = siteInfoService.getSiteInfo();
+    it("should return default site info when no entity exists", async () => {
+      const siteInfo = await siteInfoService.getSiteInfo();
 
       expect(siteInfo).toEqual(SiteInfoService.getDefaultSiteInfo());
     });
@@ -98,7 +98,7 @@ https://rizom.ai/join`,
       await siteInfoService.initialize();
 
       // Get site info should now return parsed content
-      const siteInfo = siteInfoService.getSiteInfo();
+      const siteInfo = await siteInfoService.getSiteInfo();
 
       expect(siteInfo.title).toBe("Rizom");
       expect(siteInfo.description).toBe("The Rizom collective's knowledge hub");
@@ -130,7 +130,7 @@ A simple website`,
 
       await siteInfoService.initialize();
 
-      const siteInfo = siteInfoService.getSiteInfo();
+      const siteInfo = await siteInfoService.getSiteInfo();
 
       expect(siteInfo.title).toBe("My Site");
       expect(siteInfo.description).toBe("A simple website");
@@ -202,29 +202,54 @@ Existing description`,
     });
   });
 
-  describe("refreshCache", () => {
-    it("should reload site info from database", async () => {
-      // Mock behavior: return test entity
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity> => ({
+  describe("git-sync cache invalidation bug", () => {
+    it("should return stale defaults when entity is imported after initialize", async () => {
+      // REGRESSION TEST: This reproduces the bug where git-sync imports entities
+      // AFTER the service has initialized, leaving the cache stale with null.
+      //
+      // Expected behavior: getSiteInfo() should always reflect current database state
+      // Actual behavior (BUG): getSiteInfo() returns cached null → falls back to defaults
+
+      // Step 1: Initialize service with NO entity in database (simulating first boot)
+      mockGetEntityImpl = async (): Promise<SiteInfoEntity | null> => null;
+      await siteInfoService.initialize();
+
+      // Verify service is using defaults since no entity exists yet
+      let siteInfo = await siteInfoService.getSiteInfo();
+      expect(siteInfo.title).toBe("Personal Brain"); // Default title
+
+      // Step 2: Simulate git-sync importing the entity AFTER initialization
+      const importedEntity: SiteInfoEntity = {
         id: "site-info",
         entityType: "site-info",
-        content: "test content",
+        content: `# Site Information
+
+## Title
+Yeehaa
+
+## Description
+Personal knowledge base and professional showcase`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
-      });
+      };
 
-      await siteInfoService.refreshCache();
+      // Change mock to return imported entity (as if git-sync just imported it)
+      mockGetEntityImpl = async (): Promise<SiteInfoEntity> => importedEntity;
 
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "site-info",
-        "site-info",
+      // Step 3: Call getSiteInfo() again - should now return imported data
+      siteInfo = await siteInfoService.getSiteInfo();
+
+      // This should now pass after the fix
+      expect(siteInfo.title).toBe("Yeehaa");
+      expect(siteInfo.description).toBe(
+        "Personal knowledge base and professional showcase",
       );
     });
   });
 
   describe("custom default site info", () => {
-    it("should use provided custom default site info instead of hardcoded default", () => {
+    it("should use provided custom default site info instead of hardcoded default", async () => {
       const customSiteInfo = {
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
@@ -249,7 +274,7 @@ Existing description`,
       );
 
       // Without any entity in database, should return custom default
-      const siteInfo = customService.getSiteInfo();
+      const siteInfo = await customService.getSiteInfo();
 
       expect(siteInfo.title).toBe("Rizom");
       expect(siteInfo.description).toBe("The Rizom collective's knowledge hub");
@@ -291,19 +316,19 @@ Existing description`,
       expect(createCall?.content).not.toContain("Personal Brain");
     });
 
-    it("should fall back to hardcoded default when custom site info is not provided", () => {
+    it("should fall back to hardcoded default when custom site info is not provided", async () => {
       const serviceWithoutCustom = SiteInfoService.createFresh(
         mockEntityService,
         createSilentLogger(),
         undefined,
       );
 
-      const siteInfo = serviceWithoutCustom.getSiteInfo();
+      const siteInfo = await serviceWithoutCustom.getSiteInfo();
 
       expect(siteInfo).toEqual(SiteInfoService.getDefaultSiteInfo());
     });
 
-    it("should merge partial custom defaults with hardcoded defaults", () => {
+    it("should merge partial custom defaults with hardcoded defaults", async () => {
       const partialCustom = {
         title: "Custom Title",
         // description not provided, should use default
@@ -315,7 +340,7 @@ Existing description`,
         partialCustom,
       );
 
-      const siteInfo = service.getSiteInfo();
+      const siteInfo = await service.getSiteInfo();
 
       expect(siteInfo.title).toBe("Custom Title");
       expect(siteInfo.description).toBe("A knowledge management system");

@@ -50,8 +50,8 @@ describe("ProfileService", () => {
   });
 
   describe("getProfile", () => {
-    it("should return default profile when cache is null", () => {
-      const profile = profileService.getProfile();
+    it("should return default profile when no entity exists", async () => {
+      const profile = await profileService.getProfile();
 
       expect(profile).toEqual(ProfileService.getDefaultProfile());
     });
@@ -96,7 +96,7 @@ https://github.com/rizom-ai`,
       await profileService.initialize();
 
       // Get profile should now return parsed content
-      const profile = profileService.getProfile();
+      const profile = await profileService.getProfile();
 
       expect(profile.name).toBe("Rizom");
       expect(profile.description).toBe(
@@ -172,29 +172,71 @@ Existing Profile`,
     });
   });
 
-  describe("refreshCache", () => {
-    it("should reload profile from database", async () => {
-      // Mock behavior: return test entity
-      mockGetEntityImpl = async (): Promise<ProfileEntity> => ({
+  describe("git-sync cache invalidation bug", () => {
+    it("should return stale defaults when entity is imported after initialize", async () => {
+      // REGRESSION TEST: This reproduces the bug where git-sync imports entities
+      // AFTER the service has initialized, leaving the cache stale with null.
+      //
+      // Expected behavior: getProfile() should always reflect current database state
+      // Actual behavior (BUG): getProfile() returns cached null → falls back to defaults
+
+      // Step 1: Initialize service with NO entity in database (simulating first boot)
+      mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
+      await profileService.initialize();
+
+      // Verify service is using defaults since no entity exists yet
+      let profile = await profileService.getProfile();
+      expect(profile.name).toBe("Unknown"); // Default name
+      expect(profile.socialLinks).toBeUndefined(); // No social links
+
+      // Step 2: Simulate git-sync importing the entity AFTER initialization
+      const importedEntity: ProfileEntity = {
         id: "profile",
         entityType: "profile",
-        content: "test content",
+        content: `# Profile
+
+## Name
+Yeehaa
+
+## Description
+Professional developer, writer, and knowledge worker
+
+## Email
+yeehaa@rizom.ai
+
+## Social Links
+
+### Social Link 1
+
+#### Platform
+github
+
+#### URL
+https://github.com/yourusername
+
+#### Label
+View my code on GitHub`,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
-      });
+      };
 
-      await profileService.refreshCache();
+      // Change mock to return imported entity (as if git-sync just imported it)
+      mockGetEntityImpl = async (): Promise<ProfileEntity> => importedEntity;
 
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "profile",
-        "profile",
-      );
+      // Step 3: Call getProfile() again - should now return imported data
+      profile = await profileService.getProfile();
+
+      // This should now pass after the fix
+      expect(profile.name).toBe("Yeehaa");
+      expect(profile.email).toBe("yeehaa@rizom.ai");
+      expect(profile.socialLinks).toHaveLength(1);
+      expect(profile.socialLinks?.[0]?.platform).toBe("github");
     });
   });
 
   describe("custom default profile", () => {
-    it("should use provided custom default profile instead of hardcoded default", () => {
+    it("should use provided custom default profile instead of hardcoded default", async () => {
       const customProfile = {
         name: "Custom Organization",
         description: "Custom description",
@@ -218,7 +260,7 @@ Existing Profile`,
       );
 
       // Without any entity in database, should return custom default
-      const profile = customService.getProfile();
+      const profile = await customService.getProfile();
 
       expect(profile).toEqual(customProfile);
     });
@@ -255,14 +297,14 @@ Existing Profile`,
       expect(createCall?.content).not.toContain("Unknown");
     });
 
-    it("should fall back to hardcoded default when custom profile is not provided", () => {
+    it("should fall back to hardcoded default when custom profile is not provided", async () => {
       const serviceWithoutCustom = ProfileService.createFresh(
         mockEntityService,
         createSilentLogger(),
         undefined,
       );
 
-      const profile = serviceWithoutCustom.getProfile();
+      const profile = await serviceWithoutCustom.getProfile();
 
       expect(profile).toEqual(ProfileService.getDefaultProfile());
     });

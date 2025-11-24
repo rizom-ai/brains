@@ -69,7 +69,7 @@ describe("SiteBuilder dataQuery handling", () => {
 
     // Create SiteBuilder instance with mock static site builder
     const mockProfileService: Partial<ProfileService> = {
-      getProfile: () => ({ name: "Test" }),
+      getProfile: async () => ({ name: "Test" }),
     };
 
     siteBuilder = SiteBuilder.createFresh(

@@ -133,10 +133,10 @@ export class SiteBuilder implements ISiteBuilder {
    */
   private async getSiteInfo(): Promise<SiteInfo> {
     // Get site info from service (entity or defaults)
-    const siteInfoBody = this.siteInfoService.getSiteInfo();
+    const siteInfoBody = await this.siteInfoService.getSiteInfo();
 
     // Get profile info from service (for socialLinks)
-    const profileBody = this.profileService.getProfile();
+    const profileBody = await this.profileService.getProfile();
 
     // Get navigation items for both slots
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
