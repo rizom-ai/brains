@@ -531,4 +531,217 @@ describe("DynamicRouteGenerator", () => {
       expect(detailRoute).toBeDefined();
     });
   });
+
+  describe("pagination", () => {
+    test("should generate paginated routes by default", async () => {
+      entityTypes.push("post");
+      // Create 15 entities to trigger multiple pages with default pageSize of 10
+      const posts = Array.from({ length: 15 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        entityType: "post",
+        metadata: { slug: `post-${i + 1}` },
+      }));
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      await generator.generateEntityRoutes();
+
+      // Should have 2 paginated list routes (15 items / 10 per page = 2 pages)
+      const page1Route = routeRegistry.get("/posts");
+      expect(page1Route).toBeDefined();
+      expect(page1Route?.id).toBe("post-index");
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["page"]).toBe(1);
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["pageSize"]).toBe(10);
+
+      const page2Route = routeRegistry.get("/posts/page/2");
+      expect(page2Route).toBeDefined();
+      expect(page2Route?.id).toBe("post-index-page-2");
+      expect(page2Route?.sections[0]?.dataQuery?.query?.["page"]).toBe(2);
+    });
+
+    test("should only show navigation on first page", async () => {
+      entityTypes.push("post");
+      const posts = Array.from({ length: 15 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        entityType: "post",
+        metadata: { slug: `post-${i + 1}` },
+      }));
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      await generator.generateEntityRoutes();
+
+      const page1Route = routeRegistry.get("/posts");
+      expect(page1Route?.navigation?.show).toBe(true);
+
+      const page2Route = routeRegistry.get("/posts/page/2");
+      expect(page2Route?.navigation).toBeUndefined();
+    });
+
+    test("should include baseUrl in paginated route data query", async () => {
+      entityTypes.push("post");
+      const posts = Array.from({ length: 15 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        entityType: "post",
+        metadata: { slug: `post-${i + 1}` },
+      }));
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      await generator.generateEntityRoutes();
+
+      const page1Route = routeRegistry.get("/posts");
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["baseUrl"]).toBe(
+        "/posts",
+      );
+
+      const page2Route = routeRegistry.get("/posts/page/2");
+      expect(page2Route?.sections[0]?.dataQuery?.query?.["baseUrl"]).toBe(
+        "/posts",
+      );
+    });
+
+    test("should respect custom pageSize in config", async () => {
+      entityTypes.push("post");
+      // Create 10 entities, with pageSize of 3 = 4 pages
+      const posts = Array.from({ length: 10 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        entityType: "post",
+        metadata: { slug: `post-${i + 1}` },
+      }));
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      const configuredGenerator = new DynamicRouteGenerator(
+        mockContext,
+        routeRegistry,
+        {
+          post: { label: "Essay", pageSize: 3 },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should have 4 pages (10 items / 3 per page)
+      expect(routeRegistry.get("/essays")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/2")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/3")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/4")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/5")).toBeUndefined();
+
+      // Verify pageSize in data query
+      const page1Route = routeRegistry.get("/essays");
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["pageSize"]).toBe(3);
+    });
+
+    test("should disable pagination when paginate is false", async () => {
+      entityTypes.push("post");
+      const posts = Array.from({ length: 15 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        entityType: "post",
+        metadata: { slug: `post-${i + 1}` },
+      }));
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      const configuredGenerator = new DynamicRouteGenerator(
+        mockContext,
+        routeRegistry,
+        {
+          post: { label: "Essay", paginate: false },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should only have single index route with limit instead of pagination
+      expect(routeRegistry.get("/essays")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/2")).toBeUndefined();
+
+      const indexRoute = routeRegistry.get("/essays");
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(100);
+      expect(
+        indexRoute?.sections[0]?.dataQuery?.query?.["page"],
+      ).toBeUndefined();
+    });
+
+    test("should generate single page when entities fit in one page", async () => {
+      entityTypes.push("post");
+      // Only 5 entities with default pageSize of 10
+      const posts = Array.from({ length: 5 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        entityType: "post",
+        metadata: { slug: `post-${i + 1}` },
+      }));
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      await generator.generateEntityRoutes();
+
+      // Should only have page 1
+      expect(routeRegistry.get("/posts")).toBeDefined();
+      expect(routeRegistry.get("/posts/page/2")).toBeUndefined();
+    });
+
+    test("should generate at least one page even with zero entities", async () => {
+      entityTypes.push("post");
+      entities.set("post", []);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+        interactive: false,
+      });
+
+      await generator.generateEntityRoutes();
+
+      // Should still create page 1
+      expect(routeRegistry.get("/posts")).toBeDefined();
+      expect(routeRegistry.get("/posts/page/2")).toBeUndefined();
+    });
+  });
 });

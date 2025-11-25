@@ -579,7 +579,15 @@ Content for ${title}`,
       ).mockResolvedValue(posts);
 
       const schema = z.object({
-        posts: z.array(z.any()),
+        posts: z.array(
+          z
+            .object({
+              id: z.string(),
+              frontmatter: z.object({ title: z.string() }).passthrough(),
+            })
+            .passthrough(),
+        ),
+        pagination: z.null(),
       });
 
       const result = await datasource.fetch(
@@ -588,7 +596,7 @@ Content for ${title}`,
         mockContext,
       );
 
-      expect(result.posts).toHaveLength(3); // Mock returns all, sorting still works
+      expect(result.posts).toHaveLength(2); // Limit is now correctly applied
     });
 
     it("should handle empty post list", async () => {
@@ -597,7 +605,15 @@ Content for ${title}`,
       ).mockResolvedValue([]);
 
       const schema = z.object({
-        posts: z.array(z.any()),
+        posts: z.array(
+          z
+            .object({
+              id: z.string(),
+              frontmatter: z.object({ title: z.string() }).passthrough(),
+            })
+            .passthrough(),
+        ),
+        pagination: z.null(),
       });
 
       const result = await datasource.fetch(
@@ -807,6 +823,207 @@ Content for ${title}`,
 
       expect(result.posts).toHaveLength(2);
       // Should still work, treating undefined as 0
+    });
+  });
+
+  describe("pagination", () => {
+    const paginationSchema = z.object({
+      currentPage: z.number(),
+      totalPages: z.number(),
+      totalItems: z.number(),
+      pageSize: z.number(),
+      hasNextPage: z.boolean(),
+      hasPrevPage: z.boolean(),
+    });
+
+    const paginatedListSchema = z.object({
+      posts: z.array(
+        z
+          .object({
+            id: z.string(),
+            entityType: z.string(),
+            frontmatter: z
+              .object({
+                title: z.string(),
+                slug: z.string(),
+                status: z.string(),
+              })
+              .passthrough(),
+            body: z.string(),
+          })
+          .passthrough(),
+      ),
+      pagination: paginationSchema.nullable(),
+    });
+
+    it("should return paginated posts when page is specified", async () => {
+      const posts: BlogPost[] = Array.from({ length: 10 }, (_, i) =>
+        createMockPost(
+          `post-${i + 1}`,
+          `Post ${i + 1}`,
+          `post-${i + 1}`,
+          "published",
+          `2025-01-${String(i + 1).padStart(2, "0")}T10:00:00.000Z`,
+        ),
+      );
+
+      (
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue(posts);
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { page: 1, pageSize: 3 } },
+        paginatedListSchema,
+        mockContext,
+      );
+
+      expect(result.posts).toHaveLength(3);
+      expect(result.pagination).not.toBeNull();
+      expect(result.pagination?.currentPage).toBe(1);
+      expect(result.pagination?.totalPages).toBe(4); // 10 posts / 3 per page = 4 pages
+      expect(result.pagination?.totalItems).toBe(10);
+      expect(result.pagination?.pageSize).toBe(3);
+      expect(result.pagination?.hasNextPage).toBe(true);
+      expect(result.pagination?.hasPrevPage).toBe(false);
+    });
+
+    it("should return correct posts for page 2", async () => {
+      const posts: BlogPost[] = Array.from({ length: 10 }, (_, i) =>
+        createMockPost(
+          `post-${i + 1}`,
+          `Post ${i + 1}`,
+          `post-${i + 1}`,
+          "published",
+          `2025-01-${String(10 - i).padStart(2, "0")}T10:00:00.000Z`,
+        ),
+      );
+
+      (
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue(posts);
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { page: 2, pageSize: 3 } },
+        paginatedListSchema,
+        mockContext,
+      );
+
+      expect(result.posts).toHaveLength(3);
+      expect(result.pagination?.currentPage).toBe(2);
+      expect(result.pagination?.hasNextPage).toBe(true);
+      expect(result.pagination?.hasPrevPage).toBe(true);
+    });
+
+    it("should return correct posts for last page", async () => {
+      const posts: BlogPost[] = Array.from({ length: 10 }, (_, i) =>
+        createMockPost(
+          `post-${i + 1}`,
+          `Post ${i + 1}`,
+          `post-${i + 1}`,
+          "published",
+          `2025-01-${String(i + 1).padStart(2, "0")}T10:00:00.000Z`,
+        ),
+      );
+
+      (
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue(posts);
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { page: 4, pageSize: 3 } },
+        paginatedListSchema,
+        mockContext,
+      );
+
+      expect(result.posts).toHaveLength(1); // Only 1 post on last page (10 % 3 = 1)
+      expect(result.pagination?.currentPage).toBe(4);
+      expect(result.pagination?.hasNextPage).toBe(false);
+      expect(result.pagination?.hasPrevPage).toBe(true);
+    });
+
+    it("should return null pagination when page is not specified", async () => {
+      const posts: BlogPost[] = [
+        createMockPost(
+          "post-1",
+          "Post 1",
+          "post-1",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+        ),
+      ];
+
+      (
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue(posts);
+
+      const result = await datasource.fetch(
+        { entityType: "post" },
+        paginatedListSchema,
+        mockContext,
+      );
+
+      expect(result.pagination).toBeNull();
+    });
+
+    it("should handle empty results with pagination", async () => {
+      (
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue([]);
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { page: 1, pageSize: 10 } },
+        paginatedListSchema,
+        mockContext,
+      );
+
+      expect(result.posts).toHaveLength(0);
+      expect(result.pagination?.currentPage).toBe(1);
+      expect(result.pagination?.totalPages).toBe(0);
+      expect(result.pagination?.totalItems).toBe(0);
+      expect(result.pagination?.hasNextPage).toBe(false);
+      expect(result.pagination?.hasPrevPage).toBe(false);
+    });
+
+    it("should only paginate published posts in production", async () => {
+      const posts: BlogPost[] = [
+        createMockPost(
+          "post-1",
+          "Published 1",
+          "published-1",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+        ),
+        createMockPost("post-2", "Draft 1", "draft-1", "draft"),
+        createMockPost(
+          "post-3",
+          "Published 2",
+          "published-2",
+          "published",
+          "2025-01-02T10:00:00.000Z",
+        ),
+        createMockPost("post-4", "Draft 2", "draft-2", "draft"),
+        createMockPost(
+          "post-5",
+          "Published 3",
+          "published-3",
+          "published",
+          "2025-01-03T10:00:00.000Z",
+        ),
+      ];
+
+      (
+        mockEntityService.listEntities as ReturnType<typeof mock>
+      ).mockResolvedValue(posts);
+
+      const result = await datasource.fetch(
+        { entityType: "post", query: { page: 1, pageSize: 2 } },
+        paginatedListSchema,
+        { ...mockContext, environment: "production" },
+      );
+
+      expect(result.pagination?.totalItems).toBe(3); // Only 3 published posts
+      expect(result.pagination?.totalPages).toBe(2); // 3 posts / 2 per page = 2 pages
+      expect(result.posts).toHaveLength(2);
     });
   });
 

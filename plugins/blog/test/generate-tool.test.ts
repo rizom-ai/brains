@@ -14,6 +14,8 @@ describe("Generate Tool", () => {
   let generateTool: ReturnType<typeof createGenerateTool>;
   const mockConfig: BlogConfig = {
     defaultPrompt: "Write a blog post about my work",
+    paginate: true,
+    pageSize: 10,
   };
 
   beforeEach(() => {

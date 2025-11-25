@@ -28,6 +28,10 @@ export type EntityRouteConfig = Record<
   {
     label: string;
     pluralName?: string;
+    /** Enable pagination for list pages */
+    paginate?: boolean;
+    /** Items per page (default: 10) */
+    pageSize?: number;
   }
 >;
 
@@ -87,6 +91,14 @@ export const siteBuilderConfigSchema = z.object({
           .string()
           .optional()
           .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
+        paginate: z
+          .boolean()
+          .optional()
+          .describe("Enable pagination for list pages"),
+        pageSize: z
+          .number()
+          .optional()
+          .describe("Items per page (default: 10)"),
       }),
     )
     .optional()

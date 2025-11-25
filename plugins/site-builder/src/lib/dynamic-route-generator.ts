@@ -71,42 +71,56 @@ export class DynamicRouteGenerator {
 
     // Register index route if we have a list template
     if (listTemplateName) {
-      const { pluralName, label } = this.getEntityDisplayConfig(entityType);
+      const { pluralName, label, paginate, pageSize } =
+        this.getEntityDisplayConfig(entityType);
 
-      const indexRoute: RouteDefinition = {
-        id: `${entityType}-index`,
-        path: `/${pluralName}`,
-        title: label,
-        description: `Browse all ${pluralName}`,
-        layout: "default",
-        navigation: {
-          show: true,
+      if (paginate) {
+        // Generate paginated routes
+        await this.generatePaginatedRoutes(
+          entityType,
+          listTemplateName,
+          pluralName,
           label,
-          slot: "primary",
-          priority: 40, // Plugin-registered pages priority
-        },
-        sections: [
-          {
-            id: "list",
-            template: listTemplateName,
-            dataQuery: {
-              entityType,
-              query: { limit: 100 }, // Reasonable default limit
-            },
+          pageSize,
+          logger,
+        );
+      } else {
+        // Generate a single index route (original behavior)
+        const indexRoute: RouteDefinition = {
+          id: `${entityType}-index`,
+          path: `/${pluralName}`,
+          title: label,
+          description: `Browse all ${pluralName}`,
+          layout: "default",
+          navigation: {
+            show: true,
+            label,
+            slot: "primary",
+            priority: 40, // Plugin-registered pages priority
           },
-        ],
-        sourceEntityType: entityType,
-      };
+          sections: [
+            {
+              id: "list",
+              template: listTemplateName,
+              dataQuery: {
+                entityType,
+                query: { limit: 100 }, // Reasonable default limit
+              },
+            },
+          ],
+          sourceEntityType: entityType,
+        };
 
-      try {
-        this.routeRegistry.register(indexRoute);
-        logger.debug(`Registered index route for ${entityType}`, {
-          path: indexRoute.path,
-        });
-      } catch (error) {
-        logger.warn(`Failed to register index route for ${entityType}`, {
-          error,
-        });
+        try {
+          this.routeRegistry.register(indexRoute);
+          logger.debug(`Registered index route for ${entityType}`, {
+            path: indexRoute.path,
+          });
+        } catch (error) {
+          logger.warn(`Failed to register index route for ${entityType}`, {
+            error,
+          });
+        }
       }
     }
 
@@ -183,6 +197,85 @@ export class DynamicRouteGenerator {
   }
 
   /**
+   * Generate paginated list routes for an entity type
+   */
+  private async generatePaginatedRoutes(
+    entityType: string,
+    listTemplateName: string,
+    pluralName: string,
+    label: string,
+    pageSize: number,
+    logger: ReturnType<typeof this.context.logger.child>,
+  ): Promise<void> {
+    // Get total entity count
+    const entities = await this.context.entityService.listEntities(entityType, {
+      limit: 1000,
+    });
+    const totalItems = entities.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+    logger.debug(
+      `Generating ${totalPages} paginated routes for ${entityType}`,
+      {
+        totalItems,
+        pageSize,
+      },
+    );
+
+    // Generate route for each page
+    for (let page = 1; page <= totalPages; page++) {
+      const isFirstPage = page === 1;
+      const path = isFirstPage
+        ? `/${pluralName}`
+        : `/${pluralName}/page/${page}`;
+
+      const pageRoute: RouteDefinition = {
+        id: `${entityType}-index${isFirstPage ? "" : `-page-${page}`}`,
+        path,
+        title: isFirstPage ? label : `${label} - Page ${page}`,
+        description: `Browse all ${pluralName}${isFirstPage ? "" : ` - Page ${page}`}`,
+        layout: "default",
+        navigation: isFirstPage
+          ? {
+              show: true,
+              label,
+              slot: "primary",
+              priority: 40,
+            }
+          : undefined,
+        sections: [
+          {
+            id: "list",
+            template: listTemplateName,
+            dataQuery: {
+              entityType,
+              query: {
+                page,
+                pageSize,
+                baseUrl: `/${pluralName}`,
+              },
+            },
+          },
+        ],
+        sourceEntityType: entityType,
+      };
+
+      try {
+        this.routeRegistry.register(pageRoute);
+        logger.debug(`Registered paginated route for ${entityType}`, {
+          path: pageRoute.path,
+          page,
+        });
+      } catch (error) {
+        logger.warn(
+          `Failed to register paginated route for ${entityType} page ${page}`,
+          { error },
+        );
+      }
+    }
+  }
+
+  /**
    * Find matching list and detail templates for an entity type
    */
   private findTemplatesForEntityType(entityType: string): {
@@ -229,12 +322,17 @@ export class DynamicRouteGenerator {
   /**
    * Get display configuration for an entity type
    * Checks custom config first, falls back to auto-generation
+   * Pagination is enabled by default for all entity types with list templates
    */
   private getEntityDisplayConfig(entityType: string): {
     pluralName: string;
     label: string;
+    paginate: boolean;
+    pageSize: number;
   } {
     const config = this.entityRouteConfig?.[entityType];
+    const DEFAULT_PAGE_SIZE = 10;
+    const DEFAULT_PAGINATE = true; // Enable pagination by default
 
     if (config) {
       // Use custom config
@@ -244,14 +342,18 @@ export class DynamicRouteGenerator {
       return {
         pluralName,
         label: displayLabel,
+        paginate: config.paginate ?? DEFAULT_PAGINATE,
+        pageSize: config.pageSize ?? DEFAULT_PAGE_SIZE,
       };
     }
 
-    // Fall back to auto-generation
+    // Fall back to auto-generation with pagination enabled
     const pluralName = pluralize(entityType);
     return {
       pluralName,
       label: this.capitalize(pluralName),
+      paginate: DEFAULT_PAGINATE,
+      pageSize: DEFAULT_PAGE_SIZE,
     };
   }
 

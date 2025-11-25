@@ -12,7 +12,7 @@ import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
 import { createGenerateRSSTool } from "./tools/generate-rss";
-import type { BlogConfig } from "./config";
+import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "./templates/blog-post";
@@ -26,6 +26,7 @@ import { homepageTemplate } from "./templates/homepage";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import {
   BlogDataSource,
+  paginationInfoSchema,
   type BlogPostWithData,
 } from "./datasources/blog-datasource";
 import { generateRSSFeed } from "./rss/feed-generator";
@@ -44,7 +45,7 @@ import packageJson from "../package.json";
 export class BlogPlugin extends ServicePlugin<BlogConfig> {
   private pluginContext?: ServicePluginContext;
 
-  constructor(config: BlogConfig) {
+  constructor(config: BlogConfigInput) {
     super("blog", packageJson, config, blogConfigSchema);
   }
 
@@ -77,10 +78,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     // Register blog templates
     // Datasource transforms BlogPost → BlogPostWithData (adds parsed frontmatter)
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
-    // Define schema for blog list template
+    // Define schema for blog list template (with pagination support)
     const postListSchema = z.object({
       posts: z.array(enrichedBlogPostSchema),
       pageTitle: z.string().optional(),
+      pagination: paginationInfoSchema.nullable(),
+      baseUrl: z.string().optional(),
     });
 
     context.registerTemplates({
@@ -280,6 +283,6 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
 /**
  * Factory function to create the plugin
  */
-export function blogPlugin(config: BlogConfig): Plugin {
+export function blogPlugin(config: BlogConfigInput): Plugin {
   return new BlogPlugin(config);
 }

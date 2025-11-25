@@ -59,3 +59,5 @@ export type {
   HeadProviderProps,
   HeadCollectorInterface,
 } from "./Head";
+export { Pagination } from "./Pagination";
+export type { PaginationProps } from "./Pagination";

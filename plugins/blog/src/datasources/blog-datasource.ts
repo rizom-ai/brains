@@ -18,9 +18,25 @@ const entityFetchQuerySchema = z.object({
       latest: z.boolean().optional(),
       "metadata.seriesName": z.string().optional(),
       limit: z.number().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+      baseUrl: z.string().optional(), // For pagination links
     })
     .optional(),
 });
+
+// Pagination schema for Zod validation
+export const paginationInfoSchema = z.object({
+  currentPage: z.number(),
+  totalPages: z.number(),
+  totalItems: z.number(),
+  pageSize: z.number(),
+  hasNextPage: z.boolean(),
+  hasPrevPage: z.boolean(),
+});
+
+// Pagination result type (derived from schema)
+export type PaginationInfo = z.infer<typeof paginationInfoSchema>;
 
 // Re-export for convenience
 export type { BlogPostWithData };
@@ -91,8 +107,15 @@ export class BlogDataSource implements DataSource {
       );
     }
 
-    // Case 4: Fetch list of all posts
-    return this.fetchPostList(params.query?.limit, outputSchema, context);
+    // Case 4: Fetch list of all posts (with optional pagination)
+    return this.fetchPostList(
+      params.query?.limit,
+      params.query?.page,
+      params.query?.pageSize,
+      params.query?.baseUrl,
+      outputSchema,
+      context,
+    );
   }
 
   /**
@@ -268,23 +291,19 @@ export class BlogDataSource implements DataSource {
   }
 
   /**
-   * Fetch list of all blog posts
+   * Fetch list of all blog posts with optional pagination
    */
   private async fetchPostList<T>(
     limit: number | undefined,
+    page: number | undefined,
+    pageSize: number | undefined,
+    baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
-      {};
-    if (limit !== undefined) {
-      listOptions.limit = limit;
-    } else {
-      listOptions.limit = 1000;
-    }
-
+    // Fetch all posts first (we need to filter and sort before pagination)
     const entities: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", listOptions);
+      await this.entityService.listEntities<BlogPost>("post", { limit: 1000 });
 
     // Filter based on environment
     const isPreview = context.environment === "preview";
@@ -309,11 +328,44 @@ export class BlogDataSource implements DataSource {
       return aPublished ? -1 : 1;
     });
 
+    // Apply pagination if page is specified
+    const currentPage = page ?? 1;
+    const itemsPerPage = pageSize ?? limit ?? sortedPosts.length;
+    const totalItems = sortedPosts.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    // Calculate slice indices
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    // Get paginated posts
+    const paginatedPosts =
+      page !== undefined
+        ? sortedPosts.slice(startIndex, endIndex)
+        : limit !== undefined
+          ? sortedPosts.slice(0, limit)
+          : sortedPosts;
+
     // Parse frontmatter for full data
-    const postsWithData = sortedPosts.map(parsePostData);
+    const postsWithData = paginatedPosts.map(parsePostData);
+
+    // Build pagination info (only when paginating)
+    const pagination: PaginationInfo | null =
+      page !== undefined
+        ? {
+            currentPage,
+            totalPages,
+            totalItems,
+            pageSize: itemsPerPage,
+            hasNextPage: currentPage < totalPages,
+            hasPrevPage: currentPage > 1,
+          }
+        : null;
 
     const listData = {
       posts: postsWithData,
+      pagination,
+      baseUrl, // Pass through for pagination component
     };
 
     return outputSchema.parse(listData);
