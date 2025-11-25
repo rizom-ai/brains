@@ -230,7 +230,7 @@ See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
 11. **Blog plugin** - Long-form content with RSS feeds and series support
 12. **Decks plugin** - Slide deck and presentation management
 13. **Type-safe entity metadata** - Strongly-typed metadata with backward compatibility
-14. **Code quality improvements** - Zero ESLint warnings across all packages
+14. **Code quality improvements** - Zero ESLint warnings, no `as any` assertions
 
 ### 🚧 Next Priorities
 

@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-09-16
+Last Updated: 2025-11-25
 
 ## Vision
 
@@ -12,17 +12,15 @@ Based on current progress, the following items are ready to be worked on:
 
 ### Immediate Priorities
 
-1. **Documentation Updates** - Update all docs to reflect current architecture
-2. **Health Checks for All Services** - Production readiness
+1. **Performance Optimization** - Batch operations, vector search improvements
+2. **Additional Testing** - Integration tests, E2E tests
 3. **Database Backup/Restore** - Data safety
-4. **Test-Brain Deployment Fix** - Resolve Terraform state issues
+4. **Health Checks for All Services** - Production readiness
 
 ### Secondary Priorities
 
-5. **Entity Service Batch Operations** - Performance optimization
-6. **Blog Plugin** - Long-form content management (planning complete)
-7. **Vector Search Optimization** - Performance improvement
-8. **Task Plugin** - Task and project management
+5. **Roadmap Plugin** - Outcome-based goal tracking with milestone management
+6. **UI Component Library Expansion** - Additional reusable components
 
 ## Current Status
 
@@ -58,11 +56,15 @@ Based on current progress, the following items are ready to be worked on:
 - **Team-Brain App**: Created separate app instance with custom configuration
 - **Matrix Bot Display Names**: Fixed to show app-specific names instead of "Personal Brain"
 - **Deployment Idempotency**: Improved deployment scripts to handle existing infrastructure
+- **Blog Plugin**: Long-form content with RSS feeds and series support
+- **Decks Plugin**: Slide deck and presentation management
+- **Type-safe Entity Metadata**: Strongly-typed metadata with backward compatibility
+- **Code Quality**: Zero ESLint warnings, no `as any` type assertions
+- **UI Library Components**: Reusable Preact components (Head, ContentSection, etc.)
 
 ### In Progress 🚧
 
 - **Documentation**: Updating docs to reflect current architecture
-- **Test-Brain Deployment**: Fixing Terraform state mismatch issues
 
 ## Phase 1: Production Readiness (Q1 2025)
 
@@ -108,19 +110,25 @@ Based on current progress, the following items are ready to be worked on:
 - [x] AI-powered summarization and tagging ✅
 - [x] Simple list and search functionality ✅
 
-### 2.2 Blog Plugin (Priority 2) - **Planning Complete**
+### 2.2 Blog Plugin ✅ **COMPLETED**
 
-- [ ] Long-form content management (minimal wrapper over entities)
-- [ ] Draft/publish workflow
-- [ ] Leverages existing markdown file storage
-- [ ] Basic metadata (title, slug, status, tags)
+- [x] Long-form content management ✅
+- [x] Draft/publish workflow ✅
+- [x] RSS feed generation ✅
+- [x] Series support for multi-part content ✅
 
-### 2.3 Task Plugin - **Not Started**
+### 2.3 Decks Plugin ✅ **COMPLETED**
 
-- [ ] Task creation and management
-- [ ] Project organization
-- [ ] Due dates and reminders
-- [ ] Integration with calendar systems
+- [x] Slide deck and presentation management ✅
+- [x] Markdown-based slides ✅
+- [x] Detail page templates ✅
+
+### 2.4 Roadmap Plugin - **Not Started**
+
+- [ ] Outcome-based goal tracking
+- [ ] Milestone management
+- [ ] Evidence linking to entities
+- [ ] Progress visualization
 
 ## Phase 3: Enhanced Interfaces (Q2 2025) - **Not Started**
 
