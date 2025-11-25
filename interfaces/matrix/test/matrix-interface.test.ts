@@ -5,6 +5,9 @@ import { createInterfacePluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import { PermissionService } from "@brains/permission-service";
 
+// Type for mock.on calls - [eventName, handler]
+type MockOnCall = [string, (roomId: string, event: unknown) => void];
+
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
 const mockAutoJoinMixin = globalThis.mockAutoJoinMixin;
@@ -65,8 +68,9 @@ describe("MatrixInterface", () => {
 
     it("should throw error for invalid config", () => {
       expect(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        new MatrixInterface({} as any);
+        new MatrixInterface(
+          {} as unknown as ConstructorParameters<typeof MatrixInterface>[0],
+        );
       }).toThrow();
     });
   });
@@ -153,16 +157,10 @@ describe("MatrixInterface", () => {
       await harness.installPlugin(matrixInterface);
 
       // Get the message handler that was registered
-      const calls = mockMatrixClient.on.mock.calls;
-      const messageCall = calls.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (call: any[]) => call[0] === "room.message",
-      );
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1] as (
-        roomId: string,
-        event: unknown,
-      ) => void;
+      messageHandler = messageCall[1];
     });
 
     it("should process valid messages", async () => {
@@ -247,16 +245,10 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls;
-      const messageCall = calls.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (call: any[]) => call[0] === "room.message",
-      );
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1] as (
-        roomId: string,
-        event: unknown,
-      ) => void;
+      messageHandler = messageCall[1];
 
       const event = {
         sender: "@user:example.org",
@@ -290,16 +282,10 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls;
-      const messageCall = calls.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (call: any[]) => call[0] === "room.message",
-      );
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1] as (
-        roomId: string,
-        event: unknown,
-      ) => void;
+      messageHandler = messageCall[1];
     });
 
     it("should pass userId and interfaceType to shell for permission determination", async () => {
@@ -338,13 +324,10 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls;
-      const inviteCall = calls.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (call: any[]) => call[0] === "room.invite",
-      );
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const inviteCall = calls.find((call) => call[0] === "room.invite");
       if (!inviteCall) throw new Error("Invite handler not found");
-      inviteHandler = inviteCall[1] as (roomId: string, event: unknown) => void;
+      inviteHandler = inviteCall[1];
     });
 
     it("should accept invites from anchor user (via centralized permissions)", async () => {
