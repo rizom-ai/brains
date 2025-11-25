@@ -401,25 +401,6 @@ destroy_infrastructure() {
         }
     fi
     
-    # Get server IP for backup
-    SERVER_IP=$(terraform output -raw server_ip 2>/dev/null || true)
-
-    if [ -n "$SERVER_IP" ]; then
-        log_info "Creating backup before destroy..."
-        # Backup data directories
-        BACKUP_DIR="$PROJECT_ROOT/backups/$APP_NAME-$(date +%Y%m%d_%H%M%S)"
-        mkdir -p "$BACKUP_DIR"
-
-        ssh -o StrictHostKeyChecking=no "root@$SERVER_IP" \
-            "cd /opt/personal-brain && tar czf /tmp/backup.tar.gz data brain-repo brain-data matrix-storage 2>/dev/null" || true
-
-        scp -o StrictHostKeyChecking=no "root@$SERVER_IP:/tmp/backup.tar.gz" "$BACKUP_DIR/" 2>/dev/null || true
-
-        if [ -f "$BACKUP_DIR/backup.tar.gz" ]; then
-            log_info "Backup saved to: $BACKUP_DIR"
-        fi
-    fi
-    
     # Destroy infrastructure
     log_info "Destroying infrastructure..."
 
