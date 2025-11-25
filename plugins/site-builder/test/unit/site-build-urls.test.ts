@@ -29,7 +29,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
     mockProgressReporter = {
       report: mock(() => Promise.resolve()),
       createSub: mock(() => ({
-        toCallback: () => mock(() => Promise.resolve()),
+        toCallback: (): (() => Promise<void>) => mock(() => Promise.resolve()),
       })),
     } as unknown as ProgressReporter;
   });

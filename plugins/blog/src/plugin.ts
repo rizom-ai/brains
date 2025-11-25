@@ -231,10 +231,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     }
 
     // Use site config or fallback to defaults
-    const siteUrl = payload.siteConfig?.url ?? "https://example.com";
-    const siteTitle = payload.siteConfig?.title ?? "Blog";
+    const siteUrl = payload.siteConfig.url ?? "https://example.com";
+    const siteTitle = payload.siteConfig.title ?? "Blog";
     const siteDescription =
-      payload.siteConfig?.description ?? "Latest blog posts";
+      payload.siteConfig.description ?? "Latest blog posts";
 
     // Generate RSS XML
     const xml = generateRSSFeed(filteredPosts, {

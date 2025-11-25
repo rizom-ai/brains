@@ -1,6 +1,6 @@
-import { createContext } from "preact";
+import { createContext, h, type JSX } from "preact";
 import { useContext } from "preact/hooks";
-import type { ComponentChildren, VNode } from "preact";
+import type { ComponentChildren } from "preact";
 
 /**
  * Props for head metadata
@@ -30,6 +30,11 @@ export interface HeadCollectorInterface {
 
 /**
  * Provider component that makes HeadCollector available to child components
+ *
+ * NOTE: Uses h() instead of JSX to ensure consistent Preact VNode creation.
+ * This is necessary because Bun's JSX runtime resolution can incorrectly
+ * resolve to React's runtime in monorepo contexts where react is a dependency
+ * of other packages (e.g., ink in the CLI).
  */
 export interface HeadProviderProps {
   headCollector: HeadCollectorInterface;
@@ -39,12 +44,8 @@ export interface HeadProviderProps {
 export function HeadProvider({
   headCollector,
   children,
-}: HeadProviderProps): VNode {
-  return (
-    <HeadContext.Provider value={headCollector}>
-      {children}
-    </HeadContext.Provider>
-  );
+}: HeadProviderProps): JSX.Element {
+  return h(HeadContext.Provider, { value: headCollector }, children);
 }
 
 /**

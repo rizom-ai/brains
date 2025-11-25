@@ -32,7 +32,7 @@ export const DetailPageHeader = ({
     <Wrapper className={`mb-8 ${className}`}>
       <h1 className={titleClass}>{title}</h1>
 
-      {(created || updated || metadata) && (
+      {(created ?? updated ?? metadata) && (
         <div className="text-sm text-theme-muted mb-4">
           {created && (
             <time dateTime={created}>Created {formatDate(created)}</time>

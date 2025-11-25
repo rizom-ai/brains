@@ -68,7 +68,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
 /**
  * Factory function to create the decks plugin
  */
-export function decksPlugin() {
+export function decksPlugin(): DecksPlugin {
   return new DecksPlugin();
 }
 

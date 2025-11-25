@@ -18,6 +18,7 @@ import { HydrationManager } from "../hydration/hydration-manager";
 import type { CSSProcessor } from "../css/css-processor";
 import { TailwindCSSProcessor } from "../css/css-processor";
 import { createHTMLShell } from "./html-generator";
+import { z } from "@brains/utils";
 
 /**
  * Preact-based static site builder
@@ -214,16 +215,14 @@ export class PreactBuilder implements StaticSiteBuilder {
         continue;
       }
 
-      // Inject route title as pageTitle for templates that use it (e.g., list pages)
-      // Templates opt-in by including pageTitle in their schema
-      const contentWithPageTitle =
-        typeof content === "object" && content !== null
-          ? { ...content, pageTitle: route.title }
-          : content;
-
       // Validate content against schema
+      // Inject route title as pageTitle for templates that use it (e.g., list pages)
       try {
-        const validatedContent = template.schema.parse(contentWithPageTitle);
+        const contentObj = z.record(z.unknown()).parse(content);
+        const validatedContent = template.schema.parse({
+          ...contentObj,
+          pageTitle: route.title,
+        });
 
         // Create component using h() to pass props correctly
         // renderer is already checked to be a function, so we can cast it to ComponentType

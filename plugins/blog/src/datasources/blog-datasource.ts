@@ -287,7 +287,7 @@ export class BlogDataSource implements DataSource {
       await this.entityService.listEntities<BlogPost>("post", listOptions);
 
     // Filter based on environment
-    const isPreview = context?.environment === "preview";
+    const isPreview = context.environment === "preview";
     const filteredPosts = isPreview
       ? entities // Preview: show all posts (draft and published)
       : entities.filter((p) => p.metadata.publishedAt); // Production: only published

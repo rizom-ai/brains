@@ -34,14 +34,14 @@ export const ListPageHeader = ({
   // Build the count text if count and label are provided
   const countText =
     count !== undefined && singularLabel
-      ? `${count} ${count === 1 ? singularLabel : pluralLabel || `${singularLabel}s`}`
+      ? `${count} ${count === 1 ? singularLabel : (pluralLabel ?? `${singularLabel}s`)}`
       : null;
 
   // Combine count and description
   const subtitle =
     countText && description
       ? `${countText} ${description}`
-      : countText || description;
+      : (countText ?? description);
 
   return (
     <div className={`mb-8 ${className}`}>

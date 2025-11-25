@@ -7,8 +7,17 @@ import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { ProfileService } from "@brains/profile-service";
 
+// Type for accessing private methods in tests
+interface SiteBuilderTestable {
+  enrichWithUrls<T>(
+    data: T,
+    generateEntityUrl: (entityType: string, slug: string) => string,
+  ): T;
+}
+
 describe("SiteBuilder - URL Enrichment", () => {
   let siteBuilder: SiteBuilder;
+  let testableSiteBuilder: SiteBuilderTestable;
   let mockContext: Partial<ServicePluginContext>;
   let mockRouteRegistry: Partial<RouteRegistry>;
   let mockSiteInfoService: Partial<SiteInfoService>;
@@ -26,7 +35,6 @@ describe("SiteBuilder - URL Enrichment", () => {
   };
 
   beforeEach(() => {
-    // Create mock context with required methods
     mockContext = {
       logger,
       registerTemplates: mock(),
@@ -56,7 +64,7 @@ describe("SiteBuilder - URL Enrichment", () => {
     };
 
     mockProfileService = {
-      getProfile: async () => ({ name: "Test" }),
+      getProfile: async (): Promise<{ name: string }> => ({ name: "Test" }),
     };
 
     siteBuilder = SiteBuilder.createFresh(
@@ -71,6 +79,7 @@ describe("SiteBuilder - URL Enrichment", () => {
       }),
       entityRouteConfig,
     );
+    testableSiteBuilder = siteBuilder as unknown as SiteBuilderTestable;
   });
 
   describe("enrichWithUrls", () => {
@@ -85,22 +94,18 @@ describe("SiteBuilder - URL Enrichment", () => {
         content: "Test content",
         created: "2025-01-01T00:00:00.000Z",
         updated: "2025-01-01T00:00:00.000Z",
-        metadata: {
-          slug: "test-post",
-          title: "Test Post",
-        },
+        metadata: { slug: "test-post", title: "Test Post" },
+        url: "",
+        typeLabel: "",
       };
 
-      const result = (siteBuilder as any).enrichWithUrls(
+      const result = testableSiteBuilder.enrichWithUrls(
         entity,
         generateEntityUrl,
       );
 
-      expect(result).toMatchObject({
-        ...entity,
-        url: "/posts/test-post",
-        typeLabel: "Blog Post",
-      });
+      expect(result.url).toBe("/posts/test-post");
+      expect(result.typeLabel).toBe("Blog Post");
     });
 
     it("should handle array of entities", () => {
@@ -112,6 +117,8 @@ describe("SiteBuilder - URL Enrichment", () => {
           created: "2025-01-01T00:00:00.000Z",
           updated: "2025-01-01T00:00:00.000Z",
           metadata: { slug: "post-1" },
+          url: "",
+          typeLabel: "",
         },
         {
           id: "post-2",
@@ -120,19 +127,25 @@ describe("SiteBuilder - URL Enrichment", () => {
           created: "2025-01-02T00:00:00.000Z",
           updated: "2025-01-02T00:00:00.000Z",
           metadata: { slug: "post-2" },
+          url: "",
+          typeLabel: "",
         },
       ];
 
-      const result = (siteBuilder as any).enrichWithUrls(
+      const result = testableSiteBuilder.enrichWithUrls(
         entities,
         generateEntityUrl,
       );
 
       expect(Array.isArray(result)).toBe(true);
-      expect((result as any)[0].url).toBe("/posts/post-1");
-      expect((result as any)[0].typeLabel).toBe("Blog Post");
-      expect((result as any)[1].url).toBe("/posts/post-2");
-      expect((result as any)[1].typeLabel).toBe("Blog Post");
+      expect(result).toHaveLength(2);
+      const first = result[0];
+      const second = result[1];
+      if (!first || !second) throw new Error("Expected two elements");
+      expect(first.url).toBe("/posts/post-1");
+      expect(first.typeLabel).toBe("Blog Post");
+      expect(second.url).toBe("/posts/post-2");
+      expect(second.typeLabel).toBe("Blog Post");
     });
 
     it("should recursively enrich nested entities", () => {
@@ -144,6 +157,8 @@ describe("SiteBuilder - URL Enrichment", () => {
           created: "2025-01-01T00:00:00.000Z",
           updated: "2025-01-01T00:00:00.000Z",
           metadata: { slug: "test-post" },
+          url: "",
+          typeLabel: "",
         },
         relatedDecks: [
           {
@@ -153,19 +168,23 @@ describe("SiteBuilder - URL Enrichment", () => {
             created: "2025-01-01T00:00:00.000Z",
             updated: "2025-01-01T00:00:00.000Z",
             metadata: { slug: "test-deck" },
+            url: "",
+            typeLabel: "",
           },
         ],
       };
 
-      const result = (siteBuilder as any).enrichWithUrls(
+      const result = testableSiteBuilder.enrichWithUrls(
         data,
         generateEntityUrl,
-      ) as any;
+      );
 
       expect(result.post.url).toBe("/posts/test-post");
       expect(result.post.typeLabel).toBe("Blog Post");
-      expect(result.relatedDecks[0].url).toBe("/decks/test-deck");
-      expect(result.relatedDecks[0].typeLabel).toBe("Presentation");
+      const firstDeck = result.relatedDecks[0];
+      if (!firstDeck) throw new Error("Expected deck element");
+      expect(firstDeck.url).toBe("/decks/test-deck");
+      expect(firstDeck.typeLabel).toBe("Presentation");
     });
 
     it("should use capitalized entityType as fallback label", () => {
@@ -176,50 +195,50 @@ describe("SiteBuilder - URL Enrichment", () => {
         created: "2025-01-01T00:00:00.000Z",
         updated: "2025-01-01T00:00:00.000Z",
         metadata: { slug: "test-note" },
+        url: "",
+        typeLabel: "",
       };
 
-      const result = (siteBuilder as any).enrichWithUrls(
+      const result = testableSiteBuilder.enrichWithUrls(
         entity,
         generateEntityUrl,
       );
 
-      expect(result.typeLabel).toBe("Note"); // Capitalized fallback
+      expect(result.typeLabel).toBe("Note");
     });
 
     it("should not modify non-entity objects", () => {
       const data = {
         title: "Test",
         count: 42,
-        metadata: { foo: "bar" }, // Has metadata but not entity structure
+        metadata: { foo: "bar" },
       };
 
-      const result = (siteBuilder as any).enrichWithUrls(
+      const result = testableSiteBuilder.enrichWithUrls(
         data,
         generateEntityUrl,
       );
 
       expect(result).toEqual(data);
-      expect((result as any).url).toBeUndefined();
-      expect((result as any).typeLabel).toBeUndefined();
     });
 
     it("should handle null and undefined", () => {
       expect(
-        (siteBuilder as any).enrichWithUrls(null, generateEntityUrl),
+        testableSiteBuilder.enrichWithUrls(null, generateEntityUrl),
       ).toBeNull();
       expect(
-        (siteBuilder as any).enrichWithUrls(undefined, generateEntityUrl),
+        testableSiteBuilder.enrichWithUrls(undefined, generateEntityUrl),
       ).toBeUndefined();
     });
 
     it("should handle primitive values", () => {
       expect(
-        (siteBuilder as any).enrichWithUrls("string", generateEntityUrl),
+        testableSiteBuilder.enrichWithUrls("string", generateEntityUrl),
       ).toBe("string");
-      expect((siteBuilder as any).enrichWithUrls(42, generateEntityUrl)).toBe(
+      expect(testableSiteBuilder.enrichWithUrls(42, generateEntityUrl)).toBe(
         42,
       );
-      expect((siteBuilder as any).enrichWithUrls(true, generateEntityUrl)).toBe(
+      expect(testableSiteBuilder.enrichWithUrls(true, generateEntityUrl)).toBe(
         true,
       );
     });
@@ -239,9 +258,11 @@ describe("SiteBuilder - URL Enrichment", () => {
         },
         frontmatter: { title: "Test" },
         body: "Body content",
+        url: "",
+        typeLabel: "",
       };
 
-      const result = (siteBuilder as any).enrichWithUrls(
+      const result = testableSiteBuilder.enrichWithUrls(
         entity,
         generateEntityUrl,
       );
@@ -267,8 +288,10 @@ describe("SiteBuilder - URL Enrichment", () => {
           build: mock().mockResolvedValue({ success: true }),
           clean: mock().mockResolvedValue(undefined),
         }),
-        undefined, // No entityRouteConfig
+        undefined,
       );
+      const testableBuilderWithoutConfig =
+        builderWithoutConfig as unknown as SiteBuilderTestable;
 
       const entity = {
         id: "post-1",
@@ -277,15 +300,17 @@ describe("SiteBuilder - URL Enrichment", () => {
         created: "2025-01-01T00:00:00.000Z",
         updated: "2025-01-01T00:00:00.000Z",
         metadata: { slug: "test" },
+        url: "",
+        typeLabel: "",
       };
 
-      const result = (builderWithoutConfig as any).enrichWithUrls(
+      const result = testableBuilderWithoutConfig.enrichWithUrls(
         entity,
         generateEntityUrl,
       );
 
       expect(result.url).toBe("/posts/test");
-      expect(result.typeLabel).toBe("Post"); // Capitalized entityType
+      expect(result.typeLabel).toBe("Post");
     });
   });
 });

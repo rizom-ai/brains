@@ -36,7 +36,7 @@ export const ContentSection = ({
         <div className="mt-6 md:mt-0">
           {items.length === 0 ? (
             <p className="text-theme-muted italic">
-              {emptyMessage || `No ${title.toLowerCase()} yet.`}
+              {emptyMessage ?? `No ${title.toLowerCase()} yet.`}
             </p>
           ) : (
             <>

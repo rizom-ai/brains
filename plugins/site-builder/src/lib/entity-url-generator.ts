@@ -15,9 +15,7 @@ export class EntityUrlGenerator {
    * Get the singleton instance
    */
   static getInstance(): EntityUrlGenerator {
-    if (!EntityUrlGenerator.instance) {
-      EntityUrlGenerator.instance = new EntityUrlGenerator();
-    }
+    EntityUrlGenerator.instance ??= new EntityUrlGenerator();
     return EntityUrlGenerator.instance;
   }
 
