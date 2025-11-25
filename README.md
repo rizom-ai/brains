@@ -152,7 +152,7 @@ The project follows a **tool-first architecture** where all functionality is exp
 - [Entity Model](docs/entity-model.md)
 - [Messaging System](docs/messaging-system.md)
 - [Development Workflow](docs/development-workflow.md)
-- [Deployment Guide](docs/deployment-guide.md)
+- [Deployment Guide](docs/deployment.md)
 - [Tech Stack](docs/tech-stack.md)
 
 ## Development
@@ -234,7 +234,7 @@ The application supports multiple deployment strategies:
 - **Cloud**: Automated deployment to Hetzner Cloud with Terraform
 - **Systemd**: Linux service with automatic startup
 
-See the [Deployment Guide](docs/deployment-guide.md) for detailed instructions.
+See the [Deployment Guide](docs/deployment.md) for detailed instructions.
 
 ### Quick Deploy with Docker
 

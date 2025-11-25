@@ -113,7 +113,7 @@ Refer to these documents for detailed architecture information:
 - **Entity Model**: `docs/entity-model.md`
 - **Messaging System**: `docs/messaging-system.md`
 - **Development Workflow**: `docs/development-workflow.md`
-- **Deployment Guide**: `docs/deployment-guide.md`
+- **Deployment Guide**: `docs/deployment.md`
 - **Plugin/Interface Development**: `CLAUDE-PLUGINS-INTERFACES.md` (specialized guidelines)
 - **Theming System**: `docs/theming-guide.md` (comprehensive theming guide)
 

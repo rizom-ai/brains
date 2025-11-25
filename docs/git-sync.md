@@ -1,175 +1,205 @@
-# Git Sync for Brains
+# Git Sync Plugin
 
-Git sync provides version control and synchronization capabilities for brain data, enabling backup, history tracking, and sharing across devices.
+The Git Sync plugin provides version control and synchronization capabilities for brain data, enabling backup, history tracking, and sharing across devices.
 
-## Architecture Overview
+## Overview
 
-Git sync is implemented as a core service in the shell, not as a plugin. This ensures:
+Git Sync works alongside the Directory Sync plugin to add git version control to your entity data. When directory-sync exports entities to markdown files, git-sync commits and pushes those changes to a remote repository.
 
-- All entity types benefit from version control
-- Consistent sync behavior across different brain types
-- No dependencies on specific contexts
+## Installation
 
-## Design Principles
-
-1. **Non-intrusive**: Git operations don't interfere with normal brain operations
-2. **Entity-agnostic**: Works with any entity type that supports markdown serialization
-3. **Conflict-aware**: Handles merge conflicts gracefully
-4. **Privacy-first**: Supports encrypted repositories for sensitive data
-
-## Implementation
-
-### GitSyncService
-
-The `GitSyncService` is a core shell component:
+Add the git-sync plugin to your brain configuration:
 
 ```typescript
-// packages/shell/src/sync/gitSyncService.ts
-import { Registry } from "../registry/registry";
-import { EntityService } from "../entity/entityService";
-import { Logger } from "@brains/utils";
+import { defineConfig } from "@brains/app";
+import { gitSync } from "@brains/git-sync";
 
-export interface GitSyncConfig {
-  repoPath: string;
-  remote?: string;
-  branch?: string;
-  autoSync?: boolean;
-  syncInterval?: number; // minutes
-}
-
-export class GitSyncService {
-  private static instance: GitSyncService | null = null;
-
-  public static getInstance(): GitSyncService {
-    if (!GitSyncService.instance) {
-      GitSyncService.instance = new GitSyncService();
-    }
-    return GitSyncService.instance;
-  }
-
-  public static resetInstance(): void {
-    GitSyncService.instance = null;
-  }
-
-  public static createFresh(): GitSyncService {
-    return new GitSyncService();
-  }
-
-  private constructor(
-    private config?: GitSyncConfig,
-    private logger?: Logger,
-    private entityService?: EntityService,
-  ) {}
-
-  async initialize(config: GitSyncConfig): Promise<void> {
-    // Initialize git repository
-    // Set up file watchers
-    // Configure auto-sync if enabled
-  }
-
-  async syncAll(): Promise<void> {
-    // Export all entities to markdown
-    // Stage changes
-    // Commit with timestamp
-    // Push to remote if configured
-  }
-
-  async pull(): Promise<void> {
-    // Pull from remote
-    // Import changed markdown files
-    // Update database
-  }
-
-  async push(): Promise<void> {
-    // Export current state
-    // Commit changes
-    // Push to remote
-  }
-}
+export default defineConfig({
+  plugins: [
+    gitSync({
+      gitUrl: "https://github.com/username/brain-data.git",
+      branch: "main",
+      autoSync: true,
+      syncInterval: 5, // minutes
+      autoPush: true,
+      authToken: process.env.GIT_AUTH_TOKEN,
+      authorName: "Brain Bot",
+      authorEmail: "brain@example.com",
+    }),
+  ],
+});
 ```
 
-### File Structure
+## Configuration Options
 
-Git sync uses a predictable file structure:
+| Option          | Type    | Default               | Description                                         |
+| --------------- | ------- | --------------------- | --------------------------------------------------- |
+| `gitUrl`        | string  | **required**          | Git repository URL (https or ssh)                   |
+| `branch`        | string  | `"main"`              | Git branch to sync                                  |
+| `autoSync`      | boolean | `false`               | Enable automatic syncing on interval                |
+| `syncInterval`  | number  | `5`                   | Sync interval in minutes (when autoSync is enabled) |
+| `autoPush`      | boolean | `true`                | Automatically push after commits                    |
+| `authToken`     | string  | -                     | Authentication token for private repositories       |
+| `authorName`    | string  | -                     | Git author name for commits                         |
+| `authorEmail`   | string  | -                     | Git author email for commits                        |
+| `commitMessage` | string  | `"Auto-sync: {date}"` | Commit message template                             |
+
+## Commands
+
+### `/git-sync`
+
+Manually trigger a sync with the remote repository:
 
 ```
-brain-repo/
-├── .git/
-├── .gitignore
-├── README.md
-├── notes/
-│   ├── 2024/
-│   │   ├── 01/
-│   │   │   └── note-abc123.md
-│   │   └── 02/
-│   │       └── note-def456.md
-│   └── index.md
-├── tasks/
-│   ├── active/
-│   │   └── task-ghi789.md
-│   ├── completed/
-│   │   └── task-jkl012.md
-│   └── index.md
-├── people/
-│   └── person-mno345.md
-└── projects/
-    └── project-pqr678.md
+/git-sync
 ```
 
-### Commands
+This will:
 
-Git sync is exposed through the BrainProtocol:
+1. Pull latest changes from remote
+2. Import any new entities from pulled files
+3. Commit local changes
+4. Push to remote
 
-```typescript
-// Sync commands
-brain sync              // Sync all changes
-brain sync --pull       // Pull remote changes
-brain sync --push       // Push local changes
-brain sync --status     // Show sync status
+## How It Works
 
-// Configuration
-brain sync --init <repo-url>  // Initialize sync with remote
-brain sync --auto on          // Enable auto-sync
-brain sync --interval 30      // Set sync interval (minutes)
+### Integration with Directory Sync
+
+Git Sync integrates with the directory-sync plugin via the message bus:
+
+1. **On startup**: Git initializes/clones the repository in the `brain-data` directory
+2. **After directory-sync export**: Git commits and optionally pushes changes
+3. **After git pull**: Sends `entity:import:request` to directory-sync to import new files
+
+### Sync Flow
+
 ```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Entity Change  │────▶│  Directory Sync  │────▶│    Git Sync     │
+│   (Database)    │     │  (Export to MD)  │     │ (Commit & Push) │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                                                          │
+                                                          ▼
+                                                 ┌─────────────────┐
+                                                 │  Remote Repo    │
+                                                 │   (GitHub)      │
+                                                 └─────────────────┘
+```
+
+### Automatic Syncing
+
+When `autoSync: true`, the plugin runs sync at the configured interval:
+
+1. Pulls remote changes
+2. Imports any new entities
+3. Commits local changes
+4. Pushes if `autoPush: true`
 
 ### Conflict Resolution
 
-When conflicts occur:
+Git Sync uses an automatic conflict resolution strategy:
 
-1. **Automatic resolution** for non-conflicting changes
-2. **Manual resolution** for conflicting content:
-   - Creates `.conflict` files
-   - Notifies user
-   - Provides merge tools
+- Conflicts are resolved by accepting the **remote version** (`-Xtheirs`)
+- This ensures remote changes are never lost
+- Local changes that conflict will be overwritten
 
-### Integration with Shell
+For manual conflict resolution, disable `autoSync` and use `/git-sync` manually.
 
-The GitSyncService integrates with:
+## File Structure
 
-- **EntityService**: For exporting/importing entities
-- **MessageBus**: For sync notifications
-- **BrainProtocol**: For command handling
+Git Sync uses the same directory structure as directory-sync:
 
-## Benefits
+```
+brain-data/
+├── .git/
+├── .gitkeep
+├── notes/
+│   └── note-abc123.md
+├── posts/
+│   └── my-blog-post.md
+├── links/
+│   └── link-def456.md
+└── decks/
+    └── presentation-ghi789.md
+```
 
-1. **Version History**: Track changes over time
-2. **Backup**: Automatic backups to git repository
-3. **Multi-device**: Sync across devices
-4. **Collaboration**: Share specific contexts (with permissions)
-5. **Offline Support**: Work offline, sync when connected
+## Authentication
 
-## Security Considerations
+### GitHub Personal Access Token
 
-- Supports encrypted git repositories
-- Can exclude sensitive entities from sync
-- Respects brain-specific privacy settings
-- Optional commit signing
+For GitHub repositories, create a Personal Access Token with `repo` scope:
 
-## Future Enhancements
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Generate a new token with `repo` scope
+3. Pass the token via `authToken` config or environment variable:
 
-1. **Selective Sync**: Choose which entity types to sync
-2. **Branch Management**: Support for feature branches
-3. **Merge Strategies**: Configurable merge behavior
-4. **Git LFS**: Support for large attachments
-5. **Hook System**: Pre/post sync hooks for custom logic
+```typescript
+gitSync({
+  gitUrl: "https://github.com/username/brain-data.git",
+  authToken: process.env.GITHUB_TOKEN,
+});
+```
+
+### SSH Authentication
+
+For SSH URLs, ensure your SSH key is configured:
+
+```typescript
+gitSync({
+  gitUrl: "git@github.com:username/brain-data.git",
+  // No authToken needed for SSH
+});
+```
+
+## Events
+
+Git Sync listens for these message bus events:
+
+| Event                    | Description                                       |
+| ------------------------ | ------------------------------------------------- |
+| `sync:initial:completed` | Triggers sync after directory-sync initial export |
+| `system:plugins:ready`   | Final sync after all plugins initialize           |
+
+## Environment Variables
+
+For deployment, you can use environment variables:
+
+```bash
+# Git authentication
+GIT_AUTH_TOKEN=ghp_xxxxxxxxxxxx
+
+# For testing (overrides default brain-data path)
+GIT_SYNC_TEST_PATH=/tmp/test-repo
+```
+
+## Troubleshooting
+
+### "Failed to push changes"
+
+- Verify your `authToken` is valid and has push permissions
+- Check if the remote branch exists (git-sync will create it on first push)
+- Ensure the repository URL is correct
+
+### "Conflict markers detected"
+
+- Git-sync automatically resolves conflicts using remote version
+- If this persists, manually resolve in the brain-data directory
+
+### "Remote branch doesn't exist"
+
+- This is normal for new repositories
+- Git-sync will create the branch on first push
+
+### Auto-sync not working
+
+- Ensure `autoSync: true` is set
+- Check `syncInterval` is a reasonable value (minimum 1 minute)
+- Verify the plugin loaded successfully in logs
+
+## Best Practices
+
+1. **Use private repositories** for personal brain data
+2. **Set up backup remotes** for redundancy
+3. **Configure auto-sync** for hands-off operation
+4. **Use environment variables** for tokens in production
+5. **Review sync logs** periodically for errors
