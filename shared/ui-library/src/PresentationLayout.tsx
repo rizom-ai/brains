@@ -58,6 +58,9 @@ export const PresentationLayout = ({
                   margin: 0.1,
                   minScale: 0.1,
                   maxScale: 2.0,
+                  transition: 'slide',
+                  transitionSpeed: 'default',
+                  backgroundTransition: 'fade',
                 });
               }
             });
@@ -91,7 +94,7 @@ export const PresentationLayout = ({
               align-items: flex-start;
               justify-content: center;
               flex-direction: column;
-              max-width: 900px;
+              max-width: 85vw;
               color: var(--color-text);
               text-align: left;
             }
@@ -106,7 +109,6 @@ export const PresentationLayout = ({
             @media (min-width: 640px) {
               .reveal .slides section:not(.stack) {
                 padding: 3rem 4rem;
-                max-width: 1000px;
               }
             }
 
@@ -114,7 +116,6 @@ export const PresentationLayout = ({
             @media (min-width: 1024px) {
               .reveal .slides section:not(.stack) {
                 padding: 4rem 6rem;
-                max-width: 1200px;
               }
             }
 
@@ -122,24 +123,6 @@ export const PresentationLayout = ({
             @media (min-width: 1440px) {
               .reveal .slides section:not(.stack) {
                 padding: 5rem 8rem;
-                max-width: 1400px;
-              }
-            }
-
-            /* Mobile optimizations */
-            @media (max-width: 640px) {
-              .reveal h1 {
-                font-size: 2.5rem;
-                margin-bottom: 1rem;
-              }
-
-              .reveal h2 {
-                font-size: 2rem;
-                margin-bottom: 0.75rem;
-              }
-
-              .reveal .slides section {
-                padding: 1.5rem !important;
               }
             }
 
@@ -150,89 +133,82 @@ export const PresentationLayout = ({
             .reveal h4,
             .reveal h5,
             .reveal h6 {
-              font-family: var(--font-heading);
-              font-weight: 700;
+              font-family: var(--font-sans);
+              font-weight: 600;
             }
 
             .reveal h1 {
               color: var(--color-heading);
-              font-size: var(--text-h1-mobile);
+              font-size: clamp(3.75rem, 8vw, 10rem);
               line-height: 1;
-              font-weight: 700;
+              font-weight: 600;
               margin-bottom: 0.5rem;
               text-align: left;
-            }
-
-            @media (min-width: 640px) {
-              .reveal h1 {
-                font-size: var(--text-h1);
-              }
             }
 
             .reveal h2 {
-              color: var(--color-heading);
-              font-size: var(--text-h2-mobile);
-              line-height: 1;
-              font-weight: 700;
-              margin-bottom: 0.5rem;
+              color: var(--color-brand);
+              font-size: clamp(3rem, 5vw, 6rem);
+              line-height: 1.1;
+              font-weight: 300;
+              margin-bottom: 1.5rem;
               text-align: left;
-            }
-
-            @media (min-width: 640px) {
-              .reveal h2 {
-                font-size: var(--text-h2);
-              }
             }
 
             .reveal h3 {
-              color: var(--color-heading);
-              font-size: var(--text-h3-mobile);
-              line-height: 1;
-              font-weight: 700;
-              margin-bottom: 1rem;
+              color: var(--color-brand);
+              font-size: clamp(2.25rem, 3.5vw, 4rem);
+              line-height: 1.2;
+              font-weight: 600;
+              margin-bottom: 1.5rem;
               text-align: left;
-            }
-
-            @media (min-width: 640px) {
-              .reveal h3 {
-                font-size: var(--text-h3);
-              }
+              display: inline-block;
+              padding-bottom: 0.5rem;
+              border-bottom: 3px solid var(--color-brand);
             }
 
             .reveal h4 {
               color: var(--color-heading);
-              font-size: var(--text-h4);
-              font-weight: 700;
+              font-size: clamp(1.5rem, 2vw, 2.5rem);
+              font-weight: 600;
               margin-top: 2rem;
               margin-bottom: 1rem;
               text-align: left;
+              position: relative;
+              padding-left: 1rem;
+            }
+
+            .reveal h4::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0.2em;
+              bottom: 0.2em;
+              width: 4px;
+              background-color: var(--color-brand);
+              border-radius: 2px;
             }
 
             .reveal h5,
             .reveal h6 {
-              color: var(--color-heading);
-              font-size: 1.25rem;
-              font-weight: 700;
+              color: var(--color-text-muted);
+              font-size: clamp(1rem, 1.5vw, 1.5rem);
+              font-weight: 600;
               margin-top: 1.5rem;
               margin-bottom: 0.75rem;
               text-align: left;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
             }
 
             .reveal p,
             .reveal li {
               color: var(--color-text);
               font-family: var(--font-sans);
-              font-size: var(--text-body-mobile);
+              font-size: clamp(1.5rem, 2vw, 2.5rem);
               line-height: 1.5;
               margin-bottom: 1rem;
               text-align: left;
-            }
-
-            @media (min-width: 640px) {
-              .reveal p,
-              .reveal li {
-                font-size: var(--text-body);
-              }
             }
 
             .reveal a {
@@ -254,24 +230,50 @@ export const PresentationLayout = ({
             .reveal .slides section ol {
               display: block;
               margin-left: 0;
-              padding-left: 2rem;
+              padding-left: 0;
               text-align: left;
+              list-style: none;
             }
 
             .reveal .slides section li {
-              display: list-item;
-              list-style-position: outside;
-              margin-top: 0.5rem;
-              margin-bottom: 0.5rem;
+              display: flex;
+              align-items: flex-start;
+              margin-top: 0.75rem;
+              margin-bottom: 0.75rem;
               text-align: left;
+              padding-left: 1.5rem;
+              position: relative;
             }
 
-            .reveal .slides section ul li {
-              list-style-type: disc;
+            .reveal .slides section ul li::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0.5em;
+              width: 8px;
+              height: 8px;
+              background-color: var(--color-brand);
+              border-radius: 50%;
+              flex-shrink: 0;
+            }
+
+            .reveal .slides section ol {
+              list-style: decimal;
+              padding-left: 1.5rem;
             }
 
             .reveal .slides section ol li {
-              list-style-type: decimal;
+              display: list-item;
+              padding-left: 0.5rem;
+            }
+
+            .reveal .slides section ol li::before {
+              display: none;
+            }
+
+            .reveal .slides section ol li::marker {
+              color: var(--color-brand);
+              font-weight: 600;
             }
 
             /* Code styling */
@@ -294,18 +296,87 @@ export const PresentationLayout = ({
               color: var(--color-text);
             }
 
-            /* Blockquotes */
-            .reveal blockquote {
-              background-color: var(--color-bg-subtle);
-              border-left: 4px solid var(--color-brand);
-              padding: 1em;
-              color: var(--color-text-muted);
+            /* Images */
+            .reveal img {
+              max-width: 100%;
+              max-height: 50vh;
+              height: auto;
+              width: auto;
+              object-fit: contain;
+              margin: 1.5rem 0;
+              display: block;
+              border-radius: 8px;
             }
 
-            /* Lists */
+            /* Tables - Professional styling */
+            .reveal table {
+              width: auto;
+              max-width: 100%;
+              border-collapse: separate;
+              border-spacing: 0;
+              margin: 1.5rem 0;
+              font-size: clamp(1rem, 1.5vw, 1.75rem);
+            }
+
+            .reveal table th {
+              background-color: var(--color-brand);
+              color: var(--color-text-inverse);
+              font-weight: 600;
+              text-align: left;
+              padding: clamp(0.5rem, 2vw, 2rem) clamp(0.75rem, 4vw, 5rem);
+              border: none;
+            }
+
+            .reveal table td {
+              padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.75rem, 4vw, 5rem);
+              border-bottom: 1px solid var(--color-border);
+              color: var(--color-text);
+              vertical-align: top;
+            }
+
+            .reveal table tr:nth-child(even) {
+              background-color: var(--color-bg-subtle);
+            }
+
+            .reveal table tr:hover {
+              background-color: var(--color-bg-muted);
+            }
+
+            /* Blockquotes - Accent styling */
+            .reveal blockquote {
+              background: linear-gradient(135deg, var(--color-bg-subtle) 0%, var(--color-bg-muted) 100%);
+              border-left: 5px solid var(--color-brand);
+              border-radius: 0 12px 12px 0;
+              padding: 1.5em 2em;
+              margin: 2rem 0;
+              font-style: italic;
+              font-size: 1.1em;
+              color: var(--color-text);
+              position: relative;
+            }
+
+            .reveal blockquote::before {
+              content: '"';
+              position: absolute;
+              top: -0.25em;
+              left: 0.5em;
+              font-size: 4em;
+              color: var(--color-brand);
+              opacity: 0.3;
+              font-family: Georgia, serif;
+              line-height: 1;
+            }
+
+            .reveal blockquote p {
+              margin: 0;
+              position: relative;
+              z-index: 1;
+            }
+
+            /* Lists - Better spacing */
             .reveal ul,
             .reveal ol {
-              color: var(--color-text-muted);
+              color: var(--color-text);
             }
 
             /* Controls and progress */
