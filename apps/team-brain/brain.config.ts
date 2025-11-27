@@ -25,8 +25,14 @@ const config = defineConfig({
   version: "1.0.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
-  // Identity data now comes from seed-content/identity/identity.md entity
-  // No need to define it here
+  // Deployment configuration
+  deployment: {
+    domain: "recall.rizom.ai",
+    cdn: {
+      enabled: true,
+      provider: "bunny",
+    },
+  },
 
   // Configure centralized permissions
   permissions: {
