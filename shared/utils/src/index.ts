@@ -39,7 +39,12 @@ export * from "./formatters";
 export { createId, createPrefixedId, createBatchId } from "./id";
 
 // String utilities
-export { slugify, generateIdFromText, pluralize } from "./string-utils";
+export {
+  slugify,
+  generateIdFromText,
+  pluralize,
+  calculateReadingTime,
+} from "./string-utils";
 
 // Response types
 export {

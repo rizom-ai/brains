@@ -41,3 +41,15 @@ export function pluralize(word: string): string {
   }
   return word + "s";
 }
+
+/**
+ * Calculate estimated reading time in minutes
+ * Based on average reading speed of 200 words per minute
+ */
+export function calculateReadingTime(content: string): number {
+  const wordsPerMinute = 200;
+  const wordCount = content
+    .split(/\s+/)
+    .filter((word) => word.length > 0).length;
+  return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
+}

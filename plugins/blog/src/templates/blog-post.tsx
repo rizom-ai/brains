@@ -1,8 +1,9 @@
 import type { JSX } from "preact";
-import { markdownToHtml } from "@brains/utils";
+import { markdownToHtml, calculateReadingTime } from "@brains/utils";
 import { ProseContent, Head } from "@brains/ui-library";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
-import { SeriesNavigation } from "./SeriesNavigation";
+import { SeriesSidebar, SeriesCollapsible } from "./SeriesSidebar";
+import { PostNavigation } from "./PostNavigation";
 import { PostMetadata } from "./PostMetadata";
 
 export interface BlogPostProps {
@@ -21,9 +22,9 @@ export const BlogPostTemplate = ({
   nextPost,
   seriesPosts,
 }: BlogPostProps): JSX.Element => {
-  // Inject title as h1 into markdown for consistent prose styling
-  const markdownWithTitle = `# ${post.frontmatter.title}\n\n${post.body}`;
-  const htmlContent = markdownToHtml(markdownWithTitle);
+  const htmlContent = markdownToHtml(post.body);
+  const readingTime = calculateReadingTime(post.body);
+  const hasSeries = Boolean(post.frontmatter.seriesName && seriesPosts);
 
   return (
     <>
@@ -36,34 +37,47 @@ export const BlogPostTemplate = ({
         ogType="article"
       />
       <section className="blog-post-section">
-        <div className="container mx-auto px-6 md:px-8 max-w-3xl py-20">
-          {/* Cover Image */}
-          {post.frontmatter.coverImage && (
-            <img
-              src={post.frontmatter.coverImage}
-              alt={post.frontmatter.title}
-              className="w-full h-64 object-cover rounded-lg mb-8 shadow-lg"
-            />
-          )}
+        <div className="container mx-auto px-6 md:px-8 py-12 md:py-20">
+          {/* Two-column layout wrapper */}
+          <div
+            className={`flex gap-12 ${hasSeries ? "max-w-5xl" : "max-w-3xl"} mx-auto`}
+          >
+            {/* Main content column */}
+            <div className="flex-1 max-w-3xl">
+              {/* Cover Image */}
+              {post.frontmatter.coverImage && (
+                <img
+                  src={post.frontmatter.coverImage}
+                  alt={post.frontmatter.title}
+                  className="w-full h-80 md:h-96 object-cover rounded-lg mb-8 shadow-lg"
+                />
+              )}
 
-          {/* Post Metadata */}
-          <PostMetadata
-            author={post.frontmatter.author}
-            publishedAt={post.frontmatter.publishedAt}
-            status={post.frontmatter.status}
-            className="mb-4"
-          />
+              {/* Title */}
+              <h1 className="text-4xl md:text-5xl font-bold text-heading leading-tight tracking-tight mb-4">
+                {post.frontmatter.title}
+              </h1>
 
-          {/* Series Navigation */}
-          <SeriesNavigation
-            currentPost={post}
-            seriesPosts={seriesPosts}
-            prevPost={prevPost}
-            nextPost={nextPost}
-          />
+              {/* Metadata: Date + Reading time */}
+              <PostMetadata
+                publishedAt={post.frontmatter.publishedAt}
+                readingTime={readingTime}
+                className="mb-8"
+              />
 
-          {/* Post Content (includes title as h1) */}
-          <ProseContent html={htmlContent} />
+              {/* Mobile: Collapsible series navigation */}
+              <SeriesCollapsible currentPost={post} seriesPosts={seriesPosts} />
+
+              {/* Post Content */}
+              <ProseContent html={htmlContent} />
+
+              {/* Prev/Next Navigation */}
+              <PostNavigation prevPost={prevPost} nextPost={nextPost} />
+            </div>
+
+            {/* Desktop: Series sidebar */}
+            <SeriesSidebar currentPost={post} seriesPosts={seriesPosts} />
+          </div>
         </div>
       </section>
     </>

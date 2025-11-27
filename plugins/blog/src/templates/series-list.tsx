@@ -9,6 +9,7 @@ import {
   EmptyState,
   Head,
 } from "@brains/ui-library";
+import { calculateReadingTime } from "@brains/utils";
 import { PostMetadata } from "./PostMetadata";
 
 export interface SeriesListProps {
@@ -63,9 +64,8 @@ export const SeriesListTemplate = ({
 
                   <CardMetadata>
                     <PostMetadata
-                      author={post.frontmatter.author}
                       publishedAt={post.frontmatter.publishedAt}
-                      status={post.frontmatter.status}
+                      readingTime={calculateReadingTime(post.body)}
                     />
                   </CardMetadata>
 
