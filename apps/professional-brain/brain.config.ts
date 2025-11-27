@@ -60,9 +60,18 @@ const routes = [
 ];
 
 const config = defineConfig({
-  name: "professional",
+  name: "professional-brain",
   version: "0.1.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
+
+  // Deployment configuration (most values use sensible defaults)
+  deployment: {
+    domain: "yeehaa.io",
+    cdn: {
+      enabled: true,
+      provider: "bunny",
+    },
+  },
 
   permissions: {
     anchors: [],

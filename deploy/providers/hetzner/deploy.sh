@@ -19,7 +19,10 @@ log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 
 # Required environment variables from generic script:
 # - APP_NAME: Name of the app to deploy
-# - APP_CONFIG_PATH: Path to app's deploy.config.json
+# - APP_SERVER_SIZE: Server size (e.g., cx33)
+# - APP_DOMAIN: Domain name (optional)
+# - APP_CDN_ENABLED: Whether CDN is enabled
+# - APP_CDN_PROVIDER: CDN provider (bunny, none)
 # - DEPLOY_ACTION: deploy|update|destroy|status
 # - PROJECT_ROOT: Root of the project
 # - SCRIPT_DIR: Scripts directory
@@ -189,15 +192,15 @@ build_and_push_docker_image() {
 deploy_application_to_server() {
     local server_ip="$1"
 
-    # Get environment file path
+    # Get environment file path (for runtime secrets)
     ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
     if [ ! -f "$ENV_FILE" ]; then
         log_error "Environment file not found: $ENV_FILE"
         exit 1
     fi
 
-    # Load domain from env file
-    DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
+    # Get domain from app configuration (set by load_app_config)
+    DOMAIN="${APP_DOMAIN:-}"
     if [ -n "$DOMAIN" ]; then
         log_info "Domain configured: $DOMAIN"
     fi
@@ -248,17 +251,17 @@ deploy_infrastructure() {
     cd - > /dev/null
 
     # Continue with new infrastructure deployment
-    # Extract app configuration
-    SERVER_TYPE=$(jq -r '.deployment.serverSize.hetzner // "cx33"' "$APP_CONFIG_PATH" 2>/dev/null || echo "cx33")
+    # Use app configuration from environment variables (set by load_app_config)
+    SERVER_TYPE="${APP_SERVER_SIZE:-cx33}"
 
-    # Load DOMAIN from app's environment file (needed for CDN configuration)
-    ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
-    if [ -f "$ENV_FILE" ]; then
-        DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
-        if [ -n "$DOMAIN" ]; then
-            log_info "Domain configured: $DOMAIN"
-        fi
+    # Get domain from app configuration (set by load_app_config)
+    DOMAIN="${APP_DOMAIN:-}"
+    if [ -n "$DOMAIN" ]; then
+        log_info "Domain configured: $DOMAIN"
     fi
+
+    # Environment file for runtime secrets
+    ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
 
     # Build and push Docker image
     build_and_push_docker_image
@@ -367,7 +370,7 @@ update_application() {
 
     # Get environment file and domain
     ENV_FILE="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
-    DOMAIN=$(docker run --rm --env-file="$ENV_FILE" alpine sh -c 'echo $DOMAIN' 2>/dev/null || echo "")
+    DOMAIN="${APP_DOMAIN:-}"
 
     # Deploy the update
     log_info "Deploying update to $SERVER_IP..."

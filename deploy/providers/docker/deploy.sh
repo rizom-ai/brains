@@ -19,7 +19,6 @@ log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
 
 # Required environment variables from deploy-brain.sh:
 # - APP_NAME: Name of the app to deploy
-# - APP_CONFIG_PATH: Path to app's deploy.config.json
 # - DEPLOY_ACTION: deploy|update|destroy|status
 # - PROJECT_ROOT: Root of the project
 # - APP_SERVICE_NAME: Service name

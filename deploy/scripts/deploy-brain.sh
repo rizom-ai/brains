@@ -96,8 +96,10 @@ log_info "Deployment Plan:"
 echo "  App: $APP_NAME (v$APP_VERSION)"
 echo "  Provider: $PROVIDER"
 echo "  Action: $ACTION"
-echo "  Service: $APP_SERVICE_NAME"
+echo "  Server Size: $APP_SERVER_SIZE"
 echo "  Port: $APP_DEFAULT_PORT"
+[ -n "$APP_DOMAIN" ] && echo "  Domain: $APP_DOMAIN"
+[ "$APP_CDN_ENABLED" = "true" ] && echo "  CDN: $APP_CDN_PROVIDER"
 echo ""
 
 # Confirm destructive actions
