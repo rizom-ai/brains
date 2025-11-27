@@ -91,6 +91,8 @@ const config = defineConfig({
     new GitSyncPlugin({
       gitUrl: process.env["GIT_SYNC_URL"] || "",
       authToken: process.env["GIT_SYNC_TOKEN"],
+      authorName: "Yeehaa",
+      authorEmail: "yeehaa@rizom.ai",
     }),
     new WebserverInterface({
       previewPort: 4321,

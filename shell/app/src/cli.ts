@@ -48,31 +48,6 @@ function exportDeployConfig(config: AppConfig): void {
 }
 
 /**
- * Validate deployment credentials when CDN/DNS is enabled
- */
-function validateDeploymentCredentials(config: AppConfig): void {
-  const { cdn, dns } = config.deployment ?? {};
-
-  if (cdn?.enabled && cdn?.provider === "bunny") {
-    if (!process.env["BUNNY_API_KEY"]) {
-      console.error(
-        "❌ CDN enabled with Bunny provider but BUNNY_API_KEY is not set",
-      );
-      process.exit(1);
-    }
-  }
-
-  if (dns?.enabled && dns?.provider === "bunny") {
-    if (!process.env["BUNNY_API_KEY"]) {
-      console.error(
-        "❌ DNS enabled with Bunny provider but BUNNY_API_KEY is not set",
-      );
-      process.exit(1);
-    }
-  }
-}
-
-/**
  * Handle CLI arguments and run appropriate commands
  * This should be called from brain.config.ts files when they're run directly
  */
@@ -95,9 +70,6 @@ export async function handleCLI(config: AppConfig): Promise<void> {
     console.error(`❌ ${config.name} unhandled rejection:`, reason);
     process.exit(1);
   });
-
-  // Validate credentials before starting app
-  validateDeploymentCredentials(config);
 
   // Dynamically import App to avoid circular dependency
   const { App } = await import("./app");

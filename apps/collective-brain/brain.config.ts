@@ -42,12 +42,18 @@ const routes = defaultRoutes.map((route) => {
 });
 
 const config = defineConfig({
-  name: "rizom",
+  name: "collective-brain",
   version: "0.1.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
-  // Identity data now comes from seed-content/identity/identity.md entity
-  // No need to define it here
+  // Deployment configuration
+  deployment: {
+    domain: "rizom.ai",
+    cdn: {
+      enabled: true,
+      provider: "bunny",
+    },
+  },
 
   // Configure centralized permissions
   permissions: {
