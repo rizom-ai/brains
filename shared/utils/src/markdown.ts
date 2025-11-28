@@ -119,7 +119,18 @@ export function markdownToHtml(markdown: string): string {
     pedantic: false, // Don't conform to original markdown.pl
   });
 
-  return marked(markdown) as string;
+  let html = marked(markdown) as string;
+
+  // Post-process: wrap attribution lines after blockquotes in <cite>
+  // Matches </blockquote> followed by <p> starting with emdash (—) or double hyphen (--)
+  // Captures the emdash and the rest of the paragraph content until </p>
+  // Uses [\s\S]*? to match any content including HTML tags (like <a>)
+  html = html.replace(
+    /<\/blockquote>\s*<p>(—|--|–)([\s\S]*?)<\/p>/g,
+    '</blockquote>\n<cite class="block-attribution"><span class="emdash">$1</span>$2</cite>',
+  );
+
+  return html;
 }
 
 /**

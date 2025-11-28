@@ -23,9 +23,15 @@ export interface LogoProps {
   className?: string;
 
   /**
-   * Color for the logo (defaults to white)
+   * Color for the logo (defaults to currentColor)
    */
   color?: string;
+
+  /**
+   * Fallback title to display as text when no SVG logo is needed
+   * When provided, renders as styled text instead of SVG
+   */
+  title?: string | undefined;
 }
 
 /**
@@ -37,7 +43,19 @@ export function Logo({
   height = 32,
   className = "",
   color = "currentColor",
+  title,
 }: LogoProps): VNode {
+  // If title is provided, render as text
+  if (title) {
+    return (
+      <span
+        className={`font-semibold text-xl uppercase tracking-wide ${className}`}
+      >
+        {title}
+      </span>
+    );
+  }
+
   if (variant === "icon") {
     return (
       <svg
@@ -155,7 +173,7 @@ export function Logo({
       <svg
         height={iconHeight}
         viewBox="0 0 60 59"
-        fill="none"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
       >
         <g id="Group">
@@ -215,7 +233,7 @@ export function Logo({
       <svg
         height={textHeight}
         viewBox="0 0 138 33"
-        fill="none"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
       >
         <g id="RIZOM">

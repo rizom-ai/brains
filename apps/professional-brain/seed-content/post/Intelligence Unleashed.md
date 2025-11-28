@@ -12,8 +12,8 @@ author: Yeehaa
 ---
 
 > Grapple with reality to break out of these shackles
->
-> — Brockhampton
+
+— Brockhampton
 
 While the mechanical phonograph cylinder was invented in 1877, it took almost an entire century before Edison's device was released from His Master's Voice. Sound Engineers and musicians were so endeared with the pipe dream of High Fidelity, that they completely overlooked the creative possibilities that the gramophone also offered.
 
@@ -28,8 +28,8 @@ Stubborn creatures as they are, however, humans are often reluctant to accept th
 > Yo, Dre!
 > Give me a funky-ass bassline!
 > Right here!
->
-> — Eazy-E
+
+— Eazy-E
 
 Supervised learning is the most commonly used branch of machine learning. The supervision in its name, designates the practice of developing a human baseline. This baseline is operationalized in the feedback loop between the training data and loss function. For those not familiar with this process and these terms, I'll briefly explain it.
 
@@ -42,8 +42,8 @@ The established baseline is the alpha and omega of supervised learning. The comp
 ## Low-Fidelity
 
 > Take the bass line out
->
-> — Jay-Z
+
+— Jay-Z
 
 Unsupervised learning is amoral: there is no right and wrong. In fact, there is not even a clearly defined set of problems or questions; just data points. These data points are converted to vectors, which for the course of this explanation, are best thought of as coordinates. An unsupervised learning algorithm simply measures the distance between the coordinates before it groups them in clusters on the basis of their proximity to each other.
 

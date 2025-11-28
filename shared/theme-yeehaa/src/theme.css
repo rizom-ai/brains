@@ -397,9 +397,30 @@
     font-style: italic;
   }
 
-  .prose blockquote {
+  /* Blockquote attribution styling */
+  .prose cite.block-attribution {
+    display: block;
+    font-size: 1rem;
+    font-weight: 300;
+    font-style: normal;
     color: var(--color-text-muted);
-    border-left-color: var(--color-border);
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    padding-left: 0;
+  }
+
+  .prose cite.block-attribution .emdash {
+    color: var(--color-brand);
+    margin-right: 0.125rem;
+  }
+
+  .prose cite.block-attribution a {
+    color: var(--color-text-muted);
+    text-decoration: underline;
+  }
+
+  .prose cite.block-attribution a:hover {
+    color: var(--color-brand);
   }
 
   .prose code {

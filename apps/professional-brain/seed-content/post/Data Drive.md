@@ -13,8 +13,8 @@ author: Yeehaa
 ---
 
 > Like a Lexus, if driven wrong it's sure to hurt you
->
-> — Jay-Z
+
+— Jay-Z
 
 _Another trip down memory lane. I rediscovered this short text in a far corner of the internet today. It's the manifesto for the Data Drive research group that Sander van Maas, Robin Boast, and I started together in 2013 at the University of Amsterdam. Forgot all about it, but boy, is it relevant today._
 

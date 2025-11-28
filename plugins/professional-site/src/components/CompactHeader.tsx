@@ -33,35 +33,27 @@ export function CompactHeader({
 }: CompactHeaderProps): VNode {
   return (
     <header className="py-4 border-b border-theme">
-      <div className="container mx-auto px-6 md:px-12 max-w-4xl flex flex-row justify-between items-center">
-        {logo ? (
+      <div className="container mx-auto px-6 md:px-8">
+        <div className="max-w-5xl mx-auto flex flex-row justify-between items-center">
           <a
             href="/"
-            className="flex items-center"
-            style={{ color: "var(--color-logo)" }}
+            className="text-brand hover:text-brand-dark transition-colors"
           >
-            <Logo variant="full" height={28} />
+            <Logo title={logo ? undefined : title} height={36} />
           </a>
-        ) : (
-          <a
-            href="/"
-            className="font-semibold text-base text-heading hover:text-brand transition-colors"
-          >
-            {title}
-          </a>
-        )}
 
-        <nav className="flex gap-6">
-          {navigation.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="text-sm text-theme hover:text-brand transition-colors"
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
+          <nav className="flex gap-6">
+            {navigation.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="text-sm text-theme hover:text-brand transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </div>
     </header>
   );

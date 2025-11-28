@@ -13,8 +13,8 @@ author: Yeehaa
 
 > False media, we don't need it...
 > ...do we?
->
-> — Chuck D
+
+— Chuck D
 
 Through the miracles of the early internet, I discovered the Weekly World News while I was in high school. Journalism never was the same to me again. Why read about the horrors of acid rain, and the hole in the ozone layer, when there was a newspaper that covered sightings of Marilyn Monroe and Bat Boy instead?
 

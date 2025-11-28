@@ -15,8 +15,8 @@ seriesIndex: 2
 
 > 'Cause anything's possible, yeah
 > There's no code of ethics out here
->
-> — Drake
+
+— Drake
 
 There has been no shortage lately of stories about the tech industry's questionable ethics. We all read the stories. A smart security camera company is working with law enforcement to create an unofficial surveillance network. Tech executives photoshop female executives into their snapshots of a field trip before sharing them on instagram. The algorithm of a new credit card determines credit limits on the basis of gender. And the list goes on and on.
 
@@ -33,8 +33,8 @@ In this article, I explain how Public Badges build on the existing paradigms of 
 > I just took a DNA test
 > turns out I'm 100% that bitch
 > Even when I'm crying crazy
->
-> — Lizzo
+
+— Lizzo
 
 Ruby was the first programming language that I truly loved. Its emphasis on readability and conceptual clarity is unrivaled even today. A large part of Ruby's appeal to me, though, came from its community's dedication to Test Driven Development.
 
@@ -57,8 +57,8 @@ This so-called test first approach radically changes the practice of software de
 > Be ready, be ready to get confused
 > There's definitely, definitely, definitely no logic
 > To human behavior
->
-> — Björk
+
+— Björk
 
 Behavior Driven Development takes these fundamental ideas of Test Driven Development one step further. In BDD, the focus of the test is no longer the code but the user. It is therefore no longer even called a test but a specification. This is a very, subtle difference, that is often, falsely, dismissed as meaningless.
 
@@ -95,8 +95,8 @@ As opposed to TDD tests, BDD specifications don't formalize the expectations bet
 ## Value Driven Development
 
 > I'm just valuin' the value
->
-> — Lil' Wayne
+
+— Lil' Wayne
 
 BDD constantly reminds the developer of the fact that there is an actual user of her software, which — as anyone who has ever used a computer knows — is already a feat as such.
 

@@ -16,8 +16,8 @@ seriesIndex: 1
 
 > We can't go on together
 > With suspicious minds
->
-> — Elvis Presley
+
+— Elvis Presley
 
 Finding examples of failed trust relations has never been difficult, but today it's actually quite a challenge to miss them. Governments don't trust their citizens to stay inside, while citizens don't believe that their governments are acting in their best interest. Strangers are vessels for deadly viruses, and viruses are dangerous weapons developed by foreign governments or Dr. Frankensteins. In fact, the contemporary global political landscape closely resembles a Mexican Standoff.
 
@@ -30,8 +30,8 @@ Amidst all these suspicious minds, however, I am optimistic that we can rebuild 
 > Why can't you see
 > What you're doing to me
 > When you don't believe a word I say?
->
-> — Elvis Presley
+
+— Elvis Presley
 
 As my teacher Friedrich Kittler posed, Code was originally developed to establish secure communication against a backdrop of suspicion. Its invention dates back to the Roman Empire. Foot soldiers were ordered to carry encrypted messages — that they could not decipher themselves — between higher officers that were entrusted with secret key. They thereby actively performed the paradox that holds the internet hostage today: a secure network of communication comes at the expense of trust.
 
@@ -45,8 +45,8 @@ The big breakthrough came during the mid 2000's when ISPs shifted to so-called r
 
 > And we can't build our dreams
 > On suspicious minds
->
-> — Elvis Presley
+
+— Elvis Presley
 
 In order to make the internet more safe, we have to invest in building networks of trust. In order to achieve this, technology alone can never be the answer. As the history of spam filtering shows, coalitions of actual people and organizations are an excellent medicine against the side-effects of algorithms. But technology can be part of the solution. And technology needs to be. Because even more dangerous than letting trust be a purely algorithmic consideration, is leaving it entirely anecdotal. "I know him, he's a good guy", is a statement that was invalidated for once and for all by: "Don't be evil."
 
