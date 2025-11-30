@@ -2,7 +2,10 @@ import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { z } from "@brains/utils";
-import { ProfileAdapter, type ProfileBody } from "@brains/profile-service";
+import {
+  ProfessionalProfileParser,
+  type ProfessionalProfile,
+} from "../schemas";
 import {
   type BlogPost,
   type BlogPostWithData,
@@ -15,7 +18,7 @@ import type { DeckEntity } from "@brains/decks";
  * Site-builder will enrich posts and decks with url and typeLabel fields
  */
 interface HomepageDataSourceOutput {
-  profile: ProfileBody;
+  profile: ProfessionalProfile;
   posts: BlogPostWithData[];
   decks: DeckEntity[];
   postsListUrl: string;
@@ -55,9 +58,9 @@ export class HomepageListDataSource implements DataSource {
       throw new Error("Profile not found");
     }
 
-    // Parse profile data using ProfileAdapter
-    const profileAdapter = new ProfileAdapter();
-    const profile: ProfileBody = profileAdapter.parseProfileBody(
+    // Parse profile data using ProfessionalProfileParser
+    const profileParser = new ProfessionalProfileParser();
+    const profile: ProfessionalProfile = profileParser.parse(
       profileEntity.content,
     );
 

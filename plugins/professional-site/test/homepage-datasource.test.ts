@@ -6,7 +6,7 @@ import type { DeckEntity } from "@brains/decks";
 import { z } from "@brains/utils";
 import { blogPostWithDataSchema } from "@brains/blog";
 import { deckSchema } from "@brains/decks";
-import { profileBodySchema } from "@brains/profile-service";
+import { professionalProfileSchema } from "../src/schemas";
 
 describe("HomepageListDataSource", () => {
   let datasource: HomepageListDataSource;
@@ -93,7 +93,7 @@ Content here`,
 
   it("should fetch profile, posts, and decks", async () => {
     const schema = z.object({
-      profile: profileBodySchema,
+      profile: professionalProfileSchema,
       posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });
@@ -136,7 +136,7 @@ Content here`,
     datasource = new HomepageListDataSource(mockEntityService);
 
     const schema = z.object({
-      profile: profileBodySchema,
+      profile: professionalProfileSchema,
       posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });
@@ -159,7 +159,7 @@ Content here`,
     datasource = new HomepageListDataSource(mockEntityService);
 
     const schema = z.object({
-      profile: profileBodySchema,
+      profile: professionalProfileSchema,
       posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
     });

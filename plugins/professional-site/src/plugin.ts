@@ -9,7 +9,7 @@ import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { enrichedBlogPostSchema } from "@brains/blog";
 import { enrichedDeckSchema } from "@brains/decks";
-import { profileBodySchema } from "@brains/profile-service";
+import { professionalProfileSchema } from "./schemas";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import {
   HomepageListLayout,
@@ -61,7 +61,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
     // Register homepage template
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
-      profile: profileBodySchema,
+      profile: professionalProfileSchema,
       posts: z.array(enrichedBlogPostSchema),
       decks: z.array(enrichedDeckSchema),
       postsListUrl: z.string(),

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { ProfileBody } from "@brains/profile-service";
+import type { ProfessionalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import { ContentSection, type ContentItem, Head } from "@brains/ui-library";
@@ -10,7 +10,7 @@ import { WavyDivider } from "../components/WavyDivider";
  * After site-builder enrichment, posts and decks will have url and typeLabel fields
  */
 export interface HomepageListData {
-  profile: ProfileBody;
+  profile: ProfessionalProfile;
   posts: EnrichedBlogPost[];
   decks: EnrichedDeck[];
   postsListUrl: string;

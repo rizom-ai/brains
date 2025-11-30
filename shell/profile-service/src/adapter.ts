@@ -24,8 +24,7 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
       mappings: [
         { key: "name", label: "Name", type: "string" },
         { key: "description", label: "Description", type: "string" },
-        { key: "tagline", label: "Tagline", type: "string" },
-        { key: "intro", label: "Intro", type: "string" },
+        { key: "avatar", label: "Avatar", type: "string" },
         { key: "website", label: "Website", type: "string" },
         { key: "email", label: "Email", type: "string" },
         {
@@ -65,14 +64,12 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
   }
 
   /**
-   * Convert profile entity to markdown with structured content
+   * Convert profile entity to markdown
+   * Profile doesn't use frontmatter or need metadata sync - passthrough content as-is
+   * This preserves extended fields added by plugins (e.g., professional-site)
    */
   public toMarkdown(entity: ProfileEntity): string {
-    // Parse existing content to get profile data
-    const profileData = this.parseProfileBody(entity.content);
-
-    const formatter = this.createFormatter();
-    return formatter.format(profileData);
+    return entity.content;
   }
 
   /**

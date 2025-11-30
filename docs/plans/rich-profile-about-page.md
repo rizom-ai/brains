@@ -2,134 +2,143 @@
 
 ## Overview
 
-Extend the profile-service with richer personal/organizational data and create an about page template in professional-site that renders this data.
+Extend the profile system to support rich about pages while keeping core profile minimal and shared across site types (professional, team, etc.).
 
 ## Decisions Made
 
-1. **Single rich profile entity** - extend current profile.md with more sections (not separate entities)
-2. **Support both individuals and organizations** - flexible schema
+1. **Profile stays in core** - 1:1 relationship with brain (anchor identity)
+2. **Schema split** - base fields in core, professional fields in professional-site extension
 3. **AI context integration** - profile data feeds into AI prompts
 4. **Static template in professional-site** - no separate plugin needed
 5. **About page only** - no CV/PDF export for now
-6. **Add all fields now, optional** - complete schema upfront, fill incrementally
+6. **Build extension first, then migrate** - avoid breaking changes
 
-## Schema Extension
+## Schema Split
 
-### New Optional Fields
+### Base Profile (core profile-service) - shared by all site types
 
 ```typescript
-// For both individuals and organizations
-avatar?: string;              // URL or asset path
-story?: string;               // Extended bio/narrative (multi-paragraph markdown)
+name: string;                 // Required - who is the anchor
+description?: string;         // Short description
+avatar?: string;              // URL or asset path to avatar/logo
+website?: string;             // Primary website URL
+email?: string;               // Contact email
+socialLinks?: Array<{         // Social media links
+  platform: "github" | "instagram" | "linkedin" | "email" | "website";
+  url: string;
+  label?: string;
+}>;
+```
+
+### Professional Extension (professional-site plugin)
+
+```typescript
+// Move from core
+tagline?: string;             // Short, punchy one-liner
+intro?: string;               // Longer introduction
+
+// New fields
+story?: string;               // Extended bio/narrative (multi-paragraph)
 expertise?: string[];         // Skills, domains, areas of focus
 currentFocus?: string;        // What you're working on now
+availability?: string;        // Open to consulting, speaking, etc.
 
-// For individuals
-experience?: Array<{
-  role: string;
-  organization: string;
-  startDate?: string;
-  endDate?: string;           // Omit for current
-  description?: string;
-}>;
+// Future
+experience?: Array<{...}>;    // Work history
+education?: Array<{...}>;     // Education history
+achievements?: Array<{...}>;  // Publications, talks, awards
+```
 
-education?: Array<{
-  degree?: string;
-  institution: string;
-  year?: string;
-  field?: string;
-}>;
+### Organization Extension (future - team-site plugin)
 
-achievements?: Array<{
-  title: string;
-  description?: string;
-  date?: string;
-  url?: string;               // Link to publication, talk, etc.
-}>;
-
-// For organizations
-founding?: {
-  year?: string;
-  story?: string;
-};
-
-team?: Array<{
-  name: string;
-  role: string;
-  bio?: string;
-  avatar?: string;
-}>;
-
-// Shared
-availability?: string;        // What you're open to (consulting, speaking, etc.)
+```typescript
+founding?: { year?: string; story?: string; };
+team?: Array<{ name: string; role: string; bio?: string; avatar?: string; }>;
+mission?: string;
 ```
 
 ## Implementation Steps
 
-### 1. Extend Profile Schema
+### Step 1: Add avatar to core profile
 
-- Update `shell/profile-service/src/schema.ts` with new fields
-- Update `profileBodySchema` with all optional fields
-- Keep backward compatible - existing profiles work unchanged
+- Add `avatar: z.string().optional()` to profileBodySchema
+- Add avatar mapping to ProfileAdapter
+- Update tests
+- Run typecheck + tests
 
-### 2. Update Profile Adapter
+### Step 2: Create professional profile extension in professional-site
 
-- Update `shell/profile-service/src/adapter.ts`
-- Add new field mappings to StructuredContentFormatter
-- Handle nested arrays (experience, education, achievements, team)
+- Create `plugins/professional-site/src/schemas/professional-profile.ts`
+- Define schema that extends base with: tagline, intro, story, expertise, currentFocus, availability
+- Create parser that reads these fields from profile.md
 
-### 3. Update Profile Adapter Tests
+### Step 3: Update professional-site to use extension
 
-- Add tests for new fields in `shell/profile-service/test/adapter.test.ts`
-- Test roundtrip for complex nested structures
+- Update homepage-datasource to use extended schema
+- Profile.md still contains all fields - we just parse them via extension
+- Existing tests continue to pass
 
-### 4. Create About Page Template
+### Step 4: Remove tagline, intro from core profile
+
+- Remove from profileBodySchema
+- Remove from ProfileAdapter mappings
+- Update core tests
+- professional-site still works (reads via its own extension)
+
+### Step 5: Add new professional fields
+
+- Add story, expertise, currentFocus, availability to professional extension schema
+- Update professional-site parser
+
+### Step 6: Create About Page
 
 - Create `plugins/professional-site/src/templates/about.tsx`
 - Conditionally render sections based on available data
-- Style consistent with existing professional-site design
+- Register `/about` route in plugin
 
-### 5. Register About Route
+### Step 7: AI Context Integration
 
-- Update `plugins/professional-site/src/plugin.ts`
-- Add `/about` route that fetches profile and renders template
+- Add `getProfile` callback to AIContentDataSource
+- Profile becomes part of AI system prompt
 
-### 6. Integrate Profile into AI Context
+### Step 8: Update Seed Content
 
-- Add `getProfile` callback to `AIContentDataSource` constructor (mirrors `getIdentity` pattern)
-- Update `buildSystemPrompt()` to include profile context
-- Pass profile callback from Shell when creating AIContentDataSource
-
-### 7. Update Seed Content
-
-- Update `apps/professional-brain/seed-content/profile/profile.md` with example rich content
+- Update professional-brain profile.md with example rich content
 
 ## Files to Modify
 
-- `shell/profile-service/src/schema.ts` - extend schema
-- `shell/profile-service/src/adapter.ts` - update formatter mappings
-- `shell/profile-service/test/adapter.test.ts` - add tests
-- `shell/core/src/datasources/ai-content-datasource.ts` - add profile to AI context
-- `shell/core/src/shell.ts` - pass profile callback to AIContentDataSource
-- `plugins/professional-site/src/plugin.ts` - add about route
+**Core (profile-service):**
+
+- `shell/profile-service/src/schema.ts` - add avatar, later remove tagline/intro
+- `shell/profile-service/src/adapter.ts` - update mappings
+- `shell/profile-service/test/*.test.ts` - update tests
+
+**Professional-site:**
+
+- `plugins/professional-site/src/schemas/professional-profile.ts` (new)
+- `plugins/professional-site/src/datasources/homepage-datasource.ts`
 - `plugins/professional-site/src/templates/about.tsx` (new)
-- `apps/professional-brain/seed-content/profile/profile.md` - example content
+- `plugins/professional-site/src/plugin.ts` - add route
 
-## Template Sections (conditional)
+**Core (AI integration):**
 
-The about page will render these sections if data exists:
+- `shell/core/src/datasources/ai-content-datasource.ts`
+- `shell/core/src/shell.ts`
+
+**Seed content:**
+
+- `apps/professional-brain/seed-content/profile/profile.md`
+
+## About Page Sections (conditional)
 
 1. **Hero** - avatar, name, tagline
 2. **Intro** - intro paragraph
 3. **Story** - extended narrative
 4. **Expertise** - skills/domains grid
-5. **Experience** - work history timeline
-6. **Education** - degrees/certifications
-7. **Achievements** - publications, talks, awards
-8. **Availability** - what you're open to
-9. **Contact** - email, social links
+5. **Current Focus** - what you're working on
+6. **Availability** - what you're open to
+7. **Contact** - email, social links
 
-For organizations, replace Experience/Education with:
+## Key Insight
 
-- **Founding Story**
-- **Team Members**
+The order matters: build the replacement (professional extension) BEFORE removing fields from core. This prevents breaking changes during migration.
