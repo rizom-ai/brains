@@ -14,6 +14,22 @@ export const professionalProfileSchema = profileBodySchema.extend({
     .string()
     .optional()
     .describe("Optional longer introduction for homepage"),
+  story: z
+    .string()
+    .optional()
+    .describe("Extended bio/narrative (multi-paragraph markdown)"),
+  expertise: z
+    .array(z.string())
+    .optional()
+    .describe("Skills, domains, areas of focus"),
+  currentFocus: z
+    .string()
+    .optional()
+    .describe("What you're currently working on"),
+  availability: z
+    .string()
+    .optional()
+    .describe("What you're open to (consulting, speaking, etc.)"),
 });
 
 /**
@@ -50,6 +66,15 @@ export class ProfessionalProfileParser {
         // Professional fields
         { key: "tagline", label: "Tagline", type: "string" },
         { key: "intro", label: "Intro", type: "string" },
+        { key: "story", label: "Story", type: "string" },
+        {
+          key: "expertise",
+          label: "Expertise",
+          type: "array",
+          itemType: "string",
+        },
+        { key: "currentFocus", label: "Current Focus", type: "string" },
+        { key: "availability", label: "Availability", type: "string" },
       ],
     });
   }
