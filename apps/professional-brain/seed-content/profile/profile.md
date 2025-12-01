@@ -14,7 +14,7 @@ Building what comes next
 
 ## Intro
 
-New kinds of organizations need new kinds of tools. I explore the why and create the how.
+New kinds of organizations need new kinds of tools. I explore the why and build the how.
 
 ## Story
 
