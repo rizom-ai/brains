@@ -50,8 +50,8 @@ describe("ProfileService", () => {
   });
 
   describe("getProfile", () => {
-    it("should return default profile when no entity exists", async () => {
-      const profile = await profileService.getProfile();
+    it("should return default profile when no entity exists", () => {
+      const profile = profileService.getProfile();
 
       expect(profile).toEqual(ProfileService.getDefaultProfile());
     });
@@ -96,7 +96,7 @@ https://github.com/rizom-ai`,
       await profileService.initialize();
 
       // Get profile should now return parsed content
-      const profile = await profileService.getProfile();
+      const profile = profileService.getProfile();
 
       expect(profile.name).toBe("Rizom");
       expect(profile.description).toBe(
@@ -172,22 +172,15 @@ Existing Profile`,
     });
   });
 
-  describe("git-sync cache invalidation bug", () => {
-    it("should return stale defaults when entity is imported after initialize", async () => {
-      // REGRESSION TEST: This reproduces the bug where git-sync imports entities
-      // AFTER the service has initialized, leaving the cache stale with null.
-      //
-      // Expected behavior: getProfile() should always reflect current database state
-      // Actual behavior (BUG): getProfile() returns cached null → falls back to defaults
-
-      // Step 1: Initialize service with NO entity in database (simulating first boot)
+  describe("refreshCache", () => {
+    it("should reload profile from database after entity import", async () => {
+      // Step 1: Initialize service with NO entity in database
       mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
       await profileService.initialize();
 
       // Verify service is using defaults since no entity exists yet
-      let profile = await profileService.getProfile();
+      let profile = profileService.getProfile();
       expect(profile.name).toBe("Unknown"); // Default name
-      expect(profile.socialLinks).toBeUndefined(); // No social links
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
       const importedEntity: ProfileEntity = {
@@ -221,13 +214,15 @@ View my code on GitHub`,
         metadata: {},
       };
 
-      // Change mock to return imported entity (as if git-sync just imported it)
+      // Change mock to return imported entity
       mockGetEntityImpl = async (): Promise<ProfileEntity> => importedEntity;
 
-      // Step 3: Call getProfile() again - should now return imported data
-      profile = await profileService.getProfile();
+      // Step 3: refreshCache() reloads from database
+      // (In production, message bus triggers this on entity:created/updated)
+      await profileService.refreshCache();
+      profile = profileService.getProfile();
 
-      // This should now pass after the fix
+      // Should now have imported data
       expect(profile.name).toBe("Yeehaa");
       expect(profile.email).toBe("yeehaa@rizom.ai");
       expect(profile.socialLinks).toHaveLength(1);
@@ -260,7 +255,7 @@ View my code on GitHub`,
       );
 
       // Without any entity in database, should return custom default
-      const profile = await customService.getProfile();
+      const profile = customService.getProfile();
 
       expect(profile).toEqual(customProfile);
     });
@@ -297,14 +292,14 @@ View my code on GitHub`,
       expect(createCall?.content).not.toContain("Unknown");
     });
 
-    it("should fall back to hardcoded default when custom profile is not provided", async () => {
+    it("should fall back to hardcoded default when custom profile is not provided", () => {
       const serviceWithoutCustom = ProfileService.createFresh(
         mockEntityService,
         createSilentLogger(),
         undefined,
       );
 
-      const profile = await serviceWithoutCustom.getProfile();
+      const profile = serviceWithoutCustom.getProfile();
 
       expect(profile).toEqual(ProfileService.getDefaultProfile());
     });

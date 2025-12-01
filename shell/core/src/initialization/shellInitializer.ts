@@ -41,6 +41,7 @@ import { knowledgeQueryTemplate } from "@brains/content-service";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
 import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
+import { ProfileService } from "@brains/profile-service";
 
 /**
  * Services initialized by ShellInitializer
@@ -68,6 +69,7 @@ export interface ShellServices {
   jobProgressMonitor: JobProgressMonitor;
   permissionService: PermissionService;
   identityService: IdentityService;
+  profileService: ProfileService;
 }
 
 /**
@@ -382,6 +384,56 @@ export class ShellInitializer {
       },
     );
 
+    // Profile service
+    const profileService = ProfileService.getInstance(
+      entityService,
+      logger,
+      this.config.profile,
+    );
+
+    // Subscribe to profile entity changes for cache refresh
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      "entity:created",
+      async (message) => {
+        if (
+          message.payload.entityType === "profile" &&
+          message.payload.entityId === "profile"
+        ) {
+          await profileService.refreshCache();
+          logger.debug("Profile entity created, cache refreshed");
+        }
+        return { success: true };
+      },
+    );
+
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      "entity:updated",
+      async (message) => {
+        if (
+          message.payload.entityType === "profile" &&
+          message.payload.entityId === "profile"
+        ) {
+          await profileService.refreshCache();
+          logger.debug("Profile entity updated, cache refreshed");
+        }
+        return { success: true };
+      },
+    );
+
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      "entity:deleted",
+      async (message) => {
+        if (
+          message.payload.entityType === "profile" &&
+          message.payload.entityId === "profile"
+        ) {
+          await profileService.refreshCache();
+          logger.debug("Profile entity deleted, cache refreshed");
+        }
+        return { success: true };
+      },
+    );
+
     // Register job handlers
     this.registerJobHandlers(jobQueueService, contentService, entityService);
 
@@ -432,6 +484,7 @@ export class ShellInitializer {
       jobProgressMonitor,
       permissionService,
       identityService,
+      profileService,
     };
   }
 

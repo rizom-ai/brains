@@ -2,7 +2,6 @@ import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import type { IdentityBody } from "@brains/identity-service";
 import { z } from "@brains/utils";
 
 /**
@@ -36,7 +35,8 @@ export class AIContentDataSource implements DataSource {
     private readonly aiService: IAIService,
     private readonly entityService: IEntityService,
     private readonly templateRegistry: TemplateRegistry,
-    private readonly getIdentity: () => IdentityBody,
+    private readonly getIdentityContent: () => string,
+    private readonly getProfileContent: () => string,
   ) {}
 
   /**
@@ -75,7 +75,7 @@ export class AIContentDataSource implements DataSource {
       relevantEntities,
     );
 
-    // Build system prompt with identity
+    // Build system prompt with identity and profile
     const systemPrompt = this.buildSystemPrompt(template.basePrompt);
 
     // Generate content using AI service with entity-informed context and identity
@@ -90,25 +90,23 @@ export class AIContentDataSource implements DataSource {
   }
 
   /**
-   * Build system prompt with identity prepended
+   * Build system prompt with identity and profile context
    */
   private buildSystemPrompt(templateBasePrompt: string): string {
-    const identity = this.getIdentity();
+    const identityContent = this.getIdentityContent();
+    const profileContent = this.getProfileContent();
 
-    // Build identity system prompt (identity is always available - from entity or default)
-    const identityPrompt = [
-      `You are ${identity.role}.`,
-      identity.purpose ? `\nYour purpose: ${identity.purpose}` : "",
-      identity.values.length > 0
-        ? `\nYour guiding values: ${identity.values.join(", ")}`
-        : "",
-      "\n",
-    ]
-      .filter(Boolean)
-      .join("");
-
-    // Prepend identity to template base prompt
-    return identityPrompt + templateBasePrompt;
+    // Combine identity, profile, and template base prompt
+    return [
+      "# Your Identity",
+      identityContent,
+      "",
+      "# About the Person You Represent",
+      profileContent,
+      "",
+      "# Instructions",
+      templateBasePrompt,
+    ].join("\n");
   }
 
   /**

@@ -3,6 +3,7 @@ import type { Plugin } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/permission-service";
 import type { IdentityBody } from "@brains/identity-service";
+import type { ProfileBody } from "@brains/profile-service";
 import { mkdir } from "fs/promises";
 
 /**
@@ -136,6 +137,7 @@ export type ShellConfig = z.infer<typeof shellConfigSchema> & {
   plugins: Plugin[];
   permissions: PermissionConfig;
   identity?: IdentityBody;
+  profile?: ProfileBody;
 };
 
 /**
@@ -186,6 +188,11 @@ export function createShellConfig(
   // Only add identity if it's defined (exactOptionalPropertyTypes requirement)
   if (overrides.identity !== undefined) {
     result.identity = overrides.identity;
+  }
+
+  // Only add profile if it's defined (exactOptionalPropertyTypes requirement)
+  if (overrides.profile !== undefined) {
+    result.profile = overrides.profile;
   }
 
   return result;

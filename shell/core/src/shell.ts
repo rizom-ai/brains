@@ -43,6 +43,7 @@ import {
 } from "./datasources";
 import type { IdentityService } from "@brains/identity-service";
 import type { IdentityBody } from "@brains/identity-service";
+import type { ProfileService, ProfileBody } from "@brains/profile-service";
 import type { ShellDependencies } from "./types/shell-types";
 
 export type { ShellDependencies };
@@ -78,6 +79,7 @@ export class Shell implements IShell {
   private readonly templateRegistry: TemplateRegistry;
   private readonly dataSourceRegistry: DataSourceRegistry;
   private readonly identityService: IdentityService;
+  private readonly profileService: ProfileService;
   private initialized = false;
 
   /**
@@ -149,6 +151,7 @@ export class Shell implements IShell {
     this.jobProgressMonitor = services.jobProgressMonitor;
     this.permissionService = services.permissionService;
     this.identityService = services.identityService;
+    this.profileService = services.profileService;
 
     // Register services that plugins need to resolve
     shellInitializer.registerServices(services, this);
@@ -209,8 +212,9 @@ export class Shell implements IShell {
       // Core DataSources registration
       this.registerCoreDataSources();
 
-      // Initialize identity service
+      // Initialize identity and profile services
       await this.identityService.initialize();
+      await this.profileService.initialize();
 
       this.initialized = true;
       this.logger.debug("Shell initialized successfully");
@@ -590,6 +594,13 @@ export class Shell implements IShell {
   }
 
   /**
+   * Get the brain's profile
+   */
+  public getProfile(): ProfileBody {
+    return this.profileService.getProfile();
+  }
+
+  /**
    * Get app metadata including plugin and interface statuses
    */
   public async getAppInfo(): Promise<AppInfo> {
@@ -624,12 +635,13 @@ export class Shell implements IShell {
     this.dataSourceRegistry.register(systemStatsDataSource);
     this.logger.debug("Registered SystemStats DataSource");
 
-    // Register the AI Content DataSource with identity injection
+    // Register the AI Content DataSource with identity and profile content
     const aiContentDataSource = new AIContentDataSource(
       this.aiService,
       this.entityService,
       this.templateRegistry,
-      () => this.getIdentity(),
+      () => this.identityService.getIdentityContent(),
+      () => this.profileService.getProfileContent(),
     );
     this.dataSourceRegistry.register(aiContentDataSource);
     this.logger.debug("Registered AI Content DataSource");

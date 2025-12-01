@@ -119,6 +119,16 @@ export class IdentityService {
   }
 
   /**
+   * Get the raw identity content (markdown)
+   */
+  public getIdentityContent(): string {
+    if (this.cache) {
+      return this.cache.content;
+    }
+    return this.adapter.createIdentityContent(this.defaultIdentity);
+  }
+
+  /**
    * Refresh the identity cache from database
    */
   public async refreshCache(): Promise<void> {

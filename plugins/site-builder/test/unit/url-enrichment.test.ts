@@ -64,7 +64,7 @@ describe("SiteBuilder - URL Enrichment", () => {
     };
 
     mockProfileService = {
-      getProfile: async (): Promise<{ name: string }> => ({ name: "Test" }),
+      getProfile: (): { name: string } => ({ name: "Test" }),
     };
 
     siteBuilder = SiteBuilder.createFresh(
