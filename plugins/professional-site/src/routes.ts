@@ -29,7 +29,7 @@ export const routes = [
     navigation: {
       show: true,
       label: "About",
-      slot: "secondary",
+      slot: "primary",
       priority: 90,
     },
     sections: [
