@@ -99,19 +99,12 @@ export const HomepageListLayout = ({
 
           {/* About Section */}
           {(profile.description ||
-            profile.currentFocus ||
             (profile.expertise && profile.expertise.length > 0)) && (
             <ContentSection title="About" viewAllUrl="/about">
               <div className="space-y-6">
                 {profile.description && (
                   <p className="text-lg text-theme leading-relaxed">
                     {profile.description}
-                  </p>
-                )}
-                {profile.currentFocus && (
-                  <p className="text-theme-muted">
-                    <span className="font-medium">Currently focused on:</span>{" "}
-                    {profile.currentFocus}
                   </p>
                 )}
                 {profile.expertise && profile.expertise.length > 0 && (
