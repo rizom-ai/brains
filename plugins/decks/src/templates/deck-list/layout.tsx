@@ -11,7 +11,7 @@ export const DeckListLayout = ({
     id: deck.id,
     url: deck.url,
     title: deck.title,
-    date: deck.updated || deck.created,
+    date: deck.presentedAt ?? deck.created,
     description: deck.description,
   }));
 

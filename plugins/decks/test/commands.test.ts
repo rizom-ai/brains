@@ -75,18 +75,24 @@ describe("Decks Commands", () => {
           title: "Test Presentation",
           description: "A test presentation",
           author: "Test Author",
+          status: "presented",
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
-          metadata: { slug: "test-deck", title: "Test Deck" },
+          metadata: {
+            slug: "test-deck",
+            title: "Test Deck",
+            status: "presented",
+          },
         },
         {
           id: "test-deck-2",
           entityType: "deck",
           content: "# Welcome\n\n---\n\n# End",
           title: "Another Deck",
+          status: "draft",
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
-          metadata: { slug: "test-deck", title: "Test Deck" },
+          metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
         },
       ];
 
@@ -117,9 +123,14 @@ describe("Decks Commands", () => {
         entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: `Deck ${i}`,
+        status: "draft" as const,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: {
+          slug: "test-deck",
+          title: "Test Deck",
+          status: "draft" as const,
+        },
       }));
 
       const commands = createDecksCommands(context, logger);

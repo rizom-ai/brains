@@ -74,21 +74,33 @@ export class DeckDataSource implements DataSource {
     }
 
     // Fetch multiple decks (list view)
-    const entities = await this.entityService.listEntities<DeckEntity>(
+    const allDecks = await this.entityService.listEntities<DeckEntity>(
       params.entityType,
       {
         limit: params.query?.limit ?? 100,
       },
     );
 
+    // Filter to only presented decks (not drafts)
+    const presentedDecks = allDecks.filter(
+      (d) => d.metadata.status === "presented",
+    );
+
+    // Sort by presentedAt date, newest first (fall back to created if not set)
+    const sortedDecks = presentedDecks.sort((a, b) => {
+      const aDate = a.metadata.presentedAt ?? a.created;
+      const bDate = b.metadata.presentedAt ?? b.created;
+      return new Date(bDate).getTime() - new Date(aDate).getTime();
+    });
+
     // Return DeckEntity[] directly (URLs will be added by site-builder enrichment)
     const listData: DeckListData = {
-      decks: entities,
+      decks: sortedDecks,
     };
 
     this.logger.debug("Creating deck list data", {
-      deckCount: entities.length,
-      firstDeck: entities[0]?.id,
+      deckCount: sortedDecks.length,
+      firstDeck: sortedDecks[0]?.id,
     });
 
     return outputSchema.parse(listData);

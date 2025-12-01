@@ -62,10 +62,17 @@ Content here`,
     entityType: "deck" as const,
     title: "Test Deck",
     description: "A test presentation",
-    content: "# Test Deck\n\nSlide content",
+    status: "presented",
+    presentedAt: "2025-01-10T10:00:00.000Z",
+    content: "# Test Deck\n\n---\n\nSlide content",
     created: "2025-01-10T10:00:00.000Z",
     updated: "2025-01-10T10:00:00.000Z",
-    metadata: { slug: "test-deck", title: "Test Deck" },
+    metadata: {
+      slug: "test-deck",
+      title: "Test Deck",
+      status: "presented",
+      presentedAt: "2025-01-10T10:00:00.000Z",
+    },
   };
 
   beforeEach(() => {

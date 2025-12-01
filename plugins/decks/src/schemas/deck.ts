@@ -7,6 +7,8 @@ import { z } from "@brains/utils";
 export const deckMetadataSchema = z.object({
   slug: z.string(), // Generated from title if not provided, used for URLs
   title: z.string(),
+  status: z.enum(["draft", "presented"]),
+  presentedAt: z.string().datetime().optional(),
 });
 
 export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
@@ -27,6 +29,13 @@ export const deckSchema = z.object({
   title: z.string().describe("Presentation title"),
   description: z.string().optional().describe("Brief description"),
   author: z.string().optional().describe("Author name"),
+  status: z.enum(["draft", "presented"]).describe("Publication status"),
+  presentedAt: z
+    .string()
+    .datetime()
+    .optional()
+    .describe("Date when presentation was given"),
+  event: z.string().optional().describe("Event where presentation was given"),
 });
 
 export type DeckEntity = z.infer<typeof deckSchema>;

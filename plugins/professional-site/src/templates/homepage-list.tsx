@@ -45,7 +45,7 @@ export const HomepageListLayout = ({
     id: deck.id,
     url: deck.url,
     title: deck.title || deck.id,
-    date: deck.updated || deck.created,
+    date: deck.presentedAt ?? deck.created,
     description: deck.description,
   }));
 

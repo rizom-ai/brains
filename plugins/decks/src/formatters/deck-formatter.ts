@@ -14,6 +14,9 @@ const deckFrontmatterSchema = z.object({
   slug: z.string().optional(), // Optional - auto-generated from title if not provided
   description: z.string().optional(),
   author: z.string().optional(),
+  status: z.enum(["draft", "presented"]).default("draft"),
+  presentedAt: z.string().datetime().optional(),
+  event: z.string().optional(),
 });
 
 /**
@@ -47,6 +50,7 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
     // Build frontmatter, filtering out undefined values
     const frontmatter: Record<string, string> = {
       title: entity.title,
+      status: entity.status,
     };
 
     // Include slug from metadata if available
@@ -58,6 +62,12 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
     }
     if (entity.author !== undefined) {
       frontmatter["author"] = entity.author;
+    }
+    if (entity.presentedAt !== undefined) {
+      frontmatter["presentedAt"] = entity.presentedAt;
+    }
+    if (entity.event !== undefined) {
+      frontmatter["event"] = entity.event;
     }
 
     return generateMarkdownWithFrontmatter(entity.content, frontmatter);
@@ -79,6 +89,8 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
 
     // Auto-generate slug from title if not provided
     const slug = frontmatter.slug ?? slugify(frontmatter.title);
+    // Status defaults to draft if not specified
+    const status = frontmatter.status ?? "draft";
 
     return {
       entityType: "deck",
@@ -86,9 +98,14 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
       title: frontmatter.title,
       description: frontmatter.description,
       author: frontmatter.author,
+      status,
+      presentedAt: frontmatter.presentedAt,
+      event: frontmatter.event,
       metadata: {
         slug, // Generated from title if not in frontmatter
         title: frontmatter.title,
+        status,
+        presentedAt: frontmatter.presentedAt,
       },
     };
   }

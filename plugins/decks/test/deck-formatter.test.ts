@@ -18,9 +18,14 @@ describe("DeckFormatter", () => {
         entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Presentation",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-presentation", title: "Test Presentation" },
+        metadata: {
+          slug: "test-presentation",
+          title: "Test Presentation",
+          status: "draft",
+        },
       };
 
       expect(() => schema.parse(validDeck)).not.toThrow();
@@ -52,9 +57,14 @@ describe("DeckFormatter", () => {
         title: "Test Presentation",
         description: "A test presentation",
         author: "Jane Developer",
+        status: "presented",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: {
+          slug: "test-deck",
+          title: "Test Deck",
+          status: "presented",
+        },
       };
 
       const markdown = formatter.toMarkdown(entity);
@@ -63,6 +73,7 @@ describe("DeckFormatter", () => {
       expect(markdown).toContain("title: Test Presentation");
       expect(markdown).toContain("description: A test presentation");
       expect(markdown).toContain("author: Jane Developer");
+      expect(markdown).toContain("status: presented");
       expect(markdown).toContain("# Welcome");
       expect(markdown).toContain("# Main Content");
     });
@@ -73,9 +84,10 @@ describe("DeckFormatter", () => {
         entityType: "deck",
         content: "# Just one slide without separators",
         title: "Invalid Deck",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       expect(() => formatter.toMarkdown(entity)).toThrow(
@@ -90,9 +102,10 @@ describe("DeckFormatter", () => {
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Optional description",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       const markdown = formatter.toMarkdown(entity);
@@ -158,6 +171,7 @@ title: Minimal Deck
       expect(result.title).toBe("Minimal Deck");
       expect(result.description).toBeUndefined();
       expect(result.author).toBeUndefined();
+      expect(result.status).toBe("draft"); // Default status
     });
   });
 
@@ -170,16 +184,22 @@ title: Minimal Deck
         title: "Test Deck",
         description: "Test description",
         author: "Test Author",
+        status: "presented",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: {
+          slug: "test-deck",
+          title: "Test Deck",
+          status: "presented",
+        },
       };
 
       const metadata = formatter.extractMetadata(entity);
 
-      // extractMetadata now returns entity.metadata (slug + title only)
+      // extractMetadata now returns entity.metadata (slug + title + status)
       expect(metadata["slug"]).toBe("test-deck");
       expect(metadata["title"]).toBe("Test Deck");
+      expect(metadata["status"]).toBe("presented");
     });
 
     it("should handle missing optional metadata", () => {
@@ -188,9 +208,10 @@ title: Minimal Deck
         entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       const metadata = formatter.extractMetadata(entity);
@@ -208,9 +229,10 @@ title: Minimal Deck
         entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "My Presentation",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       const title = formatter.generateTitle(entity);
@@ -227,9 +249,10 @@ title: Minimal Deck
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "This is a test presentation",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       const summary = formatter.generateSummary(entity);
@@ -243,9 +266,10 @@ title: Minimal Deck
         entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       const summary = formatter.generateSummary(entity);
@@ -328,9 +352,10 @@ description: Test description
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Test description",
+        status: "draft",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       const result = formatter.generateFrontMatter(entity);
