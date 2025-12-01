@@ -8,10 +8,6 @@ Yeehaa
 
 Personal knowledge base and professional showcase
 
-## URL
-
-https://yeehaa.io
-
 ## Theme Mode
 
 light

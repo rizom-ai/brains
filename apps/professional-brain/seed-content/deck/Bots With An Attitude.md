@@ -1,13 +1,13 @@
 ---
 title: Bots With An Attitude
+status: presented
 slug: bots-with-an-attitude
 description: >-
   A framework for designing ethical, creative, and intelligent collaborative
   tools. Explores state machine-based bots that augment community knowledge
   work.
 author: Yeehaa
-status: presented
-presentedAt: 2025-10-15T00:00:00.000Z
+presentedAt: "2025-10-15T00:00:00.000Z"
 ---
 
 # Bots With An Attitude

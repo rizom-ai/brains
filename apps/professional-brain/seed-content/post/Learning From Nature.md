@@ -4,10 +4,11 @@ slug: learning-from-nature
 status: published
 publishedAt: "2024-09-25T08:29:24.280Z"
 excerpt: >-
-  Regenerative design meets decentralization through permaculture and biomimicry,
-  learning from nature's collaborative ecosystems. This article explores how
-  Wahl's regenerative culture principles challenge Darwinian competition with
-  natural systems optimizing for collective health through alignment.
+  Regenerative design meets decentralization through permaculture and
+  biomimicry, learning from nature's collaborative ecosystems. This article
+  explores how Wahl's regenerative culture principles challenge Darwinian
+  competition with natural systems optimizing for collective health through
+  alignment.
 author: Yeehaa
 seriesName: Ecosystem Architecture
 seriesIndex: 8
