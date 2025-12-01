@@ -11,21 +11,27 @@ export interface ContentItem {
 
 export interface ContentSectionProps {
   title: string;
-  items: ContentItem[];
+  items?: ContentItem[] | undefined;
+  children?: JSX.Element | undefined;
   viewAllUrl?: string | undefined;
   emptyMessage?: string | undefined;
 }
 
 /**
  * Reusable content section with three-column layout
- * Used for Essays, Presentations, and other content lists
+ * Used for Essays, Presentations, About, and other content sections
+ * Supports either list items or custom children content
  */
 export const ContentSection = ({
   title,
   items,
+  children,
   viewAllUrl,
   emptyMessage,
 }: ContentSectionProps): JSX.Element => {
+  const hasItems = items && items.length > 0;
+  const hasContent = hasItems ?? children;
+
   return (
     <section>
       <div className="grid md:grid-cols-[200px_1px_1fr] gap-y-2 gap-x-0 md:gap-12 items-start">
@@ -34,14 +40,28 @@ export const ContentSection = ({
         </h2>
         <div className="border-t md:border-t-0 md:border-l border-theme md:self-stretch"></div>
         <div className="mt-6 md:mt-0">
-          {items.length === 0 ? (
+          {!hasContent ? (
             <p className="text-theme-muted italic">
               {emptyMessage ?? `No ${title.toLowerCase()} yet.`}
             </p>
+          ) : children ? (
+            <>
+              {children}
+              {viewAllUrl && (
+                <div className="mt-10">
+                  <a
+                    href={viewAllUrl}
+                    className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
+                  >
+                    Learn More →
+                  </a>
+                </div>
+              )}
+            </>
           ) : (
             <>
               <ul className="space-y-10">
-                {items.map((item) => (
+                {items?.map((item) => (
                   <ContentListItem
                     key={item.id}
                     url={item.url}

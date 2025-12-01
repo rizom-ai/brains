@@ -41,7 +41,7 @@ export class SiteInfoDataSource implements DataSource {
     const siteInfoBody = await this.siteInfoService.getSiteInfo();
 
     // Get profile info from service (for socialLinks)
-    const profileBody = await this.profileService.getProfile();
+    const profileBody = this.profileService.getProfile();
 
     // Get navigation items for both slots
     const primaryItems = this.routeRegistry.getNavigationItems("primary");
