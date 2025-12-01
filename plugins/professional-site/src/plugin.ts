@@ -11,10 +11,12 @@ import { enrichedBlogPostSchema } from "@brains/blog";
 import { enrichedDeckSchema } from "@brains/decks";
 import { professionalProfileSchema } from "./schemas";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
+import { AboutDataSource } from "./datasources/about-datasource";
 import {
   HomepageListLayout,
   type HomepageListData,
 } from "./templates/homepage-list";
+import { AboutPageLayout, type AboutPageData } from "./templates/about";
 import {
   type ProfessionalSiteConfig,
   professionalSiteConfigSchema,
@@ -58,6 +60,10 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
     );
     context.registerDataSource(homepageDataSource);
 
+    // Register about page datasource
+    const aboutDataSource = new AboutDataSource(context.entityService);
+    context.registerDataSource(aboutDataSource);
+
     // Register homepage template
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
@@ -66,6 +72,11 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
       decks: z.array(enrichedDeckSchema),
       postsListUrl: z.string(),
       decksListUrl: z.string(),
+    });
+
+    // About page schema
+    const aboutPageSchema = z.object({
+      profile: professionalProfileSchema,
     });
 
     context.registerTemplates({
@@ -80,6 +91,17 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
         requiredPermission: "public",
         layout: {
           component: HomepageListLayout,
+          interactive: false,
+        },
+      }),
+      about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({
+        name: "about",
+        description: "About page with full profile information",
+        schema: aboutPageSchema,
+        dataSourceId: "professional:about",
+        requiredPermission: "public",
+        layout: {
+          component: AboutPageLayout,
           interactive: false,
         },
       }),

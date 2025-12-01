@@ -11,12 +11,9 @@ import { decksPlugin } from "@brains/decks";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
+  routes,
 } from "@brains/professional-site";
-import {
-  routes as defaultRoutes,
-  DefaultLayout,
-  MinimalLayout,
-} from "@brains/default-site-content";
+import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-yeehaa";
 
 // Entity route configuration
@@ -24,40 +21,6 @@ const entityRouteConfig = {
   post: { label: "Essay" }, // pluralName defaults to 'essays'
   deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
 };
-
-// Define routes for Yeehaa
-const routes = [
-  {
-    id: "home",
-    path: "/",
-    title: "Yeehaa",
-    description: "Personal knowledge base and blog",
-    layout: "default",
-    navigation: { show: true, label: "Home", slot: "secondary", priority: 10 },
-    sections: [
-      {
-        id: "homepage",
-        template: "professional-site:homepage-list",
-        dataQuery: {},
-      },
-    ],
-  },
-  {
-    id: "about",
-    path: "/about",
-    title: "About Yeehaa",
-    description: "Learn more about Yeehaa and this knowledge base",
-    layout: "default",
-    navigation: { show: true, label: "About", slot: "secondary", priority: 90 },
-    sections: [
-      {
-        id: "about",
-        template: "about",
-        dataQuery: { entityType: "base", query: { id: "README" } },
-      },
-    ],
-  },
-];
 
 const config = defineConfig({
   name: "professional-brain",
