@@ -2,7 +2,7 @@
 title: Urging New Institutions
 slug: urging-new-institutions
 status: published
-publishedAt: "2024-11-20T09:00:00.000Z"
+publishedAt: "2025-12-02T09:00:00.000Z"
 excerpt: >-
   Institutions don't protect democracy—social contracts do. COVID revealed that
   constitutions were mere suspension of disbelief. This article introduces a new
