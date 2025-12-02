@@ -226,18 +226,21 @@ See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
 7. Site builder plugin - Static site generation with Preact/Tailwind
 8. CLI and Matrix interfaces - Fully functional
 9. MCP interface - Complete with stdio and HTTP transports
-10. Deployment - Docker + Hetzner with Terraform/Caddy
+10. Deployment - Docker + Hetzner with Terraform/Caddy + Bunny CDN/DNS
 11. **Blog plugin** - Long-form content with RSS feeds and series support
 12. **Decks plugin** - Slide deck and presentation management
 13. **Type-safe entity metadata** - Strongly-typed metadata with backward compatibility
 14. **Code quality improvements** - Zero ESLint warnings, no `as any` assertions
+15. **Theming system** - Tailwind v4 with CSS variables and multi-site support
+16. **UI component library** - 25+ reusable components (Card, Header, Pagination, etc.)
+17. **Professional brain** - Full setup with about page, rich profile, homepage redesign
+18. **Optional preview environment** - Deploy directly to production without preview
+19. **Deployment config consolidation** - Single brain.config.ts for all deployment settings
 
 ### 🚧 Next Priorities
 
-1. Performance optimization - Batch operations, vector search improvements
-2. Additional testing - Integration tests, E2E tests
-3. UI component library expansion - Additional reusable components
-4. Roadmap plugin - Outcome-based goal tracking with milestone management and evidence linking
+1. **Interface Plugins v2** - Agent-based architecture replacing commands with AI tool use (see `docs/plans/interface-plugins-v2.md`)
+2. **Roadmap plugin** - Outcome-based goal tracking with milestones and evidence linking (see `docs/plans/roadmap-plugin.md`)
 
 ## Code Quality Checklist
 
