@@ -1,5 +1,7 @@
-# Bunny.net CDN Module
-# Creates a Pull Zone that acts as a CDN in front of the origin server
+# Bunny.net CDN + DNS Module
+# Supports two modes:
+# 1. CDN only (dns_enabled=false): Creates pull zone, manual DNS setup required
+# 2. CDN + DNS (dns_enabled=true): Creates DNS zone, records, pull zone, and custom hostname automatically
 
 terraform {
   required_providers {
@@ -11,19 +13,76 @@ terraform {
 }
 
 locals {
-  # Auto-detect if CDN should be enabled (if API key is provided)
+  # CDN enabled if API key provided
   cdn_enabled = var.bunny_api_key != ""
+
+  # DNS enabled if explicitly requested AND we have API key AND domain
+  dns_enabled = var.dns_enabled && var.bunny_api_key != "" && var.domain != ""
+
+  # Custom hostname can be automated when DNS is managed by Bunny
+  custom_hostname_enabled = local.cdn_enabled && local.dns_enabled && var.domain != ""
 
   # Origin URL must use server IP (not domain) to avoid circular DNS dependency
   # Use HTTP because Caddy can't serve HTTPS on IP address (no certificate for IP)
-  # This is industry standard - user→CDN is encrypted, CDN→origin can be HTTP
   origin_url         = "http://${var.origin_ip}"
   # Host header tells origin server which virtual host to serve
   origin_host_header = var.domain != "" ? var.domain : var.origin_ip
+
+  # CDN hostname for CNAME records
+  cdn_hostname = local.cdn_enabled ? "${bunnynet_pullzone.main[0].name}.b-cdn.net" : ""
 }
 
-# Bunny.net Pull Zone (CDN)
-# Only created if CDN is enabled
+# =============================================================================
+# DNS Zone (only when dns_enabled=true)
+# =============================================================================
+
+resource "bunnynet_dns_zone" "main" {
+  count = local.dns_enabled ? 1 : 0
+
+  domain = var.domain
+}
+
+# =============================================================================
+# DNS Records (only when dns_enabled=true)
+# =============================================================================
+
+# Apex domain → CDN (CNAME flattening handled by Bunny)
+resource "bunnynet_dns_record" "apex" {
+  count = local.dns_enabled ? 1 : 0
+
+  zone  = bunnynet_dns_zone.main[0].id
+  name  = ""
+  type  = "CNAME"
+  value = local.cdn_hostname
+  ttl   = 300
+}
+
+# WWW subdomain → CDN (Caddy handles redirect to apex)
+resource "bunnynet_dns_record" "www" {
+  count = local.dns_enabled ? 1 : 0
+
+  zone  = bunnynet_dns_zone.main[0].id
+  name  = "www"
+  type  = "CNAME"
+  value = local.cdn_hostname
+  ttl   = 300
+}
+
+# Preview subdomain → direct to server IP (bypasses CDN)
+resource "bunnynet_dns_record" "preview" {
+  count = local.dns_enabled ? 1 : 0
+
+  zone  = bunnynet_dns_zone.main[0].id
+  name  = "preview"
+  type  = "A"
+  value = var.origin_ip
+  ttl   = 300
+}
+
+# =============================================================================
+# CDN Pull Zone
+# =============================================================================
+
 resource "bunnynet_pullzone" "main" {
   count = local.cdn_enabled ? 1 : 0
 
@@ -44,14 +103,46 @@ resource "bunnynet_pullzone" "main" {
   }
 
   # Privacy settings (enabled by default)
-  log_enabled    = var.enable_logging
-  log_anonymized = true  # Anonymize IP addresses
-  log_anonymized_style = "OneDigit"  # Remove last octet of IPv4 (options: "OneDigit" or "Drop")
+  log_enabled          = var.enable_logging
+  log_anonymized       = true  # Anonymize IP addresses
+  log_anonymized_style = "OneDigit"  # Remove last octet of IPv4
 
   # Cache settings
   cache_enabled = true
   cache_errors  = false
 }
+
+# =============================================================================
+# Custom Hostnames (only when DNS is managed by Bunny)
+# =============================================================================
+
+# Apex domain custom hostname
+resource "bunnynet_pullzone_hostname" "apex" {
+  count = local.custom_hostname_enabled ? 1 : 0
+
+  pullzone    = bunnynet_pullzone.main[0].id
+  name        = var.domain
+  tls_enabled = true
+  force_ssl   = true
+
+  depends_on = [bunnynet_dns_record.apex]
+}
+
+# WWW subdomain custom hostname
+resource "bunnynet_pullzone_hostname" "www" {
+  count = local.custom_hostname_enabled ? 1 : 0
+
+  pullzone    = bunnynet_pullzone.main[0].id
+  name        = "www.${var.domain}"
+  tls_enabled = true
+  force_ssl   = true
+
+  depends_on = [bunnynet_dns_record.www]
+}
+
+# =============================================================================
+# Edge Rules
+# =============================================================================
 
 # Edge Rule: Redirect MCP API to direct HTTPS origin
 # For security, MCP requests should use end-to-end encryption
@@ -64,8 +155,8 @@ resource "bunnynet_pullzone_edgerule" "mcp_redirect" {
   match_type  = "MatchAll"
 
   action            = "Redirect"
-  action_parameter1 = "https://${local.origin_host_header}{{path}}"  # Redirect URL with path variable
-  action_parameter2 = "302"                                            # HTTP status code
+  action_parameter1 = "https://${local.origin_host_header}{{path}}"
+  action_parameter2 = "302"
 
   triggers = [
     {
@@ -77,14 +168,3 @@ resource "bunnynet_pullzone_edgerule" "mcp_redirect" {
     }
   ]
 }
-
-# NOTE: Custom hostnames are DISABLED for initial deployment
-# After DNS is pointed to Bunny, add custom hostnames via Bunny dashboard:
-# 1. Deploy this to get the .b-cdn.net hostname
-# 2. Point your DNS (CNAME) to the .b-cdn.net hostname
-# 3. Wait for DNS to propagate (check with: dig yourdomain.com)
-# 4. Add custom hostname in Bunny dashboard: Security > Custom Hostnames
-# 5. Enable Force SSL in Bunny dashboard after certificate provisions
-#
-# Terraform can't add custom hostnames automatically because Bunny requires
-# DNS to be pointing to them BEFORE accepting the custom hostname.

@@ -219,27 +219,31 @@ deploy_infrastructure() {
     check_prerequisites
     init_terraform
 
+    # Get configuration from app config (set by load_app_config)
+    SERVER_TYPE="${APP_SERVER_SIZE:-cx33}"
+    DOMAIN="${APP_DOMAIN:-}"
+
     # Check if infrastructure already exists
     cd "$TERRAFORM_STATE_DIR"
     if [ -f "terraform.tfstate" ] && terraform state list 2>/dev/null | grep -q "hcloud_server.main"; then
-        log_info "Infrastructure already exists, checking status..."
+        log_info "Infrastructure already exists, applying any configuration changes..."
 
-        # Refresh state to ensure it's current
-        terraform refresh \
+        # Apply any infrastructure changes (idempotent - will only change what's needed)
+        terraform apply \
             -var="hcloud_token=$HCLOUD_TOKEN" \
             -var="app_name=$APP_NAME" \
             -var="ssh_key_name=$SSH_KEY_NAME" \
             -var="domain=${DOMAIN:-}" \
             -var="bunny_api_key=${BUNNY_API_KEY:-}" \
-            >/dev/null 2>&1
+            -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
+            -auto-approve
 
         # Get server IP
         SERVER_IP=$(terraform output -raw server_ip 2>/dev/null)
         if [ -n "$SERVER_IP" ]; then
-            log_info "✅ Using existing infrastructure at $SERVER_IP"
+            log_info "✅ Infrastructure ready at $SERVER_IP"
             cd - > /dev/null
 
-            # Skip to application deployment
             # Build and push Docker image if needed
             build_and_push_docker_image
 
@@ -251,11 +255,6 @@ deploy_infrastructure() {
     cd - > /dev/null
 
     # Continue with new infrastructure deployment
-    # Use app configuration from environment variables (set by load_app_config)
-    SERVER_TYPE="${APP_SERVER_SIZE:-cx33}"
-
-    # Get domain from app configuration (set by load_app_config)
-    DOMAIN="${APP_DOMAIN:-}"
     if [ -n "$DOMAIN" ]; then
         log_info "Domain configured: $DOMAIN"
     fi
@@ -280,6 +279,7 @@ deploy_infrastructure() {
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
         -var="bunny_api_key=${BUNNY_API_KEY:-}" \
+        -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         >/dev/null 2>&1 || true
 
     # Plan deployment
@@ -291,6 +291,7 @@ deploy_infrastructure() {
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
         -var="bunny_api_key=${BUNNY_API_KEY:-}" \
+        -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         -out=tfplan
 
     # Apply deployment (Terraform will handle existing resources properly)
@@ -414,6 +415,7 @@ destroy_infrastructure() {
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
         -var="bunny_api_key=${BUNNY_API_KEY:-}" \
+        -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         -auto-approve
     
     cd - > /dev/null

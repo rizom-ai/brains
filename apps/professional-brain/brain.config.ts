@@ -34,6 +34,10 @@ const config = defineConfig({
       enabled: true,
       provider: "bunny",
     },
+    dns: {
+      enabled: true,
+      provider: "bunny",
+    },
   },
 
   permissions: {

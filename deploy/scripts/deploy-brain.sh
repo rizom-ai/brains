@@ -100,6 +100,7 @@ echo "  Server Size: $APP_SERVER_SIZE"
 echo "  Port: $APP_DEFAULT_PORT"
 [ -n "$APP_DOMAIN" ] && echo "  Domain: $APP_DOMAIN"
 [ "$APP_CDN_ENABLED" = "true" ] && echo "  CDN: $APP_CDN_PROVIDER"
+[ "$APP_DNS_ENABLED" = "true" ] && echo "  DNS: $APP_DNS_PROVIDER"
 echo ""
 
 # Confirm destructive actions

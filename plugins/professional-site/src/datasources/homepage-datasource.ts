@@ -97,12 +97,27 @@ export class HomepageListDataSource implements DataSource {
       };
     });
 
-    // Fetch recent decks (limit 3 for homepage, sorted at DB level)
-    const decks = await this.entityService.listEntities<DeckEntity>("deck", {
-      limit: 3,
-      sortBy: "updated",
-      sortDirection: "desc",
-    });
+    // Fetch recent presented decks (fetch 20, sort by presentedAt, take 3)
+    const presentedDecks = await this.entityService.listEntities<DeckEntity>(
+      "deck",
+      {
+        limit: 20,
+        filter: {
+          metadata: {
+            status: "presented",
+          },
+        },
+      },
+    );
+
+    // Sort by presentedAt (or created as fallback) and take the 3 most recent
+    const decks = presentedDecks
+      .sort((a, b) => {
+        const dateA = new Date(a.metadata.presentedAt ?? a.created);
+        const dateB = new Date(b.metadata.presentedAt ?? b.created);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 3);
 
     const data: HomepageDataSourceOutput = {
       profile,

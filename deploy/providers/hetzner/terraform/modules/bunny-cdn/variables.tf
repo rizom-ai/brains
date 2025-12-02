@@ -1,4 +1,4 @@
-# Bunny CDN Module Variables
+# Bunny CDN + DNS Module Variables
 
 variable "bunny_api_key" {
   description = "Bunny.net API key"
@@ -18,9 +18,15 @@ variable "origin_ip" {
 }
 
 variable "domain" {
-  description = "Domain name (used for custom hostname and origin hostname)"
+  description = "Domain name (used for DNS zone, custom hostname, and origin hostname)"
   type        = string
   default     = ""
+}
+
+variable "dns_enabled" {
+  description = "Enable Bunny DNS management (creates zone, records, and auto-configures custom hostnames)"
+  type        = bool
+  default     = false
 }
 
 variable "enable_logging" {

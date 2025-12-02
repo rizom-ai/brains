@@ -7,7 +7,7 @@ description: >-
   tools. Explores state machine-based bots that augment community knowledge
   work.
 author: Yeehaa
-presentedAt: "2025-10-15T00:00:00.000Z"
+presentedAt: "2020-02-13T00:00:00.000Z"
 ---
 
 # Bots With An Attitude
