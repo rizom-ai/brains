@@ -2,13 +2,34 @@
 
 **Date**: 2025-12-02
 **Status**: Planning
-**Goal**: Simplify interface plugins by replacing command-based interaction with AI agent-based interaction
+**Goal**: Simplify MessageInterfacePlugins by replacing command-based interaction with AI agent-based interaction
 
 ## Executive Summary
 
-Current interfaces (CLI, Matrix) implement complex command parsing, argument validation, and help generation. This creates maintenance burden and duplicates functionality that AI agents handle naturally.
+Current MessageInterfaces (CLI, Matrix) implement complex command parsing, argument validation, and help generation. This creates maintenance burden and duplicates functionality that AI agents handle naturally.
 
-**Proposed change**: Interfaces become thin chat layers where users interact with an AI agent that has MCP tools at its disposal. Commands disappear entirely.
+**Proposed change**: MessageInterfaces become thin chat layers where users interact with an AI agent that has MCP tools at its disposal. Commands disappear entirely.
+
+## Decisions Made
+
+Based on planning discussion:
+
+1. ✅ Interfaces become thin chat layers relaying messages to/from AI agent
+2. ✅ Commands removed entirely - all input goes through agent
+3. ✅ Agent lives in shared `shell/agent-service` (not duplicated per interface)
+4. ✅ Use Vercel AI SDK (via existing AIService) - not Anthropic SDK directly
+5. ✅ No streaming - wait for complete response
+6. ✅ Maintain conversation history across messages
+7. ✅ Destructive tools require confirmation before executing
+8. ✅ Keep commands as deprecated fallback during migration, remove after
+9. ✅ Agent gets personality from IdentityService + agent-specific instructions
+10. ✅ Only MessageInterfacePlugins migrate (CLI, Matrix) - not InterfacePlugins (webserver)
+11. ✅ Start with Matrix (new implementation from scratch), then CLI
+12. ✅ Keep old implementations alongside new ones during transition
+13. ✅ Collapse `MessageInterfacePlugin` into `InterfacePlugin` after migration
+14. ✅ Remove `CommandRegistry` package after migration complete
+15. ✅ AgentService reuses AIService internally (not duplicate SDK setup)
+16. ✅ Agent gets tools from MCPService
 
 ## Current Architecture
 
@@ -32,7 +53,7 @@ User Output
 
 ### Current Interface Responsibilities
 
-Each interface currently handles:
+Each MessageInterface currently handles:
 
 1. **Command parsing** - Extract command name and arguments from input
 2. **Argument validation** - Check required args, types, defaults
@@ -58,7 +79,7 @@ User Input ("find stuff about typescript")
     ↓
 Interface (thin layer)
     ↓
-AI Agent (Claude with MCP tools)
+AgentService (uses AIService + MCPService)
     ↓
 Agent decides: call search tool, format results
     ↓
@@ -85,329 +106,179 @@ That's it. No command parsing, no argument validation, no help generation.
 - Formatting responses appropriately
 - Handling errors gracefully
 - Providing help when asked
+- Asking confirmation for destructive operations
 
 ## Implementation Plan
 
-### Phase 1: Core Agent Infrastructure
+### Phase 1: AgentService
 
-**Goal**: Create a reusable AI agent that has MCP tools available
+**Goal**: Create `shell/agent-service` package
 
-**New package**: `shell/agent-service` or extend `shell/ai-service`
+**Dependencies**:
 
-```typescript
-interface AgentService {
-  // Process user message, return agent response
-  chat(message: string, conversationId: string): Promise<string>;
-
-  // Agent has access to all registered MCP tools
-  // Tools are automatically discovered from MCPService
-}
-```
-
-**Implementation approach**:
-
-Option A: Use Anthropic Claude API directly with tool_use
-
-```typescript
-const response = await anthropic.messages.create({
-  model: "claude-sonnet-4-20250514",
-  messages: conversationHistory,
-  tools: mcpService.getToolsAsClaudeFormat(),
-});
-```
-
-Option B: Use Claude Agent SDK (if available/appropriate)
-
-Option C: Use MCP client SDK to connect to our own MCP server
-
-**Decision needed**: Which approach? Option A seems simplest.
-
-### Phase 2: Simplify CLI Interface
-
-**Goal**: Remove command handling, use agent for all interactions
-
-**Current CLI structure**:
-
-```
-interfaces/cli/
-├── src/
-│   ├── cli-interface.ts      # Main interface
-│   ├── components/           # Ink React components
-│   ├── commands/             # Command handlers (DELETE)
-│   └── lib/                  # Utilities
-```
-
-**New CLI structure**:
-
-```
-interfaces/cli/
-├── src/
-│   ├── cli-interface.ts      # Simplified interface
-│   ├── components/
-│   │   ├── Chat.tsx          # Main chat component
-│   │   ├── Message.tsx       # Message display
-│   │   └── Input.tsx         # User input
-│   └── lib/
-│       └── formatting.ts     # Output formatting
-```
-
-**Key changes**:
-
-- Remove `CommandRegistry` usage
-- Remove command parsing logic
-- Remove `/help`, `/search`, etc. handling
-- Add: Send all input to AgentService
-- Add: Stream agent responses to terminal
-
-**Before** (current):
-
-```typescript
-async processInput(input: string): Promise<void> {
-  if (input.startsWith('/')) {
-    const [command, ...args] = input.slice(1).split(' ');
-    const result = await this.commandRegistry.execute(command, args);
-    this.display(result);
-  } else {
-    const response = await this.shell.processQuery(input, this.conversationId);
-    this.display(response);
-  }
-}
-```
-
-**After** (v2):
-
-```typescript
-async processInput(input: string): Promise<void> {
-  const response = await this.agentService.chat(input, this.conversationId);
-  this.display(response);
-}
-```
-
-### Phase 3: Simplify Matrix Interface
-
-**Same pattern as CLI**:
-
-- Remove command handling
-- Forward all messages to AgentService
-- Display agent responses
-
-**Matrix-specific considerations**:
-
-- Room context (different conversations per room)
-- Mentions (respond when mentioned)
-- Threading (optional)
-
-### Phase 4: Remove Command Infrastructure
-
-Once all interfaces use agents:
-
-**Delete or deprecate**:
-
-- `shell/command-registry` package
-- Command-related code in plugins
-- `getCommands()` from plugin interface
-
-**Keep**:
-
-- MCP tools (this is what agents use)
-- Tool registration in plugins
-
-### Phase 5: Enhance Agent Capabilities
-
-**After basic agent works**:
-
-1. **System prompts** - Customize agent personality per brain
-2. **Tool filtering** - Limit which tools agent can use based on context
-3. **Streaming** - Stream responses for better UX
-4. **Multi-turn tool use** - Agent can call multiple tools in sequence
-5. **Confirmation prompts** - Agent asks before destructive operations
-
-## Migration Strategy
-
-### Backward Compatibility
-
-During transition:
-
-1. Keep commands working (deprecated)
-2. Add agent mode as default
-3. Commands trigger deprecation warning
-4. Remove commands in v3
-
-### User Communication
-
-- Announce: "You can now talk naturally instead of using commands"
-- Document: Common tasks in natural language
-- Fallback: Commands still work but show "try asking naturally"
-
-## Technical Decisions
-
-### 1. Where does the agent live?
-
-**Option A**: In each interface (duplicated)
-
-- Pros: Interface-specific customization
-- Cons: Duplication, inconsistency
-
-**Option B**: Shared AgentService in shell ✅ Recommended
-
-- Pros: Single implementation, consistent behavior
-- Cons: Less interface-specific control
-
-### 2. How do we handle streaming?
-
-**Option A**: Wait for complete response
-
-- Pros: Simple
-- Cons: Poor UX for long responses
-
-**Option B**: Stream tokens ✅ Recommended
-
-- Pros: Good UX, feels responsive
-- Cons: More complex interface code
-
-### 3. What about tool confirmation?
-
-Some tools are destructive (delete, publish). Should agent:
-
-**Option A**: Always execute immediately
-
-- Pros: Fast, simple
-- Cons: Dangerous
-
-**Option B**: Ask confirmation for destructive tools ✅ Recommended
-
-- Pros: Safe
-- Cons: Extra turn
-
-**Option C**: Permission levels on tools
-
-- Pros: Flexible
-- Cons: Complex
-
-### 4. Conversation context
-
-**Option A**: Fresh context each message
-
-- Pros: Simple, predictable
-- Cons: No memory, repetitive
-
-**Option B**: Maintain conversation history ✅ Recommended
-
-- Pros: Natural conversation flow
-- Cons: Token usage, context limits
-
-## Code Examples
-
-### AgentService Implementation
+- AIService (for LLM calls via Vercel AI SDK)
+- MCPService (for available tools)
+- ConversationService (for conversation history)
+- IdentityService (for brain personality)
 
 ```typescript
 // shell/agent-service/src/agent-service.ts
 
-import Anthropic from "@anthropic-ai/sdk";
-import type { MCPService } from "@brains/mcp-service";
-import type { ConversationService } from "@brains/conversation-service";
-
 export class AgentService {
-  private client: Anthropic;
-  private mcpService: MCPService;
-  private conversationService: ConversationService;
+  constructor(
+    private aiService: AIService,
+    private mcpService: MCPService,
+    private conversationService: ConversationService,
+    private identityService: IdentityService,
+  ) {}
 
   async chat(message: string, conversationId: string): Promise<string> {
     // Get conversation history
     const history = await this.conversationService.getMessages(conversationId);
 
-    // Get available tools
-    const tools = this.mcpService.getToolsForClaude();
+    // Get available tools from MCP
+    const tools = this.mcpService.getToolsForAI();
 
-    // Call Claude with tools
-    const response = await this.client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      system: this.getSystemPrompt(),
-      messages: this.formatHistory(history, message),
+    // Get system prompt from identity + agent instructions
+    const systemPrompt = this.buildSystemPrompt();
+
+    // Call AI with tools via AIService
+    const response = await this.aiService.generateWithTools({
+      system: systemPrompt,
+      messages: [...history, { role: "user", content: message }],
       tools,
-      max_tokens: 4096,
     });
 
-    // Handle tool use
-    if (response.stop_reason === "tool_use") {
-      return this.handleToolUse(response, conversationId);
-    }
-
-    // Return text response
-    const textContent = response.content.find((c) => c.type === "text");
-    return textContent?.text ?? "";
+    // Handle tool execution loop
+    return this.processResponse(response, conversationId);
   }
 
-  private async handleToolUse(
-    response: Message,
-    conversationId: string,
-  ): Promise<string> {
-    const toolUse = response.content.find((c) => c.type === "tool_use");
+  private buildSystemPrompt(): string {
+    const identity = this.identityService.getIdentity();
+    return `${identity.systemPrompt}
 
-    // Execute tool via MCP
-    const result = await this.mcpService.executeTool(
-      toolUse.name,
-      toolUse.input,
-    );
-
-    // Continue conversation with tool result
-    return this.chat(JSON.stringify({ tool_result: result }), conversationId);
-  }
-
-  private getSystemPrompt(): string {
-    return `You are a helpful assistant with access to a personal knowledge management system.
-You can search, create, and manage content using the available tools.
-Be concise and helpful. Use tools when they would help answer the user's question.`;
+You have access to tools for managing a personal knowledge system.
+Use tools when they would help answer the user's question.
+Be concise and helpful.
+For destructive operations (delete, publish), ask for confirmation first.`;
   }
 }
 ```
 
-### Simplified CLI
+### Phase 2: New Matrix Interface
+
+**Goal**: Create new simplified Matrix implementation from scratch
+
+**New structure**:
+
+```
+interfaces/matrix/
+├── src/
+│   ├── matrix-interface.ts    # Simplified - just transport + agent relay
+│   ├── matrix-client.ts       # Matrix SDK wrapper (E2E, rooms, etc.)
+│   └── index.ts
+```
+
+**Key simplification**:
+
+- Remove all command parsing
+- Remove CommandRegistry usage
+- Just: receive message → send to AgentService → send response
+
+### Phase 3: New CLI Interface
+
+**Goal**: Apply same pattern to CLI
+
+**New structure**:
+
+```
+interfaces/cli/
+├── src/
+│   ├── cli-interface.ts       # Simplified interface
+│   ├── components/
+│   │   ├── Chat.tsx           # Main chat component
+│   │   ├── Message.tsx        # Message display
+│   │   └── Input.tsx          # User input
+│   └── index.ts
+```
+
+### Phase 4: Cleanup
+
+**Goal**: Remove deprecated code
+
+1. Remove old Matrix and CLI implementations
+2. Collapse `MessageInterfacePlugin` into `InterfacePlugin`
+3. Delete `shell/command-registry` package
+4. Remove `getCommands()` from plugin interface
+5. Remove command-related code from plugins
+
+## Technical Details
+
+### System Prompt Structure
 
 ```typescript
-// interfaces/cli/src/cli-interface.ts
+const systemPrompt = `
+${identityService.getIdentity().systemPrompt}
 
-export class CLIInterface extends InterfacePlugin {
-  private agentService!: AgentService;
-  private conversationId!: string;
+## Agent Instructions
 
-  async register(context: InterfacePluginContext): Promise<PluginCapabilities> {
-    this.agentService = context.resolve("agentService");
-    this.conversationId = await this.startConversation();
+You are an AI assistant with access to a personal knowledge management system.
 
-    return {
-      daemons: [{
-        name: "cli",
-        start: () => this.startCLI(),
-        stop: () => this.stopCLI(),
-      }],
-    };
-  }
+### Tool Usage
+- Use tools when they help answer the user's question
+- You can call multiple tools in sequence if needed
+- Format tool results in a user-friendly way
 
-  private async startCLI(): Promise<void> {
-    // Render Ink chat component
-    render(<Chat onSubmit={this.handleInput.bind(this)} />);
-  }
+### Destructive Operations
+For these operations, ask for confirmation before executing:
+- Deleting entities
+- Publishing content
+- Modifying system settings
 
-  private async handleInput(input: string): Promise<void> {
-    // That's it. Just send to agent.
-    const response = await this.agentService.chat(input, this.conversationId);
-    this.displayResponse(response);
-  }
-}
+### Response Style
+- Be concise and helpful
+- Use markdown formatting when appropriate
+- If a tool fails, explain the error clearly
+`;
 ```
+
+### Tool Confirmation Flow
+
+```typescript
+// When agent decides to use a destructive tool:
+// 1. Agent responds: "I'll delete the note 'Meeting Notes'. Confirm? (yes/no)"
+// 2. User responds: "yes"
+// 3. Agent executes tool and reports result
+```
+
+## Migration Strategy
+
+### During Transition
+
+1. Old interfaces remain available (deprecated)
+2. New interfaces are opt-in initially
+3. Commands show deprecation warning: "Commands are deprecated. Try asking naturally."
+4. Both old and new work side-by-side
+
+### After Transition
+
+1. Remove old interface implementations
+2. Remove CommandRegistry
+3. Remove command-related plugin methods
+4. Collapse MessageInterfacePlugin into InterfacePlugin
 
 ## Success Criteria
 
 - [ ] AgentService created and working
-- [ ] CLI uses agent instead of commands
-- [ ] Matrix uses agent instead of commands
-- [ ] Commands removed from codebase
+- [ ] New Matrix interface using AgentService
+- [ ] New CLI interface using AgentService
+- [ ] Old implementations deprecated with warnings
 - [ ] User can accomplish all tasks via natural language
-- [ ] Response streaming works
 - [ ] Destructive operations require confirmation
 - [ ] Tests pass
-- [ ] Documentation updated
+- [ ] Old code removed
+- [ ] CommandRegistry deleted
+- [ ] MessageInterfacePlugin collapsed into InterfacePlugin
 
 ## Risks & Mitigations
 
@@ -415,27 +286,9 @@ export class CLIInterface extends InterfacePlugin {
 | ------------------------------ | ---------------------------------------------- |
 | AI hallucinations              | Clear system prompts, tool-based grounding     |
 | Cost increase (more API calls) | Efficient prompting, caching where appropriate |
-| Slower than commands           | Streaming responses, optimize prompts          |
-| Users miss commands            | Keep as hidden fallback initially              |
+| Slower than commands           | Accept trade-off for better UX                 |
+| Users miss commands            | Deprecated fallback during transition          |
 | Tool errors confuse agent      | Good error messages, retry logic               |
-
-## Timeline
-
-**Phase 1**: AgentService - 1-2 days
-**Phase 2**: CLI migration - 1 day
-**Phase 3**: Matrix migration - 1 day
-**Phase 4**: Command cleanup - 0.5 days
-**Phase 5**: Enhancements - ongoing
-
-**Total**: ~4-5 days for core implementation
-
-## Open Questions
-
-1. Should we use Anthropic SDK directly or go through our existing AIService?
-2. How do we handle rate limits and API errors gracefully?
-3. Should different brains have different agent personalities?
-4. Do we need a way to "force" tool execution without AI interpretation?
-5. How do we test agent behavior reliably?
 
 ## References
 
@@ -443,4 +296,6 @@ export class CLIInterface extends InterfacePlugin {
 - Current Matrix implementation: `interfaces/matrix/`
 - MCP Service: `shell/mcp-service/`
 - AI Service: `shell/ai-service/`
-- Anthropic Tool Use docs: https://docs.anthropic.com/claude/docs/tool-use
+- Identity Service: `shell/identity-service/`
+- Conversation Service: `shell/conversation-service/`
+- Vercel AI SDK: https://sdk.vercel.ai/docs
