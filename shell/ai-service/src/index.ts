@@ -8,4 +8,12 @@
 export { AIService } from "./aiService";
 
 // Export types
-export type { AIModelConfig, AIService as IAIService } from "./types";
+export type {
+  AIModelConfig,
+  AIService as IAIService,
+  AITool,
+  AIMessage,
+  ToolCallResult,
+  GenerateWithToolsOptions,
+  GenerateWithToolsResult,
+} from "./types";
