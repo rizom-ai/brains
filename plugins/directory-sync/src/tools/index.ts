@@ -9,7 +9,7 @@ export function createDirectorySyncTools(
 ): PluginTool[] {
   return [
     {
-      name: `${pluginId}:sync`,
+      name: `${pluginId}_sync`,
       description: "Synchronize all entities with directory (async)",
       inputSchema: {},
       visibility: "anchor",

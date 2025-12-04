@@ -37,7 +37,7 @@ describe("Generate Tool", () => {
 
   describe("tool metadata", () => {
     it("should have correct tool name", () => {
-      expect(generateTool.name).toBe("blog:generate");
+      expect(generateTool.name).toBe("blog_generate");
     });
 
     it("should have descriptive description", () => {
@@ -126,7 +126,7 @@ describe("Generate Tool", () => {
         .mock.calls[0];
       const jobOptions = enqueueCall?.[2] as Record<string, unknown>;
 
-      expect(jobOptions["source"]).toBe("blog:generate");
+      expect(jobOptions["source"]).toBe("blog_generate");
       expect(jobOptions["metadata"]).toBeDefined();
       const metadata = jobOptions["metadata"] as Record<string, unknown>;
       expect(metadata["operationType"]).toBe("content_operations");

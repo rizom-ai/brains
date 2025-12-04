@@ -106,7 +106,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
 
       // Sync through git-sync plugin tool (handles commit, push, pull)
       const syncTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync:sync",
+        (t) => t.name === "git-sync_sync",
       );
       expect(syncTool).toBeDefined();
       if (!syncTool) throw new Error("Sync tool not found");
@@ -145,7 +145,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       writeFileSync(filePath, "# React Topic\n\nReact content");
 
       const syncTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync:sync",
+        (t) => t.name === "git-sync_sync",
       );
       if (!syncTool) throw new Error("Sync tool not found");
       await syncTool.handler(
@@ -154,7 +154,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       );
 
       const statusTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync:status",
+        (t) => t.name === "git-sync_status",
       );
       if (!statusTool) throw new Error("Status tool not found");
       const statusResult = await statusTool.handler(
@@ -171,7 +171,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
   describe("Status and Sync Operations", () => {
     it("should report accurate status", async () => {
       const statusTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync:status",
+        (t) => t.name === "git-sync_status",
       );
       if (!statusTool) throw new Error("Status tool not found");
       const statusResult = await statusTool.handler(
@@ -191,7 +191,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       writeFileSync(join(testDir, "test.md"), "# Test");
 
       const statusTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync:status",
+        (t) => t.name === "git-sync_status",
       );
       if (!statusTool) throw new Error("Status tool not found");
       const statusResult = await statusTool.handler(

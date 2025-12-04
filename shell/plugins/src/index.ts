@@ -192,5 +192,8 @@ export {
 export type { IdentityBody } from "@brains/identity-service";
 export { identityBodySchema } from "@brains/identity-service";
 
+// From @brains/profile-service
+export type { ProfileBody } from "@brains/profile-service";
+
 // Utility functions
 export { createId } from "./utils/id";

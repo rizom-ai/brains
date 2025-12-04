@@ -6,6 +6,7 @@ import type {
   DefaultQueryResponse,
   SearchResult,
   IdentityBody,
+  ProfileBody,
   AppInfo,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
@@ -199,6 +200,16 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
       throw new Error("Plugin not registered");
     }
     return this.context.getIdentity();
+  }
+
+  /**
+   * Get the owner's profile data
+   */
+  public getProfileData(): ProfileBody {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.getProfile();
   }
 
   /**

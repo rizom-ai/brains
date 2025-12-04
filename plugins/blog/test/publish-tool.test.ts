@@ -68,7 +68,7 @@ Post content here`,
 
   describe("tool metadata", () => {
     it("should have correct tool name", () => {
-      expect(publishTool.name).toBe("blog:publish");
+      expect(publishTool.name).toBe("blog_publish");
     });
 
     it("should have descriptive description", () => {

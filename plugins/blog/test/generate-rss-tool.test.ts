@@ -86,11 +86,11 @@ describe("Generate RSS Tool", () => {
       expect(tool.inputSchema).toHaveProperty("description");
     });
 
-    test("should be public visibility", () => {
+    test("should be anchor visibility", () => {
       const context = createMockContext([]);
       const tool = createGenerateRSSTool(context);
 
-      expect(tool.visibility).toBe("public");
+      expect(tool.visibility).toBe("anchor");
     });
   });
 

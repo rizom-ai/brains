@@ -29,18 +29,19 @@ describe("SystemPlugin", () => {
 
     it("should provide all expected tools", () => {
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools.length).toBe(9);
+      expect(capabilities.tools.length).toBe(10);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("system:query");
-      expect(toolNames).toContain("system:search");
-      expect(toolNames).toContain("system:get");
-      expect(toolNames).toContain("system:check-job-status");
-      expect(toolNames).toContain("system:get-conversation");
-      expect(toolNames).toContain("system:list-conversations");
-      expect(toolNames).toContain("system:get-identity");
-      expect(toolNames).toContain("system:get-messages");
-      expect(toolNames).toContain("system:get-status");
+      expect(toolNames).toContain("system_query");
+      expect(toolNames).toContain("system_search");
+      expect(toolNames).toContain("system_get");
+      expect(toolNames).toContain("system_check-job-status");
+      expect(toolNames).toContain("system_get-conversation");
+      expect(toolNames).toContain("system_list-conversations");
+      expect(toolNames).toContain("system_get-identity");
+      expect(toolNames).toContain("system_get-profile");
+      expect(toolNames).toContain("system_get-messages");
+      expect(toolNames).toContain("system_get-status");
     });
 
     it("should provide all expected commands", () => {

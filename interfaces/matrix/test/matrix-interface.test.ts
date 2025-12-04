@@ -1,9 +1,10 @@
 import "./mocks/setup";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock, afterEach } from "bun:test";
 import { MatrixInterface } from "../src";
 import { createInterfacePluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import { PermissionService } from "@brains/permission-service";
+import type { IAgentService, AgentResponse } from "@brains/agent-service";
 
 // Type for mock.on calls - [eventName, handler]
 type MockOnCall = [string, (roomId: string, event: unknown) => void];
@@ -11,6 +12,24 @@ type MockOnCall = [string, (roomId: string, event: unknown) => void];
 // Access the global mocks
 const mockMatrixClient = globalThis.mockMatrixClient;
 const mockAutoJoinMixin = globalThis.mockAutoJoinMixin;
+
+// Mock AgentService
+const createMockAgentService = (): IAgentService => ({
+  chat: mock(
+    (_message: string, _conversationId: string): Promise<AgentResponse> =>
+      Promise.resolve({
+        text: "I found some results for you.",
+        usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
+      }),
+  ),
+  confirmPendingAction: mock(
+    (_conversationId: string, _confirmed: boolean): Promise<AgentResponse> =>
+      Promise.resolve({
+        text: "Action confirmed.",
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      }),
+  ),
+});
 
 describe("MatrixInterface", () => {
   let config: {
@@ -20,6 +39,7 @@ describe("MatrixInterface", () => {
     [key: string]: unknown;
   };
   let harness: PluginTestHarness<MatrixInterface>;
+  let mockAgentService: IAgentService;
 
   beforeEach(() => {
     // Reset mocks
@@ -47,10 +67,12 @@ describe("MatrixInterface", () => {
       userId: "@bot:example.org",
     };
 
+    mockAgentService = createMockAgentService();
+
     // Create plugin harness with permission configuration
     harness = createInterfacePluginHarness<MatrixInterface>();
 
-    // Configure mock shell with permissions
+    // Configure mock shell with permissions and agent service
     const mockShell = harness.getShell();
     mockShell.getPermissionService = (): PermissionService => {
       return new PermissionService({
@@ -58,6 +80,11 @@ describe("MatrixInterface", () => {
         trusted: ["matrix:@trusted:example.org"],
       });
     };
+    mockShell.setAgentService(mockAgentService);
+  });
+
+  afterEach(() => {
+    harness.reset();
   });
 
   describe("Initialization", () => {
@@ -103,23 +130,6 @@ describe("MatrixInterface", () => {
       expect(mockAutoJoinMixin.setupOnClient).toHaveBeenCalled();
     });
 
-    it("should handle room invites when autojoin is disabled", async () => {
-      const noAutoJoinConfig = {
-        ...config,
-        autoJoinRooms: false,
-      };
-
-      const matrixInterface = new MatrixInterface(noAutoJoinConfig);
-
-      await harness.installPlugin(matrixInterface);
-
-      // Event handlers are registered during plugin registration
-      expect(mockMatrixClient.on).toHaveBeenCalledWith(
-        "room.invite",
-        expect.any(Function),
-      );
-    });
-
     it("should provide daemon capability", async () => {
       const matrixInterface = new MatrixInterface(config);
 
@@ -128,25 +138,9 @@ describe("MatrixInterface", () => {
       // Interface plugins provide daemon capability
       expect(matrixInterface.type).toBe("interface");
     });
-
-    it("should handle multiple registrations gracefully", async () => {
-      const matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.on.mockClear();
-
-      await harness.installPlugin(matrixInterface);
-      const firstCallCount = mockMatrixClient.on.mock.calls.length;
-
-      // Reset and install again
-      harness.reset();
-      mockMatrixClient.on.mockClear();
-      await harness.installPlugin(matrixInterface);
-
-      // Should register event handlers again
-      expect(mockMatrixClient.on.mock.calls.length).toBe(firstCallCount);
-    });
   });
 
-  describe("Message handling", () => {
+  describe("Message handling with AgentService", () => {
     let matrixInterface: MatrixInterface;
     let messageHandler: (roomId: string, event: unknown) => void;
 
@@ -163,12 +157,12 @@ describe("MatrixInterface", () => {
       messageHandler = messageCall[1];
     });
 
-    it("should process valid messages", async () => {
+    it("should send all messages to AgentService.chat()", async () => {
       const event = {
         sender: "@user:example.org",
         content: {
           msgtype: "m.text",
-          body: "Hello bot",
+          body: "Hello, can you help me find something?",
           "m.mentions": {
             user_ids: ["@bot:example.org"],
           },
@@ -176,18 +170,52 @@ describe("MatrixInterface", () => {
         event_id: "event_123",
       };
 
-      // Call the message handler and wait for processing
       messageHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Note: Message processing is now internal to the interface
-      // The client's setTyping method should be called
-      expect(mockMatrixClient.setTyping).toHaveBeenCalled();
+      // Should call AgentService.chat() with message, conversation ID, and permission level
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "Hello, can you help me find something?",
+        "matrix-!room:example.org",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "matrix",
+          channelId: "!room:example.org",
+        },
+      );
+    });
+
+    it("should not process commands - everything goes to agent", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "!help", // Old command format - should be sent to agent
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Even "commands" should go to the agent with permission context
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        "!help",
+        "matrix-!room:example.org",
+        {
+          userPermissionLevel: "public",
+          interfaceType: "matrix",
+          channelId: "!room:example.org",
+        },
+      );
     });
 
     it("should ignore own messages", async () => {
       const event = {
-        sender: "@bot:example.org",
+        sender: "@bot:example.org", // Bot's own message
         content: { msgtype: "m.text", body: "Hello" },
         event_id: "event_123",
       };
@@ -195,54 +223,17 @@ describe("MatrixInterface", () => {
       messageHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Own messages are ignored, so no typing should be sent
-      expect(mockMatrixClient.setTyping).not.toHaveBeenCalled();
+      // Own messages should be ignored
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
     });
 
-    it("should handle command prefix", async () => {
-      const event = {
-        sender: "@user:example.org",
-        content: { msgtype: "m.text", body: "!help" },
-        event_id: "event_123",
-      };
-
-      messageHandler("!room:example.org", event);
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      // Commands are processed, so typing should be called
-      expect(mockMatrixClient.setTyping).toHaveBeenCalled();
-    });
-
-    it("should use default processQuery without interface permission grants", async () => {
-      // Create a fresh Matrix interface for this test
-      const testInterface = new MatrixInterface(config);
-      await harness.installPlugin(testInterface);
-
-      // Matrix interface should not override processQuery method, meaning it inherits
-      // the base implementation which does not grant interface permissions
-
-      // Process a query and verify it completes successfully
-      const result = await testInterface.processQuery("test query", {
-        userId: "@user:example.org",
-        channelId: "!room:example.org",
-        messageId: "msg_123",
-        timestamp: new Date(),
-        interfaceType: "matrix",
-        userPermissionLevel: "public",
-      });
-
-      // The result should be from the mock shell's generateContent method
-      expect(result).toBe("Generated content for shell:knowledge-query");
-    });
-
-    it("should send typing indicator when enabled", async () => {
+    it("should send typing indicator when processing message", async () => {
       const typingConfig = {
         ...config,
         enableTypingNotifications: true,
       };
 
       matrixInterface = new MatrixInterface(typingConfig);
-
       await harness.installPlugin(matrixInterface);
 
       const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
@@ -263,7 +254,7 @@ describe("MatrixInterface", () => {
       };
 
       messageHandler("!room:example.org", event);
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockMatrixClient.setTyping).toHaveBeenCalledWith(
         "!room:example.org",
@@ -271,14 +262,57 @@ describe("MatrixInterface", () => {
         expect.any(Number),
       );
     });
+
+    it("should send formatted response from AgentService", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Search for notes about TypeScript",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should send the agent's response via sendMessage (sendFormattedMessage uses sendMessage internally)
+      expect(mockMatrixClient.sendMessage).toHaveBeenCalledWith(
+        "!room:example.org",
+        expect.objectContaining({
+          body: "I found some results for you.",
+          format: "org.matrix.custom.html",
+        }),
+      );
+    });
   });
 
-  describe("User ID passing", () => {
+  describe("Confirmation flow", () => {
     let matrixInterface: MatrixInterface;
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
+      // Set up agent to return pending confirmation
+      mockAgentService.chat = mock(() =>
+        Promise.resolve({
+          text: "I'll delete the note 'Meeting Notes'. Confirm? (yes/no)",
+          pendingConfirmation: {
+            toolName: "delete_note",
+            description: "Delete note 'Meeting Notes'",
+            args: { noteId: "123" },
+          },
+          usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
+        }),
+      );
+
+      // Update the mock agent service with the confirmation response
+      harness.getShell().setAgentService(mockAgentService);
+
       matrixInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
@@ -288,12 +322,12 @@ describe("MatrixInterface", () => {
       messageHandler = messageCall[1];
     });
 
-    it("should pass userId and interfaceType to shell for permission determination", async () => {
+    it("should track pending confirmation from AgentService", async () => {
       const event = {
         sender: "@user:example.org",
         content: {
           msgtype: "m.text",
-          body: "!help",
+          body: "Delete my meeting notes",
           "m.mentions": {
             user_ids: ["@bot:example.org"],
           },
@@ -302,11 +336,167 @@ describe("MatrixInterface", () => {
       };
 
       messageHandler("!room:example.org", event);
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // The interface should process the message regardless of who sent it
-      // Permission checks happen at the Shell level
-      expect(mockMatrixClient.setTyping).toHaveBeenCalled();
+      // Should send the confirmation prompt via sendMessage
+      expect(mockMatrixClient.sendMessage).toHaveBeenCalledWith(
+        "!room:example.org",
+        expect.objectContaining({
+          body: expect.stringContaining("Confirm?"),
+          format: "org.matrix.custom.html",
+        }),
+      );
+    });
+
+    it("should call confirmPendingAction when user confirms", async () => {
+      // First message triggers confirmation
+      const deleteEvent = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Delete my meeting notes",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", deleteEvent);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Reset mock for confirmation
+      (mockAgentService.chat as ReturnType<typeof mock>).mockClear();
+      mockAgentService.confirmPendingAction = mock(() =>
+        Promise.resolve({
+          text: "Note deleted successfully.",
+          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        }),
+      );
+
+      // User confirms
+      const confirmEvent = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "yes",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_124",
+      };
+
+      messageHandler("!room:example.org", confirmEvent);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should call confirmPendingAction
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        "matrix-!room:example.org",
+        true,
+      );
+    });
+
+    it("should call confirmPendingAction with false when user declines", async () => {
+      // First message triggers confirmation
+      const deleteEvent = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Delete my meeting notes",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", deleteEvent);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Reset mock for cancellation
+      (mockAgentService.chat as ReturnType<typeof mock>).mockClear();
+      mockAgentService.confirmPendingAction = mock(() =>
+        Promise.resolve({
+          text: "Action cancelled.",
+          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        }),
+      );
+
+      // User declines
+      const cancelEvent = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "no",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_124",
+      };
+
+      messageHandler("!room:example.org", cancelEvent);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should call confirmPendingAction with false
+      expect(mockAgentService.confirmPendingAction).toHaveBeenCalledWith(
+        "matrix-!room:example.org",
+        false,
+      );
+    });
+  });
+
+  describe("Direct messages and mentions", () => {
+    let matrixInterface: MatrixInterface;
+    let messageHandler: (roomId: string, event: unknown) => void;
+
+    beforeEach(async () => {
+      matrixInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+
+      await harness.installPlugin(matrixInterface);
+
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
+      if (!messageCall) throw new Error("Message handler not found");
+      messageHandler = messageCall[1];
+    });
+
+    it("should respond when bot is mentioned", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Hey @bot:example.org, can you help?",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalled();
+    });
+
+    it("should not respond when not mentioned in group chat", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Just chatting with someone else",
+          // No mentions
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
     });
   });
 
@@ -330,7 +520,7 @@ describe("MatrixInterface", () => {
       inviteHandler = inviteCall[1];
     });
 
-    it("should accept invites from anchor user (via centralized permissions)", async () => {
+    it("should accept invites from anchor user", async () => {
       const event = {
         sender: "@admin:example.org",
       };
@@ -338,13 +528,12 @@ describe("MatrixInterface", () => {
       inviteHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // The mock PermissionService is configured with @admin:example.org as anchor
       expect(mockMatrixClient.joinRoom).toHaveBeenCalledWith(
         "!room:example.org",
       );
     });
 
-    it("should ignore invites from non-anchor users (via centralized permissions)", async () => {
+    it("should ignore invites from non-anchor users", async () => {
       const event = {
         sender: "@random:example.org",
       };
@@ -352,8 +541,53 @@ describe("MatrixInterface", () => {
       inviteHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // The mock PermissionService doesn't have @random:example.org as anchor
       expect(mockMatrixClient.joinRoom).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Error handling", () => {
+    it("should handle AgentService errors gracefully", async () => {
+      // Set up an error-throwing agent service BEFORE installing the plugin
+      const errorAgentService = createMockAgentService();
+      errorAgentService.chat = mock(() =>
+        Promise.reject(new Error("Agent error")),
+      );
+      harness.getShell().setAgentService(errorAgentService);
+
+      const matrixInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+
+      await harness.installPlugin(matrixInterface);
+
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
+      if (!messageCall) throw new Error("Message handler not found");
+      const messageHandler = messageCall[1];
+
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Hello",
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      // Should not throw
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should send error message to user via sendMessage
+      expect(mockMatrixClient.sendMessage).toHaveBeenCalledWith(
+        "!room:example.org",
+        expect.objectContaining({
+          body: expect.stringContaining("Error"),
+          format: "org.matrix.custom.html",
+        }),
+      );
     });
   });
 });

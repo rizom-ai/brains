@@ -43,6 +43,7 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry } from "@brains/datasource";
 import type { IdentityBody } from "@brains/identity-service";
+import type { ProfileBody } from "@brains/profile-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
 import type { IAgentService } from "@brains/agent-service";
 
@@ -100,8 +101,9 @@ export interface IShell {
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;
 
-  // Identity
+  // Identity and Profile
   getIdentity(): IdentityBody;
+  getProfile(): ProfileBody;
 
   // App metadata
   getAppInfo(): Promise<AppInfo>;

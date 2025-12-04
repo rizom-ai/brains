@@ -13,6 +13,7 @@ import type {
   ConversationMetadata,
 } from "@brains/conversation-service";
 import type { IdentityBody } from "@brains/identity-service";
+import type { ProfileBody } from "@brains/profile-service";
 import type { AppInfo } from "../interfaces";
 
 /**
@@ -26,8 +27,9 @@ export interface CorePluginContext {
   // Core entity service (read-only operations)
   readonly entityService: ICoreEntityService;
 
-  // Brain identity
+  // Brain identity and owner profile
   getIdentity: () => IdentityBody;
+  getProfile: () => ProfileBody;
 
   // App metadata
   getAppInfo: () => Promise<AppInfo>;
@@ -103,8 +105,9 @@ export function createCorePluginContext(
     logger,
     entityService,
 
-    // Identity
+    // Identity and Profile
     getIdentity: () => shell.getIdentity(),
+    getProfile: () => shell.getProfile(),
 
     // App metadata
     getAppInfo: () => shell.getAppInfo(),

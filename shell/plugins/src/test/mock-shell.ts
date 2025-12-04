@@ -45,6 +45,7 @@ import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry, DataSource } from "@brains/datasource";
 import type { IdentityBody } from "@brains/identity-service";
+import type { ProfileBody } from "@brains/profile-service";
 import type { IAgentService, AgentResponse } from "@brains/agent-service";
 
 import { createSilentLogger } from "@brains/utils";
@@ -553,7 +554,7 @@ export class MockShell implements IShell {
     };
   }
 
-  // Identity
+  // Identity and Profile
   getIdentity(): IdentityBody {
     // Return a default identity for testing
     return {
@@ -561,6 +562,14 @@ export class MockShell implements IShell {
       role: "Test Assistant",
       purpose: "Testing purposes",
       values: ["reliability", "accuracy"],
+    };
+  }
+
+  getProfile(): ProfileBody {
+    // Return a default profile for testing
+    return {
+      name: "Test Owner",
+      description: "Test profile for unit tests",
     };
   }
 

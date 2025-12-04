@@ -109,7 +109,7 @@ describe("SiteBuilderPlugin", () => {
 
     // The list_routes tool should be available
     const listRoutesTool = capabilities.tools.find(
-      (t) => t.name === "site-builder:list_routes",
+      (t) => t.name === "site-builder_list_routes",
     );
     expect(listRoutesTool).toBeDefined();
 
@@ -140,10 +140,10 @@ describe("SiteBuilderPlugin", () => {
 
     const toolNames = capabilities.tools.map((t) => t.name);
 
-    expect(toolNames).toContain("site-builder:generate");
-    expect(toolNames).toContain("site-builder:build-site");
-    expect(toolNames).toContain("site-builder:list_routes");
-    expect(toolNames).toContain("site-builder:list_templates");
+    expect(toolNames).toContain("site-builder_generate");
+    expect(toolNames).toContain("site-builder_build-site");
+    expect(toolNames).toContain("site-builder_list_routes");
+    expect(toolNames).toContain("site-builder_list_templates");
   });
 
   it("should provide generate tool when routes have content entities", async () => {
@@ -195,7 +195,7 @@ describe("SiteBuilderPlugin", () => {
 
     // Find the generate tool
     const generateTool = capabilities.tools.find(
-      (t) => t.name === "site-builder:generate",
+      (t) => t.name === "site-builder_generate",
     );
     expect(generateTool).toBeDefined();
     expect(generateTool?.description).toContain("Generate content");
@@ -231,7 +231,7 @@ describe("SiteBuilderPlugin", () => {
     capabilities = await harness.installPlugin(plugin);
 
     const generateTool = capabilities.tools.find(
-      (t) => t.name === "site-builder:generate",
+      (t) => t.name === "site-builder_generate",
     );
     if (generateTool) {
       const result = await generateTool.handler(

@@ -22,7 +22,7 @@ export function createSiteBuilderTools(
 ): PluginTool[] {
   return [
     {
-      name: `${pluginId}:generate`,
+      name: `${pluginId}_generate`,
       description:
         "Generate content for all routes, a specific route, or a specific section",
       inputSchema: {
@@ -110,7 +110,7 @@ export function createSiteBuilderTools(
       },
     },
     {
-      name: `${pluginId}:build-site`,
+      name: `${pluginId}_build-site`,
       description: "Build a static site from registered routes",
       inputSchema: {
         environment: z
@@ -192,7 +192,7 @@ export function createSiteBuilderTools(
       },
     },
     {
-      name: `${pluginId}:list_routes`,
+      name: `${pluginId}_list_routes`,
       description: "List all registered routes",
       inputSchema: {},
       visibility: "public",
@@ -222,7 +222,7 @@ export function createSiteBuilderTools(
       },
     },
     {
-      name: `${pluginId}:list_templates`,
+      name: `${pluginId}_list_templates`,
       description: "List all registered view templates",
       inputSchema: {},
       visibility: "public",

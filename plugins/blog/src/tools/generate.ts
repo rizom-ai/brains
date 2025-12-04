@@ -46,7 +46,7 @@ export function createGenerateTool(
   pluginId: string,
 ): PluginTool {
   return {
-    name: `${pluginId}:generate`,
+    name: `${pluginId}_generate`,
     description:
       "Queue a job to create a new blog post draft (provide title and content, or just a prompt for AI generation)",
     inputSchema: generateInputSchema.shape,
@@ -56,7 +56,7 @@ export function createGenerateTool(
 
         // Enqueue the blog generation job
         const jobId = await context.enqueueJob("generation", parsed, {
-          source: `${pluginId}:generate`,
+          source: `${pluginId}_generate`,
           metadata: {
             rootJobId: createId(),
             operationType: "content_operations",

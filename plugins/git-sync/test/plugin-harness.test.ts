@@ -81,8 +81,8 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
 
       // Verify tool names
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("git-sync:sync");
-      expect(toolNames).toContain("git-sync:status");
+      expect(toolNames).toContain("git-sync_sync");
+      expect(toolNames).toContain("git-sync_status");
     });
 
     it("should provide commands", () => {
@@ -97,7 +97,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       const tools = capabilities.tools;
 
       // Check sync tool
-      const syncTool = tools.find((t) => t.name === "git-sync:sync");
+      const syncTool = tools.find((t) => t.name === "git-sync_sync");
       expect(syncTool).toBeDefined();
       expect(syncTool?.description).toBe(
         "Perform full git sync (commit, push, pull)",
@@ -105,7 +105,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       expect(syncTool?.visibility).toBe("anchor");
 
       // Check status tool
-      const statusTool = tools.find((t) => t.name === "git-sync:status");
+      const statusTool = tools.find((t) => t.name === "git-sync_status");
       expect(statusTool).toBeDefined();
       expect(statusTool?.description).toBe("Get git repository status");
       expect(statusTool?.visibility).toBe("public");

@@ -27,7 +27,7 @@ export function createPublishTool(
   pluginId: string,
 ): PluginTool {
   return {
-    name: `${pluginId}:publish`,
+    name: `${pluginId}_publish`,
     description:
       "Publish a blog post (sets publishedAt and triggers site rebuild)",
     inputSchema: publishInputSchema.shape,

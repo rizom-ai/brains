@@ -161,8 +161,8 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    // Build system prompt
-    const systemPrompt = this.buildSystemPrompt();
+    // Build system prompt with user context
+    const systemPrompt = this.buildSystemPrompt(userPermissionLevel);
 
     // Save user message to conversation
     await this.conversationService.addMessage(conversationId, "user", message);
@@ -284,17 +284,6 @@ export class AgentService implements IAgentService {
   }
 
   /**
-   * Sanitize tool name to match Claude API requirements.
-   * Pattern: ^[a-zA-Z0-9_-]{1,128}$
-   *
-   * TODO: Update actual tool names in plugins to use valid characters
-   * instead of sanitizing at runtime. See MCP SEP-986 for naming conventions.
-   */
-  private sanitizeToolName(name: string): string {
-    return name.replace(/:/g, "_");
-  }
-
-  /**
    * Convert MCP tools to AI-compatible tool format
    * Filters tools based on user permission level
    */
@@ -307,7 +296,7 @@ export class AgentService implements IAgentService {
       this.mcpService.listToolsForPermissionLevel(userPermissionLevel);
 
     return mcpTools.map(({ tool }) => ({
-      name: this.sanitizeToolName(tool.name),
+      name: tool.name,
       description: tool.description,
       inputSchema: z.object(tool.inputSchema),
       execute: async (args: unknown): Promise<unknown> => {
@@ -331,18 +320,46 @@ export class AgentService implements IAgentService {
   /**
    * Build the system prompt from identity and agent instructions
    */
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(
+    userPermissionLevel: "anchor" | "trusted" | "public",
+  ): string {
     const identity = this.identityService.getIdentity();
+
+    // Build user context section based on permission level
+    let userContext = "";
+    if (userPermissionLevel === "anchor") {
+      userContext = `
+## Current User
+**You are speaking with your ANCHOR (owner).** This is the person who created and manages you.
+Address them personally and recognize that they know you well. Use \`system_get-profile\`
+to get their name and details if needed.`;
+    } else if (userPermissionLevel === "trusted") {
+      userContext = `
+## Current User
+You are speaking with a **trusted user** who has elevated access but is not the owner.`;
+    } else {
+      userContext = `
+## Current User
+You are speaking with a **public user** with limited access.`;
+    }
 
     return `# ${identity.name}
 
 **Role:** ${identity.role}
 **Purpose:** ${identity.purpose}
 **Values:** ${identity.values.join(", ")}
+${userContext}
 
 ## Agent Instructions
 
 You are an AI assistant with access to tools for managing a personal knowledge system.
+
+### Identity vs Profile
+- **Identity** (from \`system_get-identity\`): This is YOU - the brain's persona, role, purpose, and values
+- **Profile** (from \`system_get-profile\`): This is your ANCHOR - the person who owns and manages this brain
+- When someone asks "who are you?" → use identity (describe yourself as the brain)
+- When someone asks "who owns this?" → use profile (describe your anchor/owner)
+- When your anchor is talking to you, address them personally (they created you!)
 
 ### Tool Usage
 - **ALWAYS use tools to answer questions about the knowledge system**

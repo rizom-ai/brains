@@ -33,7 +33,7 @@ export function createLinkTools(
 
   return [
     {
-      name: `${pluginId}:capture`,
+      name: `${pluginId}_capture`,
       description: "Capture a web link with AI-powered content extraction",
       inputSchema: captureParamsSchema.shape,
       handler: async (input): Promise<ToolResponse> => {
@@ -57,7 +57,7 @@ export function createLinkTools(
       },
     },
     {
-      name: `${pluginId}:list`,
+      name: `${pluginId}_list`,
       description: "List captured links",
       inputSchema: listParamsSchema.shape,
       handler: async (input): Promise<ToolResponse> => {
@@ -81,7 +81,7 @@ export function createLinkTools(
       },
     },
     {
-      name: `${pluginId}:search`,
+      name: `${pluginId}_search`,
       description: "Search captured links",
       inputSchema: searchParamsSchema.shape,
       handler: async (input): Promise<ToolResponse> => {
@@ -106,7 +106,7 @@ export function createLinkTools(
       },
     },
     {
-      name: `${pluginId}:get`,
+      name: `${pluginId}_get`,
       description: "Get a specific link by ID",
       inputSchema: getParamsSchema.shape,
       handler: async (input): Promise<ToolResponse> => {

@@ -1,7 +1,7 @@
 # Interface Plugins v2: Agent-based Architecture
 
 **Date**: 2025-12-02
-**Status**: In Progress (Phase 2 Complete)
+**Status**: In Progress (Phase 4 Cleanup Started)
 **Goal**: Simplify MessageInterfacePlugins by replacing command-based interaction with AI agent-based interaction
 
 ## Executive Summary
@@ -337,14 +337,60 @@ For these operations, ask for confirmation before executing:
 - [ ] Simple REPL with agent relay
 - [ ] Handles confirmation prompts
 
-### Phase 4: Cleanup
+### Phase 4: Cleanup (In Progress)
 
-- [ ] Old MatrixInterface (v1) removed
+- [x] Old MatrixInterface (v1) removed
+- [x] MatrixInterfaceV2 renamed to MatrixInterface
 - [ ] Old CLI implementation removed
 - [ ] CommandRegistry package deleted
 - [ ] Command definitions removed from all 8 plugins
 - [ ] MessageInterfacePlugin collapsed into InterfacePlugin
 - [ ] All command-related tests removed/updated
+
+## Outstanding Issues
+
+### 1. Tool Name Definitions ✅ FIXED
+
+Tool names updated from colons to underscores in all plugins:
+
+- system, git-sync, site-builder, directory-sync, blog, link
+
+Removed runtime sanitization workaround from AgentService.
+
+### 2. RSS Tool Permission Level ✅ FIXED
+
+Changed `generate-rss` tool visibility from `public` to `anchor` in blog plugin.
+
+### 3. Missing get-profile Tool ✅ FIXED
+
+Added `system_get-profile` tool and updated AgentService system prompt to clarify:
+
+- Identity = the brain's persona (for "who are you?")
+- Profile = the anchor/owner (for "who owns this?")
+- Brain addresses anchor personally when recognized
+
+### 4. Job Progress Tracking Gap
+
+**Status**: Design issue identified
+
+The old MatrixInterface v1 tracked job progress via:
+
+1. `createJobWithTracking()` when commands created jobs
+2. `setJobTracking()` to associate jobs with Matrix rooms
+3. `handleProgressEvent()` to edit messages with progress updates
+
+The new agent-based architecture has a gap:
+
+- Agent calls tools → tools queue jobs internally → interface doesn't know about jobs
+- No mechanism for interface to receive progress updates for long-running operations
+- Affects: site-builder (preview/production builds), git-sync, etc.
+
+**Potential solutions**:
+
+1. Tools return job IDs in their results, agent can report them
+2. AgentService emits job events that interface can subscribe to
+3. Tools accept a callback for progress updates
+4. Interface polls for active jobs (less ideal)
 
 ## Risks & Mitigations
 

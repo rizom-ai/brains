@@ -40,7 +40,7 @@ export function createGenerateRSSTool(
     description:
       "Generate RSS 2.0 feed XML from published blog posts and write to file",
     inputSchema: generateRSSInputSchema.shape,
-    visibility: "public",
+    visibility: "anchor",
 
     async handler(
       input: unknown,

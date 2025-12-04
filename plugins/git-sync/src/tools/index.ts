@@ -7,7 +7,7 @@ export function createGitSyncTools(
 ): PluginTool[] {
   return [
     {
-      name: `${pluginId}:sync`,
+      name: `${pluginId}_sync`,
       description: "Perform full git sync (commit, push, pull)",
       inputSchema: {},
       visibility: "anchor",
@@ -19,7 +19,7 @@ export function createGitSyncTools(
       },
     },
     {
-      name: `${pluginId}:status`,
+      name: `${pluginId}_status`,
       description: "Get git repository status",
       inputSchema: {},
       visibility: "public",

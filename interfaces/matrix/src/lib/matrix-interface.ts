@@ -1,54 +1,59 @@
-import {
-  MessageInterfacePlugin,
-  type MessageInterfacePluginContext,
-  type MessageContext,
-  type JobProgressEvent,
-  type JobContext,
-} from "@brains/plugins";
+import { InterfacePlugin, type InterfacePluginContext } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
+import type { JobProgressEvent, JobContext } from "@brains/job-queue";
+import type { IAgentService } from "@brains/agent-service";
+import { markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema } from "../schemas";
 import type { MatrixConfig } from "../schemas";
 import { MatrixClientWrapper } from "../client/matrix-client";
-import {
-  handleRoomMessage as handleRoomMessageHandler,
-  handleRoomInvite as handleRoomInviteHandler,
-  type MatrixEventHandlerContext,
-} from "../handlers/room-events";
-import {
-  sendMessage as sendMessageHandler,
-  editMessage as editMessageHandler,
-} from "../handlers/message";
-import { handleProgressEvent as handleProgressEventHandler } from "../handlers/progress";
 import packageJson from "../../package.json";
 
 /**
- * Matrix interface for Personal Brain
- * Provides chat-based interaction through Matrix protocol
+ * Matrix Interface - Agent-based architecture
+ *
+ * This interface:
+ * - Routes ALL messages to AgentService (no command parsing)
+ * - Uses AI agent for natural language interaction
+ * - Handles confirmation flow for destructive operations
  */
-export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
-  // After validation with defaults, config is complete
+export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
+  private agentService?: IAgentService;
 
-  constructor(config: Partial<MatrixConfig>, sessionId?: string) {
-    super("matrix", packageJson, config, matrixConfigSchema, sessionId);
-    // Set command prefix to match Matrix config
-    this.commandPrefix = this.config.commandPrefix;
+  // Track pending confirmations per conversation
+  private pendingConfirmations = new Map<string, boolean>();
+
+  constructor(config: Partial<MatrixConfig>) {
+    super("matrix", packageJson, config, matrixConfigSchema);
+  }
+
+  /**
+   * Get AgentService, throwing if not initialized
+   */
+  private getAgentService(): IAgentService {
+    if (!this.agentService) {
+      throw new Error("AgentService not initialized - plugin not registered");
+    }
+    return this.agentService;
   }
 
   /**
    * Initialize Matrix interface on registration
    */
   protected override async onRegister(
-    context: MessageInterfacePluginContext,
+    context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+
+    // Get AgentService from context
+    this.agentService = context.agentService;
 
     // Create Matrix client
     this.client = new MatrixClientWrapper(this.config, this.logger);
 
     // Set up event handlers
-    this.setupEventHandlers();
+    this.setupEventHandlers(context);
 
     this.logger.debug("Matrix interface registered", {
       homeserver: this.config.homeserver,
@@ -96,212 +101,297 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     };
   }
 
-  // No need to override handleInput - use the base class implementation
-
   /**
    * Set up Matrix event handlers
    */
-  private setupEventHandlers(): void {
+  private setupEventHandlers(context: InterfacePluginContext): void {
     if (!this.client) {
       return;
     }
 
-    const handlerContext: MatrixEventHandlerContext = {
-      client: this.client,
-      config: this.config,
-      logger: this.logger,
-      handleInput: this.handleInput.bind(this),
-      getUserPermissionLevel: this.getContext().getUserPermissionLevel,
-    };
-
     // Handle room messages
     this.client.on("room.message", (...args: unknown[]) => {
       const [roomId, event] = args as [string, unknown];
-      // Process the message asynchronously
-      void handleRoomMessageHandler(roomId, event, handlerContext);
+      void this.handleRoomMessage(roomId, event, context);
     });
 
     // Handle room invites (if auto-join is disabled)
     if (!this.config.autoJoinRooms) {
       this.client.on("room.invite", (...args: unknown[]) => {
         const [roomId, event] = args as [string, unknown];
-        // Process the invite asynchronously
-        void handleRoomInviteHandler(roomId, event, handlerContext);
+        void this.handleRoomInvite(roomId, event, context);
       });
     }
   }
 
   /**
-   * Send a message and return the message ID
+   * Handle incoming room messages - route to AgentService
    */
-  protected async sendMessage(
-    content: string,
-    context: MessageContext,
-    replyToId?: string,
-  ): Promise<string> {
-    return sendMessageHandler(
-      content,
-      context,
-      this.client,
-      this.config,
-      replyToId,
+  private async handleRoomMessage(
+    roomId: string,
+    event: unknown,
+    context: InterfacePluginContext,
+  ): Promise<void> {
+    const messageEvent = event as {
+      sender?: string;
+      content?: {
+        msgtype?: string;
+        body?: string;
+        "m.mentions"?: {
+          user_ids?: string[];
+        };
+      };
+      event_id?: string;
+    };
+
+    // Ignore our own messages
+    if (messageEvent.sender === this.config.userId) {
+      return;
+    }
+
+    // Extract message details
+    const senderId = messageEvent.sender ?? "unknown";
+    const eventId = messageEvent.event_id ?? "unknown";
+    const msgtype = messageEvent.content?.msgtype;
+    const message = messageEvent.content?.body;
+
+    // Only process text messages
+    if (msgtype !== "m.text" || !message) {
+      return;
+    }
+
+    // Check if bot is mentioned or if it's a DM
+    const isMentioned = this.isAddressedToBot(messageEvent);
+    const isDM = this.isDirectMessage(roomId);
+
+    // Only respond if mentioned or in DM
+    if (!isMentioned && !isDM) {
+      return;
+    }
+
+    // Build conversation ID
+    const conversationId = `matrix-${roomId}`;
+
+    // Look up user's permission level
+    const userPermissionLevel = context.getUserPermissionLevel(
+      "matrix",
+      senderId,
     );
+
+    this.logger.debug("Processing message", {
+      roomId,
+      senderId,
+      conversationId,
+      isMentioned,
+      userPermissionLevel,
+    });
+
+    try {
+      // Show typing indicator
+      await this.showTypingIndicator(roomId);
+
+      // Check for confirmation response
+      if (this.pendingConfirmations.has(conversationId)) {
+        await this.handleConfirmationResponse(
+          message,
+          conversationId,
+          roomId,
+          eventId,
+        );
+        return;
+      }
+
+      // Route message to AgentService with user's permission level
+      const response = await this.getAgentService().chat(
+        message,
+        conversationId,
+        {
+          userPermissionLevel,
+          interfaceType: "matrix",
+          channelId: roomId,
+        },
+      );
+
+      // Track pending confirmation if returned
+      if (response.pendingConfirmation) {
+        this.pendingConfirmations.set(conversationId, true);
+      }
+
+      // Send response
+      await this.sendResponse(roomId, response.text, eventId);
+    } catch (error) {
+      this.logger.error("Error handling message", { error, roomId, eventId });
+      await this.sendErrorResponse(roomId, error, eventId);
+    } finally {
+      // Stop typing indicator
+      await this.stopTypingIndicator(roomId);
+    }
   }
 
   /**
-   * Edit an existing message - Matrix supports true message editing
+   * Handle confirmation responses (yes/no)
    */
-  protected override async editMessage(
-    messageId: string,
-    content: string,
-    context: MessageContext,
+  private async handleConfirmationResponse(
+    message: string,
+    conversationId: string,
+    roomId: string,
+    eventId: string,
   ): Promise<void> {
-    await editMessageHandler(messageId, content, context, this.client);
+    const normalizedMessage = message.toLowerCase().trim();
+    const isConfirmed =
+      normalizedMessage === "yes" ||
+      normalizedMessage === "y" ||
+      normalizedMessage === "confirm";
+
+    // Clear pending confirmation
+    this.pendingConfirmations.delete(conversationId);
+
+    // Call AgentService to confirm or cancel
+    const response = await this.getAgentService().confirmPendingAction(
+      conversationId,
+      isConfirmed,
+    );
+
+    // Send response
+    await this.sendResponse(roomId, response.text, eventId);
   }
 
   /**
-   * Handle progress events - unified handler
-   * Job ownership filtering is handled by parent InterfacePlugin.ownsJob()
+   * Handle room invites
    */
-  protected async handleProgressEvent(
-    progressEvent: JobProgressEvent,
-    context: JobContext,
+  private async handleRoomInvite(
+    roomId: string,
+    event: unknown,
+    context: InterfacePluginContext,
   ): Promise<void> {
-    // Get tracking info (direct or inherited via rootJobId)
-    const trackingInfo = this.getJobTracking(
-      progressEvent.id,
-      context.rootJobId,
+    const inviteEvent = event as {
+      sender?: string;
+    };
+
+    const inviter = inviteEvent.sender ?? "unknown";
+
+    // Check permissions using centralized permission service
+    const userPermissionLevel = context.getUserPermissionLevel(
+      "matrix",
+      inviter,
     );
 
-    if (!trackingInfo) {
-      this.logger.debug("No tracking info found for Matrix progress event", {
-        jobId: progressEvent.id,
-        rootJobId: context.rootJobId,
+    // Only accept invites from anchor users
+    if (userPermissionLevel !== "anchor") {
+      this.logger.debug("Ignoring room invite from non-anchor user", {
+        roomId,
+        inviter,
+        permissionLevel: userPermissionLevel,
       });
       return;
     }
 
-    await handleProgressEventHandler(
-      progressEvent,
-      this.client,
-      this.logger,
-      trackingInfo.channelId, // Matrix room for message routing
-      trackingInfo.messageId, // Matrix message ID for editing
-    );
-  }
-
-  /**
-   * Get the channel name (room name) for conversation metadata
-   */
-  protected override async getChannelName(channelId: string): Promise<string> {
-    if (!this.client) {
-      this.logger.debug(
-        "Matrix client not available when getting channel name",
-        { channelId },
-      );
-      return channelId;
-    }
-
     try {
-      const roomName = await this.client.getRoomName(channelId);
-      this.logger.debug("Got room name from Matrix", {
-        channelId,
-        roomName,
-        isSameAsId: roomName === channelId,
+      await this.client?.joinRoom(roomId);
+      this.logger.debug("Joined room after invite from anchor user", {
+        roomId,
+        inviter,
       });
-      return roomName;
     } catch (error) {
-      this.logger.debug("Failed to get room name for conversation", {
-        channelId,
+      this.logger.error("Failed to join room", {
         error,
+        roomId,
+        inviter,
       });
-      return channelId;
     }
   }
 
   /**
-   * Override shouldRespond to add Matrix-specific logic
+   * Check if message is addressed to the bot
    */
-  protected override shouldRespond(
-    message: string,
-    context: MessageContext,
-  ): boolean {
-    // Check for regular commands
-    if (message.startsWith(this.config.commandPrefix)) {
-      return true;
-    }
+  private isAddressedToBot(event: {
+    content?: {
+      "m.mentions"?: {
+        user_ids?: string[];
+      };
+    };
+  }): boolean {
+    const userIds = event.content?.["m.mentions"]?.user_ids;
+    return userIds?.includes(this.config.userId) ?? false;
+  }
 
-    // Check if bot is mentioned
-    // We store whether the bot was mentioned in context metadata
-    if (context.threadId === "mentioned") {
-      return true;
-    }
-
-    // Check if it's a DM
-    if (this.isDirectMessage(context.channelId)) {
-      return true;
-    }
-
+  /**
+   * Check if room is a direct message
+   * TODO: Implement proper DM detection using room state
+   */
+  private isDirectMessage(_roomId: string): boolean {
+    // For now, we don't have DM tracking - rely on mentions
     return false;
   }
 
   /**
-   * Show thinking indicators (typing notification and reaction)
+   * Send response to Matrix room
    */
-  protected override async showThinkingIndicators(
-    context: MessageContext,
+  private async sendResponse(
+    roomId: string,
+    text: string,
+    _replyToEventId?: string,
   ): Promise<void> {
-    const roomId = context.channelId;
-    const eventId = context.messageId;
-
-    if (!this.client) return;
-
-    // Set typing indicator
-    if (this.config.enableTypingNotifications) {
-      try {
-        await this.client.setTyping(roomId, true, 30000); // 30 second timeout
-      } catch (error) {
-        this.logger.debug("Failed to send typing indicator", { error });
-      }
+    if (!this.client) {
+      throw new Error("Matrix client not initialized");
     }
 
-    // Add thinking reaction
-    if (this.config.enableReactions) {
-      try {
-        await this.client.sendReaction(roomId, eventId, "🤔");
-      } catch (error) {
-        this.logger.debug("Failed to send thinking reaction", { error });
-      }
+    const html = markdownToHtml(text);
+    await this.client.sendFormattedMessage(roomId, text, html, true);
+  }
+
+  /**
+   * Send error response to Matrix room
+   */
+  private async sendErrorResponse(
+    roomId: string,
+    error: unknown,
+    _replyToEventId?: string,
+  ): Promise<void> {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unknown error occurred";
+    const response = `**Error:** ${errorMessage}`;
+    await this.sendResponse(roomId, response);
+  }
+
+  /**
+   * Show typing indicator
+   */
+  private async showTypingIndicator(roomId: string): Promise<void> {
+    if (!this.client || !this.config.enableTypingNotifications) {
+      return;
+    }
+
+    try {
+      await this.client.setTyping(roomId, true, 30000);
+    } catch (error) {
+      this.logger.debug("Failed to send typing indicator", { error });
     }
   }
 
   /**
-   * Show done indicators (stop typing and done reaction)
+   * Stop typing indicator
    */
-  protected override async showDoneIndicators(
-    context: MessageContext,
+  private async stopTypingIndicator(roomId: string): Promise<void> {
+    if (!this.client || !this.config.enableTypingNotifications) {
+      return;
+    }
+
+    try {
+      await this.client.setTyping(roomId, false);
+    } catch (error) {
+      this.logger.debug("Failed to stop typing indicator", { error });
+    }
+  }
+
+  /**
+   * Handle progress events - not used (AgentService handles tool execution)
+   */
+  protected async handleProgressEvent(
+    _event: JobProgressEvent,
+    _context: JobContext,
   ): Promise<void> {
-    const roomId = context.channelId;
-    const eventId = context.messageId;
-
-    if (!this.client) return;
-
-    // Stop typing indicator
-    if (this.config.enableTypingNotifications) {
-      try {
-        await this.client.setTyping(roomId, false);
-      } catch (error) {
-        this.logger.debug("Failed to stop typing indicator", { error });
-      }
-    }
-
-    // Add done reaction
-    if (this.config.enableReactions) {
-      try {
-        await this.client.sendReaction(roomId, eventId, "✅");
-      } catch (error) {
-        this.logger.debug("Failed to send done reaction", { error });
-      }
-    }
+    // Progress events are handled internally by AgentService
+    // This interface doesn't need to track job progress
   }
 }

@@ -100,7 +100,7 @@ describe("DirectorySyncPlugin", () => {
 
     it("should provide expected tools", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("directory-sync:sync");
+      expect(toolNames).toContain("directory-sync_sync");
       expect(toolNames.length).toBe(1);
     });
 
@@ -129,7 +129,7 @@ describe("DirectorySyncPlugin", () => {
     it("should handle sync operation", async () => {
       // Sync using the tool
       const syncTool = capabilities.tools.find(
-        (t) => t.name === "directory-sync:sync",
+        (t) => t.name === "directory-sync_sync",
       );
       expect(syncTool).toBeDefined();
       if (!syncTool) throw new Error("Sync tool not found");

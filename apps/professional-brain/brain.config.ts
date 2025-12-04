@@ -2,7 +2,7 @@
 import { defineConfig, handleCLI } from "@brains/app";
 import { SystemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
-import { MatrixInterfaceV2 } from "@brains/matrix";
+import { MatrixInterface } from "@brains/matrix";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { GitSyncPlugin } from "@brains/git-sync";
@@ -42,7 +42,7 @@ const config = defineConfig({
   },
 
   permissions: {
-    anchors: ["matrix:@yeehaa:rizom.ai"],
+    anchors: ["matrix:@neehaa:rizom.ai"],
     rules: [
       // MCP stdio transport gets anchor permissions (local access)
       { pattern: "mcp:stdio", level: "anchor" },
@@ -57,7 +57,7 @@ const config = defineConfig({
   plugins: [
     new SystemPlugin({}),
     new MCPInterface({}),
-    new MatrixInterfaceV2({
+    new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@yeehaa-brain-bot:rizom.ai",

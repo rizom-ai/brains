@@ -8,7 +8,7 @@ export function createSystemTools(
 ): PluginTool[] {
   return [
     {
-      name: `${pluginId}:query`,
+      name: `${pluginId}_query`,
       description:
         "Search the knowledge base for notes, profiles, links, topics, and stored content. Use this to answer questions like 'what do you know about X?', 'tell me about Y', or 'who is Z?'.",
       inputSchema: {
@@ -38,7 +38,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:search`,
+      name: `${pluginId}_search`,
       description:
         "Search for specific entity types (note, profile, link, deck, post). Use when you know the type of content you're looking for.",
       inputSchema: {
@@ -69,7 +69,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:get`,
+      name: `${pluginId}_get`,
       description: "Retrieve a specific entity when you know its type and ID.",
       inputSchema: {
         entityType: z
@@ -100,7 +100,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:check-job-status`,
+      name: `${pluginId}_check-job-status`,
       description: "Check the status of background operations",
       inputSchema: {
         batchId: z
@@ -214,7 +214,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:get-conversation`,
+      name: `${pluginId}_get-conversation`,
       description: "Get conversation details",
       inputSchema: {
         conversationId: z.string().describe("Conversation ID"),
@@ -254,7 +254,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:list-conversations`,
+      name: `${pluginId}_list-conversations`,
       description: "List conversations, optionally filtered by search query",
       inputSchema: {
         searchQuery: z
@@ -305,7 +305,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:get-messages`,
+      name: `${pluginId}_get-messages`,
       description: "Get messages from a specific conversation",
       inputSchema: {
         conversationId: z.string().describe("Conversation ID"),
@@ -349,7 +349,7 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:get-identity`,
+      name: `${pluginId}_get-identity`,
       description:
         "Get the brain's identity - its name, role, purpose, and values. Use for 'who are you?' or 'what is this brain?' questions.",
       inputSchema: {},
@@ -370,7 +370,28 @@ export function createSystemTools(
       },
     },
     {
-      name: `${pluginId}:get-status`,
+      name: `${pluginId}_get-profile`,
+      description:
+        "Get the anchor's (owner's) profile - their name, bio, social links. Use to answer questions about who owns/created this brain, or to recognize when you're speaking with the anchor themselves.",
+      inputSchema: {},
+      visibility: "public",
+      handler: async (): Promise<ToolResponse> => {
+        try {
+          const profile = plugin.getProfileData();
+          return {
+            status: "success",
+            data: profile,
+          };
+        } catch (error) {
+          return {
+            status: "error",
+            message: error instanceof Error ? error.message : String(error),
+          };
+        }
+      },
+    },
+    {
+      name: `${pluginId}_get-status`,
       description:
         "Get system status including model, version, and running interfaces with access URLs",
       inputSchema: {},
