@@ -1,7 +1,7 @@
 # Interface Plugins v2: Agent-based Architecture
 
 **Date**: 2025-12-02
-**Status**: Planning
+**Status**: In Progress (Phase 2 Complete)
 **Goal**: Simplify MessageInterfacePlugins by replacing command-based interaction with AI agent-based interaction
 
 ## Executive Summary
@@ -204,13 +204,61 @@ interfaces/cli/
 
 ### Phase 4: Cleanup
 
-**Goal**: Remove deprecated code
+**Goal**: Remove all command-related code
 
-1. Remove old Matrix and CLI implementations
-2. Collapse `MessageInterfacePlugin` into `InterfacePlugin`
-3. Delete `shell/command-registry` package
-4. Remove `getCommands()` from plugin interface
-5. Remove command-related code from plugins
+#### 4.1 Remove Old Interface Implementations
+
+- Remove `MatrixInterface` (v1) from `interfaces/matrix/`
+- Remove old CLI command-based implementation from `interfaces/cli/`
+- Rename `MatrixInterfaceV2` → `MatrixInterface`
+
+#### 4.2 Remove Command Infrastructure
+
+- Delete `shell/command-registry/` package entirely
+- Remove `MessageInterfacePlugin` base class
+- Collapse into `InterfacePlugin`
+- Remove `registerPluginCommands()` from Shell and PluginManager
+- Remove command-related types from `shell/plugins/src/interfaces.ts`
+
+#### 4.3 Remove Command Definitions from All Plugins
+
+**Plugins with commands to remove:**
+
+| Plugin         | Commands File           | Commands                                                                                          |
+| -------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| link           | `src/commands/index.ts` | link-capture, link-list, link-search, link-get                                                    |
+| summary        | `src/commands/index.ts` | summary-list, summary-get, summary-export, summary-delete, summary-stats                          |
+| topics         | `src/commands/index.ts` | topics-list, topics-extract, topics-get, topics-search                                            |
+| directory-sync | `src/commands/index.ts` | directory-sync                                                                                    |
+| git-sync       | `src/commands/index.ts` | git-sync                                                                                          |
+| site-builder   | `src/commands/index.ts` | site-generate, site-build                                                                         |
+| system         | `src/commands/index.ts` | search, get, get-job-status, get-conversation, list-conversations, get-messages, identity, status |
+| decks          | `src/commands/index.ts` | decks-list                                                                                        |
+| cli            | `src/commands/index.ts` | progress, clear                                                                                   |
+
+**For each plugin:**
+
+1. Delete `src/commands/` directory
+2. Remove `getCommands()` method from plugin class
+3. Remove command-related imports
+4. Update plugin exports (remove command exports)
+
+#### 4.4 Update Shell Core
+
+- Remove `commandRegistry` property from Shell class
+- Remove `getCommandRegistry()` method
+- Update `ShellInitializer` to skip CommandRegistry initialization
+
+#### 4.5 Update Tests
+
+- Delete `shell/command-registry/test/` directory
+- Delete plugin command tests (`plugins/*/test/commands/`)
+- Update `MockShell` to remove `registerPluginCommands()`
+
+#### 4.6 Update Plugin Base Classes
+
+- Remove `commands` from `PluginCapabilities` interface
+- Remove command-related context methods from plugin contexts
 
 ## Technical Details
 
@@ -269,16 +317,34 @@ For these operations, ask for confirmation before executing:
 
 ## Success Criteria
 
-- [ ] AgentService created and working
-- [ ] New Matrix interface using AgentService
+### Phase 1: AgentService ✅
+
+- [x] AgentService created with AIService, MCPService, ConversationService, IdentityService integration
+- [x] AIService extended with `generateWithTools()` method
+- [x] Tool filtering by permission level (`listToolsForPermissionLevel`)
+- [x] ChatContext for per-message permission passing
+
+### Phase 2: Matrix Interface ✅
+
+- [x] MatrixInterfaceV2 created using AgentService
+- [x] Routes all messages to agent (no command parsing)
+- [x] Permission-based tool filtering per message
+- [x] Both v1 and v2 exported during transition
+
+### Phase 3: CLI Interface
+
 - [ ] New CLI interface using AgentService
-- [ ] Old implementations deprecated with warnings
-- [ ] User can accomplish all tasks via natural language
-- [ ] Destructive operations require confirmation
-- [ ] Tests pass
-- [ ] Old code removed
-- [ ] CommandRegistry deleted
+- [ ] Simple REPL with agent relay
+- [ ] Handles confirmation prompts
+
+### Phase 4: Cleanup
+
+- [ ] Old MatrixInterface (v1) removed
+- [ ] Old CLI implementation removed
+- [ ] CommandRegistry package deleted
+- [ ] Command definitions removed from all 8 plugins
 - [ ] MessageInterfacePlugin collapsed into InterfacePlugin
+- [ ] All command-related tests removed/updated
 
 ## Risks & Mitigations
 
