@@ -248,6 +248,23 @@ export class MCPService implements IMCPService {
   }
 
   /**
+   * List tools filtered by user permission level
+   * Used for per-message filtering in multi-user contexts (e.g., Matrix rooms)
+   * @param userLevel The user's permission level for this message
+   * @returns Tools the user is allowed to use
+   */
+  public listToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+  ): Array<{ pluginId: string; tool: PluginTool }> {
+    const allTools = this.listTools();
+
+    return allTools.filter(({ tool }) => {
+      const toolVisibility = tool.visibility ?? "anchor";
+      return PermissionService.hasPermission(userLevel, toolVisibility);
+    });
+  }
+
+  /**
    * List all registered resources
    */
   public listResources(): Array<{

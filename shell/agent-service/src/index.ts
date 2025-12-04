@@ -12,6 +12,7 @@ export { AgentService } from "./agent-service";
 export type {
   AgentConfig,
   AgentResponse,
+  ChatContext,
   IAgentService,
   PendingConfirmation,
 } from "./types";

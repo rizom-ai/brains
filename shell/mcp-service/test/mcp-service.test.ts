@@ -249,4 +249,89 @@ describe("MCPService", () => {
       ]);
     });
   });
+
+  describe("listToolsForPermissionLevel", () => {
+    beforeEach(() => {
+      // Register all tools with anchor permission (full access)
+      MCPService.resetInstance();
+      mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
+      mcpService.setPermissionLevel("anchor");
+
+      const publicTool: PluginTool = {
+        name: "public:tool",
+        description: "Public tool",
+        inputSchema: {},
+        visibility: "public",
+        handler: async () => ({ success: true }),
+      };
+
+      const trustedTool: PluginTool = {
+        name: "trusted:tool",
+        description: "Trusted tool",
+        inputSchema: {},
+        visibility: "trusted",
+        handler: async () => ({ success: true }),
+      };
+
+      const anchorTool: PluginTool = {
+        name: "anchor:tool",
+        description: "Anchor tool",
+        inputSchema: {},
+        visibility: "anchor",
+        handler: async () => ({ success: true }),
+      };
+
+      // Tool with default visibility (should be anchor)
+      const defaultTool: PluginTool = {
+        name: "default:tool",
+        description: "Tool with default visibility",
+        inputSchema: {},
+        handler: async () => ({ success: true }),
+      };
+
+      mcpService.registerTool("plugin", publicTool);
+      mcpService.registerTool("plugin", trustedTool);
+      mcpService.registerTool("plugin", anchorTool);
+      mcpService.registerTool("plugin", defaultTool);
+    });
+
+    it("should return only public tools for public users", () => {
+      const tools = mcpService.listToolsForPermissionLevel("public");
+      expect(tools.map((t) => t.tool.name)).toEqual(["public:tool"]);
+    });
+
+    it("should return public and trusted tools for trusted users", () => {
+      const tools = mcpService.listToolsForPermissionLevel("trusted");
+      expect(tools.map((t) => t.tool.name)).toEqual([
+        "public:tool",
+        "trusted:tool",
+      ]);
+    });
+
+    it("should return all tools for anchor users", () => {
+      const tools = mcpService.listToolsForPermissionLevel("anchor");
+      expect(tools.map((t) => t.tool.name)).toEqual([
+        "public:tool",
+        "trusted:tool",
+        "anchor:tool",
+        "default:tool", // Default visibility is anchor
+      ]);
+    });
+
+    it("should allow different users to see different tools per message", () => {
+      // Simulate Matrix room with multiple users
+      // User 1: public permission
+      const publicUserTools = mcpService.listToolsForPermissionLevel("public");
+      expect(publicUserTools.length).toBe(1);
+
+      // User 2: anchor permission (same room, different message)
+      const anchorUserTools = mcpService.listToolsForPermissionLevel("anchor");
+      expect(anchorUserTools.length).toBe(4);
+
+      // User 1 again: still only sees public tools
+      const publicUserToolsAgain =
+        mcpService.listToolsForPermissionLevel("public");
+      expect(publicUserToolsAgain.length).toBe(1);
+    });
+  });
 });

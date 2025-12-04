@@ -11,6 +11,7 @@ import type { IdentityService as IIdentityService } from "@brains/identity-servi
 import type {
   AgentConfig,
   AgentResponse,
+  ChatContext,
   IAgentService,
   PendingConfirmation,
 } from "./types";
@@ -111,10 +112,15 @@ export class AgentService implements IAgentService {
   public async chat(
     message: string,
     conversationId: string,
+    context?: ChatContext,
   ): Promise<AgentResponse> {
+    // Default to public permission for safety
+    const userPermissionLevel = context?.userPermissionLevel ?? "public";
+
     this.logger.debug("Processing chat message", {
       conversationId,
       messageLength: message.length,
+      userPermissionLevel,
     });
 
     // Load conversation history
@@ -132,8 +138,11 @@ export class AgentService implements IAgentService {
     // Add the new user message
     messages.push({ role: "user", content: message });
 
-    // Get tools from MCP service and convert to AI format
-    const tools = this.convertMCPToolsToAITools(conversationId);
+    // Get tools filtered by user permission level
+    const tools = this.convertMCPToolsToAITools(
+      conversationId,
+      userPermissionLevel,
+    );
 
     // Build system prompt
     const systemPrompt = this.buildSystemPrompt();
@@ -259,9 +268,15 @@ export class AgentService implements IAgentService {
 
   /**
    * Convert MCP tools to AI-compatible tool format
+   * Filters tools based on user permission level
    */
-  private convertMCPToolsToAITools(conversationId: string): AITool[] {
-    const mcpTools = this.mcpService.listTools();
+  private convertMCPToolsToAITools(
+    conversationId: string,
+    userPermissionLevel: "anchor" | "trusted" | "public",
+  ): AITool[] {
+    // Get tools filtered by permission level
+    const mcpTools =
+      this.mcpService.listToolsForPermissionLevel(userPermissionLevel);
 
     return mcpTools.map(({ tool }) => ({
       name: tool.name,

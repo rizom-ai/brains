@@ -113,6 +113,14 @@ export interface IMCPService extends IMCPTransport {
   listTools(): Array<{ pluginId: string; tool: PluginTool }>;
 
   /**
+   * List tools filtered by user permission level
+   * Used for per-message filtering in multi-user contexts (e.g., Matrix rooms)
+   */
+  listToolsForPermissionLevel(
+    userLevel: UserPermissionLevel,
+  ): Array<{ pluginId: string; tool: PluginTool }>;
+
+  /**
    * List all registered resources
    */
   listResources(): Array<{ pluginId: string; resource: PluginResource }>;

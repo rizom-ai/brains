@@ -39,9 +39,14 @@ const createMockAIService = (): IAIService => ({
 });
 
 // Mock MCPService
-const createMockMCPService = (): Partial<IMCPService> => ({
+const createMockMCPService = (): IMCPService => ({
   listTools: mock(() => []),
+  listToolsForPermissionLevel: mock(() => []),
   listResources: mock(() => []),
+  registerTool: mock(() => {}),
+  registerResource: mock(() => {}),
+  getMcpServer: mock(() => ({}) as ReturnType<IMCPService["getMcpServer"]>),
+  setPermissionLevel: mock(() => {}),
 });
 
 // Mock IdentityService
@@ -67,7 +72,7 @@ const createMockConversationService = (): Partial<IConversationService> => ({
 describe("AgentService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
   let mockAIService: IAIService;
-  let mockMCPService: Partial<IMCPService>;
+  let mockMCPService: IMCPService;
   let mockIdentityService: Partial<IIdentityService>;
   let mockConversationService: Partial<IConversationService>;
 
@@ -88,14 +93,14 @@ describe("AgentService", () => {
     it("should implement singleton pattern", () => {
       const instance1 = AgentService.getInstance(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
       );
       const instance2 = AgentService.getInstance(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -107,7 +112,7 @@ describe("AgentService", () => {
     it("should reset instance", () => {
       const instance1 = AgentService.getInstance(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -117,7 +122,7 @@ describe("AgentService", () => {
 
       const instance2 = AgentService.getInstance(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -128,14 +133,14 @@ describe("AgentService", () => {
     it("should create fresh instance without affecting singleton", () => {
       const singleton = AgentService.getInstance(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
       );
       const fresh = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -145,7 +150,7 @@ describe("AgentService", () => {
       expect(
         AgentService.getInstance(
           mockAIService,
-          mockMCPService as IMCPService,
+          mockMCPService,
           mockConversationService as IConversationService,
           mockIdentityService as IIdentityService,
           logger,
@@ -158,7 +163,7 @@ describe("AgentService", () => {
     it("should send message to AI and return response", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -178,7 +183,7 @@ describe("AgentService", () => {
     it("should include identity in system prompt", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -194,7 +199,7 @@ describe("AgentService", () => {
     it("should include user message in messages array", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -235,7 +240,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -255,7 +260,7 @@ describe("AgentService", () => {
     it("should save messages to ConversationService", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -277,13 +282,13 @@ describe("AgentService", () => {
         handler: mock(async () => ({ status: "ok", data: { results: [] } })),
       };
 
-      mockMCPService.listTools = mock(() => [
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
         { pluginId: "test-plugin", tool: searchTool },
       ]);
 
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -308,13 +313,13 @@ describe("AgentService", () => {
         handler: mock(async () => ({ status: "ok" })),
       };
 
-      mockMCPService.listTools = mock(() => [
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
         { pluginId: "notes", tool: noteTool },
       ]);
 
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -344,13 +349,13 @@ describe("AgentService", () => {
         handler: searchHandler,
       };
 
-      mockMCPService.listTools = mock(() => [
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
         { pluginId: "test-plugin", tool: searchTool },
       ]);
 
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -370,6 +375,122 @@ describe("AgentService", () => {
     });
   });
 
+  describe("permission-based tool filtering", () => {
+    it("should filter tools based on userPermissionLevel", async () => {
+      const publicTool: PluginTool = {
+        name: "public_search",
+        description: "Public search tool",
+        inputSchema: { query: z.string() },
+        visibility: "public",
+        handler: mock(async () => ({ status: "ok" })),
+      };
+
+      const anchorTool: PluginTool = {
+        name: "admin_delete",
+        description: "Admin delete tool",
+        inputSchema: { id: z.string() },
+        visibility: "anchor",
+        handler: mock(async () => ({ status: "ok" })),
+      };
+
+      // Mock listToolsForPermissionLevel to return filtered tools
+      mockMCPService.listToolsForPermissionLevel = mock((level: string) => {
+        if (level === "public") {
+          return [{ pluginId: "test", tool: publicTool }];
+        }
+        return [
+          { pluginId: "test", tool: publicTool },
+          { pluginId: "test", tool: anchorTool },
+        ];
+      });
+
+      const service = AgentService.createFresh(
+        mockAIService,
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockIdentityService as IIdentityService,
+        logger,
+      );
+
+      // Chat as public user - should only see public tool
+      await service.chat("Search for something", "test-conversation", {
+        userPermissionLevel: "public",
+      });
+
+      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
+        "public",
+      );
+
+      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
+        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
+      expect(call.tools.length).toBe(1);
+      expect(call.tools[0]?.name).toBe("public_search");
+    });
+
+    it("should provide all tools for anchor users", async () => {
+      const publicTool: PluginTool = {
+        name: "public_search",
+        description: "Public search tool",
+        inputSchema: { query: z.string() },
+        visibility: "public",
+        handler: mock(async () => ({ status: "ok" })),
+      };
+
+      const anchorTool: PluginTool = {
+        name: "admin_delete",
+        description: "Admin delete tool",
+        inputSchema: { id: z.string() },
+        visibility: "anchor",
+        handler: mock(async () => ({ status: "ok" })),
+      };
+
+      mockMCPService.listToolsForPermissionLevel = mock(() => [
+        { pluginId: "test", tool: publicTool },
+        { pluginId: "test", tool: anchorTool },
+      ]);
+
+      const service = AgentService.createFresh(
+        mockAIService,
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockIdentityService as IIdentityService,
+        logger,
+      );
+
+      // Chat as anchor user - should see all tools
+      await service.chat("Delete something", "test-conversation", {
+        userPermissionLevel: "anchor",
+      });
+
+      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
+        "anchor",
+      );
+
+      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
+        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
+      expect(call.tools.length).toBe(2);
+    });
+
+    it("should default to public permission level if not specified", async () => {
+      mockMCPService.listToolsForPermissionLevel = mock(() => []);
+
+      const service = AgentService.createFresh(
+        mockAIService,
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockIdentityService as IIdentityService,
+        logger,
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      // Should default to public for safety
+      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
+        "public",
+      );
+    });
+  });
+
   describe("error handling", () => {
     it("should handle AI service errors gracefully", async () => {
       mockAIService.generateWithTools = mock(() =>
@@ -378,7 +499,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -398,7 +519,7 @@ describe("AgentService", () => {
 
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -416,7 +537,7 @@ describe("AgentService", () => {
       // and the AI deciding to ask for confirmation
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -441,7 +562,7 @@ describe("AgentService", () => {
     it("should cancel pending confirmation when user declines", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -464,7 +585,7 @@ describe("AgentService", () => {
     it("should return error when confirming without pending action", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -483,7 +604,7 @@ describe("AgentService", () => {
     it("should include agent instructions in system prompt", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
@@ -501,7 +622,7 @@ describe("AgentService", () => {
     it("should include brain identity in system prompt", async () => {
       const service = AgentService.createFresh(
         mockAIService,
-        mockMCPService as IMCPService,
+        mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
