@@ -45,6 +45,7 @@ import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry, DataSource } from "@brains/datasource";
 import type { IdentityBody } from "@brains/identity-service";
+import type { IAgentService, AgentResponse } from "@brains/agent-service";
 
 import { createSilentLogger } from "@brains/utils";
 
@@ -65,9 +66,14 @@ export class MockShell implements IShell {
     string,
     Set<MessageHandler<unknown, unknown>>
   >();
+  private mockAgentService: IAgentService;
 
-  constructor(options?: { logger?: Logger }) {
+  constructor(options?: { logger?: Logger; agentService?: IAgentService }) {
     this.logger = options?.logger ?? createSilentLogger("MockShell");
+
+    // Create default mock AgentService
+    this.mockAgentService =
+      options?.agentService ?? this.createDefaultMockAgentService();
 
     // Pre-register BatchJobManager service that some tests expect
     this.services.set("batchJobManager", {
@@ -371,6 +377,33 @@ export class MockShell implements IShell {
   getPermissionService(): PermissionService {
     // Return a mock PermissionService for testing
     return new PermissionService({});
+  }
+
+  getAgentService(): IAgentService {
+    return this.mockAgentService;
+  }
+
+  /**
+   * Set a custom mock AgentService (for test customization)
+   */
+  setAgentService(agentService: IAgentService): void {
+    this.mockAgentService = agentService;
+  }
+
+  /**
+   * Create a default mock AgentService
+   */
+  private createDefaultMockAgentService(): IAgentService {
+    return {
+      chat: async (): Promise<AgentResponse> => ({
+        text: "Mock agent response",
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      }),
+      confirmPendingAction: async (): Promise<AgentResponse> => ({
+        text: "Action confirmed.",
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      }),
+    };
   }
 
   getDataSourceRegistry(): DataSourceRegistry {

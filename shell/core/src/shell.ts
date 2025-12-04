@@ -44,6 +44,7 @@ import {
 import type { IdentityService } from "@brains/identity-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileService, ProfileBody } from "@brains/profile-service";
+import type { IAgentService } from "@brains/agent-service";
 import type { ShellDependencies } from "./types/shell-types";
 
 export type { ShellDependencies };
@@ -80,6 +81,7 @@ export class Shell implements IShell {
   private readonly dataSourceRegistry: DataSourceRegistry;
   private readonly identityService: IdentityService;
   private readonly profileService: ProfileService;
+  private readonly agentService: IAgentService;
   private initialized = false;
 
   /**
@@ -152,6 +154,7 @@ export class Shell implements IShell {
     this.permissionService = services.permissionService;
     this.identityService = services.identityService;
     this.profileService = services.profileService;
+    this.agentService = services.agentService;
 
     // Register services that plugins need to resolve
     shellInitializer.registerServices(services, this);
@@ -414,6 +417,10 @@ export class Shell implements IShell {
 
   public getPermissionService(): PermissionService {
     return this.permissionService;
+  }
+
+  public getAgentService(): IAgentService {
+    return this.agentService;
   }
 
   /**

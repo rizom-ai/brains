@@ -10,7 +10,7 @@ export { AIService } from "./aiService";
 // Export types
 export type {
   AIModelConfig,
-  AIService as IAIService,
+  IAIService,
   AITool,
   AIMessage,
   ToolCallResult,

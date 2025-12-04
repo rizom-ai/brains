@@ -24,14 +24,23 @@ import packageJson from "../../package.json";
 export class MatrixInterfaceV2 extends InterfacePlugin<MatrixConfig> {
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
-  private agentService: IAgentService;
+  private agentService?: IAgentService;
 
   // Track pending confirmations per conversation
   private pendingConfirmations = new Map<string, boolean>();
 
-  constructor(config: Partial<MatrixConfig>, agentService: IAgentService) {
+  constructor(config: Partial<MatrixConfig>) {
     super("matrix-v2", packageJson, config, matrixConfigSchema);
-    this.agentService = agentService;
+  }
+
+  /**
+   * Get AgentService, throwing if not initialized
+   */
+  private getAgentService(): IAgentService {
+    if (!this.agentService) {
+      throw new Error("AgentService not initialized - plugin not registered");
+    }
+    return this.agentService;
   }
 
   /**
@@ -41,6 +50,9 @@ export class MatrixInterfaceV2 extends InterfacePlugin<MatrixConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+
+    // Get AgentService from context
+    this.agentService = context.agentService;
 
     // Create Matrix client
     this.client = new MatrixClientWrapper(this.config, this.logger);
@@ -195,9 +207,13 @@ export class MatrixInterfaceV2 extends InterfacePlugin<MatrixConfig> {
       }
 
       // Route message to AgentService with user's permission level
-      const response = await this.agentService.chat(message, conversationId, {
-        userPermissionLevel,
-      });
+      const response = await this.getAgentService().chat(
+        message,
+        conversationId,
+        {
+          userPermissionLevel,
+        },
+      );
 
       // Track pending confirmation if returned
       if (response.pendingConfirmation) {
@@ -234,7 +250,7 @@ export class MatrixInterfaceV2 extends InterfacePlugin<MatrixConfig> {
     this.pendingConfirmations.delete(conversationId);
 
     // Call AgentService to confirm or cancel
-    const response = await this.agentService.confirmPendingAction(
+    const response = await this.getAgentService().confirmPendingAction(
       conversationId,
       isConfirmed,
     );

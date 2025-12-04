@@ -42,6 +42,7 @@ import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
 import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
 import { ProfileService } from "@brains/profile-service";
+import { AgentService, type IAgentService } from "@brains/agent-service";
 
 /**
  * Services initialized by ShellInitializer
@@ -70,6 +71,7 @@ export interface ShellServices {
   permissionService: PermissionService;
   identityService: IdentityService;
   profileService: ProfileService;
+  agentService: IAgentService;
 }
 
 /**
@@ -391,6 +393,15 @@ export class ShellInitializer {
       this.config.profile,
     );
 
+    // Agent service for AI-powered conversation
+    const agentService = AgentService.getInstance(
+      aiService,
+      mcpService,
+      conversationService,
+      identityService,
+      logger,
+    );
+
     // Subscribe to profile entity changes for cache refresh
     messageBus.subscribe<{ entityType: string; entityId: string }, void>(
       "entity:created",
@@ -485,6 +496,7 @@ export class ShellInitializer {
       permissionService,
       identityService,
       profileService,
+      agentService,
     };
   }
 

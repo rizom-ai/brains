@@ -3,7 +3,7 @@ import { AgentService } from "../src/agent-service";
 import { createSilentLogger } from "@brains/utils";
 import { z } from "@brains/utils";
 import type {
-  AIService as IAIService,
+  IAIService,
   AITool,
   GenerateWithToolsOptions,
   GenerateWithToolsResult,

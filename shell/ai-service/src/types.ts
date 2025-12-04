@@ -66,7 +66,7 @@ export interface GenerateWithToolsResult {
 /**
  * AI Service interface for generating text and structured objects
  */
-export interface AIService {
+export interface IAIService {
   generateText(
     systemPrompt: string,
     userPrompt: string,

@@ -20,6 +20,7 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/agent-service": "workspace:*",
     "@brains/ai-service": "workspace:*",
     "@brains/command-registry": "workspace:*",
     "@brains/content-service": "workspace:*",

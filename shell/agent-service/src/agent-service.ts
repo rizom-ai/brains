@@ -1,10 +1,6 @@
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
-import type {
-  AIService as IAIService,
-  AITool,
-  AIMessage,
-} from "@brains/ai-service";
+import type { IAIService, AITool, AIMessage } from "@brains/ai-service";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";

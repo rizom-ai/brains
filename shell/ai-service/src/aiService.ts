@@ -5,7 +5,7 @@ import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type {
   AIModelConfig,
-  AIService as IAIService,
+  IAIService,
   GenerateWithToolsOptions,
   GenerateWithToolsResult,
   ToolCallResult,

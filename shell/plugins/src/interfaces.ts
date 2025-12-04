@@ -44,6 +44,7 @@ import type { PermissionService } from "@brains/permission-service";
 import type { DataSourceRegistry } from "@brains/datasource";
 import type { IdentityBody } from "@brains/identity-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
+import type { IAgentService } from "@brains/agent-service";
 
 /**
  * Plugin info for status display
@@ -97,6 +98,7 @@ export interface IShell {
   getMcpTransport(): IMCPTransport;
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
+  getAgentService(): IAgentService;
 
   // Identity
   getIdentity(): IdentityBody;

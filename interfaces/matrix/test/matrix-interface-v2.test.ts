@@ -72,7 +72,7 @@ describe("MatrixInterfaceV2", () => {
     // Create plugin harness with permission configuration
     harness = createInterfacePluginHarness<MatrixInterfaceV2>();
 
-    // Configure mock shell with permissions
+    // Configure mock shell with permissions and agent service
     const mockShell = harness.getShell();
     mockShell.getPermissionService = (): PermissionService => {
       return new PermissionService({
@@ -80,6 +80,7 @@ describe("MatrixInterfaceV2", () => {
         trusted: ["matrix:@trusted:example.org"],
       });
     };
+    mockShell.setAgentService(mockAgentService);
   });
 
   afterEach(() => {
@@ -88,7 +89,7 @@ describe("MatrixInterfaceV2", () => {
 
   describe("Initialization", () => {
     it("should create interface with valid config", () => {
-      const matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      const matrixInterface = new MatrixInterfaceV2(config);
       expect(matrixInterface).toBeDefined();
     });
 
@@ -96,7 +97,6 @@ describe("MatrixInterfaceV2", () => {
       expect(() => {
         new MatrixInterfaceV2(
           {} as unknown as ConstructorParameters<typeof MatrixInterfaceV2>[0],
-          mockAgentService,
         );
       }).toThrow();
     });
@@ -104,7 +104,7 @@ describe("MatrixInterfaceV2", () => {
 
   describe("Lifecycle methods", () => {
     it("should register the interface and set up event handlers", async () => {
-      const matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      const matrixInterface = new MatrixInterfaceV2(config);
       mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
@@ -122,10 +122,7 @@ describe("MatrixInterfaceV2", () => {
         autoJoinRooms: true,
       };
 
-      const matrixInterface = new MatrixInterfaceV2(
-        autoJoinConfig,
-        mockAgentService,
-      );
+      const matrixInterface = new MatrixInterfaceV2(autoJoinConfig);
 
       await harness.installPlugin(matrixInterface);
 
@@ -134,7 +131,7 @@ describe("MatrixInterfaceV2", () => {
     });
 
     it("should provide daemon capability", async () => {
-      const matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      const matrixInterface = new MatrixInterfaceV2(config);
 
       await harness.installPlugin(matrixInterface);
 
@@ -148,7 +145,7 @@ describe("MatrixInterfaceV2", () => {
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
-      matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      matrixInterface = new MatrixInterfaceV2(config);
       mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
@@ -228,7 +225,7 @@ describe("MatrixInterfaceV2", () => {
         enableTypingNotifications: true,
       };
 
-      matrixInterface = new MatrixInterfaceV2(typingConfig, mockAgentService);
+      matrixInterface = new MatrixInterfaceV2(typingConfig);
       await harness.installPlugin(matrixInterface);
 
       const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
@@ -303,7 +300,10 @@ describe("MatrixInterfaceV2", () => {
         }),
       );
 
-      matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      // Update the mock agent service with the confirmation response
+      harness.getShell().setAgentService(mockAgentService);
+
+      matrixInterface = new MatrixInterfaceV2(config);
       mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
@@ -444,7 +444,7 @@ describe("MatrixInterfaceV2", () => {
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
-      matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      matrixInterface = new MatrixInterfaceV2(config);
       mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
@@ -502,10 +502,7 @@ describe("MatrixInterfaceV2", () => {
         autoJoinRooms: false,
       };
 
-      matrixInterface = new MatrixInterfaceV2(
-        noAutoJoinConfig,
-        mockAgentService,
-      );
+      matrixInterface = new MatrixInterfaceV2(noAutoJoinConfig);
 
       await harness.installPlugin(matrixInterface);
 
@@ -541,11 +538,15 @@ describe("MatrixInterfaceV2", () => {
   });
 
   describe("Error handling", () => {
-    let matrixInterface: MatrixInterfaceV2;
-    let messageHandler: (roomId: string, event: unknown) => void;
+    it("should handle AgentService errors gracefully", async () => {
+      // Set up an error-throwing agent service BEFORE installing the plugin
+      const errorAgentService = createMockAgentService();
+      errorAgentService.chat = mock(() =>
+        Promise.reject(new Error("Agent error")),
+      );
+      harness.getShell().setAgentService(errorAgentService);
 
-    beforeEach(async () => {
-      matrixInterface = new MatrixInterfaceV2(config, mockAgentService);
+      const matrixInterface = new MatrixInterfaceV2(config);
       mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
@@ -553,14 +554,7 @@ describe("MatrixInterfaceV2", () => {
       const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
       const messageCall = calls.find((call) => call[0] === "room.message");
       if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1];
-    });
-
-    it("should handle AgentService errors gracefully", async () => {
-      // Make agent throw error
-      mockAgentService.chat = mock(() =>
-        Promise.reject(new Error("Agent error")),
-      );
+      const messageHandler = messageCall[1];
 
       const event = {
         sender: "@user:example.org",

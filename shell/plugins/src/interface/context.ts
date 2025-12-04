@@ -10,6 +10,7 @@ import type {
 } from "@brains/command-registry";
 import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
+import type { IAgentService } from "@brains/agent-service";
 
 /**
  * Context interface for interface plugins
@@ -53,6 +54,9 @@ export interface InterfacePluginContext extends CorePluginContext {
 
   // MCP transport for interface plugins
   readonly mcpTransport: IMCPTransport;
+
+  // Agent service for AI-powered interaction
+  readonly agentService: IAgentService;
 }
 
 /**
@@ -69,12 +73,16 @@ export function createInterfacePluginContext(
   const commandRegistry = shell.getCommandRegistry();
   const mcpTransport = shell.getMcpTransport();
   const permissionService = shell.getPermissionService();
+  const agentService = shell.getAgentService();
 
   return {
     ...coreContext,
 
     // MCP transport
     mcpTransport,
+
+    // Agent service
+    agentService,
 
     // Permission checking
     getUserPermissionLevel: (
