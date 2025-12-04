@@ -83,7 +83,7 @@ describe("AIService", () => {
       const service = AIService.createFresh({}, logger);
       const config = service.getConfig();
 
-      expect(config.model).toBe("claude-3-5-haiku-latest");
+      expect(config.model).toBe("claude-haiku-4-5-20251001");
       expect(config.temperature).toBe(0.7);
       expect(config.maxTokens).toBe(1000);
     });

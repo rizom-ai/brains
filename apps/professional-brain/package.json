@@ -18,9 +18,13 @@
   "dependencies": {
     "@brains/app": "workspace:*",
     "@brains/blog": "workspace:*",
+    "@brains/decks": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/git-sync": "workspace:*",
+    "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
+    "@brains/professional-site": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/system": "workspace:*",
     "@brains/theme-default": "workspace:*",

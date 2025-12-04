@@ -177,7 +177,11 @@ describe("MatrixInterfaceV2", () => {
       expect(mockAgentService.chat).toHaveBeenCalledWith(
         "Hello, can you help me find something?",
         "matrix-!room:example.org",
-        { userPermissionLevel: "public" },
+        {
+          userPermissionLevel: "public",
+          interfaceType: "matrix-v2",
+          channelId: "!room:example.org",
+        },
       );
     });
 
@@ -201,7 +205,11 @@ describe("MatrixInterfaceV2", () => {
       expect(mockAgentService.chat).toHaveBeenCalledWith(
         "!help",
         "matrix-!room:example.org",
-        { userPermissionLevel: "public" },
+        {
+          userPermissionLevel: "public",
+          interfaceType: "matrix-v2",
+          channelId: "!room:example.org",
+        },
       );
     });
 

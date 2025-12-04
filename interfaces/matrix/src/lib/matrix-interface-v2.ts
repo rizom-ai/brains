@@ -212,6 +212,8 @@ export class MatrixInterfaceV2 extends InterfacePlugin<MatrixConfig> {
         conversationId,
         {
           userPermissionLevel,
+          interfaceType: "matrix-v2",
+          channelId: roomId,
         },
       );
 

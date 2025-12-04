@@ -2,6 +2,7 @@
 import { defineConfig, handleCLI } from "@brains/app";
 import { SystemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
+import { MatrixInterfaceV2 } from "@brains/matrix";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { GitSyncPlugin } from "@brains/git-sync";
@@ -41,19 +42,26 @@ const config = defineConfig({
   },
 
   permissions: {
-    anchors: [],
+    anchors: ["matrix:@yeehaa:rizom.ai"],
     rules: [
       // MCP stdio transport gets anchor permissions (local access)
       { pattern: "mcp:stdio", level: "anchor" },
       // MCP http transport gets public permissions (remote access)
       // Change to "anchor" if you want full access over HTTP (requires auth token)
       { pattern: "mcp:http", level: "public" },
+      // Matrix interface: anchor users get full access, others get public
+      { pattern: "matrix:*", level: "public" },
     ],
   },
 
   plugins: [
     new SystemPlugin({}),
     new MCPInterface({}),
+    new MatrixInterfaceV2({
+      homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
+      accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
+      userId: process.env["MATRIX_USER_ID"] || "@yeehaa-brain-bot:rizom.ai",
+    }),
     directorySync(),
     new GitSyncPlugin({
       gitUrl: process.env["GIT_SYNC_URL"] || "",

@@ -112,12 +112,28 @@ export class AgentService implements IAgentService {
   ): Promise<AgentResponse> {
     // Default to public permission for safety
     const userPermissionLevel = context?.userPermissionLevel ?? "public";
+    const interfaceType = context?.interfaceType ?? "agent";
+    const channelId = context?.channelId ?? conversationId;
 
     this.logger.debug("Processing chat message", {
       conversationId,
       messageLength: message.length,
       userPermissionLevel,
     });
+
+    // Ensure conversation exists (creates if needed)
+    // channelName defaults to channelId if not provided
+    const channelName = context?.channelName ?? channelId;
+    await this.conversationService.startConversation(
+      conversationId,
+      interfaceType,
+      channelId,
+      {
+        channelName,
+        interfaceType,
+        channelId,
+      },
+    );
 
     // Load conversation history
     const historyMessages = await this.conversationService.getMessages(
@@ -139,6 +155,11 @@ export class AgentService implements IAgentService {
       conversationId,
       userPermissionLevel,
     );
+
+    this.logger.debug("Tools available for chat", {
+      toolCount: tools.length,
+      userPermissionLevel,
+    });
 
     // Build system prompt
     const systemPrompt = this.buildSystemPrompt();
@@ -263,6 +284,17 @@ export class AgentService implements IAgentService {
   }
 
   /**
+   * Sanitize tool name to match Claude API requirements.
+   * Pattern: ^[a-zA-Z0-9_-]{1,128}$
+   *
+   * TODO: Update actual tool names in plugins to use valid characters
+   * instead of sanitizing at runtime. See MCP SEP-986 for naming conventions.
+   */
+  private sanitizeToolName(name: string): string {
+    return name.replace(/:/g, "_");
+  }
+
+  /**
    * Convert MCP tools to AI-compatible tool format
    * Filters tools based on user permission level
    */
@@ -275,7 +307,7 @@ export class AgentService implements IAgentService {
       this.mcpService.listToolsForPermissionLevel(userPermissionLevel);
 
     return mcpTools.map(({ tool }) => ({
-      name: tool.name,
+      name: this.sanitizeToolName(tool.name),
       description: tool.description,
       inputSchema: z.object(tool.inputSchema),
       execute: async (args: unknown): Promise<unknown> => {
@@ -313,7 +345,10 @@ export class AgentService implements IAgentService {
 You are an AI assistant with access to tools for managing a personal knowledge system.
 
 ### Tool Usage
-- Use tools when they help answer the user's question
+- **ALWAYS use tools to answer questions about the knowledge system**
+- Use \`system_search\` or \`system_query\` to find information before answering questions
+- Use \`system_get\` to retrieve specific entities by ID
+- Never say "I don't know" without first searching the knowledge system
 - You can call multiple tools in sequence if needed
 - Format tool results in a user-friendly way using markdown
 

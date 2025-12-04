@@ -13,6 +13,9 @@ export interface AgentConfig {
  */
 export interface ChatContext {
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
+  interfaceType?: string; // e.g., "matrix", "cli", "mcp"
+  channelId?: string; // Channel/room identifier for conversation tracking
+  channelName?: string; // Human-readable name for the channel/room
 }
 
 /**

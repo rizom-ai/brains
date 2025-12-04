@@ -14,7 +14,7 @@ import type {
 /**
  * Default model configuration
  */
-const DEFAULT_MODEL = "claude-3-5-haiku-latest";
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 
 /**
  * AI Service for generating responses using Vercel AI SDK
@@ -218,11 +218,17 @@ export class AIService implements IAIService {
         };
       });
 
+      this.logger.debug("Calling generateText with tools", {
+        toolCount: Object.keys(sdkTools).length,
+        messageCount: messages.length,
+      });
+
       const result = await generateText({
         model: this.getModel(),
         system: options.system,
         messages,
         tools: sdkTools,
+        toolChoice: "auto",
         stopWhen: stepCountIs(options.maxSteps ?? 10),
         ...(this.config.temperature !== undefined && {
           temperature: this.config.temperature,
@@ -233,6 +239,18 @@ export class AIService implements IAIService {
         ...(this.config.webSearch && {
           webSearch: true,
         }),
+      });
+
+      // Count tool calls across all steps
+      const totalToolCalls =
+        result.steps?.reduce(
+          (sum, step) => sum + (step.toolCalls?.length ?? 0),
+          0,
+        ) ?? 0;
+
+      this.logger.debug("generateText completed", {
+        toolCallCount: totalToolCalls,
+        stepsCount: result.steps?.length,
       });
 
       // Extract tool call results from the response

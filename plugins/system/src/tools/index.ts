@@ -9,11 +9,14 @@ export function createSystemTools(
   return [
     {
       name: `${pluginId}:query`,
-      description: "Query the knowledge base using AI-powered search",
+      description:
+        "Search the knowledge base for notes, profiles, links, topics, and stored content. Use this to answer questions like 'what do you know about X?', 'tell me about Y', or 'who is Z?'.",
       inputSchema: {
         query: z
           .string()
-          .describe("Natural language query to search the knowledge base"),
+          .describe(
+            "Search term or phrase - e.g. 'yeehaa', 'ecosystem architecture'",
+          ),
         userId: z.string().optional().describe("Optional user ID for context"),
       },
       visibility: "public",
@@ -36,12 +39,13 @@ export function createSystemTools(
     },
     {
       name: `${pluginId}:search`,
-      description: "Search entities by type and query",
+      description:
+        "Search for specific entity types (note, profile, link, deck, post). Use when you know the type of content you're looking for.",
       inputSchema: {
         entityType: z
           .string()
-          .describe("Type of entity to search (e.g., 'note', 'base')"),
-        query: z.string().describe("Search query"),
+          .describe("Entity type: 'note', 'profile', 'link', 'deck', 'post'"),
+        query: z.string().describe("Search term"),
         limit: z.number().optional().describe("Maximum number of results"),
       },
       visibility: "public",
@@ -66,9 +70,11 @@ export function createSystemTools(
     },
     {
       name: `${pluginId}:get`,
-      description: "Get a specific entity by type and ID",
+      description: "Retrieve a specific entity when you know its type and ID.",
       inputSchema: {
-        entityType: z.string().describe("Type of entity"),
+        entityType: z
+          .string()
+          .describe("Entity type: 'note', 'profile', 'link', etc."),
         id: z.string().describe("Entity ID"),
       },
       visibility: "public",
@@ -344,7 +350,8 @@ export function createSystemTools(
     },
     {
       name: `${pluginId}:get-identity`,
-      description: "Get the brain's identity (role, purpose, values)",
+      description:
+        "Get the brain's identity - its name, role, purpose, and values. Use for 'who are you?' or 'what is this brain?' questions.",
       inputSchema: {},
       visibility: "public",
       handler: async (): Promise<ToolResponse> => {
