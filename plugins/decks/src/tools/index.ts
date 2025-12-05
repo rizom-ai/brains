@@ -3,16 +3,13 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, formatAsList, formatAsEntity } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
 
 // Schema for tool parameters
 const listParamsSchema = z.object({
   limit: z.number().min(1).max(100).default(20),
-  status: z
-    .enum(["draft", "presented"])
-    .optional()
-    .describe("Filter by deck status"),
+  status: z.enum(["draft", "presented", "all"]).default("all"),
 });
 
 const getParamsSchema = z.object({
@@ -41,29 +38,44 @@ export function createDecksTools(
             "deck",
             {
               limit,
-              ...(status && { filter: { metadata: { status } } }),
+              ...(status !== "all" && { filter: { metadata: { status } } }),
             },
           );
+
+          const deckData = decks.map((deck) => ({
+            id: deck.id,
+            title: deck.metadata.title,
+            slug: deck.metadata.slug,
+            status: deck.metadata.status,
+            presentedAt: deck.metadata.presentedAt,
+            event: deck.event,
+            updated: deck.updated,
+          }));
+
+          const statusLabel =
+            status === "all"
+              ? ""
+              : ` ${status.charAt(0).toUpperCase() + status.slice(1)}`;
+          const formatted = formatAsList(deckData, {
+            title: (d) => d.title,
+            subtitle: (d) => d.event ?? d.status,
+            header: `##${statusLabel} Decks (${deckData.length})`,
+          });
 
           return {
             success: true,
             data: {
-              decks: decks.map((deck) => ({
-                id: deck.id,
-                title: deck.metadata.title,
-                slug: deck.metadata.slug,
-                status: deck.metadata.status,
-                presentedAt: deck.metadata.presentedAt,
-                event: deck.event,
-                updated: deck.updated,
-              })),
+              decks: deckData,
               count: decks.length,
             },
+            formatted,
           };
         } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
           return {
             success: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: msg,
+            formatted: `_Error: ${msg}_`,
           };
         }
       },
@@ -80,6 +92,7 @@ export function createDecksTools(
           return {
             success: false,
             error: "Either 'id' or 'slug' must be provided",
+            formatted: "_Error: Either 'id' or 'slug' must be provided_",
           };
         }
 
@@ -106,8 +119,20 @@ export function createDecksTools(
             return {
               success: false,
               error: `Deck not found: ${id ?? slug}`,
+              formatted: `_Deck not found: ${id ?? slug}_`,
             };
           }
+
+          const formatted = formatAsEntity(
+            {
+              id: deck.id,
+              title: deck.title,
+              status: deck.metadata.status,
+              event: deck.event ?? "N/A",
+              presentedAt: deck.metadata.presentedAt ?? "N/A",
+            },
+            { title: deck.title },
+          );
 
           return {
             success: true,
@@ -123,11 +148,14 @@ export function createDecksTools(
               created: deck.created,
               updated: deck.updated,
             },
+            formatted,
           };
         } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
           return {
             success: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: msg,
+            formatted: `_Error: ${msg}_`,
           };
         }
       },

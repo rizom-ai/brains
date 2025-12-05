@@ -443,7 +443,7 @@ describe("PluginManager", (): void => {
               name: "async_tool",
               description: "Test async tool",
               inputSchema: {},
-              handler: async () => ({ success: true }),
+              handler: async () => ({ success: true, formatted: "Success" }),
             },
           ],
           resources: [],

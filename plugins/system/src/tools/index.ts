@@ -1,6 +1,11 @@
 import type { PluginTool, ToolResponse } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
-import { z } from "@brains/utils";
+import {
+  z,
+  formatAsSearchResults,
+  formatAsEntity,
+  formatAsList,
+} from "@brains/utils";
 
 export function createSystemTools(
   plugin: ISystemPlugin,
@@ -31,9 +36,22 @@ export function createSystemTools(
         const result = await plugin.query(parsed.query, {
           userId: parsed.userId,
         });
+
+        const sources = result.sources ?? [];
+        const formatted = formatAsSearchResults(
+          sources.map((s) => ({
+            id: s.id,
+            entityType: s.type,
+            snippet: s.excerpt ?? "",
+            score: s.relevance ?? 0,
+          })),
+          { query: parsed.query, showScores: true },
+        );
+
         return {
           status: "success",
           data: result,
+          formatted,
         };
       },
     },
@@ -62,9 +80,21 @@ export function createSystemTools(
           types: [parsed.entityType],
           limit: parsed.limit ?? 10,
         });
+
+        const formatted = formatAsSearchResults(
+          results.map((r) => ({
+            id: r.entity.id,
+            entityType: r.entity.entityType,
+            title: r.entity.id,
+            score: r.score,
+          })),
+          { query: parsed.query, showScores: true },
+        );
+
         return {
           status: "success",
           data: { results },
+          formatted,
         };
       },
     },
@@ -88,14 +118,30 @@ export function createSystemTools(
 
         const entity = await plugin.getEntity(parsed.entityType, parsed.id);
         if (entity) {
+          const formatted = formatAsEntity(
+            {
+              id: entity.id,
+              type: entity.entityType,
+              created: entity.created,
+              updated: entity.updated,
+              content:
+                entity.content.length > 200
+                  ? entity.content.substring(0, 200) + "..."
+                  : entity.content,
+            },
+            { title: `${parsed.entityType}: ${parsed.id}` },
+          );
+
           return {
             status: "success",
             data: { entity },
+            formatted,
           };
         }
         return {
           status: "error",
           message: "Entity not found",
+          formatted: `_Entity not found: ${parsed.entityType}/${parsed.id}_`,
         };
       },
     },
@@ -131,11 +177,11 @@ export function createSystemTools(
         );
 
         if (parsed.batchId) {
-          // Specific batch
           if (!status.batch) {
             return {
               error: "Batch not found",
               message: `No batch found with ID: ${parsed.batchId}`,
+              formatted: `_No batch found with ID: ${parsed.batchId}_`,
             };
           }
 
@@ -148,6 +194,17 @@ export function createSystemTools(
                 )
               : 0;
 
+          const formatted = formatAsEntity(
+            {
+              batchId: parsed.batchId,
+              status: status.batch.status,
+              progress: `${status.batch.completedOperations}/${status.batch.totalOperations} (${percentComplete}%)`,
+              failed: status.batch.failedOperations,
+              currentOperation: status.batch.currentOperation ?? "N/A",
+            },
+            { title: "Batch Status" },
+          );
+
           return {
             batchId: parsed.batchId,
             status: status.batch.status,
@@ -159,56 +216,64 @@ export function createSystemTools(
             },
             currentOperation: status.batch.currentOperation,
             errors: status.batch.errors,
-            message:
-              status.batch.status === "processing"
-                ? `Processing: ${status.batch.completedOperations}/${status.batch.totalOperations} operations (${percentComplete}%)`
-                : status.batch.status === "completed"
-                  ? `Completed: ${status.batch.completedOperations} operations`
-                  : status.batch.status === "failed"
-                    ? `Failed: ${status.batch.failedOperations} operations failed`
-                    : "Unknown status",
+            formatted,
           };
         } else {
-          // All active operations
           const activeJobs = status.activeJobs ?? [];
           const activeBatches = status.activeBatches ?? [];
 
-          // Format individual jobs
-          const formattedJobs = activeJobs.map((job) => ({
-            id: job.id,
-            type: job.type,
-            status: job.status,
-            priority: job.priority,
-            retryCount: job.retryCount,
-            createdAt: new Date(job.createdAt).toISOString(),
-            startedAt: job.startedAt
-              ? new Date(job.startedAt).toISOString()
-              : null,
-          }));
+          const lines: string[] = ["## Active Operations", ""];
 
-          // Format batch operations
-          const formattedBatches = activeBatches.map((batch) => ({
-            batchId: batch.batchId,
-            status: batch.status.status,
-            totalOperations: batch.status.totalOperations,
-            completedOperations: batch.status.completedOperations,
-            failedOperations: batch.status.failedOperations,
-            currentOperation: batch.status.currentOperation,
-            pluginId: batch.metadata.metadata.pluginId,
-            errors: batch.status.errors,
-          }));
+          if (activeJobs.length === 0 && activeBatches.length === 0) {
+            lines.push("_No active operations_");
+          } else {
+            if (activeBatches.length > 0) {
+              lines.push(`**Batches:** ${activeBatches.length}`);
+              for (const batch of activeBatches) {
+                lines.push(
+                  `- ${batch.batchId}: ${batch.status.completedOperations}/${batch.status.totalOperations}`,
+                );
+              }
+              lines.push("");
+            }
+            if (activeJobs.length > 0) {
+              lines.push(`**Jobs:** ${activeJobs.length}`);
+              for (const job of activeJobs.slice(0, 5)) {
+                lines.push(`- ${job.type}: ${job.status}`);
+              }
+              if (activeJobs.length > 5) {
+                lines.push(`_...and ${activeJobs.length - 5} more_`);
+              }
+            }
+          }
 
           return {
             summary: {
-              activeJobs: formattedJobs.length,
-              activeBatches: formattedBatches.length,
+              activeJobs: activeJobs.length,
+              activeBatches: activeBatches.length,
             },
-            jobs: formattedJobs,
-            batches: formattedBatches,
-            tip:
-              formattedBatches.length > 0
-                ? `Use ${pluginId}:check-job-status with batchId to check specific batch progress`
-                : undefined,
+            jobs: activeJobs.map((job) => ({
+              id: job.id,
+              type: job.type,
+              status: job.status,
+              priority: job.priority,
+              retryCount: job.retryCount,
+              createdAt: new Date(job.createdAt).toISOString(),
+              startedAt: job.startedAt
+                ? new Date(job.startedAt).toISOString()
+                : null,
+            })),
+            batches: activeBatches.map((batch) => ({
+              batchId: batch.batchId,
+              status: batch.status.status,
+              totalOperations: batch.status.totalOperations,
+              completedOperations: batch.status.completedOperations,
+              failedOperations: batch.status.failedOperations,
+              currentOperation: batch.status.currentOperation,
+              pluginId: batch.metadata.metadata.pluginId,
+              errors: batch.status.errors,
+            })),
+            formatted: lines.join("\n"),
           };
         }
       },
@@ -235,8 +300,20 @@ export function createSystemTools(
             return {
               error: "Conversation not found",
               conversationId: parsed.conversationId,
+              formatted: `_Conversation not found: ${parsed.conversationId}_`,
             };
           }
+
+          const formatted = formatAsEntity(
+            {
+              id: conversation.id,
+              interface: conversation.interfaceType,
+              channel: conversation.channelId,
+              created: conversation.created,
+              lastActive: conversation.lastActive,
+            },
+            { title: "Conversation" },
+          );
 
           return {
             id: conversation.id,
@@ -244,11 +321,15 @@ export function createSystemTools(
             channelId: conversation.channelId,
             created: conversation.created,
             lastActive: conversation.lastActive,
+            formatted,
           };
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           return {
             error: "Failed to get conversation",
-            message: error instanceof Error ? error.message : String(error),
+            message,
+            formatted: `_Error: ${message}_`,
           };
         }
       },
@@ -284,6 +365,12 @@ export function createSystemTools(
             parsed.limit ?? 20,
           );
 
+          const formatted = formatAsList(limitedConversations, {
+            title: (c) => c.id,
+            subtitle: (c) => `${c.interfaceType} - ${c.channelId}`,
+            header: `## Conversations (${limitedConversations.length} of ${conversations.length})`,
+          });
+
           return {
             conversations: limitedConversations.map((conv) => ({
               id: conv.id,
@@ -295,11 +382,15 @@ export function createSystemTools(
             totalFound: conversations.length,
             returned: limitedConversations.length,
             searchQuery: parsed.searchQuery,
+            formatted,
           };
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           return {
             error: "Failed to list conversations",
-            message: error instanceof Error ? error.message : String(error),
+            message,
+            formatted: `_Error: ${message}_`,
           };
         }
       },
@@ -329,6 +420,15 @@ export function createSystemTools(
             parsed.limit ?? 20,
           );
 
+          const formatted = formatAsList(messages, {
+            title: (m) => `[${m.role}]`,
+            subtitle: (m) =>
+              m.content.length > 100
+                ? m.content.substring(0, 100) + "..."
+                : m.content,
+            header: `## Messages (${messages.length})`,
+          });
+
           return {
             conversationId: parsed.conversationId,
             messages: messages.map((msg) => ({
@@ -339,11 +439,15 @@ export function createSystemTools(
             })),
             messageCount: messages.length,
             requestedLimit: parsed.limit ?? 20,
+            formatted,
           };
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           return {
             error: "Failed to get messages",
-            message: error instanceof Error ? error.message : String(error),
+            message,
+            formatted: `_Error: ${message}_`,
           };
         }
       },
@@ -357,14 +461,29 @@ export function createSystemTools(
       handler: async (): Promise<ToolResponse> => {
         try {
           const identity = plugin.getIdentityData();
+
+          const formatted = formatAsEntity(
+            {
+              name: identity.name,
+              role: identity.role,
+              purpose: identity.purpose,
+              values: identity.values.join(", "),
+            },
+            { title: "Brain Identity" },
+          );
+
           return {
             status: "success",
             data: identity,
+            formatted,
           };
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           return {
             status: "error",
-            message: error instanceof Error ? error.message : String(error),
+            message,
+            formatted: `_Error: ${message}_`,
           };
         }
       },
@@ -378,14 +497,33 @@ export function createSystemTools(
       handler: async (): Promise<ToolResponse> => {
         try {
           const profile = plugin.getProfileData();
+
+          const formatted = formatAsEntity(
+            {
+              name: profile.name,
+              description: profile.description ?? "N/A",
+              email: profile.email ?? "N/A",
+              socialLinks: profile.socialLinks
+                ? profile.socialLinks
+                    .map((link) => `${link.platform}: ${link.url}`)
+                    .join(", ")
+                : "N/A",
+            },
+            { title: "Anchor Profile" },
+          );
+
           return {
             status: "success",
             data: profile,
+            formatted,
           };
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           return {
             status: "error",
-            message: error instanceof Error ? error.message : String(error),
+            message,
+            formatted: `_Error: ${message}_`,
           };
         }
       },
@@ -393,20 +531,53 @@ export function createSystemTools(
     {
       name: `${pluginId}_get-status`,
       description:
-        "Get system status including model, version, and running interfaces with access URLs",
+        "Get system status including model, version, running interfaces, and available tools",
       inputSchema: {},
       visibility: "public",
       handler: async (): Promise<ToolResponse> => {
         try {
           const appInfo = await plugin.getAppInfo();
+
+          const lines = [
+            "## System Status",
+            "",
+            `**Model:** ${appInfo.model}`,
+            `**Version:** ${appInfo.version}`,
+            "",
+            `**Plugins:** ${appInfo.plugins.length}`,
+          ];
+
+          for (const p of appInfo.plugins) {
+            lines.push(`- ${p.id} (${p.type}) - ${p.status}`);
+          }
+
+          lines.push("");
+          lines.push(`**Interfaces:** ${appInfo.interfaces.length}`);
+
+          for (const iface of appInfo.interfaces) {
+            lines.push(`- ${iface.name}: ${iface.status}`);
+          }
+
+          if (appInfo.tools && appInfo.tools.length > 0) {
+            lines.push("");
+            lines.push(`**Tools:** ${appInfo.tools.length}`);
+            for (const tool of appInfo.tools) {
+              lines.push(`- ${tool.name}: ${tool.description}`);
+            }
+          }
+
           return {
             status: "success",
             data: appInfo,
+            formatted: lines.join("\n"),
           };
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
           return {
             status: "error",
-            message: error instanceof Error ? error.message : String(error),
+            message,
+            formatted: `_Error: ${message}_`,
           };
         }
       },

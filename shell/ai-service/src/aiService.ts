@@ -253,18 +253,23 @@ export class AIService implements IAIService {
         stepsCount: result.steps?.length,
       });
 
-      // Extract tool call results from the response
-      const toolCalls: ToolCallResult[] = result.toolCalls.map((tc) => {
-        const toolResult = result.toolResults.find(
-          (tr) => tr.toolCallId === tc.toolCallId,
-        );
-        return {
-          name: tc.toolName,
-          args: "input" in tc ? tc.input : {},
-          result:
-            toolResult && "output" in toolResult ? toolResult.output : null,
-        };
-      });
+      // Extract tool call results from ALL steps (not just the final step)
+      // result.toolCalls only contains the last step's tool calls
+      // We need to iterate through all steps to get every tool call
+      const toolCalls: ToolCallResult[] = [];
+      for (const step of result.steps ?? []) {
+        for (const tc of step.toolCalls ?? []) {
+          const toolResult = step.toolResults?.find(
+            (tr) => tr.toolCallId === tc.toolCallId,
+          );
+          toolCalls.push({
+            name: tc.toolName,
+            args: "input" in tc ? tc.input : {},
+            result:
+              toolResult && "output" in toolResult ? toolResult.output : null,
+          });
+        }
+      }
 
       return {
         text: result.text,

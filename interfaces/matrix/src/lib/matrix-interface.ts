@@ -217,8 +217,36 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
         this.pendingConfirmations.set(conversationId, true);
       }
 
+      // Build response with tool results
+      let responseText = response.text;
+
+      // Debug: Log tool results
+      this.logger.debug("Agent response received", {
+        hasToolResults: !!response.toolResults,
+        toolResultsCount: response.toolResults?.length ?? 0,
+        toolNames: response.toolResults?.map((r) => r.toolName) ?? [],
+      });
+
+      // Append formatted tool results if present
+      // This ensures the user sees the actual data returned by tools
+      if (response.toolResults && response.toolResults.length > 0) {
+        const toolOutput = response.toolResults
+          .map((result) => result.formatted)
+          .join("\n\n");
+
+        this.logger.debug("Appending tool output", {
+          toolOutputLength: toolOutput.length,
+          toolOutputPreview: toolOutput.slice(0, 200),
+        });
+
+        // Append tool output if it's not already in the response
+        if (toolOutput && !responseText.includes(toolOutput)) {
+          responseText = `${responseText}\n\n${toolOutput}`;
+        }
+      }
+
       // Send response
-      await this.sendResponse(roomId, response.text, eventId);
+      await this.sendResponse(roomId, responseText, eventId);
     } catch (error) {
       this.logger.error("Error handling message", { error, roomId, eventId });
       await this.sendErrorResponse(roomId, error, eventId);

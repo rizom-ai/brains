@@ -256,8 +256,24 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
         this.pendingConfirmation = true;
       }
 
+      // Build response with tool results
+      let responseText = response.text;
+
+      // Append formatted tool results if present
+      // This ensures the user sees the actual data returned by tools
+      if (response.toolResults && response.toolResults.length > 0) {
+        const toolOutput = response.toolResults
+          .map((result) => result.formatted)
+          .join("\n\n");
+
+        // Append tool output if it's not already in the response
+        if (toolOutput && !responseText.includes(toolOutput)) {
+          responseText = `${responseText}\n\n${toolOutput}`;
+        }
+      }
+
       // Send response to UI
-      this.sendResponse(response.text);
+      this.sendResponse(responseText);
     } catch (error) {
       this.logger.error("Error processing input", { error, input });
       const errorMessage =

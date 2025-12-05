@@ -3,7 +3,7 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z, createId } from "@brains/utils";
+import { z, createId, formatAsEntity } from "@brains/utils";
 import type { BlogConfig } from "../config";
 
 /**
@@ -65,15 +65,27 @@ export function createGenerateTool(
           },
         });
 
+        const formatted = formatAsEntity(
+          {
+            jobId,
+            title: parsed.title ?? "(AI generated)",
+            status: "queued",
+          },
+          { title: "Blog Post Generation" },
+        );
+
         return {
           success: true,
           data: { jobId },
           message: `Blog post generation job queued (jobId: ${jobId})`,
+          formatted,
         };
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: msg,
+          formatted: `_Error: ${msg}_`,
         };
       }
     },

@@ -15,4 +15,5 @@ export type {
   ChatContext,
   IAgentService,
   PendingConfirmation,
+  ToolResultData,
 } from "./types";

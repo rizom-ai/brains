@@ -56,6 +56,14 @@ export const pluginInfoSchema = z.object({
 });
 
 /**
+ * Tool info for status display
+ */
+export const toolInfoSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+});
+
+/**
  * App info schema for validation
  */
 export const appInfoSchema = z.object({
@@ -63,6 +71,7 @@ export const appInfoSchema = z.object({
   version: z.string(),
   plugins: z.array(pluginInfoSchema),
   interfaces: z.array(DaemonStatusInfoSchema),
+  tools: z.array(toolInfoSchema).optional(),
 });
 
 export type AppInfo = z.infer<typeof appInfoSchema>;

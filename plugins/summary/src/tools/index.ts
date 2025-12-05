@@ -5,7 +5,7 @@ import {
   type ToolResponse,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, formatAsList, formatAsEntity } from "@brains/utils";
 import { SummaryService } from "../lib/summary-service";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryConfig } from "../schemas/summary";
@@ -63,6 +63,7 @@ export function createGetTool(
             data: {
               message: `No summary found for conversation ${parsed.data.conversationId}`,
             },
+            formatted: `_No summary found for conversation ${parsed.data.conversationId}_`,
           };
         }
 
@@ -83,6 +84,13 @@ export function createGetTool(
           entryCount: entries.length,
         });
 
+        const formatted = formatAsList(entries, {
+          title: (e) => e.title,
+          subtitle: (e) =>
+            e.content.slice(0, 100) + (e.content.length > 100 ? "..." : ""),
+          header: `## Summary (${entries.length} entries)`,
+        });
+
         return {
           success: true,
           data: {
@@ -93,6 +101,7 @@ export function createGetTool(
             entries,
             metadata: summary.metadata,
           },
+          formatted,
         };
       } catch (error) {
         logger.error("Failed to retrieve summary", {
@@ -160,12 +169,19 @@ export function createListTool(
 
         logger.info("Listed summaries", { count: summaryList.length });
 
+        const formatted = formatAsList(summaryList, {
+          title: (s) => s.conversationId,
+          subtitle: (s) => `${s.entryCount} entries - ${s.lastEntry}`,
+          header: `## Summaries (${summaryList.length})`,
+        });
+
         return {
           success: true,
           data: {
             summaries: summaryList,
             total: summaryList.length,
           },
+          formatted,
         };
       } catch (error) {
         logger.error("Failed to list summaries", {
@@ -212,6 +228,7 @@ export function createExportTool(
             data: {
               message: `No summary found for conversation ${parsed.data.conversationId}`,
             },
+            formatted: `_No summary found for conversation ${parsed.data.conversationId}_`,
           };
         }
 
@@ -225,6 +242,7 @@ export function createExportTool(
             conversationId: parsed.data.conversationId,
             markdown,
           },
+          formatted: markdown,
         };
       } catch (error) {
         logger.error("Failed to export summary", {
@@ -272,6 +290,7 @@ export function createDeleteTool(
             data: {
               message: `No summary found for conversation ${parsed.data.conversationId}`,
             },
+            formatted: `_No summary found for conversation ${parsed.data.conversationId}_`,
           };
         }
 
@@ -284,6 +303,7 @@ export function createDeleteTool(
           data: {
             message: `Summary deleted for conversation ${parsed.data.conversationId}`,
           },
+          formatted: `Summary deleted for conversation **${parsed.data.conversationId}**`,
         };
       } catch (error) {
         logger.error("Failed to delete summary", {
@@ -317,9 +337,14 @@ export function createStatsTool(
 
         logger.info("Retrieved summary statistics", stats);
 
+        const formatted = formatAsEntity(stats, {
+          title: "Summary Statistics",
+        });
+
         return {
           success: true,
           data: stats,
+          formatted,
         };
       } catch (error) {
         logger.error("Failed to get summary statistics", {

@@ -27,14 +27,14 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
         description: "Test tool 1",
         inputSchema: {},
         visibility: "anchor",
-        handler: async () => ({ success: true }),
+        handler: async () => ({ success: true, formatted: "Success" }),
       },
       {
         name: "test:tool2",
         description: "Test tool 2",
         inputSchema: {},
         visibility: "public",
-        handler: async () => ({ success: true }),
+        handler: async () => ({ success: true, formatted: "Success" }),
       },
     ];
   }
@@ -210,7 +210,7 @@ describe("PluginManager - Direct Registration", () => {
               name: "second:tool",
               description: "Second plugin tool",
               inputSchema: {},
-              handler: async () => ({ success: true }),
+              handler: async () => ({ success: true, formatted: "Success" }),
             },
           ];
         }

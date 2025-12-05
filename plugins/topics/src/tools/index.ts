@@ -6,7 +6,12 @@ import {
   type ToolResponse,
   createId,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import {
+  z,
+  formatAsList,
+  formatAsEntity,
+  formatAsSearchResults,
+} from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 import { TopicAdapter } from "../lib/topic-adapter";
 import type { TopicsPluginConfig } from "../schemas/config";
@@ -80,12 +85,24 @@ export function createExtractTool(
         getExtractionJobOptions(),
       );
 
+      const formatted = formatAsEntity(
+        {
+          jobId,
+          conversationId: parsed.data.conversationId,
+          windowSize,
+          minScore,
+          status: "queued",
+        },
+        { title: "Topic Extraction Job" },
+      );
+
       return {
         success: true,
         data: {
           jobId,
           message: `Topic extraction job queued for conversation ${parsed.data.conversationId}. Window size: ${windowSize} messages, min relevance: ${minScore}`,
         },
+        formatted,
       };
     },
   };
@@ -121,20 +138,29 @@ export function createListTool(
       const topics = await topicService.listTopics(listParams);
 
       const adapter = new TopicAdapter();
+      const topicData = topics.map((t) => {
+        const parsedTopic = adapter.parseTopicBody(t.content);
+        return {
+          id: t.id,
+          title: parsedTopic.title,
+          keywords: parsedTopic.keywords,
+          updated: t.updated,
+        };
+      });
+
+      const formatted = formatAsList(topicData, {
+        title: (t) => t.title,
+        subtitle: (t) => t.keywords.slice(0, 5).join(", "),
+        header: `## Topics (${topicData.length})`,
+      });
+
       return {
         success: true,
         data: {
-          topics: topics.map((t) => {
-            const parsed = adapter.parseTopicBody(t.content);
-            return {
-              id: t.id,
-              title: parsed.title,
-              keywords: parsed.keywords,
-              updated: t.updated,
-            };
-          }),
+          topics: topicData,
           count: topics.length,
         },
+        formatted,
       };
     },
   };
@@ -166,6 +192,15 @@ export function createGetTool(
         throw new Error(`Topic not found: ${parsed.data.id}`);
       }
 
+      const formatted = formatAsEntity(
+        {
+          id: topic.id,
+          created: topic.created,
+          updated: topic.updated,
+        },
+        { title: `Topic: ${topic.id}` },
+      );
+
       return {
         success: true,
         data: {
@@ -175,6 +210,7 @@ export function createGetTool(
           created: topic.created,
           updated: topic.updated,
         },
+        formatted,
       };
     },
   };
@@ -206,21 +242,30 @@ export function createSearchTool(
       );
 
       const adapter = new TopicAdapter();
+      const searchResults = results.map((result) => {
+        const parsedTopic = adapter.parseTopicBody(result.entity.content);
+        return {
+          id: result.entity.id,
+          entityType: "topic",
+          title: parsedTopic.title,
+          keywords: parsedTopic.keywords,
+          score: result.score,
+          snippet: result.excerpt,
+        };
+      });
+
+      const formatted = formatAsSearchResults(searchResults, {
+        query: parsed.data.query,
+        showScores: true,
+      });
+
       return {
         success: true,
         data: {
-          results: results.map((result) => {
-            const parsed = adapter.parseTopicBody(result.entity.content);
-            return {
-              id: result.entity.id,
-              title: parsed.title,
-              keywords: parsed.keywords,
-              score: result.score,
-              excerpt: result.excerpt,
-            };
-          }),
+          results: searchResults,
           count: results.length,
         },
+        formatted,
       };
     },
   };
@@ -261,6 +306,17 @@ export function createMergeTool(
 
       const topicAdapter = new TopicAdapter();
       const topicParsed = topicAdapter.parseTopicBody(merged.content);
+
+      const formatted = formatAsEntity(
+        {
+          id: merged.id,
+          title: topicParsed.title,
+          keywords: topicParsed.keywords.join(", "),
+          mergedFrom: topicIds.join(", "),
+        },
+        { title: "Topics Merged" },
+      );
+
       return {
         success: true,
         data: {
@@ -271,6 +327,7 @@ export function createMergeTool(
           },
           mergedIds: topicIds,
         },
+        formatted,
       };
     },
   };

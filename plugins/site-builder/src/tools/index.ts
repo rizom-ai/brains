@@ -9,7 +9,7 @@ import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
-import { z } from "@brains/utils";
+import { z, formatAsList, formatAsEntity } from "@brains/utils";
 import { GenerateOptionsSchema } from "../types/content-schemas";
 
 export function createSiteBuilderTools(
@@ -56,6 +56,7 @@ export function createSiteBuilderTools(
             return {
               success: false,
               message: "Site content service not initialized",
+              formatted: "_Error: Site content service not initialized_",
             };
           }
 
@@ -64,9 +65,11 @@ export function createSiteBuilderTools(
           try {
             options = GenerateOptionsSchema.parse(input);
           } catch (error) {
+            const msg = `Invalid input parameters: ${error instanceof Error ? error.message : String(error)}`;
             return {
               success: false,
-              message: `Invalid input parameters: ${error instanceof Error ? error.message : String(error)}`,
+              message: msg,
+              formatted: `_Error: ${msg}_`,
             };
           }
 
@@ -75,6 +78,7 @@ export function createSiteBuilderTools(
             return {
               success: false,
               message: "sectionId requires routeId to be specified",
+              formatted: "_Error: sectionId requires routeId to be specified_",
             };
           }
 
@@ -91,20 +95,35 @@ export function createSiteBuilderTools(
             metadata,
           );
 
+          const message = `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`;
+
+          const formatted = formatAsEntity(
+            {
+              batchId: result.batchId,
+              queued: result.queuedSections,
+              total: result.totalSections,
+              status: result.queuedSections > 0 ? "running" : "complete",
+            },
+            { title: "Content Generation" },
+          );
+
           return {
             success: true,
-            message: `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`,
+            message,
             data: {
               batchId: result.batchId,
               jobsQueued: result.queuedSections,
               totalSections: result.totalSections,
               jobs: result.jobs,
             },
+            formatted,
           };
         } catch (error) {
+          const msg = `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`;
           return {
             success: false,
-            message: `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`,
+            message: msg,
+            formatted: `_Error: ${msg}_`,
           };
         }
       },
@@ -181,6 +200,15 @@ export function createSiteBuilderTools(
           },
         );
 
+        const formatted = formatAsEntity(
+          {
+            jobId,
+            environment,
+            status: "queued",
+          },
+          { title: "Site Build" },
+        );
+
         return {
           success: true,
           message: `Site build job queued for ${environment} environment`,
@@ -188,6 +216,7 @@ export function createSiteBuilderTools(
             jobId,
             environment,
           },
+          formatted,
         };
       },
     },
@@ -201,6 +230,12 @@ export function createSiteBuilderTools(
         _context: ToolContext,
       ): Promise<ToolResponse> => {
         const routes = routeRegistry.list();
+
+        const formatted = formatAsList(routes, {
+          title: (r) => `${r.title} (${r.path})`,
+          subtitle: (r) => `${r.sections.length} sections`,
+          header: `## Routes (${routes.length})`,
+        });
 
         return {
           success: true,
@@ -218,6 +253,7 @@ export function createSiteBuilderTools(
             })),
             count: routes.length,
           },
+          formatted,
         };
       },
     },
@@ -232,6 +268,12 @@ export function createSiteBuilderTools(
       ): Promise<ToolResponse> => {
         const templates = pluginContext.listViewTemplates();
 
+        const formatted = formatAsList(templates, {
+          title: (t) => t.name,
+          subtitle: (t) => t.description ?? "No description",
+          header: `## Templates (${templates.length})`,
+        });
+
         return {
           success: true,
           message: `Found ${templates.length} registered templates`,
@@ -243,6 +285,7 @@ export function createSiteBuilderTools(
             })),
             count: templates.length,
           },
+          formatted,
         };
       },
     },

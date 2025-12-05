@@ -195,8 +195,10 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
         handler: async (input: unknown) => {
           const args = z.object({ a: z.number(), b: z.number() }).parse(input);
           this.info(`Adding ${args.a} + ${args.b}`);
+          const result = `${args.a} + ${args.b} = ${args.a + args.b}`;
           return {
-            message: `${args.a} + ${args.b} = ${args.a + args.b}`,
+            message: result,
+            formatted: result,
           };
         },
       },
@@ -212,7 +214,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
             result: args.result,
             timestamp: new Date().toISOString(),
           });
-          return { message: formatted };
+          return { message: formatted, formatted };
         },
       },
     ];

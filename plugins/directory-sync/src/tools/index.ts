@@ -1,4 +1,5 @@
 import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
+import { formatAsEntity } from "@brains/utils";
 import type { DirectorySync } from "../lib/directory-sync";
 import type { ServicePluginContext } from "@brains/plugins";
 
@@ -44,8 +45,21 @@ export function createDirectorySyncTools(
             status: "completed",
             message: "No operations needed - no entity types or files to sync",
             batchId: `empty-sync-${Date.now()}`,
+            formatted:
+              "_No operations needed - no entity types or files to sync_",
           };
         }
+
+        const formatted = formatAsEntity(
+          {
+            batchId: result.batchId,
+            status: "queued",
+            exportJobs: result.exportOperationsCount,
+            importJobs: result.importOperationsCount,
+            totalFiles: result.totalFiles,
+          },
+          { title: "Directory Sync" },
+        );
 
         return {
           status: "queued",
@@ -54,6 +68,7 @@ export function createDirectorySyncTools(
           exportOperations: result.exportOperationsCount,
           importOperations: result.importOperationsCount,
           totalFiles: result.totalFiles,
+          formatted,
         };
       },
     },

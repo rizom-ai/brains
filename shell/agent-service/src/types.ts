@@ -28,11 +28,24 @@ export interface PendingConfirmation {
 }
 
 /**
+ * Tool result data for structured responses
+ * Interfaces render these directly to ensure data is shown to users
+ */
+export interface ToolResultData {
+  toolName: string;
+  formatted: string; // Pre-formatted markdown from tool response
+}
+
+/**
  * Response from the agent
  */
 export interface AgentResponse {
   // Primary content (markdown)
   text: string;
+
+  // Tool results for structured rendering
+  // Interfaces should render these directly to ensure data is shown
+  toolResults?: ToolResultData[];
 
   // Confirmation flow for destructive operations
   pendingConfirmation?: PendingConfirmation;

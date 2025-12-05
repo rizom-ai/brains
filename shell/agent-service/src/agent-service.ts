@@ -1,7 +1,11 @@
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { IAIService, AITool, AIMessage } from "@brains/ai-service";
-import type { IMCPService, ToolContext } from "@brains/mcp-service";
+import {
+  type IMCPService,
+  type ToolContext,
+  toolResponseSchema,
+} from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";
 import type {
@@ -175,12 +179,36 @@ export class AgentService implements IAgentService {
       maxSteps: this.config.maxSteps,
     });
 
-    // Save assistant response to conversation
-    await this.conversationService.addMessage(
-      conversationId,
-      "assistant",
-      result.text,
-    );
+    // Save assistant response to conversation (only if non-empty)
+    // Empty text happens when AI only does tool calls without a final response
+    if (result.text.trim()) {
+      await this.conversationService.addMessage(
+        conversationId,
+        "assistant",
+        result.text,
+      );
+    }
+
+    // Map tool calls to ToolResultData
+    const toolResults = result.toolCalls
+      .filter((tc) => tc.result !== null) // Skip null results
+      .map((tc) => {
+        const parsed = toolResponseSchema.safeParse(tc.result);
+        if (!parsed.success) {
+          this.logger.warn("Tool result failed validation", {
+            toolName: tc.name,
+            error: parsed.error.message,
+          });
+          return {
+            toolName: tc.name,
+            formatted: `_Tool ${tc.name} completed_`,
+          };
+        }
+        return {
+          toolName: tc.name,
+          formatted: parsed.data.formatted,
+        };
+      });
 
     this.logger.debug("Chat completed", {
       conversationId,
@@ -191,6 +219,7 @@ export class AgentService implements IAgentService {
 
     return {
       text: result.text,
+      toolResults,
       usage: result.usage,
     };
   }

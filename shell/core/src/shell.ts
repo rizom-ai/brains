@@ -599,11 +599,18 @@ export class Shell implements IShell {
       }),
     );
 
+    // Get tool information
+    const tools = this.mcpService.listTools().map(({ tool }) => ({
+      name: tool.name,
+      description: tool.description,
+    }));
+
     return {
       model: this.config.name || "brain-app",
       version: this.config.version || "1.0.0",
       plugins,
       interfaces,
+      tools,
     };
   }
 

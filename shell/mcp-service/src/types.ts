@@ -1,5 +1,10 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z, type ZodRawShape, type ProgressNotification } from "@brains/utils";
+import {
+  z,
+  type ZodRawShape,
+  type ZodType,
+  type ProgressNotification,
+} from "@brains/utils";
 import type { UserPermissionLevel } from "@brains/permission-service";
 
 /**
@@ -42,6 +47,7 @@ export const toolResponseSchema = z
     message: z.string().optional(),
     success: z.boolean().optional(),
     data: z.record(z.string(), z.unknown()).optional(), // Generic data object
+    formatted: z.string(), // Pre-formatted markdown for rich display (required)
   })
   .passthrough(); // Allow additional fields
 
@@ -49,12 +55,14 @@ export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
 /**
  * Plugin tool definition
+ * @template TOutput - The output type, defaults to ToolResponse for backward compatibility
  */
-export interface PluginTool {
+export interface PluginTool<TOutput = ToolResponse> {
   name: string;
   description: string;
   inputSchema: ZodRawShape; // Same type as MCP expects
-  handler: (input: unknown, context: ToolContext) => Promise<ToolResponse>;
+  outputSchema?: ZodType<TOutput>; // Optional: Zod schema for type-safe outputs
+  handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
 }
 

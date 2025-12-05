@@ -1,5 +1,5 @@
 import type { PluginTool, ToolResponse, ToolContext } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, formatAsEntity } from "@brains/utils";
 import { generateRSSFeed, type RSSFeedConfig } from "../rss/feed-generator";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
@@ -98,6 +98,15 @@ export function createGenerateRSSTool(
       // Write RSS feed to file
       await fs.writeFile(parsed.outputPath, xml, "utf-8");
 
+      const formatted = formatAsEntity(
+        {
+          postsCount: publishedPosts.length,
+          outputPath: parsed.outputPath,
+          title: parsed.title,
+        },
+        { title: "RSS Feed Generated" },
+      );
+
       return {
         success: true,
         message: `RSS feed generated successfully with ${publishedPosts.length} posts.\nWritten to: ${parsed.outputPath}`,
@@ -105,6 +114,7 @@ export function createGenerateRSSTool(
           postsCount: publishedPosts.length,
           outputPath: parsed.outputPath,
         },
+        formatted,
       };
     },
   };

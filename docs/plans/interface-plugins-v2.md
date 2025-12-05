@@ -430,37 +430,181 @@ But the actual data is never included in the message. Model sees tool results bu
 
 **Root cause**: Relying on model behavior to include tool data is fragile. Different models behave differently, and prompt instructions are often ignored.
 
-**Solution**: Structured response with separate data section
+**Solution**: Tool-provided formatted output with optional output schemas
 
-Return both AI text and formatted tool data separately:
+#### Design Overview
+
+Combine two complementary features:
+
+- **`formatted`**: Pre-rendered markdown string for rich display in chat clients
+- **`outputSchema`**: Optional Zod schema for type-safe tool outputs
+
+Both fields are **optional and additive** - existing tools keep working unchanged.
+
+#### Phase 1: Core Infrastructure (Do Now)
+
+**1.1 Extend `ToolResponse` with `formatted` field**
 
 ```typescript
-interface AgentResponse {
-  text: string; // AI's explanation/context
-  data?: ToolResultData[]; // Actual tool results, formatted
-  usage: TokenUsage;
-}
+// @brains/mcp-service/src/types.ts
+export const toolResponseSchema = z
+  .object({
+    status: z.string().optional(),
+    message: z.string().optional(),
+    data: z.record(z.string(), z.unknown()).optional(),
+    formatted: z.string().optional(), // NEW: Pre-formatted markdown output
+  })
+  .passthrough();
+```
 
-interface ToolResultData {
-  toolName: string;
-  result: unknown; // Raw tool output
-  formatted?: string; // Pre-formatted markdown (tables, lists)
+**1.2 Add optional `outputSchema` to `PluginTool`**
+
+```typescript
+// @brains/mcp-service/src/types.ts
+export interface PluginTool<TOutput = ToolResponse> {
+  name: string;
+  description: string;
+  inputSchema: ZodRawShape;
+  outputSchema?: ZodType<TOutput>; // NEW: Optional output schema for type safety
+  handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
+  visibility?: ToolVisibility;
 }
 ```
 
-Interfaces render both:
+**1.3 Create shared formatters in `@brains/utils`**
 
-- AI text provides context/explanation
-- Data section shows actual results (tables in CLI, formatted messages in Matrix)
+```typescript
+// @brains/utils/src/formatters/tool-formatters.ts
+export function formatAsTable<T>(
+  items: T[],
+  columns: Array<{ key: keyof T; header: string }>,
+): string;
 
-**Tasks**:
+export function formatAsList<T>(
+  items: T[],
+  options: { title: (item: T) => string; subtitle?: (item: T) => string },
+): string;
 
-- [ ] Update `AgentResponse` type to include `data` field
-- [ ] Update `AgentService.chat()` to extract and format tool results
-- [ ] Create tool result formatters (for lists, entities, etc.)
-- [ ] Update Matrix interface to render data section
-- [ ] Update CLI interface to render data section
-- [ ] Update MCP interface to include data in response
+export function formatAsEntity(
+  entity: Record<string, unknown>,
+  options?: { excludeFields?: string[] },
+): string;
+
+export function formatAsSearchResults(
+  results: Array<{
+    id: string;
+    title?: string;
+    snippet?: string;
+    score?: number;
+  }>,
+): string;
+```
+
+**1.4 Extend `AgentResponse` to include tool results**
+
+```typescript
+// @brains/agent-service/src/types.ts
+export interface ToolResultData {
+  toolName: string;
+  args: unknown;
+  result: unknown;
+  formatted?: string; // From tool response
+}
+
+export interface AgentResponse {
+  text: string;
+  toolResults?: ToolResultData[];
+  usage: TokenUsage;
+}
+```
+
+**1.5 Update interfaces to render formatted tool results**
+
+```
+┌─────────────────────────────────────────┐
+│ AI Response                             │
+│ "Here are your summaries:"              │
+├─────────────────────────────────────────┤
+│ Tool Results (formatted)                │
+│ - summary-123: General Chat             │
+│ - summary-456: Project Discussion       │
+│ - summary-789: Weekly Standup           │
+└─────────────────────────────────────────┘
+```
+
+#### Phase 2: Gradual Tool Migration (Incremental)
+
+Migrate tools one-by-one to use the new features:
+
+```typescript
+// Before (still works)
+{
+  name: "summary_list",
+  inputSchema: { limit: z.number().optional() },
+  handler: async (input): Promise<ToolResponse> => {
+    const summaries = await service.getAll();
+    return { status: "success", data: { summaries } };
+  },
+}
+
+// After (with outputSchema + formatted)
+{
+  name: "summary_list",
+  inputSchema: { limit: z.number().optional() },
+  outputSchema: z.object({
+    summaries: z.array(summarySchema),
+    total: z.number(),
+    formatted: z.string().optional(),
+  }),
+  handler: async (input) => {
+    const summaries = await service.getAll();
+    return {
+      summaries,
+      total: summaries.length,
+      formatted: formatAsList(summaries, {
+        title: (s) => s.id,
+        subtitle: (s) => s.metadata.channelName,
+      }),
+    };
+  },
+}
+```
+
+#### Phase 3: Enhanced Features (Optional, Later)
+
+- Runtime validation of outputs against schema in dev mode
+- Auto-generate `formatted` from schema when not provided
+- Schema introspection for smarter default formatting
+
+#### Benefits
+
+- **Rich output**: Tools provide markdown formatted for chat clients
+- **Type safety**: `outputSchema` enables typed handlers (opt-in)
+- **Consistency**: Shared formatters ensure uniform presentation
+- **Backward compatible**: Both new fields are optional
+- **Incremental**: Migrate tools gradually, no big-bang refactor
+
+#### Phase 1 Implementation Tasks
+
+- [ ] Add `formatted` field to `toolResponseSchema` in mcp-service
+- [ ] Add `outputSchema` to `PluginTool` interface (optional)
+- [ ] Create shared formatters in `@brains/utils`
+- [ ] Add `ToolResultData` and update `AgentResponse` type in agent-service
+- [ ] Update `AgentService.chat()` to pass through tool results with formatted output
+- [ ] Update Matrix interface to render formatted tool results
+- [ ] Update CLI interface to render formatted tool results
+
+#### Phase 2 Tasks (Per Tool)
+
+- [ ] Migrate system plugin tools (10 tools)
+- [ ] Migrate link plugin tools (4 tools)
+- [ ] Migrate summary plugin tools (5 tools)
+- [ ] Migrate topics plugin tools (5 tools)
+- [ ] Migrate blog plugin tools (3 tools)
+- [ ] Migrate decks plugin tools (2 tools)
+- [ ] Migrate git-sync plugin tools (1 tool)
+- [ ] Migrate directory-sync plugin tools (1 tool)
+- [ ] Migrate site-builder plugin tools (2 tools)
 
 ### 6. Tool Audit - Relevance and Permissions ✅
 

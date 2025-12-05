@@ -637,4 +637,110 @@ describe("AgentService", () => {
       expect(call.system).toContain("Test Brain");
     });
   });
+
+  describe("toolResults in response", () => {
+    it("should include tool results in response when AI calls tools", async () => {
+      // Mock AI service to return tool calls with formatted output
+      mockAIService.generateWithTools = mock(() =>
+        Promise.resolve({
+          text: "I found some notes for you.",
+          toolCalls: [
+            {
+              name: "search",
+              args: { query: "typescript" },
+              result: {
+                status: "ok",
+                data: { results: ["note1", "note2"] },
+                formatted: "- note1\n- note2",
+              },
+            },
+          ],
+          usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
+        }),
+      );
+
+      const service = AgentService.createFresh(
+        mockAIService,
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockIdentityService as IIdentityService,
+        logger,
+      );
+
+      const response = await service.chat(
+        "Search for typescript",
+        "test-conversation",
+      );
+
+      expect(response.toolResults).toBeDefined();
+      expect(response.toolResults?.length).toBe(1);
+      expect(response.toolResults?.[0]?.toolName).toBe("search");
+      expect(response.toolResults?.[0]?.formatted).toBe("- note1\n- note2");
+    });
+
+    it("should return empty toolResults array when no tools are called", async () => {
+      mockAIService.generateWithTools = mock(() =>
+        Promise.resolve({
+          text: "Hello! How can I help you?",
+          toolCalls: [],
+          usage: { promptTokens: 50, completionTokens: 20, totalTokens: 70 },
+        }),
+      );
+
+      const service = AgentService.createFresh(
+        mockAIService,
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockIdentityService as IIdentityService,
+        logger,
+      );
+
+      const response = await service.chat("Hello", "test-conversation");
+
+      expect(response.toolResults).toBeDefined();
+      expect(response.toolResults?.length).toBe(0);
+    });
+
+    it("should include multiple tool results when AI calls multiple tools", async () => {
+      mockAIService.generateWithTools = mock(() =>
+        Promise.resolve({
+          text: "Here's what I found.",
+          toolCalls: [
+            {
+              name: "search",
+              args: { query: "typescript" },
+              result: { formatted: "## Search Results\n- note1" },
+            },
+            {
+              name: "get_note",
+              args: { id: "note1" },
+              result: { formatted: "## TypeScript Guide\n\nContent here..." },
+            },
+          ],
+          usage: { promptTokens: 100, completionTokens: 150, totalTokens: 250 },
+        }),
+      );
+
+      const service = AgentService.createFresh(
+        mockAIService,
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockIdentityService as IIdentityService,
+        logger,
+      );
+
+      const response = await service.chat(
+        "Find typescript notes and show me the first one",
+        "test-conversation",
+      );
+
+      expect(response.toolResults?.length).toBe(2);
+      expect(response.toolResults?.[0]?.toolName).toBe("search");
+      expect(response.toolResults?.[0]?.formatted).toContain("Search Results");
+      expect(response.toolResults?.[1]?.toolName).toBe("get_note");
+      expect(response.toolResults?.[1]?.formatted).toContain(
+        "TypeScript Guide",
+      );
+    });
+  });
 });

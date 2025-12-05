@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, formatAsEntity } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 import { blogPostAdapter } from "../adapters/blog-post-adapter";
@@ -41,6 +41,7 @@ export function createPublishTool(
           return {
             success: false,
             error: "Either 'id' or 'slug' must be provided",
+            formatted: "_Error: Either 'id' or 'slug' must be provided_",
           };
         }
 
@@ -67,6 +68,7 @@ export function createPublishTool(
           return {
             success: false,
             error: `Blog post not found: ${identifier}`,
+            formatted: `_Blog post not found: ${identifier}_`,
           };
         }
 
@@ -108,15 +110,29 @@ export function createPublishTool(
         // Entity update will automatically trigger entity:updated message
         // which site-builder subscribes to for rebuilding
 
+        const formatted = formatAsEntity(
+          {
+            id: updatedPost.id,
+            title: updatedFrontmatter.title,
+            slug: updatedPost.metadata.slug,
+            status: "published",
+            publishedAt,
+          },
+          { title: "Blog Post Published" },
+        );
+
         return {
           success: true,
           data: { ...result, post: updatedPost },
           message: `Blog post "${updatedFrontmatter.title}" published successfully`,
+          formatted,
         };
       } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
         return {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: msg,
+          formatted: `_Error: ${msg}_`,
         };
       }
     },

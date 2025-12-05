@@ -1,4 +1,5 @@
 import type { PluginTool, ToolResponse } from "@brains/plugins";
+import { formatAsEntity } from "@brains/utils";
 import type { GitSync } from "../lib/git-sync";
 
 export function createGitSyncTools(
@@ -11,10 +12,12 @@ export function createGitSyncTools(
       description: "Perform full git sync (commit, push, pull)",
       inputSchema: {},
       visibility: "anchor",
-      handler: async (): Promise<{ message: string }> => {
+      handler: async (): Promise<ToolResponse> => {
         await gitSync.sync();
         return {
+          success: true,
           message: "Git sync completed successfully",
+          formatted: "Git sync completed successfully",
         };
       },
     },
@@ -25,7 +28,18 @@ export function createGitSyncTools(
       visibility: "public",
       handler: async (): Promise<ToolResponse> => {
         const status = await gitSync.getStatus();
-        // Return the status wrapped in a ToolResponse structure
+
+        const formatted = formatAsEntity(
+          {
+            branch: status.branch ?? "N/A",
+            hasChanges: status.hasChanges ? "Yes" : "No",
+            ahead: status.ahead ?? 0,
+            behind: status.behind ?? 0,
+            lastCommit: status.lastCommit ?? "N/A",
+          },
+          { title: "Git Status" },
+        );
+
         return {
           success: true,
           status: "ok",
@@ -39,6 +53,7 @@ export function createGitSyncTools(
             remote: status.remote,
             files: status.files,
           },
+          formatted,
         };
       },
     },
