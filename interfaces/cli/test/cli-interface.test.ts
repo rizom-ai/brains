@@ -51,54 +51,43 @@ describe("CLIInterface", () => {
     });
   });
 
-  // Remove handleLocalCommand tests - it's a protected method
-  // Test commands through the public processInput method instead
-
-  describe("processInput", () => {
+  describe("processInput - Agent-based", () => {
     beforeEach(async () => {
       cliInterface = new CLIInterface();
       await harness.installPlugin(cliInterface);
     });
 
-    it("should process regular input through handleInput", async () => {
+    it("should route input to AgentService and receive response", async () => {
       const responseHandler = mock(() => {});
       cliInterface.registerResponseCallback(responseHandler);
 
       await cliInterface.processInput("Hello world");
 
-      // The CLI uses the base processQuery method which calls context.query
-      // The response should be from MockShell's generateContent
-      expect(responseHandler).toHaveBeenCalledWith(
-        "Generated content for shell:knowledge-query",
-      );
+      // The CLI now uses AgentService, which returns "Mock agent response" in tests
+      expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
     });
 
-    it("should handle /help command", async () => {
+    it("should handle natural language queries", async () => {
       const responseHandler = mock(() => {});
       cliInterface.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("/help");
+      await cliInterface.processInput("What is my brain about?");
 
-      // Help command shows available commands from the command registry
-      // Since MockShell has no commands registered, it should still show the header
-      expect(responseHandler).toHaveBeenCalledWith(
-        expect.stringContaining("Available commands:"),
-      );
+      // Agent responds to natural language
+      expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
     });
 
-    it("should handle unknown commands gracefully", async () => {
+    it("should handle tool-like requests through agent", async () => {
       const responseHandler = mock(() => {});
       cliInterface.registerResponseCallback(responseHandler);
 
-      await cliInterface.processInput("/unknown-command");
+      // User can ask naturally, agent decides to use tools
+      await cliInterface.processInput("Search for notes about TypeScript");
 
-      // Should receive unknown command message
-      expect(responseHandler).toHaveBeenCalledWith(
-        "Unknown command: /unknown-command. Type /help for available commands.",
-      );
+      expect(responseHandler).toHaveBeenCalledWith("Mock agent response");
     });
 
-    it("should handle error gracefully", async () => {
+    it("should handle errors gracefully", async () => {
       // Test error handling by checking response callback is still functional
       const responseHandler = mock(() => {});
       cliInterface.registerResponseCallback(responseHandler);
@@ -141,8 +130,8 @@ describe("CLIInterface", () => {
     });
   });
 
-  describe("Command Registration", () => {
-    it("should register interface commands through plugin system", async () => {
+  describe("Plugin Capabilities", () => {
+    it("should register as interface plugin", async () => {
       cliInterface = new CLIInterface({
         theme: {
           primaryColor: "#0066cc",
@@ -153,30 +142,13 @@ describe("CLIInterface", () => {
       // Register the CLI interface
       const capabilities = await harness.installPlugin(cliInterface);
 
-      // CLI provides its own commands (progress and clear)
+      // CLI no longer provides commands (agent-based architecture)
       expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands).toHaveLength(2);
+      expect(capabilities.commands).toHaveLength(0);
 
-      // Should still have tools and resources
+      // Should have tools and resources
       expect(capabilities.tools).toBeDefined();
       expect(capabilities.resources).toBeDefined();
-    });
-
-    it("should handle progress command", async () => {
-      cliInterface = new CLIInterface();
-      await harness.installPlugin(cliInterface);
-
-      const responseHandler = mock(() => {});
-      cliInterface.registerResponseCallback(responseHandler);
-
-      // Since commands are registered through the plugin system,
-      // and the MockShell doesn't know about CLI-specific commands,
-      // it will return "Unknown command"
-      await cliInterface.processInput("/progress");
-
-      expect(responseHandler).toHaveBeenCalledWith(
-        "Unknown command: /progress. Type /help for available commands.",
-      );
     });
   });
 });

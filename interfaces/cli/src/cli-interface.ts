@@ -1,60 +1,61 @@
 import {
-  MessageInterfacePlugin,
-  type MessageInterfacePluginContext,
+  InterfacePlugin,
+  type InterfacePluginContext,
   PluginError,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
-import type {
-  MessageContext,
-  Command,
-  UserPermissionLevel,
-  JobProgressEvent,
-  JobContext,
-} from "@brains/plugins";
+import type { JobProgressEvent, JobContext } from "@brains/plugins";
+import type { IAgentService } from "@brains/agent-service";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";
-import { progressReducer, formatProgressMessage } from "./handlers/progress";
-import { MessageHandlers } from "./handlers";
-import { createCLICommands } from "./commands";
+import { progressReducer } from "./handlers/progress";
 import packageJson from "../package.json";
 
-export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
+/**
+ * CLI Interface - Agent-based architecture
+ *
+ * This interface:
+ * - Routes ALL messages to AgentService (no command parsing)
+ * - Uses AI agent for natural language interaction
+ * - Keeps local UI commands (/exit, /clear, /progress) for CLI-specific controls
+ */
+export class CLIInterface extends InterfacePlugin<CLIConfig> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private progressEvents = new Map<string, JobProgressEvent>();
   private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
-  private messageHandlers = new MessageHandlers();
+  private responseCallback: ((response: string) => void) | undefined;
+  private agentService?: IAgentService;
+
+  // Track pending confirmations
+  private pendingConfirmation = false;
 
   constructor(config: Partial<CLIConfig> = {}) {
     super("cli", packageJson, config, cliConfigSchema);
   }
 
-  public override determineUserPermissionLevel(
-    _userId: string,
-  ): UserPermissionLevel {
-    return "anchor";
-  }
-
   /**
-   * Get the interface permission grant for CLI
-   * CLI grants anchor permissions due to local access assumption
+   * Get AgentService, throwing if not initialized
    */
-  protected getInterfacePermissionGrant(): UserPermissionLevel {
-    return "anchor";
+  private getAgentService(): IAgentService {
+    if (!this.agentService) {
+      throw new Error("AgentService not initialized - plugin not registered");
+    }
+    return this.agentService;
   }
 
   /**
    * Register handlers and other initialization when plugin is registered
    */
   protected override async onRegister(
-    context: MessageInterfacePluginContext,
+    context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
 
-    // Mark the CLI channel as a direct message
-    this.markAsDirectMessage("cli");
-    // Test handlers and MessageBus subscriptions are now handled in the base MessageInterfacePlugin class
-    // Progress events will be routed to our handleJobProgressEvent and handleBatchProgressEvent methods
+    // Get AgentService from context
+    this.agentService = context.agentService;
+
+    this.logger.debug("CLI interface registered with AgentService");
   }
 
   /**
@@ -82,14 +83,23 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
    * Register callback to receive response events
    */
   public registerResponseCallback(callback: (response: string) => void): void {
-    this.messageHandlers.registerResponseCallback(callback);
+    this.responseCallback = callback;
   }
 
   /**
    * Unregister response callbacks
    */
   public unregisterMessageCallbacks(): void {
-    this.messageHandlers.unregisterMessageCallbacks();
+    this.responseCallback = undefined;
+  }
+
+  /**
+   * Send response to the CLI UI
+   */
+  private sendResponse(response: string): void {
+    if (this.responseCallback) {
+      this.responseCallback(response);
+    }
   }
 
   /**
@@ -97,7 +107,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
    */
   protected async handleProgressEvent(
     progressEvent: JobProgressEvent,
-    context: JobContext,
+    _context: JobContext,
   ): Promise<void> {
     // Show all progress events, not just owned jobs
     // This allows monitoring of system-initiated jobs, auto-extraction, etc.
@@ -132,77 +142,14 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       this.progressCallback(allEvents);
     }
 
-    // For inline message editing, only update if we have tracking info
-    const trackingInfo = this.getJobTracking(
-      progressEvent.id,
-      context.rootJobId,
-    );
-
-    if (trackingInfo) {
-      // Edit message for inline progress display (for CLI-initiated jobs)
-      const message = formatProgressMessage(progressEvent);
-      if (message) {
-        await this.editMessage(context.rootJobId, message, {
-          userId: trackingInfo.userId,
-          channelId: trackingInfo.channelId,
-          messageId: context.rootJobId,
-          timestamp: new Date(),
-          interfaceType: "cli",
-          userPermissionLevel: "anchor",
-        });
-      }
-    } else {
-      // For non-owned jobs, just log them (they'll show in status bar)
-      this.logger.debug("Progress event for system job", {
-        jobId: progressEvent.id,
-        rootJobId: context.rootJobId,
-        status: progressEvent.status,
-        progress: progressEvent.progress,
-        operationType: progressEvent.metadata.operationType,
-        operationTarget: progressEvent.metadata.operationTarget,
-      });
-    }
-  }
-
-  /**
-   * Override getCommands to add CLI-specific commands
-   */
-  protected override async getCommands(): Promise<Command[]> {
-    // Create CLI-specific commands with state management
-    // Note: showProgress state is managed elsewhere in the CLI
-    const commandState = {
-      showProgress: false, // This is a placeholder - actual state should be managed by the CLI instance
-    };
-
-    return createCLICommands(commandState);
-  }
-
-  /**
-   * The CLI doesn't need to override processQuery anymore since the base class
-   * in MessageInterfacePlugin handles it correctly. The InterfacePluginContext
-   * automatically grants trusted permissions for interface plugins.
-   */
-
-  /**
-   * Send a message using CLI callback system
-   */
-  protected async sendMessage(
-    content: string,
-    context: MessageContext,
-    replyToId?: string,
-  ): Promise<string> {
-    return this.messageHandlers.sendMessage(content, context, replyToId);
-  }
-
-  /**
-   * Edit message - for CLI, just send new message (React component will handle replacement)
-   */
-  protected async editMessage(
-    messageId: string,
-    content: string,
-    context: MessageContext,
-  ): Promise<void> {
-    return this.messageHandlers.editMessage(messageId, content, context);
+    // Progress is displayed in status bar - no inline message editing needed
+    this.logger.debug("Progress event received", {
+      jobId: progressEvent.id,
+      status: progressEvent.status,
+      progress: progressEvent.progress,
+      operationType: progressEvent.metadata.operationType,
+      operationTarget: progressEvent.metadata.operationTarget,
+    });
   }
 
   /**
@@ -279,28 +226,70 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   }
 
   /**
-   * Get the channel name for conversation metadata
+   * Process user input - public API for UI components
+   * Routes all input to AgentService for natural language processing
    */
-  protected override async getChannelName(_channelId: string): Promise<string> {
-    // For CLI, always use "CLI Terminal" as the human-readable name
-    return "CLI Terminal";
+  public async processInput(input: string): Promise<void> {
+    const conversationId = "cli"; // Single conversation for CLI
+
+    try {
+      // Check for confirmation response
+      if (this.pendingConfirmation) {
+        await this.handleConfirmationResponse(input, conversationId);
+        return;
+      }
+
+      // Route message to AgentService with anchor permissions (CLI is local)
+      const response = await this.getAgentService().chat(
+        input,
+        conversationId,
+        {
+          userPermissionLevel: "anchor",
+          interfaceType: "cli",
+          channelId: "cli",
+          channelName: "CLI Terminal",
+        },
+      );
+
+      // Track pending confirmation if returned
+      if (response.pendingConfirmation) {
+        this.pendingConfirmation = true;
+      }
+
+      // Send response to UI
+      this.sendResponse(response.text);
+    } catch (error) {
+      this.logger.error("Error processing input", { error, input });
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      this.sendResponse(`**Error:** ${errorMessage}`);
+    }
   }
 
   /**
-   * Process user input - public API for UI components, testing, and programmatic use
-   * Creates appropriate context and delegates to handleInput
+   * Handle confirmation responses (yes/no)
    */
-  public override async processInput(input: string): Promise<void> {
-    const context: MessageContext = {
-      userId: "cli-user",
-      channelId: "cli",
-      messageId: `cli-${Date.now()}`,
-      timestamp: new Date(),
-      interfaceType: "cli",
-      userPermissionLevel: "anchor", // CLI users have anchor permissions
-    };
+  private async handleConfirmationResponse(
+    message: string,
+    conversationId: string,
+  ): Promise<void> {
+    const normalizedMessage = message.toLowerCase().trim();
+    const isConfirmed =
+      normalizedMessage === "yes" ||
+      normalizedMessage === "y" ||
+      normalizedMessage === "confirm";
 
-    await this.handleInput(input, context);
+    // Clear pending confirmation
+    this.pendingConfirmation = false;
+
+    // Call AgentService to confirm or cancel
+    const response = await this.getAgentService().confirmPendingAction(
+      conversationId,
+      isConfirmed,
+    );
+
+    // Send response to UI
+    this.sendResponse(response.text);
   }
 
   /**

@@ -21,7 +21,8 @@ export default function EnhancedApp({
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "system",
-      content: "Welcome to Brain CLI! Type /help for available commands.",
+      content:
+        "Welcome to Brain CLI! Ask me anything or tell me what you'd like to do.",
       timestamp: new Date(),
     },
   ]);
@@ -119,6 +120,7 @@ export default function EnhancedApp({
     async (value: string): Promise<void> => {
       if (!value.trim()) return;
 
+      // Add user message to history
       setMessages((prev) => [
         ...prev,
         {
@@ -128,6 +130,7 @@ export default function EnhancedApp({
         },
       ]);
 
+      // Handle local UI commands (these don't go to the agent)
       if (value === "/exit" || value === "/quit") {
         exit();
         return;
@@ -137,7 +140,7 @@ export default function EnhancedApp({
         setMessages([
           {
             role: "system",
-            content: "Screen cleared. Type /help for available commands.",
+            content: "Screen cleared.",
             timestamp: new Date(),
           },
         ]);
@@ -151,14 +154,15 @@ export default function EnhancedApp({
           {
             role: "system",
             content: showDetailedProgress
-              ? "Progress details hidden. Type /progress to show again."
-              : "Showing detailed progress. Type /progress to hide.",
+              ? "Progress details hidden."
+              : "Showing detailed progress.",
             timestamp: new Date(),
           },
         ]);
         return;
       }
 
+      // Send all other input to the agent
       setIsLoading(true);
       setIsConnected(true);
       await cliInterface.processInput(value);
@@ -176,7 +180,7 @@ export default function EnhancedApp({
       setMessages([
         {
           role: "system",
-          content: "Screen cleared. Type /help for available commands.",
+          content: "Screen cleared.",
           timestamp: new Date(),
         },
       ]);
