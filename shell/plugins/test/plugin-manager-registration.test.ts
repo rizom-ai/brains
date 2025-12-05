@@ -2,15 +2,9 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { CorePlugin } from "../src/core/core-plugin";
 import { PluginTestHarness } from "../src/test/harness";
-import type {
-  PluginTool,
-  PluginResource,
-  Command,
-  IShell,
-} from "../src/interfaces";
+import type { PluginTool, PluginResource, IShell } from "../src/interfaces";
 import type { ServiceRegistry } from "@brains/service-registry";
 import { createSilentLogger } from "@brains/utils";
-import type { CommandRegistry } from "@brains/command-registry";
 import type { IMCPService } from "@brains/mcp-service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "@brains/utils";
@@ -58,25 +52,11 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
       },
     ];
   }
-
-  protected override async getCommands(): Promise<Command[]> {
-    return [
-      {
-        name: "test:command",
-        description: "Test command",
-        handler: async () => ({
-          message: "executed",
-          type: "message" as const,
-        }),
-      },
-    ];
-  }
 }
 
 describe("PluginManager - Direct Registration", () => {
   let pluginManager: PluginManager;
   let mockServiceRegistry: ServiceRegistry;
-  let mockCommandRegistry: CommandRegistry;
   let mockMCPService: IMCPService;
   let mockShell: IShell;
   let registeredTools: Array<{ pluginId: string; tool: PluginTool }> = [];
@@ -84,7 +64,6 @@ describe("PluginManager - Direct Registration", () => {
     pluginId: string;
     resource: PluginResource;
   }> = [];
-  let registeredCommands: Array<{ name: string }> = [];
 
   beforeEach(() => {
     // Reset PluginManager singleton
@@ -92,21 +71,6 @@ describe("PluginManager - Direct Registration", () => {
     // Reset registered items
     registeredTools = [];
     registeredResources = [];
-    registeredCommands = [];
-
-    // Create mock command registry
-    const registerCommandMock = mock((_pluginId: string, command: Command) => {
-      registeredCommands.push({ name: command.name });
-    });
-
-    mockCommandRegistry = {
-      registerCommand: registerCommandMock,
-      executeCommand: mock(() => Promise.resolve()),
-      getCommand: mock(() => undefined),
-      getAllCommands: mock(() => []),
-      listCommands: mock(() => []),
-      findCommand: mock(() => undefined),
-    } as unknown as CommandRegistry;
 
     // Create mock MCP service
     const registerToolMock = mock((pluginId, tool) => {
@@ -131,14 +95,6 @@ describe("PluginManager - Direct Registration", () => {
     mockShell = harness.getShell();
 
     // Override the shell's registration methods to use our mocked registries
-    mockShell.registerPluginCommands = mock(
-      (_pluginId: string, commands: Command[]) => {
-        for (const command of commands) {
-          mockCommandRegistry.registerCommand(_pluginId, command);
-        }
-      },
-    );
-
     mockShell.registerPluginTools = mock(
       (_pluginId: string, tools: PluginTool[]) => {
         for (const tool of tools) {
@@ -157,7 +113,6 @@ describe("PluginManager - Direct Registration", () => {
 
     // Create mock service registry
     const resolveMock = mock((name: string) => {
-      if (name === "commandRegistry") return mockCommandRegistry;
       if (name === "mcpService") return mockMCPService;
       if (name === "shell") return mockShell;
       throw new Error(`Unknown service: ${name}`);
@@ -217,22 +172,6 @@ describe("PluginManager - Direct Registration", () => {
       );
     });
 
-    it("should register commands directly with CommandRegistry", async () => {
-      const plugin = new TestPlugin();
-      pluginManager.registerPlugin(plugin);
-      await pluginManager.initializePlugins();
-
-      // Check that command was registered
-      expect(mockCommandRegistry.registerCommand).toHaveBeenCalledTimes(1);
-      expect(mockCommandRegistry.registerCommand).toHaveBeenCalledWith(
-        "test-plugin",
-        expect.objectContaining({
-          name: "test:command",
-          description: "Test command",
-        }),
-      );
-    });
-
     it("should handle plugins with no capabilities", async () => {
       class EmptyPlugin extends CorePlugin<Record<string, never>> {
         constructor() {
@@ -252,7 +191,6 @@ describe("PluginManager - Direct Registration", () => {
       // Should not crash and should not register anything
       expect(mockMCPService.registerTool).not.toHaveBeenCalled();
       expect(mockMCPService.registerResource).not.toHaveBeenCalled();
-      expect(mockCommandRegistry.registerCommand).not.toHaveBeenCalled();
     });
 
     it("should register capabilities from multiple plugins", async () => {
@@ -304,20 +242,17 @@ describe("PluginManager - Direct Registration", () => {
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 
-      // MessageBus should not be used for tool/resource/command registration
+      // MessageBus should not be used for tool/resource registration
       const mockFn = emitMock as ReturnType<typeof mock>;
       const calls = mockFn.mock.calls as Array<[string, ...unknown[]]>;
       const hasRegistrationEvent = calls.some((call) =>
-        /system:tool:register|system:resource:register|system:command:register/.test(
-          call[0],
-        ),
+        /system:tool:register|system:resource:register/.test(call[0]),
       );
       expect(hasRegistrationEvent).toBe(false);
 
       // Direct registration should be used instead
       expect(mockMCPService.registerTool).toHaveBeenCalled();
       expect(mockMCPService.registerResource).toHaveBeenCalled();
-      expect(mockCommandRegistry.registerCommand).toHaveBeenCalled();
     });
   });
 
@@ -369,9 +304,8 @@ describe("PluginManager - Direct Registration", () => {
       expect(registeredTools).toHaveLength(1);
       expect(registeredTools[0]?.tool.name).toBe("test:tool2");
 
-      // Resource and command should still be registered
+      // Resource should still be registered
       expect(mockMCPService.registerResource).toHaveBeenCalled();
-      expect(mockCommandRegistry.registerCommand).toHaveBeenCalled();
     });
   });
 });

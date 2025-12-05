@@ -142,10 +142,7 @@ describe("CLIInterface", () => {
       // Register the CLI interface
       const capabilities = await harness.installPlugin(cliInterface);
 
-      // CLI no longer provides commands (agent-based architecture)
-      expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands).toHaveLength(0);
-
+      // CLI uses agent-based architecture, no commands
       // Should have tools and resources
       expect(capabilities.tools).toBeDefined();
       expect(capabilities.resources).toBeDefined();

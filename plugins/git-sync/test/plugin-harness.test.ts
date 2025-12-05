@@ -85,14 +85,6 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
       expect(toolNames).toContain("git-sync_status");
     });
 
-    it("should provide commands", () => {
-      expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands.length).toBe(1);
-
-      const commandNames = capabilities.commands.map((c) => c.name);
-      expect(commandNames).toContain("git-sync");
-    });
-
     it("should provide tool metadata", () => {
       const tools = capabilities.tools;
 

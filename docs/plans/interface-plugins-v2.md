@@ -1,7 +1,7 @@
 # Interface Plugins v2: Agent-based Architecture
 
 **Date**: 2025-12-02
-**Status**: In Progress (Phase 4 Cleanup Started)
+**Status**: Complete
 **Goal**: Simplify MessageInterfacePlugins by replacing command-based interaction with AI agent-based interaction
 
 ## Executive Summary
@@ -331,21 +331,21 @@ For these operations, ask for confirmation before executing:
 - [x] Permission-based tool filtering per message
 - [x] Both v1 and v2 exported during transition
 
-### Phase 3: CLI Interface
+### Phase 3: CLI Interface ✅
 
-- [ ] New CLI interface using AgentService
-- [ ] Simple REPL with agent relay
-- [ ] Handles confirmation prompts
+- [x] New CLI interface using AgentService
+- [x] Simple REPL with agent relay
+- [x] Handles confirmation prompts
 
-### Phase 4: Cleanup (In Progress)
+### Phase 4: Cleanup ✅
 
 - [x] Old MatrixInterface (v1) removed
 - [x] MatrixInterfaceV2 renamed to MatrixInterface
-- [ ] Old CLI implementation removed
-- [ ] CommandRegistry package deleted
-- [ ] Command definitions removed from all 8 plugins
-- [ ] MessageInterfacePlugin collapsed into InterfacePlugin
-- [ ] All command-related tests removed/updated
+- [x] Old CLI implementation removed
+- [x] CommandRegistry package deleted
+- [x] Command definitions removed from all 8 plugins
+- [x] MessageInterfacePlugin collapsed into InterfacePlugin
+- [x] All command-related tests removed/updated
 
 ## Outstanding Issues
 
@@ -371,26 +371,122 @@ Added `system_get-profile` tool and updated AgentService system prompt to clarif
 
 ### 4. Job Progress Tracking Gap
 
-**Status**: Design issue identified
+**Status**: Solution designed, ready for implementation
 
-The old MatrixInterface v1 tracked job progress via:
+**Problem**: Agent calls tools → tools queue jobs → interface doesn't know about jobs
 
-1. `createJobWithTracking()` when commands created jobs
-2. `setJobTracking()` to associate jobs with Matrix rooms
-3. `handleProgressEvent()` to edit messages with progress updates
+**Solution**: Use existing message bus infrastructure
 
-The new agent-based architecture has a gap:
+The `job-progress` events already contain routing metadata:
 
-- Agent calls tools → tools queue jobs internally → interface doesn't know about jobs
-- No mechanism for interface to receive progress updates for long-running operations
-- Affects: site-builder (preview/production builds), git-sync, etc.
+```typescript
+interface JobProgressEvent {
+  progressToken?: string | number;
+  userId?: string;
+  interfaceType?: string; // "matrix" | "cli" | "mcp"
+  channelId?: string; // Matrix room, CLI session, etc.
+  // ... progress data
+}
+```
 
-**Potential solutions**:
+Each interface subscribes to message bus and handles its own jobs:
 
-1. Tools return job IDs in their results, agent can report them
-2. AgentService emits job events that interface can subscribe to
-3. Tools accept a callback for progress updates
-4. Interface polls for active jobs (less ideal)
+```
+                    Job runs → JobProgressMonitor
+                                     ↓
+                          message bus: "job-progress"
+                                     ↓
+              ┌──────────────────────┼──────────────────────┐
+              ↓                      ↓                      ↓
+         MCP Handler           Matrix Handler          CLI Handler
+              ↓                      ↓                      ↓
+    server.notification()     editMessage()         updateDisplay()
+```
+
+**Implementation per interface:**
+
+| Interface | How it tracks    | How it updates              |
+| --------- | ---------------- | --------------------------- |
+| MCP       | progressToken    | `server.notification()`     |
+| Matrix    | roomId + eventId | Edit message via Matrix API |
+| CLI       | session context  | Ink component re-render     |
+
+**Tasks:**
+
+- [ ] MCP: Send notifications back via progressToken
+- [ ] Matrix: Restore job tracking (store roomId → eventId, subscribe to job-progress, edit messages)
+- [ ] CLI: Subscribe to job-progress, update progress display component
+
+### 5. Agent Claims to Show Data But Doesn't
+
+**Status**: Solution designed
+
+**Problem**: When asked to list data (e.g., "list all routes"), the agent responds with:
+
+- "The list shows all 32 registered routes..."
+- "As you can see, this lists..."
+
+But the actual data is never included in the message. Model sees tool results but chooses not to include them.
+
+**Root cause**: Relying on model behavior to include tool data is fragile. Different models behave differently, and prompt instructions are often ignored.
+
+**Solution**: Structured response with separate data section
+
+Return both AI text and formatted tool data separately:
+
+```typescript
+interface AgentResponse {
+  text: string; // AI's explanation/context
+  data?: ToolResultData[]; // Actual tool results, formatted
+  usage: TokenUsage;
+}
+
+interface ToolResultData {
+  toolName: string;
+  result: unknown; // Raw tool output
+  formatted?: string; // Pre-formatted markdown (tables, lists)
+}
+```
+
+Interfaces render both:
+
+- AI text provides context/explanation
+- Data section shows actual results (tables in CLI, formatted messages in Matrix)
+
+**Tasks**:
+
+- [ ] Update `AgentResponse` type to include `data` field
+- [ ] Update `AgentService.chat()` to extract and format tool results
+- [ ] Create tool result formatters (for lists, entities, etc.)
+- [ ] Update Matrix interface to render data section
+- [ ] Update CLI interface to render data section
+- [ ] Update MCP interface to include data in response
+
+### 6. Tool Audit - Relevance and Permissions ✅
+
+**Status**: Completed
+
+**Changes made**:
+
+1. **Set visibility on all tools without explicit visibility**:
+   - link: capture=anchor, list/search/get=public
+   - summary: delete=anchor, others=public
+   - topics: extract/merge=anchor, list/get/search=public
+   - blog: generate/publish/generate-rss=anchor
+
+2. **Standardized tool naming to `plugin_action` format**:
+   - summary: `summary-get` → `summary_get`
+   - topics: `topics-extract` → `topics_extract`
+   - blog: `generate-rss` → `blog_generate-rss`
+
+3. **Added tools to decks plugin**:
+   - `decks_list` (public) - List all presentation decks
+   - `decks_get` (public) - Get a specific deck by ID or slug
+
+4. **System tools reviewed** - All 10 tools serve distinct purposes:
+   - `system_query` vs `system_search` are different (semantic vs type-filtered)
+   - Conversation tools useful for context understanding
+   - No redundancy found
 
 ## Risks & Mitigations
 

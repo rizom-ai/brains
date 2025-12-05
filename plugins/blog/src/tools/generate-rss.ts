@@ -34,9 +34,10 @@ export type GenerateRSSInput = z.infer<typeof generateRSSInputSchema>;
  */
 export function createGenerateRSSTool(
   context: ServicePluginContext,
+  pluginId: string,
 ): PluginTool {
   return {
-    name: "generate-rss",
+    name: `${pluginId}_generate-rss`,
     description:
       "Generate RSS 2.0 feed XML from published blog posts and write to file",
     inputSchema: generateRSSInputSchema.shape,

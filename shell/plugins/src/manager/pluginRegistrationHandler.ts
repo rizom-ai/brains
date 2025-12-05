@@ -6,7 +6,6 @@ import type {
   PluginResourceRegisterEvent,
 } from "./types";
 import type { PluginTool, PluginResource } from "../interfaces";
-import type { Command } from "@brains/command-registry";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { IShell } from "../interfaces";
 
@@ -150,41 +149,6 @@ export class PluginRegistrationHandler {
   }
 
   /**
-   * Register plugin commands
-   */
-  public async registerPluginCommands(
-    pluginId: string,
-    commands: Command[],
-  ): Promise<void> {
-    this.logger.debug(
-      `Registering ${commands.length} commands for plugin ${pluginId}`,
-    );
-
-    // Get the message bus from shell
-    const shell = this.serviceRegistry.resolve<IShell>("shell");
-    const messageBus = shell.getMessageBus();
-
-    for (const command of commands) {
-      this.logger.debug(`Registering command: /${command.name}`);
-
-      // Publish to MessageBus for CommandRegistry to handle
-      await messageBus.send(
-        "system:command:register",
-        {
-          pluginId,
-          command,
-          timestamp: Date.now(),
-        },
-        "PluginRegistrationHandler",
-      );
-    }
-
-    this.logger.info(
-      `Successfully registered ${commands.length} commands for plugin ${pluginId}`,
-    );
-  }
-
-  /**
    * Register all plugin capabilities (tools and resources)
    */
   public async registerPluginCapabilities(
@@ -192,11 +156,10 @@ export class PluginRegistrationHandler {
     capabilities: {
       tools: PluginTool[];
       resources: PluginResource[];
-      commands: Command[];
     },
   ): Promise<void> {
     this.logger.debug(
-      `Registering capabilities for plugin ${pluginId}: ${capabilities.tools.length} tools, ${capabilities.resources.length} resources, ${capabilities.commands.length} commands`,
+      `Registering capabilities for plugin ${pluginId}: ${capabilities.tools.length} tools, ${capabilities.resources.length} resources`,
     );
 
     // Register tools
@@ -204,9 +167,6 @@ export class PluginRegistrationHandler {
 
     // Register resources
     await this.registerPluginResources(pluginId, capabilities.resources);
-
-    // Register commands
-    await this.registerPluginCommands(pluginId, capabilities.commands);
 
     this.logger.info(
       `Successfully registered all capabilities for plugin ${pluginId}`,

@@ -53,7 +53,6 @@ class TestPlugin implements Plugin {
     return {
       tools: [],
       resources: [],
-      commands: [],
     };
   }
 }
@@ -448,7 +447,6 @@ describe("PluginManager", (): void => {
             },
           ],
           resources: [],
-          commands: [],
         };
       },
     };

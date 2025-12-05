@@ -14,8 +14,7 @@ import {
 } from "./schemas/summary";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import { createSummaryTools } from "./tools/index";
-import { createSummaryCommands } from "./commands/index";
-import type { PluginTool, Command } from "@brains/plugins";
+import type { PluginTool } from "@brains/plugins";
 import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
@@ -86,13 +85,6 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       throw new Error("Plugin not initialized");
     }
     return createSummaryTools(this.context, this.config, this.logger);
-  }
-
-  protected override async getCommands(): Promise<Command[]> {
-    if (!this.context) {
-      throw new Error("Plugin not initialized");
-    }
-    return createSummaryCommands(this.context, this.config, this.logger);
   }
 
   /**

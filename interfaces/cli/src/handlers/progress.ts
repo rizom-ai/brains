@@ -54,4 +54,3 @@ export function formatProgressMessage(progressEvent: JobProgressEvent): string {
 }
 
 // The handleProgressEvent function has been moved to CLIInterface class
-// and now uses the inherited job tracking logic from MessageInterfacePlugin

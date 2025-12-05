@@ -58,7 +58,7 @@ describe("Summary Tools", () => {
     it("should have correct metadata", () => {
       const tool = createGetTool(context, config, logger);
 
-      expect(tool.name).toBe("summary-get");
+      expect(tool.name).toBe("summary_get");
       expect(tool.description).toContain("Get chronological summary");
       expect(tool.inputSchema).toBeDefined();
     });
@@ -95,7 +95,7 @@ describe("Summary Tools", () => {
     it("should have correct metadata", () => {
       const tool = createListTool(context, config, logger);
 
-      expect(tool.name).toBe("summary-list");
+      expect(tool.name).toBe("summary_list");
       expect(tool.description).toContain("List all conversation summaries");
       expect(tool.inputSchema).toBeDefined();
     });
@@ -129,7 +129,7 @@ describe("Summary Tools", () => {
     it("should have correct metadata", () => {
       const tool = createExportTool(context, config, logger);
 
-      expect(tool.name).toBe("summary-export");
+      expect(tool.name).toBe("summary_export");
       expect(tool.description).toContain(
         "Export summary as formatted markdown",
       );
@@ -153,7 +153,7 @@ describe("Summary Tools", () => {
     it("should have correct metadata", () => {
       const tool = createDeleteTool(context, config, logger);
 
-      expect(tool.name).toBe("summary-delete");
+      expect(tool.name).toBe("summary_delete");
       expect(tool.description).toContain("Delete a conversation summary");
       expect(tool.inputSchema).toBeDefined();
     });
@@ -175,7 +175,7 @@ describe("Summary Tools", () => {
     it("should have correct metadata", () => {
       const tool = createStatsTool(context, config, logger);
 
-      expect(tool.name).toBe("summary-stats");
+      expect(tool.name).toBe("summary_stats");
       expect(tool.description).toContain("Get summary statistics");
       expect(tool.inputSchema).toBeDefined();
     });

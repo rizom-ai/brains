@@ -1,16 +1,10 @@
-import type {
-  Plugin,
-  PluginTool,
-  Command,
-  CorePluginContext,
-} from "@brains/plugins";
+import type { Plugin, PluginTool, CorePluginContext } from "@brains/plugins";
 import { CorePlugin } from "@brains/plugins";
 import { GitSync } from "./lib/git-sync";
 import { gitSyncConfigSchema, type GitSyncConfig } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
 import { createGitSyncTools } from "./tools";
-import { createGitSyncCommands } from "./commands";
 import packageJson from "../package.json";
 
 /**
@@ -110,13 +104,6 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
       return { success: true };
     });
-  }
-
-  /**
-   * Define the commands provided by this plugin
-   */
-  override async getCommands(): Promise<Command[]> {
-    return createGitSyncCommands(this.getGitSync());
   }
 
   /**

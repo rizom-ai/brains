@@ -36,6 +36,7 @@ export function createLinkTools(
       name: `${pluginId}_capture`,
       description: "Capture a web link with AI-powered content extraction",
       inputSchema: captureParamsSchema.shape,
+      visibility: "anchor",
       handler: async (input): Promise<ToolResponse> => {
         const { url } = captureParamsSchema.parse(input);
 
@@ -60,6 +61,7 @@ export function createLinkTools(
       name: `${pluginId}_list`,
       description: "List captured links",
       inputSchema: listParamsSchema.shape,
+      visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
         const { limit } = listParamsSchema.parse(input);
 
@@ -84,6 +86,7 @@ export function createLinkTools(
       name: `${pluginId}_search`,
       description: "Search captured links",
       inputSchema: searchParamsSchema.shape,
+      visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
         const { query, keywords, limit } = searchParamsSchema.parse(input);
 
@@ -109,6 +112,7 @@ export function createLinkTools(
       name: `${pluginId}_get`,
       description: "Get a specific link by ID",
       inputSchema: getParamsSchema.shape,
+      visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
         const { id } = getParamsSchema.parse(input);
 

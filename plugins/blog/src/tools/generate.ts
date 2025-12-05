@@ -50,6 +50,7 @@ export function createGenerateTool(
     description:
       "Queue a job to create a new blog post draft (provide title and content, or just a prompt for AI generation)",
     inputSchema: generateInputSchema.shape,
+    visibility: "anchor",
     handler: async (input: unknown): Promise<ToolResponse> => {
       try {
         const parsed = generateInputSchema.parse(input);

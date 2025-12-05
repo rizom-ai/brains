@@ -43,21 +43,6 @@ describe("SystemPlugin", () => {
       expect(toolNames).toContain("system_get-messages");
       expect(toolNames).toContain("system_get-status");
     });
-
-    it("should provide all expected commands", () => {
-      expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands.length).toBe(8);
-
-      const commandNames = capabilities.commands.map((c) => c.name);
-      expect(commandNames).toContain("search");
-      expect(commandNames).toContain("get");
-      expect(commandNames).toContain("get-job-status");
-      expect(commandNames).toContain("get-conversation");
-      expect(commandNames).toContain("list-conversations");
-      expect(commandNames).toContain("get-messages");
-      expect(commandNames).toContain("identity");
-      expect(commandNames).toContain("status");
-    });
   });
 
   describe("Configuration", () => {

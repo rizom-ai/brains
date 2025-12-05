@@ -1,6 +1,5 @@
 import { CorePlugin } from "@brains/plugins";
-import type { CorePluginContext } from "@brains/plugins";
-import type { Command, CommandResponse } from "@brains/command-registry";
+import type { CorePluginContext, PluginTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 /**
@@ -174,122 +173,46 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
   }
 
   /**
-   * COMMAND REGISTRATION
+   * TOOL REGISTRATION
    *
-   * Commands are the primary way users interact with plugins.
+   * Tools are the primary way AI agents interact with plugins.
    *
    * Best Practices:
-   * - Use namespaced command names (e.g., "calc:add")
-   * - Provide clear descriptions and usage examples
-   * - Validate arguments thoroughly
-   * - Return structured responses using registered templates
+   * - Use namespaced tool names (e.g., "calc_add")
+   * - Provide clear descriptions
+   * - Define input schemas with Zod
+   * - Return structured responses
    */
-  protected override async getCommands(): Promise<Command[]> {
+  protected override async getTools(): Promise<PluginTool[]> {
     return [
       {
-        name: "calc:add",
+        name: "calc_add",
         description: "Add two numbers",
-        usage: "calc:add <num1> <num2>",
-        handler: async (args): Promise<CommandResponse> => {
-          if (args.length < 2) {
-            return {
-              type: "message",
-              message: "Error: Please provide two numbers",
-            };
-          }
-          const a = Number(args[0]);
-          const b = Number(args[1]);
-          if (isNaN(a) || isNaN(b)) {
-            return {
-              type: "message",
-              message: "Error: Please provide two valid numbers",
-            };
-          }
-          this.info(`Adding ${a} + ${b}`);
+        inputSchema: {
+          a: z.number().describe("First number"),
+          b: z.number().describe("Second number"),
+        },
+        handler: async (input: unknown) => {
+          const args = z.object({ a: z.number(), b: z.number() }).parse(input);
+          this.info(`Adding ${args.a} + ${args.b}`);
           return {
-            type: "message",
-            message: `${a} + ${b} = ${a + b}`,
+            message: `${args.a} + ${args.b} = ${args.a + args.b}`,
           };
         },
       },
       {
-        name: "calc:format",
+        name: "calc_format",
         description: "Format a calculation result",
-        usage: "calc:format <result>",
-        handler: async (args): Promise<CommandResponse> => {
-          const result = args[0];
-          // Test content formatting
+        inputSchema: {
+          result: z.string().describe("Result to format"),
+        },
+        handler: async (input: unknown) => {
+          const args = z.object({ result: z.string() }).parse(input);
           const formatted = this.formatContent("calculation-result", {
-            result,
+            result: args.result,
             timestamp: new Date().toISOString(),
           });
-          return {
-            type: "message",
-            message: formatted,
-          };
-        },
-      },
-      {
-        name: "calc:stats",
-        description: "Show calculation statistics",
-        usage: "calc:stats",
-        handler: async (_args, context): Promise<CommandResponse> => {
-          // Demonstrate permission-based responses
-          if (context.userPermissionLevel === "public") {
-            return {
-              type: "message",
-              message: "Statistics are only available for trusted users",
-            };
-          }
-
-          // In a real plugin, this might track actual usage
-          return {
-            type: "message",
-            message: `📊 Calculator Statistics:\n- Total calculations: 42\n- Most used operation: add\n- User level: ${context.userPermissionLevel}`,
-          };
-        },
-      },
-      {
-        name: "calc:history",
-        description: "Show recent calculations",
-        usage: "calc:history [limit]",
-        handler: async (args, _context): Promise<CommandResponse> => {
-          const limit = args[0] ? parseInt(args[0], 10) : 5;
-
-          // Use the context to access entity service (read-only)
-          const ctx = this.getContext();
-
-          try {
-            // Search for calculation entities using the entity service
-            const results = await ctx.entityService.search("calculation", {
-              limit,
-              sortBy: "created",
-              sortDirection: "desc",
-            });
-
-            if (results.length === 0) {
-              return {
-                type: "message",
-                message:
-                  "No calculation history found. Try performing some calculations first!",
-              };
-            }
-
-            const history = results
-              .map((result, index) => `${index + 1}. ${result.excerpt}`)
-              .join("\n");
-
-            return {
-              type: "message",
-              message: `📜 Recent calculations:\n${history}`,
-            };
-          } catch (error) {
-            this.error("Failed to fetch calculation history", error);
-            return {
-              type: "message",
-              message: "Failed to retrieve calculation history",
-            };
-          }
+          return { message: formatted };
         },
       },
     ];

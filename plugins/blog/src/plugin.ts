@@ -268,7 +268,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     return [
       createGenerateTool(this.pluginContext, this.config, this.id),
       createPublishTool(this.pluginContext, this.id),
-      createGenerateRSSTool(this.pluginContext),
+      createGenerateRSSTool(this.pluginContext, this.id),
     ];
   }
 

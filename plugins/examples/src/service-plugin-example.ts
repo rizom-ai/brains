@@ -3,13 +3,9 @@ import type {
   ServicePluginContext,
   PluginTool,
   PluginResource,
-  DefaultQueryResponse,
   ToolResponse,
-  CommandResponse,
-  Command,
   MessageWithPayload,
 } from "@brains/plugins";
-import { createId } from "@brains/utils";
 import { z } from "@brains/utils";
 
 // Define the plugin configuration schema
@@ -328,129 +324,6 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
               uri: `calculation://${calc.id}`,
               mimeType: "application/json",
             })),
-          };
-        },
-      },
-    ];
-  }
-
-  protected override async getCommands(): Promise<Command[]> {
-    const context = this.getContext();
-
-    return [
-      {
-        name: "calc:add",
-        description: "Add two numbers",
-        usage: "calc:add <num1> <num2>",
-        handler: async (args): Promise<CommandResponse> => {
-          if (args.length < 2) {
-            return {
-              type: "message",
-              message: "Error: Please provide two numbers",
-            };
-          }
-          const [aStr, bStr] = args;
-          const a = Number(aStr);
-          const b = Number(bStr);
-          if (isNaN(a) || isNaN(b)) {
-            return {
-              type: "message",
-              message: "Error: Please provide two valid numbers",
-            };
-          }
-          context.logger.info(`Adding ${a} + ${b}`);
-          return { type: "message", message: `${a} + ${b} = ${a + b}` };
-        },
-      },
-      {
-        name: "calc:format",
-        description: "Format a calculation result",
-        usage: "calc:format <result>",
-        handler: async (args): Promise<CommandResponse> => {
-          const result = args[0];
-          // Test content formatting
-          return {
-            type: "message",
-            message: this.formatContent("calculation-result", {
-              result,
-              timestamp: new Date().toISOString(),
-            }),
-          };
-        },
-      },
-      {
-        name: "calc:explain",
-        description: "Get AI explanation of a math concept",
-        usage: "calc:explain <concept>",
-        handler: async (args): Promise<CommandResponse> => {
-          const concept = args.join(" ");
-          if (!concept) {
-            return {
-              type: "message",
-              message: "Error: Please provide a concept to explain",
-            };
-          }
-
-          // Use AI content generation
-          const explanation = await this.generateContent<DefaultQueryResponse>({
-            templateName: "math-explanation",
-            prompt: `Explain the mathematical concept: ${concept}`,
-            data: { operation: concept },
-          });
-
-          return { type: "message", message: explanation.message };
-        },
-      },
-      {
-        name: "calc:history",
-        description: "Show calculation history",
-        usage: "calc:history [limit]",
-        handler: async (): Promise<CommandResponse> => {
-          const calculations =
-            await context.entityService.listEntities("calculation");
-
-          if (calculations.length === 0) {
-            return { type: "message", message: "No calculations in history" };
-          }
-
-          return {
-            type: "message",
-            message: this.formatContent("calculation-history", {
-              calculations,
-            }),
-          };
-        },
-      },
-      {
-        name: "calc:batch",
-        description: "Queue multiple calculations",
-        usage: "calc:batch <expr1> <expr2> ...",
-        handler: async (args): Promise<CommandResponse> => {
-          if (args.length === 0) {
-            return {
-              type: "message",
-              message: "Error: Please provide expressions to calculate",
-            };
-          }
-
-          const operations = args.map((expr) => ({
-            type: "complex-calculation",
-            data: { expression: expr },
-          }));
-
-          const batchId = await this.enqueueBatch(operations, {
-            source: "calculator-plugin",
-            metadata: {
-              rootJobId: createId(),
-              operationType: "batch_processing" as const,
-            },
-          });
-
-          return {
-            type: "batch-operation",
-            message: `Batch calculation queued`,
-            batchId,
-            operationCount: args.length,
           };
         },
       },

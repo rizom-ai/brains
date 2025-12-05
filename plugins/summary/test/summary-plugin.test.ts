@@ -130,30 +130,20 @@ describe("SummaryPlugin", () => {
   });
 
   describe("plugin capabilities", () => {
-    it("should register and return capabilities including tools and commands", async () => {
+    it("should register and return capabilities including tools", async () => {
       const capabilities = await plugin.register(mockShell);
 
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.commands).toBeDefined();
       expect(Array.isArray(capabilities.tools)).toBe(true);
-      expect(Array.isArray(capabilities.commands)).toBe(true);
 
       // Check for expected tool names
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("summary-get");
-      expect(toolNames).toContain("summary-list");
-      expect(toolNames).toContain("summary-export");
-      expect(toolNames).toContain("summary-delete");
-      expect(toolNames).toContain("summary-stats");
-
-      // Check for expected command names
-      const commandNames = capabilities.commands.map((c) => c.name);
-      expect(commandNames).toContain("summary-list");
-      expect(commandNames).toContain("summary-get");
-      expect(commandNames).toContain("summary-export");
-      expect(commandNames).toContain("summary-delete");
-      expect(commandNames).toContain("summary-stats");
+      expect(toolNames).toContain("summary_get");
+      expect(toolNames).toContain("summary_list");
+      expect(toolNames).toContain("summary_export");
+      expect(toolNames).toContain("summary_delete");
+      expect(toolNames).toContain("summary_stats");
     });
   });
 });

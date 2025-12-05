@@ -3,7 +3,7 @@ import type { IShell } from "../interfaces";
 import type { PluginCapabilities } from "../interfaces";
 
 /**
- * Handles registration of plugin capabilities (commands, tools, resources)
+ * Handles registration of plugin capabilities (tools, resources)
  * Extracted from PluginManager for single responsibility
  */
 export class CapabilityRegistrar {
@@ -21,14 +21,6 @@ export class CapabilityRegistrar {
     pluginId: string,
     capabilities: PluginCapabilities,
   ): Promise<void> {
-    // Register commands
-    if (capabilities.commands.length > 0) {
-      shell.registerPluginCommands(pluginId, capabilities.commands);
-      this.logger.debug(
-        `Registered ${capabilities.commands.length} commands from ${pluginId}`,
-      );
-    }
-
     // Register tools
     if (capabilities.tools.length > 0) {
       shell.registerPluginTools(pluginId, capabilities.tools);

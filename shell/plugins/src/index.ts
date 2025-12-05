@@ -16,20 +16,11 @@ export { InterfacePlugin } from "./interface/interface-plugin";
 export type { InterfacePluginContext } from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
 
-// Message Interface plugin
-export { MessageInterfacePlugin } from "./message-interface/message-interface-plugin";
-export type { MessageInterfacePluginContext } from "./message-interface/context";
-export {
-  setupProgressHandler,
-  extractJobContext,
-} from "./message-interface/progress-handler";
-
 // Plugin types and interfaces
 export type {
   IShell,
   IMCPTransport,
   QueryContext,
-  SystemCommandRegisterEvent,
   SystemToolRegisterEvent,
   SystemResourceRegisterEvent,
   DefaultQueryResponse,
@@ -51,7 +42,6 @@ export type {
 } from "./interfaces";
 
 export {
-  systemCommandRegisterSchema,
   systemToolRegisterSchema,
   systemResourceRegisterSchema,
   defaultQueryResponseSchema,
@@ -148,15 +138,6 @@ export type {
   IJobQueueService,
 } from "@brains/job-queue";
 export { JobProgressEventSchema } from "@brains/job-queue";
-
-// From @brains/command-registry
-export type {
-  Command,
-  CommandInfo,
-  CommandResponse,
-  CommandContext,
-} from "@brains/command-registry";
-// Note: CommandRegistry is not exported as plugins access commands through context
 
 // From @brains/render-service
 export type { ViewTemplate, OutputFormat } from "@brains/render-service";

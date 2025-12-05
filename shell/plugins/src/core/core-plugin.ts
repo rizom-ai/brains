@@ -31,7 +31,6 @@ export abstract class CorePlugin<TConfig = unknown> extends BasePlugin<
     return {
       tools: await this.getTools(),
       resources: await this.getResources(),
-      commands: await this.getCommands(),
     };
   }
 

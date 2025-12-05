@@ -512,17 +512,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shell/command-registry": {
-      "name": "@brains/command-registry",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/permission-service": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "bun-types": "latest",
-      },
-    },
     "shell/content-service": {
       "name": "@brains/content-service",
       "version": "0.1.0",
@@ -569,7 +558,6 @@
       "devDependencies": {
         "@brains/agent-service": "workspace:*",
         "@brains/ai-service": "workspace:*",
-        "@brains/command-registry": "workspace:*",
         "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/daemon-registry": "workspace:*",
@@ -730,7 +718,6 @@
       "name": "@brains/plugins",
       "version": "1.0.0",
       "dependencies": {
-        "@brains/command-registry": "workspace:*",
         "@brains/datasource": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/permission-service": "workspace:*",
@@ -850,8 +837,6 @@
     "@brains/cli": ["@brains/cli@workspace:interfaces/cli"],
 
     "@brains/collective-brain": ["@brains/collective-brain@workspace:apps/collective-brain"],
-
-    "@brains/command-registry": ["@brains/command-registry@workspace:shell/command-registry"],
 
     "@brains/content-service": ["@brains/content-service@workspace:shell/content-service"],
 

@@ -31,6 +31,7 @@ export function createPublishTool(
     description:
       "Publish a blog post (sets publishedAt and triggers site rebuild)",
     inputSchema: publishInputSchema.shape,
+    visibility: "anchor",
     handler: async (input: unknown): Promise<ToolResponse> => {
       try {
         const { id, slug } = publishInputSchema.parse(input);

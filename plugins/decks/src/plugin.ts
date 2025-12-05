@@ -3,14 +3,13 @@ import {
   type ServicePluginContext,
   type PluginTool,
   type PluginResource,
-  type Command,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { DeckFormatter } from "./formatters/deck-formatter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
 import { DeckDataSource } from "./datasources/deck-datasource";
-import { createDecksCommands } from "./commands";
+import { createDecksTools } from "./tools";
 import packageJson from "../package.json";
 
 // No configuration needed for decks plugin
@@ -20,11 +19,14 @@ const decksConfigSchema = z.object({});
  * Decks Plugin - Manages presentation decks stored as markdown with slide separators
  */
 export class DecksPlugin extends ServicePlugin<Record<string, never>> {
+  private pluginContext?: ServicePluginContext;
+
   constructor() {
     super("decks", packageJson, {}, decksConfigSchema);
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
+    this.pluginContext = context;
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
@@ -45,15 +47,11 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     this.logger.info("Decks plugin registered successfully");
   }
 
-  protected override async getCommands(): Promise<Command[]> {
-    if (!this.context) {
-      return [];
-    }
-    return createDecksCommands(this.context, this.logger);
-  }
-
   protected override async getTools(): Promise<PluginTool[]> {
-    return [];
+    if (!this.pluginContext) {
+      throw new Error("Plugin context not initialized");
+    }
+    return createDecksTools(this.id, this.pluginContext);
   }
 
   protected override async getResources(): Promise<PluginResource[]> {

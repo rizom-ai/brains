@@ -56,9 +56,10 @@ export function createExtractTool(
   _logger: Logger,
 ): PluginTool {
   return {
-    name: "topics-extract",
+    name: "topics_extract",
     description: "Extract topics from a specific conversation",
     inputSchema: extractParamsSchema.shape,
+    visibility: "anchor",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = extractParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -99,9 +100,10 @@ export function createListTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics-list",
+    name: "topics_list",
     description: "List all topics",
     inputSchema: listParamsSchema.shape,
+    visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = listParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -147,9 +149,10 @@ export function createGetTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics-get",
+    name: "topics_get",
     description: "Get details of a specific topic",
     inputSchema: getParamsSchema.shape,
+    visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = getParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -186,9 +189,10 @@ export function createSearchTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics-search",
+    name: "topics_search",
     description: "Search topics by query",
     inputSchema: searchParamsSchema.shape,
+    visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = searchParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -231,9 +235,10 @@ export function createMergeTool(
   logger: Logger,
 ): PluginTool {
   return {
-    name: "topics-merge",
+    name: "topics_merge",
     description: "Merge multiple topics into one",
     inputSchema: mergeParamsSchema.shape,
+    visibility: "anchor",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = mergeParamsSchema.safeParse(params);
       if (!parsed.success) {

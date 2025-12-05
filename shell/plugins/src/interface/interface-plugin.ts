@@ -58,7 +58,6 @@ export abstract class InterfacePlugin<
     return {
       tools: await this.getTools(),
       resources: await this.getResources(),
-      commands: await this.getCommands(),
     };
   }
 

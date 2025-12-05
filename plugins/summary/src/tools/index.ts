@@ -39,9 +39,10 @@ export function createGetTool(
   const adapter = new SummaryAdapter();
 
   return {
-    name: "summary-get",
+    name: "summary_get",
     description: "Get chronological summary for a conversation",
     inputSchema: getParamsSchema.shape,
+    visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = getParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -116,9 +117,10 @@ export function createListTool(
   const adapter = new SummaryAdapter();
 
   return {
-    name: "summary-list",
+    name: "summary_list",
     description: "List all conversation summaries",
     inputSchema: listParamsSchema.shape,
+    visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = listParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -186,9 +188,10 @@ export function createExportTool(
   const summaryService = new SummaryService(context.entityService);
 
   return {
-    name: "summary-export",
+    name: "summary_export",
     description: "Export summary as formatted markdown",
     inputSchema: exportParamsSchema.shape,
+    visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = exportParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -245,9 +248,10 @@ export function createDeleteTool(
   const summaryService = new SummaryService(context.entityService);
 
   return {
-    name: "summary-delete",
+    name: "summary_delete",
     description: "Delete a conversation summary",
     inputSchema: deleteParamsSchema.shape,
+    visibility: "anchor",
     handler: async (params): Promise<ToolResponse> => {
       const parsed = deleteParamsSchema.safeParse(params);
       if (!parsed.success) {
@@ -303,9 +307,10 @@ export function createStatsTool(
   const summaryService = new SummaryService(context.entityService);
 
   return {
-    name: "summary-stats",
+    name: "summary_stats",
     description: "Get summary statistics",
     inputSchema: z.object({}).shape,
+    visibility: "public",
     handler: async (_params): Promise<ToolResponse> => {
       try {
         const stats = await summaryService.getStatistics();

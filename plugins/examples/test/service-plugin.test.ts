@@ -42,7 +42,6 @@ describe("ServicePlugin", () => {
     expect(capabilities.tools[0]?.name).toBe("calculate");
     expect(capabilities.resources.length).toBe(1);
     expect(capabilities.resources[0]?.name).toBe("Calculation History");
-    expect(capabilities.commands.length).toBeGreaterThan(0);
   });
 
   test("provides entity service access", () => {
@@ -64,30 +63,6 @@ describe("ServicePlugin", () => {
     // Check that job queue service is available
     expect(jobQueueService).toBeDefined();
     expect(jobQueueService.registerHandler).toBeDefined();
-  });
-
-  test("provides batch job functionality", async () => {
-    // Find the batch command
-    const batchCommand = capabilities.commands.find(
-      (cmd) => cmd.name === "calc:batch",
-    );
-    expect(batchCommand).toBeDefined();
-
-    // Test batch enqueueing
-    expect(batchCommand).toBeDefined();
-    if (!batchCommand) return;
-
-    const result = await batchCommand.handler(["1+1", "2*3"], {
-      userId: "test",
-      channelId: "test-channel",
-      messageId: "test-message",
-      interfaceType: "test",
-      userPermissionLevel: "anchor",
-    });
-    expect(result).toMatchObject({
-      type: "batch-operation",
-      message: "Batch calculation queued",
-    });
   });
 
   test("provides render service access", () => {
@@ -119,107 +94,14 @@ describe("ServicePlugin", () => {
     expect(response).toBeUndefined();
   });
 
-  test("provides calc:add command", async () => {
-    // Find the calc:add command
-    const addCommand = capabilities.commands.find(
-      (cmd) => cmd.name === "calc:add",
+  test("provides calculate tool", () => {
+    const calculateTool = capabilities.tools.find(
+      (t) => t.name === "calculate",
     );
-    expect(addCommand).toBeDefined();
-    expect(addCommand?.description).toBe("Add two numbers");
-
-    // Test the command
-    const mockContext = {
-      userId: "test-user",
-      channelId: "test-channel",
-      messageId: "test-message",
-      interfaceType: "test",
-      userPermissionLevel: "anchor" as const,
-    };
-
-    expect(addCommand).toBeDefined();
-    if (!addCommand) return;
-
-    const result = await addCommand.handler(["10", "5"], mockContext);
-    expect(result).toEqual({
-      type: "message",
-      message: "10 + 5 = 15",
-    });
-  });
-
-  test("provides calc:batch command", async () => {
-    const batchCommand = capabilities.commands.find(
-      (cmd) => cmd.name === "calc:batch",
+    expect(calculateTool).toBeDefined();
+    expect(calculateTool?.description).toBe(
+      "Perform mathematical calculations",
     );
-    expect(batchCommand).toBeDefined();
-
-    const mockContext = {
-      userId: "test-user",
-      channelId: "test-channel",
-      messageId: "test-message",
-      interfaceType: "test",
-      userPermissionLevel: "anchor" as const,
-    };
-
-    expect(batchCommand).toBeDefined();
-    if (!batchCommand) return;
-
-    const result = await batchCommand.handler(
-      ["5*5", "10/2", "3+7"],
-      mockContext,
-    );
-
-    expect(result.type).toBe("batch-operation");
-    if (result.type === "batch-operation") {
-      expect(result.operationCount).toBe(3);
-      expect(result.batchId).toBeDefined();
-    }
-  });
-
-  test("provides calc:history command", async () => {
-    const historyCommand = capabilities.commands.find(
-      (cmd) => cmd.name === "calc:history",
-    );
-    expect(historyCommand).toBeDefined();
-
-    const mockContext = {
-      userId: "test-user",
-      channelId: "test-channel",
-      messageId: "test-message",
-      interfaceType: "test",
-      userPermissionLevel: "anchor" as const,
-    };
-
-    expect(historyCommand).toBeDefined();
-    if (!historyCommand) return;
-
-    const result = await historyCommand.handler(["5"], mockContext);
-
-    expect(result.type).toBe("message");
-    expect(result.message).toContain("No calculations in history");
-  });
-
-  test("provides calc:explain command with AI generation", async () => {
-    const explainCommand = capabilities.commands.find(
-      (cmd) => cmd.name === "calc:explain",
-    );
-    expect(explainCommand).toBeDefined();
-
-    const mockContext = {
-      userId: "test-user",
-      channelId: "test-channel",
-      messageId: "test-message",
-      interfaceType: "test",
-      userPermissionLevel: "anchor" as const,
-    };
-
-    expect(explainCommand).toBeDefined();
-    if (!explainCommand) return;
-
-    const result = await explainCommand.handler(["add", "5", "3"], mockContext);
-
-    expect(result.type).toBe("message");
-    // The handler now correctly extracts the message from the response
-    expect(result.message).toBe("Generated content for math-explanation");
   });
 
   test("registers job handlers", async () => {

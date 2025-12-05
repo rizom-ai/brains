@@ -104,15 +104,6 @@ describe("DirectorySyncPlugin", () => {
       expect(toolNames.length).toBe(1);
     });
 
-    it("should provide commands", () => {
-      expect(capabilities.commands).toBeDefined();
-      expect(capabilities.commands.length).toBeGreaterThan(0);
-
-      const commandNames = capabilities.commands.map((c) => c.name);
-      expect(commandNames).toContain("directory-sync");
-      expect(commandNames.length).toBe(1);
-    });
-
     it("should register templates", () => {
       const templates = harness.getTemplates();
       expect(templates.has("directory-sync:status")).toBe(true);

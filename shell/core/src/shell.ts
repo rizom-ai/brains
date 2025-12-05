@@ -2,7 +2,6 @@ import type {
   ContentGenerationConfig,
   DefaultQueryResponse,
   QueryContext,
-  Command,
   PluginTool,
   PluginResource,
   AppInfo,
@@ -20,7 +19,6 @@ import type {
 } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 import type { PluginManager } from "@brains/plugins";
-import type { CommandRegistry } from "@brains/command-registry";
 import type { TemplateRegistry, Template } from "@brains/templates";
 import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import type { DaemonRegistry, Daemon } from "@brains/daemon-registry";
@@ -64,7 +62,6 @@ export class Shell implements IShell {
   private readonly entityRegistry: IEntityRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
-  private readonly commandRegistry: CommandRegistry;
   private readonly mcpService: IMCPService;
   private readonly renderService: RenderService;
   private readonly daemonRegistry: DaemonRegistry;
@@ -139,7 +136,6 @@ export class Shell implements IShell {
     this.renderService = services.renderService;
     this.daemonRegistry = services.daemonRegistry;
     this.pluginManager = services.pluginManager;
-    this.commandRegistry = services.commandRegistry;
     this.templateRegistry = services.templateRegistry;
     this.dataSourceRegistry = services.dataSourceRegistry;
     this.mcpService = services.mcpService;
@@ -407,10 +403,6 @@ export class Shell implements IShell {
     return this.jobQueueService;
   }
 
-  public getCommandRegistry(): CommandRegistry {
-    return this.commandRegistry;
-  }
-
   public getMcpTransport(): IMCPTransport {
     return this.mcpService;
   }
@@ -421,22 +413,6 @@ export class Shell implements IShell {
 
   public getAgentService(): IAgentService {
     return this.agentService;
-  }
-
-  /**
-   * Register plugin commands
-   */
-  public registerPluginCommands(pluginId: string, commands: Command[]): void {
-    for (const command of commands) {
-      try {
-        this.commandRegistry.registerCommand(pluginId, command);
-      } catch (error) {
-        this.logger.error(
-          `Failed to register command ${command.name} from ${pluginId}:`,
-          error,
-        );
-      }
-    }
   }
 
   /**

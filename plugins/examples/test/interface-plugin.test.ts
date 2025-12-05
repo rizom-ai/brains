@@ -34,7 +34,6 @@ describe("InterfacePlugin", () => {
     expect(capabilities).toBeDefined();
     expect(capabilities.tools).toEqual([]);
     expect(capabilities.resources).toEqual([]);
-    expect(capabilities.commands).toEqual([]);
   });
 
   test("provides daemon management", async () => {
@@ -47,14 +46,6 @@ describe("InterfacePlugin", () => {
 
     // If the plugin has a daemon, these operations should succeed
     // without throwing errors
-  });
-
-  test("provides command execution", () => {
-    const shell = harness.getShell();
-    const commandRegistry = shell.getCommandRegistry();
-
-    expect(commandRegistry).toBeDefined();
-    expect(commandRegistry.listCommands).toBeDefined();
   });
 
   test("provides entity service access", () => {

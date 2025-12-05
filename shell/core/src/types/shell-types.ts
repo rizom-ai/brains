@@ -10,7 +10,6 @@ import type {
 } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 import type { PluginManager } from "@brains/plugins";
-import type { CommandRegistry } from "@brains/command-registry";
 import type { TemplateRegistry } from "@brains/templates";
 import { type IMCPService } from "@brains/mcp-service";
 import type { DaemonRegistry } from "@brains/daemon-registry";
@@ -35,7 +34,6 @@ export interface ShellDependencies {
   renderService?: RenderService;
   daemonRegistry?: DaemonRegistry;
   pluginManager?: PluginManager;
-  commandRegistry?: CommandRegistry;
   mcpService?: IMCPService;
   contentService?: ContentService;
   jobQueueService?: IJobQueueService;

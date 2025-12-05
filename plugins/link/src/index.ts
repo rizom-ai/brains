@@ -1,14 +1,8 @@
-import type {
-  Plugin,
-  ServicePluginContext,
-  PluginTool,
-  Command,
-} from "@brains/plugins";
+import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { linkConfigSchema, linkSchema, type LinkConfig } from "./schemas/link";
 import { LinkAdapter } from "./adapters/link-adapter";
 import { createLinkTools } from "./tools/index";
-import { createLinkCommands } from "./commands/index";
 import { linkExtractionTemplate } from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";
 import { LinksDataSource } from "./datasources/links-datasource";
@@ -89,16 +83,6 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     // Reset singleton instances for clean testing
     AutoCaptureHandler.resetInstance();
     MessageEventHandler.resetInstance();
-  }
-
-  /**
-   * Get plugin commands
-   */
-  protected override async getCommands(): Promise<Command[]> {
-    if (!this.context) {
-      throw new Error("Plugin context not available");
-    }
-    return createLinkCommands(this.id, this.context);
   }
 
   /**

@@ -63,14 +63,14 @@ describe("Generate RSS Tool", () => {
   describe("tool metadata", () => {
     test("should have correct tool name", () => {
       const context = createMockContext([]);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
-      expect(tool.name).toBe("generate-rss");
+      expect(tool.name).toBe("blog_generate-rss");
     });
 
     test("should have descriptive description", () => {
       const context = createMockContext([]);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       expect(tool.description).toContain("RSS");
       expect(tool.description).toContain("published");
@@ -78,7 +78,7 @@ describe("Generate RSS Tool", () => {
 
     test("should have correct input schema", () => {
       const context = createMockContext([]);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       expect(tool.inputSchema).toHaveProperty("outputPath");
       expect(tool.inputSchema).toHaveProperty("siteUrl");
@@ -88,7 +88,7 @@ describe("Generate RSS Tool", () => {
 
     test("should be anchor visibility", () => {
       const context = createMockContext([]);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       expect(tool.visibility).toBe("anchor");
     });
@@ -97,7 +97,7 @@ describe("Generate RSS Tool", () => {
   describe("RSS generation", () => {
     test("should generate RSS feed successfully", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       const result = await tool.handler(
         {
@@ -116,7 +116,7 @@ describe("Generate RSS Tool", () => {
 
     test("should write RSS XML to file", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -153,7 +153,7 @@ describe("Generate RSS Tool", () => {
       ];
 
       const context = createMockContext(postsWithDraft);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -171,7 +171,7 @@ describe("Generate RSS Tool", () => {
 
     test("should create output directory if it doesn't exist", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       const nestedPath = "/tmp/rss-test-dir/subfolder/feed.xml";
 
@@ -201,7 +201,7 @@ describe("Generate RSS Tool", () => {
 
     test("should return data with post count and path", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       const result = await tool.handler(
         {
@@ -223,7 +223,7 @@ describe("Generate RSS Tool", () => {
   describe("RSS configuration", () => {
     test("should use provided title and description", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -244,7 +244,7 @@ describe("Generate RSS Tool", () => {
 
     test("should use provided language", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -263,7 +263,7 @@ describe("Generate RSS Tool", () => {
 
     test("should default language to en-us", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -281,7 +281,7 @@ describe("Generate RSS Tool", () => {
 
     test("should include copyright when provided", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -300,7 +300,7 @@ describe("Generate RSS Tool", () => {
 
     test("should include managingEditor when provided", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -321,7 +321,7 @@ describe("Generate RSS Tool", () => {
 
     test("should include webMaster when provided", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -342,7 +342,7 @@ describe("Generate RSS Tool", () => {
   describe("error handling", () => {
     test("should validate required fields", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(
@@ -357,7 +357,7 @@ describe("Generate RSS Tool", () => {
 
     test("should validate URL format", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(
@@ -375,7 +375,7 @@ describe("Generate RSS Tool", () => {
 
     test("should handle empty posts list", async () => {
       const context = createMockContext([]);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       const result = await tool.handler(
         {
@@ -399,7 +399,7 @@ describe("Generate RSS Tool", () => {
   describe("post links", () => {
     test("should generate correct post URLs", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {
@@ -418,7 +418,7 @@ describe("Generate RSS Tool", () => {
 
     test("should handle site URL without trailing slash", async () => {
       const context = createMockContext(samplePosts);
-      const tool = createGenerateRSSTool(context);
+      const tool = createGenerateRSSTool(context, "blog");
 
       await tool.handler(
         {

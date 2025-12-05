@@ -3,7 +3,6 @@ import type {
   PluginTool,
   PluginResource,
   ServicePluginContext,
-  Command,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { createId } from "@brains/utils";
@@ -24,7 +23,6 @@ import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import { SiteInfoDataSource } from "./datasources/site-info-datasource";
 import { createSiteBuilderTools } from "./tools";
-import { createSiteBuilderCommands } from "./commands";
 import type { SiteBuilderConfig, LayoutComponent } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 import { SiteInfoService } from "./services/site-info-service";
@@ -318,18 +316,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.id,
       this.config,
       this.routeRegistry,
-    );
-  }
-
-  /**
-   * Expose site-builder commands for message interfaces
-   */
-  public override async getCommands(): Promise<Command[]> {
-    return createSiteBuilderCommands(
-      this.siteContentService,
-      this.pluginContext,
-      this.config,
-      this.id,
     );
   }
 

@@ -22,7 +22,6 @@
   "devDependencies": {
     "@brains/agent-service": "workspace:*",
     "@brains/ai-service": "workspace:*",
-    "@brains/command-registry": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/daemon-registry": "workspace:*",

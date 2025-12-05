@@ -7,7 +7,6 @@ import type {
   ToolContext,
   ToolResponse,
 } from "./interfaces";
-import type { Command } from "@brains/command-registry";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { ToolContextRoutingSchema } from "./interfaces";
@@ -222,14 +221,6 @@ export abstract class BasePlugin<
    * Override this to provide plugin-specific resources
    */
   protected async getResources(): Promise<PluginResource[]> {
-    return [];
-  }
-
-  /**
-   * Get the commands provided by this plugin
-   * Override this to provide plugin-specific commands
-   */
-  protected async getCommands(): Promise<Command[]> {
     return [];
   }
 

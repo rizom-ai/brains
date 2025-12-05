@@ -1,6 +1,5 @@
 import { CorePlugin } from "@brains/plugins";
 import type {
-  Command,
   PluginTool,
   BaseEntity,
   DefaultQueryResponse,
@@ -16,7 +15,6 @@ import {
   type SystemConfig,
   type SearchOptions,
 } from "./schemas";
-import { createSystemCommands } from "./commands";
 import { createSystemTools } from "./tools";
 import packageJson from "../package.json";
 
@@ -35,13 +33,6 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
 
   constructor(config: Partial<SystemConfig> = {}) {
     super("system", packageJson, config, systemConfigSchema);
-  }
-
-  /**
-   * Get plugin commands
-   */
-  protected override async getCommands(): Promise<Command[]> {
-    return createSystemCommands(this, this.id);
   }
 
   /**

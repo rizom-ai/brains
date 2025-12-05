@@ -3,7 +3,6 @@ import type {
   DefaultQueryResponse,
   QueryContext,
   IMCPTransport,
-  Command,
   PluginTool,
   PluginResource,
   AppInfo,
@@ -33,11 +32,6 @@ import type {
   BatchJobStatus,
 } from "@brains/job-queue";
 import type { JobOptions, JobInfo } from "@brains/job-queue";
-import type {
-  CommandRegistry,
-  CommandContext,
-  CommandResponse,
-} from "@brains/command-registry";
 import type { RenderService } from "@brains/render-service";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Template } from "@brains/templates";
@@ -58,7 +52,6 @@ export class MockShell implements IShell {
   private plugins = new Map<string, Plugin>();
   private logger: Logger;
   private templates = new Map<string, Template>();
-  private commands = new Map<string, Command>();
   private services = new Map<string, unknown>();
   private entities = new Map<string, BaseEntity>();
   private entityTypes = new Set<string>();
@@ -288,53 +281,6 @@ export class MockShell implements IShell {
     } as unknown as IJobQueueService;
   }
 
-  getCommandRegistry(): CommandRegistry {
-    return {
-      registerCommand: (pluginId: string, command: Command) => {
-        const name = `${pluginId}:${command.name}`;
-        this.commands.set(name, { ...command, pluginId } as Command);
-      },
-      unregisterCommand: (pluginId: string, name: string) => {
-        this.commands.delete(`${pluginId}:${name}`);
-      },
-      unregisterAllCommands: (pluginId: string) => {
-        for (const key of this.commands.keys()) {
-          if (key.startsWith(`${pluginId}:`)) {
-            this.commands.delete(key);
-          }
-        }
-      },
-      getCommand: (name: string) => this.commands.get(name),
-      findCommand: (name: string) => {
-        // Match the real CommandRegistry behavior - search by command name
-        for (const [, cmd] of this.commands) {
-          if (cmd.name === name) {
-            return cmd;
-          }
-        }
-        return undefined;
-      },
-      listCommands: () => Array.from(this.commands.values()),
-      executeCommand: async (
-        name: string,
-        args: string[],
-        context: CommandContext,
-      ): Promise<CommandResponse> => {
-        const command =
-          this.commands.get(name) ?? this.commands.get(`shell:${name}`);
-        if (!command) {
-          return { type: "message", message: `Command not found: ${name}` };
-        }
-
-        if ("execute" in command && typeof command.execute === "function") {
-          return await command.execute(args, context);
-        }
-
-        return { type: "message", message: `Executed: ${name}` };
-      },
-    } as unknown as CommandRegistry;
-  }
-
   getRenderService(): RenderService {
     return {
       get: () => undefined,
@@ -491,12 +437,6 @@ export class MockShell implements IShell {
   }
 
   // Plugin capability registration methods
-  registerPluginCommands(pluginId: string, commands: Command[]): void {
-    this.logger.debug(
-      `Mock: Registered ${commands.length} commands for ${pluginId}`,
-    );
-  }
-
   registerPluginTools(pluginId: string, tools: PluginTool[]): void {
     this.logger.debug(`Mock: Registered ${tools.length} tools for ${pluginId}`);
   }

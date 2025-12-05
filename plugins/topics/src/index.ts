@@ -3,7 +3,6 @@ import {
   type ServicePluginContext,
   type PluginTool,
   type PluginResource,
-  type Command,
   type ConversationDigestPayload,
   createId,
 } from "@brains/plugins";
@@ -22,7 +21,6 @@ import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
 import packageJson from "../package.json";
 import { createTopicsTools } from "./tools";
-import { createTopicsCommands } from "./commands";
 
 /**
  * Topics Plugin - Extracts and manages topics from conversations and other sources
@@ -75,13 +73,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         return { success: true };
       });
     }
-  }
-
-  protected override async getCommands(): Promise<Command[]> {
-    if (!this.context) {
-      return [];
-    }
-    return createTopicsCommands(this.context, this.config, this.logger);
   }
 
   protected override async getTools(): Promise<PluginTool[]> {

@@ -11,7 +11,6 @@ import { ContentGenerationJobHandler } from "@brains/content-service";
 import { PluginManager } from "@brains/plugins";
 import { ServiceRegistry } from "@brains/service-registry";
 import { MessageBus } from "@brains/messaging-service";
-import { CommandRegistry } from "@brains/command-registry";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import { RenderService } from "@brains/render-service";
@@ -55,7 +54,6 @@ export interface ShellServices {
   renderService: RenderService;
   daemonRegistry: DaemonRegistry;
   pluginManager: PluginManager;
-  commandRegistry: CommandRegistry;
   templateRegistry: TemplateRegistry;
   dataSourceRegistry: DataSourceRegistry;
   mcpService: IMCPService;
@@ -279,11 +277,8 @@ export class ShellInitializer {
       dependencies?.pluginManager ??
       PluginManager.getInstance(serviceRegistry, logger);
 
-    // Permission and command services
+    // Permission service
     const permissionService = new PermissionService(this.config.permissions);
-    const commandRegistry =
-      dependencies?.commandRegistry ??
-      CommandRegistry.getInstance(logger, permissionService);
     const mcpService =
       dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
@@ -480,7 +475,6 @@ export class ShellInitializer {
       renderService,
       daemonRegistry,
       pluginManager,
-      commandRegistry,
       templateRegistry,
       dataSourceRegistry,
       mcpService,
@@ -522,17 +516,14 @@ export class ShellInitializer {
 
   /**
    * Register services in the service registry
-   * ONLY registers the three services that are actually resolved by plugins
+   * ONLY registers the services that are actually resolved by plugins
    */
   public registerServices(services: ShellServices, shell: unknown): void {
-    const { serviceRegistry, commandRegistry, mcpService } = services;
+    const { serviceRegistry, mcpService } = services;
 
-    // Only register the THREE services that are actually resolved
+    // Only register the services that are actually resolved
     serviceRegistry.register("shell", () => shell);
-    serviceRegistry.register("commandRegistry", () => commandRegistry);
     serviceRegistry.register("mcpService", () => mcpService);
-
-    // That's it! No other services are ever resolved through the registry
   }
 
   /**

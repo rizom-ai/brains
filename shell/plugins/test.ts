@@ -19,8 +19,6 @@ export type {
   ServicePluginContext,
   CorePluginContext,
   InterfacePluginContext,
-  Command,
-  CommandContext,
   ToolContext,
   Logger,
   IEntityService,

@@ -10,7 +10,6 @@ import {
   type CreateEntityResponse,
   type UpdateEntityResponse,
 } from "@brains/utils";
-import type { Command } from "@brains/command-registry";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Daemon } from "@brains/daemon-registry";
 import type { IContentService } from "@brains/content-service";
@@ -36,7 +35,6 @@ import type {
   BatchOperation,
 } from "@brains/job-queue";
 import type { JobOptions, JobInfo } from "@brains/job-queue";
-import type { CommandRegistry } from "@brains/command-registry";
 import type { RenderService } from "@brains/render-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
@@ -93,7 +91,6 @@ export interface IShell {
   getEntityService(): IEntityService;
   getEntityRegistry(): IEntityRegistry;
   getJobQueueService(): IJobQueueService;
-  getCommandRegistry(): CommandRegistry;
   getRenderService(): RenderService;
   getConversationService(): IConversationService;
   getMcpTransport(): IMCPTransport;
@@ -118,7 +115,6 @@ export interface IShell {
   getTemplate(name: string): Template | undefined;
 
   // Plugin capability registration
-  registerPluginCommands(pluginId: string, commands: Command[]): void;
   registerPluginTools(pluginId: string, tools: PluginTool[]): void;
   registerPluginResources(pluginId: string, resources: PluginResource[]): void;
 
@@ -144,17 +140,6 @@ export interface IShell {
 /**
  * System event schemas for plugin capability registration
  */
-export const systemCommandRegisterSchema = z.object({
-  pluginId: z.string(),
-  command: z.object({
-    name: z.string(),
-    description: z.string(),
-    usage: z.string().optional(),
-    handler: z.function(),
-  }),
-  timestamp: z.number(),
-});
-
 export const systemToolRegisterSchema = z.object({
   pluginId: z.string(),
   tool: z.object({
@@ -179,9 +164,6 @@ export const systemResourceRegisterSchema = z.object({
   timestamp: z.number(),
 });
 
-export type SystemCommandRegisterEvent = z.infer<
-  typeof systemCommandRegisterSchema
->;
 export type SystemToolRegisterEvent = z.infer<typeof systemToolRegisterSchema>;
 export type SystemResourceRegisterEvent = z.infer<
   typeof systemResourceRegisterSchema
@@ -201,8 +183,6 @@ export {
 
 // Re-export MCP transport interface
 export type { IMCPTransport } from "@brains/mcp-service";
-// Re-export Command type for plugin implementations
-export type { Command } from "@brains/command-registry";
 
 /**
  * Plugin type enumeration
@@ -235,7 +215,6 @@ export const pluginMetadataSchema = z.object({
 export interface PluginCapabilities {
   tools: PluginTool[];
   resources: PluginResource[];
-  commands: Command[];
 }
 
 /**

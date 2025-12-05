@@ -1,7 +1,6 @@
 import type {
   Plugin,
   ServicePluginContext,
-  Command,
   PluginTool,
   BaseEntity,
 } from "@brains/plugins";
@@ -23,7 +22,6 @@ import {
   DirectoryDeleteJobHandler,
 } from "./handlers";
 import { createDirectorySyncTools } from "./tools";
-import { createDirectorySyncCommands } from "./commands";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
@@ -51,15 +49,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       throw new Error("Plugin context not initialized");
     }
     return this.pluginContext;
-  }
-
-  /**
-   * Get commands provided by this plugin
-   */
-  public override async getCommands(): Promise<Command[]> {
-    const directorySync = this.requireDirectorySync();
-    const pluginContext = this.requirePluginContext();
-    return createDirectorySyncCommands(directorySync, pluginContext, this.id);
   }
 
   /**
