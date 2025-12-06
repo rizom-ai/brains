@@ -59,9 +59,7 @@ describe("Topics Tools", () => {
       const tool = createExtractTool(context, config, logger);
 
       expect(tool.name).toBe("topics_extract");
-      expect(tool.description).toBe(
-        "Extract topics from a specific conversation",
-      );
+      expect(tool.description).toContain("Extract topics from a conversation");
       expect(tool.inputSchema).toBeDefined();
     });
   });
@@ -71,7 +69,7 @@ describe("Topics Tools", () => {
       const tool = createListTool(context, config, logger);
 
       expect(tool.name).toBe("topics_list");
-      expect(tool.description).toContain("List all topics");
+      expect(tool.description).toContain("List all extracted topics");
       expect(tool.inputSchema).toBeDefined();
     });
 

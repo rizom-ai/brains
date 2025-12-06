@@ -11,7 +11,8 @@ export function createDirectorySyncTools(
   return [
     {
       name: `${pluginId}_sync`,
-      description: "Synchronize all entities with directory (async)",
+      description:
+        "Sync brain entities with the filesystem. Use when users want to refresh content from files or save changes to disk.",
       inputSchema: {},
       visibility: "anchor",
       handler: async (

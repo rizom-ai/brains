@@ -34,7 +34,8 @@ export function createLinkTools(
   return [
     {
       name: `${pluginId}_capture`,
-      description: "Capture a web link with AI-powered content extraction",
+      description:
+        "Save a web link/URL with AI-powered content extraction. Use when users want to bookmark, save, or capture a webpage.",
       inputSchema: captureParamsSchema.shape,
       visibility: "anchor",
       handler: async (input): Promise<ToolResponse> => {
@@ -72,7 +73,8 @@ export function createLinkTools(
     },
     {
       name: `${pluginId}_list`,
-      description: "List captured links",
+      description:
+        "List saved links/bookmarks. Use when users ask about saved URLs, bookmarks, or captured web pages.",
       inputSchema: listParamsSchema.shape,
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
@@ -106,7 +108,8 @@ export function createLinkTools(
     },
     {
       name: `${pluginId}_search`,
-      description: "Search captured links",
+      description:
+        "Search saved links by query or keywords. Use when users want to find a specific bookmark or URL.",
       inputSchema: searchParamsSchema.shape,
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
@@ -141,7 +144,8 @@ export function createLinkTools(
     },
     {
       name: `${pluginId}_get`,
-      description: "Get a specific link by ID",
+      description:
+        "View a saved link's details and extracted content. Use when users want to read or see a specific bookmark.",
       inputSchema: getParamsSchema.shape,
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {

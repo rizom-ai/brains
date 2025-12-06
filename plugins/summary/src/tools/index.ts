@@ -40,7 +40,8 @@ export function createGetTool(
 
   return {
     name: "summary_get",
-    description: "Get chronological summary for a conversation",
+    description:
+      "Get a conversation's summary with key discussion points. Use when users want to review what was discussed.",
     inputSchema: getParamsSchema.shape,
     visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
@@ -127,7 +128,8 @@ export function createListTool(
 
   return {
     name: "summary_list",
-    description: "List all conversation summaries",
+    description:
+      "List all conversation summaries. Use when users want to see past conversations or discussion history.",
     inputSchema: listParamsSchema.shape,
     visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
@@ -205,7 +207,8 @@ export function createExportTool(
 
   return {
     name: "summary_export",
-    description: "Export summary as formatted markdown",
+    description:
+      "Export a conversation summary as markdown. Use when users want to download or share a summary.",
     inputSchema: exportParamsSchema.shape,
     visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
@@ -267,7 +270,8 @@ export function createDeleteTool(
 
   return {
     name: "summary_delete",
-    description: "Delete a conversation summary",
+    description:
+      "Delete a conversation summary. Use when users want to remove or clear a summary.",
     inputSchema: deleteParamsSchema.shape,
     visibility: "anchor",
     handler: async (params): Promise<ToolResponse> => {
@@ -328,7 +332,8 @@ export function createStatsTool(
 
   return {
     name: "summary_stats",
-    description: "Get summary statistics",
+    description:
+      "Get statistics about all summaries. Use when users ask about summary counts or overall activity.",
     inputSchema: z.object({}).shape,
     visibility: "public",
     handler: async (_params): Promise<ToolResponse> => {

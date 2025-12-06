@@ -59,7 +59,7 @@ describe("Summary Tools", () => {
       const tool = createGetTool(context, config, logger);
 
       expect(tool.name).toBe("summary_get");
-      expect(tool.description).toContain("Get chronological summary");
+      expect(tool.description).toContain("conversation's summary");
       expect(tool.inputSchema).toBeDefined();
     });
 
@@ -130,9 +130,7 @@ describe("Summary Tools", () => {
       const tool = createExportTool(context, config, logger);
 
       expect(tool.name).toBe("summary_export");
-      expect(tool.description).toContain(
-        "Export summary as formatted markdown",
-      );
+      expect(tool.description).toContain("Export a conversation summary");
       expect(tool.inputSchema).toBeDefined();
     });
 
@@ -176,7 +174,7 @@ describe("Summary Tools", () => {
       const tool = createStatsTool(context, config, logger);
 
       expect(tool.name).toBe("summary_stats");
-      expect(tool.description).toContain("Get summary statistics");
+      expect(tool.description).toContain("statistics about all summaries");
       expect(tool.inputSchema).toBeDefined();
     });
 

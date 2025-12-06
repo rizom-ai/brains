@@ -20,7 +20,8 @@ export function createListTool(
 ): PluginTool {
   return {
     name: `${pluginId}_list`,
-    description: "List blog posts with optional status filter",
+    description:
+      "List blog posts/articles. Use when users ask about blog content, articles, or writings. Can filter by status (draft/published).",
     inputSchema: listParamsSchema.shape,
     visibility: "public",
     handler: async (input): Promise<ToolResponse> => {

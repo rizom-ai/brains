@@ -62,7 +62,8 @@ export function createExtractTool(
 ): PluginTool {
   return {
     name: "topics_extract",
-    description: "Extract topics from a specific conversation",
+    description:
+      "Extract topics from a conversation using AI. Use when users want to analyze or tag a conversation's themes.",
     inputSchema: extractParamsSchema.shape,
     visibility: "anchor",
     handler: async (params): Promise<ToolResponse> => {
@@ -118,7 +119,8 @@ export function createListTool(
 ): PluginTool {
   return {
     name: "topics_list",
-    description: "List all topics",
+    description:
+      "List all extracted topics. Use when users ask about themes, subjects, or tags from conversations.",
     inputSchema: listParamsSchema.shape,
     visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
@@ -176,7 +178,8 @@ export function createGetTool(
 ): PluginTool {
   return {
     name: "topics_get",
-    description: "Get details of a specific topic",
+    description:
+      "Get details of a specific topic. Use when users want more info about a particular theme or subject.",
     inputSchema: getParamsSchema.shape,
     visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
@@ -226,7 +229,8 @@ export function createSearchTool(
 ): PluginTool {
   return {
     name: "topics_search",
-    description: "Search topics by query",
+    description:
+      "Search topics by keyword. Use when users want to find conversations about a specific subject.",
     inputSchema: searchParamsSchema.shape,
     visibility: "public",
     handler: async (params): Promise<ToolResponse> => {
@@ -281,7 +285,8 @@ export function createMergeTool(
 ): PluginTool {
   return {
     name: "topics_merge",
-    description: "Merge multiple topics into one",
+    description:
+      "Merge multiple topics into one. Use when users want to consolidate similar or duplicate topics.",
     inputSchema: mergeParamsSchema.shape,
     visibility: "anchor",
     handler: async (params): Promise<ToolResponse> => {

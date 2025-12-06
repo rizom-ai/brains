@@ -13,8 +13,7 @@ const listParamsSchema = z.object({
 });
 
 const getParamsSchema = z.object({
-  id: z.string().optional().describe("Deck ID"),
-  slug: z.string().optional().describe("Deck slug"),
+  id: z.string().describe("Deck title, ID, or slug"),
 });
 
 /**
@@ -27,7 +26,8 @@ export function createDecksTools(
   return [
     {
       name: `${pluginId}_list`,
-      description: "List all presentation decks",
+      description:
+        "List presentation decks/slides. Use when users ask about talks, presentations, or slide decks. Can filter by status (draft/presented).",
       inputSchema: listParamsSchema.shape,
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
@@ -82,44 +82,44 @@ export function createDecksTools(
     },
     {
       name: `${pluginId}_get`,
-      description: "Get a specific presentation deck by ID or slug",
+      description:
+        "View a presentation deck. Use when users want to see slides, view a talk, or read presentation content. Accepts title, ID, or slug.",
       inputSchema: getParamsSchema.shape,
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
-        const { id, slug } = getParamsSchema.parse(input);
-
-        if (!id && !slug) {
-          return {
-            success: false,
-            error: "Either 'id' or 'slug' must be provided",
-            formatted: "_Error: Either 'id' or 'slug' must be provided_",
-          };
-        }
+        const { id } = getParamsSchema.parse(input);
 
         try {
-          let deck: DeckEntity | null = null;
+          // Try direct ID lookup first
+          let deck = await context.entityService.getEntity<DeckEntity>(
+            "deck",
+            id,
+          );
 
-          if (id) {
-            deck = await context.entityService.getEntity<DeckEntity>(
+          // If not found, try by slug
+          if (!deck) {
+            const bySlug = await context.entityService.listEntities<DeckEntity>(
               "deck",
-              id,
+              { limit: 1, filter: { metadata: { slug: id } } },
             );
-          } else if (slug) {
-            const decks = await context.entityService.listEntities<DeckEntity>(
-              "deck",
-              {
-                filter: { metadata: { slug } },
+            deck = bySlug[0] ?? null;
+          }
+
+          // If still not found, try by title
+          if (!deck) {
+            const byTitle =
+              await context.entityService.listEntities<DeckEntity>("deck", {
                 limit: 1,
-              },
-            );
-            deck = decks[0] ?? null;
+                filter: { metadata: { title: id } },
+              });
+            deck = byTitle[0] ?? null;
           }
 
           if (!deck) {
             return {
               success: false,
-              error: `Deck not found: ${id ?? slug}`,
-              formatted: `_Deck not found: ${id ?? slug}_`,
+              error: `Deck not found: ${id}`,
+              formatted: `_Deck not found: ${id}_`,
             };
           }
 
