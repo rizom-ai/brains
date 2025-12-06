@@ -3,11 +3,11 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z, formatAsEntity, parseMarkdown } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 
 const getParamsSchema = z.object({
-  id: z.string().describe("Blog post ID or slug"),
+  id: z.string().describe("Blog post title, ID, or slug"),
 });
 
 /**
@@ -19,7 +19,8 @@ export function createGetTool(
 ): PluginTool {
   return {
     name: `${pluginId}_get`,
-    description: "Get a specific blog post by ID or slug",
+    description:
+      "Read a blog post. Use this when users want to read, view, or see a blog post. Accepts title, ID, or slug.",
     inputSchema: getParamsSchema.shape,
     visibility: "public",
     handler: async (input): Promise<ToolResponse> => {
@@ -29,15 +30,22 @@ export function createGetTool(
         // Try direct ID lookup first
         let post = await context.entityService.getEntity<BlogPost>("post", id);
 
-        // If not found, try by slug
+        // If not found, try by slug using proper filter
         if (!post) {
-          const allPosts = await context.entityService.listEntities<BlogPost>(
+          const bySlug = await context.entityService.listEntities<BlogPost>(
             "post",
-            {
-              limit: 100,
-            },
+            { limit: 1, filter: { metadata: { slug: id } } },
           );
-          post = allPosts.find((p) => p.metadata.slug === id) ?? null;
+          post = bySlug[0] ?? null;
+        }
+
+        // If still not found, try by title (case-sensitive for now)
+        if (!post) {
+          const byTitle = await context.entityService.listEntities<BlogPost>(
+            "post",
+            { limit: 1, filter: { metadata: { title: id } } },
+          );
+          post = byTitle[0] ?? null;
         }
 
         if (!post) {
@@ -48,17 +56,16 @@ export function createGetTool(
           };
         }
 
-        const formatted = formatAsEntity(
-          {
-            id: post.id,
-            title: post.metadata.title,
-            slug: post.metadata.slug,
-            status: post.metadata.status,
-            publishedAt: post.metadata.publishedAt,
-            seriesName: post.metadata.seriesName,
-          },
-          { title: post.metadata.title ?? "Blog Post" },
-        );
+        // Parse the markdown to separate frontmatter and body
+        const { frontmatter, content: body } = parseMarkdown(post.content);
+
+        // Format frontmatter nicely, then append body
+        const frontmatterFormatted = formatAsEntity(frontmatter, {
+          title: post.metadata.title ?? "Blog Post",
+          excludeFields: ["title"], // Already in header
+        });
+
+        const formatted = `${frontmatterFormatted}\n\n---\n\n${body}`;
 
         return {
           success: true,
