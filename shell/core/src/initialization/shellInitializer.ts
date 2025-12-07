@@ -41,7 +41,11 @@ import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
 import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
 import { ProfileService } from "@brains/profile-service";
-import { AgentService, type IAgentService } from "@brains/agent-service";
+import {
+  AgentService,
+  createBrainAgentFactory,
+  type IAgentService,
+} from "@brains/agent-service";
 
 /**
  * Services initialized by ShellInitializer
@@ -388,13 +392,21 @@ export class ShellInitializer {
       this.config.profile,
     );
 
+    // Create agent factory with AI service config
+    const agentFactory = createBrainAgentFactory({
+      model: aiService.getModel(),
+      webSearch: aiService.getConfig().webSearch,
+      temperature: aiService.getConfig().temperature,
+      maxTokens: aiService.getConfig().maxTokens,
+    });
+
     // Agent service for AI-powered conversation
     const agentService = AgentService.getInstance(
-      aiService,
       mcpService,
       conversationService,
       identityService,
       logger,
+      { agentFactory },
     );
 
     // Subscribe to profile entity changes for cache refresh

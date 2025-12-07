@@ -1,6 +1,4 @@
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
-import type { IAIService, AITool, AIMessage } from "@brains/ai-service";
 import {
   type IMCPService,
   type ToolContext,
@@ -8,20 +6,21 @@ import {
 } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";
+import type { ModelMessage } from "@brains/ai-service";
 import type {
   AgentConfig,
   AgentResponse,
+  BrainAgent,
   ChatContext,
   IAgentService,
   PendingConfirmation,
 } from "./types";
+import type { BrainCallOptions } from "./brain-agent";
 
 /**
- * Default agent configuration
+ * Default step limit if not specified
  */
-const DEFAULT_CONFIG: Required<AgentConfig> = {
-  maxSteps: 10,
-};
+const DEFAULT_STEP_LIMIT = 10;
 
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
@@ -29,31 +28,32 @@ const DEFAULT_CONFIG: Required<AgentConfig> = {
  * This service:
  * - Receives user messages and sends them to the AI with available tools
  * - Loads conversation history from ConversationService
- * - Converts MCP tools to AI-compatible format
- * - Builds system prompts from brain identity
+ * - Uses ToolLoopAgent for automatic tool loop orchestration
  * - Handles confirmation flows for destructive operations
  */
 export class AgentService implements IAgentService {
   private static instance: AgentService | null = null;
   private logger: Logger;
-  private config: Required<AgentConfig>;
+  private stepLimit: number;
+  private agentFactory: AgentConfig["agentFactory"];
 
   // Track pending confirmations per conversation
   private pendingConfirmations = new Map<string, PendingConfirmation>();
+
+  // Lazy-initialized agent
+  private agent: BrainAgent | null = null;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
-    aiService: IAIService,
     mcpService: IMCPService,
     conversationService: IConversationService,
     identityService: IIdentityService,
     logger: Logger,
-    config?: AgentConfig,
+    config: AgentConfig,
   ): AgentService {
     AgentService.instance ??= new AgentService(
-      aiService,
       mcpService,
       conversationService,
       identityService,
@@ -74,15 +74,13 @@ export class AgentService implements IAgentService {
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    aiService: IAIService,
     mcpService: IMCPService,
     conversationService: IConversationService,
     identityService: IIdentityService,
     logger: Logger,
-    config?: AgentConfig,
+    config: AgentConfig,
   ): AgentService {
     return new AgentService(
-      aiService,
       mcpService,
       conversationService,
       identityService,
@@ -95,15 +93,41 @@ export class AgentService implements IAgentService {
    * Private constructor to enforce factory methods
    */
   private constructor(
-    private aiService: IAIService,
     private mcpService: IMCPService,
     private conversationService: IConversationService,
     private identityService: IIdentityService,
     logger: Logger,
-    config?: AgentConfig,
+    config: AgentConfig,
   ) {
     this.logger = logger.child("AgentService");
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.stepLimit = config.stepLimit ?? DEFAULT_STEP_LIMIT;
+    this.agentFactory = config.agentFactory;
+  }
+
+  /**
+   * Get or create the ToolLoopAgent instance
+   * Lazy initialization allows tools to be registered after service creation
+   */
+  private getAgent(): BrainAgent {
+    if (!this.agent) {
+      this.agent = this.agentFactory({
+        identity: this.identityService.getIdentity(),
+        tools: this.mcpService.listTools().map((t) => t.tool),
+        stepLimit: this.stepLimit,
+        getToolsForPermission: (level) =>
+          this.mcpService.listToolsForPermissionLevel(level).map((t) => t.tool),
+      });
+    }
+    return this.agent;
+  }
+
+  /**
+   * Invalidate the cached agent
+   * Call this when tools are registered/unregistered
+   */
+  public invalidateAgent(): void {
+    this.agent = null;
+    this.logger.debug("Agent invalidated, will be recreated on next chat");
   }
 
   /**
@@ -126,7 +150,6 @@ export class AgentService implements IAgentService {
     });
 
     // Ensure conversation exists (creates if needed)
-    // channelName defaults to channelId if not provided
     const channelName = context?.channelName ?? channelId;
     await this.conversationService.startConversation(
       conversationId,
@@ -145,42 +168,46 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
-    // Convert to AI message format
-    const messages: AIMessage[] = historyMessages.map((msg) => ({
-      role: msg.role as "user" | "assistant" | "system" | "tool",
-      content: msg.content,
-    }));
+    // Convert to AI SDK message format
+    const messages: ModelMessage[] = historyMessages.map((msg) => {
+      if (msg.role === "user") {
+        return { role: "user", content: msg.content };
+      }
+      if (msg.role === "assistant") {
+        return {
+          role: "assistant",
+          content: [{ type: "text", text: msg.content }],
+        };
+      }
+      // system messages
+      return { role: "system", content: msg.content };
+    });
 
     // Add the new user message
     messages.push({ role: "user", content: message });
 
-    // Get tools filtered by user permission level
-    const tools = this.convertMCPToolsToAITools(
-      conversationId,
-      userPermissionLevel,
-    );
-
-    this.logger.debug("Tools available for chat", {
-      toolCount: tools.length,
+    this.logger.debug("Calling agent.generate", {
+      messageCount: messages.length,
       userPermissionLevel,
     });
-
-    // Build system prompt with user context
-    const systemPrompt = this.buildSystemPrompt(userPermissionLevel);
 
     // Save user message to conversation
     await this.conversationService.addMessage(conversationId, "user", message);
 
-    // Call AI with tools
-    const result = await this.aiService.generateWithTools({
-      system: systemPrompt,
+    // Call agent with type-safe options
+    const callOptions: BrainCallOptions = {
+      userPermissionLevel,
+      conversationId,
+      channelId,
+      interfaceType,
+    };
+
+    const result = await this.getAgent().generate({
       messages,
-      tools,
-      maxSteps: this.config.maxSteps,
+      options: callOptions,
     });
 
     // Save assistant response to conversation (only if non-empty)
-    // Empty text happens when AI only does tool calls without a final response
     if (result.text.trim()) {
       await this.conversationService.addMessage(
         conversationId,
@@ -189,38 +216,49 @@ export class AgentService implements IAgentService {
       );
     }
 
-    // Map tool calls to ToolResultData
-    const toolResults = result.toolCalls
-      .filter((tc) => tc.result !== null) // Skip null results
-      .map((tc) => {
-        const parsed = toolResponseSchema.safeParse(tc.result);
+    // Extract tool results from all steps
+    const toolResults = (result.steps ?? [])
+      .flatMap((step) => step.toolResults ?? [])
+      .filter((tr) => tr.output !== null)
+      .map((tr) => {
+        const parsed = toolResponseSchema.safeParse(tr.output);
         if (!parsed.success) {
           this.logger.warn("Tool result failed validation", {
-            toolName: tc.name,
+            toolName: tr.toolName,
             error: parsed.error.message,
           });
           return {
-            toolName: tc.name,
-            formatted: `_Tool ${tc.name} completed_`,
+            toolName: tr.toolName,
+            formatted: `_Tool ${tr.toolName} completed_`,
           };
         }
         return {
-          toolName: tc.name,
+          toolName: tr.toolName,
           formatted: parsed.data.formatted,
         };
       });
 
+    // Count total tool calls
+    const totalToolCalls = (result.steps ?? []).reduce(
+      (sum, step) => sum + (step.toolCalls?.length ?? 0),
+      0,
+    );
+
     this.logger.debug("Chat completed", {
       conversationId,
       responseLength: result.text.length,
-      toolCalls: result.toolCalls.length,
+      toolCalls: totalToolCalls,
       usage: result.usage,
     });
 
     return {
       text: result.text,
       toolResults,
-      usage: result.usage,
+      usage: {
+        promptTokens: result.usage.inputTokens ?? 0,
+        completionTokens: result.usage.outputTokens ?? 0,
+        totalTokens: result.usage.totalTokens ?? 0,
+      },
     };
   }
 
@@ -310,106 +348,5 @@ export class AgentService implements IAgentService {
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       };
     }
-  }
-
-  /**
-   * Convert MCP tools to AI-compatible tool format
-   * Filters tools based on user permission level
-   */
-  private convertMCPToolsToAITools(
-    conversationId: string,
-    userPermissionLevel: "anchor" | "trusted" | "public",
-  ): AITool[] {
-    // Get tools filtered by permission level
-    const mcpTools =
-      this.mcpService.listToolsForPermissionLevel(userPermissionLevel);
-
-    return mcpTools.map(({ tool }) => ({
-      name: tool.name,
-      description: tool.description,
-      inputSchema: z.object(tool.inputSchema),
-      execute: async (args: unknown): Promise<unknown> => {
-        const context: ToolContext = {
-          interfaceType: "agent",
-          userId: "agent-user",
-          channelId: conversationId,
-        };
-
-        this.logger.debug("Executing tool", {
-          toolName: tool.name,
-          args,
-        });
-
-        const result = await tool.handler(args, context);
-        return result;
-      },
-    }));
-  }
-
-  /**
-   * Build the system prompt from identity and agent instructions
-   */
-  private buildSystemPrompt(
-    userPermissionLevel: "anchor" | "trusted" | "public",
-  ): string {
-    const identity = this.identityService.getIdentity();
-
-    // Build user context section based on permission level
-    let userContext = "";
-    if (userPermissionLevel === "anchor") {
-      userContext = `
-## Current User
-**You are speaking with your ANCHOR (owner).** This is the person who created and manages you.
-Address them personally and recognize that they know you well. Use \`system_get-profile\`
-to get their name and details if needed.`;
-    } else if (userPermissionLevel === "trusted") {
-      userContext = `
-## Current User
-You are speaking with a **trusted user** who has elevated access but is not the owner.`;
-    } else {
-      userContext = `
-## Current User
-You are speaking with a **public user** with limited access.`;
-    }
-
-    return `# ${identity.name}
-
-**Role:** ${identity.role}
-**Purpose:** ${identity.purpose}
-**Values:** ${identity.values.join(", ")}
-${userContext}
-
-## Agent Instructions
-
-You are an AI assistant with access to tools for managing a personal knowledge system.
-
-### Identity vs Profile
-- **Identity** (from \`system_get-identity\`): This is YOU - the brain's persona, role, purpose, and values
-- **Profile** (from \`system_get-profile\`): This is your ANCHOR - the person who owns and manages this brain
-- When someone asks "who are you?" → use identity (describe yourself as the brain)
-- When someone asks "who owns this?" → use profile (describe your anchor/owner)
-- When your anchor is talking to you, address them personally (they created you!)
-
-### Tool Usage
-- **ALWAYS use your available tools** - you have many tools, USE THEM proactively
-- Look at the tool names: they tell you what they do (e.g., *_list, *_get, *_search)
-- **Never claim you don't have access** - if a tool exists for something, use it immediately
-- Never say "I don't know" or "I don't have access" without first trying the appropriate tool
-- You can call multiple tools in sequence if needed
-- Show the formatted output from tools directly to users
-
-### Destructive Operations
-For these operations, ask for confirmation before executing:
-- Deleting entities (notes, links, etc.)
-- Publishing content
-- Modifying system settings
-
-When asking for confirmation, clearly describe what will happen.
-
-### Response Style
-- Be concise and helpful
-- Use markdown formatting for readability
-- If a tool fails, explain the error clearly
-- If you don't know something, say so`;
   }
 }

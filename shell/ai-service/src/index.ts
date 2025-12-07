@@ -7,13 +7,9 @@
 
 export { AIService } from "./aiService";
 
+// Re-export from ai SDK for use by agent-service
+export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
+export type { LanguageModel, ToolSet, ModelMessage } from "ai";
+
 // Export types
-export type {
-  AIModelConfig,
-  IAIService,
-  AITool,
-  AIMessage,
-  ToolCallResult,
-  GenerateWithToolsOptions,
-  GenerateWithToolsResult,
-} from "./types";
+export type { AIModelConfig, IAIService } from "./types";

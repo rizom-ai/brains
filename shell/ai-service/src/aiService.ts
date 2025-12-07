@@ -1,15 +1,9 @@
-import { generateText, generateObject, dynamicTool, stepCountIs } from "ai";
+import { generateText, generateObject } from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
-import type {
-  AIModelConfig,
-  IAIService,
-  GenerateWithToolsOptions,
-  GenerateWithToolsResult,
-  ToolCallResult,
-} from "./types";
+import type { AIModelConfig, IAIService } from "./types";
 
 /**
  * Default model configuration
@@ -69,7 +63,7 @@ export class AIService implements IAIService {
   /**
    * Get the Anthropic model instance
    */
-  private getModel(): LanguageModel {
+  public getModel(): LanguageModel {
     const { model } = this.config;
     return this.anthropicProvider(model ?? DEFAULT_MODEL);
   }
@@ -170,119 +164,6 @@ export class AIService implements IAIService {
     } catch (error) {
       this.logger.error("Failed to generate object", error);
       throw new Error("AI object generation failed");
-    }
-  }
-
-  /**
-   * Generate text with tool calling support
-   */
-  public async generateWithTools(
-    options: GenerateWithToolsOptions,
-  ): Promise<GenerateWithToolsResult> {
-    this.logger.debug("Generating with tools", {
-      model: this.config.model,
-      toolCount: options.tools.length,
-      maxSteps: options.maxSteps,
-    });
-
-    try {
-      // Convert our tool format to Vercel AI SDK dynamic tool format
-      // dynamicTool accepts unknown types, suitable for runtime-defined tools
-      const sdkTools: Record<string, ReturnType<typeof dynamicTool>> = {};
-      for (const t of options.tools) {
-        sdkTools[t.name] = dynamicTool({
-          description: t.description,
-          inputSchema: t.inputSchema,
-          execute: t.execute,
-        });
-      }
-
-      // Convert messages to SDK format
-      const messages = options.messages.map((msg) => {
-        if (msg.role === "tool") {
-          return {
-            role: "tool" as const,
-            content: [
-              {
-                type: "tool-result" as const,
-                toolCallId: msg.toolCallId ?? "",
-                toolName: msg.toolName ?? "",
-                output: { type: "json" as const, value: msg.content },
-              },
-            ],
-          };
-        }
-        return {
-          role: msg.role as "user" | "assistant" | "system",
-          content: msg.content,
-        };
-      });
-
-      this.logger.debug("Calling generateText with tools", {
-        toolCount: Object.keys(sdkTools).length,
-        messageCount: messages.length,
-      });
-
-      const result = await generateText({
-        model: this.getModel(),
-        system: options.system,
-        messages,
-        tools: sdkTools,
-        toolChoice: "auto",
-        stopWhen: stepCountIs(options.maxSteps ?? 10),
-        ...(this.config.temperature !== undefined && {
-          temperature: this.config.temperature,
-        }),
-        ...(this.config.maxTokens !== undefined && {
-          maxTokens: this.config.maxTokens,
-        }),
-        ...(this.config.webSearch && {
-          webSearch: true,
-        }),
-      });
-
-      // Count tool calls across all steps
-      const totalToolCalls =
-        result.steps?.reduce(
-          (sum, step) => sum + (step.toolCalls?.length ?? 0),
-          0,
-        ) ?? 0;
-
-      this.logger.debug("generateText completed", {
-        toolCallCount: totalToolCalls,
-        stepsCount: result.steps?.length,
-      });
-
-      // Extract tool call results from ALL steps (not just the final step)
-      // result.toolCalls only contains the last step's tool calls
-      // We need to iterate through all steps to get every tool call
-      const toolCalls: ToolCallResult[] = [];
-      for (const step of result.steps ?? []) {
-        for (const tc of step.toolCalls ?? []) {
-          const toolResult = step.toolResults?.find(
-            (tr) => tr.toolCallId === tc.toolCallId,
-          );
-          toolCalls.push({
-            name: tc.toolName,
-            args: "input" in tc ? tc.input : {},
-            result:
-              toolResult && "output" in toolResult ? toolResult.output : null,
-          });
-        }
-      }
-
-      return {
-        text: result.text,
-        toolCalls,
-        usage: {
-          promptTokens: result.usage.inputTokens ?? 0,
-          completionTokens: result.usage.outputTokens ?? 0,
-          totalTokens: result.usage.totalTokens ?? 0,
-        },
-      };
-    } catch (error) {
-      this.logger.error("Failed to generate with tools", error);
-      throw new Error("AI generation with tools failed");
     }
   }
 

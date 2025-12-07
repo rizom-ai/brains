@@ -2,41 +2,26 @@ import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
 import { createSilentLogger } from "@brains/utils";
 import { z } from "@brains/utils";
-import type {
-  IAIService,
-  AITool,
-  GenerateWithToolsOptions,
-  GenerateWithToolsResult,
-} from "@brains/ai-service";
 import type { IMCPService, PluginTool } from "@brains/mcp-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
+// Mock return value for agent.generate
+let mockAgentGenerateResult = {
+  text: "I found some results for you.",
+  steps: [] as {
+    toolCalls?: { toolName: string; toolCallId: string; args: unknown }[];
+    toolResults?: { toolName: string; toolCallId: string; output: unknown }[];
+  }[],
+  usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+};
 
-// Mock AIService
-const createMockAIService = (): IAIService => ({
-  generateText: mock(() =>
-    Promise.resolve({
-      text: "Generated text",
-      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-    }),
-  ),
-  generateObject: mock(() =>
-    Promise.resolve({
-      object: {},
-      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-    }),
-  ),
-  generateWithTools: mock(
-    (_options: GenerateWithToolsOptions): Promise<GenerateWithToolsResult> =>
-      Promise.resolve({
-        text: "I found some results for you.",
-        toolCalls: [],
-        usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
-      }),
-  ),
-  updateConfig: mock(() => {}),
-  getConfig: mock(() => ({ model: "claude-3-5-haiku-latest" })),
-});
+// Mock the agent's generate function
+const mockGenerate = mock(async () => mockAgentGenerateResult);
+
+// Mock agent factory - returns a mock agent with generate
+const mockAgentFactory = mock(() => ({
+  generate: mockGenerate,
+}));
 
 // Mock MCPService
 const createMockMCPService = (): IMCPService => ({
@@ -71,7 +56,6 @@ const createMockConversationService = (): Partial<IConversationService> => ({
 
 describe("AgentService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
-  let mockAIService: IAIService;
   let mockMCPService: IMCPService;
   let mockIdentityService: Partial<IIdentityService>;
   let mockConversationService: Partial<IConversationService>;
@@ -79,10 +63,18 @@ describe("AgentService", () => {
   beforeEach(() => {
     AgentService.resetInstance();
     logger = createSilentLogger();
-    mockAIService = createMockAIService();
     mockMCPService = createMockMCPService();
     mockIdentityService = createMockIdentityService();
     mockConversationService = createMockConversationService();
+
+    // Reset mock generate result and call count
+    mockAgentGenerateResult = {
+      text: "I found some results for you.",
+      steps: [],
+      usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+    };
+    mockGenerate.mockClear();
+    mockAgentFactory.mockClear();
   });
 
   afterEach(() => {
@@ -92,18 +84,18 @@ describe("AgentService", () => {
   describe("Component Interface Standardization", () => {
     it("should implement singleton pattern", () => {
       const instance1 = AgentService.getInstance(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
       const instance2 = AgentService.getInstance(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       expect(instance1).toBe(instance2);
@@ -111,62 +103,62 @@ describe("AgentService", () => {
 
     it("should reset instance", () => {
       const instance1 = AgentService.getInstance(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       AgentService.resetInstance();
 
       const instance2 = AgentService.getInstance(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
       expect(instance1).not.toBe(instance2);
     });
 
     it("should create fresh instance without affecting singleton", () => {
       const singleton = AgentService.getInstance(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
       const fresh = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       expect(fresh).not.toBe(singleton);
       expect(
         AgentService.getInstance(
-          mockAIService,
           mockMCPService,
           mockConversationService as IConversationService,
           mockIdentityService as IIdentityService,
           logger,
+          { agentFactory: mockAgentFactory },
         ),
       ).toBe(singleton);
     });
   });
 
   describe("chat", () => {
-    it("should send message to AI and return response", async () => {
+    it("should send message to agent and return response", async () => {
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       const response = await service.chat(
@@ -177,38 +169,23 @@ describe("AgentService", () => {
       expect(response.text).toBe("I found some results for you.");
       expect(response.usage.totalTokens).toBe(150);
       expect(response.pendingConfirmation).toBeUndefined();
-      expect(mockAIService.generateWithTools).toHaveBeenCalled();
-    });
-
-    it("should include identity in system prompt", async () => {
-      const service = AgentService.createFresh(
-        mockAIService,
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
-        logger,
-      );
-
-      await service.chat("Hello", "test-conversation");
-
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-      expect(call.system).toContain("Test Brain");
+      expect(mockGenerate).toHaveBeenCalled();
     });
 
     it("should include user message in messages array", async () => {
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("Search for notes", "test-conversation");
 
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
+      const call = mockGenerate.mock.calls[0]?.[0] as {
+        messages: { role: string; content: string }[];
+      };
       expect(call.messages).toContainEqual({
         role: "user",
         content: "Search for notes",
@@ -239,17 +216,18 @@ describe("AgentService", () => {
       );
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("New message", "test-conversation");
 
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
+      const call = mockGenerate.mock.calls[0]?.[0] as {
+        messages: { role: string; content: string }[];
+      };
 
       // Should include history plus new message
       expect(call.messages.length).toBe(3);
@@ -259,11 +237,11 @@ describe("AgentService", () => {
 
     it("should save messages to ConversationService", async () => {
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("Hello", "test-conversation");
@@ -274,104 +252,41 @@ describe("AgentService", () => {
   });
 
   describe("tools integration", () => {
-    it("should pass MCP tools to AI service", async () => {
+    it("should create agent with MCP tools", async () => {
       const searchTool: PluginTool = {
         name: "search",
         description: "Search for content",
         inputSchema: { query: z.string() },
-        handler: mock(async () => ({ status: "ok", data: { results: [] } })),
+        handler: mock(async () => ({
+          status: "ok",
+          data: { results: [] },
+          formatted: "No results",
+        })),
       };
 
+      mockMCPService.listTools = mock(() => [
+        { pluginId: "test-plugin", tool: searchTool },
+      ]);
       mockMCPService.listToolsForPermissionLevel = mock(() => [
         { pluginId: "test-plugin", tool: searchTool },
       ]);
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("Search for something", "test-conversation");
 
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-      expect(call.tools.length).toBe(1);
-      expect(call.tools[0]?.name).toBe("search");
-    });
-
-    it("should convert MCP tool schema to AI tool format", async () => {
-      const noteTool: PluginTool = {
-        name: "create_note",
-        description: "Create a new note",
-        inputSchema: {
-          title: z.string(),
-          content: z.string(),
-        },
-        handler: mock(async () => ({ status: "ok" })),
+      // Verify agentFactory was called with tools
+      const createCall = mockAgentFactory.mock.calls[0]?.[0] as {
+        tools: PluginTool[];
       };
-
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
-        { pluginId: "notes", tool: noteTool },
-      ]);
-
-      const service = AgentService.createFresh(
-        mockAIService,
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
-        logger,
-      );
-
-      await service.chat("Create a note", "test-conversation");
-
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-      const tool = call.tools[0] as AITool;
-
-      expect(tool.name).toBe("create_note");
-      expect(tool.description).toBe("Create a new note");
-      expect(tool.execute).toBeDefined();
-    });
-
-    it("should execute tool handler when AI calls tool", async () => {
-      const searchHandler = mock(async () => ({
-        status: "ok",
-        data: { results: ["note1", "note2"] },
-      }));
-
-      const searchTool: PluginTool = {
-        name: "search",
-        description: "Search for content",
-        inputSchema: { query: z.string() },
-        handler: searchHandler,
-      };
-
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
-        { pluginId: "test-plugin", tool: searchTool },
-      ]);
-
-      const service = AgentService.createFresh(
-        mockAIService,
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
-        logger,
-      );
-
-      await service.chat("Search for typescript", "test-conversation");
-
-      // Get the converted tools and call execute
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-      const tool = call.tools[0] as AITool;
-
-      // Simulate AI calling the tool
-      await tool.execute({ query: "typescript" });
-
-      expect(searchHandler).toHaveBeenCalled();
+      expect(createCall.tools.length).toBe(1);
+      expect(createCall.tools[0]?.name).toBe("search");
     });
   });
 
@@ -382,7 +297,7 @@ describe("AgentService", () => {
         description: "Public search tool",
         inputSchema: { query: z.string() },
         visibility: "public",
-        handler: mock(async () => ({ status: "ok" })),
+        handler: mock(async () => ({ status: "ok", formatted: "ok" })),
       };
 
       const anchorTool: PluginTool = {
@@ -390,7 +305,7 @@ describe("AgentService", () => {
         description: "Admin delete tool",
         inputSchema: { id: z.string() },
         visibility: "anchor",
-        handler: mock(async () => ({ status: "ok" })),
+        handler: mock(async () => ({ status: "ok", formatted: "ok" })),
       };
 
       // Mock listToolsForPermissionLevel to return filtered tools
@@ -405,124 +320,73 @@ describe("AgentService", () => {
       });
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
-      // Chat as public user - should only see public tool
+      // Chat as public user
       await service.chat("Search for something", "test-conversation", {
         userPermissionLevel: "public",
       });
 
-      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
-        "public",
-      );
-
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-      expect(call.tools.length).toBe(1);
-      expect(call.tools[0]?.name).toBe("public_search");
-    });
-
-    it("should provide all tools for anchor users", async () => {
-      const publicTool: PluginTool = {
-        name: "public_search",
-        description: "Public search tool",
-        inputSchema: { query: z.string() },
-        visibility: "public",
-        handler: mock(async () => ({ status: "ok" })),
+      // Verify options passed to agent.generate
+      const call = mockGenerate.mock.calls[0]?.[0] as {
+        options: { userPermissionLevel: string };
       };
-
-      const anchorTool: PluginTool = {
-        name: "admin_delete",
-        description: "Admin delete tool",
-        inputSchema: { id: z.string() },
-        visibility: "anchor",
-        handler: mock(async () => ({ status: "ok" })),
-      };
-
-      mockMCPService.listToolsForPermissionLevel = mock(() => [
-        { pluginId: "test", tool: publicTool },
-        { pluginId: "test", tool: anchorTool },
-      ]);
-
-      const service = AgentService.createFresh(
-        mockAIService,
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
-        logger,
-      );
-
-      // Chat as anchor user - should see all tools
-      await service.chat("Delete something", "test-conversation", {
-        userPermissionLevel: "anchor",
-      });
-
-      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
-        "anchor",
-      );
-
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-      expect(call.tools.length).toBe(2);
+      expect(call.options.userPermissionLevel).toBe("public");
     });
 
     it("should default to public permission level if not specified", async () => {
-      mockMCPService.listToolsForPermissionLevel = mock(() => []);
-
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("Hello", "test-conversation");
 
-      // Should default to public for safety
-      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
-        "public",
-      );
+      const call = mockGenerate.mock.calls[0]?.[0] as {
+        options: { userPermissionLevel: string };
+      };
+      expect(call.options.userPermissionLevel).toBe("public");
     });
   });
 
   describe("error handling", () => {
-    it("should handle AI service errors gracefully", async () => {
-      mockAIService.generateWithTools = mock(() =>
-        Promise.reject(new Error("AI service error")),
+    it("should handle agent errors gracefully", async () => {
+      mockGenerate.mockImplementationOnce(() =>
+        Promise.reject(new Error("Agent error")),
       );
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       void expect(service.chat("Hello", "test-conversation")).rejects.toThrow();
     });
 
-    it("should handle empty response from AI", async () => {
-      mockAIService.generateWithTools = mock(() =>
-        Promise.resolve({
-          text: "",
-          toolCalls: [],
-          usage: { promptTokens: 10, completionTokens: 0, totalTokens: 10 },
-        }),
-      );
+    it("should handle empty response from agent", async () => {
+      mockAgentGenerateResult = {
+        text: "",
+        steps: [],
+        usage: { inputTokens: 10, outputTokens: 0, totalTokens: 10 },
+      };
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       const response = await service.chat("Hello", "test-conversation");
@@ -532,15 +396,12 @@ describe("AgentService", () => {
 
   describe("confirmation flow", () => {
     it("should track pending confirmation for destructive operations", async () => {
-      // This test verifies the confirmation flow works
-      // The actual detection of destructive operations happens via system prompt
-      // and the AI deciding to ask for confirmation
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       // Store a pending confirmation
@@ -561,11 +422,11 @@ describe("AgentService", () => {
 
     it("should cancel pending confirmation when user declines", async () => {
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       service.setPendingConfirmation("test-conversation", {
@@ -584,11 +445,11 @@ describe("AgentService", () => {
 
     it("should return error when confirming without pending action", async () => {
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       const response = await service.confirmPendingAction(
@@ -600,71 +461,62 @@ describe("AgentService", () => {
     });
   });
 
-  describe("system prompt", () => {
-    it("should include agent instructions in system prompt", async () => {
+  describe("agent creation", () => {
+    it("should create agent with identity from IdentityService", async () => {
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       await service.chat("Hello", "test-conversation");
 
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
+      const createCall = mockAgentFactory.mock.calls[0]?.[0] as {
+        identity: { name: string };
+      };
 
-      expect(call.system).toContain("Tool");
-      expect(call.system).toContain("Destructive");
-    });
-
-    it("should include brain identity in system prompt", async () => {
-      const service = AgentService.createFresh(
-        mockAIService,
-        mockMCPService,
-        mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
-        logger,
-      );
-
-      await service.chat("Hello", "test-conversation");
-
-      const call = (mockAIService.generateWithTools as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0] as GenerateWithToolsOptions;
-
-      // Should include identity content
-      expect(call.system).toContain("Test Brain");
+      expect(createCall.identity.name).toBe("Test Brain");
     });
   });
 
   describe("toolResults in response", () => {
-    it("should include tool results in response when AI calls tools", async () => {
-      // Mock AI service to return tool calls with formatted output
-      mockAIService.generateWithTools = mock(() =>
-        Promise.resolve({
-          text: "I found some notes for you.",
-          toolCalls: [
-            {
-              name: "search",
-              args: { query: "typescript" },
-              result: {
-                status: "ok",
-                data: { results: ["note1", "note2"] },
-                formatted: "- note1\n- note2",
+    it("should include tool results in response when agent calls tools", async () => {
+      // Mock agent to return tool calls with formatted output
+      mockAgentGenerateResult = {
+        text: "I found some notes for you.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "search",
+                toolCallId: "call1",
+                args: { query: "typescript" },
               },
-            },
-          ],
-          usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
-        }),
-      );
+            ],
+            toolResults: [
+              {
+                toolName: "search",
+                toolCallId: "call1",
+                output: {
+                  status: "ok",
+                  data: { results: ["note1", "note2"] },
+                  formatted: "- note1\n- note2",
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       const response = await service.chat(
@@ -679,20 +531,18 @@ describe("AgentService", () => {
     });
 
     it("should return empty toolResults array when no tools are called", async () => {
-      mockAIService.generateWithTools = mock(() =>
-        Promise.resolve({
-          text: "Hello! How can I help you?",
-          toolCalls: [],
-          usage: { promptTokens: 50, completionTokens: 20, totalTokens: 70 },
-        }),
-      );
+      mockAgentGenerateResult = {
+        text: "Hello! How can I help you?",
+        steps: [],
+        usage: { inputTokens: 50, outputTokens: 20, totalTokens: 70 },
+      };
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       const response = await service.chat("Hello", "test-conversation");
@@ -701,32 +551,52 @@ describe("AgentService", () => {
       expect(response.toolResults?.length).toBe(0);
     });
 
-    it("should include multiple tool results when AI calls multiple tools", async () => {
-      mockAIService.generateWithTools = mock(() =>
-        Promise.resolve({
-          text: "Here's what I found.",
-          toolCalls: [
-            {
-              name: "search",
-              args: { query: "typescript" },
-              result: { formatted: "## Search Results\n- note1" },
-            },
-            {
-              name: "get_note",
-              args: { id: "note1" },
-              result: { formatted: "## TypeScript Guide\n\nContent here..." },
-            },
-          ],
-          usage: { promptTokens: 100, completionTokens: 150, totalTokens: 250 },
-        }),
-      );
+    it("should include multiple tool results when agent calls multiple tools", async () => {
+      mockAgentGenerateResult = {
+        text: "Here's what I found.",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolName: "search",
+                toolCallId: "call1",
+                args: { query: "typescript" },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "search",
+                toolCallId: "call1",
+                output: { formatted: "## Search Results\n- note1" },
+              },
+            ],
+          },
+          {
+            toolCalls: [
+              {
+                toolName: "get_note",
+                toolCallId: "call2",
+                args: { id: "note1" },
+              },
+            ],
+            toolResults: [
+              {
+                toolName: "get_note",
+                toolCallId: "call2",
+                output: { formatted: "## TypeScript Guide\n\nContent here..." },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 100, outputTokens: 150, totalTokens: 250 },
+      };
 
       const service = AgentService.createFresh(
-        mockAIService,
         mockMCPService,
         mockConversationService as IConversationService,
         mockIdentityService as IIdentityService,
         logger,
+        { agentFactory: mockAgentFactory },
       );
 
       const response = await service.chat(

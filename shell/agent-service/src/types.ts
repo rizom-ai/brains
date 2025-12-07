@@ -1,10 +1,25 @@
 import type { UserPermissionLevel } from "@brains/permission-service";
+import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
+import type { ToolLoopAgent } from "@brains/ai-service";
+
+/**
+ * The actual agent type returned by createBrainAgentFactory
+ */
+export type BrainAgent = ToolLoopAgent<BrainCallOptions>;
+
+/**
+ * Factory function type for creating brain agents
+ */
+export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
 
 /**
  * Configuration for the AgentService
  */
 export interface AgentConfig {
-  maxSteps?: number; // Max tool call iterations, default 10
+  /** Maximum iterations before stopping (SDK defaults to 1) */
+  stepLimit?: number;
+  /** Factory for creating agents (injected for testability) */
+  agentFactory: BrainAgentFactory;
 }
 
 /**
