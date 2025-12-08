@@ -54,7 +54,14 @@ export function formatCompletionMessage(event: JobProgressEvent): string {
     ? `: ${event.metadata.operationTarget}`
     : "";
 
-  return `${statusEmoji} **${operationType}${target}** ${statusText}`;
+  let message = `${statusEmoji} **${operationType}${target}** ${statusText}`;
+
+  // Include event message if present (e.g., "Site build completed: 32 routes built")
+  if (event.message) {
+    message += `\n${event.message}`;
+  }
+
+  return message;
 }
 
 /**

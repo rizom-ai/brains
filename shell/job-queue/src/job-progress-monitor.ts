@@ -255,11 +255,31 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         return;
       }
 
+      // Try to extract a completion message from the job result
+      let message: string | undefined;
+      if (job.result) {
+        try {
+          const result =
+            typeof job.result === "string"
+              ? JSON.parse(job.result)
+              : job.result;
+          // Check for common result fields that contain messages
+          if (result.message) {
+            message = result.message;
+          } else if (result.routesBuilt !== undefined) {
+            message = `${result.routesBuilt} routes built`;
+          }
+        } catch {
+          // Ignore parsing errors
+        }
+      }
+
       const event: JobProgressEvent = {
         id: jobId,
         type: "job",
         status: "completed",
         metadata: job.metadata,
+        message,
         jobDetails: {
           jobType: job.type,
           priority: job.priority,

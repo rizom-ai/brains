@@ -5,7 +5,24 @@ import type { BaseJobTrackingInfo } from "../interfaces";
 import {
   setupProgressHandler,
   formatCompletionMessage,
+  formatProgressMessage,
 } from "./progress-handler";
+
+/**
+ * Tracked progress message for editing
+ * Maps job/batch ID to the message ID used for progress updates
+ */
+interface ProgressMessageTracking {
+  messageId: string;
+  channelId: string;
+  lastUpdate: number; // Timestamp of last update (for throttling)
+}
+
+/**
+ * Minimum time between progress message edits (in ms)
+ * Prevents hitting Matrix rate limits while still providing responsive feedback
+ */
+const PROGRESS_EDIT_THROTTLE_MS = 500;
 
 /**
  * Job tracking info for message-based interfaces
@@ -55,6 +72,40 @@ export abstract class MessageInterfacePlugin<
   ): void;
 
   /**
+   * Send a message and return its ID for later editing
+   * Override to enable progress message editing (default: not supported)
+   * @returns Promise<string> message ID, or undefined if not supported
+   */
+  protected sendMessageWithId(
+    _channelId: string | null,
+    _message: string,
+  ): Promise<string | undefined> {
+    // Default: message editing not supported
+    return Promise.resolve(undefined);
+  }
+
+  /**
+   * Edit a previously sent message
+   * Override to enable progress message editing (default: not supported)
+   * @returns Promise<boolean> true if edit succeeded
+   */
+  protected editMessage(
+    _channelId: string,
+    _messageId: string,
+    _newMessage: string,
+  ): Promise<boolean> {
+    // Default: message editing not supported
+    return Promise.resolve(false);
+  }
+
+  /**
+   * Check if this interface supports message editing for progress updates
+   */
+  protected supportsMessageEditing(): boolean {
+    return false;
+  }
+
+  /**
    * Optional callback for progress updates (for UI components)
    */
   protected progressCallback?: (events: JobProgressEvent[]) => void;
@@ -73,8 +124,25 @@ export abstract class MessageInterfacePlugin<
   /**
    * Buffer for completion messages received during input processing
    * These are flushed after the agent response is sent
+   * Each entry includes the message and target channel
    */
-  private bufferedCompletionMessages: string[] = [];
+  private bufferedCompletionMessages: Array<{
+    message: string;
+    channelId: string | null;
+  }> = [];
+
+  /**
+   * Track progress messages for editing
+   * Maps rootJobId to the message tracking info
+   * Used for updating progress messages rather than sending new ones
+   */
+  private progressMessageTracking = new Map<string, ProgressMessageTracking>();
+
+  /**
+   * Track agent response messages for editing on job completion
+   * Maps jobId to the message tracking info
+   */
+  private agentResponseTracking = new Map<string, ProgressMessageTracking>();
 
   /**
    * Register progress callback for reactive UI updates
@@ -95,6 +163,30 @@ export abstract class MessageInterfacePlugin<
    */
   public unregisterProgressCallback(): void {
     delete this.progressCallback;
+  }
+
+  /**
+   * Track an agent response message for editing on job completion
+   * Call this when sending an agent response that contains async job IDs
+   * @param jobId - The job ID from the tool result
+   * @param messageId - The message ID returned by the messaging system
+   * @param channelId - The channel the message was sent to
+   */
+  protected trackAgentResponseForJob(
+    jobId: string,
+    messageId: string,
+    channelId: string,
+  ): void {
+    this.agentResponseTracking.set(jobId, {
+      messageId,
+      channelId,
+      lastUpdate: Date.now(),
+    });
+    this.logger.debug("Tracking agent response for job", {
+      jobId,
+      messageId,
+      channelId,
+    });
   }
 
   /**
@@ -131,32 +223,137 @@ export abstract class MessageInterfacePlugin<
   /**
    * Default progress event handler
    * - Updates progress state for UI
-   * - Sends completion/failure messages
+   * - Sends/edits progress messages (if supported)
+   * - Sends completion/failure messages to the appropriate channel
    * - Cleans up after delay
    */
   protected override async handleProgressEvent(
     event: JobProgressEvent,
     _context: JobContext,
   ): Promise<void> {
+    // Filter: only handle events for this interface type
+    // If interfaceType is specified in metadata, only matching interfaces should handle it
+    const eventInterfaceType = event.metadata.interfaceType;
+    if (eventInterfaceType && eventInterfaceType !== this.id) {
+      // This event is for a different interface - ignore it
+      return;
+    }
+
     // Update progress state
     this.progressEvents.set(event.id, event);
 
     // Notify UI callback
     this.notifyProgressCallback();
 
-    // Handle completion/failure - send a message to the user
-    if (event.status === "completed" || event.status === "failed") {
-      const message = formatCompletionMessage(event);
+    // Get channel from event metadata, falling back to current channel
+    const targetChannelId = event.metadata.channelId ?? this.currentChannelId;
+    const rootJobId = event.metadata.rootJobId;
 
-      // Buffer completion messages while processing input
-      // This ensures agent response appears before completion messages
-      if (this.isProcessingInput) {
-        this.bufferedCompletionMessages.push(message);
-      } else {
-        this.sendMessageToChannel(this.currentChannelId, message);
+    // Handle processing status - send or edit progress message
+    // Skip progress messages if we're tracking the agent response for this job
+    // (the completion will edit the agent response instead)
+    if (event.status === "processing" && this.supportsMessageEditing()) {
+      // Check if we have agent response tracking for this job
+      const hasAgentTracking = this.agentResponseTracking.has(event.id);
+      if (hasAgentTracking) {
+        // Agent response will be edited on completion - skip progress message
+        return;
       }
 
-      // Clean up after delay
+      const progressMessage = formatProgressMessage(event);
+      const existingTracking = this.progressMessageTracking.get(rootJobId);
+      const now = Date.now();
+
+      if (existingTracking) {
+        // Throttle updates to prevent rate limiting
+        if (now - existingTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
+          // Edit existing progress message
+          await this.editMessage(
+            existingTracking.channelId,
+            existingTracking.messageId,
+            progressMessage,
+          );
+          existingTracking.lastUpdate = now;
+        }
+      } else if (targetChannelId && !this.isProcessingInput) {
+        // Only send NEW progress messages after agent response is sent
+        // This ensures the agent response appears first
+        const messageId = await this.sendMessageWithId(
+          targetChannelId,
+          progressMessage,
+        );
+        if (messageId) {
+          this.progressMessageTracking.set(rootJobId, {
+            messageId,
+            channelId: targetChannelId,
+            lastUpdate: now,
+          });
+          this.logger.debug("Tracking progress message", {
+            rootJobId,
+            messageId,
+            channelId: targetChannelId,
+          });
+        }
+      }
+    }
+
+    // Handle completion/failure - send/edit final message
+    if (event.status === "completed" || event.status === "failed") {
+      const completionMessage = formatCompletionMessage(event);
+
+      // Check if we have a tracked progress message to edit
+      const progressTracking = this.progressMessageTracking.get(rootJobId);
+      // Check if we have a tracked agent response to edit (for jobId)
+      const agentTracking = this.agentResponseTracking.get(event.id);
+
+      this.logger.debug("Completion event received", {
+        eventId: event.id,
+        rootJobId,
+        hasProgressTracking: !!progressTracking,
+        hasAgentTracking: !!agentTracking,
+        supportsEditing: this.supportsMessageEditing(),
+      });
+
+      if (this.supportsMessageEditing()) {
+        // Prefer editing the agent response message (for async jobs)
+        // This updates "queued" messages to show actual completion
+        if (agentTracking) {
+          await this.editMessage(
+            agentTracking.channelId,
+            agentTracking.messageId,
+            completionMessage,
+          );
+          this.agentResponseTracking.delete(event.id);
+          // Also clean up any progress tracking without sending duplicate
+          if (progressTracking) {
+            this.progressMessageTracking.delete(rootJobId);
+          }
+        } else if (progressTracking) {
+          // No agent tracking - edit the progress message instead
+          await this.editMessage(
+            progressTracking.channelId,
+            progressTracking.messageId,
+            completionMessage,
+          );
+          this.progressMessageTracking.delete(rootJobId);
+        }
+      }
+
+      // If no tracked messages to edit, send as new message
+      if (!progressTracking && !agentTracking) {
+        // Buffer completion messages while processing input
+        // This ensures agent response appears before completion messages
+        if (this.isProcessingInput) {
+          this.bufferedCompletionMessages.push({
+            message: completionMessage,
+            channelId: targetChannelId,
+          });
+        } else {
+          this.sendMessageToChannel(targetChannelId, completionMessage);
+        }
+      }
+
+      // Clean up progress state after delay
       setTimeout(() => {
         this.progressEvents.delete(event.id);
         this.notifyProgressCallback();
@@ -170,6 +367,7 @@ export abstract class MessageInterfacePlugin<
       eventId: event.id,
       status: event.status,
       operationType: event.metadata.operationType,
+      targetChannel: event.metadata.channelId,
     });
   }
 
@@ -226,9 +424,9 @@ export abstract class MessageInterfacePlugin<
   public endProcessingInput(): void {
     this.isProcessingInput = false;
 
-    // Flush buffered completion messages to the current channel
-    for (const message of this.bufferedCompletionMessages) {
-      this.sendMessageToChannel(this.currentChannelId, message);
+    // Flush buffered completion messages to their respective channels
+    for (const { message, channelId } of this.bufferedCompletionMessages) {
+      this.sendMessageToChannel(channelId, message);
     }
     this.bufferedCompletionMessages = [];
 

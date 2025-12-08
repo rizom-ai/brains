@@ -46,8 +46,13 @@ export const toolResponseSchema = z
     status: z.string().optional(),
     message: z.string().optional(),
     success: z.boolean().optional(),
-    data: z.record(z.string(), z.unknown()).optional(), // Generic data object
-    formatted: z.string(), // Pre-formatted markdown for rich display (required)
+    data: z
+      .object({
+        jobId: z.string().optional(), // Job ID for async tools that queue background jobs
+      })
+      .passthrough()
+      .optional(), // Generic data object with optional jobId
+    formatted: z.string().optional(), // Pre-formatted markdown for rich display (optional - omit for async jobs)
   })
   .passthrough(); // Allow additional fields
 

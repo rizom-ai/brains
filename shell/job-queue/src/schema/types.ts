@@ -23,6 +23,9 @@ export const JobContextInputSchema = z.object({
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,
   operationTarget: z.string().optional(),
+  // Routing context for progress message delivery
+  interfaceType: z.string().optional(), // Which interface triggered the job (e.g., "matrix", "cli")
+  channelId: z.string().optional(), // Channel/room to route progress messages to
 });
 
 export type JobContextInput = z.infer<typeof JobContextInputSchema>;

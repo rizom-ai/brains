@@ -9,7 +9,7 @@ import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
-import { z, formatAsList, formatAsEntity } from "@brains/utils";
+import { z, formatAsList } from "@brains/utils";
 import { GenerateOptionsSchema } from "../types/content-schemas";
 
 export function createSiteBuilderTools(
@@ -88,6 +88,9 @@ export function createSiteBuilderTools(
             progressToken: context.progressToken,
             pluginId,
             operationType: "content_operations",
+            // Routing context for progress messages
+            interfaceType: context.interfaceType,
+            channelId: context.channelId,
           };
 
           const result = await siteContentService.generateContent(
@@ -97,16 +100,8 @@ export function createSiteBuilderTools(
 
           const message = `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`;
 
-          const formatted = formatAsEntity(
-            {
-              batchId: result.batchId,
-              queued: result.queuedSections,
-              total: result.totalSections,
-              status: result.queuedSections > 0 ? "running" : "complete",
-            },
-            { title: "Content Generation" },
-          );
-
+          // Note: Omit 'formatted' for async jobs - progress events will show actual status
+          // This prevents showing stale status in the agent response
           return {
             success: true,
             message,
@@ -116,7 +111,6 @@ export function createSiteBuilderTools(
               totalSections: result.totalSections,
               jobs: result.jobs,
             },
-            formatted,
           };
         } catch (error) {
           const msg = `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`;
@@ -195,19 +189,15 @@ export function createSiteBuilderTools(
               progressToken: context.progressToken,
               operationType: "content_operations",
               pluginId,
+              // Routing context for progress messages
+              interfaceType: context.interfaceType,
+              channelId: context.channelId,
             },
           },
         );
 
-        const formatted = formatAsEntity(
-          {
-            jobId,
-            environment,
-            status: "queued",
-          },
-          { title: "Site Build" },
-        );
-
+        // Note: Omit 'formatted' for async jobs - progress events will show actual status
+        // This prevents showing stale "Status: queued" in the agent response
         return {
           success: true,
           message: `Site build job queued for ${environment} environment`,
@@ -215,7 +205,6 @@ export function createSiteBuilderTools(
             jobId,
             environment,
           },
-          formatted,
         };
       },
     },

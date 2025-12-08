@@ -230,24 +230,37 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
 
       // Append formatted tool results if present
       // This ensures the user sees the actual data returned by tools
+      // Tools that queue async jobs can omit 'formatted' to avoid showing stale status
       if (response.toolResults && response.toolResults.length > 0) {
         const toolOutput = response.toolResults
           .map((result) => result.formatted)
+          .filter((f): f is string => !!f) // Filter out undefined/empty formatted
           .join("\n\n");
 
-        this.logger.debug("Appending tool output", {
-          toolOutputLength: toolOutput.length,
-          toolOutputPreview: toolOutput.slice(0, 200),
-        });
+        if (toolOutput) {
+          this.logger.debug("Appending tool output", {
+            toolOutputLength: toolOutput.length,
+            toolOutputPreview: toolOutput.slice(0, 200),
+          });
 
-        // Append tool output if it's not already in the response
-        if (toolOutput && !responseText.includes(toolOutput)) {
-          responseText = `${responseText}\n\n${toolOutput}`;
+          // Append tool output if it's not already in the response
+          if (!responseText.includes(toolOutput)) {
+            responseText = `${responseText}\n\n${toolOutput}`;
+          }
         }
       }
 
-      // Send response to room
-      this.sendMessageToChannel(roomId, responseText);
+      // Send response to room and track for job completion updates
+      const messageId = await this.sendMessageWithId(roomId, responseText);
+
+      // Track the message for any async jobs so we can edit it on completion
+      if (messageId && response.toolResults) {
+        for (const toolResult of response.toolResults) {
+          if (toolResult.jobId) {
+            this.trackAgentResponseForJob(toolResult.jobId, messageId, roomId);
+          }
+        }
+      }
     } catch (error) {
       this.logger.error("Error handling message", { error, roomId, eventId });
       await this.sendErrorResponse(roomId, error, eventId);
@@ -381,6 +394,70 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       .catch((error) => {
         this.logger.error("Failed to send message", { error, roomId });
       });
+  }
+
+  /**
+   * Send message and return its ID for progress tracking
+   */
+  protected override async sendMessageWithId(
+    channelId: string | null,
+    message: string,
+  ): Promise<string | undefined> {
+    if (!this.client) {
+      return undefined;
+    }
+
+    const roomId = channelId ?? this.getCurrentChannelId();
+    if (!roomId) {
+      return undefined;
+    }
+
+    try {
+      const html = markdownToHtml(message);
+      const eventId = await this.client.sendFormattedMessage(
+        roomId,
+        message,
+        html,
+        true,
+      );
+      return eventId;
+    } catch (error) {
+      this.logger.error("Failed to send message with ID", { error, roomId });
+      return undefined;
+    }
+  }
+
+  /**
+   * Edit a previously sent message (for progress updates)
+   */
+  protected override async editMessage(
+    channelId: string,
+    messageId: string,
+    newMessage: string,
+  ): Promise<boolean> {
+    if (!this.client) {
+      return false;
+    }
+
+    try {
+      const html = markdownToHtml(newMessage);
+      await this.client.editMessage(channelId, messageId, newMessage, html);
+      return true;
+    } catch (error) {
+      this.logger.error("Failed to edit message", {
+        error,
+        channelId,
+        messageId,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Matrix supports message editing for progress updates
+   */
+  protected override supportsMessageEditing(): boolean {
+    return true;
   }
 
   /**

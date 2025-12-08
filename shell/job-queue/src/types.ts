@@ -26,6 +26,7 @@ export const JobInfoSchema = z.object({
   startedAt: z.number().nullable(),
   completedAt: z.number().nullable(),
   metadata: JobContextSchema,
+  result: z.unknown().nullable().optional(), // Job result (type varies by job type)
 });
 
 export type JobInfo = z.infer<typeof JobInfoSchema>;

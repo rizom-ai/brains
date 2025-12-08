@@ -1,198 +1,21 @@
 [0m[2m[35m$[0m [2m[1mbun --watch brain.config.ts --cli[0m
-[2025-12-08T06:20:48.950Z] [mcp] StreamableHTTP server listening on http://0.0.0.0:3333/mcp
-[90mMon, 08 Dec 2025 06:20:51 GMT[39m [1m[31m[ERROR][39m[22m [90m[MatrixHttpClient][39m (REQ-3) { errcode: 'M_NOT_FOUND', error: 'Account data not found' }
-[2025-12-08T06:20:51.403Z] [git-sync] Using git repository path { path: './brain-data' }
-[2025-12-08T06:20:51.921Z] [webserver] Preview server enabled
-[2025-12-08T06:20:51.931Z] [blog] Blog plugin registered successfully (routes auto-generated at /posts/)
-[2025-12-08T06:20:51.933Z] [decks] Decks plugin registered successfully
-[2025-12-08T06:20:51.934Z] [professional-site] Professional site plugin registered successfully
-[2025-12-08T06:20:51.948Z] [JobQueueService] Job enqueued with metadata {
-  id: 'pgOJfVy_J_vL',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.951Z] [JobQueueService] Job enqueued with metadata {
-  id: 'AOc4vIM-Maec',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.952Z] [JobQueueService] Job enqueued with metadata {
-  id: 'oYFYMtNv8wn9',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.954Z] [JobQueueService] Job enqueued with metadata {
-  id: 'lVnISYRqWNbW',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.956Z] [JobQueueService] Job enqueued with metadata {
-  id: 'dNjPhTAOSQ8A',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.957Z] [JobQueueService] Job enqueued with metadata {
-  id: 'fAhXlpVb-yf2',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.958Z] [JobQueueService] Job enqueued with metadata {
-  id: 'MQ-SubHe-3wz',
-  type: 'directory-sync:directory-export',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-export',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.960Z] [JobQueueService] Job enqueued with metadata {
-  id: 'Ec4QEFhnHg9g',
-  type: 'directory-sync:directory-import',
-  priority: 0,
-  metadata: {
-    operationType: 'file_operations',
-    progressToken: undefined,
-    operationTarget: 'directory-sync:directory-import',
-    pluginId: 'directory-sync',
-    rootJobId: 'LPPQTeIMeIu1'
-  },
-  rootJobId: 'LPPQTeIMeIu1'
-}
-[2025-12-08T06:20:51.992Z] [JobQueueService] Job enqueued with metadata {
-  id: 'MsB4YkTD18ws',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Forgotten Futures',
-    rootJobId: '7qYjy0t0oEEi'
-  },
-  rootJobId: '7qYjy0t0oEEi'
-}
-[2025-12-08T06:20:51.996Z] [JobQueueService] Job enqueued with metadata {
-  id: 'iHP4Ed8tuOYB',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Bots With An Attitude',
-    rootJobId: 'SpeiecmozYOB'
-  },
-  rootJobId: 'SpeiecmozYOB'
-}
-[2025-12-08T06:20:52.000Z] [JobQueueService] Job enqueued with metadata {
-  id: 'QziOdFRfyG4h',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Becoming Narrow Minded',
-    rootJobId: 'NrSAlj8k0GHg'
-  },
-  rootJobId: 'NrSAlj8k0GHg'
-}
-[2025-12-08T06:20:52.897Z] Loading embedding model: fast-all-MiniLM-L6-v2
-[2025-12-08T06:20:53.048Z] Embedding model loaded successfully
-[2025-12-08T06:20:53.135Z] [JobQueueService] Job enqueued with metadata {
-  id: '6W3nfvazjfJ3',
-  type: 'site-builder:site-build',
-  priority: 0,
-  metadata: { operationType: 'content_operations', rootJobId: 'FjT_UinQqnov' },
-  rootJobId: 'FjT_UinQqnov'
-}
-[2025-12-08T06:20:53.849Z] [HydrationManager] No content for interactive section: main, skipping hydration
-[2025-12-08T06:20:53.850Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T06:20:53.861Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
-[2025-12-08T06:20:53.862Z] [blog] Received site:build:completed event for preview environment
-[2025-12-08T06:20:53.862Z] [blog] Auto-generating RSS feed after site build (all posts)
-[2025-12-08T06:20:53.868Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
-[2025-12-08T06:20:54.755Z] [git-sync] Pulled changes from remote
-[2025-12-08T06:20:54.779Z] [JobQueueService] Job enqueued with metadata {
-  id: 'N3ZGG6grqPLi',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Forgotten Futures',
-    rootJobId: 'ymm90H29A25L'
-  },
-  rootJobId: 'ymm90H29A25L'
-}
-[2025-12-08T06:20:54.782Z] [JobQueueService] Job enqueued with metadata {
-  id: 'RNBBY2WzwsjF',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Bots With An Attitude',
-    rootJobId: 'uHGbGFf3sSQS'
-  },
-  rootJobId: 'uHGbGFf3sSQS'
-}
-[2025-12-08T06:20:54.785Z] [JobQueueService] Job enqueued with metadata {
-  id: 'ThVO8MhaFkL1',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Becoming Narrow Minded',
-    rootJobId: 'iDf_aSrx8UN_'
-  },
-  rootJobId: 'iDf_aSrx8UN_'
-}
-[2025-12-08T06:20:54.785Z] [git-sync] Imported entities after pull {
+[2025-12-08T07:59:16.655Z] [mcp] StreamableHTTP server listening on http://0.0.0.0:3333/mcp
+[90mMon, 08 Dec 2025 07:59:18 GMT[39m [1m[31m[ERROR][39m[22m [90m[MatrixHttpClient][39m (REQ-3) { errcode: 'M_NOT_FOUND', error: 'Account data not found' }
+[2025-12-08T07:59:19.074Z] [git-sync] Using git repository path { path: './brain-data' }
+[2025-12-08T07:59:19.615Z] [webserver] Preview server enabled
+[2025-12-08T07:59:19.621Z] [blog] Blog plugin registered successfully (routes auto-generated at /posts/)
+[2025-12-08T07:59:19.623Z] [decks] Decks plugin registered successfully
+[2025-12-08T07:59:19.625Z] [professional-site] Professional site plugin registered successfully
+[2025-12-08T07:59:20.628Z] Loading embedding model: fast-all-MiniLM-L6-v2
+[2025-12-08T07:59:20.791Z] Embedding model loaded successfully
+[2025-12-08T07:59:21.616Z] [HydrationManager] No content for interactive section: main, skipping hydration
+[2025-12-08T07:59:21.616Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T07:59:21.618Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
+[2025-12-08T07:59:21.628Z] [blog] Received site:build:completed event for preview environment
+[2025-12-08T07:59:21.628Z] [blog] Auto-generating RSS feed after site build (all posts)
+[2025-12-08T07:59:21.632Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
+[2025-12-08T07:59:22.605Z] [git-sync] Pulled changes from remote
+[2025-12-08T07:59:22.651Z] [git-sync] Imported entities after pull {
   result: {
     imported: 3,
     skipped: 26,
@@ -200,61 +23,22 @@
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
-    jobIds: [ 'N3ZGG6grqPLi', 'RNBBY2WzwsjF', 'ThVO8MhaFkL1' ]
+    jobIds: [ '4w7XmetGigbZ', 'pF94KdbNKyvY', 'X4Ek8_nOTNmL' ]
   }
 }
-[2025-12-08T06:20:54.911Z] [JobQueueService] Job enqueued with metadata {
-  id: 'p2JCuDn1XO7n',
-  type: 'site-builder:site-build',
-  priority: 0,
-  metadata: { operationType: 'content_operations', rootJobId: 'MxMItQNvQjMD' },
-  rootJobId: 'MxMItQNvQjMD'
-}
-[2025-12-08T06:20:55.457Z] [HydrationManager] No content for interactive section: main, skipping hydration
-[2025-12-08T06:20:55.458Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T06:20:55.459Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
-[2025-12-08T06:20:55.459Z] [blog] Received site:build:completed event for preview environment
-[2025-12-08T06:20:55.459Z] [blog] Auto-generating RSS feed after site build (all posts)
-[2025-12-08T06:20:55.461Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
-[2025-12-08T06:20:55.634Z] [git-sync] Pushed changes to remote
-[2025-12-08T06:20:55.635Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
-[2025-12-08T06:20:55.635Z] [git-sync] Sync completed successfully
-[2025-12-08T06:20:55.635Z] [git-sync] Synced git after initial directory sync
-[2025-12-08T06:20:56.977Z] [git-sync] Pulled changes from remote
-[2025-12-08T06:20:57.010Z] [JobQueueService] Job enqueued with metadata {
-  id: 'mi8DUu2gdsbl',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Forgotten Futures',
-    rootJobId: 'WkAJeeFOTlKs'
-  },
-  rootJobId: 'WkAJeeFOTlKs'
-}
-[2025-12-08T06:20:57.015Z] [JobQueueService] Job enqueued with metadata {
-  id: 'XDJBXMzjMpVK',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Bots With An Attitude',
-    rootJobId: 'on3hc8XzailT'
-  },
-  rootJobId: 'on3hc8XzailT'
-}
-[2025-12-08T06:20:57.018Z] [JobQueueService] Job enqueued with metadata {
-  id: 'nE5evnGLI5lG',
-  type: 'shell:embedding',
-  priority: 0,
-  metadata: {
-    operationType: 'data_processing',
-    operationTarget: 'Becoming Narrow Minded',
-    rootJobId: 'jxHVJ2Me863g'
-  },
-  rootJobId: 'jxHVJ2Me863g'
-}
-[2025-12-08T06:20:57.019Z] [git-sync] Imported entities after pull {
+[2025-12-08T07:59:23.318Z] [HydrationManager] No content for interactive section: main, skipping hydration
+[2025-12-08T07:59:23.318Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T07:59:23.320Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
+[2025-12-08T07:59:23.320Z] [blog] Received site:build:completed event for preview environment
+[2025-12-08T07:59:23.320Z] [blog] Auto-generating RSS feed after site build (all posts)
+[2025-12-08T07:59:23.328Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
+[2025-12-08T07:59:23.577Z] [git-sync] Pushed changes to remote
+[2025-12-08T07:59:23.577Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
+[2025-12-08T07:59:23.577Z] [git-sync] Sync completed successfully
+[2025-12-08T07:59:23.577Z] [git-sync] Synced git after initial directory sync
+[2025-12-08T07:59:24.242Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T07:59:24.957Z] [git-sync] Pulled changes from remote
+[2025-12-08T07:59:25.000Z] [git-sync] Imported entities after pull {
   result: {
     imported: 3,
     skipped: 26,
@@ -262,91 +46,24 @@
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
-    jobIds: [ 'mi8DUu2gdsbl', 'XDJBXMzjMpVK', 'nE5evnGLI5lG' ]
+    jobIds: [ 'WLyR31OFjEzs', 'jN4cqrc1Gfe2', 'D4VT68xYmmbn' ]
   }
 }
-[2025-12-08T06:20:57.177Z] [JobQueueService] Job enqueued with metadata {
-  id: 'JZonOTnTWO8A',
-  type: 'site-builder:site-build',
-  priority: 0,
-  metadata: { operationType: 'content_operations', rootJobId: 'P8LTq44_ec6F' },
-  rootJobId: 'P8LTq44_ec6F'
-}
-[2025-12-08T06:20:57.736Z] [HydrationManager] No content for interactive section: main, skipping hydration
-[2025-12-08T06:20:57.736Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T06:20:57.737Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
-[2025-12-08T06:20:57.737Z] [blog] Received site:build:completed event for preview environment
-[2025-12-08T06:20:57.737Z] [blog] Auto-generating RSS feed after site build (all posts)
-[2025-12-08T06:20:57.739Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
-[2025-12-08T06:20:57.887Z] [git-sync] Pushed changes to remote
-[2025-12-08T06:20:57.888Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
-[2025-12-08T06:20:57.888Z] [git-sync] Sync completed successfully
-[2025-12-08T06:20:57.888Z] [git-sync] Successfully synced after plugin initialization (seed content committed)
-[2025-12-08T06:20:57.899Z] [professional-brain] ✅ professional-brain v0.1.0 ready
-[2025-12-08T06:21:04.857Z] No handlers found for message type: conversation:started
-[2025-12-08T06:21:04.859Z] [AgentService] Available tools for this call {
-  toolCount: 24,
-  tools: [
-    'system_query',
-    'system_search',
-    'system_get',
-    'system_check-job-status',
-    'system_get-conversation',
-    'system_list-conversations',
-    'system_get-messages',
-    'system_get-identity',
-    'system_get-profile',
-    'system_get-status',
-    'directory-sync_sync',
-    'git-sync_sync',
-    'git-sync_status',
-    'blog_list',
-    'blog_get',
-    'blog_generate',
-    'blog_publish',
-    'blog_generate-rss',
-    'decks_list',
-    'decks_get',
-    'site-builder_generate',
-    'site-builder_build-site',
-    'site-builder_list_routes',
-    'site-builder_list_templates'
-  ]
-}
-[2025-12-08T06:21:04.865Z] No handlers found for message type: conversation:messageAdded
-[2025-12-08T06:21:07.717Z] [JobQueueService] Job enqueued with metadata {
-  id: 'Dp-rM2YgprR7',
-  type: 'site-builder:site-build',
-  priority: 0,
-  metadata: {
-    operationType: 'content_operations',
-    progressToken: undefined,
-    pluginId: 'site-builder',
-    rootJobId: 'Dp-rM2YgprR7'
-  },
-  rootJobId: 'Dp-rM2YgprR7'
-}
-[2025-12-08T06:21:08.359Z] [HydrationManager] Copied hydration script for dashboard
-[2025-12-08T06:21:08.360Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T06:21:08.361Z] [SiteBuildJobHandler] Emitting site:build:completed event for production environment
-[2025-12-08T06:21:08.362Z] [blog] Received site:build:completed event for production environment
-[2025-12-08T06:21:08.362Z] [blog] Auto-generating RSS feed after site build (published only)
-[2025-12-08T06:21:08.365Z] [blog] RSS feed generated successfully with 22 posts at dist/site-production/feed.xml
-[2025-12-08T06:21:09.053Z] No handlers found for message type: conversation:messageAdded
-[2025-12-08T06:21:09.055Z] [AgentService] Chat completed {
-  conversationId: 'matrix-!Dv1kMKmrY9Xz_eqIXkjHAu1wcrXx0THNwc_T6xZMTN0',
-  responseLength: 176,
-  toolCalls: 2,
-  stepCount: 3,
-  stepDetails: [
-    { step: 0, toolCalls: [Array], toolResults: 1 },
-    { step: 1, toolCalls: [Array], toolResults: 1 },
-    { step: 2, toolCalls: [], toolResults: 0 }
-  ],
-  usage: {
-    inputTokens: 4249,
-    outputTokens: 50,
-    totalTokens: 4299,
-    cachedInputTokens: 0
-  }
-}
+[2025-12-08T07:59:25.687Z] [HydrationManager] No content for interactive section: main, skipping hydration
+[2025-12-08T07:59:25.687Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T07:59:25.688Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
+[2025-12-08T07:59:25.688Z] [blog] Received site:build:completed event for preview environment
+[2025-12-08T07:59:25.688Z] [blog] Auto-generating RSS feed after site build (all posts)
+[2025-12-08T07:59:25.691Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
+[2025-12-08T07:59:25.832Z] [git-sync] Pushed changes to remote
+[2025-12-08T07:59:25.832Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
+[2025-12-08T07:59:25.833Z] [git-sync] Sync completed successfully
+[2025-12-08T07:59:25.833Z] [git-sync] Successfully synced after plugin initialization (seed content committed)
+[2025-12-08T07:59:25.843Z] [professional-brain] ✅ professional-brain v0.1.0 ready
+[2025-12-08T07:59:26.432Z] [HydrationManager] Copied hydration script for dashboard
+[2025-12-08T07:59:26.432Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T07:59:26.433Z] [SiteBuildJobHandler] Emitting site:build:completed event for production environment
+[2025-12-08T07:59:26.433Z] [blog] Received site:build:completed event for production environment
+[2025-12-08T07:59:26.433Z] [blog] Auto-generating RSS feed after site build (published only)
+[2025-12-08T07:59:26.436Z] [blog] RSS feed generated successfully with 22 posts at dist/site-production/feed.xml
+[2025-12-08T07:59:27.472Z] No handlers found for message type: conversation:messageAdded

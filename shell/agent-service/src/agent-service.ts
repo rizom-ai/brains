@@ -14,6 +14,7 @@ import type {
   ChatContext,
   IAgentService,
   PendingConfirmation,
+  ToolResultData,
 } from "./types";
 import type { BrainCallOptions } from "./brain-agent";
 
@@ -226,26 +227,42 @@ export class AgentService implements IAgentService {
     }
 
     // Extract tool results from all steps
-    const toolResults = (result.steps ?? [])
-      .flatMap((step) => step.toolResults ?? [])
-      .filter((tr) => tr.output !== null)
-      .map((tr) => {
+    // Include all results that have either formatted output or a jobId (for async jobs)
+    const toolResults: ToolResultData[] = [];
+    for (const step of result.steps ?? []) {
+      for (const tr of step.toolResults ?? []) {
+        if (tr.output === null) continue;
+
         const parsed = toolResponseSchema.safeParse(tr.output);
         if (!parsed.success) {
           this.logger.warn("Tool result failed validation", {
             toolName: tr.toolName,
             error: parsed.error.message,
           });
-          return {
+          toolResults.push({
             toolName: tr.toolName,
             formatted: `_Tool ${tr.toolName} completed_`,
-          };
+          });
+          continue;
         }
-        return {
-          toolName: tr.toolName,
-          formatted: parsed.data.formatted,
-        };
-      });
+
+        // Keep results that have either formatted output or a jobId
+        const formatted = parsed.data.formatted;
+        const jobId = parsed.data.data?.jobId;
+
+        if (formatted !== undefined || jobId !== undefined) {
+          // Build result object conditionally to satisfy exactOptionalPropertyTypes
+          const result: ToolResultData = { toolName: tr.toolName };
+          if (formatted !== undefined) {
+            result.formatted = formatted;
+          }
+          if (jobId !== undefined) {
+            result.jobId = jobId;
+          }
+          toolResults.push(result);
+        }
+      }
+    }
 
     // Count total tool calls
     const totalToolCalls = (result.steps ?? []).reduce(

@@ -48,7 +48,8 @@ export interface PendingConfirmation {
  */
 export interface ToolResultData {
   toolName: string;
-  formatted: string; // Pre-formatted markdown from tool response
+  formatted?: string; // Pre-formatted markdown from tool response (optional for async jobs)
+  jobId?: string; // Job ID for async tools that queue background jobs
 }
 
 /**

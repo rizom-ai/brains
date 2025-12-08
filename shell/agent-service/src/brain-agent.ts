@@ -53,12 +53,21 @@ export interface BrainAgentFactoryOptions {
 }
 
 /**
+ * Tool context info passed from call options
+ */
+interface ToolContextInfo {
+  conversationId: string;
+  channelId?: string | undefined;
+  interfaceType: string;
+}
+
+/**
  * Convert PluginTool array to AI SDK tool format
  * Uses dynamicTool for runtime-defined tools with unknown input types
  */
 function convertToSDKTools(
   pluginTools: PluginTool[],
-  conversationId: string,
+  contextInfo: ToolContextInfo,
 ): ToolSet {
   const sdkTools: ToolSet = {};
 
@@ -68,9 +77,9 @@ function convertToSDKTools(
       inputSchema: z.object(t.inputSchema),
       execute: async (args: unknown) => {
         const context: ToolContext = {
-          interfaceType: "agent",
+          interfaceType: contextInfo.interfaceType,
           userId: "agent-user",
-          channelId: conversationId,
+          channelId: contextInfo.channelId ?? contextInfo.conversationId,
         };
         return t.handler(args, context);
       },
@@ -156,7 +165,11 @@ export function createBrainAgentFactory(options: BrainAgentFactoryOptions) {
 
   return function createBrainAgent(config: BrainAgentConfig) {
     // Pre-convert all tools - activeTools will filter which ones are available
-    const allTools = convertToSDKTools(config.tools, "");
+    // Use a default context for initial tools (will be overridden in prepareCall)
+    const allTools = convertToSDKTools(config.tools, {
+      conversationId: "",
+      interfaceType: "agent",
+    });
 
     return new ToolLoopAgent({
       model,
@@ -169,11 +182,12 @@ export function createBrainAgentFactory(options: BrainAgentFactoryOptions) {
         );
         const allowedToolNames = allowedTools.map((t) => t.name);
 
-        // Convert tools with proper conversationId for context
-        const toolsWithContext = convertToSDKTools(
-          allowedTools,
-          callOptions.conversationId,
-        );
+        // Convert tools with proper context from call options
+        const toolsWithContext = convertToSDKTools(allowedTools, {
+          conversationId: callOptions.conversationId,
+          channelId: callOptions.channelId,
+          interfaceType: callOptions.interfaceType,
+        });
 
         return {
           ...settings,
