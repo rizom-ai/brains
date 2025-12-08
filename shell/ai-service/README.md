@@ -28,7 +28,7 @@ import { AIService } from "@brains/ai-service";
 
 const aiService = AIService.getInstance({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  model: "claude-3-haiku-20240307", // or claude-3-sonnet, claude-3-opus
+  // model defaults to claude-haiku-4-5-20251001
 });
 
 // Generate text
@@ -72,10 +72,9 @@ interface AIServiceConfig {
 
 Supported Claude models:
 
-- `claude-3-haiku-20240307` - Fast, efficient
-- `claude-3-sonnet-20240229` - Balanced
-- `claude-3-opus-20240229` - Most capable
-- `claude-3-5-sonnet-20241022` - Latest sonnet
+- `claude-haiku-4-5-20251001` - Fast, efficient (default)
+- `claude-sonnet-4-5-20251001` - Balanced
+- `claude-opus-4-5-20251001` - Most capable
 
 ## Templates
 

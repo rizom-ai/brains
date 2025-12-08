@@ -103,7 +103,7 @@ export const shellConfigSchema = z.object({
   ai: z.object({
     provider: z.enum(["anthropic"]).default("anthropic"),
     apiKey: z.string(),
-    model: z.string().default("claude-3-5-haiku-latest"),
+    model: z.string().default("claude-haiku-4-5-20251001"),
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
@@ -141,11 +141,24 @@ export type ShellConfig = z.infer<typeof shellConfigSchema> & {
 };
 
 /**
+ * Input type for createShellConfig that allows partial nested objects
+ * This enables callers to provide just { ai: { apiKey: "..." } } without all other ai fields
+ */
+export type ShellConfigInput = Partial<
+  Omit<ShellConfig, "ai" | "logging" | "database" | "embedding"> & {
+    ai?: Partial<ShellConfig["ai"]>;
+    logging?: Partial<ShellConfig["logging"]>;
+    database?: Partial<ShellConfig["database"]>;
+    embedding?: Partial<ShellConfig["embedding"]>;
+  }
+>;
+
+/**
  * Create a shell configuration using standard paths
  * Simple and direct - no excessive indirection
  */
 export function createShellConfig(
-  overrides: Partial<ShellConfig> = {},
+  overrides: ShellConfigInput = {},
 ): ShellConfig {
   // Get standard config if not provided
   const standardConfig = getStandardConfig();
@@ -162,7 +175,7 @@ export function createShellConfig(
     ai: {
       provider: "anthropic" as const,
       apiKey: process.env["ANTHROPIC_API_KEY"] ?? overrides.ai?.apiKey ?? "",
-      model: overrides.ai?.model ?? "claude-3-5-haiku-latest",
+      model: overrides.ai?.model ?? "claude-haiku-4-5-20251001",
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
       webSearch: overrides.ai?.webSearch ?? true,

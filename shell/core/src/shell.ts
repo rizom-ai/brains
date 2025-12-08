@@ -29,7 +29,7 @@ import type { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import { type IJobProgressMonitor } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
-import type { ShellConfig } from "./config";
+import type { ShellConfig, ShellConfigInput } from "./config";
 import { createShellConfig } from "./config";
 import type { RenderService } from "@brains/render-service";
 import type { DataSourceRegistry } from "@brains/datasource";
@@ -106,7 +106,7 @@ export class Shell implements IShell {
    * @param dependencies - Optional dependencies for testing
    */
   public static createFresh(
-    config?: Partial<ShellConfig>,
+    config?: ShellConfigInput,
     dependencies?: ShellDependencies,
   ): Shell {
     const fullConfig = createShellConfig(config);

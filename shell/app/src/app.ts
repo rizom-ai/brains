@@ -66,10 +66,7 @@ export class App {
         shellConfig.ai = {
           apiKey: this.config.aiApiKey,
           provider: "anthropic",
-          model: "claude-3-haiku-20240307",
-          temperature: 0.7,
-          maxTokens: 1000,
-          webSearch: false,
+          // model defaults to AIService.DEFAULT_MODEL (claude-haiku-4-5-20251001)
         };
       }
 
