@@ -84,6 +84,31 @@ inputSchema: {
 // - Return full metadata for entity type
 ```
 
+**Formatting approach** (handles entities with both metadata and frontmatter):
+
+1. Parse entity content to separate frontmatter and body
+2. Format entity metadata (`id`, `type`, `created`, `updated`) + frontmatter fields together
+3. Append body content after `---` separator
+
+Example output:
+
+```markdown
+## post: my-post-id
+
+**Type**: post
+**Created**: 2024-01-15
+**Updated**: 2024-01-16
+**Title**: My First Post
+**Status**: draft
+**Slug**: my-post
+
+---
+
+Actual body content here...
+```
+
+This avoids duplication between stored metadata and frontmatter while showing all relevant info.
+
 ### 3. `system_list` (new tool)
 
 **Purpose**: Simple entity listing without semantic search
