@@ -177,7 +177,7 @@ export function createBrainAgentFactory(options: BrainAgentFactoryOptions) {
 
         return {
           ...settings,
-          system: buildInstructions(
+          instructions: buildInstructions(
             config.identity,
             callOptions.userPermissionLevel,
           ),

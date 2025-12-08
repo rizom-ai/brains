@@ -134,8 +134,8 @@ export class MessageEventHandler {
               priority: 5, // Lower priority for auto-capture
               maxRetries: 2, // Fewer retries for auto-capture
               source: `plugin:${this.context.pluginId}`,
+              rootJobId: `link-auto-capture-${Date.now()}`,
               metadata: {
-                rootJobId: `link-auto-capture-${Date.now()}`,
                 operationType: "data_processing" as const,
                 pluginId: this.context.pluginId,
               },

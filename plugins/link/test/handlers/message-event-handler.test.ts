@@ -85,8 +85,8 @@ describe("MessageEventHandler", () => {
           priority: 5,
           maxRetries: 2,
           source: "plugin:link",
+          rootJobId: expect.stringContaining("link-auto-capture-"),
           metadata: {
-            rootJobId: expect.stringContaining("link-auto-capture-"),
             operationType: "data_processing",
             pluginId: "link",
           },
@@ -107,8 +107,8 @@ describe("MessageEventHandler", () => {
           priority: 5,
           maxRetries: 2,
           source: "plugin:link",
+          rootJobId: expect.stringContaining("link-auto-capture-"),
           metadata: {
-            rootJobId: expect.stringContaining("link-auto-capture-"),
             operationType: "data_processing",
             pluginId: "link",
           },

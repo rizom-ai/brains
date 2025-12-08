@@ -191,6 +191,15 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
+    // Log available tools for debugging
+    const tools = this.mcpService
+      .listToolsForPermissionLevel(userPermissionLevel)
+      .map((t) => t.tool.name);
+    this.logger.debug("Available tools for this call", {
+      toolCount: tools.length,
+      tools,
+    });
+
     // Save user message to conversation
     await this.conversationService.addMessage(conversationId, "user", message);
 
@@ -244,10 +253,19 @@ export class AgentService implements IAgentService {
       0,
     );
 
+    // Log step details for debugging
+    const stepDetails = (result.steps ?? []).map((step, i) => ({
+      step: i,
+      toolCalls: step.toolCalls?.map((tc) => tc.toolName) ?? [],
+      toolResults: step.toolResults?.length ?? 0,
+    }));
+
     this.logger.debug("Chat completed", {
       conversationId,
       responseLength: result.text.length,
       toolCalls: totalToolCalls,
+      stepCount: result.steps?.length ?? 0,
+      stepDetails,
       usage: result.usage,
     });
 

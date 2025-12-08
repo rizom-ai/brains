@@ -1,6 +1,8 @@
-import { InterfacePlugin, type InterfacePluginContext } from "@brains/plugins";
+import {
+  MessageInterfacePlugin,
+  type InterfacePluginContext,
+} from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
-import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { IAgentService } from "@brains/agent-service";
 import { markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema } from "../schemas";
@@ -15,8 +17,9 @@ import packageJson from "../../package.json";
  * - Routes ALL messages to AgentService (no command parsing)
  * - Uses AI agent for natural language interaction
  * - Handles confirmation flow for destructive operations
+ * - Extends MessageInterfacePlugin for progress event handling
  */
-export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
+export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   declare protected config: MatrixConfig;
   private client?: MatrixClientWrapper;
   private agentService?: IAgentService;
@@ -186,18 +189,16 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
       userPermissionLevel,
     });
 
+    // Start processing - buffers completion messages until agent responds
+    this.startProcessingInput(roomId);
+
     try {
       // Show typing indicator
       await this.showTypingIndicator(roomId);
 
       // Check for confirmation response
       if (this.pendingConfirmations.has(conversationId)) {
-        await this.handleConfirmationResponse(
-          message,
-          conversationId,
-          roomId,
-          eventId,
-        );
+        await this.handleConfirmationResponse(message, conversationId, roomId);
         return;
       }
 
@@ -245,12 +246,14 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
         }
       }
 
-      // Send response
-      await this.sendResponse(roomId, responseText, eventId);
+      // Send response to room
+      this.sendMessageToChannel(roomId, responseText);
     } catch (error) {
       this.logger.error("Error handling message", { error, roomId, eventId });
       await this.sendErrorResponse(roomId, error, eventId);
     } finally {
+      // End processing - flushes any buffered completion messages
+      this.endProcessingInput();
       // Stop typing indicator
       await this.stopTypingIndicator(roomId);
     }
@@ -263,7 +266,6 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
     message: string,
     conversationId: string,
     roomId: string,
-    eventId: string,
   ): Promise<void> {
     const normalizedMessage = message.toLowerCase().trim();
     const isConfirmed =
@@ -281,7 +283,7 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
     );
 
     // Send response
-    await this.sendResponse(roomId, response.text, eventId);
+    this.sendMessageToChannel(roomId, response.text);
   }
 
   /**
@@ -353,19 +355,32 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
   }
 
   /**
-   * Send response to Matrix room
+   * Send message to channel - implements abstract method from MessageInterfacePlugin
+   * Used for agent responses and progress event notifications
    */
-  private async sendResponse(
-    roomId: string,
-    text: string,
-    _replyToEventId?: string,
-  ): Promise<void> {
+  protected override sendMessageToChannel(
+    channelId: string | null,
+    message: string,
+  ): void {
     if (!this.client) {
-      throw new Error("Matrix client not initialized");
+      this.logger.debug("Cannot send message - client not initialized");
+      return;
     }
 
-    const html = markdownToHtml(text);
-    await this.client.sendFormattedMessage(roomId, text, html, true);
+    // Use provided channelId or fall back to current channel from base class
+    const roomId = channelId ?? this.getCurrentChannelId();
+    if (!roomId) {
+      this.logger.debug("Cannot send message - no room context");
+      return;
+    }
+
+    // Send asynchronously - don't block progress event handling
+    const html = markdownToHtml(message);
+    this.client
+      .sendFormattedMessage(roomId, message, html, true)
+      .catch((error) => {
+        this.logger.error("Failed to send message", { error, roomId });
+      });
   }
 
   /**
@@ -379,7 +394,7 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
     const errorMessage =
       error instanceof Error ? error.message : "An unknown error occurred";
     const response = `**Error:** ${errorMessage}`;
-    await this.sendResponse(roomId, response);
+    this.sendMessageToChannel(roomId, response);
   }
 
   /**
@@ -410,16 +425,5 @@ export class MatrixInterface extends InterfacePlugin<MatrixConfig> {
     } catch (error) {
       this.logger.debug("Failed to stop typing indicator", { error });
     }
-  }
-
-  /**
-   * Handle progress events - not used (AgentService handles tool execution)
-   */
-  protected async handleProgressEvent(
-    _event: JobProgressEvent,
-    _context: JobContext,
-  ): Promise<void> {
-    // Progress events are handled internally by AgentService
-    // This interface doesn't need to track job progress
   }
 }

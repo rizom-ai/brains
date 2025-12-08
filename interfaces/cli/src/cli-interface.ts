@@ -1,14 +1,13 @@
 import {
-  InterfacePlugin,
+  MessageInterfacePlugin,
   type InterfacePluginContext,
   PluginError,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
-import type { JobProgressEvent, JobContext } from "@brains/plugins";
+import type { JobProgressEvent } from "@brains/plugins";
 import type { IAgentService } from "@brains/agent-service";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";
-import { progressReducer } from "./handlers/progress";
 import packageJson from "../package.json";
 
 /**
@@ -17,13 +16,12 @@ import packageJson from "../package.json";
  * This interface:
  * - Routes ALL messages to AgentService (no command parsing)
  * - Uses AI agent for natural language interaction
+ * - Extends MessageInterfacePlugin for common progress handling
  * - Keeps local UI commands (/exit, /clear, /progress) for CLI-specific controls
  */
-export class CLIInterface extends InterfacePlugin<CLIConfig> {
+export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
-  private progressEvents = new Map<string, JobProgressEvent>();
-  private progressCallback: ((events: JobProgressEvent[]) => void) | undefined;
   private responseCallback: ((response: string) => void) | undefined;
   private agentService?: IAgentService;
 
@@ -50,6 +48,7 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
+    // Call parent to setup progress subscription
     await super.onRegister(context);
 
     // Get AgentService from context
@@ -59,24 +58,16 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
   }
 
   /**
-   * Register callback to receive progress event updates
+   * Send message to channel - implements abstract method from MessageInterfacePlugin
+   * CLI has a single implicit channel, so channelId is ignored
    */
-  public registerProgressCallback(
-    callback: (events: JobProgressEvent[]) => void,
+  protected override sendMessageToChannel(
+    _channelId: string | null,
+    message: string,
   ): void {
-    this.progressCallback = callback;
-    // Send current state immediately (only processing events)
-    const processingEvents = Array.from(this.progressEvents.values()).filter(
-      (event) => event.status === "processing",
-    );
-    callback(processingEvents);
-  }
-
-  /**
-   * Unregister progress callback
-   */
-  public unregisterProgressCallback(): void {
-    this.progressCallback = undefined;
+    if (this.responseCallback) {
+      this.responseCallback(message);
+    }
   }
 
   /**
@@ -94,61 +85,17 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
   }
 
   /**
-   * Send response to the CLI UI
+   * Custom progress update handling for CLI-specific UI updates
    */
-  private sendResponse(response: string): void {
-    if (this.responseCallback) {
-      this.responseCallback(response);
-    }
-  }
-
-  /**
-   * Handle progress events - show ALL job queue and batch updates
-   */
-  protected async handleProgressEvent(
-    progressEvent: JobProgressEvent,
-    _context: JobContext,
+  protected override async onProgressUpdate(
+    event: JobProgressEvent,
   ): Promise<void> {
-    // Show all progress events, not just owned jobs
-    // This allows monitoring of system-initiated jobs, auto-extraction, etc.
-
-    // Update local progress state for UI
-    this.progressEvents = progressReducer(this.progressEvents, {
-      type: "UPDATE_PROGRESS",
-      payload: progressEvent,
-    });
-
-    // Clean up completed events after a delay to allow UI to show completion
-    if (
-      progressEvent.status === "completed" ||
-      progressEvent.status === "failed"
-    ) {
-      setTimeout(() => {
-        this.progressEvents = progressReducer(this.progressEvents, {
-          type: "CLEANUP_PROGRESS",
-          payload: progressEvent,
-        });
-        // Update UI after cleanup
-        if (this.progressCallback) {
-          const allEvents = Array.from(this.progressEvents.values());
-          this.progressCallback(allEvents);
-        }
-      }, 500); // Keep completed events visible for 500ms
-    }
-
-    // Notify React component of progress changes
-    if (this.progressCallback) {
-      const allEvents = Array.from(this.progressEvents.values());
-      this.progressCallback(allEvents);
-    }
-
-    // Progress is displayed in status bar - no inline message editing needed
-    this.logger.debug("Progress event received", {
-      jobId: progressEvent.id,
-      status: progressEvent.status,
-      progress: progressEvent.progress,
-      operationType: progressEvent.metadata.operationType,
-      operationTarget: progressEvent.metadata.operationTarget,
+    // Log for debugging
+    this.logger.debug("CLI progress update", {
+      eventId: event.id,
+      status: event.status,
+      progress: event.progress,
+      message: event.message,
     });
   }
 
@@ -232,6 +179,9 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
   public async processInput(input: string): Promise<void> {
     const conversationId = "cli"; // Single conversation for CLI
 
+    // Start processing - buffers completion messages until agent responds
+    this.startProcessingInput();
+
     try {
       // Check for confirmation response
       if (this.pendingConfirmation) {
@@ -259,6 +209,16 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
       // Build response with tool results
       let responseText = response.text;
 
+      // Debug: log tool results
+      this.logger.debug("Agent response received", {
+        textLength: response.text.length,
+        toolResultsCount: response.toolResults?.length ?? 0,
+        toolResults: response.toolResults?.map((tr) => ({
+          toolName: tr.toolName,
+          formattedLength: tr.formatted?.length ?? 0,
+        })),
+      });
+
       // Append formatted tool results if present
       // This ensures the user sees the actual data returned by tools
       if (response.toolResults && response.toolResults.length > 0) {
@@ -273,12 +233,15 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
       }
 
       // Send response to UI
-      this.sendResponse(responseText);
+      this.sendMessageToChannel(null, responseText);
     } catch (error) {
       this.logger.error("Error processing input", { error, input });
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
-      this.sendResponse(`**Error:** ${errorMessage}`);
+      this.sendMessageToChannel(null, `**Error:** ${errorMessage}`);
+    } finally {
+      // End processing - flushes any buffered completion messages
+      this.endProcessingInput();
     }
   }
 
@@ -305,7 +268,7 @@ export class CLIInterface extends InterfacePlugin<CLIConfig> {
     );
 
     // Send response to UI
-    this.sendResponse(response.text);
+    this.sendMessageToChannel(null, response.text);
   }
 
   /**

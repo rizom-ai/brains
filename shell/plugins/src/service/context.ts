@@ -157,13 +157,12 @@ export function createServicePluginContext(
 
     // Job queue functionality
     enqueueJob: async (type, data, options): Promise<string> => {
-      const rootJobId = options?.metadata
-        ? options.metadata.rootJobId
-        : createId();
       const defaultOptions: JobOptions = {
         source: pluginId,
+        // Only set rootJobId if explicitly provided (for batch children)
+        // For standalone jobs, let JobQueueService default to the job's own ID
+        ...(options?.rootJobId && { rootJobId: options.rootJobId }),
         metadata: {
-          rootJobId,
           operationType: "data_processing" as const,
           pluginId,
           ...options?.metadata,
@@ -186,10 +185,10 @@ export function createServicePluginContext(
         scopedOperations,
         {
           source: pluginId,
+          rootJobId: batchId, // Use generated batch ID as rootJobId
           metadata: {
             operationType: "batch_processing" as const,
             pluginId,
-            rootJobId: batchId, // Use generated batch ID as rootJobId
             ...options?.metadata,
           },
           ...options,

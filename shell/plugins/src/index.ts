@@ -16,6 +16,16 @@ export { InterfacePlugin } from "./interface/interface-plugin";
 export type { InterfacePluginContext } from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
 
+// Message interface plugin (for CLI, Matrix, etc.)
+export {
+  MessageInterfacePlugin,
+  type MessageJobTrackingInfo,
+  setupProgressHandler,
+  formatCompletionMessage,
+  formatProgressMessage,
+  type ProgressHandlers,
+} from "./message-interface";
+
 // Plugin types and interfaces
 export type {
   IShell,
@@ -147,8 +157,13 @@ export type { ViewTemplate, OutputFormat } from "@brains/render-service";
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
 
 // From @brains/db
-export type { JobOptions, JobInfo, JobContext } from "@brains/job-queue";
-export { JobContextSchema } from "@brains/job-queue";
+export type {
+  JobOptions,
+  JobInfo,
+  JobContext,
+  JobContextInput,
+} from "@brains/job-queue";
+export { JobContextSchema, JobContextInputSchema } from "@brains/job-queue";
 
 // From @brains/utils
 export type {

@@ -20,8 +20,8 @@ import type { TopicsPluginConfig } from "../schemas/config";
 const getExtractionJobOptions = (): JobOptions => ({
   priority: 5,
   source: "topics",
+  rootJobId: createId(), // Generate unique ID for each job
   metadata: {
-    rootJobId: createId(), // Generate unique ID for each job
     operationType: "batch_processing",
     pluginId: "topics",
   },

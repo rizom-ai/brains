@@ -461,8 +461,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           {
             priority: 0,
             source: this.id,
+            rootJobId: createId(),
             metadata: {
-              rootJobId: createId(),
               operationType: "content_operations" as const,
             },
             deduplication: "skip", // Skip if rebuild already PENDING

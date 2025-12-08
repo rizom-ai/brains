@@ -477,8 +477,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       return context.enqueueBatch(operations, {
         priority: 5,
         source: "directory-sync-watcher",
+        rootJobId: createId(),
         metadata: {
-          rootJobId: createId(),
           operationType: "file_operations",
           operationTarget: this.config.syncPath,
           pluginId: "directory-sync",

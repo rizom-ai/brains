@@ -245,9 +245,14 @@ export class JobQueueService implements IJobQueueService {
       maxRetries: options?.maxRetries ?? 3,
       retryCount: 0,
       source: options?.source ?? null,
-      metadata: options?.metadata ?? {
-        rootJobId: id,
+      metadata: {
+        // Default metadata values - will be overridden by spread if provided
         operationType: "data_processing" as const,
+        // Merge provided metadata (allows override of defaults)
+        ...options?.metadata,
+        // Ensure rootJobId is always present - default to job's own ID for standalone jobs
+        // Batch children will have rootJobId set by BatchJobManager via options.rootJobId
+        rootJobId: options?.rootJobId ?? id,
       },
       createdAt: now,
       scheduledFor: options?.delayMs ? now + options.delayMs : now,
@@ -264,9 +269,6 @@ export class JobQueueService implements IJobQueueService {
         id,
         type: scopedType,
         priority: jobData.priority,
-        scheduledFor: jobData.scheduledFor
-          ? new Date(jobData.scheduledFor).toISOString()
-          : "immediate",
         rootJobId: jobData.metadata.rootJobId,
       });
 

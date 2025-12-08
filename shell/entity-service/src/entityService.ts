@@ -212,8 +212,8 @@ export class EntityService implements IEntityService {
           maxRetries: options.maxRetries,
         }),
         source: "entity-service",
+        rootJobId,
         metadata: {
-          rootJobId,
           operationType: "data_processing" as const,
           operationTarget: validatedEntity.id,
         },
@@ -306,8 +306,8 @@ export class EntityService implements IEntityService {
           maxRetries: options.maxRetries,
         }),
         source: "entity-service",
+        rootJobId,
         metadata: {
-          rootJobId,
           operationType: "data_processing" as const,
           operationTarget: validatedEntity.id,
         },

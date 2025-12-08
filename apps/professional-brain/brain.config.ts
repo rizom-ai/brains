@@ -42,7 +42,7 @@ const config = defineConfig({
   },
 
   permissions: {
-    anchors: ["matrix:@neehaa:rizom.ai"],
+    anchors: ["matrix:@yeehaa:rizom.ai"],
     rules: [
       // MCP stdio transport gets anchor permissions (local access)
       { pattern: "mcp:stdio", level: "anchor" },

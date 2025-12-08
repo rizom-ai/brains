@@ -4,7 +4,7 @@ import type { JobHandler } from "../src/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger, createId } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
-import type { JobContext } from "../src/types";
+import type { JobContextInput } from "../src/schema/types";
 import type { JobQueueDbConfig } from "../src/types";
 
 // Test type for entity-like data
@@ -18,9 +18,8 @@ interface EntityWithoutEmbedding {
   updated: number;
 }
 
-// Default test metadata
-const defaultTestMetadata: JobContext = {
-  rootJobId: createId(),
+// Default test metadata (uses JobContextInput - no rootJobId, that's at options level)
+const defaultTestMetadata: JobContextInput = {
   operationType: "data_processing",
 };
 
@@ -195,21 +194,24 @@ describe("JobQueueService", () => {
 
     it("should store source and metadata when provided", async () => {
       const source = "matrix:room123";
-      const metadata: JobContext = {
-        rootJobId: createId(),
-        operationType: "data_processing",
-      };
+      const rootJobId = createId();
 
       const jobId = await service.enqueue("shell:embedding", testEntity, {
         source,
-        metadata,
+        rootJobId,
+        metadata: {
+          operationType: "data_processing",
+        },
       });
 
       // Get the job from database directly
       const job = await service.getStatus(jobId);
       expect(job).toBeTruthy();
       expect(job?.source).toBe(source);
-      expect(job?.metadata).toEqual(metadata);
+      expect(job?.metadata).toEqual({
+        rootJobId,
+        operationType: "data_processing",
+      });
     });
 
     it("should store source and metadata correctly", async () => {
@@ -217,7 +219,6 @@ describe("JobQueueService", () => {
       const jobId = await service.enqueue("shell:embedding", testEntity, {
         source,
         metadata: {
-          ...defaultTestMetadata,
           operationType: "data_processing",
         },
       });
@@ -225,10 +226,10 @@ describe("JobQueueService", () => {
       const job = await service.getStatus(jobId);
       expect(job).toBeTruthy();
       expect(job?.source).toBe(source);
-      expect(job?.metadata).toEqual({
-        ...defaultTestMetadata,
-        operationType: "data_processing",
-      });
+      // rootJobId is auto-generated when not provided, so just check it exists and other fields match
+      expect(job?.metadata.operationType).toBe("data_processing");
+      expect(job?.metadata.rootJobId).toBeDefined();
+      expect(typeof job?.metadata.rootJobId).toBe("string");
     });
 
     it("should throw error when enqueueing job with no registered handler", async () => {

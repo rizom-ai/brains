@@ -27,8 +27,8 @@ export class SiteContentOperations {
 
     return {
       source: metadata.operationType ?? defaultSource,
+      rootJobId: metadata.rootJobId ?? `${defaultSource}-${Date.now()}`,
       metadata: {
-        rootJobId: metadata.rootJobId ?? `${defaultSource}-${Date.now()}`,
         operationType: metadata.operationType ?? "content_operations",
         progressToken: metadata.progressToken,
         pluginId: metadata.pluginId ?? "site-builder",

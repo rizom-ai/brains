@@ -34,12 +34,17 @@ export {
 export type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 
 // Export enums and schemas from pure types file (no Drizzle dependencies)
-export { OperationTypeEnum, JobContextSchema } from "./schema/types";
+export {
+  OperationTypeEnum,
+  JobContextSchema,
+  JobContextInputSchema,
+} from "./schema/types";
 
 // Export types that external packages need
 export type {
   OperationType,
   JobContext,
+  JobContextInput,
   JobOptions,
   JobStats,
 } from "./schema/types";

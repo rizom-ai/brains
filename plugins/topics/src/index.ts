@@ -147,8 +147,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       const batchId = await context.enqueueBatch(operations, {
         priority: 1, // Lower priority than manual extractions
         source: "topics-plugin",
+        rootJobId,
         metadata: {
-          rootJobId,
           operationType: "batch_processing" as const,
           operationTarget: `auto-extract for ${payload.conversationId}`,
           pluginId: "topics",

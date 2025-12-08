@@ -192,7 +192,6 @@ export function createSiteBuilderTools(
           {
             source: `plugin:${pluginId}`,
             metadata: {
-              rootJobId: `build-${Date.now()}`,
               progressToken: context.progressToken,
               operationType: "content_operations",
               pluginId,

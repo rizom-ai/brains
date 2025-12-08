@@ -14,14 +14,25 @@ export const OperationTypeEnum = z.enum([
 export type OperationType = z.infer<typeof OperationTypeEnum>;
 
 /**
- * Job context schema - metadata for job progress tracking and inheritance
+ * Job context input schema - what callers provide when creating jobs
+ * Note: rootJobId is not included here - it's managed internally by the job queue service
+ * and defaults to the job's own ID for standalone jobs, or the batch ID for batch children.
  */
-export const JobContextSchema = z.object({
+export const JobContextInputSchema = z.object({
   pluginId: z.string().optional(),
-  rootJobId: z.string(), // For flattened job inheritance tracking (required for all operations)
   progressToken: z.union([z.string(), z.number()]).optional(),
   operationType: OperationTypeEnum,
   operationTarget: z.string().optional(),
+});
+
+export type JobContextInput = z.infer<typeof JobContextInputSchema>;
+
+/**
+ * Full job context schema - includes rootJobId for stored/transmitted metadata
+ * This is what gets stored in the database and sent in progress events.
+ */
+export const JobContextSchema = JobContextInputSchema.extend({
+  rootJobId: z.string(), // Added by job queue service when job is created
 });
 
 export type JobContext = z.infer<typeof JobContextSchema>;
@@ -46,9 +57,15 @@ export interface JobOptions {
   maxRetries?: number; // Override default retry count
   delayMs?: number; // Initial delay before processing
   source: string; // Source identifier for job progress events
-  metadata: JobContext; // Additional metadata for job progress events (required)
+  metadata: JobContextInput; // Caller-provided metadata (rootJobId is added by job queue service)
   deduplication?: DeduplicationStrategy; // Deduplication strategy (default: "none")
   deduplicationKey?: string; // Optional key for fine-grained deduplication
+  /**
+   * Override rootJobId for batch child jobs
+   * External callers should not use this - it's set automatically by the job queue service
+   * Batch jobs use this to link child jobs to the parent batch
+   */
+  rootJobId?: string;
 }
 
 /**

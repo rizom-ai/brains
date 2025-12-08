@@ -3,15 +3,14 @@ import { BatchJobManager } from "../src/batch-job-manager";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler } from "../src/types";
 import type { BatchOperation } from "../src/batch-schemas";
-import type { JobContext } from "../src/types";
+import type { JobContextInput } from "../src/schema/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger, createId } from "@brains/utils";
 import type { JobQueueDbConfig } from "../src/types";
 
-// Default test metadata
-const defaultTestMetadata: JobContext = {
-  rootJobId: createId(),
+// Default test metadata (uses JobContextInput - no rootJobId, that's at options level)
+const defaultTestMetadata: JobContextInput = {
   operationType: "data_processing",
 };
 
@@ -120,7 +119,6 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            rootJobId: createId(),
             operationType: "data_processing",
           },
           priority: 5,
@@ -318,7 +316,6 @@ describe("BatchJobManager", () => {
           source: "test:batch-manager",
           metadata: {
             ...defaultTestMetadata,
-            rootJobId: createId(),
             operationType: "data_processing",
           },
         },

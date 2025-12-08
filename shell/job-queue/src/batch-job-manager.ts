@@ -72,9 +72,9 @@ export class BatchJobManager {
         // Set rootJobId to batchId so CLI progress tracking works through inheritance
         const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {
           ...options,
+          rootJobId: batchId, // Individual jobs inherit from batch
           metadata: {
             ...options.metadata,
-            rootJobId: batchId, // Individual jobs inherit from batch
             operationTarget: operation.type,
           },
         };
@@ -89,7 +89,7 @@ export class BatchJobManager {
       }
 
       // Store batch metadata
-      // Store the full BatchOperation type
+      // Create full JobContext by adding rootJobId (the batch is its own root)
       const batchMetadata: {
         jobIds: string[];
         operations: BatchOperation[];
@@ -101,7 +101,10 @@ export class BatchJobManager {
         operations: operations,
         source: options.source,
         startedAt: new Date().toISOString(),
-        metadata: options.metadata,
+        metadata: {
+          ...options.metadata,
+          rootJobId: batchId, // Batch is its own root
+        },
       };
 
       this.batches.set(batchId, batchMetadata);
@@ -110,7 +113,7 @@ export class BatchJobManager {
         batchId,
         operationCount: operations.length,
         jobIds,
-        rootJobId: options.metadata.rootJobId,
+        rootJobId: batchId,
       });
 
       return batchId;

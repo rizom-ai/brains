@@ -262,17 +262,20 @@ export class SiteBuilder implements ISiteBuilder {
         }),
       };
 
-      // Run static site build
-      await reporter?.report({
-        message: "Running static site build",
-        progress: 85,
-        total: 100,
-      });
+      // Run static site build (85% to 95% of overall progress)
+      let buildStep = 0;
+      const totalBuildSteps = routes.length + 4; // routes + start + tailwind + assets + hydration
       await staticSiteBuilder.build(buildContext, (message) => {
+        buildStep++;
+        // Map build steps to 85-95% range
+        const stepProgress =
+          85 + Math.round((buildStep / totalBuildSteps) * 10);
         // Report progress without await to avoid blocking
-        reporter?.report({ message, progress: 0 }).catch(() => {
-          // Ignore progress reporting errors
-        });
+        reporter
+          ?.report({ message, progress: stepProgress, total: 100 })
+          .catch(() => {
+            // Ignore progress reporting errors
+          });
       });
 
       await reporter?.report({

@@ -127,11 +127,11 @@ describe("Generate Tool", () => {
       const jobOptions = enqueueCall?.[2] as Record<string, unknown>;
 
       expect(jobOptions["source"]).toBe("blog_generate");
+      expect(jobOptions["rootJobId"]).toBeDefined(); // rootJobId is at options level
       expect(jobOptions["metadata"]).toBeDefined();
       const metadata = jobOptions["metadata"] as Record<string, unknown>;
       expect(metadata["operationType"]).toBe("content_operations");
       expect(metadata["operationTarget"]).toBe("blog-post");
-      expect(metadata["rootJobId"]).toBeDefined();
     });
 
     it("should enqueue job with empty input (use defaults)", async () => {

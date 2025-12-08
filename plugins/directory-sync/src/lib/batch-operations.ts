@@ -96,8 +96,8 @@ export class BatchOperationsManager {
 
     const batchId = await pluginContext.enqueueBatch(batchData.operations, {
       source,
+      rootJobId: metadata?.rootJobId ?? createId(),
       metadata: {
-        rootJobId: metadata?.rootJobId ?? createId(),
         progressToken: metadata?.progressToken,
         operationType: "file_operations",
         operationTarget: this.syncPath,

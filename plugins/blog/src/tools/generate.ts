@@ -58,8 +58,8 @@ export function createGenerateTool(
         // Enqueue the blog generation job
         const jobId = await context.enqueueJob("generation", parsed, {
           source: `${pluginId}_generate`,
+          rootJobId: createId(),
           metadata: {
-            rootJobId: createId(),
             operationType: "content_operations",
             operationTarget: "blog-post",
           },
