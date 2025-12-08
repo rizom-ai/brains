@@ -16,6 +16,9 @@ export interface BatchMetadata {
   progressToken?: string | undefined;
   pluginId?: string | undefined;
   rootJobId?: string | undefined;
+  // Routing context for progress messages
+  interfaceType?: string | undefined;
+  channelId?: string | undefined;
 }
 
 export interface BatchResult {
@@ -102,6 +105,9 @@ export class BatchOperationsManager {
         operationType: "file_operations",
         operationTarget: this.syncPath,
         pluginId: metadata?.pluginId ?? "directory-sync",
+        // Routing context for progress messages
+        interfaceType: metadata?.interfaceType,
+        channelId: metadata?.channelId,
       },
     });
 

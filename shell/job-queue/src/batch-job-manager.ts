@@ -202,6 +202,8 @@ export class BatchJobManager {
         errors,
         status,
         currentOperation,
+        // Include original batch metadata for routing context
+        metadata: batch.metadata,
       };
     } catch (error) {
       this.logger.error("Failed to get batch status", { batchId, error });

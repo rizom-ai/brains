@@ -5,6 +5,7 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import type { z } from "@brains/utils";
+import type { ToolResponse } from "@brains/mcp-service";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync } from "fs";
@@ -125,19 +126,19 @@ describe("DirectorySyncPlugin", () => {
       expect(syncTool).toBeDefined();
       if (!syncTool) throw new Error("Sync tool not found");
 
-      const syncResult = (await syncTool.handler(
+      const syncResult: ToolResponse = await syncTool.handler(
         {},
         {
           interfaceType: "test",
           userId: "test-user",
         },
-      )) as { status?: string; batchId?: string };
+      );
 
       // Should either complete immediately if no operations needed
       // or queue a batch job
       expect(syncResult).toBeDefined();
       if (syncResult.status === "queued") {
-        expect(syncResult.batchId).toBeDefined();
+        expect(syncResult.data?.jobId).toBeDefined();
       } else {
         expect(syncResult.status).toBe("completed");
       }

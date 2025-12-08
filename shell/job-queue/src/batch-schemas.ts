@@ -24,6 +24,8 @@ export const BatchJobStatusSchema = z.object({
   currentOperation: z.string().optional(),
   errors: z.array(z.string()),
   status: z.enum(["pending", "processing", "completed", "failed"]),
+  // Original batch metadata for routing context
+  metadata: JobContextSchema.optional(),
 });
 
 /**

@@ -396,7 +396,9 @@ export class JobProgressMonitor implements IJobProgressMonitor {
           const batchStatus =
             await this.batchJobManager.getBatchStatus(rootJobId);
           if (batchStatus) {
-            await this.emitBatchProgress(rootJobId, batchStatus, metadata);
+            // Use batch's original metadata for routing context, not child job's metadata
+            const batchMetadata = batchStatus.metadata ?? metadata;
+            await this.emitBatchProgress(rootJobId, batchStatus, batchMetadata);
           }
         } catch (error) {
           this.logger.warn("Failed to emit batch progress", {
