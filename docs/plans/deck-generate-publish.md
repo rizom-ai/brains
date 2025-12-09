@@ -1,6 +1,6 @@
 # Deck Generate & Publish Tools
 
-## Status: Complete ✅
+## Status: Completed ✅
 
 ## Overview
 
@@ -111,14 +111,31 @@ plugins/decks/src/
 
 ## Implementation Order
 
+### Phase 1: Basic Infrastructure (Complete ✅)
+
 1. [x] Schema rename (presentedAt → publishedAt)
 2. [x] Formatter update
 3. [x] Add publish tool
-4. [x] Add generate tool (simple, no AI for now)
+4. [x] Add generate tool (simple version)
 5. [x] Update plugin registration
 6. [x] Tests (8 tests covering tool metadata, success cases, error handling)
 
-Note: AI-powered generation deferred - current implementation creates decks from provided content.
+### Phase 2: AI-Powered Generation (Complete ✅)
+
+Following blog plugin pattern:
+
+7. [x] Create generation template (`plugins/decks/src/templates/generation-template.ts`)
+   - Base prompt for AI to generate slide decks
+   - Output schema: `{ title, content, description }`
+8. [x] Create description template (`plugins/decks/src/templates/description-template.ts`)
+   - For generating descriptions from existing content
+9. [x] Create job handler (`plugins/decks/src/handlers/deckGenerationJobHandler.ts`)
+   - Handle AI generation when prompt provided
+   - Handle direct creation when content provided
+   - Progress reporting
+10. [x] Update generate tool to enqueue job instead of creating directly
+11. [x] Register job handler and templates in plugin.ts
+12. [x] Update tests for async job-based generation (18 tests total)
 
 ## Commits
 

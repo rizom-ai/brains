@@ -8,7 +8,10 @@ import { z } from "@brains/utils";
 import { DeckFormatter } from "./formatters/deck-formatter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
+import { deckGenerationTemplate } from "./templates/generation-template";
+import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
+import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
 import { createDeckTools } from "./tools";
 import packageJson from "../package.json";
 
@@ -42,7 +45,16 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     context.registerTemplates({
       "deck-detail": deckTemplate,
       "deck-list": deckListTemplate,
+      generation: deckGenerationTemplate,
+      description: deckDescriptionTemplate,
     });
+
+    // Register job handler for deck generation
+    const deckGenerationHandler = new DeckGenerationJobHandler(
+      this.logger.child("DeckGenerationJobHandler"),
+      context,
+    );
+    context.registerJobHandler("generation", deckGenerationHandler);
 
     this.logger.info("Decks plugin registered successfully");
   }

@@ -3,22 +3,32 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z, slugify, formatAsEntity } from "@brains/utils";
-import { DeckFormatter } from "../formatters/deck-formatter";
-import type { DeckEntity } from "../schemas/deck";
+import { z, createId, formatAsEntity } from "@brains/utils";
 
 /**
  * Input schema for deck:generate tool
  */
 export const generateInputSchema = z.object({
-  title: z.string().describe("Deck title"),
+  prompt: z
+    .string()
+    .optional()
+    .describe(
+      "Topic or prompt for AI to generate slide deck content from (uses default prompt if not provided)",
+    ),
+  title: z
+    .string()
+    .optional()
+    .describe("Deck title (will be AI-generated if not provided)"),
   content: z
     .string()
     .optional()
     .describe(
-      "Slide content in markdown format with slide separators (---). If not provided, creates a minimal template.",
+      "Slide content in markdown format with slide separators (---). Will be AI-generated if not provided.",
     ),
-  description: z.string().optional().describe("Brief description of the deck"),
+  description: z
+    .string()
+    .optional()
+    .describe("Brief description (will be auto-generated if not provided)"),
   author: z.string().optional().describe("Author name"),
   event: z
     .string()
@@ -35,91 +45,39 @@ export function createGenerateTool(
   context: ServicePluginContext,
   pluginId: string,
 ): PluginTool {
-  const formatter = new DeckFormatter();
-
   return {
     name: `${pluginId}_generate`,
-    description: "Create a new deck draft with the provided title and content",
+    description:
+      "Queue a job to create a new slide deck draft (provide title and content, or just a prompt for AI generation)",
     inputSchema: generateInputSchema.shape,
     visibility: "anchor",
     handler: async (input: unknown): Promise<ToolResponse> => {
       try {
         const parsed = generateInputSchema.parse(input);
 
-        const slug = slugify(parsed.title);
-
-        // Create default content if not provided
-        const content =
-          parsed.content ??
-          `# ${parsed.title}
-
----
-
-# Introduction
-
-Add your introduction here
-
----
-
-# Main Content
-
-Add your main content here
-
----
-
-# Conclusion
-
-Add your conclusion here`;
-
-        // Build the deck entity
-        const now = new Date().toISOString();
-        const deckEntity: Omit<DeckEntity, "id" | "created" | "updated"> = {
-          entityType: "deck",
-          content,
-          title: parsed.title,
-          description: parsed.description,
-          author: parsed.author,
-          status: "draft",
-          event: parsed.event,
+        // Enqueue the deck generation job
+        const jobId = await context.enqueueJob("generation", parsed, {
+          source: `${pluginId}_generate`,
+          rootJobId: createId(),
           metadata: {
-            slug,
-            title: parsed.title,
-            status: "draft",
+            operationType: "content_operations",
+            operationTarget: "deck",
           },
-        };
-
-        // Generate markdown with frontmatter
-        const markdown = formatter.toMarkdown({
-          ...deckEntity,
-          id: "temp", // Will be replaced by entity service
-          created: now,
-          updated: now,
-        });
-
-        // Create entity with full data (content includes frontmatter for storage)
-        const result = await context.entityService.createEntity({
-          ...deckEntity,
-          content: markdown,
         });
 
         const formatted = formatAsEntity(
           {
-            id: result.entityId,
-            title: parsed.title,
-            slug,
-            status: "draft",
+            jobId,
+            title: parsed.title ?? "(AI generated)",
+            status: "queued",
           },
-          { title: "Deck Created" },
+          { title: "Deck Generation" },
         );
 
         return {
           success: true,
-          data: {
-            entityId: result.entityId,
-            title: parsed.title,
-            slug,
-          },
-          message: `Deck "${parsed.title}" created successfully`,
+          data: { jobId },
+          message: `Deck generation job queued (jobId: ${jobId})`,
           formatted,
         };
       } catch (error) {
