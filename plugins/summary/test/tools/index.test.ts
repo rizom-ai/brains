@@ -7,13 +7,7 @@ import {
   spyOn,
   mock,
 } from "bun:test";
-import {
-  createGetTool,
-  createListTool,
-  createExportTool,
-  createDeleteTool,
-  createStatsTool,
-} from "../../src/tools";
+import { createGetTool } from "../../src/tools";
 import { SummaryService } from "../../src/lib/summary-service";
 import {
   MockShell,
@@ -91,107 +85,8 @@ describe("Summary Tools", () => {
     });
   });
 
-  describe("summary-list tool", () => {
-    it("should have correct metadata", () => {
-      const tool = createListTool(context, config, logger);
-
-      expect(tool.name).toBe("summary_list");
-      expect(tool.description).toContain("List all conversation summaries");
-      expect(tool.inputSchema).toBeDefined();
-    });
-
-    it("should call SummaryService.getAllSummaries with correct parameters", async () => {
-      const tool = createListTool(context, config, logger);
-      const getAllSummariesSpy = spyOn(
-        SummaryService.prototype,
-        "getAllSummaries",
-      ).mockResolvedValue([]);
-
-      await tool.handler({ limit: 5 }, mockToolContext);
-
-      expect(getAllSummariesSpy).toHaveBeenCalled();
-    });
-
-    it("should call SummaryService.getAllSummaries with default limit", async () => {
-      const tool = createListTool(context, config, logger);
-      const getAllSummariesSpy = spyOn(
-        SummaryService.prototype,
-        "getAllSummaries",
-      ).mockResolvedValue([]);
-
-      await tool.handler({}, mockToolContext);
-
-      expect(getAllSummariesSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe("summary-export tool", () => {
-    it("should have correct metadata", () => {
-      const tool = createExportTool(context, config, logger);
-
-      expect(tool.name).toBe("summary_export");
-      expect(tool.description).toContain("Export a conversation summary");
-      expect(tool.inputSchema).toBeDefined();
-    });
-
-    it("should call SummaryService.exportSummary with correct ID", async () => {
-      const tool = createExportTool(context, config, logger);
-      const exportSummarySpy = spyOn(
-        SummaryService.prototype,
-        "exportSummary",
-      ).mockResolvedValue("# Exported");
-
-      await tool.handler({ conversationId: "conv-123" }, mockToolContext);
-
-      expect(exportSummarySpy).toHaveBeenCalledWith("conv-123");
-    });
-  });
-
-  describe("summary-delete tool", () => {
-    it("should have correct metadata", () => {
-      const tool = createDeleteTool(context, config, logger);
-
-      expect(tool.name).toBe("summary_delete");
-      expect(tool.description).toContain("Delete a conversation summary");
-      expect(tool.inputSchema).toBeDefined();
-    });
-
-    it("should call SummaryService.deleteSummary with correct ID", async () => {
-      const tool = createDeleteTool(context, config, logger);
-      const deleteSummarySpy = spyOn(
-        SummaryService.prototype,
-        "deleteSummary",
-      ).mockResolvedValue(true);
-
-      await tool.handler({ conversationId: "conv-123" }, mockToolContext);
-
-      expect(deleteSummarySpy).toHaveBeenCalledWith("conv-123");
-    });
-  });
-
-  describe("summary-stats tool", () => {
-    it("should have correct metadata", () => {
-      const tool = createStatsTool(context, config, logger);
-
-      expect(tool.name).toBe("summary_stats");
-      expect(tool.description).toContain("statistics about all summaries");
-      expect(tool.inputSchema).toBeDefined();
-    });
-
-    it("should call SummaryService.getStatistics", async () => {
-      const tool = createStatsTool(context, config, logger);
-      const getStatisticsSpy = spyOn(
-        SummaryService.prototype,
-        "getStatistics",
-      ).mockResolvedValue({
-        totalSummaries: 5,
-        totalEntries: 25,
-        averageEntriesPerSummary: 5,
-      });
-
-      await tool.handler({}, mockToolContext);
-
-      expect(getStatisticsSpy).toHaveBeenCalled();
-    });
-  });
+  // Note: export/delete/stats tools removed - use system tools instead:
+  // - system_list with entityType="summary" for listing
+  // - system_get for reading full content (can be exported as markdown)
+  // - AI can calculate stats from list results
 });

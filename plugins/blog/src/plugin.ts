@@ -12,8 +12,6 @@ import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
 import { createGenerateRSSTool } from "./tools/generate-rss";
-import { createListTool } from "./tools/list";
-import { createGetTool } from "./tools/get";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -268,8 +266,6 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     }
 
     return [
-      createListTool(this.pluginContext, this.id),
-      createGetTool(this.pluginContext, this.id),
       createGenerateTool(this.pluginContext, this.config, this.id),
       createPublishTool(this.pluginContext, this.id),
       createGenerateRSSTool(this.pluginContext, this.id),

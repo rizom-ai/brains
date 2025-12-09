@@ -9,7 +9,6 @@ import { DeckFormatter } from "./formatters/deck-formatter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
 import { DeckDataSource } from "./datasources/deck-datasource";
-import { createDecksTools } from "./tools";
 import packageJson from "../package.json";
 
 // No configuration needed for decks plugin
@@ -19,14 +18,11 @@ const decksConfigSchema = z.object({});
  * Decks Plugin - Manages presentation decks stored as markdown with slide separators
  */
 export class DecksPlugin extends ServicePlugin<Record<string, never>> {
-  private pluginContext?: ServicePluginContext;
-
   constructor() {
     super("decks", packageJson, {}, decksConfigSchema);
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
-    this.pluginContext = context;
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
@@ -48,10 +44,8 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.pluginContext) {
-      throw new Error("Plugin context not initialized");
-    }
-    return createDecksTools(this.id, this.pluginContext);
+    // List and get functionality provided by system_list and system_get tools
+    return [];
   }
 
   protected override async getResources(): Promise<PluginResource[]> {

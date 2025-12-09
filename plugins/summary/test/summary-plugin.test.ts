@@ -138,12 +138,10 @@ describe("SummaryPlugin", () => {
       expect(Array.isArray(capabilities.tools)).toBe(true);
 
       // Check for expected tool names
+      // Note: Only summary_get remains - use system tools for list/export/delete/stats
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("summary_get");
-      expect(toolNames).toContain("summary_list");
-      expect(toolNames).toContain("summary_export");
-      expect(toolNames).toContain("summary_delete");
-      expect(toolNames).toContain("summary_stats");
+      expect(toolNames).toHaveLength(1);
     });
   });
 });
