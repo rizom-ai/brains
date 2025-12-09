@@ -81,15 +81,15 @@ export class DeckDataSource implements DataSource {
       },
     );
 
-    // Filter to only presented decks (not drafts)
-    const presentedDecks = allDecks.filter(
-      (d) => d.metadata.status === "presented",
+    // Filter to only published decks (not drafts)
+    const publishedDecks = allDecks.filter(
+      (d) => d.metadata.status === "published",
     );
 
-    // Sort by presentedAt date, newest first (fall back to created if not set)
-    const sortedDecks = presentedDecks.sort((a, b) => {
-      const aDate = a.metadata.presentedAt ?? a.created;
-      const bDate = b.metadata.presentedAt ?? b.created;
+    // Sort by publishedAt date, newest first (fall back to created if not set)
+    const sortedDecks = publishedDecks.sort((a, b) => {
+      const aDate = a.metadata.publishedAt ?? a.created;
+      const bDate = b.metadata.publishedAt ?? b.created;
       return new Date(bDate).getTime() - new Date(aDate).getTime();
     });
 

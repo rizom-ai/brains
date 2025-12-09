@@ -14,8 +14,8 @@ const deckFrontmatterSchema = z.object({
   slug: z.string().optional(), // Optional - auto-generated from title if not provided
   description: z.string().optional(),
   author: z.string().optional(),
-  status: z.enum(["draft", "presented"]).default("draft"),
-  presentedAt: z.string().datetime().optional(),
+  status: z.enum(["draft", "published"]).default("draft"),
+  publishedAt: z.string().datetime().optional(),
   event: z.string().optional(),
 });
 
@@ -63,8 +63,8 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
     if (entity.author !== undefined) {
       frontmatter["author"] = entity.author;
     }
-    if (entity.presentedAt !== undefined) {
-      frontmatter["presentedAt"] = entity.presentedAt;
+    if (entity.publishedAt !== undefined) {
+      frontmatter["publishedAt"] = entity.publishedAt;
     }
     if (entity.event !== undefined) {
       frontmatter["event"] = entity.event;
@@ -99,13 +99,13 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
       description: frontmatter.description,
       author: frontmatter.author,
       status,
-      presentedAt: frontmatter.presentedAt,
+      publishedAt: frontmatter.publishedAt,
       event: frontmatter.event,
       metadata: {
         slug, // Generated from title if not in frontmatter
         title: frontmatter.title,
         status,
-        presentedAt: frontmatter.presentedAt,
+        publishedAt: frontmatter.publishedAt,
       },
     };
   }

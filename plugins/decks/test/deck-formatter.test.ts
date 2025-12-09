@@ -57,13 +57,13 @@ describe("DeckFormatter", () => {
         title: "Test Presentation",
         description: "A test presentation",
         author: "Jane Developer",
-        status: "presented",
+        status: "published",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {
           slug: "test-deck",
           title: "Test Deck",
-          status: "presented",
+          status: "published",
         },
       };
 
@@ -73,7 +73,7 @@ describe("DeckFormatter", () => {
       expect(markdown).toContain("title: Test Presentation");
       expect(markdown).toContain("description: A test presentation");
       expect(markdown).toContain("author: Jane Developer");
-      expect(markdown).toContain("status: presented");
+      expect(markdown).toContain("status: published");
       expect(markdown).toContain("# Welcome");
       expect(markdown).toContain("# Main Content");
     });
@@ -184,13 +184,13 @@ title: Minimal Deck
         title: "Test Deck",
         description: "Test description",
         author: "Test Author",
-        status: "presented",
+        status: "published",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {
           slug: "test-deck",
           title: "Test Deck",
-          status: "presented",
+          status: "published",
         },
       };
 
@@ -199,7 +199,7 @@ title: Minimal Deck
       // extractMetadata now returns entity.metadata (slug + title + status)
       expect(metadata["slug"]).toBe("test-deck");
       expect(metadata["title"]).toBe("Test Deck");
-      expect(metadata["status"]).toBe("presented");
+      expect(metadata["status"]).toBe("published");
     });
 
     it("should handle missing optional metadata", () => {

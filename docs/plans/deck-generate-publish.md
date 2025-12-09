@@ -1,6 +1,6 @@
 # Deck Generate & Publish Tools
 
-## Status: Planning
+## Status: Complete ✅
 
 ## Overview
 
@@ -111,11 +111,11 @@ plugins/decks/src/
 
 ## Implementation Order
 
-1. [ ] Schema rename (presentedAt → publishedAt)
-2. [ ] Formatter update
-3. [ ] Add publish tool
-4. [ ] Add generation template (AI prompt)
-5. [ ] Add job handler
-6. [ ] Add generate tool
-7. [ ] Update plugin registration
-8. [ ] Tests
+1. [x] Schema rename (presentedAt → publishedAt)
+2. [x] Formatter update
+3. [x] Add publish tool
+4. [x] Add generate tool (simple, no AI for now)
+5. [x] Update plugin registration
+6. [x] Tests
+
+Note: AI-powered generation deferred - current implementation creates decks from provided content.

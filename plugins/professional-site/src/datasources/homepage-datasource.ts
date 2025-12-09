@@ -97,24 +97,24 @@ export class HomepageListDataSource implements DataSource {
       };
     });
 
-    // Fetch recent presented decks (fetch 20, sort by presentedAt, take 3)
-    const presentedDecks = await this.entityService.listEntities<DeckEntity>(
+    // Fetch recent published decks (fetch 20, sort by publishedAt, take 3)
+    const publishedDecks = await this.entityService.listEntities<DeckEntity>(
       "deck",
       {
         limit: 20,
         filter: {
           metadata: {
-            status: "presented",
+            status: "published",
           },
         },
       },
     );
 
-    // Sort by presentedAt (or created as fallback) and take the 3 most recent
-    const decks = presentedDecks
+    // Sort by publishedAt (or created as fallback) and take the 3 most recent
+    const decks = publishedDecks
       .sort((a, b) => {
-        const dateA = new Date(a.metadata.presentedAt ?? a.created);
-        const dateB = new Date(b.metadata.presentedAt ?? b.created);
+        const dateA = new Date(a.metadata.publishedAt ?? a.created);
+        const dateB = new Date(b.metadata.publishedAt ?? b.created);
         return dateB.getTime() - dateA.getTime();
       })
       .slice(0, 3);
