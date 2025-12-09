@@ -11,7 +11,6 @@ import { blogPostSchema, enrichedBlogPostSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
-import { createGenerateRSSTool } from "./tools/generate-rss";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -265,10 +264,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       throw new Error("Plugin context not initialized");
     }
 
+    // Note: RSS generation is automatic via site:build:completed event
     return [
       createGenerateTool(this.pluginContext, this.config, this.id),
       createPublishTool(this.pluginContext, this.id),
-      createGenerateRSSTool(this.pluginContext, this.id),
     ];
   }
 
