@@ -6,7 +6,7 @@
 
 Consolidate plugin-specific list/get/search tools into enhanced system tools to reduce tool count and improve agent performance.
 
-**Result**: ~37 tools → ~20 tools (~46% reduction)
+**Result**: ~37 tools → ~19 tools (~49% reduction)
 
 ## Motivation
 
@@ -31,17 +31,17 @@ Consolidate plugin-specific list/get/search tools into enhanced system tools to 
 
 ## Remaining Tools (Domain-Specific Actions)
 
-| Plugin             | Tools                                                                                                                                              | Reason                       |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **system**         | `search`, `get`, `list`, `check-job-status`, `get-conversation`, `list-conversations`, `get-messages`, `get-identity`, `get-profile`, `get-status` | Core system operations       |
-| **blog**           | `generate`, `publish`, `generate-rss`                                                                                                              | Content creation actions     |
-| **decks**          | (none)                                                                                                                                             | All CRUD via system tools    |
-| **link**           | `capture`                                                                                                                                          | URL capture action           |
-| **topics**         | `extract`, `merge`                                                                                                                                 | AI extraction + merge action |
-| **summary**        | `get` (by conversationId)                                                                                                                          | Domain-specific lookup       |
-| **site-builder**   | `generate`, `build-site`, `list_routes`, `list_templates`                                                                                          | Site-specific actions        |
-| **directory-sync** | `sync`                                                                                                                                             | Filesystem sync action       |
-| **git-sync**       | `sync`, `status`                                                                                                                                   | Git operations               |
+| Plugin             | Tools                                                                                                                                              | Reason                                                 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **system**         | `search`, `get`, `list`, `check-job-status`, `get-conversation`, `list-conversations`, `get-messages`, `get-identity`, `get-profile`, `get-status` | Core system operations                                 |
+| **blog**           | `generate`, `publish`                                                                                                                              | Content creation actions (RSS auto-generated on build) |
+| **decks**          | (none)                                                                                                                                             | All CRUD via system tools                              |
+| **link**           | `capture`                                                                                                                                          | URL capture action                                     |
+| **topics**         | `extract`, `merge`                                                                                                                                 | AI extraction + merge action                           |
+| **summary**        | `get` (by conversationId)                                                                                                                          | Domain-specific lookup                                 |
+| **site-builder**   | `generate`, `build-site`, `list_routes`, `list_templates`                                                                                          | Site-specific actions                                  |
+| **directory-sync** | `sync`                                                                                                                                             | Filesystem sync action                                 |
+| **git-sync**       | `sync`, `status`                                                                                                                                   | Git operations                                         |
 
 ## System Tool Enhancements (Implemented)
 
@@ -90,6 +90,7 @@ Consolidate plugin-specific list/get/search tools into enhanced system tools to 
 
 1. `25e4424f` - feat(system): enhance system tools for tool consolidation (Phase 1)
 2. `cc3072b5` - refactor: remove plugin-specific list/get/search tools (Phase 2)
+3. `7598e363` - refactor(blog): remove generate-rss tool (build automation)
 
 ## Migration Notes
 
