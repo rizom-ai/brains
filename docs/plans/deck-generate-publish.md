@@ -116,6 +116,11 @@ plugins/decks/src/
 3. [x] Add publish tool
 4. [x] Add generate tool (simple, no AI for now)
 5. [x] Update plugin registration
-6. [x] Tests
+6. [x] Tests (8 tests covering tool metadata, success cases, error handling)
 
 Note: AI-powered generation deferred - current implementation creates decks from provided content.
+
+## Commits
+
+- `1c22a48b` feat(decks): add generate and publish tools, rename presentedAt to publishedAt
+- `747e8072` test(decks): add tests for generate and publish tools
