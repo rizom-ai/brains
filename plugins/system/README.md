@@ -10,7 +10,6 @@ This plugin provides both commands and tools for:
 
 - **Command**: `/search <query>` - Search entities using the entity service
 - **Tool**: `system:search` - Search entities by type and query
-- **Tool**: `system:query` - AI-powered knowledge base query
 
 ### Entity Operations
 

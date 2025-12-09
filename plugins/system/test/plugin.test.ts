@@ -32,8 +32,8 @@ describe("SystemPlugin", () => {
       expect(capabilities.tools.length).toBe(10);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("system_query");
       expect(toolNames).toContain("system_search");
+      expect(toolNames).toContain("system_list");
       expect(toolNames).toContain("system_get");
       expect(toolNames).toContain("system_check-job-status");
       expect(toolNames).toContain("system_get-conversation");
@@ -59,6 +59,39 @@ describe("SystemPlugin", () => {
       const defaultPlugin = new SystemPlugin();
 
       expect(defaultPlugin.id).toBe("system");
+    });
+  });
+
+  describe("Tool Schemas", () => {
+    it("system_search should have optional entityType", () => {
+      const searchTool = capabilities.tools.find(
+        (t) => t.name === "system_search",
+      );
+      expect(searchTool).toBeDefined();
+      if (!searchTool) throw new Error("searchTool not found");
+      expect(searchTool.inputSchema.entityType).toBeDefined();
+      // Verify entityType is optional by checking the zod schema
+      const schema = searchTool.inputSchema.entityType;
+      expect(schema._def.typeName).toBe("ZodOptional");
+    });
+
+    it("system_get should support ID/slug/title lookup", () => {
+      const getTool = capabilities.tools.find((t) => t.name === "system_get");
+      expect(getTool).toBeDefined();
+      if (!getTool) throw new Error("getTool not found");
+      expect(getTool.description).toContain("slug");
+      expect(getTool.description).toContain("title");
+    });
+
+    it("system_list should have entityType and optional status filter", () => {
+      const listTool = capabilities.tools.find((t) => t.name === "system_list");
+      expect(listTool).toBeDefined();
+      if (!listTool) throw new Error("listTool not found");
+      expect(listTool.inputSchema.entityType).toBeDefined();
+      expect(listTool.inputSchema.status).toBeDefined();
+      // Verify status is optional
+      const statusSchema = listTool.inputSchema.status;
+      expect(statusSchema._def.typeName).toBe("ZodOptional");
     });
   });
 });

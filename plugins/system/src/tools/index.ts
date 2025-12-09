@@ -5,6 +5,7 @@ import {
   formatAsSearchResults,
   formatAsEntity,
   formatAsList,
+  parseMarkdown,
 } from "@brains/utils";
 
 export function createSystemTools(
@@ -13,71 +14,31 @@ export function createSystemTools(
 ): PluginTool[] {
   return [
     {
-      name: `${pluginId}_query`,
-      description:
-        "Search the knowledge base for notes, profiles, links, topics, and stored content. Use this to answer questions like 'what do you know about X?', 'tell me about Y', or 'who is Z?'.",
-      inputSchema: {
-        query: z
-          .string()
-          .describe(
-            "Search term or phrase - e.g. 'yeehaa', 'ecosystem architecture'",
-          ),
-        userId: z.string().optional().describe("Optional user ID for context"),
-      },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
-        const parsed = z
-          .object({
-            query: z.string(),
-            userId: z.string().optional(),
-          })
-          .parse(input);
-
-        const result = await plugin.query(parsed.query, {
-          userId: parsed.userId,
-        });
-
-        const sources = result.sources ?? [];
-        const formatted = formatAsSearchResults(
-          sources.map((s) => ({
-            id: s.id,
-            entityType: s.type,
-            snippet: s.excerpt ?? "",
-            score: s.relevance ?? 0,
-          })),
-          { query: parsed.query, showScores: true },
-        );
-
-        return {
-          status: "success",
-          data: result,
-          formatted,
-        };
-      },
-    },
-    {
       name: `${pluginId}_search`,
       description:
-        "Search for specific entity types (note, profile, link, deck, post). Use when you know the type of content you're looking for.",
+        "Search entities using semantic search. Optionally filter by entity type (note, profile, link, deck, post, topic, summary).",
       inputSchema: {
+        query: z.string().describe("Search term"),
         entityType: z
           .string()
-          .describe("Entity type: 'note', 'profile', 'link', 'deck', 'post'"),
-        query: z.string().describe("Search term"),
+          .optional()
+          .describe(
+            "Optional entity type filter: 'note', 'profile', 'link', 'deck', 'post', 'topic', 'summary'",
+          ),
         limit: z.number().optional().describe("Maximum number of results"),
       },
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
         const parsed = z
           .object({
-            entityType: z.string(),
             query: z.string(),
+            entityType: z.string().optional(),
             limit: z.number().optional(),
           })
           .parse(input);
 
         const results = await plugin.searchEntities(parsed.query, {
-          types: [parsed.entityType],
+          types: parsed.entityType ? [parsed.entityType] : undefined,
           limit: parsed.limit ?? 10,
         });
 
@@ -100,12 +61,15 @@ export function createSystemTools(
     },
     {
       name: `${pluginId}_get`,
-      description: "Retrieve a specific entity when you know its type and ID.",
+      description:
+        "Retrieve a specific entity by type and identifier (ID, slug, or title).",
       inputSchema: {
         entityType: z
           .string()
-          .describe("Entity type: 'note', 'profile', 'link', etc."),
-        id: z.string().describe("Entity ID"),
+          .describe(
+            "Entity type: 'note', 'profile', 'link', 'deck', 'post', 'topic', 'summary'",
+          ),
+        id: z.string().describe("Entity ID, slug, or title"),
       },
       visibility: "public",
       handler: async (input): Promise<ToolResponse> => {
@@ -116,21 +80,28 @@ export function createSystemTools(
           })
           .parse(input);
 
-        const entity = await plugin.getEntity(parsed.entityType, parsed.id);
+        const entity = await plugin.findEntity(parsed.entityType, parsed.id);
         if (entity) {
-          const formatted = formatAsEntity(
-            {
-              id: entity.id,
-              type: entity.entityType,
-              created: entity.created,
-              updated: entity.updated,
-              content:
-                entity.content.length > 200
-                  ? entity.content.substring(0, 200) + "..."
-                  : entity.content,
-            },
-            { title: `${parsed.entityType}: ${parsed.id}` },
-          );
+          // Parse frontmatter and body from content
+          const { frontmatter, content: body } = parseMarkdown(entity.content);
+
+          // Build metadata object combining entity fields and frontmatter
+          const metadata: Record<string, unknown> = {
+            id: entity.id,
+            type: entity.entityType,
+            created: entity.created,
+            updated: entity.updated,
+            ...frontmatter,
+          };
+
+          // Format metadata header
+          const metadataFormatted = formatAsEntity(metadata, {
+            title: `${entity.entityType}: ${entity.id}`,
+            excludeFields: ["content"], // Don't show content in metadata section
+          });
+
+          // Combine metadata and body
+          const formatted = `${metadataFormatted}\n\n---\n\n${body}`;
 
           return {
             status: "success",
@@ -142,6 +113,65 @@ export function createSystemTools(
           status: "error",
           message: "Entity not found",
           formatted: `_Entity not found: ${parsed.entityType}/${parsed.id}_`,
+        };
+      },
+    },
+    {
+      name: `${pluginId}_list`,
+      description:
+        "List entities by type with optional filters. Use for browsing entities without a search query.",
+      inputSchema: {
+        entityType: z
+          .string()
+          .describe(
+            "Entity type: 'note', 'profile', 'link', 'deck', 'post', 'topic', 'summary'",
+          ),
+        status: z
+          .string()
+          .optional()
+          .describe("Filter by status: 'draft', 'published', etc."),
+        limit: z
+          .number()
+          .optional()
+          .describe("Maximum number of results (default: 20)"),
+      },
+      visibility: "public",
+      handler: async (input): Promise<ToolResponse> => {
+        const parsed = z
+          .object({
+            entityType: z.string(),
+            status: z.string().optional(),
+            limit: z.number().optional(),
+          })
+          .parse(input);
+
+        const options: { limit: number; filter?: Record<string, unknown> } = {
+          limit: parsed.limit ?? 20,
+        };
+        if (parsed.status) {
+          options.filter = { metadata: { status: parsed.status } };
+        }
+
+        const entities = await plugin.listEntities(parsed.entityType, options);
+
+        const formatted = formatAsList(entities, {
+          title: (e) => e.id,
+          subtitle: (e) => {
+            const meta = e.metadata as Record<string, unknown> | undefined;
+            const title = meta?.["title"];
+            const status = meta?.["status"];
+            const parts: string[] = [];
+            if (title && typeof title === "string") parts.push(title);
+            if (status && typeof status === "string") parts.push(`(${status})`);
+            return parts.join(" ");
+          },
+          header: `## ${parsed.entityType}s (${entities.length})`,
+        });
+
+        return {
+          status: "success",
+          data: { entities, count: entities.length },
+          formatted,
         };
       },
     },

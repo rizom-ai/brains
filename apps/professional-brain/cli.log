@@ -1,21 +1,21 @@
 [0m[2m[35m$[0m [2m[1mbun --watch brain.config.ts --cli[0m
-[2025-12-08T07:59:16.655Z] [mcp] StreamableHTTP server listening on http://0.0.0.0:3333/mcp
-[90mMon, 08 Dec 2025 07:59:18 GMT[39m [1m[31m[ERROR][39m[22m [90m[MatrixHttpClient][39m (REQ-3) { errcode: 'M_NOT_FOUND', error: 'Account data not found' }
-[2025-12-08T07:59:19.074Z] [git-sync] Using git repository path { path: './brain-data' }
-[2025-12-08T07:59:19.615Z] [webserver] Preview server enabled
-[2025-12-08T07:59:19.621Z] [blog] Blog plugin registered successfully (routes auto-generated at /posts/)
-[2025-12-08T07:59:19.623Z] [decks] Decks plugin registered successfully
-[2025-12-08T07:59:19.625Z] [professional-site] Professional site plugin registered successfully
-[2025-12-08T07:59:20.628Z] Loading embedding model: fast-all-MiniLM-L6-v2
-[2025-12-08T07:59:20.791Z] Embedding model loaded successfully
-[2025-12-08T07:59:21.616Z] [HydrationManager] No content for interactive section: main, skipping hydration
-[2025-12-08T07:59:21.616Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T07:59:21.618Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
-[2025-12-08T07:59:21.628Z] [blog] Received site:build:completed event for preview environment
-[2025-12-08T07:59:21.628Z] [blog] Auto-generating RSS feed after site build (all posts)
-[2025-12-08T07:59:21.632Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
-[2025-12-08T07:59:22.605Z] [git-sync] Pulled changes from remote
-[2025-12-08T07:59:22.651Z] [git-sync] Imported entities after pull {
+[2025-12-08T08:24:58.255Z] [mcp] StreamableHTTP server listening on http://0.0.0.0:3333/mcp
+[90mMon, 08 Dec 2025 08:25:00 GMT[39m [1m[31m[ERROR][39m[22m [90m[MatrixHttpClient][39m (REQ-3) { errcode: 'M_NOT_FOUND', error: 'Account data not found' }
+[2025-12-08T08:25:00.621Z] [git-sync] Using git repository path { path: './brain-data' }
+[2025-12-08T08:25:01.192Z] [webserver] Preview server enabled
+[2025-12-08T08:25:01.198Z] [blog] Blog plugin registered successfully (routes auto-generated at /posts/)
+[2025-12-08T08:25:01.199Z] [decks] Decks plugin registered successfully
+[2025-12-08T08:25:01.200Z] [professional-site] Professional site plugin registered successfully
+[2025-12-08T08:25:02.204Z] Loading embedding model: fast-all-MiniLM-L6-v2
+[2025-12-08T08:25:02.367Z] Embedding model loaded successfully
+[2025-12-08T08:25:03.241Z] [HydrationManager] No content for interactive section: main, skipping hydration
+[2025-12-08T08:25:03.241Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T08:25:03.242Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
+[2025-12-08T08:25:03.242Z] [blog] Received site:build:completed event for preview environment
+[2025-12-08T08:25:03.243Z] [blog] Auto-generating RSS feed after site build (all posts)
+[2025-12-08T08:25:03.245Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
+[2025-12-08T08:25:04.074Z] [git-sync] Pulled changes from remote
+[2025-12-08T08:25:04.105Z] [git-sync] Imported entities after pull {
   result: {
     imported: 3,
     skipped: 26,
@@ -23,22 +23,21 @@
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
-    jobIds: [ '4w7XmetGigbZ', 'pF94KdbNKyvY', 'X4Ek8_nOTNmL' ]
+    jobIds: [ 'YaoK9PW1Y1zj', 'Ad0XgOEUG8nd', 'z1V8Eyyx7QSv' ]
   }
 }
-[2025-12-08T07:59:23.318Z] [HydrationManager] No content for interactive section: main, skipping hydration
-[2025-12-08T07:59:23.318Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T07:59:23.320Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
-[2025-12-08T07:59:23.320Z] [blog] Received site:build:completed event for preview environment
-[2025-12-08T07:59:23.320Z] [blog] Auto-generating RSS feed after site build (all posts)
-[2025-12-08T07:59:23.328Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
-[2025-12-08T07:59:23.577Z] [git-sync] Pushed changes to remote
-[2025-12-08T07:59:23.577Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
-[2025-12-08T07:59:23.577Z] [git-sync] Sync completed successfully
-[2025-12-08T07:59:23.577Z] [git-sync] Synced git after initial directory sync
-[2025-12-08T07:59:24.242Z] No handlers found for message type: conversation:messageAdded
-[2025-12-08T07:59:24.957Z] [git-sync] Pulled changes from remote
-[2025-12-08T07:59:25.000Z] [git-sync] Imported entities after pull {
+[2025-12-08T08:25:04.995Z] [HydrationManager] No content for interactive section: main, skipping hydration
+[2025-12-08T08:25:04.995Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T08:25:04.996Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
+[2025-12-08T08:25:04.996Z] [blog] Received site:build:completed event for preview environment
+[2025-12-08T08:25:04.996Z] [blog] Auto-generating RSS feed after site build (all posts)
+[2025-12-08T08:25:04.998Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
+[2025-12-08T08:25:05.018Z] [git-sync] Pushed changes to remote
+[2025-12-08T08:25:05.018Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
+[2025-12-08T08:25:05.019Z] [git-sync] Sync completed successfully
+[2025-12-08T08:25:05.019Z] [git-sync] Synced git after initial directory sync
+[2025-12-08T08:25:06.460Z] [git-sync] Pulled changes from remote
+[2025-12-08T08:25:06.501Z] [git-sync] Imported entities after pull {
   result: {
     imported: 3,
     skipped: 26,
@@ -46,24 +45,172 @@
     quarantined: 0,
     quarantinedFiles: [],
     errors: [],
-    jobIds: [ 'WLyR31OFjEzs', 'jN4cqrc1Gfe2', 'D4VT68xYmmbn' ]
+    jobIds: [ 'NQ4DFHNTmTKw', 'VWVHGHOaVGU6', '1VsfkgbRSqdJ' ]
   }
 }
-[2025-12-08T07:59:25.687Z] [HydrationManager] No content for interactive section: main, skipping hydration
-[2025-12-08T07:59:25.687Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T07:59:25.688Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
-[2025-12-08T07:59:25.688Z] [blog] Received site:build:completed event for preview environment
-[2025-12-08T07:59:25.688Z] [blog] Auto-generating RSS feed after site build (all posts)
-[2025-12-08T07:59:25.691Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
-[2025-12-08T07:59:25.832Z] [git-sync] Pushed changes to remote
-[2025-12-08T07:59:25.832Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
-[2025-12-08T07:59:25.833Z] [git-sync] Sync completed successfully
-[2025-12-08T07:59:25.833Z] [git-sync] Successfully synced after plugin initialization (seed content committed)
-[2025-12-08T07:59:25.843Z] [professional-brain] ✅ professional-brain v0.1.0 ready
-[2025-12-08T07:59:26.432Z] [HydrationManager] Copied hydration script for dashboard
-[2025-12-08T07:59:26.432Z] [HydrationManager] Added Preact scripts to /dashboard
-[2025-12-08T07:59:26.433Z] [SiteBuildJobHandler] Emitting site:build:completed event for production environment
-[2025-12-08T07:59:26.433Z] [blog] Received site:build:completed event for production environment
-[2025-12-08T07:59:26.433Z] [blog] Auto-generating RSS feed after site build (published only)
-[2025-12-08T07:59:26.436Z] [blog] RSS feed generated successfully with 22 posts at dist/site-production/feed.xml
-[2025-12-08T07:59:27.472Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:25:07.332Z] [HydrationManager] No content for interactive section: main, skipping hydration
+[2025-12-08T08:25:07.333Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T08:25:07.334Z] [SiteBuildJobHandler] Emitting site:build:completed event for preview environment
+[2025-12-08T08:25:07.335Z] [blog] Received site:build:completed event for preview environment
+[2025-12-08T08:25:07.335Z] [blog] Auto-generating RSS feed after site build (all posts)
+[2025-12-08T08:25:07.342Z] [blog] RSS feed generated successfully with 22 posts at dist/site-preview/feed.xml
+[2025-12-08T08:25:07.421Z] [git-sync] Pushed changes to remote
+[2025-12-08T08:25:07.421Z] [git-sync] Pushed changes to remote { manual: false, ahead: 0, tracking: false, createBranch: false }
+[2025-12-08T08:25:07.422Z] [git-sync] Sync completed successfully
+[2025-12-08T08:25:07.422Z] [git-sync] Successfully synced after plugin initialization (seed content committed)
+[2025-12-08T08:25:07.436Z] [professional-brain] ✅ professional-brain v0.1.0 ready
+[2025-12-08T08:25:13.643Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:25:16.087Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:25:36.947Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:25:36.950Z] No handlers found for message type: conversation:digest
+[2025-12-08T08:25:38.723Z] [HydrationManager] Copied hydration script for dashboard
+[2025-12-08T08:25:38.724Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T08:25:38.725Z] [SiteBuildJobHandler] Emitting site:build:completed event for production environment
+[2025-12-08T08:25:38.725Z] [blog] Received site:build:completed event for production environment
+[2025-12-08T08:25:38.725Z] [blog] Auto-generating RSS feed after site build (published only)
+[2025-12-08T08:25:38.728Z] [blog] RSS feed generated successfully with 22 posts at dist/site-production/feed.xml
+[2025-12-08T08:25:40.719Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:25:59.239Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:26:00.528Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:26:11.794Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:26:13.638Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:26:13.640Z] No handlers found for message type: conversation:digest
+[2025-12-08T08:26:32.505Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:26:34.445Z] [HydrationManager] Copied hydration script for dashboard
+[2025-12-08T08:26:34.446Z] [HydrationManager] Added Preact scripts to /dashboard
+[2025-12-08T08:26:34.447Z] [SiteBuildJobHandler] Emitting site:build:completed event for production environment
+[2025-12-08T08:26:34.447Z] [blog] Received site:build:completed event for production environment
+[2025-12-08T08:26:34.447Z] [blog] Auto-generating RSS feed after site build (published only)
+[2025-12-08T08:26:34.451Z] [blog] RSS feed generated successfully with 22 posts at dist/site-production/feed.xml
+[2025-12-08T08:26:36.474Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:27:44.989Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:27:46.389Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:27:56.933Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:27:56.936Z] No handlers found for message type: conversation:digest
+[2025-12-08T08:28:00.436Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:28:23.648Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:28:28.291Z] [AIService] Failed to generate object NoObjectGeneratedError [AI_NoObjectGeneratedError]: No object generated: the model did not return a response.
+    at <anonymous> (/home/yeehaa/Documents/brains/node_modules/ai/dist/index.mjs:8607:27)
+    at async <anonymous> (/home/yeehaa/Documents/brains/node_modules/ai/dist/index.mjs:1822:30)
+    at processTicksAndRejections (native:7:39) {
+  cause: undefined,
+  text: undefined,
+  response: {
+    id: 'msg_01C3quWqmuwkGNRZgjp5vuT6',
+    timestamp: 2025-12-08T08:28:28.281Z,
+    modelId: 'claude-3-haiku-20240307',
+    headers: {
+      'anthropic-organization-id': 'e69d4b39-722f-43e5-bd35-3f06249668db',
+      'anthropic-ratelimit-input-tokens-limit': '400000',
+      'anthropic-ratelimit-input-tokens-remaining': '400000',
+      'anthropic-ratelimit-input-tokens-reset': '2025-12-08T08:28:27Z',
+      'anthropic-ratelimit-output-tokens-limit': '80000',
+      'anthropic-ratelimit-output-tokens-remaining': '80000',
+      'anthropic-ratelimit-output-tokens-reset': '2025-12-08T08:28:28Z',
+      'anthropic-ratelimit-requests-limit': '4000',
+      'anthropic-ratelimit-requests-remaining': '3999',
+      'anthropic-ratelimit-requests-reset': '2025-12-08T08:28:26Z',
+      'anthropic-ratelimit-tokens-limit': '480000',
+      'anthropic-ratelimit-tokens-remaining': '480000',
+      'anthropic-ratelimit-tokens-reset': '2025-12-08T08:28:27Z',
+      'cf-cache-status': 'DYNAMIC',
+      'cf-ray': '9aaae3aa7c8f6a98-TPE',
+      connection: 'keep-alive',
+      'content-encoding': 'gzip',
+      'content-type': 'application/json',
+      date: 'Mon, 08 Dec 2025 08:28:28 GMT',
+      'request-id': 'req_011CVtuQxCucsbbGmQHGn2pa',
+      'retry-after': '35',
+      server: 'cloudflare',
+      'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+      'transfer-encoding': 'chunked',
+      'x-envoy-upstream-service-time': '1388',
+      'x-robots-tag': 'none'
+    },
+    body: {
+      model: 'claude-3-haiku-20240307',
+      id: 'msg_01C3quWqmuwkGNRZgjp5vuT6',
+      type: 'message',
+      role: 'assistant',
+      content: [Array],
+      stop_reason: 'tool_use',
+      stop_sequence: null,
+      usage: [Object]
+    }
+  },
+  usage: {
+    inputTokens: 3996,
+    outputTokens: 49,
+    totalTokens: 4045,
+    cachedInputTokens: 0
+  },
+  finishReason: 'tool-calls',
+  Symbol(vercel.ai.error): true,
+  Symbol(vercel.ai.error.AI_NoObjectGeneratedError): true
+}
+[2025-12-08T08:28:29.522Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:29:00.042Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:29:02.586Z] [AIService] Failed to generate object NoObjectGeneratedError [AI_NoObjectGeneratedError]: No object generated: the model did not return a response.
+    at <anonymous> (/home/yeehaa/Documents/brains/node_modules/ai/dist/index.mjs:8607:27)
+    at async <anonymous> (/home/yeehaa/Documents/brains/node_modules/ai/dist/index.mjs:1822:30)
+    at processTicksAndRejections (native:7:39) {
+  cause: undefined,
+  text: undefined,
+  response: {
+    id: 'msg_013v8tvoLwhqXhX6zRgR7fmD',
+    timestamp: 2025-12-08T08:29:02.586Z,
+    modelId: 'claude-3-haiku-20240307',
+    headers: {
+      'anthropic-organization-id': 'e69d4b39-722f-43e5-bd35-3f06249668db',
+      'anthropic-ratelimit-input-tokens-limit': '400000',
+      'anthropic-ratelimit-input-tokens-remaining': '399000',
+      'anthropic-ratelimit-input-tokens-reset': '2025-12-08T08:29:02Z',
+      'anthropic-ratelimit-output-tokens-limit': '80000',
+      'anthropic-ratelimit-output-tokens-remaining': '80000',
+      'anthropic-ratelimit-output-tokens-reset': '2025-12-08T08:29:02Z',
+      'anthropic-ratelimit-requests-limit': '4000',
+      'anthropic-ratelimit-requests-remaining': '3999',
+      'anthropic-ratelimit-requests-reset': '2025-12-08T08:29:01Z',
+      'anthropic-ratelimit-tokens-limit': '480000',
+      'anthropic-ratelimit-tokens-remaining': '479000',
+      'anthropic-ratelimit-tokens-reset': '2025-12-08T08:29:02Z',
+      'cf-cache-status': 'DYNAMIC',
+      'cf-ray': '9aaae4855ef36a98-TPE',
+      connection: 'keep-alive',
+      'content-encoding': 'gzip',
+      'content-type': 'application/json',
+      date: 'Mon, 08 Dec 2025 08:29:02 GMT',
+      'request-id': 'req_011CVtuTXxycx4nxm81LjaiH',
+      'retry-after': '61',
+      server: 'cloudflare',
+      'strict-transport-security': 'max-age=31536000; includeSubDomains; preload',
+      'transfer-encoding': 'chunked',
+      'x-envoy-upstream-service-time': '646',
+      'x-robots-tag': 'none'
+    },
+    body: {
+      model: 'claude-3-haiku-20240307',
+      id: 'msg_013v8tvoLwhqXhX6zRgR7fmD',
+      type: 'message',
+      role: 'assistant',
+      content: [Array],
+      stop_reason: 'tool_use',
+      stop_sequence: null,
+      usage: [Object]
+    }
+  },
+  usage: {
+    inputTokens: 3996,
+    outputTokens: 30,
+    totalTokens: 4026,
+    cachedInputTokens: 0
+  },
+  finishReason: 'tool-calls',
+  Symbol(vercel.ai.error): true,
+  Symbol(vercel.ai.error.AI_NoObjectGeneratedError): true
+}
+[2025-12-08T08:29:06.694Z] No handlers found for message type: conversation:messageAdded
+[2025-12-08T08:29:06.697Z] No handlers found for message type: conversation:digest
+[0m[31m[2025-12-08T08:31:14.947Z] 
+Received SIGINT, shutting down gracefully...[0m
+[?25h

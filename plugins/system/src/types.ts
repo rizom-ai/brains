@@ -24,6 +24,23 @@ export interface ISystemPlugin {
     context?: Record<string, unknown>,
   ): Promise<DefaultQueryResponse>;
   getEntity(entityType: string, id: string): Promise<BaseEntity | null>;
+  /**
+   * Find entity by ID, slug, or title
+   */
+  findEntity(
+    entityType: string,
+    identifier: string,
+  ): Promise<BaseEntity | null>;
+  /**
+   * List entities by type with optional filters
+   */
+  listEntities(
+    entityType: string,
+    options?: {
+      limit?: number;
+      filter?: Record<string, unknown>;
+    },
+  ): Promise<BaseEntity[]>;
   getJobStatus(
     batchId?: string,
     jobTypes?: string[],

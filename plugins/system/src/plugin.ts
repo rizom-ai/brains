@@ -114,6 +114,87 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   }
 
   /**
+   * Find entity by ID, slug, or title
+   */
+  public async findEntity(
+    entityType: string,
+    identifier: string,
+  ): Promise<BaseEntity | null> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+
+    try {
+      // Try direct ID lookup first
+      const byId = await this.context.entityService.getEntity(
+        entityType,
+        identifier,
+      );
+      if (byId) return byId;
+
+      // Try by slug
+      const bySlug = await this.context.entityService.listEntities(entityType, {
+        limit: 1,
+        filter: { metadata: { slug: identifier } },
+      });
+      if (bySlug[0]) return bySlug[0];
+
+      // Try by title
+      const byTitle = await this.context.entityService.listEntities(
+        entityType,
+        {
+          limit: 1,
+          filter: { metadata: { title: identifier } },
+        },
+      );
+      if (byTitle[0]) return byTitle[0];
+
+      return null;
+    } catch (error) {
+      this.error(`Failed to find entity ${entityType}:${identifier}`, {
+        error,
+      });
+      return null;
+    }
+  }
+
+  /**
+   * List entities by type with optional filters
+   */
+  public async listEntities(
+    entityType: string,
+    options?: {
+      limit?: number;
+      filter?: Record<string, unknown>;
+    },
+  ): Promise<BaseEntity[]> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+
+    try {
+      const listOptions: {
+        limit: number;
+        filter?: { metadata?: Partial<Record<string, unknown>> };
+      } = {
+        limit: options?.limit ?? 20,
+      };
+      if (options?.filter) {
+        listOptions.filter = options.filter as {
+          metadata?: Partial<Record<string, unknown>>;
+        };
+      }
+      return await this.context.entityService.listEntities(
+        entityType,
+        listOptions,
+      );
+    } catch (error) {
+      this.error(`Failed to list entities of type ${entityType}`, { error });
+      return [];
+    }
+  }
+
+  /**
    * Get job status information
    */
   public async getJobStatus(
