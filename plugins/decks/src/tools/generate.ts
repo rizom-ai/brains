@@ -96,11 +96,10 @@ Add your conclusion here`;
           updated: now,
         });
 
-        // Create entity
+        // Create entity with full data (content includes frontmatter for storage)
         const result = await context.entityService.createEntity({
-          entityType: "deck",
+          ...deckEntity,
           content: markdown,
-          metadata: deckEntity.metadata,
         });
 
         const formatted = formatAsEntity(
