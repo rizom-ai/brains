@@ -33,6 +33,12 @@ export const generateInputSchema = z.object({
   coverImage: z.string().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
+  skipAi: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip AI generation and create a skeleton blog post with placeholders (requires title)",
+    ),
 });
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;

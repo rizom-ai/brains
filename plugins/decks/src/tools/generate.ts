@@ -34,6 +34,12 @@ export const generateInputSchema = z.object({
     .string()
     .optional()
     .describe("Event where presentation will be given"),
+  skipAi: z
+    .boolean()
+    .optional()
+    .describe(
+      "Skip AI generation and create a skeleton deck with placeholders (requires title)",
+    ),
 });
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;

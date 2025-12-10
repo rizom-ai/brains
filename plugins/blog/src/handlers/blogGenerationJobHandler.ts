@@ -16,6 +16,7 @@ export const blogGenerationJobSchema = z.object({
   coverImage: z.string().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
+  skipAi: z.boolean().optional(),
 });
 
 export type BlogGenerationJobData = z.infer<typeof blogGenerationJobSchema>;
@@ -51,7 +52,7 @@ export class BlogGenerationJobHandler
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<BlogGenerationResult> {
-    const { prompt, coverImage, seriesName, seriesIndex } = data;
+    const { prompt, coverImage, seriesName, seriesIndex, skipAi } = data;
     let { title, content, excerpt } = data;
 
     try {
@@ -61,8 +62,40 @@ export class BlogGenerationJobHandler
         message: "Starting blog post generation",
       });
 
+      // skipAi mode: create skeleton blog post with placeholders
+      if (skipAi) {
+        if (!title) {
+          return {
+            success: false,
+            error: "Title is required when skipAi is true",
+          };
+        }
+
+        // Use provided content or create a skeleton template
+        content =
+          content ??
+          `## Introduction
+
+Add your introduction here.
+
+## Main Content
+
+Add your main content here.
+
+## Conclusion
+
+Add your conclusion here.`;
+
+        excerpt = excerpt ?? `Blog post about ${title}`;
+
+        await progressReporter.report({
+          progress: 50,
+          total: 100,
+          message: "Creating skeleton blog post",
+        });
+      }
       // Case 1: AI generates everything (title, content, excerpt)
-      if (!title || !content) {
+      else if (!title || !content) {
         await progressReporter.report({
           progress: 10,
           total: 100,

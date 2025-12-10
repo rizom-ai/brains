@@ -247,4 +247,40 @@ describe("Generate Tool", () => {
       expect(result.message).toContain("queued");
     });
   });
+
+  describe("skipAi option", () => {
+    it("should pass skipAi flag to job data", async () => {
+      const result = await generateTool.handler(
+        { title: "My Post", skipAi: true },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+
+      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
+        .mock.calls[0];
+      const jobData = enqueueCall?.[1] as Record<string, unknown>;
+      expect(jobData["skipAi"]).toBe(true);
+      expect(jobData["title"]).toBe("My Post");
+    });
+
+    it("should accept skipAi with title and content", async () => {
+      const result = await generateTool.handler(
+        {
+          title: "My Post",
+          content: "Some blog content here",
+          skipAi: true,
+        },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+
+      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
+        .mock.calls[0];
+      const jobData = enqueueCall?.[1] as Record<string, unknown>;
+      expect(jobData["skipAi"]).toBe(true);
+      expect(jobData["content"]).toBe("Some blog content here");
+    });
+  });
 });

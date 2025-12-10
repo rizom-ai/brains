@@ -15,6 +15,7 @@ export const deckGenerationJobSchema = z.object({
   description: z.string().optional(),
   author: z.string().optional(),
   event: z.string().optional(),
+  skipAi: z.boolean().optional(),
 });
 
 export type DeckGenerationJobData = z.infer<typeof deckGenerationJobSchema>;
@@ -52,7 +53,7 @@ export class DeckGenerationJobHandler
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<DeckGenerationResult> {
-    const { prompt, author, event } = data;
+    const { prompt, author, event, skipAi } = data;
     let { title, content, description } = data;
 
     try {
@@ -62,8 +63,48 @@ export class DeckGenerationJobHandler
         message: "Starting deck generation",
       });
 
+      // skipAi mode: create skeleton deck with placeholders
+      if (skipAi) {
+        if (!title) {
+          return {
+            success: false,
+            error: "Title is required when skipAi is true",
+          };
+        }
+
+        // Use provided content or create a skeleton template
+        content =
+          content ??
+          `# ${title}
+
+---
+
+# Introduction
+
+Add your introduction here
+
+---
+
+# Main Content
+
+Add your main content here
+
+---
+
+# Conclusion
+
+Add your conclusion here`;
+
+        description = description ?? `Presentation: ${title}`;
+
+        await progressReporter.report({
+          progress: 50,
+          total: 100,
+          message: "Creating skeleton deck",
+        });
+      }
       // Case 1: AI generates everything (title, content, description)
-      if (!title || !content) {
+      else if (!title || !content) {
         await progressReporter.report({
           progress: 10,
           total: 100,
