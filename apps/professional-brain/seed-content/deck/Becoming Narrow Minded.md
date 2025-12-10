@@ -1,13 +1,13 @@
 ---
 title: Becoming Narrow Minded
-status: presented
+status: published
 slug: becoming-narrow-minded
 description: >-
   Originally presented in 2020, updated for 2025. Combining many single-purpose
   narrow AIs is a better approach than chasing general AI moonshots. The thesis
   remains as relevant as ever in the age of LLMs.
 author: Yeehaa
-presentedAt: "2020-12-13T00:00:00.000Z"
+publishedAt: "2020-12-13T00:00:00.000Z"
 ---
 
 # Becoming Narrow Minded
