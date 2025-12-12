@@ -369,9 +369,9 @@ Added `system_get-profile` tool and updated AgentService system prompt to clarif
 - Profile = the anchor/owner (for "who owns this?")
 - Brain addresses anchor personally when recognized
 
-### 4. Job Progress Tracking Gap
+### 4. Job Progress Tracking Gap ✅
 
-**Status**: Solution designed, ready for implementation
+**Status**: Complete
 
 **Problem**: Agent calls tools → tools queue jobs → interface doesn't know about jobs
 
@@ -413,13 +413,13 @@ Each interface subscribes to message bus and handles its own jobs:
 
 **Tasks:**
 
-- [ ] MCP: Send notifications back via progressToken
-- [ ] Matrix: Restore job tracking (store roomId → eventId, subscribe to job-progress, edit messages)
-- [ ] CLI: Subscribe to job-progress, update progress display component
+- [x] MCP: Send notifications back via progressToken
+- [x] Matrix: Restore job tracking (store roomId → eventId, subscribe to job-progress, edit messages)
+- [x] CLI: Subscribe to job-progress, update progress display component
 
-### 5. Agent Claims to Show Data But Doesn't
+### 5. Agent Claims to Show Data But Doesn't ✅
 
-**Status**: Solution designed
+**Status**: Complete
 
 **Problem**: When asked to list data (e.g., "list all routes"), the agent responds with:
 
@@ -586,25 +586,25 @@ Migrate tools one-by-one to use the new features:
 
 #### Phase 1 Implementation Tasks
 
-- [ ] Add `formatted` field to `toolResponseSchema` in mcp-service
-- [ ] Add `outputSchema` to `PluginTool` interface (optional)
-- [ ] Create shared formatters in `@brains/utils`
-- [ ] Add `ToolResultData` and update `AgentResponse` type in agent-service
-- [ ] Update `AgentService.chat()` to pass through tool results with formatted output
-- [ ] Update Matrix interface to render formatted tool results
-- [ ] Update CLI interface to render formatted tool results
+- [x] Add `formatted` field to `toolResponseSchema` in mcp-service
+- [x] Add `outputSchema` to `PluginTool` interface (optional)
+- [x] Create shared formatters in `@brains/utils`
+- [x] Add `ToolResultData` and update `AgentResponse` type in agent-service
+- [x] Update `AgentService.chat()` to pass through tool results with formatted output
+- [x] Update Matrix interface to render formatted tool results
+- [x] Update CLI interface to render formatted tool results
 
 #### Phase 2 Tasks (Per Tool)
 
-- [ ] Migrate system plugin tools (10 tools)
-- [ ] Migrate link plugin tools (4 tools)
-- [ ] Migrate summary plugin tools (5 tools)
+- [x] Migrate system plugin tools (10 tools)
+- [x] Migrate link plugin tools (4 tools)
+- [x] Migrate summary plugin tools (5 tools)
 - [ ] Migrate topics plugin tools (5 tools)
-- [ ] Migrate blog plugin tools (3 tools)
-- [ ] Migrate decks plugin tools (2 tools)
-- [ ] Migrate git-sync plugin tools (1 tool)
-- [ ] Migrate directory-sync plugin tools (1 tool)
-- [ ] Migrate site-builder plugin tools (2 tools)
+- [x] Migrate blog plugin tools (3 tools)
+- [x] Migrate decks plugin tools (2 tools)
+- [x] Migrate git-sync plugin tools (1 tool)
+- [x] Migrate directory-sync plugin tools (1 tool)
+- [x] Migrate site-builder plugin tools (2 tools)
 
 ### 6. Tool Audit - Relevance and Permissions ✅
 
