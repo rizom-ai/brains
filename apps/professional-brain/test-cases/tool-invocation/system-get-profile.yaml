@@ -1,0 +1,24 @@
+id: tool-invocation-get-profile
+name: System Get Profile
+description: Verifies that the agent uses system_get-profile to retrieve the profile
+type: tool_invocation
+tags:
+  - core
+  - get
+
+turns:
+  - userMessage: "Show me my profile information"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get-profile
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minHelpfulnessScore: 3
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

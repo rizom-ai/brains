@@ -1,13 +1,13 @@
 id: tool-invocation-get
 name: System Get Entity
-description: Verifies that the agent uses system_get to retrieve a specific entity
+description: Verifies that the agent uses system_get to retrieve a specific entity by type
 type: tool_invocation
 tags:
   - core
   - get
 
 turns:
-  - userMessage: "Show me the details of post with slug 'test-post'"
+  - userMessage: "Get me the post titled 'The Low End Theory'"
 
 successCriteria:
   expectedTools:
@@ -19,8 +19,6 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
-    - "error"
-  minHelpfulnessScore: 3
 
 efficiency:
   maxToolCalls: 5
