@@ -1,6 +1,6 @@
 id: tool-invocation-search
 name: System Search Invocation
-description: Verifies that the agent uses the system_search tool when asked to search
+description: Verifies that the agent correctly uses system_search with appropriate query
 type: tool_invocation
 tags:
   - core
@@ -13,11 +13,18 @@ successCriteria:
   expectedTools:
     - toolName: system_search
       shouldBeCalled: true
+      argsContain:
+        query: "programming"
+  responseContains:
+    - "programming"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
+    - "error"
+    - "failed"
+  minHelpfulnessScore: 3
 
 efficiency:
-  maxToolCalls: 5
-  maxTokens: 50000
+  maxToolCalls: 3
+  maxTokens: 25000

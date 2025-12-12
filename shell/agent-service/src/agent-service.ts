@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/utils";
+import { z, type Logger } from "@brains/utils";
 import {
   type IMCPService,
   type ToolContext,
@@ -229,7 +229,17 @@ export class AgentService implements IAgentService {
     // Extract tool results from all steps
     // Include all results that have either formatted output or a jobId (for async jobs)
     const toolResults: ToolResultData[] = [];
+    const toolArgsSchema = z.record(z.unknown());
     for (const step of result.steps ?? []) {
+      // Build a map of toolCallId -> input args for this step
+      const toolCallArgsMap = new Map<string, Record<string, unknown>>();
+      for (const tc of step.toolCalls ?? []) {
+        const parsed = toolArgsSchema.safeParse(tc.input);
+        if (tc.toolCallId && parsed.success) {
+          toolCallArgsMap.set(tc.toolCallId, parsed.data);
+        }
+      }
+
       for (const tr of step.toolResults ?? []) {
         if (tr.output === null) continue;
 
@@ -239,10 +249,18 @@ export class AgentService implements IAgentService {
             toolName: tr.toolName,
             error: parsed.error.message,
           });
-          toolResults.push({
+          // Still capture args even for failed validations
+          const args = tr.toolCallId
+            ? toolCallArgsMap.get(tr.toolCallId)
+            : undefined;
+          const failedResult: ToolResultData = {
             toolName: tr.toolName,
             formatted: `_Tool ${tr.toolName} completed_`,
-          });
+          };
+          if (args !== undefined) {
+            failedResult.args = args;
+          }
+          toolResults.push(failedResult);
           continue;
         }
 
@@ -252,14 +270,22 @@ export class AgentService implements IAgentService {
 
         if (formatted !== undefined || jobId !== undefined) {
           // Build result object conditionally to satisfy exactOptionalPropertyTypes
-          const result: ToolResultData = { toolName: tr.toolName };
+          const toolResult: ToolResultData = { toolName: tr.toolName };
+
+          // Capture args from the matching tool call
+          const args = tr.toolCallId
+            ? toolCallArgsMap.get(tr.toolCallId)
+            : undefined;
+          if (args !== undefined) {
+            toolResult.args = args;
+          }
           if (formatted !== undefined) {
-            result.formatted = formatted;
+            toolResult.formatted = formatted;
           }
           if (jobId !== undefined) {
-            result.jobId = jobId;
+            toolResult.jobId = jobId;
           }
-          toolResults.push(result);
+          toolResults.push(toolResult);
         }
       }
     }

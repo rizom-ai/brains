@@ -1,0 +1,26 @@
+id: response-quality-summary
+name: Helpful Content Summary
+description: Tests that the agent provides helpful summaries of content
+type: response_quality
+tags:
+  - quality
+  - helpfulness
+
+turns:
+  - userMessage: "Give me a summary of what content I have in my brain"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 35000

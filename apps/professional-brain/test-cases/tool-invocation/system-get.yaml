@@ -1,28 +1,25 @@
-id: tool-invocation-list
-name: System List Entities
-description: Verifies that the agent correctly uses system_list to list blog posts
+id: tool-invocation-get
+name: System Get Entity
+description: Verifies that the agent uses system_get to retrieve a specific entity
 type: tool_invocation
 tags:
   - core
-  - list
+  - get
 
 turns:
-  - userMessage: "List all my blog posts"
+  - userMessage: "Show me the details of post with slug 'test-post'"
 
 successCriteria:
   expectedTools:
-    - toolName: system_list
+    - toolName: system_get
       shouldBeCalled: true
       argsContain:
         entityType: "post"
-  responseContains:
-    - "post"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
     - "error"
-    - "failed"
   minHelpfulnessScore: 3
 
 efficiency:

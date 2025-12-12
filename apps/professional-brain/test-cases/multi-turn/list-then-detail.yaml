@@ -1,0 +1,36 @@
+id: multi-turn-list-detail
+name: List Then Get Details
+description: Tests context retention - list posts then ask about a specific one
+type: multi_turn
+tags:
+  - core
+  - multi-turn
+  - context
+
+turns:
+  - userMessage: "List my blog posts"
+    successCriteria:
+      expectedTools:
+        - toolName: system_list
+          shouldBeCalled: true
+          argsContain:
+            entityType: "post"
+
+  - userMessage: "Tell me more about the first one"
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+
+successCriteria:
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "which one"
+    - "could you clarify"
+  minHelpfulnessScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 40000

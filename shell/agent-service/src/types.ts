@@ -48,6 +48,7 @@ export interface PendingConfirmation {
  */
 export interface ToolResultData {
   toolName: string;
+  args?: Record<string, unknown>; // Input arguments passed to the tool
   formatted?: string; // Pre-formatted markdown from tool response (optional for async jobs)
   jobId?: string; // Job ID for async tools that queue background jobs
 }
