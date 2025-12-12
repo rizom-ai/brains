@@ -1,0 +1,22 @@
+id: tool-invocation-list
+name: System List Entities
+description: Verifies that the agent uses the system_list tool when asked to list entities
+type: tool_invocation
+tags:
+  - core
+  - list
+
+turns:
+  - userMessage: "List all my blog posts"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

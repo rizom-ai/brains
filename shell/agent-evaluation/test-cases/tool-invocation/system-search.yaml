@@ -1,0 +1,23 @@
+id: tool-invocation-search
+name: System Search Invocation
+description: Verifies that the agent uses the system_search tool when asked to search
+type: tool_invocation
+tags:
+  - core
+  - search
+
+turns:
+  - userMessage: "Search for blog posts about programming"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

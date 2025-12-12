@@ -13,9 +13,11 @@
     "migrate:conversations": "brain-migrate-conversations",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "eval": "brain-eval"
   },
   "dependencies": {
+    "@brains/agent-evaluation": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/blog": "workspace:*",
     "@brains/decks": "workspace:*",
