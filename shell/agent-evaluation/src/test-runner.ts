@@ -196,25 +196,31 @@ export class TestRunner implements ITestRunner {
           });
         }
 
-        // Check args if specified
+        // Check args if specified - pass if ANY call to the tool has matching args
         if (expected.shouldBeCalled && wasCalled && expected.argsContain) {
-          const matchingCall = toolCalls.find(
+          const matchingCalls = toolCalls.filter(
             (tc) => tc.toolName === expected.toolName,
           );
-          if (matchingCall?.args) {
-            for (const [key, expectedValue] of Object.entries(
-              expected.argsContain,
-            )) {
-              const actualValue = matchingCall.args[key];
-              if (actualValue !== expectedValue) {
-                results.push({
-                  criterion: "toolArgsContain",
-                  expected: `${expected.toolName}.${key} = ${JSON.stringify(expectedValue)}`,
-                  actual: JSON.stringify(actualValue),
-                  message: `Tool arg mismatch for ${expected.toolName}.${key}`,
-                  passed: false,
-                });
-              }
+
+          for (const [key, expectedValue] of Object.entries(
+            expected.argsContain,
+          )) {
+            // Check if ANY call has the expected arg value
+            const anyCallMatches = matchingCalls.some(
+              (tc) => tc.args && tc.args[key] === expectedValue,
+            );
+
+            if (!anyCallMatches) {
+              const actualValues = matchingCalls
+                .map((tc) => tc.args?.[key])
+                .filter((v) => v !== undefined);
+              results.push({
+                criterion: "toolArgsContain",
+                expected: `${expected.toolName}.${key} = ${JSON.stringify(expectedValue)}`,
+                actual: `${JSON.stringify(actualValues)} (across ${matchingCalls.length} calls)`,
+                message: `Tool arg mismatch for ${expected.toolName}.${key}`,
+                passed: false,
+              });
             }
           }
         }
