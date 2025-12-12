@@ -37,7 +37,7 @@ export async function runEvaluations(
 ): Promise<void> {
   const {
     shell,
-    testCasesDir = resolve(import.meta.dir, "../test-cases"),
+    testCasesDir = resolve(process.cwd(), "test-cases"),
     resultsDir = resolve(process.cwd(), "data/evaluation-results"),
     skipLLMJudge = false,
     tags,
