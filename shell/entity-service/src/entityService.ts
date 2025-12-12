@@ -413,6 +413,15 @@ export class EntityService implements IEntityService {
   }
 
   /**
+   * Get entity counts grouped by type
+   */
+  public async getEntityCounts(): Promise<
+    Array<{ entityType: string; count: number }>
+  > {
+    return this.entityQueries.getEntityCounts();
+  }
+
+  /**
    * Serialize an entity to markdown format
    */
   public serializeEntity(entity: BaseEntity): string {

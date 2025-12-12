@@ -15,6 +15,14 @@ import type { SearchOptions } from "./schemas";
  * This avoids circular dependencies by extracting the minimal interface needed
  */
 export interface ISystemPlugin {
+  /**
+   * Get list of registered entity types
+   */
+  getEntityTypes(): string[];
+  /**
+   * Get entity counts grouped by type
+   */
+  getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
   searchEntities(
     query: string,
     options?: SearchOptions,

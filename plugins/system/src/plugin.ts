@@ -285,6 +285,28 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   }
 
   /**
+   * Get list of registered entity types
+   */
+  public getEntityTypes(): string[] {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.entityService.getEntityTypes();
+  }
+
+  /**
+   * Get entity counts grouped by type
+   */
+  public async getEntityCounts(): Promise<
+    Array<{ entityType: string; count: number }>
+  > {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.entityService.getEntityCounts();
+  }
+
+  /**
    * Get app metadata (model and version)
    */
   public getAppInfo(): Promise<AppInfo> {

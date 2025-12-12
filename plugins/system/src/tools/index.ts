@@ -8,22 +8,32 @@ import {
   parseMarkdown,
 } from "@brains/utils";
 
+/**
+ * Format entity types for tool descriptions
+ */
+function formatEntityTypes(types: string[]): string {
+  if (types.length === 0) return "No entity types registered";
+  return types.map((t) => `'${t}'`).join(", ");
+}
+
 export function createSystemTools(
   plugin: ISystemPlugin,
   pluginId: string,
 ): PluginTool[] {
+  const entityTypes = plugin.getEntityTypes();
+  const entityTypesDesc = formatEntityTypes(entityTypes);
+
   return [
     {
       name: `${pluginId}_search`,
-      description:
-        "Search entities using semantic search. Optionally filter by entity type (note, profile, link, deck, post, topic, summary).",
+      description: `Search entities using semantic search. Optionally filter by entity type. Available types: ${entityTypesDesc}.`,
       inputSchema: {
         query: z.string().describe("Search term"),
         entityType: z
           .string()
           .optional()
           .describe(
-            "Optional entity type filter: 'note', 'profile', 'link', 'deck', 'post', 'topic', 'summary'",
+            `Optional entity type filter. Available: ${entityTypesDesc}`,
           ),
         limit: z.number().optional().describe("Maximum number of results"),
       },
@@ -61,14 +71,11 @@ export function createSystemTools(
     },
     {
       name: `${pluginId}_get`,
-      description:
-        "Retrieve a specific entity by type and identifier (ID, slug, or title).",
+      description: `Retrieve a specific entity by type and identifier (ID, slug, or title). Available types: ${entityTypesDesc}.`,
       inputSchema: {
         entityType: z
           .string()
-          .describe(
-            "Entity type: 'note', 'profile', 'link', 'deck', 'post', 'topic', 'summary'",
-          ),
+          .describe(`Entity type. Available: ${entityTypesDesc}`),
         id: z.string().describe("Entity ID, slug, or title"),
       },
       visibility: "public",
@@ -118,14 +125,11 @@ export function createSystemTools(
     },
     {
       name: `${pluginId}_list`,
-      description:
-        "List entities by type with optional filters. Use for browsing entities without a search query.",
+      description: `List entities by type with optional filters. Available types: ${entityTypesDesc}.`,
       inputSchema: {
         entityType: z
           .string()
-          .describe(
-            "Entity type: 'note', 'profile', 'link', 'deck', 'post', 'topic', 'summary'",
-          ),
+          .describe(`Entity type to list. Available: ${entityTypesDesc}`),
         status: z
           .string()
           .optional()

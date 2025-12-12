@@ -150,6 +150,9 @@ export interface ICoreEntityService {
   // Entity type information
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;
+
+  // Entity counts
+  getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
 }
 
 /**

@@ -148,6 +148,30 @@ export class EntityQueries {
   }
 
   /**
+   * Get entity counts grouped by type
+   */
+  public async getEntityCounts(): Promise<
+    Array<{ entityType: string; count: number }>
+  > {
+    this.logger.debug("Getting entity counts by type");
+
+    const result = await this.db
+      .select({
+        entityType: entities.entityType,
+        count: sql<number>`COUNT(*)`.as("count"),
+      })
+      .from(entities)
+      .groupBy(entities.entityType);
+
+    this.logger.debug(`Found ${result.length} entity types`);
+
+    return result.map((row) => ({
+      entityType: row.entityType,
+      count: Number(row.count),
+    }));
+  }
+
+  /**
    * Check if entity exists
    */
   public async entityExists(entityType: string, id: string): Promise<boolean> {
