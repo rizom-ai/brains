@@ -13,6 +13,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/plugins";
+import type { IAgentService } from "@brains/agent-service";
 
 export interface AuthConfig {
   enabled: boolean;
@@ -36,6 +37,7 @@ export class StreamableHTTPServer {
   private app: Express;
   private transports: Record<string, StreamableHTTPServerTransport> = {};
   private mcpServer: McpServer | null = null;
+  private agentService: IAgentService | null = null;
   private server: ReturnType<Express["listen"]> | null = null;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
@@ -290,6 +292,44 @@ export class StreamableHTTPServer {
         await transport.handleRequest(req, res);
       }),
     );
+
+    // Agent chat endpoint for evaluation and remote access
+    this.app.post(
+      "/api/chat",
+      asyncHandler(async (req, res) => {
+        if (!this.agentService) {
+          res.status(503).json({
+            error: "Agent service not connected",
+          });
+          return;
+        }
+
+        const { message, conversationId } = req.body as {
+          message?: string;
+          conversationId?: string;
+        };
+
+        if (!message || typeof message !== "string") {
+          res.status(400).json({
+            error: "Missing or invalid 'message' field",
+          });
+          return;
+        }
+
+        const convId = conversationId ?? randomUUID();
+        this.logger.debug(`POST /api/chat - conversation: ${convId}`);
+
+        try {
+          const response = await this.agentService.chat(message, convId);
+          res.json(response);
+        } catch (error) {
+          this.logger.error("Agent chat error:", error);
+          res.status(500).json({
+            error: error instanceof Error ? error.message : "Internal error",
+          });
+        }
+      }),
+    );
   }
 
   /**
@@ -298,6 +338,14 @@ export class StreamableHTTPServer {
   public connectMCPServer(mcpServer: McpServer): void {
     this.mcpServer = mcpServer;
     this.logger.debug("MCP server connected to StreamableHTTP transport");
+  }
+
+  /**
+   * Connect an agent service for chat endpoint
+   */
+  public connectAgentService(agentService: IAgentService): void {
+    this.agentService = agentService;
+    this.logger.debug("Agent service connected to StreamableHTTP transport");
   }
 
   /**

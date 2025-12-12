@@ -209,6 +209,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       const mcpServer = this.mcpTransport.getMcpServer();
       this.httpServer.connectMCPServer(mcpServer);
 
+      // Connect agent service for /api/chat endpoint
+      this.httpServer.connectAgentService(this.context.agentService);
+
       // Start HTTP server
       await this.httpServer.start();
       this.logger.debug(

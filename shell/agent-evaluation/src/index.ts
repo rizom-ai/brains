@@ -12,6 +12,10 @@ export { TestRunner } from "./test-runner";
 export { MetricCollector } from "./metric-collector";
 export { LLMJudge } from "./llm-judge";
 
+// Remote agent service for connecting to running instances
+export { RemoteAgentService } from "./remote-agent-service";
+export type { RemoteAgentServiceConfig } from "./remote-agent-service";
+
 // Loaders
 export { YAMLLoader } from "./loaders";
 export type { YAMLLoaderOptions } from "./loaders/yaml-loader";

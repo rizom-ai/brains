@@ -3,20 +3,28 @@
  * Standalone evaluation runner
  *
  * Usage from an app directory:
- *   bun run eval                    # Run all evaluations
- *   bun run eval --skip-llm-judge   # Skip LLM quality scoring
- *   bun run eval --tags core        # Run only tests with 'core' tag
+ *   bun run eval                              # Run all evaluations
+ *   bun run eval --test tool-invocation-list  # Run specific test(s)
+ *   bun run eval --tags core                  # Run only tests with 'core' tag
+ *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
+ *   bun run eval --verbose                    # Show verbose output
+ *   bun run eval --url http://localhost:3333  # Run against remote instance
+ *   bun run eval --url http://localhost:3333 --token <token>  # With auth
  */
 
 import { resolve } from "path";
-import type { Shell } from "@brains/core";
+import type { IAgentService } from "@brains/agent-service";
+import type { IAIService } from "@brains/ai-service";
 import { EvaluationService } from "./evaluation-service";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
+import { RemoteAgentService } from "./remote-agent-service";
 
 export interface RunEvaluationsOptions {
-  /** Shell instance to use */
-  shell: Shell;
+  /** Agent service (from shell or remote) */
+  agentService: IAgentService;
+  /** AI service for LLM judge */
+  aiService: IAIService;
   /** Directory containing test cases */
   testCasesDir?: string;
   /** Directory to save results */
@@ -25,27 +33,28 @@ export interface RunEvaluationsOptions {
   skipLLMJudge?: boolean;
   /** Filter by tags */
   tags?: string[];
+  /** Specific test case IDs to run */
+  testCaseIds?: string[];
   /** Show verbose output */
   verbose?: boolean;
 }
 
 /**
- * Run evaluations against a shell instance
+ * Run evaluations against an agent service
  */
 export async function runEvaluations(
   options: RunEvaluationsOptions,
 ): Promise<void> {
   const {
-    shell,
+    agentService,
+    aiService,
     testCasesDir = resolve(process.cwd(), "test-cases"),
     resultsDir = resolve(process.cwd(), "data/evaluation-results"),
     skipLLMJudge = false,
     tags,
+    testCaseIds,
     verbose = false,
   } = options;
-
-  const agentService = shell.getAgentService();
-  const aiService = shell.getAIService();
 
   const evaluationService = EvaluationService.createFresh({
     agentService,
@@ -62,9 +71,16 @@ export async function runEvaluations(
   console.log(`Results: ${resultsDir}`);
   if (skipLLMJudge) console.log(`LLM Judge: skipped`);
   if (tags?.length) console.log(`Tags: ${tags.join(", ")}`);
+  if (testCaseIds?.length) console.log(`Tests: ${testCaseIds.join(", ")}`);
   console.log("");
 
-  const evalOptions = tags?.length ? { skipLLMJudge, tags } : { skipLLMJudge };
+  const evalOptions: {
+    skipLLMJudge: boolean;
+    tags?: string[];
+    testCaseIds?: string[];
+  } = { skipLLMJudge };
+  if (tags?.length) evalOptions.tags = tags;
+  if (testCaseIds?.length) evalOptions.testCaseIds = testCaseIds;
   const summary = await evaluationService.runEvaluations(evalOptions);
 
   // Exit with error code if any tests failed
@@ -74,24 +90,78 @@ export async function runEvaluations(
 }
 
 /**
+ * Parse a comma-separated flag value from args
+ */
+function parseFlag(args: string[], flag: string): string[] | undefined {
+  const index = args.indexOf(flag);
+  if (index === -1) return undefined;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) return undefined;
+  return value.split(",");
+}
+
+/**
+ * Parse a single string flag value from args
+ */
+function parseSingleFlag(args: string[], flag: string): string | undefined {
+  const index = args.indexOf(flag);
+  if (index === -1) return undefined;
+  const value = args[index + 1];
+  if (!value || value.startsWith("--")) return undefined;
+  return value;
+}
+
+/**
+ * Print help message
+ */
+function printHelp(): void {
+  console.log(`
+Agent Evaluation Runner
+
+Usage: bun run eval [options]
+
+Options:
+  --test <ids>        Run specific test(s), comma-separated
+  --tags <tags>       Filter tests by tag(s), comma-separated
+  --url <url>         Run against a remote brain instance
+  --token <token>     Auth token for remote instance
+  --skip-llm-judge    Skip LLM quality scoring (faster)
+  --verbose, -v       Show verbose output
+  --help, -h          Show this help message
+
+Examples:
+  bun run eval                              Run all tests
+  bun run eval --test tool-invocation-list  Run single test
+  bun run eval --test list,search           Run multiple tests
+  bun run eval --tags core                  Run tests tagged 'core'
+  bun run eval --skip-llm-judge             Skip LLM judge for speed
+  bun run eval --url http://localhost:3333  Run against remote instance
+  bun run eval --url http://localhost:3333 --token secret  With auth
+`);
+}
+
+/**
  * CLI entry point - parses args and runs evaluations
  * Expects to be called from an app directory with access to brain.config.ts
  */
 export async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
+  // Show help
+  if (args.includes("--help") || args.includes("-h")) {
+    printHelp();
+    process.exit(0);
+  }
+
   // Parse CLI args
   const skipLLMJudge = args.includes("--skip-llm-judge");
   const verbose = args.includes("--verbose") || args.includes("-v");
+  const tags = parseFlag(args, "--tags");
+  const testCaseIds = parseFlag(args, "--test");
+  const remoteUrl = parseSingleFlag(args, "--url");
+  const authToken = parseSingleFlag(args, "--token");
 
-  // Parse --tags flag
-  const tagsIndex = args.indexOf("--tags");
-  const tags =
-    tagsIndex !== -1 && args[tagsIndex + 1]
-      ? args[tagsIndex + 1]?.split(",")
-      : undefined;
-
-  // Try to load brain.config.ts from current directory
+  // Always load config for AI service (needed for LLM judge)
   const configPath = resolve(process.cwd(), "brain.config.ts");
 
   try {
@@ -103,21 +173,32 @@ export async function main(): Promise<void> {
       process.exit(1);
     }
 
-    // Create and initialize the app
+    // Create and initialize the app (needed for AI service in both modes)
     const { App } = await import("@brains/app");
     const app = App.create(config);
     await app.initialize();
 
     const shell = app.getShell();
+    const aiService = shell.getAIService();
+
+    // Determine which agent service to use
+    const agentService = remoteUrl
+      ? RemoteAgentService.createFresh({ baseUrl: remoteUrl, authToken })
+      : shell.getAgentService();
+
+    if (remoteUrl) {
+      console.log(`\nConnecting to remote brain: ${remoteUrl}`);
+    }
 
     const runOptions: RunEvaluationsOptions = {
-      shell,
+      agentService,
+      aiService,
       skipLLMJudge,
       verbose,
+      ...(tags && { tags }),
+      ...(testCaseIds && { testCaseIds }),
     };
-    if (tags?.length) {
-      runOptions.tags = tags;
-    }
+
     await runEvaluations(runOptions);
 
     process.exit(0);
