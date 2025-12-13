@@ -190,29 +190,34 @@ new TopicsPlugin({
 - Skips entity types not in whitelist
 - Skips entity types in blacklist
 
-## Plugin Evals (`evals/`)
+## Plugin Evals
 
-Plugin-level evaluations that test extraction quality directly (not via chat).
+Uses the shared `ai-evaluation` package (see `docs/plans/ai-evaluation-refactor.md`).
 
-### Eval Structure
+### Register Eval Handler
 
+In plugin registration:
+
+```typescript
+// In topics plugin onRegister()
+context.registerEvalHandler("topics:extractFromEntity", async (input) => {
+  const extractor = new TopicExtractor(context, this.logger);
+  const entity = createMockEntity(input);
+  return extractor.extractFromEntity(entity, input.minRelevanceScore ?? 0.5);
+});
 ```
-plugins/topics/evals/
-├── cases/
-│   ├── blog-post-extraction.yaml
-│   ├── link-extraction.yaml
-│   └── multi-topic-content.yaml
-├── fixtures/
-│   └── sample-entities.ts
-└── run-evals.ts
-```
 
-### Eval Case Schema
+### Test Cases
+
+Test cases live in `plugins/topics/evals/` and use `type: plugin`:
 
 ```yaml
-id: blog-post-extraction
+id: topics-blog-post-extraction
 name: Extract topics from blog post
 description: Tests that topics are correctly extracted from a blog post entity
+type: plugin
+plugin: topics
+handler: extractFromEntity
 
 input:
   entityType: post
@@ -229,75 +234,39 @@ input:
     - Reinforcement learning
   metadata:
     title: "Introduction to Machine Learning"
+  minRelevanceScore: 0.5
 
 expectedOutput:
-  minTopics: 1
-  maxTopics: 5
-  topicsContain:
-    - keyword: "machine learning"
-    - keyword: "deep learning"
-  sourceType: post
-  minRelevanceScore: 0.5
+  minItems: 1
+  maxItems: 5
+  itemsContain:
+    - field: title
+      pattern: "machine learning|deep learning"
+  # Validate source attribution
+  validateEach:
+    - path: "sources[0].type"
+      equals: "post"
 ```
 
-### Eval Cases
+### Eval Cases to Create
 
-**blog-post-extraction.yaml**
+| File                        | Description                                |
+| --------------------------- | ------------------------------------------ |
+| `blog-post-extraction.yaml` | Technical blog post → topics with keywords |
+| `link-extraction.yaml`      | Link entity → topics matching content      |
+| `multi-topic-content.yaml`  | Long content → multiple distinct topics    |
+| `low-quality-content.yaml`  | Short/vague → few or no topics             |
+| `update-extraction.yaml`    | Updated entity → new topics attributed     |
 
-- Input: Blog post about a technical topic
-- Expects: Topics extracted with relevant keywords, source type = "post"
+### Running Evals
 
-**link-extraction.yaml**
+```bash
+# Run all evals (agent + plugin)
+bun run eval
 
-- Input: Link entity with extracted web content
-- Expects: Topics matching the linked content, source type = "link"
+# Run only topics plugin evals
+bun run eval --plugin topics
 
-**multi-topic-content.yaml**
-
-- Input: Long-form content covering multiple distinct topics
-- Expects: Multiple separate topics, not one merged blob
-
-**low-quality-content.yaml**
-
-- Input: Short/vague content
-- Expects: Few or no topics (respects minRelevanceScore)
-
-**update-extraction.yaml**
-
-- Input: Updated entity with new content
-- Expects: New topics extracted, correctly attributed
-
-### Eval Runner (`run-evals.ts`)
-
-```typescript
-// Run from plugin directory: bun run eval
-
-interface EvalCase {
-  id: string;
-  name: string;
-  input: {
-    entityType: string;
-    content: string;
-    metadata: Record<string, unknown>;
-  };
-  expectedOutput: {
-    minTopics?: number;
-    maxTopics?: number;
-    topicsContain?: Array<{ keyword: string }>;
-    sourceType: string;
-    minRelevanceScore?: number;
-  };
-}
-
-async function runEval(evalCase: EvalCase): Promise<EvalResult> {
-  const extractor = new TopicExtractor(context, logger);
-
-  const entity = createEntity(evalCase.input);
-  const topics = await extractor.extractFromEntity(
-    entity,
-    evalCase.expectedOutput.minRelevanceScore ?? 0.5,
-  );
-
-  return validateResults(topics, evalCase.expectedOutput);
-}
+# Run specific test
+bun run eval --test topics-blog-post-extraction
 ```
