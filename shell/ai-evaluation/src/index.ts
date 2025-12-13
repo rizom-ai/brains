@@ -12,6 +12,11 @@ export { TestRunner } from "./test-runner";
 export { MetricCollector } from "./metric-collector";
 export { LLMJudge } from "./llm-judge";
 
+// Plugin evaluation support
+export { EvalHandlerRegistry } from "./eval-handler-registry";
+export { PluginRunner } from "./plugin-runner";
+export { OutputValidator } from "./output-validator";
+
 // Remote agent service for connecting to running instances
 export { RemoteAgentService } from "./remote-agent-service";
 export type { RemoteAgentServiceConfig } from "./remote-agent-service";

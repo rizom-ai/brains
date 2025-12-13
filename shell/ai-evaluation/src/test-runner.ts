@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 
 import type { ITestRunner, ILLMJudge, TestRunnerOptions } from "./types";
 import type {
-  TestCase,
+  AgentTestCase,
   EvaluationResult,
   TurnResult,
   FailureDetail,
@@ -30,10 +30,10 @@ export class TestRunner implements ITestRunner {
   }
 
   /**
-   * Run a single test case
+   * Run a single test case (agent-based test cases only)
    */
   async runTest(
-    testCase: TestCase,
+    testCase: AgentTestCase,
     options: TestRunnerOptions = {},
   ): Promise<EvaluationResult> {
     const conversationId = randomUUID();
@@ -299,7 +299,7 @@ export class TestRunner implements ITestRunner {
    * Evaluate efficiency criteria
    */
   private evaluateEfficiency(
-    testCase: TestCase,
+    testCase: AgentTestCase,
     metrics: { totalTokens: number; toolCallCount: number; durationMs: number },
   ): FailureDetail[] {
     const failures: FailureDetail[] = [];

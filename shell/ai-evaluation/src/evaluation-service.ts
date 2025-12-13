@@ -9,6 +9,8 @@ import type {
 } from "./types";
 import type {
   TestCase,
+  AgentTestCase,
+  PluginTestCase,
   EvaluationResult,
   EvaluationSummary,
   QualityScores,
@@ -16,6 +18,22 @@ import type {
 import { TestRunner } from "./test-runner";
 import { LLMJudge } from "./llm-judge";
 import { YAMLLoader } from "./loaders/yaml-loader";
+import { PluginRunner } from "./plugin-runner";
+import type { EvalHandlerRegistry } from "./eval-handler-registry";
+
+/**
+ * Type guard to check if a test case is an agent test case
+ */
+function isAgentTestCase(testCase: TestCase): testCase is AgentTestCase {
+  return testCase.type !== "plugin";
+}
+
+/**
+ * Type guard to check if a test case is a plugin test case
+ */
+function isPluginTestCase(testCase: TestCase): testCase is PluginTestCase {
+  return testCase.type === "plugin";
+}
 
 /**
  * Configuration for the evaluation service
@@ -25,6 +43,7 @@ export interface EvaluationServiceConfig {
   aiService: IAIService;
   testCasesDirectory: string;
   reporters?: IReporter[];
+  evalHandlerRegistry: EvalHandlerRegistry;
 }
 
 /**
@@ -35,6 +54,7 @@ export class EvaluationService implements IEvaluationService {
   private aiService: IAIService;
   private loader: ITestCaseLoader;
   private reporters: IReporter[];
+  private evalHandlerRegistry: EvalHandlerRegistry;
 
   constructor(config: EvaluationServiceConfig) {
     this.agentService = config.agentService;
@@ -44,6 +64,7 @@ export class EvaluationService implements IEvaluationService {
       recursive: true,
     });
     this.reporters = config.reporters ?? [];
+    this.evalHandlerRegistry = config.evalHandlerRegistry;
   }
 
   /**
@@ -82,20 +103,37 @@ export class EvaluationService implements IEvaluationService {
     // Create test runner
     const testRunner = TestRunner.createFresh(this.agentService, llmJudge);
 
-    // Run tests
+    // Separate agent and plugin test cases, respecting testType filter
+    const agentTestCases =
+      options.testType === "plugin" ? [] : testCases.filter(isAgentTestCase);
+    const pluginTestCases =
+      options.testType === "agent" ? [] : testCases.filter(isPluginTestCase);
+
     const results: EvaluationResult[] = [];
 
-    if (options.parallel && options.maxParallel && options.maxParallel > 1) {
-      // Parallel execution with concurrency limit
-      results.push(...(await this.runParallel(testCases, testRunner, options)));
-    } else {
-      // Sequential execution
-      for (const testCase of testCases) {
-        const runnerOptions =
-          options.skipLLMJudge !== undefined
-            ? { skipLLMJudge: options.skipLLMJudge }
-            : undefined;
-        const result = await testRunner.runTest(testCase, runnerOptions);
+    // Run agent tests
+    if (agentTestCases.length > 0) {
+      if (options.parallel && options.maxParallel && options.maxParallel > 1) {
+        results.push(
+          ...(await this.runParallel(agentTestCases, testRunner, options)),
+        );
+      } else {
+        for (const testCase of agentTestCases) {
+          const runnerOptions =
+            options.skipLLMJudge !== undefined
+              ? { skipLLMJudge: options.skipLLMJudge }
+              : undefined;
+          const result = await testRunner.runTest(testCase, runnerOptions);
+          results.push(result);
+        }
+      }
+    }
+
+    // Run plugin tests
+    if (pluginTestCases.length > 0) {
+      const pluginRunner = PluginRunner.createFresh(this.evalHandlerRegistry);
+      for (const testCase of pluginTestCases) {
+        const result = await pluginRunner.runTest(testCase);
         results.push(result);
       }
     }
@@ -112,10 +150,10 @@ export class EvaluationService implements IEvaluationService {
   }
 
   /**
-   * Run tests in parallel with concurrency limit
+   * Run agent tests in parallel with concurrency limit
    */
   private async runParallel(
-    testCases: TestCase[],
+    testCases: AgentTestCase[],
     testRunner: TestRunner,
     options: EvaluationOptions,
   ): Promise<EvaluationResult[]> {

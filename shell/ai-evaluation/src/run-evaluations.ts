@@ -19,6 +19,7 @@ import { EvaluationService } from "./evaluation-service";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
+import { EvalHandlerRegistry } from "./eval-handler-registry";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -35,6 +36,8 @@ export interface RunEvaluationsOptions {
   tags?: string[];
   /** Specific test case IDs to run */
   testCaseIds?: string[];
+  /** Filter by test type: "agent" or "plugin" */
+  testType?: "agent" | "plugin";
   /** Show verbose output */
   verbose?: boolean;
 }
@@ -53,6 +56,7 @@ export async function runEvaluations(
     skipLLMJudge = false,
     tags,
     testCaseIds,
+    testType,
     verbose = false,
   } = options;
 
@@ -64,6 +68,7 @@ export async function runEvaluations(
       ConsoleReporter.createFresh({ verbose, showFailures: true }),
       JSONReporter.createFresh({ outputDirectory: resultsDir }),
     ],
+    evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
   });
 
   console.log(`\nRunning evaluations...`);
@@ -72,15 +77,18 @@ export async function runEvaluations(
   if (skipLLMJudge) console.log(`LLM Judge: skipped`);
   if (tags?.length) console.log(`Tags: ${tags.join(", ")}`);
   if (testCaseIds?.length) console.log(`Tests: ${testCaseIds.join(", ")}`);
+  if (testType) console.log(`Type: ${testType}`);
   console.log("");
 
   const evalOptions: {
     skipLLMJudge: boolean;
     tags?: string[];
     testCaseIds?: string[];
+    testType?: "agent" | "plugin";
   } = { skipLLMJudge };
   if (tags?.length) evalOptions.tags = tags;
   if (testCaseIds?.length) evalOptions.testCaseIds = testCaseIds;
+  if (testType) evalOptions.testType = testType;
   const summary = await evaluationService.runEvaluations(evalOptions);
 
   // Exit with error code if any tests failed
@@ -116,13 +124,14 @@ function parseSingleFlag(args: string[], flag: string): string | undefined {
  */
 function printHelp(): void {
   console.log(`
-Agent Evaluation Runner
+AI Evaluation Runner
 
 Usage: bun run eval [options]
 
 Options:
   --test <ids>        Run specific test(s), comma-separated
   --tags <tags>       Filter tests by tag(s), comma-separated
+  --type <type>       Filter by type: "agent" or "plugin"
   --url <url>         Run against a remote brain instance
   --token <token>     Auth token for remote instance
   --skip-llm-judge    Skip LLM quality scoring (faster)
@@ -134,9 +143,10 @@ Examples:
   bun run eval --test tool-invocation-list  Run single test
   bun run eval --test list,search           Run multiple tests
   bun run eval --tags core                  Run tests tagged 'core'
+  bun run eval --type plugin                Run only plugin tests
+  bun run eval --type agent                 Run only agent tests
   bun run eval --skip-llm-judge             Skip LLM judge for speed
   bun run eval --url http://localhost:3333  Run against remote instance
-  bun run eval --url http://localhost:3333 --token secret  With auth
 `);
 }
 
@@ -158,6 +168,11 @@ export async function main(): Promise<void> {
   const verbose = args.includes("--verbose") || args.includes("-v");
   const tags = parseFlag(args, "--tags");
   const testCaseIds = parseFlag(args, "--test");
+  const testTypeArg = parseSingleFlag(args, "--type");
+  const testType =
+    testTypeArg === "agent" || testTypeArg === "plugin"
+      ? testTypeArg
+      : undefined;
   const remoteUrl = parseSingleFlag(args, "--url");
   const authToken = parseSingleFlag(args, "--token");
 
@@ -197,6 +212,7 @@ export async function main(): Promise<void> {
       verbose,
       ...(tags && { tags }),
       ...(testCaseIds && { testCaseIds }),
+      ...(testType && { testType }),
     };
 
     await runEvaluations(runOptions);

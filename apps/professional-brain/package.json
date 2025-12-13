@@ -17,7 +17,7 @@
     "eval": "brain-eval"
   },
   "dependencies": {
-    "@brains/agent-evaluation": "workspace:*",
+    "@brains/ai-evaluation": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/blog": "workspace:*",
     "@brains/decks": "workspace:*",

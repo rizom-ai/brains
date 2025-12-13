@@ -1,7 +1,7 @@
 {
-  "name": "@brains/agent-evaluation",
+  "name": "@brains/ai-evaluation",
   "version": "0.1.0",
-  "description": "Agent evaluation system for testing and benchmarking agent performance",
+  "description": "AI evaluation system for testing agent and plugin performance",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {

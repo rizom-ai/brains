@@ -1,11 +1,50 @@
 import type {
   TestCase,
+  AgentTestCase,
   EvaluationResult,
   EvaluationSummary,
   QualityScores,
   TotalMetrics,
   TurnResult,
 } from "./schemas";
+
+/**
+ * Handler function for plugin evaluations
+ * Plugins register these to enable direct (non-chat) testing
+ */
+export type EvalHandler<TInput = unknown, TOutput = unknown> = (
+  input: TInput,
+) => Promise<TOutput>;
+
+/**
+ * Registry for plugin eval handlers
+ */
+export interface IEvalHandlerRegistry {
+  /**
+   * Register an eval handler for a plugin
+   */
+  register(pluginId: string, handlerId: string, handler: EvalHandler): void;
+
+  /**
+   * Get an eval handler by plugin and handler ID
+   */
+  get(pluginId: string, handlerId: string): EvalHandler | undefined;
+
+  /**
+   * List all registered handlers
+   */
+  list(): Array<{ pluginId: string; handlerId: string }>;
+
+  /**
+   * Check if a handler exists
+   */
+  has(pluginId: string, handlerId: string): boolean;
+
+  /**
+   * Remove a handler
+   */
+  unregister(pluginId: string, handlerId: string): boolean;
+}
 
 /**
  * Options for running evaluations
@@ -15,6 +54,8 @@ export interface EvaluationOptions {
   testCaseIds?: string[];
   /** Tags to filter test cases */
   tags?: string[];
+  /** Filter by test type: "agent" or "plugin" */
+  testType?: "agent" | "plugin";
   /** Skip LLM-as-judge scoring for faster iteration */
   skipLLMJudge?: boolean;
   /** Sample rate for LLM judge (0-1, default 1.0) */
@@ -59,27 +100,27 @@ export interface IEvaluationService {
 }
 
 /**
- * Interface for the test runner
+ * Interface for the test runner (agent-based evaluations)
  */
 export interface ITestRunner {
   /**
-   * Run a single test case
+   * Run a single agent test case
    */
   runTest(
-    testCase: TestCase,
+    testCase: AgentTestCase,
     options?: TestRunnerOptions,
   ): Promise<EvaluationResult>;
 }
 
 /**
- * Interface for the LLM judge
+ * Interface for the LLM judge (agent-based evaluations only)
  */
 export interface ILLMJudge {
   /**
    * Score a conversation for quality
    */
   scoreConversation(
-    testCase: TestCase,
+    testCase: AgentTestCase,
     turnResults: TurnResult[],
   ): Promise<QualityScores | null>;
 }
@@ -144,6 +185,12 @@ export interface IReporter {
 export type {
   TestCase,
   TestCaseType,
+  AgentTestCase,
+  AgentTestCaseType,
+  PluginTestCase,
+  ExpectedOutput,
+  PathValidation,
+  ItemsContain,
   SuccessCriteria,
   ExpectedToolCall,
   Turn,

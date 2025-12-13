@@ -109,6 +109,9 @@ export const evaluationResultSchema = z.object({
   // Efficiency check results
   efficiencyPassed: z.boolean().optional(),
   efficiencyFailures: z.array(failureDetailSchema).optional(),
+
+  // Plugin output (for plugin test cases)
+  pluginOutput: z.unknown().optional(),
 });
 
 export type EvaluationResult = z.infer<typeof evaluationResultSchema>;

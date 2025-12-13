@@ -2,7 +2,7 @@ import { z } from "@brains/utils";
 import type { IAIService } from "@brains/ai-service";
 
 import type { ILLMJudge, LLMJudgeOptions } from "./types";
-import type { TestCase, TurnResult, QualityScores } from "./schemas";
+import type { AgentTestCase, TurnResult, QualityScores } from "./schemas";
 
 /**
  * Schema for LLM judge response
@@ -75,7 +75,7 @@ export class LLMJudge implements ILLMJudge {
    * Returns null if skipped due to sampling
    */
   async scoreConversation(
-    testCase: TestCase,
+    testCase: AgentTestCase,
     turnResults: TurnResult[],
   ): Promise<QualityScores | null> {
     // Apply sample rate
@@ -126,7 +126,7 @@ Provide your evaluation scores and reasoning.`;
    * Format conversation turns for evaluation
    */
   private formatConversation(
-    _testCase: TestCase,
+    _testCase: AgentTestCase,
     turnResults: TurnResult[],
   ): string {
     const parts: string[] = [];
