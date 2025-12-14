@@ -11,6 +11,12 @@ export interface MigrationFunctions {
   migrateConversations: typeof migrateConversations;
 }
 
+export interface DatabaseUrlOverrides {
+  database?: string | undefined;
+  jobQueueDatabase?: string | undefined;
+  conversationDatabase?: string | undefined;
+}
+
 export class MigrationManager {
   private logger: Logger;
   private migrations: MigrationFunctions;
@@ -27,32 +33,32 @@ export class MigrationManager {
 
   /**
    * Run all database migrations
-   * @param databaseUrlOverride Optional URL to use for all databases (useful for evals/testing)
+   * @param overrides Optional URL overrides for each database
    */
-  public async runAllMigrations(databaseUrlOverride?: string): Promise<void> {
+  public async runAllMigrations(
+    overrides?: DatabaseUrlOverrides,
+  ): Promise<void> {
     this.logger.debug("Running database migrations...");
 
-    try {
-      const config = await this.migrations.getStandardConfigWithDirectories();
+    const config = await this.migrations.getStandardConfigWithDirectories();
 
-      // Apply URL override to all databases if provided
-      if (databaseUrlOverride) {
-        config.database.url = databaseUrlOverride;
-        config.jobQueueDatabase.url = databaseUrlOverride;
-        config.conversationDatabase.url = databaseUrlOverride;
-      }
-
-      await this.migrateEntityDatabase(config);
-      await this.migrateJobQueueDatabase(config);
-      await this.migrateConversationDatabase(config);
-
-      this.logger.debug("All database migrations completed successfully");
-    } catch (error) {
-      this.logger.warn(
-        "Migration failed (databases may already be migrated):",
-        error,
-      );
+    // Apply URL overrides if provided
+    if (overrides?.database) {
+      config.database.url = overrides.database;
     }
+    if (overrides?.jobQueueDatabase) {
+      config.jobQueueDatabase.url = overrides.jobQueueDatabase;
+    }
+    if (overrides?.conversationDatabase) {
+      config.conversationDatabase.url = overrides.conversationDatabase;
+    }
+
+    // Run each migration
+    await this.migrateEntityDatabase(config);
+    await this.migrateJobQueueDatabase(config);
+    await this.migrateConversationDatabase(config);
+
+    this.logger.debug("All database migrations completed successfully");
   }
 
   private async migrateEntityDatabase(

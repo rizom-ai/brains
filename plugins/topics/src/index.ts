@@ -3,17 +3,17 @@ import {
   type ServicePluginContext,
   type PluginTool,
   type PluginResource,
-  type ConversationDigestPayload,
+  type BaseEntity,
   createId,
 } from "@brains/plugins";
-import { conversationDigestPayloadSchema } from "@brains/conversation-service";
+import { EvalHandlerRegistry } from "@brains/ai-evaluation";
+import { z } from "@brains/utils";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
-import { TopicExtractor } from "./lib/topic-extractor";
-import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
+import { TopicExtractor, type ExtractedTopic } from "./lib/topic-extractor";
 import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicListTemplate } from "./templates/topic-list";
@@ -55,23 +55,37 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     context.registerDataSource(topicsDataSource);
 
     // Register job handlers
-    const extractionHandler = new TopicExtractionHandler(
-      context,
-      this.config,
-      this.logger,
-    );
-    context.registerJobHandler("extraction", extractionHandler);
-
     const processingHandler = new TopicProcessingHandler(context, this.logger);
     context.registerJobHandler("process-single", processingHandler);
 
-    // Subscribe to conversation digest events for auto-extraction
+    // Register eval handler for plugin testing
+    this.registerEvalHandler(context);
+
+    // Subscribe to entity events for auto-extraction
     if (this.config.enableAutoExtraction) {
-      context.subscribe("conversation:digest", async (message) => {
-        const payload = conversationDigestPayloadSchema.parse(message.payload);
-        await this.handleConversationDigest(context, payload);
+      const handleEntityEvent = async (message: {
+        payload: { entityType: string; entityId: string; entity?: BaseEntity };
+      }): Promise<{ success: boolean }> => {
+        const { entityType, entity } = message.payload;
+
+        if (!this.shouldProcessEntityType(entityType)) {
+          return { success: true };
+        }
+
+        if (!entity) {
+          this.logger.debug("Entity not included in event payload, skipping", {
+            entityType,
+            entityId: message.payload.entityId,
+          });
+          return { success: true };
+        }
+
+        await this.handleEntityChanged(context, entity);
         return { success: true };
-      });
+      };
+
+      context.subscribe("entity:created", handleEntityEvent);
+      context.subscribe("entity:updated", handleEntityEvent);
     }
   }
 
@@ -79,7 +93,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     if (!this.context) {
       return [];
     }
-    return createTopicsTools(this.context, this.config, this.logger);
+    return createTopicsTools();
   }
 
   protected override async getResources(): Promise<PluginResource[]> {
@@ -91,38 +105,56 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 
   /**
-   * Handle conversation digest events for automatic topic extraction
+   * Determine if an entity type should be processed for topic extraction
+   * Public for testing
    */
-  private async handleConversationDigest(
+  public shouldProcessEntityType(entityType: string): boolean {
+    // Always skip topics to prevent recursion
+    if (entityType === "topic") {
+      return false;
+    }
+
+    // Whitelist mode: only process included types
+    if (this.config.includeEntityTypes.length > 0) {
+      return this.config.includeEntityTypes.includes(entityType);
+    }
+
+    // Blacklist mode: process all except excluded types
+    return !this.config.excludeEntityTypes.includes(entityType);
+  }
+
+  /**
+   * Handle entity created/updated events for automatic topic extraction
+   */
+  private async handleEntityChanged(
     context: ServicePluginContext,
-    payload: ConversationDigestPayload,
+    entity: BaseEntity,
   ): Promise<void> {
     try {
-      this.logger.debug("Processing conversation digest for topic extraction", {
-        conversationId: payload.conversationId,
-        messageCount: payload.messageCount,
-        windowSize: payload.windowSize,
-        messagesLength: payload.messages.length,
+      this.logger.debug("Processing entity for topic extraction", {
+        entityId: entity.id,
+        entityType: entity.entityType,
+        contentLength: entity.content.length,
       });
 
-      // Extract topics directly (like command does)
+      // Extract topics from entity content
       const topicExtractor = new TopicExtractor(context, this.logger);
-      const extractedTopics = await topicExtractor.extractFromMessages(
-        payload.conversationId,
-        payload.messages,
+      const extractedTopics = await topicExtractor.extractFromEntity(
+        entity,
         this.config.minRelevanceScore,
       );
 
       if (extractedTopics.length === 0) {
-        this.logger.debug("No topics found in digest", {
-          conversationId: payload.conversationId,
-          messagesProcessed: payload.messages.length,
+        this.logger.debug("No topics found in entity", {
+          entityId: entity.id,
+          entityType: entity.entityType,
         });
         return;
       }
 
-      this.logger.debug("Topics extracted from digest", {
-        conversationId: payload.conversationId,
+      this.logger.debug("Topics extracted from entity", {
+        entityId: entity.id,
+        entityType: entity.entityType,
         topicsCount: extractedTopics.length,
         topics: extractedTopics.map((t) => t.title),
       });
@@ -132,7 +164,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         type: "topics:process-single",
         data: {
           topic,
-          conversationId: payload.conversationId,
+          sourceEntityId: entity.id,
+          sourceEntityType: entity.entityType,
           autoMerge: this.config.autoMerge,
           mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
         },
@@ -150,23 +183,117 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         rootJobId,
         metadata: {
           operationType: "batch_processing" as const,
-          operationTarget: `auto-extract for ${payload.conversationId}`,
+          operationTarget: `auto-extract for ${entity.entityType}:${entity.id}`,
           pluginId: "topics",
         },
       });
 
       this.logger.debug("Queued automatic topic extraction batch", {
         batchId,
-        conversationId: payload.conversationId,
+        entityId: entity.id,
+        entityType: entity.entityType,
         topicsExtracted: extractedTopics.length,
-        messagesProcessed: payload.messages.length,
       });
     } catch (error) {
-      this.logger.error("Failed to process conversation digest", {
+      this.logger.error("Failed to process entity for topic extraction", {
         error: error instanceof Error ? error.message : String(error),
-        conversationId: payload.conversationId,
+        entityId: entity.id,
+        entityType: entity.entityType,
       });
     }
+  }
+
+  /**
+   * Register eval handler for plugin testing
+   */
+  private registerEvalHandler(context: ServicePluginContext): void {
+    const registry = EvalHandlerRegistry.getInstance();
+    const extractor = new TopicExtractor(context, this.logger);
+
+    const entityInputSchema = z.object({
+      entityType: z.string(),
+      content: z.string(),
+      metadata: z.record(z.unknown()).optional(),
+    });
+
+    const createEntityFromInput = (
+      input: z.infer<typeof entityInputSchema>,
+      idSuffix = "",
+    ): BaseEntity => ({
+      id: `eval${idSuffix}-${Date.now()}`,
+      entityType: input.entityType,
+      content: input.content,
+      metadata: input.metadata ?? {},
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    });
+
+    const extractTopics = async (
+      input: z.infer<typeof entityInputSchema>,
+      minRelevanceScore: number,
+      idSuffix = "",
+    ): Promise<ExtractedTopic[]> => {
+      const entity = createEntityFromInput(input, idSuffix);
+      return extractor.extractFromEntity(entity, minRelevanceScore);
+    };
+
+    // Single entity extraction
+    const extractInputSchema = entityInputSchema.extend({
+      minRelevanceScore: z.number().optional(),
+    });
+
+    registry.register("topics", "extractFromEntity", async (input: unknown) => {
+      const parsed = extractInputSchema.parse(input);
+      const minScore =
+        parsed.minRelevanceScore ?? this.config.minRelevanceScore;
+      return extractTopics(parsed, minScore);
+    });
+
+    // Merge similarity check - tests if two pieces of content produce matching topics
+    const mergeTestInputSchema = z.object({
+      contentA: entityInputSchema,
+      contentB: entityInputSchema,
+      minRelevanceScore: z.number().optional(),
+    });
+
+    registry.register(
+      "topics",
+      "checkMergeSimilarity",
+      async (input: unknown) => {
+        const parsed = mergeTestInputSchema.parse(input);
+        const minScore =
+          parsed.minRelevanceScore ?? this.config.minRelevanceScore;
+
+        const [topicsA, topicsB] = await Promise.all([
+          extractTopics(parsed.contentA, minScore, "-a"),
+          extractTopics(parsed.contentB, minScore, "-b"),
+        ]);
+
+        // Check for matching titles (case-insensitive)
+        const titlesA = topicsA.map((t) => t.title.toLowerCase());
+        const titlesB = topicsB.map((t) => t.title.toLowerCase());
+        const matchingTitles = titlesA.filter((title) =>
+          titlesB.includes(title),
+        );
+
+        return {
+          topicsA: topicsA.map((t) => ({
+            title: t.title,
+            relevanceScore: t.relevanceScore,
+          })),
+          topicsB: topicsB.map((t) => ({
+            title: t.title,
+            relevanceScore: t.relevanceScore,
+          })),
+          matchingTitles,
+          wouldMerge: matchingTitles.length > 0,
+        };
+      },
+    );
+
+    this.logger.debug(
+      "Registered eval handlers: topics:extractFromEntity, topics:checkMergeSimilarity",
+    );
   }
 }
 

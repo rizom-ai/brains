@@ -40,7 +40,7 @@ import { knowledgeQueryTemplate } from "@brains/content-service";
 import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
 import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
-import { ProfileService } from "@brains/profile-service";
+import { ProfileAdapter, ProfileService } from "@brains/profile-service";
 import {
   AgentService,
   createBrainAgentFactory,
@@ -203,6 +203,31 @@ export class ShellInitializer {
     } catch (error) {
       this.logger.error("Failed to register identity entity support", error);
       throw new Error("Failed to register identity entity type");
+    }
+  }
+
+  /**
+   * Register profile entity support
+   * This provides the brain owner's profile information
+   */
+  public registerProfileSupport(entityRegistry: IEntityRegistry): void {
+    this.logger.debug("Registering profile entity support");
+
+    try {
+      // Create profile adapter
+      const profileAdapter = new ProfileAdapter();
+
+      // Register with entity registry
+      entityRegistry.registerEntityType(
+        "profile",
+        profileAdapter.schema,
+        profileAdapter,
+      );
+
+      this.logger.debug("Profile entity support registered successfully");
+    } catch (error) {
+      this.logger.error("Failed to register profile entity support", error);
+      throw new Error("Failed to register profile entity type");
     }
   }
 
@@ -559,7 +584,10 @@ export class ShellInitializer {
       // Step 3: Register identity entity support
       this.registerIdentitySupport(entityRegistry);
 
-      // Step 4: Initialize plugins
+      // Step 4: Register profile entity support
+      this.registerProfileSupport(entityRegistry);
+
+      // Step 5: Initialize plugins
       await this.initializePlugins(pluginManager);
 
       this.logger.debug("Shell ready");

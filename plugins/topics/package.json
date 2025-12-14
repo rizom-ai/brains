@@ -12,12 +12,16 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint:fix": "eslint . --ext .ts --fix",
+    "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
-    "@brains/plugins": "workspace:*"
+    "@brains/ai-evaluation": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",

@@ -6,11 +6,12 @@ import { z } from "../zod";
 
 /**
  * Source reference schema
+ * type can be any entity type (post, link, summary, conversation, etc.)
  */
 export const sourceReferenceSchema = z.object({
   id: z.string(),
   title: z.string(),
-  type: z.enum(["conversation", "manual"]),
+  type: z.string(),
 });
 
 export type SourceReference = z.infer<typeof sourceReferenceSchema>;

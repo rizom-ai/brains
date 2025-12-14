@@ -1,0 +1,40 @@
+id: topics-merge-similarity
+name: Similar content produces matching topic titles
+description: Tests that related content about the same topic produces similar titles that would trigger merge
+type: plugin
+tags:
+  - topics
+  - merge
+  - core
+plugin: topics
+handler: checkMergeSimilarity
+
+input:
+  contentA:
+    entityType: post
+    content: |
+      # Getting Started with React Hooks
+
+      React Hooks revolutionized how we write functional components.
+      useState and useEffect are the most commonly used hooks.
+      Custom hooks allow you to extract and reuse stateful logic.
+    metadata:
+      title: "React Hooks Guide"
+  contentB:
+    entityType: link
+    content: |
+      Understanding React Hooks: A Deep Dive
+
+      This article explores React's hook system in detail.
+      Learn about useState for state management and useEffect
+      for side effects. We'll also cover useContext and useReducer.
+    metadata:
+      title: "React Hooks Deep Dive"
+  minRelevanceScore: 0.4
+
+expectedOutput:
+  validateEach:
+    - path: "wouldMerge"
+      equals: true
+    - path: "matchingTitles"
+      exists: true

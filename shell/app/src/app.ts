@@ -40,8 +40,12 @@ export class App {
   private async runMigrations(): Promise<void> {
     const logger = Logger.getInstance();
     const migrationManager = new MigrationManager(logger);
-    // Pass database URL override if configured (for evals/testing isolation)
-    await migrationManager.runAllMigrations(this.config.database);
+    // Pass database URL overrides from shellConfig or simple config
+    await migrationManager.runAllMigrations({
+      database: this.config.shellConfig?.database?.url ?? this.config.database,
+      jobQueueDatabase: this.config.shellConfig?.jobQueueDatabase?.url,
+      conversationDatabase: this.config.shellConfig?.conversationDatabase?.url,
+    });
   }
 
   public async initialize(): Promise<void> {

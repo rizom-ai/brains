@@ -21,11 +21,12 @@ export type TopicEntity = z.infer<typeof topicEntitySchema>;
 
 /**
  * Schema for topic source with metadata
+ * type can be any entity type (post, link, summary, etc.)
  */
 export const topicSourceSchema = z.object({
   id: z.string(),
   title: z.string(),
-  type: z.literal("conversation"),
+  type: z.string(),
 });
 
 export type TopicSource = z.infer<typeof topicSourceSchema>;

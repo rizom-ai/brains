@@ -17,12 +17,14 @@ const topicProcessingJobDataSchema = z.object({
       z.object({
         id: z.string(),
         title: z.string(),
-        type: z.literal("conversation"),
+        type: z.string(),
       }),
-    ), // TopicSource objects with metadata
+    ),
     keywords: z.array(z.string()),
+    relevanceScore: z.number().min(0).max(1),
   }),
-  conversationId: z.string(),
+  sourceEntityId: z.string(),
+  sourceEntityType: z.string(),
   autoMerge: z.boolean().optional(),
   mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
 });
@@ -64,7 +66,8 @@ export class TopicProcessingHandler
     this.logger.debug("Processing extracted topic", {
       jobId,
       title: topic.title,
-      conversationId: data.conversationId,
+      sourceEntityId: data.sourceEntityId,
+      sourceEntityType: data.sourceEntityType,
     });
 
     try {

@@ -1,0 +1,38 @@
+id: topics-link-extraction
+name: Extract topics from link entity
+description: Tests that topics are correctly extracted from a saved link with content
+type: plugin
+tags:
+  - topics
+  - extraction
+  - link
+plugin: topics
+handler: extractFromEntity
+
+input:
+  entityType: link
+  content: |
+    TypeScript Best Practices for Large-Scale Applications
+
+    This article covers essential TypeScript patterns for building maintainable
+    enterprise applications. Topics include:
+
+    1. Strict Type Checking - Enable strict mode and avoid any types
+    2. Interface Design - Create clear contracts between modules
+    3. Generic Programming - Write reusable, type-safe utilities
+    4. Error Handling - Use discriminated unions for error states
+    5. Module Organization - Structure code for scalability
+  metadata:
+    title: "TypeScript Best Practices"
+    url: "https://example.com/typescript-best-practices"
+  minRelevanceScore: 0.4
+
+expectedOutput:
+  minItems: 1
+  maxItems: 4
+  itemsContain:
+    - field: title
+      pattern: "[Tt]ype[Ss]cript|[Tt]ype [Ss]afety|[Ss]oftware [Dd]esign"
+  validateEach:
+    - path: "sources[0].type"
+      equals: "link"

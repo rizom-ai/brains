@@ -192,12 +192,28 @@ export async function main(): Promise<void> {
     // Use a temp database for evals to avoid polluting the real database
     // Temp files are cleaned up on system reboot
     const { App } = await import("@brains/app");
-    const evalDbPath = `/tmp/brain-eval-${Date.now()}.db`;
+    const evalDbBase = `/tmp/brain-eval-${Date.now()}`;
+
+    // Filter out sync plugins that would write to the real data directory
+    // These plugins sync entities to/from files which would pollute the
+    // real app's data directory during evals
+    const syncPluginIds = ["directory-sync", "git-sync"];
+    const filteredPlugins = config.plugins?.filter(
+      (plugin: { id: string }) => !syncPluginIds.includes(plugin.id),
+    );
+
     const evalConfig = {
       ...config,
-      database: `file:${evalDbPath}`,
+      database: undefined, // Clear to prevent overriding shellConfig.database
+      plugins: filteredPlugins,
+      shellConfig: {
+        ...config.shellConfig,
+        database: { url: `file:${evalDbBase}.db` },
+        jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
+        conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
+        embedding: { cacheDir: `${evalDbBase}-cache` },
+      },
     };
-    console.log(`Using temporary eval database: ${evalDbPath}`);
     const app = App.create(evalConfig);
     await app.initialize();
 

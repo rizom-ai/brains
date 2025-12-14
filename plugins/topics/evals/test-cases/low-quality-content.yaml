@@ -1,0 +1,23 @@
+id: topics-low-quality-content
+name: Handle low-quality content gracefully
+description: Tests that vague or short content produces few or no high-relevance topics
+type: plugin
+tags:
+  - topics
+  - extraction
+  - edge-case
+plugin: topics
+handler: extractFromEntity
+
+input:
+  entityType: post
+  content: |
+    Quick note: need to look into that thing we discussed.
+    Will follow up later.
+  metadata:
+    title: "Quick Note"
+  minRelevanceScore: 0.7
+
+expectedOutput:
+  minItems: 0
+  maxItems: 1

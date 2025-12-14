@@ -27,11 +27,7 @@ import { siteBuilderConfigSchema } from "./config";
 import { SiteInfoService } from "./services/site-info-service";
 import { siteInfoSchema } from "./services/site-info-schema";
 import { SiteInfoAdapter } from "./services/site-info-adapter";
-import {
-  ProfileService,
-  profileSchema,
-  ProfileAdapter,
-} from "@brains/profile-service";
+import { ProfileService } from "@brains/profile-service";
 import {
   templates as defaultTemplates,
   routes as defaultRoutes,
@@ -127,9 +123,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger,
       this.config.siteInfo,
     );
-
-    // Register profile entity type
-    context.registerEntityType("profile", profileSchema, new ProfileAdapter());
 
     // Create ProfileService instance (don't initialize yet - wait for seed content)
     this.profileService = ProfileService.getInstance(

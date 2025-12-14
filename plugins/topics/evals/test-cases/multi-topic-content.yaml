@@ -1,0 +1,46 @@
+id: topics-multi-topic-content
+name: Extract multiple distinct topics
+description: Tests that multiple distinct topics are extracted from rich content
+type: plugin
+tags:
+  - topics
+  - extraction
+  - multi-topic
+plugin: topics
+handler: extractFromEntity
+
+input:
+  entityType: summary
+  content: |
+    # Weekly Development Summary
+
+    ## Infrastructure Updates
+    We migrated our database from PostgreSQL to a distributed CockroachDB cluster.
+    This improves our horizontal scaling capabilities and provides better
+    geographic distribution for our global user base.
+
+    ## Frontend Improvements
+    The React components were refactored to use hooks instead of class components.
+    We also implemented lazy loading for better initial page load performance
+    and added comprehensive unit tests with Jest and React Testing Library.
+
+    ## Security Audit
+    Completed the annual security review. Key findings included updating
+    authentication to use OAuth 2.0 with PKCE flow, implementing rate limiting
+    on API endpoints, and adding Content Security Policy headers.
+
+    ## Team Updates
+    Welcomed two new engineers to the platform team. Started weekly knowledge
+    sharing sessions to improve cross-team collaboration.
+  metadata:
+    title: "Weekly Development Summary - Week 42"
+  minRelevanceScore: 0.3
+
+expectedOutput:
+  minItems: 2
+  maxItems: 6
+  itemsContain:
+    - field: title
+      pattern: "[Dd]atabase|[Ii]nfrastructure|[Ss]caling"
+    - field: title
+      pattern: "[Ff]rontend|[Rr]eact|UI"

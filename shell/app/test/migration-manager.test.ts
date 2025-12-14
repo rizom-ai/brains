@@ -90,18 +90,13 @@ describe("MigrationManager", () => {
       );
     });
 
-    it("should handle migration failures gracefully", async () => {
-      const migrationError = new Error("Migration failed");
+    it("should propagate config errors", async () => {
+      const configError = new Error("Config failed");
       mockMigrations.getStandardConfigWithDirectories = mock(() =>
-        Promise.reject(migrationError),
+        Promise.reject(configError),
       );
 
-      await migrationManager.runAllMigrations();
-
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        "Migration failed (databases may already be migrated):",
-        migrationError,
-      );
+      expect(migrationManager.runAllMigrations()).rejects.toThrow(configError);
     });
 
     it("should work without auth tokens", async () => {
@@ -151,37 +146,39 @@ describe("MigrationManager", () => {
       );
     });
 
-    it("should continue if one migration fails", async () => {
+    it("should propagate migration errors", async () => {
+      const migrationError = new Error("Entity migration failed");
       mockMigrations.migrateEntities = mock(() =>
-        Promise.reject(new Error("Entity migration failed")),
+        Promise.reject(migrationError),
       );
 
-      await migrationManager.runAllMigrations();
-
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        "Migration failed (databases may already be migrated):",
-        expect.any(Error),
+      expect(migrationManager.runAllMigrations()).rejects.toThrow(
+        migrationError,
       );
     });
 
-    it("should override all database URLs when override is provided", async () => {
-      const overrideUrl = "file:/tmp/test-eval.db";
+    it("should override database URLs when overrides are provided", async () => {
+      const overrides = {
+        database: "file:/tmp/test-entities.db",
+        jobQueueDatabase: "file:/tmp/test-jobs.db",
+        conversationDatabase: "file:/tmp/test-conv.db",
+      };
 
-      await migrationManager.runAllMigrations(overrideUrl);
+      await migrationManager.runAllMigrations(overrides);
 
-      // All migrations should use the override URL
+      // Each migration should use its respective override URL
       expect(mockMigrations.migrateEntities).toHaveBeenCalledWith(
-        expect.objectContaining({ url: overrideUrl }),
+        expect.objectContaining({ url: overrides.database }),
         mockLogger,
       );
 
       expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(
-        expect.objectContaining({ url: overrideUrl }),
+        expect.objectContaining({ url: overrides.jobQueueDatabase }),
         mockLogger,
       );
 
       expect(mockMigrations.migrateConversations).toHaveBeenCalledWith(
-        expect.objectContaining({ url: overrideUrl }),
+        expect.objectContaining({ url: overrides.conversationDatabase }),
         mockLogger,
       );
     });

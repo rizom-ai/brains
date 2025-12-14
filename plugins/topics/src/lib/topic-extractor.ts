@@ -1,4 +1,4 @@
-import type { Logger, ServicePluginContext, Message } from "@brains/plugins";
+import type { Logger, ServicePluginContext, BaseEntity } from "@brains/plugins";
 import type { TopicSource } from "../schemas/topic";
 import type { ExtractedTopicData } from "../schemas/extraction";
 
@@ -10,7 +10,7 @@ export interface ExtractedTopic extends ExtractedTopicData {
 }
 
 /**
- * Service for extracting topics from conversations using AI
+ * Service for extracting topics from entities using AI
  */
 export class TopicExtractor {
   constructor(
@@ -19,91 +19,50 @@ export class TopicExtractor {
   ) {}
 
   /**
-   * Extract topics from a specific conversation window
+   * Extract topics from an entity (post, link, summary, etc.)
    */
-  public async extractFromConversationWindow(
-    conversationId: string,
-    startIdx: number,
-    endIdx: number,
+  public async extractFromEntity(
+    entity: BaseEntity,
     minRelevanceScore: number,
   ): Promise<ExtractedTopic[]> {
-    this.logger.info("Extracting topics from conversation window", {
-      conversationId,
-      startIdx,
-      endIdx,
-      minRelevanceScore,
-    });
-
-    // Get messages for the specified window using range
-    const messages = await this.context.getMessages(conversationId, {
-      range: { start: startIdx, end: endIdx },
-    });
-
-    return this.extractFromMessages(
-      conversationId,
-      messages,
-      minRelevanceScore,
-    );
-  }
-
-  /**
-   * Extract topics from provided messages
-   */
-  public async extractFromMessages(
-    conversationId: string,
-    messages: Message[],
-    minRelevanceScore: number,
-  ): Promise<ExtractedTopic[]> {
-    if (messages.length === 0) {
-      this.logger.info("No messages provided for extraction");
+    // Return empty for empty content
+    if (!entity.content || entity.content.trim() === "") {
+      this.logger.debug("Skipping topic extraction for empty entity", {
+        entityId: entity.id,
+        entityType: entity.entityType,
+      });
       return [];
     }
 
-    // Extract topics
-    const extractedTopics = await this.extractTopics(conversationId, messages);
-
-    // Filter by relevance score and deduplicate by title
-    const topicMap = new Map<string, ExtractedTopic>();
-
-    for (const topic of extractedTopics) {
-      if (topic.relevanceScore >= minRelevanceScore) {
-        const existing = topicMap.get(topic.title);
-        if (!existing || topic.relevanceScore > existing.relevanceScore) {
-          topicMap.set(topic.title, topic);
-        }
-      }
-    }
-
-    const relevantTopics = Array.from(topicMap.values());
-
-    this.logger.debug(
-      `Extracted ${relevantTopics.length} relevant topics from ${messages.length} messages`,
-    );
-    return relevantTopics;
-  }
-
-  /**
-   * Extract topics from a conversation
-   */
-  private async extractTopics(
-    conversationId: string,
-    messages: Message[],
-  ): Promise<ExtractedTopic[]> {
-    // Prepare conversation text for AI analysis
-    const conversationText = messages
-      .map((m) => `${m.role}: ${m.content}`)
-      .join("\n\n");
+    this.logger.info("Extracting topics from entity", {
+      entityId: entity.id,
+      entityType: entity.entityType,
+      contentLength: entity.content.length,
+      minRelevanceScore,
+    });
 
     try {
-      // Use AI service with schema through context
-      const prompt = `You are an expert at analyzing conversations and extracting key topics.
-      
-Analyze the following conversation and extract the main topics discussed.
+      // Get entity title from metadata or use id as fallback
+      const metadataTitle = entity.metadata["title"];
+      const entityTitle =
+        typeof metadataTitle === "string" ? metadataTitle : entity.id;
+
+      // Build source reference for this entity
+      const source: TopicSource = {
+        id: entity.id,
+        title: entityTitle,
+        type: entity.entityType,
+      };
+
+      // Use AI service to extract topics from entity content
+      const prompt = `You are an expert at analyzing content and extracting key topics.
+
+Analyze the following content and extract the main topics discussed.
 
 For each topic, provide:
 1. A SHORT, CATEGORICAL title (15-40 chars max) - Use broad categories, not specific descriptions
-   Good examples: "Product Strategy", "Team Collaboration", "API Design", "User Feedback"
-   Bad examples: "Discussion about implementing new features for the dashboard", "How to improve team communication"
+   Good examples: "Machine Learning", "API Design", "Team Collaboration", "User Experience"
+   Bad examples: "Discussion about implementing new features", "How to improve communication"
 2. A brief summary (2-3 sentences)
 3. The main content points discussed
 4. 5-10 relevant keywords that are DIRECTLY related to the topic content
@@ -111,8 +70,11 @@ For each topic, provide:
 
 IMPORTANT: Create DISTINCT topics. Only group content that is truly about the same subject.
 
-Conversation:
-${conversationText}
+Content Title: ${entityTitle}
+Content Type: ${entity.entityType}
+
+Content:
+${entity.content}
 
 Return an array of topics in the required JSON format.`;
 
@@ -121,47 +83,41 @@ Return an array of topics in the required JSON format.`;
       }>({
         prompt,
         templateName: "topics:extraction",
-        conversationHistory: conversationId,
       });
 
       const extractedData = result.topics;
 
-      // Create ExtractedTopic objects with sources
-      const topics: ExtractedTopic[] = [];
-
-      // Fetch conversation metadata once for all topics
-      let conversationTitle = conversationId;
-      try {
-        const conversation = await this.context.getConversation(conversationId);
-        if (conversation?.metadata) {
-          const metadata = JSON.parse(conversation.metadata);
-          conversationTitle = metadata.channelName ?? conversationId;
-        }
-      } catch (error) {
-        this.logger.debug("Could not resolve conversation metadata", {
-          conversationId,
-          error,
-        });
-      }
+      // Filter by relevance score and deduplicate by title
+      const topicMap = new Map<string, ExtractedTopic>();
 
       for (const data of extractedData) {
-        // Create topic source reference with title
-        topics.push({
-          ...data,
-          sources: [
-            {
-              id: conversationId,
-              title: conversationTitle,
-              type: "conversation" as const,
-            },
-          ],
-        });
+        if (data.relevanceScore >= minRelevanceScore) {
+          const existing = topicMap.get(data.title);
+          if (!existing || data.relevanceScore > existing.relevanceScore) {
+            topicMap.set(data.title, {
+              ...data,
+              sources: [source],
+            });
+          }
+        }
       }
 
-      return topics;
+      const relevantTopics = Array.from(topicMap.values());
+
+      this.logger.debug(
+        `Extracted ${relevantTopics.length} relevant topics from entity`,
+        {
+          entityId: entity.id,
+          entityType: entity.entityType,
+          topicsCount: relevantTopics.length,
+        },
+      );
+
+      return relevantTopics;
     } catch (error) {
-      this.logger.error("Failed to extract topics with AI", {
-        conversationId,
+      this.logger.error("Failed to extract topics from entity", {
+        entityId: entity.id,
+        entityType: entity.entityType,
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

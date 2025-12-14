@@ -1,0 +1,42 @@
+id: topics-blog-post-extraction
+name: Extract topics from blog post
+description: Tests that topics are correctly extracted from a technical blog post entity
+type: plugin
+tags:
+  - topics
+  - extraction
+  - core
+plugin: topics
+handler: extractFromEntity
+
+input:
+  entityType: post
+  content: |
+    # Introduction to Machine Learning
+
+    Machine learning is a subset of artificial intelligence that enables
+    systems to learn from data. Deep learning uses neural networks with
+    multiple layers to process complex patterns.
+
+    ## Key Concepts
+    - Supervised learning: Training with labeled data
+    - Unsupervised learning: Finding patterns in unlabeled data
+    - Reinforcement learning: Learning through rewards and penalties
+
+    Neural networks are inspired by biological neurons and can recognize
+    patterns in images, text, and audio data.
+  metadata:
+    title: "Introduction to Machine Learning"
+  minRelevanceScore: 0.5
+
+expectedOutput:
+  minItems: 1
+  maxItems: 3
+  itemsContain:
+    - field: title
+      pattern: "[Mm]achine [Ll]earning|[Dd]eep [Ll]earning|[Nn]eural [Nn]etwork|AI|[Aa]rtificial [Ii]ntelligence"
+  validateEach:
+    - path: "sources[0].type"
+      equals: "post"
+    - path: "sources[0].title"
+      equals: "Introduction to Machine Learning"

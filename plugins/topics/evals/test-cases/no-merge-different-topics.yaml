@@ -1,0 +1,38 @@
+id: topics-no-merge-different
+name: Different content produces distinct topic titles
+description: Tests that unrelated content produces different topics that would not merge
+type: plugin
+tags:
+  - topics
+  - merge
+  - edge-case
+plugin: topics
+handler: checkMergeSimilarity
+
+input:
+  contentA:
+    entityType: post
+    content: |
+      # Kubernetes Deployment Strategies
+
+      Learn about rolling updates, blue-green deployments, and canary releases.
+      Kubernetes provides powerful mechanisms for zero-downtime deployments.
+      We'll explore how to configure deployment strategies in your manifests.
+    metadata:
+      title: "Kubernetes Deployments"
+  contentB:
+    entityType: post
+    content: |
+      # Introduction to Watercolor Painting
+
+      Watercolor is a beautiful and expressive painting medium.
+      The key techniques include wet-on-wet, dry brush, and glazing.
+      Choosing the right paper weight is essential for good results.
+    metadata:
+      title: "Watercolor Basics"
+  minRelevanceScore: 0.4
+
+expectedOutput:
+  validateEach:
+    - path: "wouldMerge"
+      equals: false

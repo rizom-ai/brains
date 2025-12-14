@@ -5,9 +5,17 @@ import { z } from "@brains/utils";
  */
 export const topicsPluginConfigSchema = z.object({
   /**
-   * Number of messages to process in each window
+   * Whitelist of entity types to extract topics from.
+   * If non-empty, only these types are processed.
+   * If empty, all types except excludeEntityTypes are processed (blacklist mode).
    */
-  windowSize: z.number().min(10).max(100).default(30),
+  includeEntityTypes: z.array(z.string()).default([]),
+
+  /**
+   * Blacklist of entity types to exclude from topic extraction.
+   * Only used when includeEntityTypes is empty.
+   */
+  excludeEntityTypes: z.array(z.string()).default([]),
 
   /**
    * Minimum relevance score for topic extraction
@@ -25,7 +33,7 @@ export const topicsPluginConfigSchema = z.object({
   autoMerge: z.boolean().default(true),
 
   /**
-   * Enable automatic topic extraction from conversation digests
+   * Enable automatic topic extraction from entity events
    */
   enableAutoExtraction: z.boolean().default(true),
 });
