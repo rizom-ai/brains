@@ -3,7 +3,7 @@ import type {
   ToolResponse,
   ServicePluginContext,
 } from "@brains/plugins";
-import { z, createId, formatAsEntity } from "@brains/utils";
+import { z, formatAsEntity } from "@brains/utils";
 
 /**
  * Input schema for deck:generate tool
@@ -62,9 +62,10 @@ export function createGenerateTool(
         const parsed = generateInputSchema.parse(input);
 
         // Enqueue the deck generation job
+        // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
+        // Setting a different rootJobId would cause progress events to be skipped
         const jobId = await context.enqueueJob("generation", parsed, {
           source: `${pluginId}_generate`,
-          rootJobId: createId(),
           metadata: {
             operationType: "content_operations",
             operationTarget: "deck",

@@ -145,7 +145,9 @@ describe("Deck Tools", () => {
         const jobOptions = enqueueCall?.[2] as Record<string, unknown>;
 
         expect(jobOptions["source"]).toBe("decks_generate");
-        expect(jobOptions["rootJobId"]).toBeDefined();
+        // Note: rootJobId is NOT set by the tool - the job queue service defaults it to the job's own ID
+        // This ensures progress events are properly routed (not treated as batch children)
+        expect(jobOptions["rootJobId"]).toBeUndefined();
         expect(jobOptions["metadata"]).toBeDefined();
         const metadata = jobOptions["metadata"] as Record<string, unknown>;
         expect(metadata["operationType"]).toBe("content_operations");

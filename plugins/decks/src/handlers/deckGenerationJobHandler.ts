@@ -207,7 +207,9 @@ Add your conclusion here`;
       });
 
       // Create entity with full data
+      // Use title as entity ID for human-readable filenames (matches existing convention)
       const result = await this.context.entityService.createEntity({
+        id: title,
         ...deckEntity,
         content: markdown,
       });
