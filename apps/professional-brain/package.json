@@ -14,7 +14,8 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "eval": "brain-eval"
+    "eval": "brain-eval",
+    "matrix:setup": "bun scripts/matrix-setup.ts"
   },
   "dependencies": {
     "@brains/ai-evaluation": "workspace:*",

@@ -224,8 +224,9 @@ Add your conclusion here.`;
       );
 
       // Duplicate key searchable fields in metadata for fast queries (following summary pattern)
-      // ID will be auto-generated (nanoid), slug will be used for URL routing
+      // Use title as entity ID for human-readable filenames (matches existing post naming convention)
       const result = await this.context.entityService.createEntity({
+        id: title,
         entityType: "post",
         content: postContent,
         metadata: {
