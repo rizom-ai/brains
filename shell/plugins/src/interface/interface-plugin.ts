@@ -177,7 +177,8 @@ export abstract class InterfacePlugin<
     options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
-    const jobId = await context.enqueueJob(type, data, options);
+    // Interface-initiated jobs don't have ToolContext - pass null
+    const jobId = await context.enqueueJob(type, data, null, options);
     this.setJobTracking(jobId, trackingInfo);
     return jobId;
   }

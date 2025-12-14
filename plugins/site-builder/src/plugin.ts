@@ -5,7 +5,6 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { createId } from "@brains/utils";
 import { siteContentSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
@@ -446,6 +445,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
 
       try {
+        // Background auto-trigger - pass null for toolContext
         await context.enqueueJob(
           "site-build",
           {
@@ -458,10 +458,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
               timestamp: new Date().toISOString(),
             },
           },
+          null,
           {
             priority: 0,
             source: this.id,
-            rootJobId: createId(),
             metadata: {
               operationType: "content_operations" as const,
             },

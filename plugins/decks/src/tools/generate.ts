@@ -1,6 +1,7 @@
 import type {
   PluginTool,
   ToolResponse,
+  ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
@@ -57,20 +58,28 @@ export function createGenerateTool(
       "Queue a job to create a new slide deck draft (provide title and content, or just a prompt for AI generation)",
     inputSchema: generateInputSchema.shape,
     visibility: "anchor",
-    handler: async (input: unknown): Promise<ToolResponse> => {
+    handler: async (
+      input: unknown,
+      toolContext: ToolContext,
+    ): Promise<ToolResponse> => {
       try {
         const parsed = generateInputSchema.parse(input);
 
         // Enqueue the deck generation job
         // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
         // Setting a different rootJobId would cause progress events to be skipped
-        const jobId = await context.enqueueJob("generation", parsed, {
-          source: `${pluginId}_generate`,
-          metadata: {
-            operationType: "content_operations",
-            operationTarget: "deck",
+        const jobId = await context.enqueueJob(
+          "generation",
+          parsed,
+          toolContext,
+          {
+            source: `${pluginId}_generate`,
+            metadata: {
+              operationType: "content_operations",
+              operationTarget: "deck",
+            },
           },
-        });
+        );
 
         const formatted = formatAsEntity(
           {

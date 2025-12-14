@@ -140,18 +140,20 @@ describe("Deck Tools", () => {
       it("should include correct job metadata", async () => {
         await generateTool.handler({ prompt: "Test" }, mockToolContext);
 
-        const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-          .mock.calls[0];
-        const jobOptions = enqueueCall?.[2] as Record<string, unknown>;
-
-        expect(jobOptions["source"]).toBe("decks_generate");
-        // Note: rootJobId is NOT set by the tool - the job queue service defaults it to the job's own ID
-        // This ensures progress events are properly routed (not treated as batch children)
-        expect(jobOptions["rootJobId"]).toBeUndefined();
-        expect(jobOptions["metadata"]).toBeDefined();
-        const metadata = jobOptions["metadata"] as Record<string, unknown>;
-        expect(metadata["operationType"]).toBe("content_operations");
-        expect(metadata["operationTarget"]).toBe("deck");
+        // Verify enqueueJob was called with correct params:
+        // (type, data, toolContext, options)
+        expect(mockContext.enqueueJob).toHaveBeenCalledWith(
+          "generation",
+          expect.any(Object),
+          mockToolContext, // Should pass toolContext for progress routing
+          expect.objectContaining({
+            source: "decks_generate",
+            metadata: expect.objectContaining({
+              operationType: "content_operations",
+              operationTarget: "deck",
+            }),
+          }),
+        );
       });
 
       it("should enqueue job with empty input (use defaults)", async () => {

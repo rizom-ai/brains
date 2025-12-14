@@ -75,14 +75,16 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
 
   /**
    * Helper method to enqueue a job
+   * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
    */
   protected async enqueueJob(
     type: string,
     data: unknown,
-    options: Parameters<ServicePluginContext["enqueueJob"]>[2],
+    toolContext: Parameters<ServicePluginContext["enqueueJob"]>[2],
+    options?: Parameters<ServicePluginContext["enqueueJob"]>[3],
   ): Promise<string> {
     const context = this.getContext();
-    return context.enqueueJob(type, data, options);
+    return context.enqueueJob(type, data, toolContext, options);
   }
 
   /**

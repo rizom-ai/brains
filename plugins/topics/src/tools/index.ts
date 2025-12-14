@@ -4,18 +4,18 @@ import {
   type JobOptions,
   type PluginTool,
   type ToolResponse,
-  createId,
+  type ToolContext,
 } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 import { TopicAdapter } from "../lib/topic-adapter";
 import type { TopicsPluginConfig } from "../schemas/config";
 
-// Default job options for topic extraction (rootJobId will be generated)
+// Default job options for topic extraction
+// Note: Don't set rootJobId - let job queue service default it for proper progress routing
 const getExtractionJobOptions = (): JobOptions => ({
   priority: 5,
   source: "topics",
-  rootJobId: createId(), // Generate unique ID for each job
   metadata: {
     operationType: "batch_processing",
     pluginId: "topics",
@@ -48,7 +48,10 @@ export function createExtractTool(
       "Extract topics from a conversation using AI. Use when users want to analyze or tag a conversation's themes.",
     inputSchema: extractParamsSchema.shape,
     visibility: "anchor",
-    handler: async (params): Promise<ToolResponse> => {
+    handler: async (
+      params,
+      toolContext: ToolContext,
+    ): Promise<ToolResponse> => {
       const parsed = extractParamsSchema.safeParse(params);
       if (!parsed.success) {
         throw new Error(`Invalid parameters: ${parsed.error.message}`);
@@ -65,6 +68,7 @@ export function createExtractTool(
           windowSize: windowSize,
           minRelevanceScore: minScore,
         },
+        toolContext,
         getExtractionJobOptions(),
       );
 

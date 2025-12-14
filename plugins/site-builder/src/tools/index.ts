@@ -173,7 +173,7 @@ export function createSiteBuilderTools(
             ? config.productionOutputDir
             : (config.previewOutputDir ?? config.productionOutputDir); // Fallback to production (guard above ensures this exists for preview)
 
-        // Enqueue the build job
+        // Enqueue the build job - pass toolContext for progress routing
         const jobId = await pluginContext.enqueueJob(
           "site-build",
           {
@@ -183,15 +183,13 @@ export function createSiteBuilderTools(
             enableContentGeneration: false,
             siteConfig: config.siteInfo,
           },
+          context,
           {
             source: `plugin:${pluginId}`,
             metadata: {
               progressToken: context.progressToken,
               operationType: "content_operations",
               pluginId,
-              // Routing context for progress messages
-              interfaceType: context.interfaceType,
-              channelId: context.channelId,
             },
           },
         );

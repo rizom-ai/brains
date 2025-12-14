@@ -250,13 +250,21 @@ export abstract class MessageInterfacePlugin<
     const rootJobId = event.metadata.rootJobId;
 
     // Handle processing status - send or edit progress message
-    // Skip progress messages if we're tracking the agent response for this job
-    // (the completion will edit the agent response instead)
     if (event.status === "processing" && this.supportsMessageEditing()) {
       // Check if we have agent response tracking for this job
-      const hasAgentTracking = this.agentResponseTracking.has(event.id);
-      if (hasAgentTracking) {
-        // Agent response will be edited on completion - skip progress message
+      // If so, edit the agent response with progress (throttled)
+      const agentTracking = this.agentResponseTracking.get(event.id);
+      if (agentTracking) {
+        const now = Date.now();
+        if (now - agentTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
+          const progressMessage = formatProgressMessage(event);
+          await this.editMessage(
+            agentTracking.channelId,
+            agentTracking.messageId,
+            progressMessage,
+          );
+          agentTracking.lastUpdate = now;
+        }
         return;
       }
 

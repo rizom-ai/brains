@@ -1,6 +1,7 @@
 import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type { IShell, IMCPTransport } from "../interfaces";
+import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
 import type { Daemon } from "@brains/daemon-registry";
 import type { UserPermissionLevel } from "@brains/permission-service";
 import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
@@ -22,11 +23,9 @@ export interface InterfacePluginContext extends CorePluginContext {
   registerDaemon: (name: string, daemon: Daemon) => void;
 
   // Job queue functionality (for automatic job tracking)
-  enqueueJob: (
-    type: string,
-    data: unknown,
-    options?: JobOptions,
-  ) => Promise<string>;
+  // toolContext is required to enforce routing context for progress messages
+  // Interface plugins should pass null since they don't have tool context
+  enqueueJob: EnqueueJobFn;
   enqueueBatch: (
     operations: BatchOperation[],
     options?: JobOptions,
@@ -75,24 +74,8 @@ export function createInterfacePluginContext(
       return permissionService.determineUserLevel(interfaceType, userId);
     },
 
-    // Job queue functionality
-    enqueueJob: async (type, data, options): Promise<string> => {
-      const jobQueueService = shell.getJobQueueService();
-      const defaultOptions: JobOptions = {
-        source: pluginId,
-        // Only set rootJobId if explicitly provided (for batch children)
-        // For standalone jobs, let JobQueueService default to the job's own ID
-        ...(options?.rootJobId && { rootJobId: options.rootJobId }),
-        metadata: {
-          operationType: "data_processing" as const,
-          pluginId,
-          ...options?.metadata,
-        },
-        ...options,
-      };
-      // Callers must be explicit about job type scope
-      return jobQueueService.enqueue(type, data, defaultOptions);
-    },
+    // Job queue functionality - use shared helper without auto-scoping (callers must be explicit)
+    enqueueJob: createEnqueueJobFn(shell.getJobQueueService(), pluginId, false),
     enqueueBatch: async (operations, options): Promise<string> => {
       const batchId = createId();
       // Add plugin scope to operation types unless already scoped

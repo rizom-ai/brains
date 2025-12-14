@@ -81,11 +81,11 @@ describe("MessageEventHandler", () => {
             timestamp: expect.stringContaining("T"),
           },
         },
+        null, // Background job - no ToolContext
         {
           priority: 5,
           maxRetries: 2,
           source: "plugin:link",
-          rootJobId: expect.stringContaining("link-auto-capture-"),
           metadata: {
             operationType: "data_processing",
             pluginId: "link",
@@ -103,11 +103,11 @@ describe("MessageEventHandler", () => {
             timestamp: expect.stringContaining("T"),
           },
         },
+        null, // Background job - no ToolContext
         {
           priority: 5,
           maxRetries: 2,
           source: "plugin:link",
-          rootJobId: expect.stringContaining("link-auto-capture-"),
           metadata: {
             operationType: "data_processing",
             pluginId: "link",
@@ -212,6 +212,7 @@ describe("MessageEventHandler", () => {
         expect.objectContaining({
           url: "https://example.com",
         }),
+        null, // Background job - no ToolContext
         expect.any(Object),
       );
     });

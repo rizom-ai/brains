@@ -1,5 +1,6 @@
 import type { CorePluginContext } from "../core/context";
 import type { IShell, ContentGenerationConfig } from "../interfaces";
+import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
 import type {
   IEntityService,
   BaseEntity,
@@ -55,11 +56,9 @@ export interface ServicePluginContext extends CorePluginContext {
   ) => Promise<Message[]>;
 
   // Job queue functionality (write operations)
-  enqueueJob: (
-    type: string,
-    data: unknown,
-    options?: JobOptions,
-  ) => Promise<string>;
+  // toolContext is required to enforce routing context for progress messages
+  // Pass null for background jobs that don't need user-facing progress updates
+  enqueueJob: EnqueueJobFn;
   enqueueBatch: (
     operations: BatchOperation[],
     options?: JobOptions,
@@ -155,24 +154,8 @@ export function createServicePluginContext(
       return conversationService.getMessages(conversationId, options);
     },
 
-    // Job queue functionality
-    enqueueJob: async (type, data, options): Promise<string> => {
-      const defaultOptions: JobOptions = {
-        source: pluginId,
-        // Only set rootJobId if explicitly provided (for batch children)
-        // For standalone jobs, let JobQueueService default to the job's own ID
-        ...(options?.rootJobId && { rootJobId: options.rootJobId }),
-        metadata: {
-          operationType: "data_processing" as const,
-          pluginId,
-          ...options?.metadata,
-        },
-        ...options,
-      };
-      // Add plugin scope unless already scoped (contains ':')
-      const scopedType = type.includes(":") ? type : `${pluginId}:${type}`;
-      return jobQueueService.enqueue(scopedType, data, defaultOptions);
-    },
+    // Job queue functionality - use shared helper with auto-scoping enabled
+    enqueueJob: createEnqueueJobFn(jobQueueService, pluginId, true),
     enqueueBatch: async (operations, options): Promise<string> => {
       // Generate batch ID first to use as rootJobId for consistent tracking
       const batchId = createId();
