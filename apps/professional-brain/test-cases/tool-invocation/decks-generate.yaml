@@ -1,0 +1,29 @@
+id: tool-invocation-decks-generate
+name: Decks Generate Tool Invocation
+description: Verifies that the agent actually calls the decks_generate tool instead of fabricating job IDs
+type: tool_invocation
+tags:
+  - core
+  - decks
+  - anti-hallucination
+
+turns:
+  - userMessage: "Create a new slide deck about machine learning"
+
+successCriteria:
+  expectedTools:
+    - toolName: decks_generate
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseContains:
+    - "job"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000
