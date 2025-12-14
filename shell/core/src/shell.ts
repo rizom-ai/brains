@@ -187,8 +187,20 @@ export class Shell implements IShell {
         this.entityService,
       );
 
-      // Start the job queue worker BEFORE emitting ready event
-      // This ensures worker is running before plugins start enqueueing jobs
+      // Core DataSources registration
+      this.registerCoreDataSources();
+
+      // Initialize identity and profile services
+      await this.identityService.initialize();
+      await this.profileService.initialize();
+
+      // Mark shell as initialized BEFORE starting worker
+      // This prevents race conditions where jobs run before shell is ready
+      this.initialized = true;
+      this.logger.debug("Shell initialized successfully");
+
+      // Start the job queue worker AFTER shell is initialized
+      // This ensures generateContent and other methods are available to job handlers
       await this.jobQueueWorker.start();
 
       // Emit event to signal all plugins are initialized AND worker is ready
@@ -207,16 +219,6 @@ export class Shell implements IShell {
 
       // Start the job progress monitor
       this.jobProgressMonitor.start();
-
-      // Core DataSources registration
-      this.registerCoreDataSources();
-
-      // Initialize identity and profile services
-      await this.identityService.initialize();
-      await this.profileService.initialize();
-
-      this.initialized = true;
-      this.logger.debug("Shell initialized successfully");
     } catch (error) {
       this.logger.error("Failed to initialize Shell", error);
       throw error;
