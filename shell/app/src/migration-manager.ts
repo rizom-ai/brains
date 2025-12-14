@@ -25,11 +25,22 @@ export class MigrationManager {
     };
   }
 
-  public async runAllMigrations(): Promise<void> {
+  /**
+   * Run all database migrations
+   * @param databaseUrlOverride Optional URL to use for all databases (useful for evals/testing)
+   */
+  public async runAllMigrations(databaseUrlOverride?: string): Promise<void> {
     this.logger.debug("Running database migrations...");
 
     try {
       const config = await this.migrations.getStandardConfigWithDirectories();
+
+      // Apply URL override to all databases if provided
+      if (databaseUrlOverride) {
+        config.database.url = databaseUrlOverride;
+        config.jobQueueDatabase.url = databaseUrlOverride;
+        config.conversationDatabase.url = databaseUrlOverride;
+      }
 
       await this.migrateEntityDatabase(config);
       await this.migrateJobQueueDatabase(config);

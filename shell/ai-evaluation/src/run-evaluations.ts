@@ -189,8 +189,16 @@ export async function main(): Promise<void> {
     }
 
     // Create and initialize the app (needed for AI service in both modes)
+    // Use a temp database for evals to avoid polluting the real database
+    // Temp files are cleaned up on system reboot
     const { App } = await import("@brains/app");
-    const app = App.create(config);
+    const evalDbPath = `/tmp/brain-eval-${Date.now()}.db`;
+    const evalConfig = {
+      ...config,
+      database: `file:${evalDbPath}`,
+    };
+    console.log(`Using temporary eval database: ${evalDbPath}`);
+    const app = App.create(evalConfig);
     await app.initialize();
 
     const shell = app.getShell();

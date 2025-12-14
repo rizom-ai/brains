@@ -163,5 +163,27 @@ describe("MigrationManager", () => {
         expect.any(Error),
       );
     });
+
+    it("should override all database URLs when override is provided", async () => {
+      const overrideUrl = "file:/tmp/test-eval.db";
+
+      await migrationManager.runAllMigrations(overrideUrl);
+
+      // All migrations should use the override URL
+      expect(mockMigrations.migrateEntities).toHaveBeenCalledWith(
+        expect.objectContaining({ url: overrideUrl }),
+        mockLogger,
+      );
+
+      expect(mockMigrations.migrateJobQueue).toHaveBeenCalledWith(
+        expect.objectContaining({ url: overrideUrl }),
+        mockLogger,
+      );
+
+      expect(mockMigrations.migrateConversations).toHaveBeenCalledWith(
+        expect.objectContaining({ url: overrideUrl }),
+        mockLogger,
+      );
+    });
   });
 });

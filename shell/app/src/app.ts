@@ -40,7 +40,8 @@ export class App {
   private async runMigrations(): Promise<void> {
     const logger = Logger.getInstance();
     const migrationManager = new MigrationManager(logger);
-    await migrationManager.runAllMigrations();
+    // Pass database URL override if configured (for evals/testing isolation)
+    await migrationManager.runAllMigrations(this.config.database);
   }
 
   public async initialize(): Promise<void> {
