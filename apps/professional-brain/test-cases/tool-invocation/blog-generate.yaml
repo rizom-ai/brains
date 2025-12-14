@@ -1,0 +1,29 @@
+id: tool-invocation-blog-generate
+name: Blog Generate Tool Invocation
+description: Verifies that the agent actually calls the blog_generate tool instead of fabricating job IDs
+type: tool_invocation
+tags:
+  - core
+  - blog
+  - anti-hallucination
+
+turns:
+  - userMessage: "Generate a new blog post about AI"
+
+successCriteria:
+  expectedTools:
+    - toolName: blog_generate
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseContains:
+    - "job"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

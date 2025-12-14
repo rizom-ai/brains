@@ -1,0 +1,29 @@
+id: tool-invocation-directory-sync
+name: Directory Sync Tool Invocation
+description: Verifies that the agent actually calls the directory-sync_sync tool instead of fabricating a response
+type: tool_invocation
+tags:
+  - core
+  - sync
+  - anti-hallucination
+
+turns:
+  - userMessage: "sync dir"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory-sync_sync
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseContains:
+    - "sync"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000
