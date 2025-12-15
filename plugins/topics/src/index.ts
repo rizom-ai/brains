@@ -4,7 +4,6 @@ import {
   type PluginTool,
   type PluginResource,
   type BaseEntity,
-  createId,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import {
@@ -14,6 +13,7 @@ import {
 import { TopicAdapter } from "./lib/topic-adapter";
 import { TopicExtractor, type ExtractedTopic } from "./lib/topic-extractor";
 import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
+import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
@@ -56,6 +56,9 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Register job handlers
     const processingHandler = new TopicProcessingHandler(context, this.logger);
     context.registerJobHandler("process-single", processingHandler);
+
+    const extractionHandler = new TopicExtractionHandler(context, this.logger);
+    context.registerJobHandler("extract", extractionHandler);
 
     // Register eval handler for plugin testing
     this.registerEvalHandler(context);
@@ -124,77 +127,52 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
   /**
    * Handle entity created/updated events for automatic topic extraction
+   * Queues an extraction job instead of blocking on AI extraction
    */
   private async handleEntityChanged(
     context: ServicePluginContext,
     entity: BaseEntity,
   ): Promise<void> {
     try {
-      this.logger.debug("Processing entity for topic extraction", {
+      this.logger.debug("Queuing topic extraction for entity", {
         entityId: entity.id,
         entityType: entity.entityType,
         contentLength: entity.content.length,
       });
 
-      // Extract topics from entity content
-      const topicExtractor = new TopicExtractor(context, this.logger);
-      const extractedTopics = await topicExtractor.extractFromEntity(
-        entity,
-        this.config.minRelevanceScore,
-      );
-
-      if (extractedTopics.length === 0) {
-        this.logger.debug("No topics found in entity", {
+      // Queue extraction job - the AI extraction runs asynchronously
+      // This prevents blocking entity creation/updates
+      await context.enqueueJob(
+        "extract",
+        {
           entityId: entity.id,
           entityType: entity.entityType,
-        });
-        return;
-      }
-
-      this.logger.debug("Topics extracted from entity", {
-        entityId: entity.id,
-        entityType: entity.entityType,
-        topicsCount: extractedTopics.length,
-        topics: extractedTopics.map((t) => t.title),
-      });
-
-      // Create batch operations for processing each topic
-      const operations = extractedTopics.map((topic) => ({
-        type: "topics:process-single",
-        data: {
-          topic,
-          sourceEntityId: entity.id,
-          sourceEntityType: entity.entityType,
+          entityContent: entity.content,
+          entityMetadata: entity.metadata,
+          entityCreated: entity.created,
+          entityUpdated: entity.updated,
+          minRelevanceScore: this.config.minRelevanceScore,
           autoMerge: this.config.autoMerge,
           mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
         },
-        metadata: {
-          operationType: "topic_processing" as const,
-          operationTarget: topic.title,
+        null,
+        {
+          priority: 5, // Low priority - background processing
+          source: "topics-plugin",
+          metadata: {
+            operationType: "data_processing" as const,
+            operationTarget: `topic-extraction:${entity.entityType}:${entity.id}`,
+            pluginId: "topics",
+          },
         },
-      }));
+      );
 
-      // Queue batch with system-generated rootJobId
-      const rootJobId = createId();
-      const batchId = await context.enqueueBatch(operations, {
-        priority: 1, // Lower priority than manual extractions
-        source: "topics-plugin",
-        rootJobId,
-        metadata: {
-          operationType: "batch_processing" as const,
-          operationTarget: `auto-extract for ${entity.entityType}:${entity.id}`,
-          pluginId: "topics",
-        },
-      });
-
-      this.logger.debug("Queued automatic topic extraction batch", {
-        batchId,
+      this.logger.debug("Queued topic extraction job", {
         entityId: entity.id,
         entityType: entity.entityType,
-        topicsExtracted: extractedTopics.length,
       });
     } catch (error) {
-      this.logger.error("Failed to process entity for topic extraction", {
+      this.logger.error("Failed to queue topic extraction job", {
         error: error instanceof Error ? error.message : String(error),
         entityId: entity.id,
         entityType: entity.entityType,

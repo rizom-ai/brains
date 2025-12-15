@@ -56,7 +56,7 @@ export type DeduplicationStrategy = z.infer<typeof DeduplicationStrategyEnum>;
  * Job options for job creation
  */
 export interface JobOptions {
-  priority?: number; // Job priority (higher = more important)
+  priority?: number; // Job priority (lower = higher priority, 0 = default)
   maxRetries?: number; // Override default retry count
   delayMs?: number; // Initial delay before processing
   source: string; // Source identifier for job progress events

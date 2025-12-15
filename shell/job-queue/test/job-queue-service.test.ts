@@ -364,20 +364,9 @@ describe("JobQueueService", () => {
       expect(job).toBeNull();
     });
 
-    it("should respect job priority order", async () => {
+    it("should respect job priority order (lower = higher priority)", async () => {
+      // Priority 5 = low priority (background task)
       const lowPriorityId = await service.enqueue(
-        "shell:embedding",
-        testEntity,
-        {
-          source: "test",
-          metadata: {
-            ...defaultTestMetadata,
-            operationType: "data_processing",
-          },
-          priority: 1,
-        },
-      );
-      const highPriorityId = await service.enqueue(
         "shell:embedding",
         testEntity,
         {
@@ -389,7 +378,21 @@ describe("JobQueueService", () => {
           priority: 5,
         },
       );
+      // Priority 1 = high priority (processed first)
+      const highPriorityId = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        {
+          source: "test",
+          metadata: {
+            ...defaultTestMetadata,
+            operationType: "data_processing",
+          },
+          priority: 1,
+        },
+      );
 
+      // Lower priority number should be dequeued first
       const firstJob = await service.dequeue();
       expect(firstJob?.id).toBe(highPriorityId);
 

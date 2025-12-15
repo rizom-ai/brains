@@ -298,7 +298,7 @@ export class JobQueueService implements IJobQueueService {
           lte(jobQueue.scheduledFor, now),
         ),
       )
-      .orderBy(desc(jobQueue.priority), asc(jobQueue.createdAt))
+      .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))
       .limit(1);
 
     if (jobs.length === 0) {
