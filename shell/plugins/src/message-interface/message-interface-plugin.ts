@@ -245,8 +245,10 @@ export abstract class MessageInterfacePlugin<
     // Notify UI callback
     this.notifyProgressCallback();
 
-    // Get channel from event metadata, falling back to current channel
-    const targetChannelId = event.metadata.channelId ?? this.currentChannelId;
+    // Get channel from event metadata
+    // Only use explicit channelId - background jobs without channelId should not
+    // send messages to any chat room (prevents rate limiting from many concurrent jobs)
+    const targetChannelId = event.metadata.channelId ?? null;
     const rootJobId = event.metadata.rootJobId;
 
     // Handle processing status - send or edit progress message
@@ -348,7 +350,8 @@ export abstract class MessageInterfacePlugin<
       }
 
       // If no tracked messages to edit, send as new message
-      if (!progressTracking && !agentTracking) {
+      // Only send if we have a target channel (jobs without explicit channelId are silent)
+      if (!progressTracking && !agentTracking && targetChannelId) {
         // Buffer completion messages while processing input
         // This ensures agent response appears before completion messages
         if (this.isProcessingInput) {

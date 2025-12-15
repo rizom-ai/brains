@@ -84,6 +84,7 @@ describe("MessageInterfacePlugin", () => {
       metadata: {
         operationType: "content_operations",
         rootJobId: "job-123",
+        channelId: "test-channel", // Explicit channelId for tests
       },
       message: "Processing...",
       ...overrides,
@@ -276,6 +277,116 @@ describe("MessageInterfacePlugin", () => {
   });
 });
 
+describe("MessageInterfacePlugin - background job filtering", () => {
+  /**
+   * Background jobs (like auto topic extraction) should NOT send progress/completion
+   * messages to chat rooms unless they explicitly have a channelId set.
+   *
+   * This prevents rate limiting errors when many background jobs are running.
+   */
+
+  let plugin: TestMessageInterface;
+
+  beforeEach(() => {
+    plugin = new TestMessageInterface();
+  });
+
+  it("should NOT send messages for background jobs without channelId", async () => {
+    // Background job - no channelId in metadata
+    const backgroundEvent: JobProgressEvent = {
+      id: "background-job",
+      type: "job",
+      status: "completed",
+      metadata: {
+        operationType: "data_processing",
+        rootJobId: "background-job",
+        // No channelId - this is a background job
+      },
+    };
+
+    await plugin.testHandleProgressEvent(backgroundEvent, {
+      operationType: "data_processing",
+      rootJobId: "background-job",
+    });
+
+    // Should NOT send any message since no explicit channelId
+    expect(plugin.sentMessages).toHaveLength(0);
+  });
+
+  it("should send messages for jobs with explicit channelId", async () => {
+    // User-triggered job - has explicit channelId
+    const userJobEvent: JobProgressEvent = {
+      id: "user-job",
+      type: "job",
+      status: "completed",
+      metadata: {
+        operationType: "content_operations",
+        rootJobId: "user-job",
+        channelId: "!room123:matrix.org", // Explicit channel
+      },
+    };
+
+    await plugin.testHandleProgressEvent(userJobEvent, {
+      operationType: "content_operations",
+      rootJobId: "user-job",
+    });
+
+    // Should send message to the explicit channel
+    expect(plugin.sentMessages).toHaveLength(1);
+    expect(plugin.sentMessages[0]?.channelId).toBe("!room123:matrix.org");
+  });
+
+  it("should still track progress state for background jobs", async () => {
+    // Background jobs should still update the progress state map
+    // (for UI progress indicators) even if they don't send messages
+    const backgroundEvent: JobProgressEvent = {
+      id: "background-job",
+      type: "job",
+      status: "processing",
+      metadata: {
+        operationType: "data_processing",
+        rootJobId: "background-job",
+      },
+      message: "Extracting topics...",
+    };
+
+    await plugin.testHandleProgressEvent(backgroundEvent, {
+      operationType: "data_processing",
+      rootJobId: "background-job",
+    });
+
+    // Progress state should be tracked
+    expect(plugin.getProgressEventsMap().has("background-job")).toBe(true);
+    // But no message should be sent
+    expect(plugin.sentMessages).toHaveLength(0);
+  });
+
+  it("should filter events by interfaceType when specified", async () => {
+    // Event explicitly targeting a different interface
+    const otherInterfaceEvent: JobProgressEvent = {
+      id: "other-interface-job",
+      type: "job",
+      status: "completed",
+      metadata: {
+        operationType: "content_operations",
+        rootJobId: "other-interface-job",
+        interfaceType: "cli", // Different interface
+      },
+    };
+
+    await plugin.testHandleProgressEvent(otherInterfaceEvent, {
+      operationType: "content_operations",
+      rootJobId: "other-interface-job",
+    });
+
+    // Should not process event for different interface
+    expect(plugin.getProgressEventsMap().has("other-interface-job")).toBe(
+      false,
+    );
+    expect(plugin.sentMessages).toHaveLength(0);
+  });
+});
+
 describe("MessageInterfacePlugin - completion message ordering", () => {
   /**
    * This test documents the expected behavior for completion message ordering.
@@ -310,6 +421,7 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
         metadata: {
           operationType: "content_operations",
           rootJobId: "fast-job",
+          channelId: "test-channel", // Explicit channelId required
         },
       };
 
@@ -338,6 +450,7 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
         metadata: {
           operationType: "content_operations",
           rootJobId: "fast-job",
+          channelId: "test-channel", // Explicit channelId required
         },
       };
 
@@ -387,13 +500,21 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
         id: "job-1",
         type: "job",
         status: "completed",
-        metadata: { operationType: "content_operations", rootJobId: "job-1" },
+        metadata: {
+          operationType: "content_operations",
+          rootJobId: "job-1",
+          channelId: "test-channel",
+        },
       };
       const completion2: JobProgressEvent = {
         id: "job-2",
         type: "job",
         status: "completed",
-        metadata: { operationType: "data_processing", rootJobId: "job-2" },
+        metadata: {
+          operationType: "data_processing",
+          rootJobId: "job-2",
+          channelId: "test-channel",
+        },
       };
 
       await plugin.testHandleProgressEvent(completion1, {
@@ -426,13 +547,18 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
         metadata: {
           operationType: "content_operations",
           rootJobId: "good-job",
+          channelId: "test-channel",
         },
       };
       const failure: JobProgressEvent = {
         id: "bad-job",
         type: "job",
         status: "failed",
-        metadata: { operationType: "data_processing", rootJobId: "bad-job" },
+        metadata: {
+          operationType: "data_processing",
+          rootJobId: "bad-job",
+          channelId: "test-channel",
+        },
       };
 
       await plugin.testHandleProgressEvent(completion, {
