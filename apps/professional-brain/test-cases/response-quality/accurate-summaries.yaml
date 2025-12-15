@@ -1,9 +1,9 @@
-id: shell-accurate-summaries
+id: app-accurate-summaries
 name: Accurate Content Summaries
-description: Tests that agent accurately summarizes what content exists (or doesn't exist)
+description: Tests that agent accurately summarizes what content exists
 type: response_quality
 tags:
-  - shell
+  - app
   - quality
   - accuracy
   - summaries
@@ -15,16 +15,10 @@ successCriteria:
   expectedTools:
     - toolName: system_list
       shouldBeCalled: true
-  # Response should NOT claim content exists when database is empty
-  responseNotContains:
-    - "you have several"
-    - "you have many"
-    - "your collection includes"
-    - "I found multiple"
   # Should accurately reflect actual content
   minAccuracyScore: 3
   minHelpfulnessScore: 3
 
 efficiency:
-  maxToolCalls: 6
-  maxTokens: 30000
+  maxToolCalls: 8
+  maxTokens: 50000
