@@ -345,20 +345,48 @@ export class DirectorySync {
   }
 
   /**
+   * Check if an error is a validation error (should quarantine)
+   * vs a transient error (should not quarantine)
+   */
+  private isValidationError(error: unknown): boolean {
+    if (error instanceof z.ZodError) {
+      return true;
+    }
+    // Check for error messages that indicate validation issues
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes("invalid_type") ||
+      message.includes("invalid_enum_value") ||
+      message.includes("Required") ||
+      message.includes("Invalid frontmatter") ||
+      message.includes("Unknown entity type")
+    );
+  }
+
+  /**
    * Process entity import with deserialization and update check
+   * Separates validation errors (quarantine) from transient errors (fail without quarantine)
    */
   private async processEntityImport(
     rawEntity: RawEntity,
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
+    // Step 1: Deserialize (validation errors should quarantine)
+    let parsedEntity;
     try {
-      // Deserialize the markdown content to get parsed fields
-      const parsedEntity = this.entityService.deserializeEntity(
+      parsedEntity = this.entityService.deserializeEntity(
         rawEntity.content,
         rawEntity.entityType,
       );
+    } catch (error) {
+      // Validation error during deserialization - quarantine the file
+      this.quarantineInvalidFile(filePath, error, result);
+      return;
+    }
 
+    // Step 2: Database operations (transient errors should NOT quarantine)
+    try {
       // Check if entity exists and compare content
       const existing = await this.entityService.getEntity(
         rawEntity.entityType,
@@ -398,8 +426,31 @@ export class DirectorySync {
       // Mark as recovered in error log if it was previously quarantined
       this.markAsRecoveredIfNeeded(filePath);
     } catch (error) {
-      // Quarantine file if deserialization fails
-      this.quarantineInvalidFile(filePath, error, result);
+      // Check if this is actually a validation error that slipped through
+      if (this.isValidationError(error)) {
+        this.quarantineInvalidFile(filePath, error, result);
+        return;
+      }
+
+      // Transient error (database, network, etc.) - fail but DON'T quarantine
+      // The file is valid, just couldn't be saved right now
+      result.failed++;
+      result.errors.push({
+        path: filePath,
+        error:
+          error instanceof Error
+            ? `Transient error (file not quarantined): ${error.message}`
+            : String(error),
+      });
+      this.logger.warn(
+        "Failed to import entity (transient error, not quarantined)",
+        {
+          path: filePath,
+          entityType: rawEntity.entityType,
+          id: rawEntity.id,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
   }
 

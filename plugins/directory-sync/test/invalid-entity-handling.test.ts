@@ -428,4 +428,183 @@ describe("Invalid Entity Handling", () => {
       expect(result.quarantinedFiles).toEqual(expect.arrayContaining(files));
     });
   });
+
+  describe("Transient Error Handling", () => {
+    it("should NOT quarantine files when upsertEntity fails with database error", async () => {
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const validFile = join(testDir, "note", "valid-but-db-fails.md");
+      writeFileSync(validFile, "# Valid Note\n\nThis content is valid");
+
+      // Make upsertEntity fail with a database error (transient)
+      mockEntityService.upsertEntity = async (): Promise<{
+        entityId: string;
+        jobId: string;
+        created: boolean;
+      }> => {
+        throw new Error('Failed query: insert into "job_queue" values...');
+      };
+
+      const result = await dirSync.importEntities([
+        "note/valid-but-db-fails.md",
+      ]);
+
+      // File should NOT be quarantined - it's valid, just DB failed
+      expect(result.quarantined).toBe(0);
+      expect(result.failed).toBe(1);
+      expect(existsSync(validFile)).toBe(true);
+      expect(existsSync(`${validFile}.invalid`)).toBe(false);
+
+      // Error should mention transient nature
+      expect(result.errors[0]?.error).toContain("Transient error");
+    });
+
+    it("should NOT quarantine files when getEntity fails with database error", async () => {
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const validFile = join(testDir, "note", "valid-but-get-fails.md");
+      writeFileSync(validFile, "# Valid Note\n\nValid content");
+
+      // Make getEntity fail with a database error
+      mockEntityService.getEntity = async <T extends BaseEntity>(
+        _entityType: string,
+        _id: string,
+      ): Promise<T | null> => {
+        throw new Error("SQLITE_BUSY: database is locked");
+      };
+
+      const result = await dirSync.importEntities([
+        "note/valid-but-get-fails.md",
+      ]);
+
+      // File should NOT be quarantined
+      expect(result.quarantined).toBe(0);
+      expect(result.failed).toBe(1);
+      expect(existsSync(validFile)).toBe(true);
+      expect(existsSync(`${validFile}.invalid`)).toBe(false);
+    });
+
+    it("should still quarantine files when deserialization fails with validation error", async () => {
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const invalidFile = join(testDir, "note", "invalid-schema.md");
+      writeFileSync(invalidFile, "# Invalid\n\nContent with bad schema");
+
+      // Make deserializeEntity fail with a validation error
+      deserializeError = new Error(
+        "Invalid enum value. Expected 'draft' | 'published', received 'invalid'",
+      );
+
+      const result = await dirSync.importEntities(["note/invalid-schema.md"]);
+
+      // File SHOULD be quarantined - it's actually invalid
+      expect(result.quarantined).toBe(1);
+      expect(result.failed).toBe(0);
+      expect(existsSync(invalidFile)).toBe(false);
+      expect(existsSync(`${invalidFile}.invalid`)).toBe(true);
+    });
+
+    it("should handle mixed validation and transient errors correctly", async () => {
+      mkdirSync(join(testDir, "note"), { recursive: true });
+
+      const validFile = join(testDir, "note", "valid.md");
+      const invalidFile = join(testDir, "note", "invalid.md");
+      const dbFailFile = join(testDir, "note", "db-fail.md");
+
+      writeFileSync(validFile, "# Valid\n\nGood content");
+      writeFileSync(invalidFile, "Invalid schema content");
+      writeFileSync(dbFailFile, "# Also Valid\n\nBut DB will fail");
+
+      let callCount = 0;
+      mockEntityService.deserializeEntity = (
+        content: string,
+      ): Partial<BaseEntity> => {
+        if (content.includes("Invalid schema")) {
+          throw new Error("invalid_type: expected string, received number");
+        }
+        return { metadata: {} };
+      };
+
+      mockEntityService.upsertEntity = async (
+        entity: Partial<BaseEntity>,
+      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
+        callCount++;
+        // Fail on the third call (db-fail.md)
+        if (callCount === 2) {
+          throw new Error("Connection timeout");
+        }
+        return {
+          entityId: entity.id ?? "test-id",
+          jobId: "test-job",
+          created: true,
+        };
+      };
+
+      const result = await dirSync.importEntities();
+
+      // valid.md should import successfully
+      expect(result.imported).toBe(1);
+
+      // invalid.md should be quarantined (validation error)
+      expect(result.quarantined).toBe(1);
+      expect(existsSync(invalidFile)).toBe(false);
+      expect(existsSync(`${invalidFile}.invalid`)).toBe(true);
+
+      // db-fail.md should fail but NOT be quarantined (transient error)
+      expect(result.failed).toBe(1);
+      expect(existsSync(dbFailFile)).toBe(true);
+      expect(existsSync(`${dbFailFile}.invalid`)).toBe(false);
+    });
+
+    it("should preserve file content when transient error occurs", async () => {
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const validFile = join(testDir, "note", "important-data.md");
+      const originalContent = "# Important Note\n\nThis data must not be lost!";
+      writeFileSync(validFile, originalContent);
+
+      mockEntityService.upsertEntity = async (): Promise<{
+        entityId: string;
+        jobId: string;
+        created: boolean;
+      }> => {
+        throw new Error("Network error: connection refused");
+      };
+
+      await dirSync.importEntities(["note/important-data.md"]);
+
+      // File should still exist with original content
+      expect(existsSync(validFile)).toBe(true);
+      expect(readFileSync(validFile, "utf-8")).toBe(originalContent);
+    });
+
+    it("should successfully import file on retry after transient error", async () => {
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const file = join(testDir, "note", "retry-success.md");
+      writeFileSync(file, "# Will Succeed\n\nOn second try");
+
+      let attemptCount = 0;
+      mockEntityService.upsertEntity = async (
+        entity: Partial<BaseEntity>,
+      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
+        attemptCount++;
+        if (attemptCount === 1) {
+          throw new Error("Temporary database failure");
+        }
+        return {
+          entityId: entity.id ?? "test-id",
+          jobId: "test-job",
+          created: true,
+        };
+      };
+
+      // First attempt fails
+      let result = await dirSync.importEntities(["note/retry-success.md"]);
+      expect(result.failed).toBe(1);
+      expect(result.imported).toBe(0);
+      expect(existsSync(file)).toBe(true); // File still exists
+
+      // Second attempt succeeds
+      result = await dirSync.importEntities(["note/retry-success.md"]);
+      expect(result.imported).toBe(1);
+      expect(result.failed).toBe(0);
+      expect(existsSync(file)).toBe(true);
+    });
+  });
 });
