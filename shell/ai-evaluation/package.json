@@ -9,7 +9,7 @@
     "test": "bun test",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "eval": "bun src/run-evaluations.ts"
+    "eval": "cd evals && bun run brain-eval"
   },
   "bin": {
     "brain-eval": "./src/run-evaluations.ts"
@@ -20,6 +20,7 @@
     "@brains/app": "workspace:*",
     "@brains/core": "workspace:*",
     "@brains/permission-service": "workspace:*",
+    "@brains/system": "workspace:*",
     "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",
     "yaml": "^2.3.4"

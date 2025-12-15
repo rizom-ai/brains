@@ -1,0 +1,34 @@
+id: shell-concise-empty-states
+name: Concise Empty State Responses
+description: Tests that empty states are communicated concisely without verbose internal formatting
+type: response_quality
+tags:
+  - shell
+  - quality
+  - empty-state
+  - user-experience
+
+turns:
+  - userMessage: "List all my links"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: "link"
+  # Response should NOT contain verbose empty state formatting from tools
+  responseNotContains:
+    - "(0)"
+    - "_No items_"
+    - "No items"
+    - "Empty list"
+    - "0 results"
+    - "0 items"
+  # Should provide helpful context about the empty state
+  minHelpfulnessScore: 3
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

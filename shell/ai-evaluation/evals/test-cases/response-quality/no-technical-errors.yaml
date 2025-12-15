@@ -1,0 +1,34 @@
+id: shell-no-technical-errors
+name: No Technical Error Messages Leaked
+description: Tests that raw technical error messages are not shown to users when requesting invalid entity types
+type: response_quality
+tags:
+  - shell
+  - quality
+  - error-handling
+  - user-experience
+
+turns:
+  - userMessage: "List my foo items"
+
+successCriteria:
+  # Response should NOT contain raw technical error patterns
+  responseNotContains:
+    - "Unknown entity type"
+    - "Available types:"
+    - "Error:"
+    - "failed:"
+    - "exception"
+    - "stack trace"
+    - "at line"
+    - ".ts:"
+    - ".js:"
+    - "TypeError"
+    - "ReferenceError"
+  # Should provide a helpful response instead
+  minHelpfulnessScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

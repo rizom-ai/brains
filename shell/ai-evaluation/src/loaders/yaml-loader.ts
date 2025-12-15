@@ -10,8 +10,8 @@ import { testCaseSchema } from "../schemas";
  * Options for the YAML loader
  */
 export interface YAMLLoaderOptions {
-  /** Directory to load test cases from */
-  directory: string;
+  /** Directory to load test cases from (single or multiple) */
+  directory: string | string[];
   /** Whether to load recursively from subdirectories */
   recursive?: boolean;
 }
@@ -27,10 +27,19 @@ export class YAMLLoader implements ITestCaseLoader {
   }
 
   /**
-   * Load all test cases from the configured directory
+   * Load all test cases from the configured directory/directories
    */
   async loadTestCases(): Promise<TestCase[]> {
-    const files = await this.findYAMLFiles(this.options.directory);
+    const directories = Array.isArray(this.options.directory)
+      ? this.options.directory
+      : [this.options.directory];
+
+    const files: string[] = [];
+    for (const dir of directories) {
+      const dirFiles = await this.findYAMLFiles(dir);
+      files.push(...dirFiles);
+    }
+
     const testCases: TestCase[] = [];
 
     for (const file of files) {
