@@ -9,6 +9,7 @@ import { GitSyncPlugin } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
+import TopicsPlugin from "@brains/topics";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
@@ -75,6 +76,7 @@ const config = defineConfig({
     }),
     blogPlugin({}),
     decksPlugin({}),
+    new TopicsPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,
     }),
