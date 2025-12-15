@@ -1,0 +1,29 @@
+id: shell-no-hallucinated-data
+name: No Hallucinated Data
+description: Tests that agent doesn't make up content that doesn't exist in the system
+type: response_quality
+tags:
+  - shell
+  - quality
+  - accuracy
+  - hallucination
+
+turns:
+  - userMessage: "Tell me about my blog post on quantum computing"
+
+successCriteria:
+  # Response should NOT contain fabricated details about a non-existent post
+  responseNotContains:
+    - "your blog post discusses"
+    - "your post covers"
+    - "you wrote about"
+    - "in your article"
+    - "the post explains"
+    - "published on"
+  # Should acknowledge the content doesn't exist
+  minHelpfulnessScore: 3
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

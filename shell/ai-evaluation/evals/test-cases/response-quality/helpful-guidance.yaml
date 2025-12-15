@@ -1,0 +1,26 @@
+id: shell-helpful-guidance
+name: Helpful Guidance on Capabilities
+description: Tests that agent helpfully explains what it can do
+type: response_quality
+tags:
+  - shell
+  - quality
+  - helpfulness
+  - guidance
+
+turns:
+  - userMessage: "What can you help me with?"
+
+successCriteria:
+  # Response should NOT be dismissive
+  responseNotContains:
+    - "I'm just"
+    - "I'm only"
+    - "I can't do much"
+  # Should helpfully explain capabilities
+  minHelpfulnessScore: 4
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

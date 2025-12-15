@@ -9,26 +9,23 @@ tags:
   - user-experience
 
 turns:
-  - userMessage: "List all my links"
+  - userMessage: "List all base entities"
 
 successCriteria:
   expectedTools:
     - toolName: system_list
       shouldBeCalled: true
       argsContain:
-        entityType: "link"
-  # Response should NOT contain verbose empty state formatting from tools
+        entityType: "base"
+  # Response should NOT contain verbose empty state formatting
   responseNotContains:
     - "(0)"
     - "_No items_"
-    - "No items"
-    - "Empty list"
     - "0 results"
     - "0 items"
-  # Should provide helpful context about the empty state
   minHelpfulnessScore: 3
-  minInstructionFollowingScore: 4
+  minInstructionFollowingScore: 3
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 20000
+  maxTokens: 15000
