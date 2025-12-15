@@ -15,8 +15,8 @@ describe("DirectorySync AutoSync", () => {
     testDir = join(tmpdir(), `test-auto-sync-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
 
-    // Create test harness
-    harness = createServicePluginHarness();
+    // Create test harness with dataDir pointing to test directory
+    harness = createServicePluginHarness({ dataDir: testDir });
 
     // Create plugin with autoSync enabled
     plugin = new DirectorySyncPlugin({

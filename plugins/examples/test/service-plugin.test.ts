@@ -10,7 +10,7 @@ describe("ServicePlugin", () => {
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness();
+    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
 
     // Register test templates
     harness.registerTemplate("test-template", {

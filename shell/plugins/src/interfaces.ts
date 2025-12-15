@@ -46,6 +46,26 @@ import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
 import type { IAgentService } from "@brains/agent-service";
 
 /**
+ * Handler function for plugin evaluations
+ * Plugins register these to enable direct (non-chat) testing
+ */
+export type EvalHandler<TInput = unknown, TOutput = unknown> = (
+  input: TInput,
+) => Promise<TOutput>;
+
+/**
+ * Registry interface for plugin eval handlers
+ * Abstraction that allows dependency inversion - implementation lives in ai-evaluation
+ */
+export interface IEvalHandlerRegistry {
+  register(pluginId: string, handlerId: string, handler: EvalHandler): void;
+  get(pluginId: string, handlerId: string): EvalHandler | undefined;
+  has(pluginId: string, handlerId: string): boolean;
+  list(): Array<{ pluginId: string; handlerId: string }>;
+  unregister(pluginId: string, handlerId: string): boolean;
+}
+
+/**
  * Plugin info for status display
  */
 export const pluginInfoSchema = z.object({
@@ -111,6 +131,10 @@ export interface IShell {
   getIdentity(): IdentityBody;
   getProfile(): ProfileBody;
 
+  // Data directory - where plugins should store entity files
+  // Default: ./brain-data, can be overridden for evals or custom deployments
+  getDataDir(): string;
+
   // App metadata
   getAppInfo(): Promise<AppInfo>;
 
@@ -144,6 +168,13 @@ export interface IShell {
 
   // Daemon registration
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;
+
+  // Eval handler registration for plugin testing
+  registerEvalHandler(
+    pluginId: string,
+    handlerId: string,
+    handler: EvalHandler,
+  ): void;
 }
 
 /**

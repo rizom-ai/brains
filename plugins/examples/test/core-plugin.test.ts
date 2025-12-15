@@ -10,7 +10,7 @@ describe("CorePlugin", () => {
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createCorePluginHarness();
+    harness = createCorePluginHarness({ dataDir: "/tmp/test-datadir" });
 
     // Register a test template that the calculator plugin expects
     harness.registerTemplate("test-template", {

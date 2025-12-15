@@ -5,6 +5,7 @@ import type {
   PluginTool,
   PluginResource,
   AppInfo,
+  EvalHandler,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import type { ServiceRegistry } from "@brains/service-registry";
@@ -583,6 +584,28 @@ export class Shell implements IShell {
    */
   public getProfile(): ProfileBody {
     return this.profileService.getProfile();
+  }
+
+  /**
+   * Get the data directory where plugins should store entity files
+   */
+  public getDataDir(): string {
+    return this.config.dataDir;
+  }
+
+  /**
+   * Register an eval handler for plugin testing
+   * Delegates to the injected eval handler registry if available
+   */
+  public registerEvalHandler(
+    pluginId: string,
+    handlerId: string,
+    handler: EvalHandler,
+  ): void {
+    if (this.config.evalHandlerRegistry) {
+      this.config.evalHandlerRegistry.register(pluginId, handlerId, handler);
+    }
+    // If no registry is injected, silently ignore - evals aren't being run
   }
 
   /**

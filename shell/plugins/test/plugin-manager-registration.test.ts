@@ -90,8 +90,8 @@ describe("PluginManager - Direct Registration", () => {
       setPermissionLevel: mock(() => {}),
     } as unknown as IMCPService;
 
-    // Create mock shell using test harness
-    const harness = new PluginTestHarness();
+    // Create mock shell using test harness with dataDir for context
+    const harness = new PluginTestHarness({ dataDir: "/tmp/test-datadir" });
     mockShell = harness.getShell();
 
     // Override the shell's registration methods to use our mocked registries

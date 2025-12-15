@@ -207,7 +207,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       }
 
       // Build response with tool results
-      let responseText = response.text;
+      const responseText = response.text;
 
       // Debug: log tool results
       this.logger.debug("Agent response received", {
@@ -219,20 +219,9 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
         })),
       });
 
-      // Append formatted tool results if present
-      // This ensures the user sees the actual data returned by tools
-      if (response.toolResults && response.toolResults.length > 0) {
-        const toolOutput = response.toolResults
-          .map((result) => result.formatted)
-          .join("\n\n");
-
-        // Append tool output if it's not already in the response
-        if (toolOutput && !responseText.includes(toolOutput)) {
-          responseText = `${responseText}\n\n${toolOutput}`;
-        }
-      }
-
       // Send response to UI
+      // Note: Tool formatted outputs are available to the agent but not auto-appended
+      // The agent should summarize tool results in its response
       this.sendMessageToChannel(null, responseText);
     } catch (error) {
       this.logger.error("Error processing input", { error, input });

@@ -58,10 +58,11 @@ export class GitSync {
   private autoPush: boolean;
   private syncTimer: Timer | undefined;
   private repoPath: string = "";
+  private dataDir: string;
 
   constructor(options: GitSyncOptions) {
     // Extract what we need from the context
-    const { logger, sendMessage } = options;
+    const { logger, sendMessage, dataDir } = options;
 
     this.sendMessage = sendMessage;
     this.logger = logger;
@@ -74,6 +75,7 @@ export class GitSync {
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;
     this.autoPush = options.autoPush ?? false;
+    this.dataDir = dataDir;
   }
 
   /**
@@ -107,9 +109,8 @@ export class GitSync {
   async initialize(): Promise<void> {
     this.logger.debug("Initializing git repository", { gitUrl: this.gitUrl });
 
-    // Use the directory-sync path (brain-data) or test path
-    // Git will initialize inside the same directory that directory-sync manages
-    this.repoPath = process.env["GIT_SYNC_TEST_PATH"] ?? "./brain-data";
+    // Use the centralized data directory from context
+    this.repoPath = this.dataDir;
     this.logger.info("Using git repository path", { path: this.repoPath });
 
     // Clone or initialize repository

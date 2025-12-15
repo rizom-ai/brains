@@ -72,9 +72,10 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     });
 
-    // Create DirectorySync instance
+    // Create DirectorySync instance using syncPath override or centralized data directory
+    const syncPath = this.config.syncPath ?? context.dataDir;
     this.directorySync = new DirectorySync({
-      syncPath: this.config.syncPath,
+      syncPath,
       autoSync: this.config.autoSync,
       syncDebounce: this.config.syncDebounce,
       watchInterval: this.config.watchInterval,
@@ -89,12 +90,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     try {
       await this.directorySync.initializeDirectory();
       this.debug("Directory structure initialized", {
-        path: this.config.syncPath,
+        path: syncPath,
       });
 
       // Copy seed content if configured and directory is empty
       if (this.config.seedContent) {
-        await this.copySeedContentIfNeeded();
+        await this.copySeedContentIfNeeded(syncPath);
       }
     } catch (error) {
       this.error("Failed to initialize directory", error);
@@ -166,10 +167,10 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   }
 
   /**
-   * Copy seed content if the brain-data directory is empty
+   * Copy seed content if the data directory is empty
    */
-  private async copySeedContentIfNeeded(): Promise<void> {
-    const brainDataPath = resolve(process.cwd(), this.config.syncPath);
+  private async copySeedContentIfNeeded(dataDir: string): Promise<void> {
+    const brainDataPath = resolve(process.cwd(), dataDir);
     const seedContentPath = resolve(process.cwd(), "seed-content");
 
     // Check if brain-data is empty

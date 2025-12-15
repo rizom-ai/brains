@@ -33,12 +33,9 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     const remoteGit = simpleGit(remoteDir);
     await remoteGit.init(true);
 
-    // Set environment variable for git-sync to use same directory as directory-sync
-    process.env["GIT_SYNC_TEST_PATH"] = testDir;
-
-    // Create test harnesses
-    dirHarness = createServicePluginHarness();
-    harness = createCorePluginHarness();
+    // Create test harnesses with shared data directory
+    dirHarness = createServicePluginHarness({ dataDir: testDir });
+    harness = createCorePluginHarness({ dataDir: testDir });
 
     // Install directory-sync plugin first
     dirPlugin = new DirectorySyncPlugin({
@@ -74,9 +71,6 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     if (existsSync(remoteDir)) {
       rmSync(remoteDir, { recursive: true, force: true });
     }
-
-    // Clean up environment variable
-    delete process.env["GIT_SYNC_TEST_PATH"];
   });
 
   describe("Initialization", () => {

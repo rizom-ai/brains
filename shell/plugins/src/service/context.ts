@@ -1,5 +1,9 @@
 import type { CorePluginContext } from "../core/context";
-import type { IShell, ContentGenerationConfig } from "../interfaces";
+import type {
+  IShell,
+  ContentGenerationConfig,
+  EvalHandler,
+} from "../interfaces";
 import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
 import type {
   IEntityService,
@@ -90,6 +94,13 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // Plugin metadata
   getPluginPackageName: (pluginId: string) => string | undefined;
+
+  // Data directory - where plugins should store entity files
+  dataDir: string;
+
+  // Register an eval handler for this plugin
+  // Handler will be called during plugin evaluations with the given handlerId
+  registerEvalHandler: (handlerId: string, handler: EvalHandler) => void;
 }
 
 /**
@@ -248,6 +259,14 @@ export function createServicePluginContext(
     // Plugin metadata
     getPluginPackageName: (targetPluginId: string): string | undefined => {
       return shell.getPluginPackageName(targetPluginId);
+    },
+
+    // Data directory
+    dataDir: shell.getDataDir(),
+
+    // Eval handler registration - automatically scopes to this plugin
+    registerEvalHandler: (handlerId: string, handler: EvalHandler): void => {
+      shell.registerEvalHandler(pluginId, handlerId, handler);
     },
   };
 }

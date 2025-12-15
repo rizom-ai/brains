@@ -189,29 +189,27 @@ export async function main(): Promise<void> {
     }
 
     // Create and initialize the app (needed for AI service in both modes)
-    // Use a temp database for evals to avoid polluting the real database
+    // Use a temp database and data directory for evals to avoid polluting real data
     // Temp files are cleaned up on system reboot
     const { App } = await import("@brains/app");
     const evalDbBase = `/tmp/brain-eval-${Date.now()}`;
 
-    // Filter out sync plugins that would write to the real data directory
-    // These plugins sync entities to/from files which would pollute the
-    // real app's data directory during evals
-    const syncPluginIds = ["directory-sync", "git-sync"];
-    const filteredPlugins = config.plugins?.filter(
-      (plugin: { id: string }) => !syncPluginIds.includes(plugin.id),
-    );
+    // Get the eval handler registry - plugins will register their handlers here
+    const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
 
     const evalConfig = {
       ...config,
       database: undefined, // Clear to prevent overriding shellConfig.database
-      plugins: filteredPlugins,
       shellConfig: {
         ...config.shellConfig,
         database: { url: `file:${evalDbBase}.db` },
         jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
         conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
         embedding: { cacheDir: `${evalDbBase}-cache` },
+        // Inject eval handler registry so plugins can register handlers via context
+        evalHandlerRegistry,
+        // Override data directory so file-based plugins use temp directory
+        dataDir: `${evalDbBase}-data`,
       },
     };
     const app = App.create(evalConfig);

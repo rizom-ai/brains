@@ -54,8 +54,10 @@ describe("DirectorySyncPlugin", () => {
     // Create temporary test directory
     syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
 
-    // Create test harness
-    harness = createServicePluginHarness<DirectorySyncPlugin>();
+    // Create test harness with dataDir pointing to test directory
+    harness = createServicePluginHarness<DirectorySyncPlugin>({
+      dataDir: syncPath,
+    });
 
     // Get the shell and register entity types
     const shell = harness.getShell();

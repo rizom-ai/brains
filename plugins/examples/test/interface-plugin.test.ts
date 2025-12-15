@@ -13,7 +13,9 @@ describe("InterfacePlugin", () => {
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createInterfacePluginHarness<WebserverInterfacePlugin>();
+    harness = createInterfacePluginHarness<ExampleInterfacePlugin>({
+      dataDir: "/tmp/test-datadir",
+    });
 
     // Register test templates
     harness.registerTemplate("test-template", {

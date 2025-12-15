@@ -49,6 +49,8 @@ export type {
   ContentGenerationConfig,
   GenerateContentFunction,
   BaseJobTrackingInfo,
+  EvalHandler,
+  IEvalHandlerRegistry,
 } from "./interfaces";
 
 export {

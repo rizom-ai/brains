@@ -219,7 +219,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       }
 
       // Build response with tool results
-      let responseText = response.text;
+      const responseText = response.text;
 
       // Debug: Log tool results
       this.logger.debug("Agent response received", {
@@ -228,26 +228,13 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
         toolNames: response.toolResults?.map((r) => r.toolName) ?? [],
       });
 
-      // Append formatted tool results if present
-      // This ensures the user sees the actual data returned by tools
-      // Tools that queue async jobs can omit 'formatted' to avoid showing stale status
+      // Tool formatted outputs are kept in response.toolResults for logging/evals
+      // but not auto-appended to user-visible text - agent should summarize
       if (response.toolResults && response.toolResults.length > 0) {
-        const toolOutput = response.toolResults
-          .map((result) => result.formatted)
-          .filter((f): f is string => !!f) // Filter out undefined/empty formatted
-          .join("\n\n");
-
-        if (toolOutput) {
-          this.logger.debug("Appending tool output", {
-            toolOutputLength: toolOutput.length,
-            toolOutputPreview: toolOutput.slice(0, 200),
-          });
-
-          // Append tool output if it's not already in the response
-          if (!responseText.includes(toolOutput)) {
-            responseText = `${responseText}\n\n${toolOutput}`;
-          }
-        }
+        this.logger.debug("Tool results available", {
+          count: response.toolResults.length,
+          tools: response.toolResults.map((r) => r.toolName),
+        });
       }
 
       // Send response to room and track for job completion updates

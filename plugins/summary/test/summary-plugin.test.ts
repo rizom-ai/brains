@@ -10,7 +10,7 @@ describe("SummaryPlugin", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
     plugin = new SummaryPlugin();
   });
 

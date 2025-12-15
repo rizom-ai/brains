@@ -12,6 +12,7 @@ import { MockShell } from "./mock-shell";
 export interface HarnessOptions {
   logger?: Logger;
   logContext?: string;
+  dataDir?: string;
 }
 
 /**
@@ -28,7 +29,11 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.options = options;
     const logger =
       options.logger ?? createSilentLogger(options.logContext ?? "plugin-test");
-    this.mockShell = new MockShell({ logger });
+    const mockShellOptions: { logger: Logger; dataDir?: string } = { logger };
+    if (options.dataDir !== undefined) {
+      mockShellOptions.dataDir = options.dataDir;
+    }
+    this.mockShell = new MockShell(mockShellOptions);
   }
 
   /**
@@ -43,9 +48,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     if (!this.options.logger && !this.options.logContext) {
       const pluginType = this.getPluginType(plugin);
       const context = `${pluginType}-plugin-test`;
-      this.mockShell = new MockShell({
+      const mockShellOptions: { logger: Logger; dataDir?: string } = {
         logger: createSilentLogger(context),
-      });
+      };
+      if (this.options.dataDir !== undefined) {
+        mockShellOptions.dataDir = this.options.dataDir;
+      }
+      this.mockShell = new MockShell(mockShellOptions);
     }
 
     this.capabilities = await plugin.register(this.mockShell);

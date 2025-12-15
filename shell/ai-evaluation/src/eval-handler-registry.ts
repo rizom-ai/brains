@@ -1,5 +1,5 @@
 import { Logger } from "@brains/utils";
-import type { EvalHandler, IEvalHandlerRegistry } from "./types";
+import type { EvalHandler, IEvalHandlerRegistry } from "@brains/plugins";
 
 /**
  * Registry for plugin eval handlers

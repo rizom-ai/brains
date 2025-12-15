@@ -6,7 +6,6 @@ import {
   type BaseEntity,
   createId,
 } from "@brains/plugins";
-import { EvalHandlerRegistry } from "@brains/ai-evaluation";
 import { z } from "@brains/utils";
 import {
   topicsPluginConfigSchema,
@@ -207,7 +206,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
    * Register eval handler for plugin testing
    */
   private registerEvalHandler(context: ServicePluginContext): void {
-    const registry = EvalHandlerRegistry.getInstance();
     const extractor = new TopicExtractor(context, this.logger);
 
     const entityInputSchema = z.object({
@@ -242,7 +240,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       minRelevanceScore: z.number().optional(),
     });
 
-    registry.register("topics", "extractFromEntity", async (input: unknown) => {
+    context.registerEvalHandler("extractFromEntity", async (input: unknown) => {
       const parsed = extractInputSchema.parse(input);
       const minScore =
         parsed.minRelevanceScore ?? this.config.minRelevanceScore;
@@ -256,8 +254,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       minRelevanceScore: z.number().optional(),
     });
 
-    registry.register(
-      "topics",
+    context.registerEvalHandler(
       "checkMergeSimilarity",
       async (input: unknown) => {
         const parsed = mergeTestInputSchema.parse(input);

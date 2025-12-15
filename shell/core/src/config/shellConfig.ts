@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { Plugin } from "@brains/plugins";
+import type { Plugin, IEvalHandlerRegistry } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/permission-service";
 import type { IdentityBody } from "@brains/identity-service";
@@ -131,6 +131,10 @@ export const shellConfigSchema = z.object({
 
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
+
+  // Data directory - where plugins store entity files (e.g., directory-sync, git-sync)
+  // Default: ./brain-data, can be overridden for evals or custom deployments
+  dataDir: z.string().default("./brain-data"),
 });
 
 export type ShellConfig = z.infer<typeof shellConfigSchema> & {
@@ -138,6 +142,7 @@ export type ShellConfig = z.infer<typeof shellConfigSchema> & {
   permissions: PermissionConfig;
   identity?: IdentityBody;
   profile?: ProfileBody;
+  evalHandlerRegistry?: IEvalHandlerRegistry;
 };
 
 /**
@@ -206,6 +211,11 @@ export function createShellConfig(
   // Only add profile if it's defined (exactOptionalPropertyTypes requirement)
   if (overrides.profile !== undefined) {
     result.profile = overrides.profile;
+  }
+
+  // Only add evalHandlerRegistry if it's defined (exactOptionalPropertyTypes requirement)
+  if (overrides.evalHandlerRegistry !== undefined) {
+    result.evalHandlerRegistry = overrides.evalHandlerRegistry;
   }
 
   return result;

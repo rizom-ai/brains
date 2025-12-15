@@ -19,11 +19,8 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     testRepoPath = join(tmpdir(), `test-git-sync-${Date.now()}`);
     mkdirSync(testRepoPath, { recursive: true });
 
-    // Set test environment variable to use our test path
-    process.env["GIT_SYNC_TEST_PATH"] = testRepoPath;
-
-    // Create test harness
-    harness = createCorePluginHarness<GitSyncPlugin>();
+    // Create test harness with dataDir pointing to test directory
+    harness = createCorePluginHarness<GitSyncPlugin>({ dataDir: testRepoPath });
 
     // Set up message subscriptions for mocking dependencies
     harness.subscribe("sync:status:request", async () => {
@@ -69,9 +66,6 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     if (existsSync(testRepoPath)) {
       rmSync(testRepoPath, { recursive: true, force: true });
     }
-
-    // Clean up environment variable
-    delete process.env["GIT_SYNC_TEST_PATH"];
   });
 
   describe("Basic Plugin Tests", () => {

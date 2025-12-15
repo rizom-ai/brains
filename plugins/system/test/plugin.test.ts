@@ -9,8 +9,8 @@ describe("SystemPlugin", () => {
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    // Create test harness
-    harness = createCorePluginHarness();
+    // Create test harness with dataDir for context
+    harness = createCorePluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
     capabilities = await harness.installPlugin(plugin);

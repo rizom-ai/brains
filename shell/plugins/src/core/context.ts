@@ -81,6 +81,9 @@ export interface CorePluginContext {
     content: string,
     metadata?: Record<string, unknown>,
   ) => Promise<void>;
+
+  // Data directory - where plugins should store entity files
+  readonly dataDir: string;
 }
 
 /**
@@ -207,5 +210,8 @@ export function createCorePluginContext(
         metadata,
       );
     },
+
+    // Data directory
+    dataDir: shell.getDataDir(),
   };
 }

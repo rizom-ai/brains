@@ -6,8 +6,10 @@ import { z } from "@brains/utils";
 export const directorySyncConfigSchema = z.object({
   syncPath: z
     .string()
-    .describe("Directory path for synchronization")
-    .default("./brain-data"),
+    .optional()
+    .describe(
+      "Optional override for sync directory (defaults to shell dataDir)",
+    ),
   autoSync: z
     .boolean()
     .describe("Enable bidirectional auto-sync")

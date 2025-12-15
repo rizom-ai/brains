@@ -6,6 +6,7 @@ import type {
   PluginTool,
   PluginResource,
   AppInfo,
+  EvalHandler,
 } from "@brains/plugins";
 import type { Daemon } from "@brains/daemon-registry";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -61,9 +62,15 @@ export class MockShell implements IShell {
     Set<MessageHandler<unknown, unknown>>
   >();
   private mockAgentService: IAgentService;
+  private _dataDir: string | undefined;
 
-  constructor(options?: { logger?: Logger; agentService?: IAgentService }) {
+  constructor(options?: {
+    logger?: Logger;
+    agentService?: IAgentService;
+    dataDir?: string;
+  }) {
     this.logger = options?.logger ?? createSilentLogger("MockShell");
+    this._dataDir = options?.dataDir;
 
     // Create default mock AgentService
     this.mockAgentService =
@@ -513,6 +520,21 @@ export class MockShell implements IShell {
     };
   }
 
+  // Data directory - defaults to a test-specific temp path
+  // Tests doing actual file I/O should provide explicit dataDir
+  getDataDir(): string {
+    return this._dataDir ?? "/tmp/mock-shell-test-data";
+  }
+
+  // Eval handler registration - no-op in tests
+  registerEvalHandler(
+    _pluginId: string,
+    _handlerId: string,
+    _handler: EvalHandler,
+  ): void {
+    // No-op in tests - eval handlers aren't used
+  }
+
   // App metadata
   async getAppInfo(): Promise<AppInfo> {
     return {
@@ -531,7 +553,10 @@ export class MockShell implements IShell {
   }
 
   // Create a fresh instance
-  static createFresh(options?: { logger?: Logger }): MockShell {
+  static createFresh(options?: {
+    logger?: Logger;
+    dataDir?: string;
+  }): MockShell {
     return new MockShell(options);
   }
 }

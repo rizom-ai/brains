@@ -53,8 +53,10 @@ describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
     mkdirSync(seedContentPath, { recursive: true });
     mkdirSync(join(seedContentPath, "base"), { recursive: true });
 
-    // Create test harness
-    harness = createServicePluginHarness<DirectorySyncPlugin>();
+    // Create test harness with dataDir pointing to test directory
+    harness = createServicePluginHarness<DirectorySyncPlugin>({
+      dataDir: syncPath,
+    });
 
     // Get the shell and register entity types
     const shell = harness.getShell();
