@@ -141,11 +141,19 @@ export type PathValidation = z.infer<typeof pathValidationSchema>;
 
 /**
  * Content check for items in an array
+ * Supports either:
+ * - `pattern`: Regex pattern for complex matching
+ * - `words`: Array of words (auto-applies word boundaries)
  */
-export const itemsContainSchema = z.object({
-  field: z.string(),
-  pattern: z.string(), // Regex pattern
-});
+export const itemsContainSchema = z
+  .object({
+    field: z.string(),
+    pattern: z.string().optional(), // Regex pattern
+    words: z.array(z.string()).optional(), // Words with auto word-boundaries
+  })
+  .refine((data) => data.pattern !== undefined || data.words !== undefined, {
+    message: "Either 'pattern' or 'words' must be provided",
+  });
 
 export type ItemsContain = z.infer<typeof itemsContainSchema>;
 
@@ -160,6 +168,9 @@ export const expectedOutputSchema = z.object({
 
   // Content validation - check if any item matches
   itemsContain: z.array(itemsContainSchema).optional(),
+
+  // Content validation - check that NO item matches (negative assertion)
+  itemsNotContain: z.array(itemsContainSchema).optional(),
 
   // Structure validation - check specific paths
   validateEach: z.array(pathValidationSchema).optional(),

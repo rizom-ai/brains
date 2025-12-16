@@ -1,0 +1,54 @@
+id: topics-no-compound-titles
+name: Topic titles should not use compound patterns
+description: >
+  Tests that extracted topic titles use single concepts, not compound patterns
+  like "X and Y", "X & Y", or "X or Y". Compound titles are problematic because
+  they are simultaneously too generic and too specific, making them hard to
+  merge with future content.
+type: plugin
+tags:
+  - topics
+  - extraction
+  - quality
+  - titles
+plugin: topics
+handler: extractFromEntity
+
+input:
+  entityType: post
+  content: |
+    # Building Modern Web Applications
+
+    ## Authentication and Security
+
+    Modern web applications need robust authentication systems. We implemented
+    OAuth 2.0 with PKCE flow for secure token exchange. Additionally, we added
+    rate limiting to prevent brute force attacks and implemented Content Security
+    Policy headers.
+
+    ## Frontend Architecture
+
+    The React frontend uses a component-based architecture with hooks for state
+    management. We implemented lazy loading for code splitting and added
+    comprehensive testing with Jest.
+
+    ## Database Design
+
+    We chose PostgreSQL for our relational data needs. The schema uses proper
+    normalization with foreign key constraints. For caching, we added Redis
+    to improve read performance.
+  metadata:
+    title: "Building Modern Web Applications"
+  minRelevanceScore: 0.3
+
+expectedOutput:
+  minItems: 1
+  maxItems: 3
+  # Titles should NOT contain compound patterns
+  itemsNotContain:
+    # No "and" or "or" as connectors between concepts
+    - field: title
+      words: ["and", "or"]
+    # No "&" or "/" as connectors (symbols need regex)
+    - field: title
+      pattern: "[&/]"

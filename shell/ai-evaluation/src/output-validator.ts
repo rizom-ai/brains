@@ -71,7 +71,7 @@ export class OutputValidator {
     // Check itemsContain - verify at least one item matches each pattern
     if (expected.itemsContain) {
       for (const check of expected.itemsContain) {
-        const pattern = new RegExp(check.pattern);
+        const { pattern, description } = this.buildPattern(check);
         const hasMatch = output.some((item) => {
           const value = this.getFieldValue(item, check.field);
           return typeof value === "string" && pattern.test(value);
@@ -80,9 +80,37 @@ export class OutputValidator {
         if (!hasMatch) {
           failures.push({
             criterion: "itemsContain",
-            expected: `item.${check.field} matches /${check.pattern}/`,
+            expected: `item.${check.field} matches ${description}`,
             actual: "no matching item found",
-            message: `No item found where ${check.field} matches pattern /${check.pattern}/`,
+            message: `No item found where ${check.field} matches ${description}`,
+          });
+        }
+      }
+    }
+
+    // Check itemsNotContain - verify NO item matches the patterns
+    if (expected.itemsNotContain) {
+      for (const check of expected.itemsNotContain) {
+        const { pattern, description } = this.buildPattern(check);
+        const matchingItems: { index: number; value: string }[] = [];
+
+        output.forEach((item, index) => {
+          const value = this.getFieldValue(item, check.field);
+          if (typeof value === "string" && pattern.test(value)) {
+            matchingItems.push({ index, value });
+          }
+        });
+
+        if (matchingItems.length > 0) {
+          const examples = matchingItems
+            .slice(0, 3)
+            .map((m) => `[${m.index}]: "${m.value}"`)
+            .join(", ");
+          failures.push({
+            criterion: "itemsNotContain",
+            expected: `no item.${check.field} matches ${description}`,
+            actual: `${matchingItems.length} item(s) matched: ${examples}`,
+            message: `Found ${matchingItems.length} item(s) where ${check.field} matches forbidden ${description}`,
           });
         }
       }
@@ -135,6 +163,40 @@ export class OutputValidator {
     }
 
     return failures;
+  }
+
+  /**
+   * Build a regex pattern from either pattern string or words array
+   * Words automatically get word boundaries applied
+   */
+  private buildPattern(check: {
+    pattern?: string | undefined;
+    words?: string[] | undefined;
+  }): { pattern: RegExp; description: string } {
+    if (check.pattern) {
+      return {
+        pattern: new RegExp(check.pattern),
+        description: `/${check.pattern}/`,
+      };
+    }
+
+    if (check.words && check.words.length > 0) {
+      // Escape special regex characters in words and join with OR
+      const escaped = check.words.map((w) =>
+        w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      );
+      const regexStr = `\\b(${escaped.join("|")})\\b`;
+      return {
+        pattern: new RegExp(regexStr, "i"),
+        description: `words [${check.words.join(", ")}]`,
+      };
+    }
+
+    // Fallback (should not happen due to schema validation)
+    return {
+      pattern: new RegExp("(?!)"), // Never matches
+      description: "empty pattern",
+    };
   }
 
   /**

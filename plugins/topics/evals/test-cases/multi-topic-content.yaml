@@ -37,10 +37,16 @@ input:
   minRelevanceScore: 0.3
 
 expectedOutput:
-  minItems: 2
-  maxItems: 6
+  minItems: 1
+  maxItems: 3
   itemsContain:
     - field: title
       pattern: "[Dd]atabase|[Ii]nfrastructure|[Ss]caling"
     - field: title
       pattern: "[Ff]rontend|[Rr]eact|UI"
+  # Titles should NOT contain compound patterns
+  itemsNotContain:
+    - field: title
+      words: ["and", "or"]
+    - field: title
+      pattern: "[&/]"

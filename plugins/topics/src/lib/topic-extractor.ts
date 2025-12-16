@@ -55,28 +55,11 @@ export class TopicExtractor {
       };
 
       // Use AI service to extract topics from entity content
-      const prompt = `You are an expert at analyzing content and extracting key topics.
-
-Analyze the following content and extract the main topics discussed.
-
-For each topic, provide:
-1. A SHORT, CATEGORICAL title (15-40 chars max) - Use broad categories, not specific descriptions
-   Good examples: "Machine Learning", "API Design", "Team Collaboration", "User Experience"
-   Bad examples: "Discussion about implementing new features", "How to improve communication"
-2. A brief summary (2-3 sentences)
-3. The main content points discussed
-4. 5-10 relevant keywords that are DIRECTLY related to the topic content
-5. A relevance score from 0 to 1 (based on depth of discussion, importance, and actionability)
-
-IMPORTANT: Create DISTINCT topics. Only group content that is truly about the same subject.
-
-Content Title: ${entityTitle}
+      const prompt = `Content Title: ${entityTitle}
 Content Type: ${entity.entityType}
 
 Content:
-${entity.content}
-
-Return an array of topics in the required JSON format.`;
+${entity.content}`;
 
       const result = await this.context.generateContent<{
         topics: ExtractedTopicData[];

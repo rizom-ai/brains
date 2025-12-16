@@ -29,7 +29,7 @@ input:
 
 expectedOutput:
   minItems: 1
-  maxItems: 4
+  maxItems: 3
   itemsContain:
     - field: title
       pattern: "[Tt]ype[Ss]cript|[Tt]ype [Ss]afety|[Ss]oftware [Dd]esign"

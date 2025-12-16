@@ -14,37 +14,41 @@ export const topicExtractionTemplate = createTemplate<ExtractionResult>({
   description: "Extract topics from conversation text",
   dataSourceId: "shell:ai-content",
   schema: extractionResultSchema,
-  basePrompt: `You are an expert at analyzing conversations and extracting key topics.
+  basePrompt: `You are an expert at analyzing content and extracting key topics.
 
-Analyze the provided conversation and extract meaningful topics discussed. 
+Analyze the provided content and extract meaningful topics discussed.
 
-CRITICAL: Extract only 1-2 broad, comprehensive topics maximum. If multiple aspects of the same subject are discussed, consolidate them into ONE single topic. Do NOT create separate topics for different aspects of the same theme.
+TITLE RULES (CRITICAL):
+- Each title must represent ONE single concept, not multiple concepts joined together
+- NEVER use "and", "or", "&", "/" to combine concepts in titles
+- Pick the PRIMARY concept, not a combination
 
-Focus on:
-- Main themes and subjects covered in the discussion
-- Broad conceptual areas that encompass multiple related points
-- Important problems, solutions, or decisions discussed
-- Group related subtopics under broader themes
+BAD TITLES (never use these patterns):
+- "Security and Authentication" → too broad, combines two concepts
+- "Frontend Development and Performance" → pick one focus
+- "Database & Infrastructure" → compound title
+- "Team Growth/Collaboration" → compound title
 
-CONSOLIDATION EXAMPLES:
-- Instead of: "User Authentication", "Login Security", "Password Management" 
-- Create: "Authentication and Security Systems"
+GOOD TITLES (single focused concepts):
+- "Authentication Systems" (if auth is the main focus)
+- "Application Security" (if security is the main focus)
+- "React Architecture" (specific to React)
+- "Database Migration" (specific action/topic)
+- "Performance Optimization" (single concept)
 
-- Instead of: "React Components", "Component State", "React Hooks"
-- Create: "React Development Patterns"
+EXTRACTION GUIDELINES:
+- Extract only the 1-3 MOST IMPORTANT topics from the content
+- Focus on topics with substantial discussion, not brief mentions
+- Skip minor or tangential subjects
+- Each topic should be specific enough to be useful, broad enough to be reusable
+- Aim for titles that would match similar future content
 
-TITLE GUIDELINES:
-- Use concise, general titles (avoid company/product names when possible)
-- Focus on the broader concept rather than specific implementation
-- Examples: "Professional Networks" instead of "Rizom's Professional Network"
-- Examples: "Talent Coordination" instead of "How Rizom Coordinates Talent"
-
-For each consolidated topic, provide:
-1. A concise, general title (max 50 chars) focusing on the broader concept
-2. A comprehensive summary (2-3 sentences) covering all related points
-3. The main content as a single text string covering subtopics and details discussed
-4. 8-15 relevant keywords covering the full scope of the topic
-5. A relevance score from 0 to 1 (higher for consolidated, comprehensive topics)
+For each topic, provide:
+1. A focused title (max 40 chars) representing ONE concept
+2. A comprehensive summary (2-3 sentences)
+3. The main content as a single text string with key details
+4. 5-12 relevant keywords
+5. A relevance score from 0 to 1 (based on depth of discussion)
 
 IMPORTANT: Always return a valid JSON object with a "topics" array, even if no significant topics are found. If no meaningful topics exist, return an empty array.
 
@@ -52,10 +56,10 @@ Expected JSON format:
 {
   "topics": [
     {
-      "title": "Consolidated Topic Title",
-      "summary": "Brief overview covering all related discussion points in this topic area.",
-      "content": "Detailed content as a single string covering all subtopics, key points, decisions made, and conclusions reached in this discussion area.",
-      "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+      "title": "Single Focused Title",
+      "summary": "Brief overview of this specific topic area.",
+      "content": "Detailed content covering key points and details.",
+      "keywords": ["keyword1", "keyword2", "keyword3"],
       "relevanceScore": 0.8
     }
   ]
