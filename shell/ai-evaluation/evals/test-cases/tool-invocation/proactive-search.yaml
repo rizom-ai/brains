@@ -1,0 +1,39 @@
+id: shell-proactive-search
+name: Proactive Search for User Content
+description: Tests that agent automatically searches when user asks about their own content instead of asking permission
+type: tool_invocation
+tags:
+  - shell
+  - tool-invocation
+  - search
+  - proactive-behavior
+
+turns:
+  - userMessage: "How is 'voting with your feet' used by us?"
+
+successCriteria:
+  # Agent MUST call search tool without asking permission
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+
+  # Response should NOT ask permission to search
+  responseNotContains:
+    - "would you like me to search"
+    - "Would you like me to search"
+    - "shall I search"
+    - "Shall I search"
+    - "want me to search"
+    - "should I search"
+    - "Should I search"
+    - "I can search"
+    - "I could search"
+    - "let me know if you'd like me to"
+    - "Let me know if you'd like me to"
+
+  minHelpfulnessScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

@@ -41,7 +41,7 @@ function isPluginTestCase(testCase: TestCase): testCase is PluginTestCase {
 export interface EvaluationServiceConfig {
   agentService: IAgentService;
   aiService: IAIService;
-  testCasesDirectory: string;
+  testCasesDirectory: string | string[];
   reporters?: IReporter[];
   evalHandlerRegistry: EvalHandlerRegistry;
 }

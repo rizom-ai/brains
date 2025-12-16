@@ -1,0 +1,49 @@
+id: shell-proactive-search-variations
+name: Proactive Search - Question Variations
+description: Tests that agent proactively searches for various question patterns about user content
+type: multi_turn
+tags:
+  - shell
+  - tool-invocation
+  - search
+  - proactive-behavior
+
+turns:
+  - userMessage: "What have I written about machine learning?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+      responseNotContains:
+        - "would you like me to"
+        - "Would you like me to"
+        - "shall I"
+        - "Shall I"
+        - "should I"
+        - "Should I"
+
+  - userMessage: "Where did I mention TypeScript?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+      responseNotContains:
+        - "would you like me to"
+        - "Would you like me to"
+
+  - userMessage: "How do we use React in our projects?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+      responseNotContains:
+        - "would you like me to"
+        - "Would you like me to"
+
+successCriteria:
+  minHelpfulnessScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 15
+  maxTokens: 100000
