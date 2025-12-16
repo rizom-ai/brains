@@ -143,7 +143,7 @@ export class LinkService {
         });
       }
       source = {
-        id: conversationId,
+        slug: conversationId,
         title: conversationTitle,
         type: "conversation",
       };
@@ -151,7 +151,7 @@ export class LinkService {
       // Manual addition (via MCP, direct API call, etc.)
       const interfaceId = options?.metadata?.interfaceId ?? "manual";
       source = {
-        id: interfaceId,
+        slug: interfaceId,
         title: interfaceId.charAt(0).toUpperCase() + interfaceId.slice(1),
         type: "manual",
       };

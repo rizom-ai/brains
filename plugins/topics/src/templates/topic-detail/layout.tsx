@@ -42,12 +42,12 @@ export const TopicDetailLayout = ({
           <div className="space-y-3">
             {sources.map((source) => (
               <SourceReferenceCard
-                key={source.id}
-                id={source.id}
+                key={source.slug}
+                id={source.slug}
                 title={source.title}
                 type={source.type}
                 {...(source.excerpt && { excerpt: source.excerpt })}
-                href={`/summaries/${source.id}`}
+                href={source.href}
               />
             ))}
           </div>

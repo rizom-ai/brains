@@ -23,7 +23,7 @@ import type { SiteInfoService } from "../services/site-info-service";
 import type { ProfileService } from "@brains/profile-service";
 import type { EntityRouteConfig } from "../config";
 import { baseEntitySchema } from "@brains/entity-service";
-import { z, pluralize } from "@brains/utils";
+import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
 
 // Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = baseEntitySchema.extend({
@@ -122,7 +122,8 @@ export class SiteBuilder implements ISiteBuilder {
     this.profileService = profileService;
     this.entityRouteConfig = entityRouteConfig;
 
-    // Factory is now encapsulated within the site builder
+    // Configure the shared EntityUrlGenerator singleton
+    EntityUrlGenerator.getInstance().configure(entityRouteConfig);
 
     // Register built-in templates
     this.registerBuiltInTemplates();

@@ -59,7 +59,7 @@ describe("LinkPlugin", () => {
         summary: "This is a test article summary.",
         keywords: ["test", "example"],
         source: {
-          id: "manual",
+          slug: "manual",
           title: "Manual",
           type: "manual",
         },
@@ -127,7 +127,7 @@ example.com
       expect(parsed.domain).toBe("example.com");
       expect(parsed.capturedAt).toBe("2025-01-30T10:00:00.000Z");
       expect(parsed.source).toEqual({
-        id: "manual",
+        slug: "manual",
         title: "Manual",
         type: "manual",
       });

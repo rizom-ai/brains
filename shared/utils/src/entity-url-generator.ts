@@ -1,9 +1,19 @@
-import type { EntityRouteConfig } from "../config";
-import { pluralize } from "@brains/utils";
+import { pluralize } from "./string-utils";
+
+/**
+ * Configuration for entity routes
+ * Maps entity types to custom labels and plural names
+ */
+export interface EntityRouteConfig {
+  [entityType: string]: {
+    label: string;
+    pluralName?: string;
+  };
+}
 
 /**
  * Generates URLs for entity detail pages based on entity route config
- * Singleton pattern - configured once by site-builder, used by all datasources
+ * Singleton pattern - configured once by site-builder, used by all plugins
  */
 export class EntityUrlGenerator {
   private static instance: EntityUrlGenerator | null = null;

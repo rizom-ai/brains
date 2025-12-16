@@ -412,12 +412,12 @@ not-a-number
   });
 
   describe("custom formatter and parser", () => {
-    // Schema with custom formatted sources
+    // Schema with custom formatted sources (uses slug as identifier)
     const customSchema = z.object({
       title: z.string(),
       sources: z.array(
         z.object({
-          id: z.string(),
+          slug: z.string(),
           title: z.string(),
           type: z.literal("conversation"),
         }),
@@ -446,12 +446,12 @@ not-a-number
         title: "My Topic",
         sources: [
           {
-            id: "conv-123",
+            slug: "conv-123",
             title: "Team Standup",
             type: "conversation" as const,
           },
           {
-            id: "conv-456",
+            slug: "conv-456",
             title: "Project Planning",
             type: "conversation" as const,
           },
@@ -473,7 +473,7 @@ not-a-number
       expect(parsed).toEqual(data);
       expect(parsed.sources).toHaveLength(2);
       expect(parsed.sources[0]).toEqual({
-        id: "conv-123",
+        slug: "conv-123",
         title: "Team Standup",
         type: "conversation",
       });

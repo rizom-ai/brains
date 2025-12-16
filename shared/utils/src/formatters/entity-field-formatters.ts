@@ -9,7 +9,7 @@ import { z } from "../zod";
  * type can be any entity type (post, link, summary, conversation, etc.)
  */
 export const sourceReferenceSchema = z.object({
-  id: z.string(),
+  slug: z.string(),
   title: z.string(),
   type: z.string(),
 });
@@ -18,7 +18,7 @@ export type SourceReference = z.infer<typeof sourceReferenceSchema>;
 
 /**
  * Formatter for source lists in entity markdown
- * Formats sources as "Title (id)" for human readability
+ * Formats sources as "- Title (slug) [type]" for human readability
  */
 export const SourceListFormatter = {
   /**
@@ -28,7 +28,9 @@ export const SourceListFormatter = {
     if (sources.length === 0) {
       return "";
     }
-    return sources.map((s) => `- ${s.title} (${s.id}) [${s.type}]`).join("\n");
+    return sources
+      .map((s) => `- ${s.title} (${s.slug}) [${s.type}]`)
+      .join("\n");
   },
 
   /**
@@ -46,11 +48,11 @@ export const SourceListFormatter = {
 
     return lines
       .map((line) => {
-        // Parse "- Title (id) [type]" format
+        // Parse "- Title (slug) [type]" format
         const match = line.match(/^- (.+) \(([^)]+)\) \[([^\]]+)\]$/);
         if (match?.[1] && match[2] && match[3]) {
           const parsed = sourceReferenceSchema.safeParse({
-            id: match[2].trim(),
+            slug: match[2].trim(),
             title: match[1].trim(),
             type: match[3].trim(),
           });

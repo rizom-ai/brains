@@ -24,7 +24,7 @@ export type TopicEntity = z.infer<typeof topicEntitySchema>;
  * type can be any entity type (post, link, summary, etc.)
  */
 export const topicSourceSchema = z.object({
-  id: z.string(),
+  slug: z.string(),
   title: z.string(),
   type: z.string(),
 });

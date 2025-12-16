@@ -46,6 +46,10 @@ export {
   calculateReadingTime,
 } from "./string-utils";
 
+// URL generation utilities
+export { EntityUrlGenerator } from "./entity-url-generator";
+export type { EntityRouteConfig } from "./entity-url-generator";
+
 // Response types
 export {
   defaultQueryResponseSchema,

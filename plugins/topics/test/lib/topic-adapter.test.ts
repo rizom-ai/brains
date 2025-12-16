@@ -13,8 +13,8 @@ describe("TopicAdapter", () => {
   describe("createTopicBody", () => {
     it("should create structured content body", () => {
       const sources: TopicSource[] = [
-        { id: "conv-123", title: "Team Standup", type: "conversation" },
-        { id: "note-456", title: "Project Notes", type: "conversation" },
+        { slug: "conv-123", title: "Team Standup", type: "conversation" },
+        { slug: "note-456", title: "Project Notes", type: "conversation" },
       ];
 
       const body = adapter.createTopicBody({
@@ -64,8 +64,8 @@ This is the main content
       expect(parsed.content).toBe("This is the main content");
       expect(parsed.keywords).toEqual(["test", "example"]);
       expect(parsed.sources).toEqual([
-        { id: "conv-123", title: "Team Standup", type: "conversation" },
-        { id: "note-456", title: "Project Notes", type: "conversation" },
+        { slug: "conv-123", title: "Team Standup", type: "conversation" },
+        { slug: "note-456", title: "Project Notes", type: "conversation" },
       ]);
     });
   });

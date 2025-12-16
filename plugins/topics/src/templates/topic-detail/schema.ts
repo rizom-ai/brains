@@ -2,9 +2,10 @@ import { z } from "@brains/utils";
 
 // Schema for source reference
 const sourceReferenceSchema = z.object({
-  id: z.string(),
+  slug: z.string(),
   title: z.string(),
   type: z.string(),
+  href: z.string(),
   excerpt: z.string().optional(),
 });
 

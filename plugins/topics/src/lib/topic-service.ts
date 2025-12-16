@@ -120,10 +120,10 @@ export class TopicService {
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
 
-    // Deduplicate sources by ID using a Map
-    const sourcesMap = new Map(parsed.sources.map((s) => [s.id, s]));
+    // Deduplicate sources by slug using a Map
+    const sourcesMap = new Map(parsed.sources.map((s) => [s.slug, s]));
     if (updates.sources) {
-      updates.sources.forEach((source) => sourcesMap.set(source.id, source));
+      updates.sources.forEach((source) => sourcesMap.set(source.slug, source));
     }
     const sources = Array.from(sourcesMap.values());
 
@@ -257,8 +257,8 @@ export class TopicService {
       "\n\n---\n\n",
     );
 
-    // Deduplicate sources by ID using a Map
-    const sourcesMap = new Map(allSources.map((s) => [s.id, s]));
+    // Deduplicate sources by slug using a Map
+    const sourcesMap = new Map(allSources.map((s) => [s.slug, s]));
     const uniqueSources = Array.from(sourcesMap.values());
 
     const merged = await this.updateTopic(target.id, {

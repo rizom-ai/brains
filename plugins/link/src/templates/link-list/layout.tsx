@@ -61,7 +61,7 @@ export const LinkListLayout = ({
                       <>
                         <span>•</span>
                         <a
-                          href={`/summaries/${link.source.id}`}
+                          href={`/summaries/${link.source.slug}`}
                           className="text-brand hover:text-brand-dark"
                         >
                           {link.source.title}

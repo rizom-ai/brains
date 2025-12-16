@@ -77,7 +77,7 @@ multiple layers to process complex patterns.
       if (firstTopic && firstTopic.sources.length > 0) {
         const firstSource = firstTopic.sources[0];
         if (firstSource) {
-          expect(firstSource.id).toBe("test-link-123");
+          expect(firstSource.slug).toBe("test-link-123");
           expect(firstSource.type).toBe("link");
           expect(firstSource.title).toBe("TypeScript Best Practices");
         }

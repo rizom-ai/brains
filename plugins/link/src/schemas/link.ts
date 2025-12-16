@@ -4,7 +4,7 @@ import { z } from "@brains/utils";
  * Source reference with metadata for links
  */
 export const linkSourceSchema = z.object({
-  id: z.string(),
+  slug: z.string(),
   title: z.string(),
   type: z.enum(["conversation", "manual"]),
 });

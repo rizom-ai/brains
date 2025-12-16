@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, EntityUrlGenerator } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
 
 // Schema for fetch query parameters
@@ -59,8 +59,12 @@ export class TopicsDataSource implements DataSource {
       // Transform to TopicDetailData
       const parsed = adapter.parseTopicBody(entity.content);
 
-      // Sources are now already stored with titles
-      const sources = parsed.sources;
+      // Add href to each source using EntityUrlGenerator
+      const urlGenerator = EntityUrlGenerator.getInstance();
+      const sources = parsed.sources.map((source) => ({
+        ...source,
+        href: urlGenerator.generateUrl(source.type, source.slug),
+      }));
 
       const detailData = {
         id: entity.id,

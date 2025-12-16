@@ -48,8 +48,13 @@ export class TopicExtractor {
         typeof metadataTitle === "string" ? metadataTitle : entity.id;
 
       // Build source reference for this entity
+      // Get slug from metadata, fallback to id
+      const metadataSlug = entity.metadata["slug"];
+      const entitySlug =
+        typeof metadataSlug === "string" ? metadataSlug : entity.id;
+
       const source: TopicSource = {
-        id: entity.id,
+        slug: entitySlug,
         title: entityTitle,
         type: entity.entityType,
       };
