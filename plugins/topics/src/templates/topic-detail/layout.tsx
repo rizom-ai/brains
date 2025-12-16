@@ -9,7 +9,6 @@ import {
 
 export const TopicDetailLayout = ({
   title,
-  summary,
   content,
   keywords,
   sources,
@@ -18,12 +17,7 @@ export const TopicDetailLayout = ({
 }: TopicDetailData): JSX.Element => {
   return (
     <article className="topic-detail-container max-w-4xl mx-auto p-6 bg-theme">
-      <DetailPageHeader
-        title={title}
-        created={created}
-        updated={updated}
-        summary={summary}
-      />
+      <DetailPageHeader title={title} created={created} updated={updated} />
 
       <div className="prose prose-lg max-w-none mb-8 text-theme-muted">
         <div dangerouslySetInnerHTML={{ __html: content }} />

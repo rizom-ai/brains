@@ -35,7 +35,6 @@ export type TopicSource = z.infer<typeof topicSourceSchema>;
  * Schema for topic body structure (without title, which is dynamic)
  */
 export const topicBodySchema = z.object({
-  summary: z.string(),
   content: z.string(),
   keywords: z.array(z.string()),
   sources: z.array(topicSourceSchema), // Rich source objects with metadata

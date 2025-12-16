@@ -11,7 +11,6 @@ import { TopicService } from "../lib/topic-service";
 const topicProcessingJobDataSchema = z.object({
   topic: z.object({
     title: z.string(),
-    summary: z.string(),
     content: z.string(),
     sources: z.array(
       z.object({
@@ -123,7 +122,6 @@ export class TopicProcessingHandler
         // Create new topic
         const created = await this.topicService.createTopic({
           title: topic.title,
-          summary: topic.summary,
           content: topic.content,
           sources: topic.sources,
           keywords: topic.keywords,

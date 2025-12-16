@@ -13,7 +13,6 @@ const sourceReferenceSchema = z.object({
 export const topicDetailSchema = z.object({
   id: z.string(),
   title: z.string(),
-  summary: z.string(),
   content: z.string(),
   keywords: z.array(z.string()),
   sources: z.array(sourceReferenceSchema),

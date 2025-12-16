@@ -22,6 +22,15 @@ import yeehaaTheme from "@brains/theme-yeehaa";
 const entityRouteConfig = {
   post: { label: "Essay" }, // pluralName defaults to 'essays'
   deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
+  topic: { label: "Topic" }, // Mobile hamburger menu handles overflow
+  link: {
+    label: "Link",
+    navigation: { slot: "secondary" }, // Show in footer only
+  },
+  summary: {
+    label: "Summary",
+    navigation: { show: false }, // Hide from navigation entirely
+  },
 };
 
 const config = defineConfig({

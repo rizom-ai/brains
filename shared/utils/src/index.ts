@@ -44,6 +44,7 @@ export {
   generateIdFromText,
   pluralize,
   calculateReadingTime,
+  truncateText,
 } from "./string-utils";
 
 // URL generation utilities

@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
-import type { RouteDefinition } from "../types/routes";
+import type { RouteDefinition, NavigationSlot } from "../types/routes";
 import type { EntityRouteConfig } from "../config";
 import { pluralize } from "@brains/utils";
 
@@ -71,7 +71,7 @@ export class DynamicRouteGenerator {
 
     // Register index route if we have a list template
     if (listTemplateName) {
-      const { pluralName, label, paginate, pageSize } =
+      const { pluralName, label, paginate, pageSize, navigation } =
         this.getEntityDisplayConfig(entityType);
 
       if (paginate) {
@@ -82,6 +82,7 @@ export class DynamicRouteGenerator {
           pluralName,
           label,
           pageSize,
+          navigation,
           logger,
         );
       } else {
@@ -93,10 +94,10 @@ export class DynamicRouteGenerator {
           description: `Browse all ${pluralName}`,
           layout: "default",
           navigation: {
-            show: true,
+            show: navigation.show,
             label,
-            slot: "primary",
-            priority: 40, // Plugin-registered pages priority
+            slot: navigation.slot,
+            priority: navigation.priority,
           },
           sections: [
             {
@@ -205,6 +206,7 @@ export class DynamicRouteGenerator {
     pluralName: string,
     label: string,
     pageSize: number,
+    navigation: { show: boolean; slot: NavigationSlot; priority: number },
     logger: ReturnType<typeof this.context.logger.child>,
   ): Promise<void> {
     // Get total entity count
@@ -237,10 +239,10 @@ export class DynamicRouteGenerator {
         layout: "default",
         navigation: isFirstPage
           ? {
-              show: true,
+              show: navigation.show,
               label,
-              slot: "primary",
-              priority: 40,
+              slot: navigation.slot,
+              priority: navigation.priority,
             }
           : undefined,
         sections: [
@@ -329,10 +331,18 @@ export class DynamicRouteGenerator {
     label: string;
     paginate: boolean;
     pageSize: number;
+    navigation: {
+      show: boolean;
+      slot: NavigationSlot;
+      priority: number;
+    };
   } {
     const config = this.entityRouteConfig?.[entityType];
     const DEFAULT_PAGE_SIZE = 10;
     const DEFAULT_PAGINATE = true; // Enable pagination by default
+    const DEFAULT_NAV_SHOW = true;
+    const DEFAULT_NAV_SLOT: NavigationSlot = "primary";
+    const DEFAULT_NAV_PRIORITY = 40;
 
     if (config) {
       // Use custom config
@@ -344,6 +354,11 @@ export class DynamicRouteGenerator {
         label: displayLabel,
         paginate: config.paginate ?? DEFAULT_PAGINATE,
         pageSize: config.pageSize ?? DEFAULT_PAGE_SIZE,
+        navigation: {
+          show: config.navigation?.show ?? DEFAULT_NAV_SHOW,
+          slot: config.navigation?.slot ?? DEFAULT_NAV_SLOT,
+          priority: config.navigation?.priority ?? DEFAULT_NAV_PRIORITY,
+        },
       };
     }
 
@@ -354,6 +369,11 @@ export class DynamicRouteGenerator {
       label: this.capitalize(pluralName),
       paginate: DEFAULT_PAGINATE,
       pageSize: DEFAULT_PAGE_SIZE,
+      navigation: {
+        show: DEFAULT_NAV_SHOW,
+        slot: DEFAULT_NAV_SLOT,
+        priority: DEFAULT_NAV_PRIORITY,
+      },
     };
   }
 

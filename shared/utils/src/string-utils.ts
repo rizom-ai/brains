@@ -53,3 +53,17 @@ export function calculateReadingTime(content: string): number {
     .filter((word) => word.length > 0).length;
   return Math.max(1, Math.ceil(wordCount / wordsPerMinute));
 }
+
+/**
+ * Truncate text to a maximum length, ending at a word boundary
+ */
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  const truncated = text.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return lastSpace > 0
+    ? truncated.slice(0, lastSpace) + "..."
+    : truncated + "...";
+}

@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
-import { z, EntityUrlGenerator } from "@brains/utils";
+import { z, EntityUrlGenerator, truncateText } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
 
 // Schema for fetch query parameters
@@ -69,7 +69,6 @@ export class TopicsDataSource implements DataSource {
       const detailData = {
         id: entity.id,
         title: parsed.title,
-        summary: parsed.summary,
         content: parsed.content,
         keywords: parsed.keywords,
         sources,
@@ -97,10 +96,12 @@ export class TopicsDataSource implements DataSource {
     // Transform to TopicListData
     const topics = entities.map((entity) => {
       const parsed = adapter.parseTopicBody(entity.content);
+      // Derive summary from content (first 200 chars)
+      const summary = truncateText(parsed.content, 200);
       return {
         id: entity.id,
         title: parsed.title,
-        summary: parsed.summary,
+        summary,
         keywords: parsed.keywords,
         sourceCount: parsed.sources.length,
         created: entity.created,

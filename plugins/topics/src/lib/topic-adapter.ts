@@ -34,11 +34,6 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
       title,
       mappings: [
         {
-          key: "summary",
-          label: "Summary",
-          type: "string",
-        },
-        {
           key: "content",
           label: "Content",
           type: "string",
@@ -133,7 +128,6 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     } catch {
       // If parsing fails, return empty structure
       return {
-        summary: "",
         content: body,
         keywords: [],
         sources: [],
@@ -148,13 +142,11 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
    */
   public createTopicBody(params: {
     title: string;
-    summary: string;
     content: string;
     keywords: string[];
     sources: TopicSource[];
   }): string {
     const bodyData: TopicBody = {
-      summary: params.summary,
       content: params.content,
       keywords: params.keywords,
       sources: params.sources,

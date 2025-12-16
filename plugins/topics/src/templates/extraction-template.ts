@@ -45,10 +45,9 @@ EXTRACTION GUIDELINES:
 
 For each topic, provide:
 1. A focused title (max 40 chars) representing ONE concept
-2. A comprehensive summary (2-3 sentences)
-3. The main content as a single text string with key details
-4. 5-12 relevant keywords
-5. A relevance score from 0 to 1 (based on depth of discussion)
+2. Content describing the topic (1-2 paragraphs, 5-8 sentences)
+3. 5-12 relevant keywords
+4. A relevance score from 0 to 1 (based on depth of discussion)
 
 IMPORTANT: Always return a valid JSON object with a "topics" array, even if no significant topics are found. If no meaningful topics exist, return an empty array.
 
@@ -57,8 +56,7 @@ Expected JSON format:
   "topics": [
     {
       "title": "Single Focused Title",
-      "summary": "Brief overview of this specific topic area.",
-      "content": "Detailed content covering key points and details.",
+      "content": "A paragraph or two describing this topic. Include key concepts, context, and what makes this topic significant. Aim for 5-8 sentences that give a solid understanding of the topic.",
       "keywords": ["keyword1", "keyword2", "keyword3"],
       "relevanceScore": 0.8
     }

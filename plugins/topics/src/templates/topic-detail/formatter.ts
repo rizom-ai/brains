@@ -8,7 +8,6 @@ export class TopicDetailFormatter extends StructuredContentFormatter<TopicDetail
       mappings: [
         { key: "id", label: "ID", type: "string" },
         { key: "title", label: "Title", type: "string" },
-        { key: "summary", label: "Summary", type: "string" },
         { key: "content", label: "Content", type: "string" },
         {
           key: "keywords",

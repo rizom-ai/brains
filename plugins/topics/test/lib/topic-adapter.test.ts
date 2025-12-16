@@ -19,15 +19,12 @@ describe("TopicAdapter", () => {
 
       const body = adapter.createTopicBody({
         title: "Test Topic",
-        summary: "This is a test summary",
         content: "This is the main content",
         keywords: ["test", "example"],
         sources,
       });
 
       expect(body).toContain("# Test Topic");
-      expect(body).toContain("## Summary");
-      expect(body).toContain("This is a test summary");
       expect(body).toContain("## Content");
       expect(body).toContain("This is the main content");
       expect(body).toContain("## Keywords");
@@ -43,9 +40,6 @@ describe("TopicAdapter", () => {
     it("should parse structured content back to components", () => {
       const body = `# Test Topic
 
-## Summary
-This is a test summary
-
 ## Content
 This is the main content
 
@@ -60,7 +54,6 @@ This is the main content
       const parsed = adapter.parseTopicBody(body);
 
       expect(parsed.title).toBe("Test Topic");
-      expect(parsed.summary).toBe("This is a test summary");
       expect(parsed.content).toBe("This is the main content");
       expect(parsed.keywords).toEqual(["test", "example"]);
       expect(parsed.sources).toEqual([
@@ -178,16 +171,12 @@ metadata: {}
 
   describe("parseTopicBody edge cases", () => {
     it("should handle body without H1 title", () => {
-      const body = `## Summary
-Test summary
-
-## Content
+      const body = `## Content
 Test content`;
 
       const parsed = adapter.parseTopicBody(body);
 
       expect(parsed.title).toBe("Unknown Topic");
-      expect(parsed.summary).toBe("");
       expect(parsed.content).toBe(body);
     });
 
@@ -197,7 +186,6 @@ Test content`;
       const parsed = adapter.parseTopicBody(body);
 
       expect(parsed.title).toBe("Unknown Topic");
-      expect(parsed.summary).toBe("");
       expect(parsed.content).toBe(body);
       expect(parsed.keywords).toEqual([]);
       expect(parsed.sources).toEqual([]);

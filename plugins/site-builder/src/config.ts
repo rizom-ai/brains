@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
 import type { Template } from "@brains/plugins";
-import { RouteDefinitionSchema } from "./types/routes";
+import { RouteDefinitionSchema, NavigationSlots } from "./types/routes";
 import { siteInfoBodySchema } from "./services/site-info-schema";
 
 /**
@@ -32,6 +32,12 @@ export type EntityRouteConfig = Record<
     paginate?: boolean;
     /** Items per page (default: 10) */
     pageSize?: number;
+    /** Navigation settings (show, slot, priority) */
+    navigation?: {
+      show?: boolean;
+      slot?: (typeof NavigationSlots)[number];
+      priority?: number;
+    };
   }
 >;
 
@@ -99,6 +105,22 @@ export const siteBuilderConfigSchema = z.object({
           .number()
           .optional()
           .describe("Items per page (default: 10)"),
+        navigation: z
+          .object({
+            show: z.boolean().optional().describe("Show in navigation"),
+            slot: z
+              .enum(NavigationSlots)
+              .optional()
+              .describe("Navigation slot (primary or secondary)"),
+            priority: z
+              .number()
+              .min(0)
+              .max(100)
+              .optional()
+              .describe("Navigation priority (0-100)"),
+          })
+          .optional()
+          .describe("Navigation settings for this entity type"),
       }),
     )
     .optional()

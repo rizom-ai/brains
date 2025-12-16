@@ -22,7 +22,6 @@ export class TopicService {
    */
   public async createTopic(params: {
     title: string;
-    summary: string;
     content: string;
     sources: TopicSource[];
     keywords: string[];
@@ -51,7 +50,6 @@ export class TopicService {
     // Create the structured content body with the actual title
     const body = this.adapter.createTopicBody({
       title: params.title,
-      summary: params.summary,
       content: params.content,
       keywords: params.keywords,
       sources: params.sources,
@@ -101,7 +99,6 @@ export class TopicService {
   public async updateTopic(
     id: string,
     updates: {
-      summary?: string;
       content?: string;
       sources?: TopicSource[];
       keywords?: string[];
@@ -116,7 +113,6 @@ export class TopicService {
 
     // Update body sections if provided
     const title = parsed.title; // Keep the original title
-    const summary = updates.summary ?? parsed.summary;
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
 
@@ -133,7 +129,6 @@ export class TopicService {
     // Re-create the topic body using the adapter
     const newBody = this.adapter.createTopicBody({
       title,
-      summary,
       content,
       keywords,
       sources,

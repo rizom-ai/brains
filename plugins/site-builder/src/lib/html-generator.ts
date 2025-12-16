@@ -19,10 +19,11 @@ export function createHTMLShell(
 
   const themeAttr = ` data-theme="${themeMode ?? "dark"}"`;
 
-  // Theme toggle script - runs immediately to prevent flash
-  const themeScript = `
+  // Theme and UI scripts - runs immediately to prevent flash
+  const uiScript = `
     <script>
       (function() {
+        // Theme handling
         const stored = localStorage.getItem('theme');
         const theme = stored || '${themeMode ?? "dark"}';
         document.documentElement.setAttribute('data-theme', theme);
@@ -33,6 +34,31 @@ export function createHTMLShell(
           document.documentElement.setAttribute('data-theme', next);
           localStorage.setItem('theme', next);
         };
+
+        // Mobile menu handling
+        window.toggleMobileMenu = function() {
+          const menu = document.getElementById('mobile-menu');
+          const button = document.getElementById('mobile-menu-button');
+          if (!menu || !button) return;
+
+          const isOpen = !menu.classList.contains('max-h-0');
+
+          // Toggle height and opacity classes
+          menu.classList.toggle('max-h-0');
+          menu.classList.toggle('max-h-96');
+          menu.classList.toggle('opacity-0');
+          menu.classList.toggle('opacity-100');
+
+          button.setAttribute('aria-expanded', String(!isOpen));
+
+          // Toggle icon visibility
+          const menuIcon = button.querySelector('.menu-icon');
+          const closeIcon = button.querySelector('.close-icon');
+          if (menuIcon && closeIcon) {
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+          }
+        };
       })();
     </script>`;
 
@@ -40,7 +66,7 @@ export function createHTMLShell(
 <html lang="en" class="h-full"${themeAttr}>
 <head>
     ${headContent ?? defaultHead}
-    ${themeScript}
+    ${uiScript}
 </head>
 <body class="h-full font-sans">
   <div id="root" class="min-h-screen">
