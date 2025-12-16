@@ -14,8 +14,11 @@ export const topicsPluginConfigSchema = z.object({
   /**
    * Blacklist of entity types to exclude from topic extraction.
    * Only used when includeEntityTypes is empty.
+   * Default excludes singleton/system entities that don't have detail pages.
    */
-  excludeEntityTypes: z.array(z.string()).default([]),
+  excludeEntityTypes: z
+    .array(z.string())
+    .default(["base", "profile", "identity", "site-info"]),
 
   /**
    * Minimum relevance score for topic extraction
