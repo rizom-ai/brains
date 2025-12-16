@@ -40,3 +40,8 @@ expectedOutput:
       equals: "post"
     - path: "sources[0].title"
       equals: "Introduction to Machine Learning"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 3
+    minQualityScore: 4

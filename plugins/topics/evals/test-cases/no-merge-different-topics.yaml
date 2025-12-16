@@ -36,3 +36,6 @@ expectedOutput:
   validateEach:
     - path: "wouldMerge"
       equals: false
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4

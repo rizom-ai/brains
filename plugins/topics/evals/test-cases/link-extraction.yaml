@@ -36,3 +36,8 @@ expectedOutput:
   validateEach:
     - path: "sources[0].type"
       equals: "link"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 3
+    minQualityScore: 4

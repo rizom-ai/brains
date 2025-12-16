@@ -21,3 +21,8 @@ input:
 expectedOutput:
   minItems: 0
   maxItems: 1
+  # For low-quality content, we check that the system correctly identifies
+  # there's not much substance to extract - this is good judgment
+  qualityCriteria:
+    minRelevanceScore: 3
+    minAccuracyScore: 4

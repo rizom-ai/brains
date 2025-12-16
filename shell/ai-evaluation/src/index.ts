@@ -15,6 +15,9 @@ export { LLMJudge } from "./llm-judge";
 // Plugin evaluation support
 export { EvalHandlerRegistry } from "./eval-handler-registry";
 export { PluginRunner } from "./plugin-runner";
+export type { PluginRunnerOptions } from "./plugin-runner";
+export { PluginLLMJudge } from "./plugin-llm-judge";
+export type { IPluginLLMJudge } from "./plugin-llm-judge";
 export { OutputValidator } from "./output-validator";
 
 // Remote agent service for connecting to running instances

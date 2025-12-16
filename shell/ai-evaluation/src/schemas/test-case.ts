@@ -158,6 +158,18 @@ export const itemsContainSchema = z
 export type ItemsContain = z.infer<typeof itemsContainSchema>;
 
 /**
+ * Quality criteria for plugin tests (LLM-as-judge thresholds)
+ */
+export const pluginQualityCriteriaSchema = z.object({
+  minRelevanceScore: z.number().min(0).max(5).optional(),
+  minAccuracyScore: z.number().min(0).max(5).optional(),
+  minCoverageScore: z.number().min(0).max(5).optional(),
+  minQualityScore: z.number().min(0).max(5).optional(),
+});
+
+export type PluginQualityCriteria = z.infer<typeof pluginQualityCriteriaSchema>;
+
+/**
  * Expected output schema for plugin test cases
  */
 export const expectedOutputSchema = z.object({
@@ -174,6 +186,9 @@ export const expectedOutputSchema = z.object({
 
   // Structure validation - check specific paths
   validateEach: z.array(pathValidationSchema).optional(),
+
+  // Quality criteria (LLM-as-judge thresholds)
+  qualityCriteria: pluginQualityCriteriaSchema.optional(),
 });
 
 export type ExpectedOutput = z.infer<typeof expectedOutputSchema>;

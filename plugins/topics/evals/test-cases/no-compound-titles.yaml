@@ -52,3 +52,8 @@ expectedOutput:
     # No "&" or "/" as connectors (symbols need regex)
     - field: title
       pattern: "[&/]"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 3
+    minQualityScore: 4

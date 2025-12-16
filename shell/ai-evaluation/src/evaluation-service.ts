@@ -17,6 +17,7 @@ import type {
 } from "./schemas";
 import { TestRunner } from "./test-runner";
 import { LLMJudge } from "./llm-judge";
+import { PluginLLMJudge } from "./plugin-llm-judge";
 import { YAMLLoader } from "./loaders/yaml-loader";
 import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
@@ -131,9 +132,28 @@ export class EvaluationService implements IEvaluationService {
 
     // Run plugin tests
     if (pluginTestCases.length > 0) {
-      const pluginRunner = PluginRunner.createFresh(this.evalHandlerRegistry);
+      // Create plugin LLM judge if not skipped
+      const pluginLLMJudge = options.skipLLMJudge
+        ? undefined
+        : PluginLLMJudge.createFresh(
+            this.aiService,
+            options.llmJudgeSampleRate !== undefined
+              ? { sampleRate: options.llmJudgeSampleRate }
+              : undefined,
+          );
+
+      const pluginRunner = PluginRunner.createFresh(
+        this.evalHandlerRegistry,
+        pluginLLMJudge,
+      );
+
+      const runnerOptions =
+        options.skipLLMJudge !== undefined
+          ? { skipLLMJudge: options.skipLLMJudge }
+          : undefined;
+
       for (const testCase of pluginTestCases) {
-        const result = await pluginRunner.runTest(testCase);
+        const result = await pluginRunner.runTest(testCase, runnerOptions);
         results.push(result);
       }
     }

@@ -191,6 +191,7 @@ export type {
   ExpectedOutput,
   PathValidation,
   ItemsContain,
+  PluginQualityCriteria,
   SuccessCriteria,
   ExpectedToolCall,
   Turn,

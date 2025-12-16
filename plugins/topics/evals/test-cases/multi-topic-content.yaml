@@ -50,3 +50,8 @@ expectedOutput:
       words: ["and", "or"]
     - field: title
       pattern: "[&/]"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 3
+    minQualityScore: 4

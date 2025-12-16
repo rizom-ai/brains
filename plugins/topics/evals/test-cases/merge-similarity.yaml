@@ -38,3 +38,6 @@ expectedOutput:
       equals: true
     - path: "matchingTitles"
       exists: true
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
