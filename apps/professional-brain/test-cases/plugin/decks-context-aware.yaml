@@ -20,12 +20,17 @@ expectedOutput:
     minAccuracyScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate whether this generated presentation:
+      STYLE CHECKLIST (score harshly if violated):
+      - Title: Short and evocative, NOT long descriptive titles
+      - Has a clear narrative arc (not just bullet point lists)
+      - Includes quotes or cultural references where appropriate
+      - NO generic hypothetical examples ("imagine a company that...")
+
+      CONTENT EVALUATION:
       1. Demonstrates expertise in ecosystem architecture concepts
       2. Uses the living systems vs machines framing appropriately
       3. Includes practical insights, not just theory
-      4. Has a clear narrative arc (not just bullet point lists)
-      5. Feels like it could be given by someone with philosophy + tech background
+      4. Feels like it could be given by someone with philosophy + tech background
 
       The presenter (Yeehaa) describes their practice as "designing and cultivating
       organizations as if they were living systems rather than machines" and draws

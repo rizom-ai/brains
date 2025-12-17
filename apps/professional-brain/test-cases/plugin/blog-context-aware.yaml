@@ -19,7 +19,15 @@ expectedOutput:
     minAccuracyScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate whether this generated blog post:
+      STYLE CHECKLIST (score harshly if violated):
+      - Title: Short and punchy (2-4 words), NOT long SEO-style titles
+      - Opening: Starts with a quote (song lyrics or philosopher) in blockquote
+      - Length: Concise (30-80 lines), not bloated
+      - Structure: Flowing narrative, few subheadings
+      - NO "Key Takeaways" or bullet point summaries at the end
+      - NO generic hypothetical examples ("imagine a company that...")
+
+      CONTENT EVALUATION:
       1. Reflects knowledge about ecosystem architecture and organizational design
       2. Uses a thoughtful, philosophical but practical tone
       3. Draws connections between abstract concepts and concrete applications

@@ -19,7 +19,15 @@ expectedOutput:
     minAccuracyScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate whether this generated blog post:
+      STYLE CHECKLIST (score harshly if violated):
+      - Title: Short and punchy (2-4 words), NOT long SEO-style titles
+      - Opening: Starts with a quote (song lyrics or philosopher) in blockquote
+      - Length: Concise (30-80 lines), not bloated
+      - Structure: Flowing narrative, few subheadings
+      - NO "Key Takeaways" or bullet point summaries at the end
+      - NO generic hypothetical examples ("imagine a company that...")
+
+      CONTENT EVALUATION:
       1. Shows understanding of knowledge systems and how distributed teams share information
       2. Feels like it comes from someone who builds these tools (not just writes about them)
       3. Uses organic/living system metaphors rather than mechanical ones

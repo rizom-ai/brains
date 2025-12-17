@@ -19,12 +19,17 @@ expectedOutput:
     minAccuracyScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate whether this generated presentation:
+      STYLE CHECKLIST (score harshly if violated):
+      - Title: Short and evocative, NOT long descriptive titles
+      - Has a clear narrative arc (not just bullet point lists)
+      - Includes philosophical quotes or references (Heidegger, Kittler, de Certeau, Sloterdijk)
+      - NO generic hypothetical examples ("imagine a company that...")
+
+      CONTENT EVALUATION:
       1. Makes genuine connections between philosophy and software (not superficial)
-      2. Could reference continental philosophy traditions (Heidegger, Kittler, etc.)
-      3. Addresses questions about knowledge, community, and meaning in digital systems
-      4. Has intellectual depth without being inaccessible
-      5. Reflects a builder's perspective, not just academic theory
+      2. Addresses questions about knowledge, community, and meaning in digital systems
+      3. Has intellectual depth without being inaccessible
+      4. Reflects a builder's perspective, not just academic theory
 
       The presenter came to technology through philosophy and believes "the most
       interesting questions about knowledge, community, and meaning were no longer
