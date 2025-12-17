@@ -1,0 +1,49 @@
+id: blog-generate-excerpt
+name: Generate excerpt from content
+description: Tests that AI generates a concise, compelling excerpt from blog post content
+type: plugin
+tags:
+  - blog
+  - excerpt
+  - core
+plugin: blog
+handler: generateExcerpt
+
+input:
+  title: "The Art of Code Review"
+  content: |
+    Code review is one of the most valuable practices in software development.
+    It helps catch bugs early, improves code quality, and spreads knowledge
+    across the team.
+
+    ## Why Code Review Matters
+
+    When developers review each other's code, they bring fresh perspectives
+    and often spot issues that the original author missed. This collaborative
+    approach leads to better software and stronger teams.
+
+    ## Best Practices
+
+    1. Keep reviews small and focused
+    2. Be constructive, not critical
+    3. Review the code, not the person
+    4. Use automated tools for style checks
+
+    Code review is an investment that pays dividends in code quality and
+    team cohesion.
+
+expectedOutput:
+  hasFields:
+    - excerpt
+  fieldValidation:
+    - field: excerpt
+      minLength: 50
+      maxLength: 200
+  contentContains:
+    - field: excerpt
+      patterns:
+        - "[Cc]ode [Rr]eview|[Rr]eview|[Qq]uality"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

@@ -1,0 +1,33 @@
+id: blog-generate-post-series
+name: Generate blog post for series
+description: Tests that AI generates a blog post that acknowledges it's part of a series
+type: plugin
+tags:
+  - blog
+  - generation
+  - series
+plugin: blog
+handler: generatePost
+
+input:
+  prompt: "Write a blog post about functional programming concepts"
+  seriesName: "Programming Paradigms"
+
+expectedOutput:
+  hasFields:
+    - title
+    - content
+    - excerpt
+  fieldValidation:
+    - field: title
+      minLength: 10
+    - field: content
+      minLength: 200
+  contentContains:
+    - field: content
+      patterns:
+        - "[Ff]unctional|[Pp]ure [Ff]unction|[Ii]mmutab"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

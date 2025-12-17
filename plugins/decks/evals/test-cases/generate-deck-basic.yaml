@@ -1,0 +1,36 @@
+id: decks-generate-deck-basic
+name: Generate basic slide deck
+description: Tests that AI generates a complete slide deck with title, content, and description
+type: plugin
+tags:
+  - decks
+  - generation
+  - core
+plugin: decks
+handler: generateDeck
+
+input:
+  prompt: "Create a presentation about effective remote work practices"
+
+expectedOutput:
+  hasFields:
+    - title
+    - content
+    - description
+  fieldValidation:
+    - field: title
+      minLength: 10
+      maxLength: 100
+    - field: content
+      minLength: 200
+    - field: description
+      minLength: 30
+      maxLength: 200
+  contentContains:
+    - field: content
+      patterns:
+        - "---"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

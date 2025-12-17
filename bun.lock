@@ -168,11 +168,13 @@
       "name": "@brains/blog",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/ai-evaluation": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/profile-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
+        "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
@@ -185,10 +187,12 @@
       "name": "@brains/decks",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/ai-evaluation": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
+        "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",

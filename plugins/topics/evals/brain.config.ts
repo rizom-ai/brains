@@ -1,8 +1,7 @@
-#!/usr/bin/env bun
 /**
  * Minimal brain config for running topics plugin evals
  */
-import { defineConfig, handleCLI } from "@brains/app";
+import { defineConfig } from "@brains/app";
 import TopicsPlugin from "../src";
 
 const config = defineConfig({
@@ -13,9 +12,5 @@ const config = defineConfig({
 
   plugins: [new TopicsPlugin({})],
 });
-
-if (import.meta.main) {
-  handleCLI(config);
-}
 
 export default config;

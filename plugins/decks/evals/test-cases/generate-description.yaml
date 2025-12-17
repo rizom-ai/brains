@@ -1,0 +1,63 @@
+id: decks-generate-description
+name: Generate description from deck content
+description: Tests that AI generates a concise description from slide deck content
+type: plugin
+tags:
+  - decks
+  - description
+  - core
+plugin: decks
+handler: generateDescription
+
+input:
+  title: "Building Resilient Systems"
+  content: |
+    # Building Resilient Systems
+
+    ---
+
+    ## What is Resilience?
+
+    - Ability to recover from failures
+    - Graceful degradation under load
+    - Self-healing capabilities
+
+    ---
+
+    ## Key Patterns
+
+    - Circuit breakers
+    - Retry with exponential backoff
+    - Bulkhead isolation
+
+    ---
+
+    ## Monitoring
+
+    - Health checks
+    - Distributed tracing
+    - Alert thresholds
+
+    ---
+
+    ## Conclusion
+
+    - Design for failure
+    - Test failure scenarios
+    - Monitor continuously
+
+expectedOutput:
+  hasFields:
+    - description
+  fieldValidation:
+    - field: description
+      minLength: 30
+      maxLength: 200
+  contentContains:
+    - field: description
+      patterns:
+        - "[Rr]esilien|[Ss]ystem|[Ff]ailure|[Rr]ecover"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

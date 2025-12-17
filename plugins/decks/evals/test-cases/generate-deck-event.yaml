@@ -1,0 +1,34 @@
+id: decks-generate-deck-event
+name: Generate slide deck for specific event
+description: Tests that AI generates a presentation tailored for a specific event context
+type: plugin
+tags:
+  - decks
+  - generation
+  - event
+plugin: decks
+handler: generateDeck
+
+input:
+  prompt: "Create a presentation about API design best practices"
+  event: "Developer Conference 2025"
+
+expectedOutput:
+  hasFields:
+    - title
+    - content
+    - description
+  fieldValidation:
+    - field: title
+      minLength: 10
+    - field: content
+      minLength: 200
+  contentContains:
+    - field: content
+      patterns:
+        - "---"
+        - "[Aa][Pp][Ii]|REST|endpoint"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

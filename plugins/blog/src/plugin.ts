@@ -177,9 +177,54 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       },
     );
 
+    // Register eval handlers for AI testing
+    this.registerEvalHandlers(context);
+
     this.logger.info(
       "Blog plugin registered successfully (routes auto-generated at /posts/)",
     );
+  }
+
+  /**
+   * Register eval handlers for plugin testing
+   */
+  private registerEvalHandlers(context: ServicePluginContext): void {
+    // Generate full blog post (title, content, excerpt) from prompt
+    const generatePostInputSchema = z.object({
+      prompt: z.string(),
+      seriesName: z.string().optional(),
+    });
+
+    context.registerEvalHandler("generatePost", async (input: unknown) => {
+      const parsed = generatePostInputSchema.parse(input);
+      const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
+
+      return context.generateContent<{
+        title: string;
+        content: string;
+        excerpt: string;
+      }>({
+        prompt: generationPrompt,
+        templateName: "blog:generation",
+      });
+    });
+
+    // Generate excerpt from title + content
+    const generateExcerptInputSchema = z.object({
+      title: z.string(),
+      content: z.string(),
+    });
+
+    context.registerEvalHandler("generateExcerpt", async (input: unknown) => {
+      const parsed = generateExcerptInputSchema.parse(input);
+
+      return context.generateContent<{
+        excerpt: string;
+      }>({
+        prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+        templateName: "blog:excerpt",
+      });
+    });
   }
 
   /**

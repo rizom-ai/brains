@@ -1,0 +1,32 @@
+id: blog-generate-post-basic
+name: Generate basic blog post
+description: Tests that AI generates a complete blog post with title, content, and excerpt
+type: plugin
+tags:
+  - blog
+  - generation
+  - core
+plugin: blog
+handler: generatePost
+
+input:
+  prompt: "Write a blog post about the benefits of learning in public"
+
+expectedOutput:
+  hasFields:
+    - title
+    - content
+    - excerpt
+  fieldValidation:
+    - field: title
+      minLength: 10
+      maxLength: 100
+    - field: content
+      minLength: 200
+    - field: excerpt
+      minLength: 50
+      maxLength: 200
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

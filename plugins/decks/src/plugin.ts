@@ -56,7 +56,55 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     );
     context.registerJobHandler("generation", deckGenerationHandler);
 
+    // Register eval handlers for AI testing
+    this.registerEvalHandlers(context);
+
     this.logger.info("Decks plugin registered successfully");
+  }
+
+  /**
+   * Register eval handlers for plugin testing
+   */
+  private registerEvalHandlers(context: ServicePluginContext): void {
+    // Generate full slide deck (title, content, description) from prompt
+    const generateDeckInputSchema = z.object({
+      prompt: z.string(),
+      event: z.string().optional(),
+    });
+
+    context.registerEvalHandler("generateDeck", async (input: unknown) => {
+      const parsed = generateDeckInputSchema.parse(input);
+      const generationPrompt = `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`;
+
+      return context.generateContent<{
+        title: string;
+        content: string;
+        description: string;
+      }>({
+        prompt: generationPrompt,
+        templateName: "decks:generation",
+      });
+    });
+
+    // Generate description from title + content
+    const generateDescriptionInputSchema = z.object({
+      title: z.string(),
+      content: z.string(),
+    });
+
+    context.registerEvalHandler(
+      "generateDescription",
+      async (input: unknown) => {
+        const parsed = generateDescriptionInputSchema.parse(input);
+
+        return context.generateContent<{
+          description: string;
+        }>({
+          prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
+          templateName: "decks:description",
+        });
+      },
+    );
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
