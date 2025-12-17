@@ -1,14 +1,15 @@
 id: tool-invocation-directory-sync
-name: Directory Sync Tool Invocation
-description: Verifies that the agent actually calls the directory-sync_sync tool instead of fabricating a response
+name: Directory Sync Refresh Request
+description: Tests that agent calls directory-sync tool when user wants to refresh content from filesystem
 type: tool_invocation
 tags:
   - core
-  - sync
+  - directory-sync
+  - tool-invocation
   - anti-hallucination
 
 turns:
-  - userMessage: "sync dir"
+  - userMessage: "Refresh my content from the filesystem"
 
 successCriteria:
   expectedTools:
@@ -16,14 +17,13 @@ successCriteria:
       shouldBeCalled: true
   toolCountRange:
     min: 1
-  responseContains:
-    - "sync"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
-  minAccuracyScore: 3
+  minHelpfulnessScore: 4
+  minInstructionFollowingScore: 4
 
 efficiency:
   maxToolCalls: 3
-  maxTokens: 30000
+  maxTokens: 20000

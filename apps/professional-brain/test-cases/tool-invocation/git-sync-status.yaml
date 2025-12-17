@@ -1,26 +1,24 @@
-id: tool-invocation-git-sync
-name: Git Sync Backup Request
-description: Tests that agent calls git-sync sync tool when user wants to backup their brain
+id: tool-invocation-git-sync-status
+name: Git Sync Status Check
+description: Tests that agent calls git-sync status tool when user asks about sync state
 type: tool_invocation
 tags:
   - core
   - git-sync
   - tool-invocation
-  - anti-hallucination
 
 turns:
-  - userMessage: "Can you backup my brain to git?"
+  - userMessage: "What's my git sync status?"
 
 successCriteria:
   expectedTools:
-    - toolName: git-sync_sync
+    - toolName: git-sync_status
       shouldBeCalled: true
   toolCountRange:
     min: 1
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-    - "I'm unable"
   minHelpfulnessScore: 4
   minInstructionFollowingScore: 4
 

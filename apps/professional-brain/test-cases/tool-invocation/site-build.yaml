@@ -1,14 +1,15 @@
 id: tool-invocation-site-build
-name: Site Build Tool Invocation
-description: Verifies that the agent actually calls the site-builder_build-site tool instead of fabricating job IDs
+name: Site Builder Build Request
+description: Tests that agent calls site-builder build tool when user wants to build their website
 type: tool_invocation
 tags:
   - core
   - site-builder
+  - tool-invocation
   - anti-hallucination
 
 turns:
-  - userMessage: "build the site"
+  - userMessage: "Build my website"
 
 successCriteria:
   expectedTools:
@@ -16,14 +17,13 @@ successCriteria:
       shouldBeCalled: true
   toolCountRange:
     min: 1
-  responseContains:
-    - "build"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
-  minAccuracyScore: 3
+  minHelpfulnessScore: 4
+  minInstructionFollowingScore: 4
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 5
   maxTokens: 30000

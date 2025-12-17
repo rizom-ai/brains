@@ -236,10 +236,13 @@ See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
 17. **Professional brain** - Full setup with about page, rich profile, homepage redesign
 18. **Optional preview environment** - Deploy directly to production without preview
 19. **Deployment config consolidation** - Single brain.config.ts for all deployment settings
+20. **Interface Plugins v2** - Agent-based architecture replacing commands with AI tool use
+21. **AI evaluation infrastructure** - LLM-as-judge for plugin tests, proactive search behavior evals
+22. **Navigation improvements** - EntityRouteConfig nav settings, mobile hamburger menu
 
 ### 🚧 Next Priorities
 
-1. **Interface Plugins v2** - Agent-based architecture replacing commands with AI tool use (see `docs/plans/interface-plugins-v2.md`)
+1. **Plugin evals expansion** - Add AI evaluation tests to git-sync, site-builder, and directory-sync plugins
 2. **Roadmap plugin** - Outcome-based goal tracking with milestones and evidence linking (see `docs/plans/roadmap-plugin.md`)
 
 ## Code Quality Checklist
