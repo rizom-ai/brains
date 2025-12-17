@@ -239,11 +239,11 @@ See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
 20. **Interface Plugins v2** - Agent-based architecture replacing commands with AI tool use
 21. **AI evaluation infrastructure** - LLM-as-judge for plugin tests, proactive search behavior evals
 22. **Navigation improvements** - EntityRouteConfig nav settings, mobile hamburger menu
+23. **Plugin evals expansion** - Tool invocation evals for git-sync/site-builder/directory-sync, AI output evals for blog/decks
 
 ### 🚧 Next Priorities
 
-1. **Plugin evals expansion** - Add AI evaluation tests to git-sync, site-builder, and directory-sync plugins
-2. **Roadmap plugin** - Outcome-based goal tracking with milestones and evidence linking (see `docs/plans/roadmap-plugin.md`)
+1. **Roadmap plugin** - Outcome-based goal tracking with milestones and evidence linking (see `docs/plans/roadmap-plugin.md`)
 
 ## Code Quality Checklist
 
