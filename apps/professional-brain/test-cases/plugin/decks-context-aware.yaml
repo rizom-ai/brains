@@ -1,0 +1,32 @@
+id: plugin-decks-context-aware
+name: Deck generation uses brain context and style
+description: Tests that deck generation incorporates brain knowledge and matches voice/style
+type: plugin
+tags:
+  - decks
+  - generation
+  - context-aware
+  - style
+plugin: decks
+handler: generateDeck
+
+input:
+  prompt: "Create a presentation about ecosystem architecture for a tech conference"
+  event: "Tech Conference"
+
+expectedOutput:
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate whether this generated presentation:
+      1. Demonstrates expertise in ecosystem architecture concepts
+      2. Uses the living systems vs machines framing appropriately
+      3. Includes practical insights, not just theory
+      4. Has a clear narrative arc (not just bullet point lists)
+      5. Feels like it could be given by someone with philosophy + tech background
+
+      The presenter (Yeehaa) describes their practice as "designing and cultivating
+      organizations as if they were living systems rather than machines" and draws
+      on Afrofuturism, Shanzhai culture, DAOs, and mesh networks.

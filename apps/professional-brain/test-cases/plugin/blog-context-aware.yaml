@@ -1,0 +1,30 @@
+id: plugin-blog-context-aware
+name: Blog generation uses brain context and style
+description: Tests that blog generation incorporates brain knowledge and matches voice/style
+type: plugin
+tags:
+  - blog
+  - generation
+  - context-aware
+  - style
+plugin: blog
+handler: generatePost
+
+input:
+  prompt: "Write a blog post about why organizations should think more like ecosystems"
+
+expectedOutput:
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate whether this generated blog post:
+      1. Reflects knowledge about ecosystem architecture and organizational design
+      2. Uses a thoughtful, philosophical but practical tone
+      3. Draws connections between abstract concepts and concrete applications
+      4. Avoids generic corporate-speak - should feel personal and intellectually engaged
+      5. References or builds on concepts like living systems, decentralization, or knowledge infrastructure
+
+      The author (Yeehaa) has a background in philosophy and builds tools for knowledge management.
+      The content should feel authentic to someone exploring "the intersection of technology, culture, and organizational design."

@@ -98,6 +98,10 @@ export class PluginLLMJudge implements IPluginLLMJudge {
     const inputText = this.formatInput(testCase.input);
     const outputText = this.formatOutput(output);
 
+    // Check for custom evaluation prompt in quality criteria
+    const customEvalPrompt =
+      testCase.expectedOutput?.qualityCriteria?.evaluationPrompt;
+
     const userPrompt = `Please evaluate the following plugin output:
 
 ## Plugin Test Case
@@ -111,6 +115,7 @@ ${inputText}
 
 ## Output
 ${outputText}
+${customEvalPrompt ? `\n## Additional Evaluation Criteria\n${customEvalPrompt}` : ""}
 
 Provide your evaluation scores and reasoning.`;
 

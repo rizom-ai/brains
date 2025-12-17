@@ -1,0 +1,31 @@
+id: plugin-blog-rizom-context
+name: Blog generation reflects Rizom project context
+description: Tests that blog generation about knowledge tools reflects the brain's Rizom context
+type: plugin
+tags:
+  - blog
+  - generation
+  - context-aware
+  - rizom
+plugin: blog
+handler: generatePost
+
+input:
+  prompt: "Write a post about building knowledge infrastructure for distributed teams"
+
+expectedOutput:
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate whether this generated blog post:
+      1. Shows understanding of knowledge systems and how distributed teams share information
+      2. Feels like it comes from someone who builds these tools (not just writes about them)
+      3. Uses organic/living system metaphors rather than mechanical ones
+      4. Has a first-person, builder's perspective ("I've found that..." or "When building...")
+      5. Avoids buzzword-heavy startup language - should be substantive
+
+      The author builds Rizom (knowledge infrastructure for organizations) and has
+      previously built Offcourse (open source learning platform). Content should
+      reflect practical experience with these challenges.

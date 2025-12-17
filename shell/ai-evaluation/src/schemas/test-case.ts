@@ -165,6 +165,8 @@ export const pluginQualityCriteriaSchema = z.object({
   minAccuracyScore: z.number().min(0).max(5).optional(),
   minCoverageScore: z.number().min(0).max(5).optional(),
   minQualityScore: z.number().min(0).max(5).optional(),
+  // Custom evaluation prompt for context-aware and style checks
+  evaluationPrompt: z.string().optional(),
 });
 
 export type PluginQualityCriteria = z.infer<typeof pluginQualityCriteriaSchema>;
@@ -173,18 +175,18 @@ export type PluginQualityCriteria = z.infer<typeof pluginQualityCriteriaSchema>;
  * Expected output schema for plugin test cases
  */
 export const expectedOutputSchema = z.object({
-  // Count validation
+  // Array count validation
   minItems: z.number().optional(),
   maxItems: z.number().optional(),
   exactItems: z.number().optional(),
 
-  // Content validation - check if any item matches
+  // Array content validation - check if any item matches
   itemsContain: z.array(itemsContainSchema).optional(),
 
-  // Content validation - check that NO item matches (negative assertion)
+  // Array content validation - check that NO item matches (negative assertion)
   itemsNotContain: z.array(itemsContainSchema).optional(),
 
-  // Structure validation - check specific paths
+  // Array structure validation - check specific paths
   validateEach: z.array(pathValidationSchema).optional(),
 
   // Quality criteria (LLM-as-judge thresholds)
