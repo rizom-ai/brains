@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { ProfileAdapter } from "../src/adapter";
 import type { ProfileEntity } from "../src/schema";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 
 describe("ProfileAdapter", () => {
   let adapter: ProfileAdapter;
@@ -13,11 +13,13 @@ describe("ProfileAdapter", () => {
   describe("schema", () => {
     it("should have valid profile schema", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const validProfile = {
         id: "profile",
         entityType: "profile",
-        content: "", // BaseEntity requires content field
+        content, // BaseEntity requires content field
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -28,11 +30,13 @@ describe("ProfileAdapter", () => {
 
     it("should reject invalid profile entity type", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const invalidProfile = {
         id: "profile",
         entityType: "other", // Wrong type
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -43,11 +47,13 @@ describe("ProfileAdapter", () => {
 
     it("should reject invalid profile ID", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const invalidProfile = {
         id: "wrong:id", // Must be "profile"
         entityType: "profile",
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -78,6 +84,7 @@ describe("ProfileAdapter", () => {
         id: "profile",
         entityType: "profile",
         content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -110,6 +117,7 @@ describe("ProfileAdapter", () => {
         id: "profile",
         entityType: "profile",
         content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -250,6 +258,7 @@ Open-source collective building privacy-first tools`;
         id: "profile",
         entityType: "profile",
         content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -271,6 +280,7 @@ Open-source collective building privacy-first tools`;
         id: "profile",
         entityType: "profile",
         content: "",
+        contentHash: computeContentHash(""),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},

@@ -18,6 +18,7 @@ import {
   type ConversationDigestPayload,
 } from "@brains/plugins/test";
 import type { SummaryEntity } from "../../src/schemas/summary";
+import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 describe("DigestHandler", () => {
   let handler: DigestHandler;
@@ -162,9 +163,8 @@ describe("DigestHandler", () => {
       });
 
       // Mock existing summary with simplified format
-      const existingSummary: SummaryEntity = {
+      const existingSummary = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content: `# Conversation Summary: conv-123
 
 ## Metadata
@@ -181,8 +181,6 @@ User asked about project setup
 ---
 
 `,
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -191,7 +189,7 @@ User asked about project setup
           entryCount: 1,
           totalMessages: 50,
         },
-      };
+      });
 
       spyOn(context.entityService, "getEntity").mockResolvedValue(
         existingSummary,
@@ -276,9 +274,8 @@ User asked about project setup
         ],
       });
 
-      const existingSummary: SummaryEntity = {
+      const existingSummary = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content: `# Conversation Summary: conv-123
 
 ## Metadata
@@ -297,8 +294,6 @@ Window End: 50
 ---
 
 `,
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -307,7 +302,7 @@ Window End: 50
           entryCount: 1,
           totalMessages: 50,
         },
-      };
+      });
 
       spyOn(context.entityService, "getEntity").mockResolvedValue(
         existingSummary,
@@ -465,12 +460,9 @@ Window End: 50
         windowEnd: 75,
       });
 
-      const existingSummary: SummaryEntity = {
+      const existingSummary = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content: "# Conversation Summary: conv-123\n\nExisting content",
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -479,7 +471,7 @@ Window End: 50
           entryCount: 2,
           totalMessages: 50,
         },
-      };
+      });
 
       spyOn(context.entityService, "getEntity").mockResolvedValue(
         existingSummary,

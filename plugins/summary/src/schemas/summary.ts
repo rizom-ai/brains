@@ -47,6 +47,7 @@ export const summarySchema = z.object({
   id: z.string(), // Format: summary-{conversationId}
   entityType: z.literal("summary"),
   content: z.string(), // Structured markdown with log entries
+  contentHash: z.string(), // SHA256 hash of content for change detection
   created: z.string().datetime(),
   updated: z.string().datetime(),
   metadata: summaryMetadataSchema,

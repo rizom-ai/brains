@@ -2,7 +2,7 @@ import type { Logger, IEntityService, SearchResult } from "@brains/plugins";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata, TopicSource } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
-import { generateIdFromText } from "@brains/utils";
+import { generateIdFromText, computeContentHash } from "@brains/utils";
 
 /**
  * Service for managing topics
@@ -69,6 +69,7 @@ export class TopicService {
         id: entityId,
         entityType: "topic",
         content: body,
+        contentHash: computeContentHash(body),
         metadata,
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -147,6 +148,7 @@ export class TopicService {
       ...existing,
       id: entityId,
       content: newBody,
+      contentHash: computeContentHash(newBody),
       metadata,
       updated: new Date().toISOString(),
     };

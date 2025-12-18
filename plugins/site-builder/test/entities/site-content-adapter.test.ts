@@ -1,23 +1,19 @@
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils";
 import { siteContentAdapter } from "../../src/entities/site-content-adapter";
-import type { SiteContent } from "../../src/types";
+import { createMockSiteContent } from "../fixtures/site-entities";
 
 describe("SiteContentAdapter", () => {
   const adapter = siteContentAdapter;
 
   describe("toMarkdown", () => {
     it("should include routeId and sectionId in frontmatter", () => {
-      const entity: SiteContent = {
+      const entity = createMockSiteContent({
         id: "test-id",
-        entityType: "site-content",
         content: "# Test Content\n\nThis is test content.",
         routeId: "landing",
         sectionId: "hero",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -29,9 +25,8 @@ describe("SiteContentAdapter", () => {
     });
 
     it("should handle content that already has frontmatter", () => {
-      const entity: SiteContent = {
+      const entity = createMockSiteContent({
         id: "test-id",
-        entityType: "site-content",
         content: `---
 title: Existing Title
 author: John Doe
@@ -42,10 +37,7 @@ author: John Doe
 This content already had frontmatter.`,
         routeId: "about",
         sectionId: "main",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -56,16 +48,12 @@ This content already had frontmatter.`,
     });
 
     it("should handle content without frontmatter", () => {
-      const entity: SiteContent = {
+      const entity = createMockSiteContent({
         id: "test-id",
-        entityType: "site-content",
         content: "Plain text content without frontmatter",
         routeId: "contact",
         sectionId: "form",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -107,16 +95,12 @@ title: Some Title
 
   describe("extractMetadata", () => {
     it("should return empty metadata (site-content doesn't use metadata)", () => {
-      const entity: SiteContent = {
+      const entity = createMockSiteContent({
         id: "test-id",
-        entityType: "site-content",
         content: "Content",
         routeId: "products",
         sectionId: "list",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
 
@@ -152,16 +136,12 @@ customField: value
 
   describe("generateFrontMatter", () => {
     it("should generate frontmatter string for entity", () => {
-      const entity: SiteContent = {
+      const entity = createMockSiteContent({
         id: "test-id",
-        entityType: "site-content",
         content: "Content",
         routeId: "blog",
         sectionId: "posts",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const frontmatter = adapter.generateFrontMatter(entity);
 
@@ -178,16 +158,12 @@ customField: value
     });
 
     it("should have correct schema", () => {
-      const entity: SiteContent = {
+      const entity = createMockSiteContent({
         id: "test-id",
-        entityType: "site-content",
         content: "Test content",
         routeId: "test-route",
         sectionId: "test-section",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const result = adapter.schema.safeParse(entity);
       expect(result.success).toBe(true);

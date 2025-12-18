@@ -21,6 +21,9 @@ export const deckSchema = z.object({
   id: z.string(),
   entityType: z.literal("deck"),
   content: z.string().describe("Markdown content with slide separators (---)"),
+  contentHash: z
+    .string()
+    .describe("SHA256 hash of content for change detection"),
   created: z.string().datetime(),
   updated: z.string().datetime(),
   metadata: deckMetadataSchema,

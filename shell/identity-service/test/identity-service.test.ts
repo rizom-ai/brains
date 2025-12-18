@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { IdentityService } from "../src/identity-service";
 import type { IEntityService } from "@brains/entity-service";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, computeContentHash } from "@brains/utils";
 import type { IdentityEntity } from "../src/schema";
 
 describe("IdentityService", () => {
@@ -62,10 +62,7 @@ describe("IdentityService", () => {
 
     it("should parse and return identity from cache when entity exists", async () => {
       // Create a mock entity with content
-      const mockEntity: IdentityEntity = {
-        id: "identity",
-        entityType: "identity",
-        content: `# Brain Identity
+      const mockContent = `# Brain Identity
 
 ## Name
 Research Brain
@@ -79,7 +76,12 @@ Help with academic research
 ## Values
 
 - rigor
-- accuracy`,
+- accuracy`;
+      const mockEntity: IdentityEntity = {
+        id: "identity",
+        entityType: "identity",
+        content: mockContent,
+        contentHash: computeContentHash(mockContent),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -127,10 +129,7 @@ Help with academic research
 
     it("should not create entity when one already exists", async () => {
       // Mock behavior: existing entity with valid content
-      const mockEntity: IdentityEntity = {
-        id: "identity",
-        entityType: "identity",
-        content: `# Brain Identity
+      const existingContent = `# Brain Identity
 
 ## Name
 Existing Brain
@@ -143,7 +142,12 @@ Existing purpose
 
 ## Values
 
-- existing value`,
+- existing value`;
+      const mockEntity: IdentityEntity = {
+        id: "identity",
+        entityType: "identity",
+        content: existingContent,
+        contentHash: computeContentHash(existingContent),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -174,10 +178,12 @@ Existing purpose
   describe("refreshCache", () => {
     it("should reload identity from database", async () => {
       // Mock behavior: return test entity
+      const testContent = "test content";
       mockGetEntityImpl = async (): Promise<IdentityEntity> => ({
         id: "identity",
         entityType: "identity",
-        content: "test content",
+        content: testContent,
+        contentHash: computeContentHash(testContent),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},

@@ -1,0 +1,1 @@
+ALTER TABLE `entities` ADD `contentHash` text NOT NULL;

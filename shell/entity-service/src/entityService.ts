@@ -7,8 +7,18 @@ import {
 } from "./db";
 import type { EntityDbConfig } from "./types";
 import { EntityRegistry } from "./entityRegistry";
-import { Logger, extractIndexedFields, createId } from "@brains/utils";
-import type { BaseEntity, SearchResult, EmbeddingJobData } from "./types";
+import {
+  Logger,
+  extractIndexedFields,
+  createId,
+  computeContentHash,
+} from "@brains/utils";
+import type {
+  BaseEntity,
+  SearchResult,
+  EmbeddingJobData,
+  EntityInput,
+} from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { SearchOptions, EntityService as IEntityService } from "./types";
 import type { IJobQueueService } from "@brains/job-queue";
@@ -150,24 +160,21 @@ export class EntityService implements IEntityService {
    * Create a new entity (returns immediately, embedding generated in background)
    */
   public async createEntity<T extends BaseEntity>(
-    entity: Omit<T, "id" | "created" | "updated"> & {
-      id?: string;
-      created?: string;
-      updated?: string;
-    },
+    entity: EntityInput<T>,
     options?: { priority?: number; maxRetries?: number },
   ): Promise<{ entityId: string; jobId: string }> {
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
 
-    // Generate ID and timestamps if not provided
+    // Generate ID, timestamps, and contentHash if not provided
     const now = new Date().toISOString();
     const entityWithDefaults = {
       ...entity,
       id: entity.id ?? createId(),
       created: entity.created ?? now,
       updated: entity.updated ?? now,
+      contentHash: computeContentHash(entity.content),
     };
 
     // Validate entity against its schema
@@ -258,10 +265,11 @@ export class EntityService implements IEntityService {
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
 
-    // Update 'updated' timestamp
+    // Update 'updated' timestamp and recompute contentHash
     const updatedEntity = {
       ...entity,
       updated: new Date().toISOString(),
+      contentHash: computeContentHash(entity.content),
     };
 
     // Validate entity against its schema
@@ -495,12 +503,16 @@ export class EntityService implements IEntityService {
   }): Promise<void> {
     const { entities } = await import("./schema/entities");
 
+    // Compute content hash for change detection
+    const contentHash = computeContentHash(data.content);
+
     await this.db
       .insert(entities)
       .values({
         id: data.id,
         entityType: data.entityType,
         content: data.content,
+        contentHash,
         metadata: data.metadata,
         created: data.created,
         updated: data.updated,
@@ -511,6 +523,7 @@ export class EntityService implements IEntityService {
         target: [entities.id, entities.entityType],
         set: {
           content: data.content,
+          contentHash,
           metadata: data.metadata,
           updated: data.updated,
           contentWeight: data.contentWeight,

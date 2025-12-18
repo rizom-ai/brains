@@ -3,6 +3,7 @@
  */
 
 import type { LinkEntity } from "../../src";
+import { computeContentHash } from "@brains/utils";
 
 export const mockLinkContent = {
   simple: `# Test Article
@@ -92,10 +93,29 @@ export const mockLinkEntity = (
   id: "link-1",
   entityType: "link" as const,
   content,
+  contentHash: computeContentHash(content),
   metadata: {},
   created: "2025-01-30T10:00:00.000Z",
   updated: "2025-01-30T10:00:00.000Z",
 });
+
+/**
+ * Create a mock LinkEntity with custom overrides
+ */
+export function createMockLinkEntity(
+  overrides: Partial<Omit<LinkEntity, "contentHash">> & { content: string },
+): LinkEntity {
+  const content = overrides.content;
+  return {
+    id: overrides.id ?? "test-link",
+    entityType: "link",
+    content,
+    contentHash: computeContentHash(content),
+    created: overrides.created ?? "2025-01-30T10:00:00.000Z",
+    updated: overrides.updated ?? "2025-01-30T10:00:00.000Z",
+    metadata: overrides.metadata ?? {},
+  };
+}
 
 export const mockAIResponse = {
   complete: {

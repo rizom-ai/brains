@@ -5,6 +5,7 @@ import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { BaseDataSourceContext } from "@brains/datasource";
 import { z } from "zod";
+import { computeContentHash } from "@brains/utils";
 
 describe("RSSDataSource", () => {
   const createMockEntityService = (posts: BlogPost[]): IEntityService =>
@@ -24,12 +25,19 @@ describe("RSSDataSource", () => {
     environment: "test",
   };
 
+  const post1Content =
+    "---\ntitle: First Post\nslug: first-post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1";
+  const post2Content =
+    "---\ntitle: Second Post\nslug: second-post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2";
+  const draftContent =
+    "---\ntitle: Draft Post\nslug: draft-post\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft content";
+
   const samplePosts: BlogPost[] = [
     {
       id: "post-1",
       entityType: "post",
-      content:
-        "---\ntitle: First Post\nslug: first-post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1",
+      content: post1Content,
+      contentHash: computeContentHash(post1Content),
       created: "2025-01-01T10:00:00.000Z",
       updated: "2025-01-01T10:00:00.000Z",
       metadata: {
@@ -42,8 +50,8 @@ describe("RSSDataSource", () => {
     {
       id: "post-2",
       entityType: "post",
-      content:
-        "---\ntitle: Second Post\nslug: second-post\nexcerpt: Excerpt 2\nauthor: Jane\nstatus: published\npublishedAt: 2025-01-10T10:00:00.000Z\n---\nContent 2",
+      content: post2Content,
+      contentHash: computeContentHash(post2Content),
       created: "2025-01-02T10:00:00.000Z",
       updated: "2025-01-02T10:00:00.000Z",
       metadata: {
@@ -56,8 +64,8 @@ describe("RSSDataSource", () => {
     {
       id: "draft-post",
       entityType: "post",
-      content:
-        "---\ntitle: Draft Post\nslug: draft-post\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft content",
+      content: draftContent,
+      contentHash: computeContentHash(draftContent),
       created: "2025-01-03T10:00:00.000Z",
       updated: "2025-01-03T10:00:00.000Z",
       metadata: {

@@ -8,6 +8,13 @@
       "when": 1754540975756,
       "tag": "0000_chunky_mac_gargan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1765992444602,
+      "tag": "0001_wonderful_wild_pack",
+      "breakpoints": true
     }
   ]
 }

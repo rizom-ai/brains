@@ -5,7 +5,7 @@ import {
   type PluginResource,
   type BaseEntity,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -199,6 +199,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       id: `eval${idSuffix}-${Date.now()}`,
       entityType: input.entityType,
       content: input.content,
+      contentHash: computeContentHash(input.content),
       metadata: input.metadata ?? {},
       created: new Date().toISOString(),
       updated: new Date().toISOString(),

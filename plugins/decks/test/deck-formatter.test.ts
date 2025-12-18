@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { DeckFormatter } from "../src/formatters/deck-formatter";
-import type { DeckEntity } from "../src/schemas/deck";
+import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckFormatter", () => {
   let formatter: DeckFormatter;
@@ -13,20 +13,16 @@ describe("DeckFormatter", () => {
     it("should have a valid zod schema", () => {
       const schema = formatter.schema;
 
-      const validDeck: DeckEntity = {
+      const validDeck = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Presentation",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           slug: "test-presentation",
           title: "Test Presentation",
           status: "draft",
         },
-      };
+      });
 
       expect(() => schema.parse(validDeck)).not.toThrow();
     });
@@ -50,22 +46,19 @@ describe("DeckFormatter", () => {
 
   describe("toMarkdown", () => {
     it("should generate markdown with frontmatter", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Welcome\n\nIntro slide\n\n---\n\n# Main Content",
         title: "Test Presentation",
         description: "A test presentation",
         author: "Jane Developer",
         status: "published",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           slug: "test-deck",
           title: "Test Deck",
           status: "published",
         },
-      };
+      });
 
       const markdown = formatter.toMarkdown(entity);
 
@@ -79,16 +72,11 @@ describe("DeckFormatter", () => {
     });
 
     it("should throw error if content has no slide separators", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Just one slide without separators",
         title: "Invalid Deck",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       expect(() => formatter.toMarkdown(entity)).toThrow(
         "Invalid deck: markdown must contain slide separators (---)",
@@ -96,17 +84,12 @@ describe("DeckFormatter", () => {
     });
 
     it("should include optional fields when present", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Optional description",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       const markdown = formatter.toMarkdown(entity);
 
@@ -177,22 +160,19 @@ title: Minimal Deck
 
   describe("extractMetadata", () => {
     it("should extract deck metadata", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Test description",
         author: "Test Author",
         status: "published",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           slug: "test-deck",
           title: "Test Deck",
           status: "published",
         },
-      };
+      });
 
       const metadata = formatter.extractMetadata(entity);
 
@@ -203,16 +183,11 @@ title: Minimal Deck
     });
 
     it("should handle missing optional metadata", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       const metadata = formatter.extractMetadata(entity);
 
@@ -224,16 +199,11 @@ title: Minimal Deck
 
   describe("generateTitle", () => {
     it("should return entity title", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "My Presentation",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       const title = formatter.generateTitle(entity);
 
@@ -243,17 +213,12 @@ title: Minimal Deck
 
   describe("generateSummary", () => {
     it("should return description when available", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "This is a test presentation",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       const summary = formatter.generateSummary(entity);
 
@@ -261,16 +226,11 @@ title: Minimal Deck
     });
 
     it("should return fallback when no description", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       const summary = formatter.generateSummary(entity);
 
@@ -346,17 +306,12 @@ description: Test description
 
   describe("generateFrontMatter", () => {
     it("should generate frontmatter for entity", () => {
-      const entity: DeckEntity = {
+      const entity = createMockDeckEntity({
         id: "test-deck",
-        entityType: "deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Test description",
-        status: "draft",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
-      };
+      });
 
       const result = formatter.generateFrontMatter(entity);
 

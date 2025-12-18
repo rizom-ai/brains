@@ -3,6 +3,8 @@ import type { BlogPlugin } from "../src/index";
 import { blogPlugin } from "../src/index";
 import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
+import { createMockBlogPost } from "./fixtures/blog-entities";
+import { computeContentHash } from "@brains/utils";
 
 describe("BlogPlugin", () => {
   let plugin: BlogPlugin;
@@ -66,6 +68,7 @@ This is the content of my blog post.`;
         id: "test-post-1",
         entityType: "post",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
         metadata: {
@@ -135,6 +138,7 @@ Content here`;
         id: "test-post-3",
         entityType: "post",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
         metadata: {
@@ -175,6 +179,7 @@ Minimal content`;
         id: "test-post-4",
         entityType: "post",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
         metadata: {
@@ -210,6 +215,7 @@ Series post content`;
         id: "test-post-5",
         entityType: "post",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
         metadata: {
@@ -247,6 +253,7 @@ Post with cover image`;
         id: "test-post-6",
         entityType: "post",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
         metadata: {
@@ -284,6 +291,7 @@ Content here`;
         id: "test-post-7",
         entityType: "post",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
         metadata: {
@@ -321,9 +329,8 @@ Post content here`;
       expect(partialEntity.metadata?.["slug"]).toBe("my-great-post");
 
       // Create full entity
-      const fullEntity: BlogPost = {
+      const fullEntity = createMockBlogPost({
         id: "test-post-8",
-        entityType: "post",
         content: originalMarkdown,
         created: "2025-01-30T10:00:00.000Z",
         updated: "2025-01-30T10:00:00.000Z",
@@ -332,7 +339,7 @@ Post content here`;
           slug: "my-great-post", // Auto-generated slug
           status: "draft",
         },
-      };
+      });
 
       // Convert back to markdown
       const outputMarkdown = adapter.toMarkdown(fullEntity);

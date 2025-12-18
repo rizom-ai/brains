@@ -6,7 +6,12 @@ import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import type { IJobQueueService } from "@brains/job-queue";
 
-import { createSilentLogger, type Logger, createId } from "@brains/utils";
+import {
+  createSilentLogger,
+  type Logger,
+  createId,
+  computeContentHash,
+} from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
 
 // Create a mock embedding service
@@ -40,11 +45,13 @@ type Note = z.infer<typeof noteSchema>;
  * Factory function to create a Note entity (for testing)
  */
 function createNote(input: Partial<Note>): Note {
+  const content = input.content ?? "Test content";
   const defaults = {
     id: createId(),
     entityType: "note" as const,
     title: "Test Note",
-    content: "Test content",
+    content,
+    contentHash: computeContentHash(content),
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
     tags: [],
@@ -263,6 +270,7 @@ describe("EntityService", (): void => {
       id: "test-id",
       entityType: "note",
       content: "Test content",
+      contentHash: computeContentHash("Test content"),
       created: "2023-01-01T00:00:00.000Z",
       updated: "2023-01-01T00:00:00.000Z",
       title: "Test Note",
@@ -325,6 +333,7 @@ describe("EntityService", (): void => {
       id: "new-entity",
       entityType: "base",
       content: "New content",
+      contentHash: computeContentHash("New content"),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       metadata: {},
@@ -361,6 +370,7 @@ describe("EntityService", (): void => {
       id: "existing-entity",
       entityType: "base",
       content: "Initial content",
+      contentHash: computeContentHash("Initial content"),
       created: "2023-01-01T00:00:00.000Z",
       updated: "2023-01-01T00:00:00.000Z",
       metadata: {},
@@ -369,6 +379,7 @@ describe("EntityService", (): void => {
     const updatedEntity: BaseEntity = {
       ...existingEntity,
       content: "Updated content",
+      contentHash: computeContentHash("Updated content"),
       updated: new Date().toISOString(),
     };
 
@@ -406,6 +417,7 @@ describe("EntityService", (): void => {
       id: "test-entity",
       entityType: "base",
       content: "Test content",
+      contentHash: computeContentHash("Test content"),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       metadata: {},

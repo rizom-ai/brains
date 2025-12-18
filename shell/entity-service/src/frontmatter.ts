@@ -38,6 +38,7 @@ const DEFAULT_SYSTEM_FIELDS: Array<keyof BaseEntity> = [
   "id",
   "entityType",
   "content",
+  "contentHash",
   "created",
   "updated",
 ];

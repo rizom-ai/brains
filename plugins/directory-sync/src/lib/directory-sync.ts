@@ -9,7 +9,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "fs";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 import type {
   DirectorySyncStatus,
   ExportResult,
@@ -407,6 +407,7 @@ export class DirectorySync {
         id: rawEntity.id,
         entityType: rawEntity.entityType,
         content: rawEntity.content,
+        contentHash: computeContentHash(rawEntity.content),
         ...parsedEntity,
         metadata: parsedEntity.metadata ?? {},
         created: existing?.created ?? rawEntity.created.toISOString(),

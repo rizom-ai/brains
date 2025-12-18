@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { ProfileService } from "../src/profile-service";
 import type { IEntityService } from "@brains/entity-service";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger, computeContentHash } from "@brains/utils";
 import type { ProfileEntity } from "../src/schema";
 
 describe("ProfileService", () => {
@@ -58,10 +58,7 @@ describe("ProfileService", () => {
 
     it("should parse and return profile from cache when entity exists", async () => {
       // Create a mock entity with content
-      const mockEntity: ProfileEntity = {
-        id: "profile",
-        entityType: "profile",
-        content: `# Profile
+      const mockContent = `# Profile
 
 ## Name
 Rizom
@@ -83,7 +80,12 @@ contact@rizom.ai
 github
 
 #### URL
-https://github.com/rizom-ai`,
+https://github.com/rizom-ai`;
+      const mockEntity: ProfileEntity = {
+        id: "profile",
+        entityType: "profile",
+        content: mockContent,
+        contentHash: computeContentHash(mockContent),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -138,13 +140,15 @@ https://github.com/rizom-ai`,
 
     it("should not create entity when one already exists", async () => {
       // Mock behavior: existing entity with valid content
+      const existingContent = `# Profile
+
+## Name
+Existing Profile`;
       const mockEntity: ProfileEntity = {
         id: "profile",
         entityType: "profile",
-        content: `# Profile
-
-## Name
-Existing Profile`,
+        content: existingContent,
+        contentHash: computeContentHash(existingContent),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -183,10 +187,7 @@ Existing Profile`,
       expect(profile.name).toBe("Unknown"); // Default name
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
-      const importedEntity: ProfileEntity = {
-        id: "profile",
-        entityType: "profile",
-        content: `# Profile
+      const importedContent = `# Profile
 
 ## Name
 Yeehaa
@@ -208,7 +209,12 @@ github
 https://github.com/yourusername
 
 #### Label
-View my code on GitHub`,
+View my code on GitHub`;
+      const importedEntity: ProfileEntity = {
+        id: "profile",
+        entityType: "profile",
+        content: importedContent,
+        contentHash: computeContentHash(importedContent),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},

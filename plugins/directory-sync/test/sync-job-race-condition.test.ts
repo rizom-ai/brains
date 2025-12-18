@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type { ImportResult, ExportResult } from "../src/types";
 import type { BaseEntity, ProgressReporter } from "@brains/plugins";
+import { computeContentHash } from "@brains/utils";
 
 /**
  * Test for race condition between import and export phases
@@ -149,18 +150,22 @@ describe("Directory sync race condition", () => {
 
   it("should preserve manual edits when jobs complete before export", async () => {
     // Simulate a real scenario with entity data
+    const originalContent = "---\nauthor: Your Name\n---\nContent";
     const originalEntity: BaseEntity = {
       id: "test-post",
       entityType: "post",
-      content: "---\nauthor: Your Name\n---\nContent",
+      content: originalContent,
+      contentHash: computeContentHash(originalContent),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       metadata: {},
     };
 
+    const editedContent = "---\nauthor: Yeehaa\n---\nContent";
     const editedEntity: BaseEntity = {
       ...originalEntity,
-      content: "---\nauthor: Yeehaa\n---\nContent",
+      content: editedContent,
+      contentHash: computeContentHash(editedContent),
     };
 
     let entityInDB: BaseEntity = originalEntity;

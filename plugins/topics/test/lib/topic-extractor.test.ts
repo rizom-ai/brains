@@ -7,7 +7,7 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";
-import type { BaseEntity } from "@brains/plugins";
+import { createMockBaseEntity } from "../fixtures/topic-entities";
 
 describe("TopicExtractor", () => {
   let extractor: TopicExtractor;
@@ -28,7 +28,7 @@ describe("TopicExtractor", () => {
 
   describe("extractFromEntity", () => {
     it("should extract topics from a blog post entity", async () => {
-      const postEntity: BaseEntity = {
+      const postEntity = createMockBaseEntity({
         id: "test-post",
         entityType: "post",
         content: `# Introduction to Machine Learning
@@ -45,9 +45,7 @@ multiple layers to process complex patterns.
           title: "Introduction to Machine Learning",
           slug: "intro-to-ml",
         },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const result = await extractor.extractFromEntity(postEntity, 0.5);
 
@@ -56,7 +54,7 @@ multiple layers to process complex patterns.
     });
 
     it("should set correct source metadata from entity", async () => {
-      const linkEntity: BaseEntity = {
+      const linkEntity = createMockBaseEntity({
         id: "test-link-123",
         entityType: "link",
         content: "Article about TypeScript best practices and design patterns",
@@ -64,9 +62,7 @@ multiple layers to process complex patterns.
           title: "TypeScript Best Practices",
           url: "https://example.com/ts-best-practices",
         },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const result = await extractor.extractFromEntity(linkEntity, 0.3);
 
@@ -85,14 +81,12 @@ multiple layers to process complex patterns.
     });
 
     it("should return empty array for empty content", async () => {
-      const emptyEntity: BaseEntity = {
+      const emptyEntity = createMockBaseEntity({
         id: "empty-entity",
         entityType: "post",
         content: "",
         metadata: { title: "Empty Post" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const result = await extractor.extractFromEntity(emptyEntity, 0.5);
 
@@ -102,14 +96,12 @@ multiple layers to process complex patterns.
     });
 
     it("should filter topics by minimum relevance score", async () => {
-      const entity: BaseEntity = {
+      const entity = createMockBaseEntity({
         id: "test-entity",
         entityType: "summary",
         content: "Brief mention of various topics without depth",
         metadata: { title: "Brief Summary" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       // High threshold should filter out low-relevance topics
       const highThresholdResult = await extractor.extractFromEntity(

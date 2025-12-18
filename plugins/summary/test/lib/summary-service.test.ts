@@ -2,6 +2,7 @@ import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryService } from "../../src/lib/summary-service";
 import type { IEntityService } from "@brains/plugins/test";
 import type { SummaryEntity } from "../../src/schemas/summary";
+import { computeContentHash } from "@brains/utils";
 
 describe("SummaryService", () => {
   function createMockEntityService(): IEntityService {
@@ -50,10 +51,12 @@ describe("SummaryService", () => {
 
     it("should return the summary entity when it exists", async () => {
       const mockEntityService = createMockEntityService();
+      const summaryContent = "# Summary\n\nContent here";
       const mockSummary: SummaryEntity = {
         id: "conv-123",
         entityType: "summary",
-        content: "# Summary\n\nContent here",
+        content: summaryContent,
+        contentHash: computeContentHash(summaryContent),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
         metadata: {
@@ -133,6 +136,7 @@ describe("SummaryService", () => {
           id: "1",
           entityType: "summary",
           content: "content1",
+          contentHash: computeContentHash("content1"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -148,6 +152,7 @@ describe("SummaryService", () => {
           id: "2",
           entityType: "summary",
           content: "content2",
+          contentHash: computeContentHash("content2"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -189,6 +194,7 @@ describe("SummaryService", () => {
         id: "conv-123",
         entityType: "summary",
         content,
+        contentHash: computeContentHash(content),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
         metadata: {
@@ -229,6 +235,7 @@ describe("SummaryService", () => {
           id: "1",
           entityType: "summary",
           content: "content1",
+          contentHash: computeContentHash("content1"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -244,6 +251,7 @@ describe("SummaryService", () => {
           id: "2",
           entityType: "summary",
           content: "content2",
+          contentHash: computeContentHash("content2"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -285,6 +293,7 @@ describe("SummaryService", () => {
           id: "1",
           entityType: "summary",
           content: "content1",
+          contentHash: computeContentHash("content1"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {

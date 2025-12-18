@@ -22,6 +22,10 @@ export const entities = sqliteTable(
     // Content with frontmatter
     content: text("content").notNull(),
 
+    // Content hash for change detection (SHA256 hex)
+    // Used by plugins to detect if content has changed without comparing full text
+    contentHash: text("contentHash").notNull(),
+
     // Metadata from frontmatter (includes title, tags, and entity-specific fields)
     metadata: text("metadata", { mode: "json" })
       .$type<Record<string, unknown>>()

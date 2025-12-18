@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { IdentityAdapter } from "../src/adapter";
 import type { IdentityEntity } from "../src/schema";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 
 describe("IdentityAdapter", () => {
   let adapter: IdentityAdapter;
@@ -13,11 +13,13 @@ describe("IdentityAdapter", () => {
   describe("schema", () => {
     it("should have valid identity schema", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const validIdentity = {
         id: "identity",
         entityType: "identity",
-        content: "", // BaseEntity requires content field
+        content, // BaseEntity requires content field
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -28,11 +30,13 @@ describe("IdentityAdapter", () => {
 
     it("should reject invalid identity entity type", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const invalidIdentity = {
         id: "identity",
         entityType: "other", // Wrong type
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         role: "Assistant",
         purpose: "Help",
         values: ["clarity"],
@@ -46,11 +50,13 @@ describe("IdentityAdapter", () => {
 
     it("should reject invalid identity ID", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const invalidIdentity = {
         id: "wrong:id", // Must be "identity"
         entityType: "identity",
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         role: "Assistant",
         purpose: "Help",
         values: ["clarity"],
@@ -78,6 +84,7 @@ describe("IdentityAdapter", () => {
         id: "identity",
         entityType: "identity",
         content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -186,6 +193,7 @@ Help organize research papers and maintain literature review notes.
         id: "identity",
         entityType: "identity",
         content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -206,6 +214,7 @@ Help organize research papers and maintain literature review notes.
         id: "identity",
         entityType: "identity",
         content: "",
+        contentHash: computeContentHash(""),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},

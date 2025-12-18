@@ -18,6 +18,7 @@ import {
   type ToolContext,
 } from "@brains/plugins/test";
 import type { SummaryConfig } from "../../src/schemas/summary";
+import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 describe("Summary Tools", () => {
   let context: ServicePluginContext;
@@ -59,12 +60,9 @@ describe("Summary Tools", () => {
 
     it("should call SummaryService.getSummary with correct ID", async () => {
       const tool = createGetTool(context, config, logger);
-      const mockSummary = {
+      const mockSummary = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary" as const,
         content: "# Summary\n\nContent",
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -73,7 +71,7 @@ describe("Summary Tools", () => {
           entryCount: 1,
           totalMessages: 10,
         },
-      };
+      });
       const getSummarySpy = spyOn(
         SummaryService.prototype,
         "getSummary",

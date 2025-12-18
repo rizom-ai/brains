@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createPublishTool } from "../src/tools/publish";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
+import { computeContentHash } from "@brains/utils";
 
 // Mock ToolContext for handler calls
 const mockToolContext: ToolContext = {
@@ -19,10 +20,8 @@ describe("Publish Tool", () => {
     slug: string,
     status: "draft" | "published",
     publishedAt?: string,
-  ): BlogPost => ({
-    id,
-    entityType: "post",
-    content: `---
+  ): BlogPost => {
+    const content = `---
 title: ${title}
 slug: ${slug}
 status: ${status}
@@ -33,16 +32,22 @@ author: Test Author
 
 # ${title}
 
-Post content here`,
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
-    metadata: {
-      title,
-      slug,
-      status,
-      publishedAt,
-    },
-  });
+Post content here`;
+    return {
+      id,
+      entityType: "post",
+      content,
+      contentHash: computeContentHash(content),
+      created: "2025-01-01T10:00:00.000Z",
+      updated: "2025-01-01T10:00:00.000Z",
+      metadata: {
+        title,
+        slug,
+        status,
+        publishedAt,
+      },
+    };
+  };
 
   beforeEach(() => {
     const mockGetEntity = mock(() => Promise.resolve(null));
@@ -389,10 +394,7 @@ Post content here`,
 
   describe("series posts", () => {
     it("should preserve series metadata when publishing", async () => {
-      const seriesPost: BlogPost = {
-        id: "series-post",
-        entityType: "post",
-        content: `---
+      const seriesContent = `---
 title: Series Part 1
 status: draft
 excerpt: Test excerpt
@@ -403,7 +405,12 @@ seriesIndex: 1
 
 # Series Part 1
 
-Content`,
+Content`;
+      const seriesPost: BlogPost = {
+        id: "series-post",
+        entityType: "post",
+        content: seriesContent,
+        contentHash: computeContentHash(seriesContent),
         created: "2025-01-01T10:00:00.000Z",
         updated: "2025-01-01T10:00:00.000Z",
         metadata: {

@@ -3,7 +3,7 @@ import { HomepageListDataSource } from "../src/datasources/homepage-datasource";
 import type { IEntityService, ListOptions } from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 import { blogPostWithDataSchema } from "@brains/blog";
 import { deckSchema } from "@brains/decks";
 import { professionalProfileSchema } from "../src/schemas";
@@ -12,10 +12,7 @@ describe("HomepageListDataSource", () => {
   let datasource: HomepageListDataSource;
   let mockEntityService: IEntityService;
 
-  const mockProfile = {
-    id: "profile-1",
-    entityType: "profile" as const,
-    content: `# Profile
+  const profileContent = `# Profile
 
 ## Name
 Yeehaa
@@ -27,16 +24,19 @@ Professional developer
 Building tools for thought
 
 ## Intro
-Essays and presentations on technology`,
+Essays and presentations on technology`;
+
+  const mockProfile = {
+    id: "profile-1",
+    entityType: "profile" as const,
+    content: profileContent,
+    contentHash: computeContentHash(profileContent),
     created: "2025-01-01T10:00:00.000Z",
     updated: "2025-01-01T10:00:00.000Z",
     metadata: {},
   };
 
-  const mockPost: BlogPost = {
-    id: "post-1",
-    entityType: "post" as const,
-    content: `---
+  const postContent = `---
 title: Test Essay
 slug: test-essay
 status: published
@@ -46,7 +46,13 @@ author: Test Author
 ---
 # Test Post
 
-Content here`,
+Content here`;
+
+  const mockPost: BlogPost = {
+    id: "post-1",
+    entityType: "post" as const,
+    content: postContent,
+    contentHash: computeContentHash(postContent),
     created: "2025-01-15T10:00:00.000Z",
     updated: "2025-01-15T10:00:00.000Z",
     metadata: {
@@ -57,6 +63,8 @@ Content here`,
     },
   };
 
+  const deckContent = "# Test Deck\n\n---\n\nSlide content";
+
   const mockDeck: DeckEntity = {
     id: "deck-1",
     entityType: "deck" as const,
@@ -64,7 +72,8 @@ Content here`,
     description: "A test presentation",
     status: "published",
     publishedAt: "2025-01-10T10:00:00.000Z",
-    content: "# Test Deck\n\n---\n\nSlide content",
+    content: deckContent,
+    contentHash: computeContentHash(deckContent),
     created: "2025-01-10T10:00:00.000Z",
     updated: "2025-01-10T10:00:00.000Z",
     metadata: {

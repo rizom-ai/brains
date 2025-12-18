@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 import type { TopicSource } from "../../src/schemas/topic";
-import type { TopicEntity } from "../../src/types";
+import { createMockTopicEntity } from "../fixtures/topic-entities";
 
 describe("TopicAdapter", () => {
   let adapter: TopicAdapter;
@@ -67,14 +67,10 @@ This is the main content
     it("should have a valid zod schema", () => {
       const schema = adapter.schema;
 
-      const validTopic = {
+      const validTopic = createMockTopicEntity({
         id: "test-topic",
-        entityType: "topic",
         content: "Test body",
-        metadata: {}, // Empty metadata now
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       expect(() => schema.parse(validTopic)).not.toThrow();
     });
@@ -84,8 +80,9 @@ This is the main content
 
       const invalidTopic = {
         id: "test-topic",
-        entityType: "note", // Wrong type
+        entityType: "note", // Wrong type - should be rejected
         content: "Test body",
+        contentHash: "fake-hash",
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -97,14 +94,10 @@ This is the main content
 
   describe("toMarkdown", () => {
     it("should return content as-is (topics don't use frontmatter)", () => {
-      const entity: TopicEntity = {
+      const entity = createMockTopicEntity({
         id: "test-topic",
-        entityType: "topic",
         content: "# Test Topic\n\n## Content\nSome content",
-        metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
       expect(markdown).toBe(entity.content);
@@ -124,14 +117,10 @@ This is the main content
 
   describe("extractMetadata", () => {
     it("should return empty metadata (topics don't use metadata)", () => {
-      const entity: TopicEntity = {
+      const entity = createMockTopicEntity({
         id: "test-topic",
-        entityType: "topic",
         content: "# Test Topic\n\n## Content\nSome content",
-        metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata).toEqual({});
@@ -155,14 +144,10 @@ metadata: {}
 
   describe("generateFrontMatter", () => {
     it("should return empty string (topics don't use frontmatter)", () => {
-      const entity: TopicEntity = {
+      const entity = createMockTopicEntity({
         id: "test-topic",
-        entityType: "topic",
         content: "# Test Topic\n\n## Content\nSome content",
-        metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const result = adapter.generateFrontMatter(entity);
       expect(result).toBe("");

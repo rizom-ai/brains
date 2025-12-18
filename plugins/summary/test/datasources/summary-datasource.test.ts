@@ -13,6 +13,7 @@ import type { IEntityService } from "@brains/plugins/test";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";
+import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 describe("SummaryDataSource", () => {
   let datasource: SummaryDataSource;
@@ -61,9 +62,8 @@ describe("SummaryDataSource", () => {
 
   describe("fetch", () => {
     it("should fetch single summary by conversation ID", async () => {
-      const mockSummary: SummaryEntity = {
+      const mockSummary = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content: `# Conversation Summary: conv-123
 
 ## Metadata
@@ -87,8 +87,6 @@ Test content
 ---
 
 `,
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -97,7 +95,7 @@ Test content
           entryCount: 1,
           totalMessages: 50,
         },
-      };
+      });
 
       const getEntitySpy = spyOn(
         mockEntityService,
@@ -119,9 +117,8 @@ Test content
     });
 
     it("should fetch single summary by ID", async () => {
-      const mockSummary: SummaryEntity = {
+      const mockSummary = createMockSummaryEntity({
         id: "conv-456",
-        entityType: "summary",
         content: `# Conversation Summary: conv-456
 
 **Total Messages:** 0
@@ -129,8 +126,6 @@ Test content
 
 ## Summary Log
 `,
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-456",
           channelName: "Test Channel",
@@ -139,7 +134,7 @@ Test content
           entryCount: 0,
           totalMessages: 0,
         },
-      };
+      });
 
       const getEntitySpy = spyOn(
         mockEntityService,
@@ -162,9 +157,8 @@ Test content
 
     it("should fetch multiple summaries", async () => {
       const mockSummaries: SummaryEntity[] = [
-        {
+        createMockSummaryEntity({
           id: "1",
-          entityType: "summary",
           content: "content1",
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
@@ -176,10 +170,9 @@ Test content
             entryCount: 1,
             totalMessages: 10,
           },
-        },
-        {
+        }),
+        createMockSummaryEntity({
           id: "2",
-          entityType: "summary",
           content: "content2",
           created: "2025-01-02T00:00:00Z",
           updated: "2025-01-02T00:00:00Z",
@@ -191,7 +184,7 @@ Test content
             entryCount: 1,
             totalMessages: 20,
           },
-        },
+        }),
       ];
 
       const listEntitiesSpy = spyOn(

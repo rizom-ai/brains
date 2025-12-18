@@ -15,6 +15,7 @@ export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
     id: z.string(),
     entityType: z.string(),
     content: z.string(),
+    contentHash: z.string(),
     created: z.string().datetime(),
     updated: z.string().datetime(),
     metadata: z.record(z.string(), z.unknown()),

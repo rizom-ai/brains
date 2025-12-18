@@ -51,6 +51,9 @@ export {
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityRouteConfig } from "./entity-url-generator";
 
+// Hash utilities
+export { computeContentHash } from "./hash";
+
 // Response types
 export {
   defaultQueryResponseSchema,

@@ -7,7 +7,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 import { SummaryExtractor } from "../lib/summary-extractor";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
@@ -157,6 +157,7 @@ export class DigestHandler {
         id: digest.conversationId,
         entityType: "summary",
         content: contentWithFrontmatter,
+        contentHash: computeContentHash(contentWithFrontmatter),
         created: existingEntity?.created ?? digest.timestamp,
         updated: digest.timestamp,
         metadata,

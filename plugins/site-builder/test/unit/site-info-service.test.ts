@@ -3,6 +3,7 @@ import { SiteInfoService } from "../../src/services/site-info-service";
 import type { IEntityService } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/utils";
 import type { SiteInfoEntity } from "../../src/services/site-info-schema";
+import { createMockSiteInfo } from "../fixtures/site-entities";
 
 describe("SiteInfoService", () => {
   // Shared mock state that can be controlled per test
@@ -59,9 +60,7 @@ describe("SiteInfoService", () => {
 
     it("should parse and return site info from cache when entity exists", async () => {
       // Create a mock entity with content
-      const mockEntity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
+      const mockEntity = createMockSiteInfo({
         content: `# Site Information
 
 ## Title
@@ -86,10 +85,7 @@ Get Started
 
 ### Button Link
 https://rizom.ai/join`,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       // Control mock behavior to return the entity
       mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
@@ -111,9 +107,7 @@ https://rizom.ai/join`,
     });
 
     it("should handle site info without optional fields", async () => {
-      const mockEntity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
+      const mockEntity = createMockSiteInfo({
         content: `# Site Information
 
 ## Title
@@ -121,10 +115,7 @@ My Site
 
 ## Description
 A simple website`,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
 
@@ -165,9 +156,7 @@ A simple website`,
 
     it("should not create entity when one already exists", async () => {
       // Mock behavior: existing entity with valid content
-      const mockEntity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
+      const mockEntity = createMockSiteInfo({
         content: `# Site Information
 
 ## Title
@@ -175,10 +164,7 @@ Existing Site
 
 ## Description
 Existing description`,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
 
@@ -219,9 +205,7 @@ Existing description`,
       expect(siteInfo.title).toBe("Personal Brain"); // Default title
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
-      const importedEntity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
+      const importedEntity = createMockSiteInfo({
         content: `# Site Information
 
 ## Title
@@ -229,10 +213,7 @@ Yeehaa
 
 ## Description
 Personal knowledge base and professional showcase`,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       // Change mock to return imported entity (as if git-sync just imported it)
       mockGetEntityImpl = async (): Promise<SiteInfoEntity> => importedEntity;

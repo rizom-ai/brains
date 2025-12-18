@@ -30,6 +30,7 @@ export const baseEntitySchema = z.object({
   created: z.string().datetime(),
   updated: z.string().datetime(),
   metadata: z.record(z.string(), z.unknown()),
+  contentHash: z.string(),
 });
 
 /**
@@ -43,14 +44,17 @@ export interface BaseEntity<TMetadata = Record<string, unknown>> {
   created: string;
   updated: string;
   metadata: TMetadata;
+  /** SHA256 hash of content for change detection */
+  contentHash: string;
 }
 
 /**
  * Entity input type for creation - allows partial entities with optional system fields
+ * contentHash is excluded because it's computed automatically by the entity service
  */
 export type EntityInput<T extends BaseEntity> = Omit<
   T,
-  "id" | "created" | "updated"
+  "id" | "created" | "updated" | "contentHash"
 > & {
   id?: string;
   created?: string;

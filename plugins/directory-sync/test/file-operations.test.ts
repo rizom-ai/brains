@@ -4,6 +4,7 @@ import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
+import { computeContentHash } from "@brains/utils";
 
 describe("FileOperations", () => {
   let fileOps: FileOperations;
@@ -76,10 +77,12 @@ describe("FileOperations", () => {
 
     it("should roundtrip entities with colon IDs correctly", async () => {
       // Write entity with colon ID
+      const entityContent = "# Hero Section";
       const entity = {
         id: "landing:hero",
         entityType: "site-content",
-        content: "# Hero Section",
+        content: entityContent,
+        contentHash: computeContentHash(entityContent),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -103,10 +106,12 @@ describe("FileOperations", () => {
   describe("Entity ID Path Mapping", () => {
     describe("getEntityFilePath", () => {
       it("should map simple entity IDs to flat files", () => {
+        const testContent = "test";
         const entity = {
           id: "simple-id",
           entityType: "note",
-          content: "test",
+          content: testContent,
+          contentHash: computeContentHash(testContent),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -117,10 +122,12 @@ describe("FileOperations", () => {
       });
 
       it("should map entity IDs with colons to subdirectories", () => {
+        const content = "test";
         const entity = {
           id: "daily:2024-01-27",
           entityType: "summary",
-          content: "test",
+          content,
+          contentHash: computeContentHash(content),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -131,10 +138,12 @@ describe("FileOperations", () => {
       });
 
       it("should handle multiple colons creating nested directories", () => {
+        const content = "test";
         const entity = {
           id: "tech:ai:llms:gpt4",
           entityType: "topic",
-          content: "test",
+          content,
+          contentHash: computeContentHash(content),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -147,10 +156,12 @@ describe("FileOperations", () => {
       });
 
       it("should handle base entities without subdirectories", () => {
+        const content = "test";
         const entity = {
           id: "base:entity:test",
           entityType: "base",
-          content: "test",
+          content,
+          contentHash: computeContentHash(content),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -162,10 +173,12 @@ describe("FileOperations", () => {
       });
 
       it("should handle empty ID parts gracefully", () => {
+        const content = "test";
         const entity = {
           id: "summary::2024", // Double colon
           entityType: "summary",
-          content: "test",
+          content,
+          contentHash: computeContentHash(content),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -179,10 +192,12 @@ describe("FileOperations", () => {
 
     describe("writeEntity with subdirectories", () => {
       it("should create necessary subdirectories when writing", async () => {
+        const entityContent = "Daily summary content";
         const entity = {
           id: "daily:2024:01:27",
           entityType: "summary",
-          content: "Daily summary content",
+          content: entityContent,
+          contentHash: computeContentHash(entityContent),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -205,10 +220,12 @@ describe("FileOperations", () => {
       });
 
       it("should create deeply nested directories", async () => {
+        const entityContent = "Deeply nested";
         const entity = {
           id: "a:b:c:d:e:f",
           entityType: "test",
-          content: "Deeply nested",
+          content: entityContent,
+          contentHash: computeContentHash(entityContent),
           metadata: {},
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
@@ -307,10 +324,12 @@ describe("FileOperations", () => {
 
   describe("Windows Compatibility", () => {
     it("should not create files with colons in the filename", async () => {
+      const entityContent = "test";
       const entity = {
         id: "summary:daily:2024-01-27",
         entityType: "summary",
-        content: "test",
+        content: entityContent,
+        contentHash: computeContentHash(entityContent),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -328,10 +347,12 @@ describe("FileOperations", () => {
     });
 
     it("should handle Windows-style paths correctly", () => {
+      const entityContent = "test";
       const entity = {
         id: "path:to:file",
         entityType: "note",
-        content: "test",
+        content: entityContent,
+        contentHash: computeContentHash(entityContent),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

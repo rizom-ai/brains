@@ -3,7 +3,12 @@ import { z } from "@brains/utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import { createSilentLogger, type Logger, createId } from "@brains/utils";
+import {
+  createSilentLogger,
+  type Logger,
+  createId,
+  computeContentHash,
+} from "@brains/utils";
 import matter from "gray-matter";
 
 // ============================================================================
@@ -27,11 +32,11 @@ const noteSchema = baseEntitySchema.extend({
 type Note = z.infer<typeof noteSchema>;
 
 /**
- * Input type for creating notes (id, created, updated are optional/generated)
+ * Input type for creating notes (id, created, updated, contentHash are optional/generated)
  */
 type CreateNoteInput = Omit<
   z.input<typeof noteSchema>,
-  "id" | "created" | "updated" | "entityType" | "metadata"
+  "id" | "created" | "updated" | "entityType" | "metadata" | "contentHash"
 > & {
   id?: string;
   created?: string;
@@ -49,6 +54,7 @@ function createNote(input: CreateNoteInput): Note {
     updated: new Date().toISOString(),
     entityType: "note",
     ...input,
+    contentHash: computeContentHash(input.content),
     metadata: input.metadata ?? {},
   });
 
@@ -220,11 +226,13 @@ describe("EntityRegistry", (): void => {
     expect(registry.getAllEntityTypes()).toContain("note");
 
     // Test data validation (without methods)
+    const content = "This is a test note content.";
     const entityData = {
       id: createId(),
       entityType: "note" as const,
       title: "Test Note",
-      content: "This is a test note content.",
+      content,
+      contentHash: computeContentHash(content),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       tags: ["test", "registry"],

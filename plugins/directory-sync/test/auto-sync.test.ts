@@ -4,6 +4,7 @@ import { createServicePluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { computeContentHash } from "@brains/utils";
 
 describe("DirectorySync AutoSync", () => {
   let harness: ReturnType<typeof createServicePluginHarness>;
@@ -76,10 +77,12 @@ describe("DirectorySync AutoSync", () => {
       if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create a test entity
+      const entityContent = "# Test Entity\n\nTest content";
       const entity = {
         id: "test-entity",
         entityType: "base",
-        content: "# Test Entity\n\nTest content",
+        content: entityContent,
+        contentHash: computeContentHash(entityContent),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -104,10 +107,12 @@ describe("DirectorySync AutoSync", () => {
       if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create initial entity
+      const originalContent = "# Original\n\nOriginal content";
       const entity = {
         id: "test-entity",
         entityType: "base",
-        content: "# Original\n\nOriginal content",
+        content: originalContent,
+        contentHash: computeContentHash(originalContent),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -116,9 +121,11 @@ describe("DirectorySync AutoSync", () => {
       await directorySync.fileOps.writeEntity(entity);
 
       // Update entity
+      const updatedContent = "# Updated\n\nUpdated content";
       const updatedEntity = {
         ...entity,
-        content: "# Updated\n\nUpdated content",
+        content: updatedContent,
+        contentHash: computeContentHash(updatedContent),
         updated: new Date().toISOString(),
       };
 
@@ -139,10 +146,12 @@ describe("DirectorySync AutoSync", () => {
       if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create initial entity
+      const entityContent = "# Test\n\nContent";
       const entity = {
         id: "test-entity",
         entityType: "base",
-        content: "# Test\n\nContent",
+        content: entityContent,
+        contentHash: computeContentHash(entityContent),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
@@ -190,19 +199,23 @@ describe("DirectorySync AutoSync", () => {
       if (!directorySync) throw new Error("DirectorySync not initialized");
 
       // Create two entities
+      const content1 = "# Entity 1";
       const entity1 = {
         id: "entity-1",
         entityType: "base",
-        content: "# Entity 1",
+        content: content1,
+        contentHash: computeContentHash(content1),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
+      const content2 = "# Entity 2";
       const entity2 = {
         id: "entity-2",
         entityType: "base",
-        content: "# Entity 2",
+        content: content2,
+        contentHash: computeContentHash(content2),
         metadata: {},
         created: new Date().toISOString(),
         updated: new Date().toISOString(),

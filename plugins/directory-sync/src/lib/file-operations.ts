@@ -9,7 +9,7 @@ import {
   statSync,
   utimesSync,
 } from "fs";
-import { createHash } from "crypto";
+import { computeContentHash } from "@brains/utils";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 
 /**
@@ -218,7 +218,7 @@ export class FileOperations {
    * Calculate content hash
    */
   calculateContentHash(content: string): string {
-    return createHash("sha256").update(content).digest("hex");
+    return computeContentHash(content);
   }
 
   /**
@@ -243,11 +243,11 @@ export class FileOperations {
 
   /**
    * Check if entity should be updated based on content hash
+   * Uses stored contentHash from existing entity for efficiency
    */
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
-    const existingHash = this.calculateContentHash(existing.content);
     const newHash = this.calculateContentHash(newEntity.content);
-    return existingHash !== newHash;
+    return existing.contentHash !== newHash;
   }
 
   /**

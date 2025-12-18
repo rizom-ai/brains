@@ -1,13 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import { generateRSSFeed } from "../src/rss/feed-generator";
 import type { BlogPostWithData } from "../src/datasources/blog-datasource";
+import { computeContentHash } from "@brains/utils";
 
 describe("RSS Feed Generator", () => {
+  const post1Content =
+    "---\ntitle: First Post\nslug: first-post\n---\nContent 1";
+  const post2Content =
+    "---\ntitle: Second Post\nslug: second-post\n---\nContent 2";
+
   const samplePosts: BlogPostWithData[] = [
     {
       id: "post-1",
       entityType: "post",
-      content: "---\ntitle: First Post\nslug: first-post\n---\nContent 1",
+      content: post1Content,
+      contentHash: computeContentHash(post1Content),
       created: "2025-01-01T10:00:00.000Z",
       updated: "2025-01-01T10:00:00.000Z",
       metadata: {
@@ -29,7 +36,8 @@ describe("RSS Feed Generator", () => {
     {
       id: "post-2",
       entityType: "post",
-      content: "---\ntitle: Second Post\nslug: second-post\n---\nContent 2",
+      content: post2Content,
+      contentHash: computeContentHash(post2Content),
       created: "2025-01-02T10:00:00.000Z",
       updated: "2025-01-02T10:00:00.000Z",
       metadata: {
@@ -115,12 +123,15 @@ describe("RSS Feed Generator", () => {
     });
 
     test("should filter out draft posts", () => {
+      const draftContent =
+        "---\ntitle: Draft\nslug: draft-post\n---\nDraft content";
       const postsWithDraft: BlogPostWithData[] = [
         ...samplePosts,
         {
           id: "draft-post",
           entityType: "post",
-          content: "---\ntitle: Draft\nslug: draft-post\n---\nDraft content",
+          content: draftContent,
+          contentHash: computeContentHash(draftContent),
           created: "2025-01-03T10:00:00.000Z",
           updated: "2025-01-03T10:00:00.000Z",
           metadata: {

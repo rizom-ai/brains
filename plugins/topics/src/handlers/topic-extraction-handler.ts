@@ -5,7 +5,7 @@ import type {
   Logger,
   BaseEntity,
 } from "@brains/plugins";
-import { z, createId } from "@brains/utils";
+import { z, createId, computeContentHash } from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 
 // Schema for extraction job data
@@ -83,6 +83,7 @@ export class TopicExtractionHandler
         id: entityId,
         entityType,
         content: entityContent,
+        contentHash: computeContentHash(entityContent),
         metadata: entityMetadata,
         created: entityCreated,
         updated: entityUpdated,

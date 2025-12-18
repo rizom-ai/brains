@@ -42,6 +42,7 @@ export class EntitySerializer {
     id: string;
     entityType: string;
     content: string;
+    contentHash: string;
     created: number;
     updated: number;
     metadata: Record<string, unknown>;
@@ -58,6 +59,7 @@ export class EntitySerializer {
         id: entityData.id,
         entityType: entityData.entityType,
         content: entityData.content,
+        contentHash: entityData.contentHash,
         created: new Date(entityData.created).toISOString(),
         updated: new Date(entityData.updated).toISOString(),
         metadata: entityData.metadata,
@@ -92,6 +94,7 @@ export class EntitySerializer {
       id: string;
       entityType: string;
       content: string;
+      contentHash: string;
       created: number;
       updated: number;
       metadata: Record<string, unknown>;
@@ -112,6 +115,7 @@ export class EntitySerializer {
           id: entityData.id,
           entityType: entityData.entityType,
           content: entityData.content,
+          contentHash: entityData.contentHash,
           created: new Date(entityData.created).toISOString(),
           updated: new Date(entityData.updated).toISOString(),
           metadata: entityData.metadata,

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import type { LinkPlugin } from "../src/index";
 import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
+import { createMockLinkEntity } from "./fixtures/link-entities";
 
 describe("LinkPlugin", () => {
   let plugin: LinkPlugin;
@@ -134,14 +135,10 @@ example.com
     });
 
     it("should convert entity to markdown", () => {
-      const entity = {
+      const entity = createMockLinkEntity({
         id: "test-id",
-        entityType: "link" as const,
         content: "# Test Link\n\nContent here",
-        metadata: {},
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
       expect(markdown).toBe("# Test Link\n\nContent here");
@@ -156,14 +153,10 @@ example.com
     });
 
     it("should extract empty metadata", () => {
-      const entity = {
+      const entity = createMockLinkEntity({
         id: "test-id",
-        entityType: "link" as const,
         content: "# Test Link",
-        metadata: {},
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata).toEqual({});

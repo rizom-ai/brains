@@ -9,7 +9,10 @@ import {
 } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
 import { DeckFormatter } from "../../src/formatters/deck-formatter";
-import type { DeckEntity } from "../../src/schemas/deck";
+import {
+  createMockDeckEntity,
+  createMockDeckInput,
+} from "../fixtures/deck-entities";
 
 const mockToolContext: ToolContext = {
   userId: "test-user",
@@ -268,41 +271,34 @@ describe("Deck Tools", () => {
       title: string,
       slug: string,
     ): Promise<string> => {
-      const now = new Date().toISOString();
       const slideContent = "# Slide 1\n\n---\n\n# Slide 2";
 
-      const deckData: DeckEntity = {
+      const deckData = createMockDeckEntity({
         id: "temp",
-        entityType: "deck",
         content: slideContent,
         title,
         description: "Test description",
-        status: "draft",
-        created: now,
-        updated: now,
         metadata: {
           slug,
           title,
           status: "draft",
         },
-      };
+      });
 
       // Generate proper markdown with frontmatter
       const markdown = formatter.toMarkdown(deckData);
 
       // Create entity - use spread to pass all deck fields
-      const entityInput: Omit<DeckEntity, "id" | "created" | "updated"> = {
-        entityType: "deck",
+      const entityInput = createMockDeckInput({
         content: markdown,
         title,
         description: "Test description",
-        status: "draft",
         metadata: {
           slug,
           title,
           status: "draft",
         },
-      };
+      });
 
       const result = await context.entityService.createEntity(entityInput);
 

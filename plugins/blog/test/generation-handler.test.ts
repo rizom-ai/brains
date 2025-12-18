@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
+import { computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 
 describe("BlogGenerationJobHandler", () => {
@@ -16,33 +17,36 @@ describe("BlogGenerationJobHandler", () => {
     id: string;
     entityType: "profile";
     content: string;
+    contentHash: string;
     created: string;
     updated: string;
     metadata: Record<string, never>;
-  } => ({
-    id: "profile",
-    entityType: "profile" as const,
-    content: `# Profile
+  } => {
+    const content = `# Profile
 
 ## Name
 ${name}
 
 ## Description
-Test description`,
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
-    metadata: {},
-  });
+Test description`;
+    return {
+      id: "profile",
+      entityType: "profile" as const,
+      content,
+      contentHash: computeContentHash(content),
+      created: "2025-01-01T10:00:00.000Z",
+      updated: "2025-01-01T10:00:00.000Z",
+      metadata: {},
+    };
+  };
 
   const createMockPost = (
     id: string,
     slug: string,
     seriesName?: string,
     publishedAt?: string,
-  ): BlogPost => ({
-    id,
-    entityType: "post",
-    content: `---
+  ): BlogPost => {
+    const content = `---
 title: Test Post
 slug: ${slug}
 status: published
@@ -50,17 +54,23 @@ ${publishedAt ? `publishedAt: "${publishedAt}"` : ""}
 ${seriesName ? `seriesName: ${seriesName}` : ""}
 ---
 
-Content`,
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
-    metadata: {
-      title: "Test Post",
-      slug,
-      status: "published",
-      publishedAt,
-      seriesName,
-    },
-  });
+Content`;
+    return {
+      id,
+      entityType: "post",
+      content,
+      contentHash: computeContentHash(content),
+      created: "2025-01-01T10:00:00.000Z",
+      updated: "2025-01-01T10:00:00.000Z",
+      metadata: {
+        title: "Test Post",
+        slug,
+        status: "published",
+        publishedAt,
+        seriesName,
+      },
+    };
+  };
 
   beforeEach(() => {
     mockLogger = {

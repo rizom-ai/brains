@@ -8,6 +8,7 @@ import {
   type ServicePluginContext,
   type BatchOperation,
 } from "@brains/plugins/test";
+import { computeContentHash } from "@brains/utils";
 
 describe("SiteContentOperations", () => {
   let mockShell: MockShell;
@@ -228,6 +229,7 @@ describe("SiteContentOperations", () => {
         id: "landing:hero",
         entityType: "site-content",
         content: "Existing content",
+        contentHash: computeContentHash("Existing content"),
         created: "2024-01-01",
         updated: "2024-01-01",
         metadata: {

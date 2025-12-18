@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryAdapter } from "../../src/adapters/summary-adapter";
-import type { SummaryEntity, SummaryLogEntry } from "../../src/schemas/summary";
+import type { SummaryLogEntry } from "../../src/schemas/summary";
+import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 describe("SummaryAdapter", () => {
   let adapter: SummaryAdapter;
@@ -238,13 +239,10 @@ Content
 
   describe("toMarkdown and fromMarkdown", () => {
     it("should convert entity to markdown with frontmatter", () => {
-      const entity: SummaryEntity = {
+      const entity = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content:
           "# Summary Log\n\n### [2025-01-01T00:00:00Z] Test\n\nContent\n\n---\n",
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -253,7 +251,7 @@ Content
           entryCount: 1,
           totalMessages: 50,
         },
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
       expect(markdown).toContain("---\nconversationId: conv-123");
@@ -293,12 +291,9 @@ Content
 
   describe("extractMetadata", () => {
     it("should extract metadata from entity", () => {
-      const entity: SummaryEntity = {
+      const entity = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content: "content",
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -307,7 +302,7 @@ Content
           entryCount: 1,
           totalMessages: 50,
         },
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata["conversationId"]).toBe("conv-123");
@@ -316,12 +311,9 @@ Content
 
   describe("generateFrontMatter", () => {
     it("should generate frontmatter with metadata", () => {
-      const entity: SummaryEntity = {
+      const entity = createMockSummaryEntity({
         id: "conv-123",
-        entityType: "summary",
         content: "content",
-        created: "2025-01-01T00:00:00Z",
-        updated: "2025-01-01T00:00:00Z",
         metadata: {
           conversationId: "conv-123",
           channelName: "Test Channel",
@@ -330,7 +322,7 @@ Content
           entryCount: 1,
           totalMessages: 10,
         },
-      };
+      });
 
       const frontmatter = adapter.generateFrontMatter(entity);
       expect(frontmatter).toContain("conversationId: conv-123");

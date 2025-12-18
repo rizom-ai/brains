@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 import {
   extractMetadata,
   generateMarkdownWithFrontmatter,
@@ -24,6 +24,7 @@ describe("Frontmatter Utilities", () => {
     entityType: "note",
     title: "Test Note",
     content: "This is the content",
+    contentHash: computeContentHash("This is the content"),
     tags: ["test", "important"],
     category: "work",
     priority: 1,
@@ -48,6 +49,7 @@ describe("Frontmatter Utilities", () => {
       expect(metadata).not.toHaveProperty("id");
       expect(metadata).not.toHaveProperty("entityType");
       expect(metadata).not.toHaveProperty("content");
+      expect(metadata).not.toHaveProperty("contentHash");
       expect(metadata).not.toHaveProperty("created");
       expect(metadata).not.toHaveProperty("updated");
     });
@@ -74,6 +76,7 @@ describe("Frontmatter Utilities", () => {
           "id",
           "entityType",
           "content",
+          "contentHash",
           "created",
           "updated",
           "tags",
@@ -287,6 +290,7 @@ Content here`;
         id: "complex",
         entityType: "complex",
         content: "Complex content",
+        contentHash: computeContentHash("Complex content"),
         created: "2024-01-01",
         updated: "2024-01-01",
         metadata: {

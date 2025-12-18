@@ -3,7 +3,7 @@ import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 
 describe("BlogDataSource", () => {
   let datasource: BlogDataSource;
@@ -20,10 +20,8 @@ describe("BlogDataSource", () => {
     publishedAt?: string,
     seriesName?: string,
     seriesIndex?: number,
-  ): BlogPost => ({
-    id,
-    entityType: "post",
-    content: `---
+  ): BlogPost => {
+    const content = `---
 title: ${title}
 slug: ${slug}
 status: ${status}
@@ -36,18 +34,24 @@ ${seriesIndex ? `seriesIndex: ${seriesIndex}` : ""}
 
 # ${title}
 
-Content for ${title}`,
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
-    metadata: {
-      title,
-      slug,
-      status,
-      publishedAt,
-      seriesName,
-      seriesIndex,
-    },
-  });
+Content for ${title}`;
+    return {
+      id,
+      entityType: "post",
+      content,
+      contentHash: computeContentHash(content),
+      created: "2025-01-01T10:00:00.000Z",
+      updated: "2025-01-01T10:00:00.000Z",
+      metadata: {
+        title,
+        slug,
+        status,
+        publishedAt,
+        seriesName,
+        seriesIndex,
+      },
+    };
+  };
 
   beforeEach(() => {
     mockLogger = {

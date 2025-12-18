@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SiteInfoAdapter } from "../../src/services/site-info-adapter";
-import type { SiteInfoEntity } from "../../src/services/site-info-schema";
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
+import { createMockSiteInfo } from "../fixtures/site-entities";
 
 describe("SiteInfoAdapter", () => {
   let adapter: SiteInfoAdapter;
@@ -13,11 +13,13 @@ describe("SiteInfoAdapter", () => {
   describe("schema", () => {
     it("should have valid site-info schema", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const validSiteInfo = {
         id: "site-info",
         entityType: "site-info",
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -28,11 +30,13 @@ describe("SiteInfoAdapter", () => {
 
     it("should reject invalid entity type", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const invalidSiteInfo = {
         id: "site-info",
         entityType: "other",
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -43,11 +47,13 @@ describe("SiteInfoAdapter", () => {
 
     it("should reject invalid ID", () => {
       const schema = adapter.schema;
+      const content = "";
 
       const invalidSiteInfo = {
         id: "wrong-id",
         entityType: "site-info",
-        content: "",
+        content,
+        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
@@ -71,14 +77,7 @@ describe("SiteInfoAdapter", () => {
         },
       });
 
-      const entity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
-        content,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      const entity = createMockSiteInfo({ content });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -106,14 +105,7 @@ describe("SiteInfoAdapter", () => {
         description: "A simple website",
       });
 
-      const entity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
-        content,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      const entity = createMockSiteInfo({ content });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -223,14 +215,7 @@ A simple website`;
         themeMode: "dark",
       });
 
-      const entity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
-        content,
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      const entity = createMockSiteInfo({ content });
 
       const metadata = adapter.extractMetadata(entity);
 
@@ -240,14 +225,7 @@ A simple website`;
 
   describe("generateFrontMatter", () => {
     it("should return empty string (site-info uses structured content, not frontmatter)", () => {
-      const entity: SiteInfoEntity = {
-        id: "site-info",
-        entityType: "site-info",
-        content: "",
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      const entity = createMockSiteInfo({ content: "" });
 
       const result = adapter.generateFrontMatter(entity);
 
