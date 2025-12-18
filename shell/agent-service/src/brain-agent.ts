@@ -176,10 +176,14 @@ When asking for confirmation, clearly describe what will happen.
  * The factory closure captures model and provider options,
  * then returns a function that creates agents with specific config
  */
-export function createBrainAgentFactory(options: BrainAgentFactoryOptions) {
+export function createBrainAgentFactory(
+  options: BrainAgentFactoryOptions,
+): (config: BrainAgentConfig) => ToolLoopAgent<BrainCallOptions> {
   const { model, webSearch, temperature, maxTokens } = options;
 
-  return function createBrainAgent(config: BrainAgentConfig) {
+  return function createBrainAgent(
+    config: BrainAgentConfig,
+  ): ToolLoopAgent<BrainCallOptions> {
     // Pre-convert all tools - activeTools will filter which ones are available
     // Use a default context for initial tools (will be overridden in prepareCall)
     const allTools = convertToSDKTools(config.tools, {
@@ -191,6 +195,7 @@ export function createBrainAgentFactory(options: BrainAgentFactoryOptions) {
       model,
       callOptionsSchema: brainCallOptionsSchema,
 
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: ({ options: callOptions, ...settings }) => {
         // Get tools available for this permission level
         const allowedTools = config.getToolsForPermission(

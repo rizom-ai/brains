@@ -75,13 +75,16 @@ export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
 });
 
 /**
+ * Template blog post schema (used for template validation)
+ * url and typeLabel are required - always present after enrichment
+ */
+export const templateBlogPostSchema = blogPostWithDataSchema.extend({
+  url: z.string(),
+  typeLabel: z.string(),
+});
+
+/**
  * Enriched blog post type (used by components)
  * url and typeLabel are required - always present after enrichment
  */
-export type EnrichedBlogPost = Omit<
-  z.infer<typeof enrichedBlogPostSchema>,
-  "url" | "typeLabel"
-> & {
-  url: string;
-  typeLabel: string;
-};
+export type EnrichedBlogPost = z.infer<typeof templateBlogPostSchema>;

@@ -110,15 +110,13 @@ export class AgentService implements IAgentService {
    * Lazy initialization allows tools to be registered after service creation
    */
   private getAgent(): BrainAgent {
-    if (!this.agent) {
-      this.agent = this.agentFactory({
-        identity: this.identityService.getIdentity(),
-        tools: this.mcpService.listTools().map((t) => t.tool),
-        stepLimit: this.stepLimit,
-        getToolsForPermission: (level) =>
-          this.mcpService.listToolsForPermissionLevel(level).map((t) => t.tool),
-      });
-    }
+    this.agent ??= this.agentFactory({
+      identity: this.identityService.getIdentity(),
+      tools: this.mcpService.listTools().map((t) => t.tool),
+      stepLimit: this.stepLimit,
+      getToolsForPermission: (level) =>
+        this.mcpService.listToolsForPermissionLevel(level).map((t) => t.tool),
+    });
     return this.agent;
   }
 
@@ -230,17 +228,17 @@ export class AgentService implements IAgentService {
     // Include all results that have either formatted output or a jobId (for async jobs)
     const toolResults: ToolResultData[] = [];
     const toolArgsSchema = z.record(z.unknown());
-    for (const step of result.steps ?? []) {
+    for (const step of result.steps) {
       // Build a map of toolCallId -> input args for this step
       const toolCallArgsMap = new Map<string, Record<string, unknown>>();
-      for (const tc of step.toolCalls ?? []) {
+      for (const tc of step.toolCalls) {
         const parsed = toolArgsSchema.safeParse(tc.input);
         if (tc.toolCallId && parsed.success) {
           toolCallArgsMap.set(tc.toolCallId, parsed.data);
         }
       }
 
-      for (const tr of step.toolResults ?? []) {
+      for (const tr of step.toolResults) {
         if (tr.output === null) continue;
 
         const parsed = toolResponseSchema.safeParse(tr.output);
@@ -291,23 +289,23 @@ export class AgentService implements IAgentService {
     }
 
     // Count total tool calls
-    const totalToolCalls = (result.steps ?? []).reduce(
-      (sum, step) => sum + (step.toolCalls?.length ?? 0),
+    const totalToolCalls = result.steps.reduce(
+      (sum, step) => sum + step.toolCalls.length,
       0,
     );
 
     // Log step details for debugging
-    const stepDetails = (result.steps ?? []).map((step, i) => ({
+    const stepDetails = result.steps.map((step, i) => ({
       step: i,
-      toolCalls: step.toolCalls?.map((tc) => tc.toolName) ?? [],
-      toolResults: step.toolResults?.length ?? 0,
+      toolCalls: step.toolCalls.map((tc) => tc.toolName),
+      toolResults: step.toolResults.length,
     }));
 
     this.logger.debug("Chat completed", {
       conversationId,
       responseLength: result.text.length,
       toolCalls: totalToolCalls,
-      stepCount: result.steps?.length ?? 0,
+      stepCount: result.steps.length,
       stepDetails,
       usage: result.usage,
     });

@@ -4,6 +4,7 @@ import { createTemplate } from "@brains/templates";
 import { markdownToHtml } from "@brains/utils";
 import { BlogPostTemplate } from "./blog-post";
 import { Head } from "@brains/ui-library";
+import { templateBlogPostSchema } from "../schemas/blog-post";
 
 /**
  * Homepage can show either the latest blog post or markdown content
@@ -12,10 +13,10 @@ export const homepageSchema = z.union([
   // Blog post variant
   z.object({
     type: z.literal("post"),
-    post: z.any(),
-    prevPost: z.any().nullable(),
-    nextPost: z.any().nullable(),
-    seriesPosts: z.array(z.any()).nullable(),
+    post: templateBlogPostSchema,
+    prevPost: templateBlogPostSchema.nullable(),
+    nextPost: templateBlogPostSchema.nullable(),
+    seriesPosts: z.array(templateBlogPostSchema).nullable(),
   }),
   // Markdown content variant (for HOME.md)
   z.object({

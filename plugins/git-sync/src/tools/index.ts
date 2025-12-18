@@ -35,10 +35,10 @@ export function createStatusTool(
 
       const formatted = formatAsEntity(
         {
-          branch: status.branch ?? "N/A",
+          branch: status.branch,
           hasChanges: status.hasChanges ? "Yes" : "No",
-          ahead: status.ahead ?? 0,
-          behind: status.behind ?? 0,
+          ahead: status.ahead,
+          behind: status.behind,
           lastCommit: status.lastCommit ?? "N/A",
         },
         { title: "Git Status" },

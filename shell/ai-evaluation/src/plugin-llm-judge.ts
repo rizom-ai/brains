@@ -100,7 +100,7 @@ export class PluginLLMJudge implements IPluginLLMJudge {
 
     // Check for custom evaluation prompt in quality criteria
     const customEvalPrompt =
-      testCase.expectedOutput?.qualityCriteria?.evaluationPrompt;
+      testCase.expectedOutput.qualityCriteria?.evaluationPrompt;
 
     const userPrompt = `Please evaluate the following plugin output:
 

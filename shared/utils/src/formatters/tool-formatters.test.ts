@@ -83,8 +83,8 @@ describe("Tool Formatters", () => {
 
       const result = formatAsTable(items, {
         columns: [
-          { header: "Name", value: (item) => item.name },
-          { header: "Age", value: (item) => item.age },
+          { header: "Name", value: (item): string => item.name },
+          { header: "Age", value: (item): number => item.age },
         ],
       });
 
@@ -99,9 +99,9 @@ describe("Tool Formatters", () => {
 
       const result = formatAsTable(items, {
         columns: [
-          { header: "Left", value: () => "L", align: "left" },
-          { header: "Center", value: () => "C", align: "center" },
-          { header: "Right", value: () => "R", align: "right" },
+          { header: "Left", value: (): string => "L", align: "left" },
+          { header: "Center", value: (): string => "C", align: "center" },
+          { header: "Right", value: (): string => "R", align: "right" },
         ],
       });
 
@@ -111,7 +111,10 @@ describe("Tool Formatters", () => {
     it("should handle empty array", () => {
       const result = formatAsTable([], {
         columns: [
-          { header: "Name", value: (item: { name: string }) => item.name },
+          {
+            header: "Name",
+            value: (item: { name: string }): string => item.name,
+          },
         ],
       });
 
@@ -122,7 +125,7 @@ describe("Tool Formatters", () => {
       const items = [{ n: 1 }, { n: 2 }, { n: 3 }, { n: 4 }];
 
       const result = formatAsTable(items, {
-        columns: [{ header: "N", value: (item) => item.n }],
+        columns: [{ header: "N", value: (item): number => item.n }],
         maxRows: 2,
       });
 

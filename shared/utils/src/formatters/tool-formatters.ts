@@ -243,7 +243,7 @@ export function formatAsSearchResults(
   const remaining = maxResults ? results.length - maxResults : 0;
 
   for (const result of displayResults) {
-    const titleText = result.title || result.id;
+    const titleText = result.title ?? result.id;
     const typeText = result.entityType ? ` (${result.entityType})` : "";
     const scoreText =
       showScores && result.score !== undefined
