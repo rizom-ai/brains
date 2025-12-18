@@ -1,5 +1,19 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsPlugin } from "../src";
+import type { BaseEntity } from "@brains/plugins";
+import { computeContentHash } from "@brains/utils";
+
+// Helper to create test entities
+const createTestEntity = (overrides: Partial<BaseEntity> = {}): BaseEntity => ({
+  id: "test-entity",
+  entityType: "post",
+  content: "Test content",
+  contentHash: computeContentHash("Test content"),
+  metadata: {},
+  created: new Date().toISOString(),
+  updated: new Date().toISOString(),
+  ...overrides,
+});
 
 describe("TopicsPlugin", () => {
   let plugin: TopicsPlugin;
@@ -18,6 +32,36 @@ describe("TopicsPlugin", () => {
 
   it("should have plugin metadata", () => {
     expect(plugin.version).toBeDefined();
+  });
+
+  describe("isEntityPublished", () => {
+    it("should return false for draft entities", () => {
+      const draftEntity = createTestEntity({
+        metadata: { status: "draft" },
+      });
+      expect(plugin.isEntityPublished(draftEntity)).toBe(false);
+    });
+
+    it("should return true for published entities", () => {
+      const publishedEntity = createTestEntity({
+        metadata: { status: "published" },
+      });
+      expect(plugin.isEntityPublished(publishedEntity)).toBe(true);
+    });
+
+    it("should return true for entities without status field", () => {
+      const entityWithoutStatus = createTestEntity({
+        metadata: { title: "Some title" },
+      });
+      expect(plugin.isEntityPublished(entityWithoutStatus)).toBe(true);
+    });
+
+    it("should return true for entities with empty metadata", () => {
+      const entityEmptyMetadata = createTestEntity({
+        metadata: {},
+      });
+      expect(plugin.isEntityPublished(entityEmptyMetadata)).toBe(true);
+    });
   });
 
   describe("shouldProcessEntityType", () => {

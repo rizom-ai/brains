@@ -126,6 +126,16 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 
   /**
+   * Determine if an entity is published (not a draft)
+   * Drafts should not trigger topic extraction - only published content
+   * Public for testing
+   */
+  public isEntityPublished(entity: BaseEntity): boolean {
+    const metadata = entity.metadata as Record<string, unknown>;
+    return metadata["status"] !== "draft";
+  }
+
+  /**
    * Handle entity created/updated events for automatic topic extraction
    * Queues an extraction job instead of blocking on AI extraction
    */
@@ -133,6 +143,15 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     context: ServicePluginContext,
     entity: BaseEntity,
   ): Promise<void> {
+    // Skip draft entities - only extract topics from published content
+    if (!this.isEntityPublished(entity)) {
+      this.logger.debug("Skipping topic extraction for draft entity", {
+        entityId: entity.id,
+        entityType: entity.entityType,
+      });
+      return;
+    }
+
     try {
       this.logger.debug("Queuing topic extraction for entity", {
         entityId: entity.id,
