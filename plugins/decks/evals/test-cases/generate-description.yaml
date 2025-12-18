@@ -61,3 +61,16 @@ expectedOutput:
     minRelevanceScore: 4
     minAccuracyScore: 4
     minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate the description against these style criteria:
+
+      1. Should capture the CORE ARGUMENT, not just the topic
+         - BAD: "An exploration of system resilience concepts"
+         - GOOD: "Why designing for failure is the only way to build systems that don't fail"
+
+      2. Should be direct and specific, avoiding vague marketing language
+         - Avoid: "comprehensive", "exploration", "insights into"
+
+      3. Should match the voice - if the deck is opinionated, the description should be too
+
+      Score QUALITY based on how well the description captures the essence in a compelling way.

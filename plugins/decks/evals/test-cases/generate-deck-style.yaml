@@ -1,0 +1,52 @@
+id: decks-generate-deck-style
+name: Generate slide deck with distinctive style
+description: Tests that AI generates a deck matching the author's distinctive voice and style guidelines
+type: plugin
+tags:
+  - decks
+  - generation
+  - style
+  - voice
+plugin: decks
+handler: generateDeck
+
+input:
+  prompt: "Create a presentation about why most productivity advice is broken"
+
+expectedOutput:
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      In addition to standard quality criteria, evaluate this deck against these STYLE requirements:
+
+      1. TITLE SLIDE (first slide):
+         - Should be ONLY the title - 2-5 words, evocative and memorable
+         - Examples of GOOD: "The Hustle Myth", "Breaking Productivity", "Work Smarter Not"
+         - Examples of BAD: "A Comprehensive Guide to Productivity", "10 Tips for Being More Productive"
+         - Penalize corporate, SEO-optimized, or generic titles
+
+      2. OPENING SLIDE (second slide):
+         - Should hook the audience with a provocative question, relevant quote, or bold statement
+         - NOT "Welcome to my presentation" or "Today we will cover..."
+         - NOT an agenda listing what will be covered
+
+      3. SLIDE STRUCTURE:
+         - Minimal text per slide - one idea per slide
+         - NO bullet-heavy slides with 5+ items
+         - Should tell a story or build an argument, not list features
+
+      4. VOICE:
+         - Opinionated and direct, takes clear positions
+         - First-person where appropriate
+         - NO hedging language ("might", "could potentially", "some experts say")
+         - Should NOT sound like a consulting deck or sales pitch
+
+      5. ENDING:
+         - NO generic "Questions?" or "Thank you" slides
+         - Should end with a call to action or thought-provoking point
+
+      Score QUALITY (0-5) primarily based on how well the deck follows these style guidelines.
+      A deck that is technically correct but sounds corporate/generic should score 2-3.
+      A deck that matches this distinctive voice should score 4-5.
