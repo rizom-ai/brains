@@ -81,13 +81,14 @@ export class DeckDataSource implements DataSource {
       },
     );
 
-    // Filter to only published decks (not drafts)
-    const publishedDecks = allDecks.filter(
-      (d) => d.metadata.status === "published",
-    );
+    // Filter based on environment - show drafts in preview, only published in production
+    const isPreview = _context.environment === "preview";
+    const filteredDecks = isPreview
+      ? allDecks // Preview: show all decks (draft and published)
+      : allDecks.filter((d) => d.metadata.status === "published"); // Production: only published
 
     // Sort by publishedAt date, newest first (fall back to created if not set)
-    const sortedDecks = publishedDecks.sort((a, b) => {
+    const sortedDecks = filteredDecks.sort((a, b) => {
       const aDate = a.metadata.publishedAt ?? a.created;
       const bDate = b.metadata.publishedAt ?? b.created;
       return new Date(bDate).getTime() - new Date(aDate).getTime();
