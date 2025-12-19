@@ -1,0 +1,29 @@
+id: portfolio-tool-create-basic
+name: Portfolio Create Tool Invocation
+description: Verifies that the agent calls the portfolio_create tool when asked to create a portfolio project
+type: tool_invocation
+tags:
+  - portfolio
+  - tool-invocation
+  - anti-hallucination
+
+turns:
+  - userMessage: "Create a portfolio case study for my API Gateway project from 2024"
+
+successCriteria:
+  expectedTools:
+    - toolName: portfolio_create
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseContains:
+    - "job"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

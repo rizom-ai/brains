@@ -1,0 +1,27 @@
+id: portfolio-tool-create-asks-for-url
+name: Portfolio Create Asks for URL
+description: Verifies that the agent asks for a URL or link when creating a portfolio project for a topic with no existing content in the brain
+type: tool_invocation
+tags:
+  - portfolio
+  - tool-invocation
+  - clarification
+
+turns:
+  - userMessage: "Create a portfolio case study for my Superconnectors project from 2024"
+
+successCriteria:
+  expectedTools:
+    - toolName: portfolio_create
+      shouldBeCalled: true
+  responseContains:
+    - "url"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

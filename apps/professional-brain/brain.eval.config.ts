@@ -12,6 +12,8 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
 import TopicsPlugin from "@brains/topics";
+import { NotePlugin } from "@brains/note";
+import { PortfolioPlugin } from "@brains/portfolio";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
@@ -25,6 +27,11 @@ const entityRouteConfig = {
   post: { label: "Essay" },
   deck: { label: "Presentation" },
   topic: { label: "Topic" },
+  project: { label: "Project" },
+  note: {
+    label: "Note",
+    navigation: { show: false },
+  },
   link: {
     label: "Link",
     navigation: { slot: "secondary" },
@@ -55,6 +62,8 @@ const config = defineConfig({
     blogPlugin({}),
     decksPlugin({}),
     new TopicsPlugin({}),
+    new NotePlugin({}),
+    new PortfolioPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,
     }),

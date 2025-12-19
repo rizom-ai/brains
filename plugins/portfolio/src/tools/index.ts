@@ -10,18 +10,22 @@ import { projectAdapter } from "../adapters/project-adapter";
 import { projectFrontmatterSchema, type Project } from "../schemas/project";
 
 /**
- * Input schema for portfolio_generate tool
+ * Input schema for portfolio_create tool
  */
-export const generateInputSchema = z.object({
-  prompt: z.string().describe("Description of the project to generate"),
+export const createInputSchema = z.object({
+  topic: z
+    .string()
+    .describe(
+      "Topic/name of the project to document (used to search for related content)",
+    ),
   year: z.number().describe("Year the project was completed"),
   title: z
     .string()
     .optional()
-    .describe("Project title (will be AI-generated if not provided)"),
+    .describe("Project title (will be derived from topic if not provided)"),
 });
 
-export type GenerateInput = z.infer<typeof generateInputSchema>;
+export type CreateInput = z.infer<typeof createInputSchema>;
 
 /**
  * Input schema for portfolio_publish tool
@@ -40,27 +44,56 @@ export function createPortfolioTools(
   context: ServicePluginContext,
 ): PluginTool[] {
   return [
-    // portfolio_generate - AI-powered project generation
+    // portfolio_create - Create project case study from existing knowledge
     {
-      name: `${pluginId}_generate`,
+      name: `${pluginId}_create`,
       description:
-        "Queue a job to generate a portfolio project case study using AI. Creates structured content with context, problem, solution, and outcome.",
-      inputSchema: generateInputSchema.shape,
+        "Create a portfolio project case study by searching for related content in the brain. Searches notes, links, and posts about the topic, then generates a structured case study with context, problem, solution, and outcome. IMPORTANT: If the search finds insufficient content, ask the user for a project URL and use link_capture to capture it first before creating the project.",
+      inputSchema: createInputSchema.shape,
       visibility: "anchor",
       handler: async (
         input: unknown,
         toolContext: ToolContext,
       ): Promise<ToolResponse> => {
         try {
-          const parsed = generateInputSchema.parse(input);
+          const parsed = createInputSchema.parse(input);
 
-          // Enqueue the project generation job
+          // Search for related content across entity types
+          const entityTypes = ["note", "link", "post", "topic"];
+          const relatedContent: string[] = [];
+
+          // Search across all types at once
+          const results = await context.entityService.search(parsed.topic, {
+            types: entityTypes,
+            limit: 10,
+          });
+
+          for (const result of results) {
+            const entity = result.entity;
+            relatedContent.push(
+              `[${entity.entityType}: ${entity.metadata?.["title"] || entity.id}]\n${entity.content}`,
+            );
+          }
+
+          // Build enriched prompt with found context
+          const contextSection =
+            relatedContent.length > 0
+              ? `\n\nRelated content found in the brain:\n\n${relatedContent.join("\n\n---\n\n")}`
+              : "";
+
+          const enrichedPrompt = `Create a case study for: ${parsed.topic}${contextSection}`;
+
+          // Enqueue the project generation job with enriched context
           const jobId = await context.enqueueJob(
             "generation",
-            parsed,
+            {
+              prompt: enrichedPrompt,
+              year: parsed.year,
+              title: parsed.title,
+            },
             toolContext,
             {
-              source: `${pluginId}_generate`,
+              source: `${pluginId}_create`,
               metadata: {
                 operationType: "content_operations",
                 operationTarget: "project",
@@ -71,17 +104,19 @@ export function createPortfolioTools(
           const formatted = formatAsEntity(
             {
               jobId,
-              title: parsed.title ?? "(AI generated)",
+              topic: parsed.topic,
+              title: parsed.title ?? "(derived from topic)",
               year: parsed.year,
+              relatedEntitiesFound: relatedContent.length,
               status: "queued",
             },
-            { title: "Project Generation" },
+            { title: "Project Creation" },
           );
 
           return {
             success: true,
-            data: { jobId },
-            message: `Project generation job queued (jobId: ${jobId})`,
+            data: { jobId, relatedEntitiesFound: relatedContent.length },
+            message: `Project creation job queued. Found ${relatedContent.length} related entities.`,
             formatted,
           };
         } catch (error) {
