@@ -1,8 +1,6 @@
-import type { PluginTool, ToolResponse } from "@brains/plugins";
+import type { PluginTool, ToolResponse, ToolContext } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import { LinkService } from "../lib/link-service";
-import type { LinkConfig } from "../schemas/link";
 
 // Schema for tool parameters
 const captureParamsSchema = z.object({
@@ -16,64 +14,59 @@ const captureParamsSchema = z.object({
 export function createLinkTools(
   pluginId: string,
   context: ServicePluginContext,
-  config?: LinkConfig,
 ): PluginTool[] {
-  const linkService = new LinkService(
-    context,
-    config?.jinaApiKey ? { jinaApiKey: config.jinaApiKey } : undefined,
-  );
-
   return [
     {
       name: `${pluginId}_capture`,
       description:
-        "Save a web link/URL with AI-powered content extraction. Use when users want to bookmark, save, or capture a webpage.",
+        "Save a web link/URL with AI-powered content extraction. Use when users want to bookmark, save, or capture a webpage. The extraction happens asynchronously - the job is queued and processed in the background.",
       inputSchema: captureParamsSchema.shape,
       visibility: "anchor",
-      handler: async (input): Promise<ToolResponse> => {
+      handler: async (
+        input: unknown,
+        toolContext: ToolContext,
+      ): Promise<ToolResponse> => {
         const { url } = captureParamsSchema.parse(input);
 
         try {
-          const result = await linkService.captureLink(url);
-
-          // Check if extraction was successful or pending user input
-          if (result.status === "pending") {
-            const formatted = formatAsEntity(
-              {
-                id: result.entityId,
-                title: result.title,
-                url: result.url,
-                status: "pending",
-                reason: result.extractionError,
+          // Enqueue the link capture job for async processing
+          const jobId = await context.enqueueJob(
+            "capture",
+            {
+              url,
+              metadata: {
+                interfaceId: toolContext.interfaceType,
+                userId: toolContext.userId,
+                channelId: toolContext.channelId,
+                timestamp: new Date().toISOString(),
               },
-              { title: "Link Saved (Pending)" },
-            );
-
-            return {
-              success: true,
-              data: {
-                ...result,
-                message: `Link saved but content could not be extracted: ${result.extractionError}. Please provide a title, description, and summary for this link.`,
+            },
+            toolContext,
+            {
+              source: `${pluginId}_capture`,
+              metadata: {
+                operationType: "content_operations",
+                operationTarget: "link",
               },
-              formatted,
-            };
-          }
+            },
+          );
 
           const formatted = formatAsEntity(
             {
-              id: result.entityId,
-              title: result.title,
-              url: result.url,
-              status: "complete",
+              jobId,
+              url,
+              status: "queued",
             },
-            { title: "Link Captured" },
+            { title: "Link Capture Queued" },
           );
 
           return {
             success: true,
             data: {
-              ...result,
-              message: `Successfully captured link: ${result.title}`,
+              jobId,
+              url,
+              status: "queued",
+              message: `Link capture job queued. The URL will be fetched and content extracted in the background.`,
             },
             formatted,
           };

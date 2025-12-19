@@ -11,6 +11,7 @@ import {
 import { linkListTemplate } from "./templates/link-list";
 import { LinksDataSource } from "./datasources/links-datasource";
 import { UrlFetcher } from "./lib/url-fetcher";
+import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import packageJson from "../package.json";
 
 // Schema for extractContent eval handler input
@@ -53,6 +54,16 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     );
     context.registerDataSource(linksDataSource);
 
+    // Register job handler for async link capture
+    const linkCaptureHandler = new LinkCaptureJobHandler(
+      this.logger.child("LinkCaptureJobHandler"),
+      context,
+      this.config.jinaApiKey
+        ? { jinaApiKey: this.config.jinaApiKey }
+        : undefined,
+    );
+    context.registerJobHandler("capture", linkCaptureHandler);
+
     // Register eval handler for testing extraction quality
     context.registerEvalHandler("extractContent", async (input: unknown) => {
       const { url } = extractContentInputSchema.parse(input);
@@ -92,7 +103,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     if (!this.context) {
       throw new Error("Plugin context not available");
     }
-    return createLinkTools(this.id, this.context, this.config);
+    return createLinkTools(this.id, this.context);
   }
 }
 
