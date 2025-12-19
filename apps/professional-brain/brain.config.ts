@@ -9,6 +9,7 @@ import { GitSyncPlugin } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
+import { notePlugin } from "@brains/note";
 import TopicsPlugin from "@brains/topics";
 import {
   professionalSitePlugin,
@@ -30,6 +31,10 @@ const entityRouteConfig = {
   summary: {
     label: "Summary",
     navigation: { show: false }, // Hide from navigation entirely
+  },
+  note: {
+    label: "Note",
+    navigation: { show: false }, // Notes are personal, hide from navigation
   },
 };
 
@@ -85,6 +90,7 @@ const config = defineConfig({
     }),
     blogPlugin({}),
     decksPlugin({}),
+    notePlugin({}),
     new TopicsPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,

@@ -12,14 +12,13 @@ describe("FileOperations.parseEntityFromPath", () => {
       serializeEntity: (entity: { id: string; content: string }) =>
         `# ${entity.id}\n\n${entity.content}`,
       deserializeEntity: () => ({ metadata: {} }),
-      getEntityTypes: () => [], // No "note" registered, so root files default to "base"
     } as unknown as IEntityService;
 
     fileOps = new FileOperations(testDir, mockEntityService);
   });
 
   describe("root level files", () => {
-    it("should parse simple root level file as base entity when note not registered", () => {
+    it("should parse simple root level file as base entity", () => {
       const result = fileOps.parseEntityFromPath("/test/brain-data/my-note.md");
       expect(result).toEqual({
         entityType: "base",
@@ -31,28 +30,6 @@ describe("FileOperations.parseEntityFromPath", () => {
       const result = fileOps.parseEntityFromPath("my-note.md");
       expect(result).toEqual({
         entityType: "base",
-        id: "my-note",
-      });
-    });
-
-    it("should parse root level file as note entity when note is registered", () => {
-      // Create FileOperations with note registered
-      const mockEntityServiceWithNote = {
-        serializeEntity: (entity: { id: string; content: string }) =>
-          `# ${entity.id}\n\n${entity.content}`,
-        deserializeEntity: () => ({ metadata: {} }),
-        getEntityTypes: () => ["note", "post", "link"], // "note" is registered
-      } as unknown as IEntityService;
-
-      const fileOpsWithNote = new FileOperations(
-        testDir,
-        mockEntityServiceWithNote,
-      );
-      const result = fileOpsWithNote.parseEntityFromPath(
-        "/test/brain-data/my-note.md",
-      );
-      expect(result).toEqual({
-        entityType: "note",
         id: "my-note",
       });
     });

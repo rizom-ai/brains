@@ -153,20 +153,6 @@ Content here...
 - `plugins/link/src/tools/index.ts` - Tool registration pattern
 - `shell/entity-service/src/frontmatter.ts` - Frontmatter utilities
 
-## Final Step: Update directory-sync
-
-After the plugin is complete, update `directory-sync` to make `note` the default for markdown files:
-
-- If directory doesn't match a registered type AND file is `.md` → `note`
-- Otherwise → `base`
-
-This means:
-
-- `brain-data/post/*.md` → `post` (registered type)
-- `brain-data/note/*.md` → `note` (registered type)
-- `brain-data/random/*.md` → `note` (default for markdown)
-- `brain-data/random/*.bin` → `base` (truly unknown)
-
 ## Deferred to Later
 
 - Site templates (note-list, note-detail pages)
@@ -179,4 +165,4 @@ This means:
 
 - Tags are handled by the Topics plugin (auto-extraction from content)
 - Notes are personal/private; blog posts are for public content
-- `note` becomes the default entity type for markdown files (replaces `base` for `.md`)
+- Notes live in `note/` directory (consistent with other entity types)

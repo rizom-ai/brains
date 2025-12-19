@@ -27,6 +27,7 @@
     "@brains/git-sync": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
+    "@brains/note": "workspace:*",
     "@brains/professional-site": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/system": "workspace:*",
