@@ -13,6 +13,7 @@ import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
 import TopicsPlugin from "@brains/topics";
 import { NotePlugin } from "@brains/note";
+import { LinkPlugin } from "@brains/link";
 import { PortfolioPlugin } from "@brains/portfolio";
 import {
   professionalSitePlugin,
@@ -35,10 +36,6 @@ const entityRouteConfig = {
   link: {
     label: "Link",
     navigation: { slot: "secondary" },
-  },
-  summary: {
-    label: "Summary",
-    navigation: { show: false },
   },
 };
 
@@ -63,6 +60,7 @@ const config = defineConfig({
     decksPlugin({}),
     new TopicsPlugin({}),
     new NotePlugin({}),
+    new LinkPlugin({}),
     new PortfolioPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,

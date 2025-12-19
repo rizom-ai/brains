@@ -10,6 +10,7 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
 import { notePlugin } from "@brains/note";
+import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
 import TopicsPlugin from "@brains/topics";
 import {
@@ -29,10 +30,6 @@ const entityRouteConfig = {
   link: {
     label: "Link",
     navigation: { slot: "secondary" }, // Show in footer only
-  },
-  summary: {
-    label: "Summary",
-    navigation: { show: false }, // Hide from navigation entirely
   },
   note: {
     label: "Note",
@@ -93,6 +90,7 @@ const config = defineConfig({
     blogPlugin({}),
     decksPlugin({}),
     notePlugin({}),
+    linkPlugin({}),
     portfolioPlugin({}),
     new TopicsPlugin({}),
     professionalSitePlugin({

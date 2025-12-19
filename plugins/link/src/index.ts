@@ -103,6 +103,11 @@ export function createLinkPlugin(config: Partial<LinkConfig> = {}): Plugin {
   return new LinkPlugin(config);
 }
 
+/**
+ * Convenience function matching other plugin patterns
+ */
+export const linkPlugin = createLinkPlugin;
+
 // Export types and schemas for use by other plugins
 export type { LinkConfig, LinkEntity, LinkBody } from "./schemas/link";
 export { linkSchema, linkBodySchema, linkConfigSchema } from "./schemas/link";
