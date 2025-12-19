@@ -12,6 +12,7 @@ import {
   type LinkBody,
   type LinkSource,
   type LinkMetadata,
+  type LinkStatus,
 } from "../schemas/link";
 
 /**
@@ -29,6 +30,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
       title,
       mappings: [
         { key: "url", label: "URL", type: "string" },
+        { key: "status", label: "Status", type: "string" },
         { key: "description", label: "Description", type: "string" },
         { key: "summary", label: "Summary", type: "string" },
         {
@@ -39,6 +41,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
         },
         { key: "domain", label: "Domain", type: "string" },
         { key: "capturedAt", label: "Captured", type: "string" },
+        { key: "extractionError", label: "Extraction Error", type: "string" },
         {
           key: "source",
           label: "Source",
@@ -64,20 +67,24 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
   public createLinkBody(params: {
     title: string;
     url: string;
-    description: string;
-    summary: string;
-    keywords: string[];
+    description?: string;
+    summary?: string;
+    keywords?: string[];
     source: LinkSource;
+    status: LinkStatus;
+    extractionError?: string;
   }): string {
     const formatter = this.createFormatter(params.title);
     return formatter.format({
       url: params.url,
       description: params.description,
       summary: params.summary,
-      keywords: params.keywords,
+      keywords: params.keywords ?? [],
       domain: new URL(params.url).hostname,
       capturedAt: new Date().toISOString(),
       source: params.source,
+      status: params.status,
+      extractionError: params.extractionError,
     });
   }
 
@@ -126,22 +133,6 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
    */
   public extractMetadata(_entity: LinkEntity): LinkMetadata {
     return {};
-  }
-
-  /**
-   * Generate a human-readable title from link content
-   */
-  public generateTitle(entity: LinkEntity): string {
-    const parsed = this.parseLinkBody(entity.content);
-    return parsed.title;
-  }
-
-  /**
-   * Generate a brief summary for search results
-   */
-  public generateSummary(entity: LinkEntity): string {
-    const parsed = this.parseLinkBody(entity.content);
-    return parsed.description || parsed.summary.substring(0, 200) + "...";
   }
 
   /**

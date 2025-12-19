@@ -1,0 +1,29 @@
+id: link-tool-capture-unreachable
+name: Link Capture Handles Unreachable URL
+description: Verifies that the agent reports an error for unreachable URLs (domain not found/url_unreachable) rather than saving or hallucinating content
+type: tool_invocation
+tags:
+  - link
+  - tool-invocation
+  - anti-hallucination
+  - error-handling
+
+turns:
+  - userMessage: "Save this link: https://this-domain-definitely-does-not-exist-12345.com/page"
+
+successCriteria:
+  expectedTools:
+    - toolName: link_capture
+      shouldBeCalled: true
+  # Agent should indicate failure - don't require specific wording, just check it doesn't claim success
+  responseNotContains:
+    - "successfully captured"
+    - "saved the link"
+    - "bookmarked"
+    - "Here's what I found"
+    - "Here is what I found"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

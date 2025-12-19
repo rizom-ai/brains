@@ -1,0 +1,37 @@
+id: link-extract-content-github
+name: Extract content from GitHub repo
+description: Tests extraction from a GitHub repository page with README content
+type: plugin
+tags:
+  - link
+  - extraction
+  - quality
+  - github
+plugin: link
+handler: extractContent
+
+input:
+  url: "https://github.com/anthropics/claude-code"
+
+expectedOutput:
+  hasFields:
+    - title
+    - description
+    - summary
+    - keywords
+  fieldValidation:
+    - field: title
+      minLength: 5
+      maxLength: 150
+    - field: description
+      minLength: 20
+      maxLength: 300
+    - field: summary
+      minLength: 50
+    - field: keywords
+      minItems: 3
+      maxItems: 10
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

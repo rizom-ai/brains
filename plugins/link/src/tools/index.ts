@@ -2,6 +2,7 @@ import type { PluginTool, ToolResponse } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { LinkService } from "../lib/link-service";
+import type { LinkConfig } from "../schemas/link";
 
 // Schema for tool parameters
 const captureParamsSchema = z.object({
@@ -15,8 +16,12 @@ const captureParamsSchema = z.object({
 export function createLinkTools(
   pluginId: string,
   context: ServicePluginContext,
+  config?: LinkConfig,
 ): PluginTool[] {
-  const linkService = new LinkService(context);
+  const linkService = new LinkService(
+    context,
+    config?.jinaApiKey ? { jinaApiKey: config.jinaApiKey } : undefined,
+  );
 
   return [
     {
@@ -30,12 +35,36 @@ export function createLinkTools(
 
         try {
           const result = await linkService.captureLink(url);
+
+          // Check if extraction was successful or pending user input
+          if (result.status === "pending") {
+            const formatted = formatAsEntity(
+              {
+                id: result.entityId,
+                title: result.title,
+                url: result.url,
+                status: "pending",
+                reason: result.extractionError,
+              },
+              { title: "Link Saved (Pending)" },
+            );
+
+            return {
+              success: true,
+              data: {
+                ...result,
+                message: `Link saved but content could not be extracted: ${result.extractionError}. Please provide a title, description, and summary for this link.`,
+              },
+              formatted,
+            };
+          }
+
           const formatted = formatAsEntity(
             {
               id: result.entityId,
               title: result.title,
               url: result.url,
-              status: "captured",
+              status: "complete",
             },
             { title: "Link Captured" },
           );

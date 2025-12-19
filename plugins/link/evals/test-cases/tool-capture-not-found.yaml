@@ -1,0 +1,29 @@
+id: link-tool-capture-not-found
+name: Link Capture Handles Soft 404
+description: Verifies that the agent handles pages that return 200 OK but have no meaningful content (like GitHub's 404 page). Should save as pending and ask for user input, NOT hallucinate content.
+type: tool_invocation
+tags:
+  - link
+  - tool-invocation
+  - anti-hallucination
+  - error-handling
+
+turns:
+  - userMessage: "Save this private repo: https://github.com/private-org-12345/secret-repo-that-does-not-exist"
+
+successCriteria:
+  expectedTools:
+    - toolName: link_capture
+      shouldBeCalled: true
+  # Should NOT hallucinate content about the repo - key anti-hallucination check
+  responseNotContains:
+    - "successfully captured"
+    - "Here's what I found"
+    - "Here is what I found"
+    - "repository contains"
+    - "this repo is about"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

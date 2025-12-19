@@ -1,24 +1,31 @@
 import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { z } from "@brains/utils";
 import { linkConfigSchema, linkSchema, type LinkConfig } from "./schemas/link";
 import { LinkAdapter } from "./adapters/link-adapter";
 import { createLinkTools } from "./tools/index";
-import { linkExtractionTemplate } from "./templates/extraction-template";
+import {
+  linkExtractionTemplate,
+  type LinkExtractionResult,
+} from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";
 import { LinksDataSource } from "./datasources/links-datasource";
-import { AutoCaptureHandler } from "./handlers/auto-capture-handler";
-import { MessageEventHandler } from "./handlers/message-event-handler";
+import { UrlFetcher } from "./lib/url-fetcher";
 import packageJson from "../package.json";
+
+// Schema for extractContent eval handler input
+const extractContentInputSchema = z.object({
+  url: z.string().url(),
+});
 
 /**
  * Link plugin for web content capture with AI-powered extraction
  *
  * Captures web links and extracts their content using AI, storing them
- * as structured markdown entities following the topics plugin pattern.
+ * as structured markdown entities. Links are captured explicitly via the
+ * link_capture tool.
  */
 export class LinkPlugin extends ServicePlugin<LinkConfig> {
-  private messageEventUnsubscribe?: () => void;
-
   constructor(config: Partial<LinkConfig> = {}) {
     super("link", packageJson, config, linkConfigSchema);
   }
@@ -46,43 +53,36 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     );
     context.registerDataSource(linksDataSource);
 
-    // Register auto-capture job handler
+    // Register eval handler for testing extraction quality
+    context.registerEvalHandler("extractContent", async (input: unknown) => {
+      const { url } = extractContentInputSchema.parse(input);
 
-    if (this.config.enableAutoCapture) {
-      const autoCaptureHandler = AutoCaptureHandler.getInstance(context);
-      context.registerJobHandler("auto-capture", autoCaptureHandler);
+      // Fetch URL content
+      const urlFetcher = new UrlFetcher(
+        this.config.jinaApiKey
+          ? { jinaApiKey: this.config.jinaApiKey }
+          : undefined,
+      );
+      const fetchResult = await urlFetcher.fetch(url);
 
-      // Subscribe to conversation message events
-      const messageEventHandler = MessageEventHandler.getInstance(
-        context,
-        this.config,
-      );
-      this.messageEventUnsubscribe = context.subscribe(
-        "conversation:messageAdded",
-        messageEventHandler.getHandler(),
-      );
-      this.logger.debug("Subscribed to conversation:messageAdded events");
-    } else {
-      this.logger.debug(
-        "Auto-capture is disabled, skipping handler registration",
-      );
-    }
+      if (!fetchResult.success) {
+        return {
+          success: false,
+          error: fetchResult.error,
+          errorType: fetchResult.errorType,
+        };
+      }
+
+      // Extract structured content using AI
+      return context.generateContent<LinkExtractionResult>({
+        templateName: "link:extraction",
+        prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
+        data: { url, hasContent: true },
+        interfacePermissionGrant: "public",
+      });
+    });
 
     this.logger.debug("Link plugin registered successfully");
-  }
-
-  /**
-   * Clean up when plugin is unregistered
-   */
-  public async cleanup(): Promise<void> {
-    // Unsubscribe from message events if subscribed
-    if (this.messageEventUnsubscribe) {
-      this.messageEventUnsubscribe();
-    }
-
-    // Reset singleton instances for clean testing
-    AutoCaptureHandler.resetInstance();
-    MessageEventHandler.resetInstance();
   }
 
   /**
@@ -92,7 +92,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     if (!this.context) {
       throw new Error("Plugin context not available");
     }
-    return createLinkTools(this.id, this.context);
+    return createLinkTools(this.id, this.context, this.config);
   }
 }
 
