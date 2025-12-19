@@ -1,0 +1,28 @@
+id: note-generate-basic
+name: Generate basic note
+description: Tests that AI generates a complete note with title and body
+type: plugin
+tags:
+  - note
+  - generation
+  - core
+plugin: note
+handler: generateNote
+
+input:
+  prompt: "Create a note about the key principles of functional programming"
+
+expectedOutput:
+  hasFields:
+    - title
+    - body
+  fieldValidation:
+    - field: title
+      minLength: 10
+      maxLength: 80
+    - field: body
+      minLength: 100
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

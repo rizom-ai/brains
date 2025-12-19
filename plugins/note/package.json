@@ -1,0 +1,32 @@
+{
+  "name": "@brains/note",
+  "version": "0.1.0",
+  "description": "Personal knowledge capture with markdown-first workflow",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "eval": "cd evals && bun run brain-eval"
+  },
+  "dependencies": {
+    "@brains/entity-service": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}

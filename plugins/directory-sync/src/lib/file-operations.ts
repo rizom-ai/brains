@@ -44,8 +44,9 @@ export class FileOperations {
     let idPathParts: string[];
 
     if (pathParts.length === 1) {
-      // File in root - it's a base entity
-      entityType = "base";
+      // File in root - check if "note" is registered, otherwise use "base"
+      const registeredTypes = this.entityService.getEntityTypes();
+      entityType = registeredTypes.includes("note") ? "note" : "base";
       idPathParts = pathParts;
     } else if (pathParts.length > 1 && pathParts[0]) {
       // Multiple parts means first part is a directory (entity type)
@@ -53,8 +54,9 @@ export class FileOperations {
       entityType = pathParts[0];
       idPathParts = pathParts.slice(1);
     } else {
-      // Fallback: treat as base entity
-      entityType = "base";
+      // Fallback: check if "note" is registered, otherwise use "base"
+      const registeredTypes = this.entityService.getEntityTypes();
+      entityType = registeredTypes.includes("note") ? "note" : "base";
       idPathParts = pathParts;
     }
 
@@ -273,9 +275,7 @@ export class FileOperations {
       try {
         const fullPath = join(this.syncPath, filePath);
         const fileStat = statSync(fullPath);
-        const pathParts = filePath.split("/");
-        const entityType =
-          pathParts.length > 1 && pathParts[0] ? pathParts[0] : "base";
+        const { entityType } = this.parseEntityFromPath(filePath);
 
         files.push({
           path: filePath,

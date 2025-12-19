@@ -1,0 +1,28 @@
+id: note-generate-research
+name: Generate research note
+description: Tests that AI generates a structured research note with proper organization
+type: plugin
+tags:
+  - note
+  - generation
+  - research
+plugin: note
+handler: generateNote
+
+input:
+  prompt: "Research and summarize the main concepts of distributed systems including consistency, availability, and partition tolerance"
+
+expectedOutput:
+  hasFields:
+    - title
+    - body
+  fieldValidation:
+    - field: title
+      minLength: 10
+      maxLength: 80
+    - field: body
+      minLength: 200
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

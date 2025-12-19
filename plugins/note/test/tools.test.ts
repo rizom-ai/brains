@@ -1,0 +1,169 @@
+import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type {
+  ServicePluginContext,
+  ToolContext,
+  PluginTool,
+} from "@brains/plugins";
+import { createNoteTools } from "../src/tools";
+
+// Mock context
+function createMockContext(): ServicePluginContext {
+  return {
+    entityService: {
+      createEntity: mock(() =>
+        Promise.resolve({ entityId: "note-123", contentHash: "abc123" }),
+      ),
+      getEntity: mock(() => Promise.resolve(null)),
+      updateEntity: mock(() => Promise.resolve({ entityId: "note-123" })),
+      deleteEntity: mock(() => Promise.resolve()),
+      listEntities: mock(() => Promise.resolve([])),
+      searchEntities: mock(() => Promise.resolve([])),
+    } as unknown as ServicePluginContext["entityService"],
+    enqueueJob: mock(() => Promise.resolve("job-456")),
+    generateContent: mock(() =>
+      Promise.resolve({ title: "AI Title", body: "AI Body" }),
+    ),
+    logger: {
+      info: mock(() => {}),
+      error: mock(() => {}),
+      warn: mock(() => {}),
+      debug: mock(() => {}),
+    } as unknown as ServicePluginContext["logger"],
+  } as unknown as ServicePluginContext;
+}
+
+function createMockToolContext(): ToolContext {
+  return {
+    interfaceType: "cli",
+    userId: "user-789",
+  };
+}
+
+function getTool(tools: PluginTool[], name: string): PluginTool {
+  const tool = tools.find((t) => t.name === name);
+  if (!tool) {
+    throw new Error(`Tool ${name} not found`);
+  }
+  return tool;
+}
+
+describe("Note Tools", () => {
+  let context: ServicePluginContext;
+  let tools: ReturnType<typeof createNoteTools>;
+  let createTool: PluginTool;
+  let generateTool: PluginTool;
+
+  beforeEach(() => {
+    context = createMockContext();
+    tools = createNoteTools("note", context);
+    createTool = getTool(tools, "note_create");
+    generateTool = getTool(tools, "note_generate");
+  });
+
+  describe("createNoteTools", () => {
+    it("should create two tools", () => {
+      expect(tools).toHaveLength(2);
+    });
+
+    it("should create note_create tool", () => {
+      expect(createTool).toBeDefined();
+      expect(createTool.description).toContain("Create");
+    });
+
+    it("should create note_generate tool", () => {
+      expect(generateTool).toBeDefined();
+      expect(generateTool.description).toContain("AI");
+    });
+  });
+
+  describe("note_create", () => {
+    it("should create a note with title and content", async () => {
+      const result = await createTool.handler(
+        { title: "My Note", content: "Some content" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      expect(context.entityService.createEntity).toHaveBeenCalled();
+    });
+
+    it("should require title", async () => {
+      const result = await createTool.handler(
+        { content: "Content without title" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toBeDefined();
+    });
+
+    it("should require content", async () => {
+      const result = await createTool.handler(
+        { title: "Title without content" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toBeDefined();
+    });
+
+    it("should return entityId on success", async () => {
+      const result = await createTool.handler(
+        { title: "Test", content: "Body" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.["entityId"]).toBe("note-123");
+    });
+  });
+
+  describe("note_generate", () => {
+    it("should queue a generation job with prompt", async () => {
+      const result = await generateTool.handler(
+        { prompt: "Write about TypeScript" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.jobId).toBe("job-456");
+      expect(context.enqueueJob).toHaveBeenCalled();
+    });
+
+    it("should accept optional title", async () => {
+      const result = await generateTool.handler(
+        { prompt: "Write about X", title: "My Title" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(context.enqueueJob).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({ title: "My Title" }),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it("should work with prompt only", async () => {
+      const result = await generateTool.handler(
+        { prompt: "Summarize key concepts" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.jobId).toBeDefined();
+    });
+
+    it("should return jobId on success", async () => {
+      const result = await generateTool.handler(
+        { prompt: "Generate note" },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.jobId).toBe("job-456");
+    });
+  });
+});
