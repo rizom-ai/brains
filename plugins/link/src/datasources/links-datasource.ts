@@ -2,6 +2,7 @@ import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
+import type { LinkListData } from "../templates/link-list/schema";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -77,6 +78,8 @@ export class LinksDataSource implements DataSource {
         domain: parsed.domain,
         capturedAt: parsed.capturedAt,
         source: parsed.source,
+        status: parsed.status,
+        extractionError: parsed.extractionError,
       };
     });
 
@@ -86,7 +89,7 @@ export class LinksDataSource implements DataSource {
         new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime(),
     );
 
-    const listData = {
+    const listData: LinkListData = {
       links,
       totalCount: links.length,
     };
