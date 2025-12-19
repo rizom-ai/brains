@@ -1,0 +1,42 @@
+id: portfolio-generate-design
+name: Generate design project case study
+description: Tests that AI generates a coherent design-focused case study
+type: plugin
+tags:
+  - portfolio
+  - generation
+  - design
+plugin: portfolio
+handler: generateProject
+
+input:
+  prompt: "Redesign a legacy banking mobile app to improve user experience and accessibility for elderly users"
+  year: 2023
+
+expectedOutput:
+  hasFields:
+    - title
+    - description
+    - context
+    - problem
+    - solution
+    - outcome
+  fieldValidation:
+    - field: title
+      minLength: 10
+      maxLength: 100
+    - field: description
+      minLength: 50
+      maxLength: 300
+    - field: context
+      minLength: 100
+    - field: problem
+      minLength: 100
+    - field: solution
+      minLength: 200
+    - field: outcome
+      minLength: 100
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

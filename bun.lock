@@ -50,6 +50,7 @@
         "@brains/matrix": "workspace:*",
         "@brains/mcp": "workspace:*",
         "@brains/note": "workspace:*",
+        "@brains/portfolio": "workspace:*",
         "@brains/professional-site": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/system": "workspace:*",
@@ -277,6 +278,26 @@
         "@types/bun": "latest",
         "bun-types": "latest",
         "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "plugins/portfolio": {
+      "name": "@brains/portfolio",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/datasource": "workspace:*",
+        "@brains/entity-service": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
         "typescript": "^5.3.3",
       },
     },
@@ -939,6 +960,8 @@
     "@brains/plugin-examples": ["@brains/plugin-examples@workspace:plugins/examples"],
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
+
+    "@brains/portfolio": ["@brains/portfolio@workspace:plugins/portfolio"],
 
     "@brains/product-site-content": ["@brains/product-site-content@workspace:shared/product-site-content"],
 

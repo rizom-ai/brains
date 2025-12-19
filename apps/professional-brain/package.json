@@ -28,6 +28,7 @@
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
+    "@brains/portfolio": "workspace:*",
     "@brains/professional-site": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/system": "workspace:*",

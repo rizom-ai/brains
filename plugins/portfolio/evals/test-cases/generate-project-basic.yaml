@@ -1,0 +1,42 @@
+id: portfolio-generate-basic
+name: Generate basic project case study
+description: Tests that AI generates a complete project case study with all required sections
+type: plugin
+tags:
+  - portfolio
+  - generation
+  - core
+plugin: portfolio
+handler: generateProject
+
+input:
+  prompt: "Build an API gateway for a microservices architecture that handles authentication, rate limiting, and request routing"
+  year: 2024
+
+expectedOutput:
+  hasFields:
+    - title
+    - description
+    - context
+    - problem
+    - solution
+    - outcome
+  fieldValidation:
+    - field: title
+      minLength: 10
+      maxLength: 100
+    - field: description
+      minLength: 50
+      maxLength: 300
+    - field: context
+      minLength: 100
+    - field: problem
+      minLength: 100
+    - field: solution
+      minLength: 200
+    - field: outcome
+      minLength: 100
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

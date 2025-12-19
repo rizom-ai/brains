@@ -1,0 +1,32 @@
+{
+  "name": "@brains/portfolio",
+  "version": "0.1.0",
+  "description": "Portfolio showcase for projects and case studies",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "eval": "cd evals && bun run brain-eval"
+  },
+  "dependencies": {
+    "@brains/datasource": "workspace:*",
+    "@brains/entity-service": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  }
+}

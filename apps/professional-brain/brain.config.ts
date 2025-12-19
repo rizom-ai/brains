@@ -10,6 +10,7 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
 import { notePlugin } from "@brains/note";
+import { portfolioPlugin } from "@brains/portfolio";
 import TopicsPlugin from "@brains/topics";
 import {
   professionalSitePlugin,
@@ -23,6 +24,7 @@ import yeehaaTheme from "@brains/theme-yeehaa";
 const entityRouteConfig = {
   post: { label: "Essay" }, // pluralName defaults to 'essays'
   deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
+  project: { label: "Project" }, // Portfolio case studies
   topic: { label: "Topic" }, // Mobile hamburger menu handles overflow
   link: {
     label: "Link",
@@ -91,6 +93,7 @@ const config = defineConfig({
     blogPlugin({}),
     decksPlugin({}),
     notePlugin({}),
+    portfolioPlugin({}),
     new TopicsPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,
