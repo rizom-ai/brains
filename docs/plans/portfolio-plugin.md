@@ -32,8 +32,48 @@ A portfolio showcase plugin for displaying completed work, case studies, and ach
 ### Content Structure
 
 - `description` field for card previews (like blog's `excerpt`)
-- Free-form markdown body for detailed case study
-- AI generation template suggests problem/solution structure but doesn't enforce it
+- Markdown body with structured sections parsed by adapter
+
+**Markdown body format:**
+
+```markdown
+## Context
+
+Background and environment for the project.
+
+## Problem
+
+What challenge or opportunity was addressed?
+
+## Solution
+
+What was built or implemented?
+
+## Outcome
+
+Results, impact, or lessons learned.
+```
+
+**Parsed using `StructuredContentFormatter` from `@brains/utils`:**
+
+```typescript
+// Field mappings for section extraction
+const projectFieldMappings: FieldMapping[] = [
+  { headingLabel: "Context", fieldPath: "context" },
+  { headingLabel: "Problem", fieldPath: "problem" },
+  { headingLabel: "Solution", fieldPath: "solution" },
+  { headingLabel: "Outcome", fieldPath: "outcome" },
+];
+
+interface ProjectContent {
+  context: string;
+  problem: string;
+  solution: string;
+  outcome: string;
+}
+```
+
+Templates access structured data: `project.context`, `project.problem`, etc.
 
 ### Ordering
 
@@ -93,6 +133,7 @@ plugins/portfolio/
 - Implement `EntityAdapter<Project, ProjectMetadata>`
 - Auto-generate slug from title using `slugify()`
 - Sync frontmatter fields to metadata
+- Use `StructuredContentFormatter` to parse/generate body sections (context, problem, solution, outcome)
 - Handle markdown serialization/deserialization
 
 ### Step 4: DataSource (`src/datasources/project-datasource.ts`)
@@ -170,15 +211,16 @@ entityRouteConfig: {
 
 ## Critical Reference Files
 
-| Purpose             | File                                                    |
-| ------------------- | ------------------------------------------------------- |
-| Schema pattern      | `plugins/blog/src/schemas/blog-post.ts`                 |
-| Adapter pattern     | `plugins/blog/src/adapters/blog-post-adapter.ts`        |
-| DataSource pattern  | `plugins/blog/src/datasources/blog-datasource.ts`       |
-| Plugin pattern      | `plugins/blog/src/plugin.ts`                            |
-| Template pattern    | `plugins/blog/src/templates/blog-list.tsx`              |
-| Job handler pattern | `plugins/blog/src/handlers/blogGenerationJobHandler.ts` |
-| Tool pattern        | `plugins/blog/src/tools/generate.ts`                    |
+| Purpose                    | File                                                           |
+| -------------------------- | -------------------------------------------------------------- |
+| StructuredContentFormatter | `shared/utils/src/formatters/formatters/structured-content.ts` |
+| Schema pattern             | `plugins/blog/src/schemas/blog-post.ts`                        |
+| Adapter pattern            | `plugins/blog/src/adapters/blog-post-adapter.ts`               |
+| DataSource pattern         | `plugins/blog/src/datasources/blog-datasource.ts`              |
+| Plugin pattern             | `plugins/blog/src/plugin.ts`                                   |
+| Template pattern           | `plugins/blog/src/templates/blog-list.tsx`                     |
+| Job handler pattern        | `plugins/blog/src/handlers/blogGenerationJobHandler.ts`        |
+| Tool pattern               | `plugins/blog/src/tools/generate.ts`                           |
 
 ## Testing Checklist
 
