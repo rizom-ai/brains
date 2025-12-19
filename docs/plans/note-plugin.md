@@ -18,12 +18,11 @@ Since brain-data/ IS the Obsidian vault, **directory-sync already handles bidire
 | ----------------------- | ---------------------------------------------------------- |
 | Relationship to base    | Keep both - base as fallback, note as primary content type |
 | Storage location        | `brain-data/note/<id>.md`                                  |
-| Frontmatter fields      | `title` (optional), `tags` (optional array)                |
-| No frontmatter handling | Use filename as title, empty tags                          |
+| Frontmatter fields      | `title` (optional) - no tags (Topics plugin handles this)  |
+| No frontmatter handling | Use H1 or filename as title                                |
 | AI generation           | Yes - `note_generate` tool with async job handler          |
-| Auto-tagging            | Deferred (AI could suggest tags later)                     |
 | Status field            | Deferred (keep minimal)                                    |
-| Site templates          | Deferred (no note-list/note-detail pages)                  |
+| Site templates          | Deferred (notes are personal, blog posts are public)       |
 
 ## File Structure
 
@@ -52,14 +51,12 @@ plugins/note/
 ```typescript
 // Frontmatter (optional in markdown)
 noteFrontmatterSchema = z.object({
-  title: z.string().optional(), // Optional - falls back to filename
-  tags: z.array(z.string()).optional().default([]),
+  title: z.string().optional(), // Optional - falls back to H1 or filename
 });
 
 // Metadata (in DB for fast queries)
 noteMetadataSchema = z.object({
-  title: z.string(), // Required - derived from frontmatter OR filename
-  tags: z.array(z.string()).default([]),
+  title: z.string(), // Required - derived from frontmatter, H1, or filename
 });
 
 // Entity
@@ -76,13 +73,12 @@ noteSchema = baseEntitySchema.extend({
 ```markdown
 ---
 title: My Note
-tags: [research, ai]
 ---
 
 Content here...
 ```
 
-→ metadata: `{ title: "My Note", tags: ["research", "ai"] }`
+→ metadata: `{ title: "My Note" }`
 
 **Without frontmatter (Obsidian-created):**
 
@@ -92,7 +88,7 @@ Content here...
 Content here...
 ```
 
-→ metadata: `{ title: "My Note Title", tags: [] }` (extracts H1 or uses filename)
+→ metadata: `{ title: "My Note Title" }` (extracts H1 or uses filename)
 
 ## Tools
 
@@ -100,10 +96,9 @@ Content here...
 
 ```typescript
 note_create({
-  title: string,      // Required
-  content: string,    // Markdown body
-  tags?: string[],    // Optional
-})
+  title: string, // Required
+  content: string, // Markdown body
+});
 ```
 
 Creates note entity with frontmatter, syncs to file system via directory-sync.
@@ -114,7 +109,6 @@ Creates note entity with frontmatter, syncs to file system via directory-sync.
 note_generate({
   prompt: string,     // What to generate (topic, rough ideas, etc.)
   title?: string,     // Optional - AI generates if not provided
-  tags?: string[],    // Optional
 })
 ```
 
@@ -133,9 +127,6 @@ Uses AI to generate note content based on prompt. Runs async via job queue (like
 ```markdown
 ---
 title: My First Note
-tags:
-  - research
-  - ai
 ---
 
 Content here...
@@ -166,7 +157,11 @@ Content here...
 
 - Site templates (note-list, note-detail pages)
 - DataSource for site-builder
-- AI auto-tagging
 - Status field (draft/published)
 - Backlinks/note linking
 - Bulk import tool
+
+## Notes
+
+- Tags are handled by the Topics plugin (auto-extraction from content)
+- Notes are personal/private; blog posts are for public content
