@@ -84,7 +84,7 @@ Test outcome`,
           return Promise.resolve([]);
         },
       ),
-      searchEntities: mock(() => Promise.resolve([])),
+      search: mock(() => Promise.resolve([])),
     } as unknown as ServicePluginContext["entityService"],
     enqueueJob: mock(() => Promise.resolve("job-456")),
     generateContent: mock(() =>
@@ -124,13 +124,13 @@ function getTool(tools: PluginTool[], name: string): PluginTool {
 describe("Portfolio Tools", () => {
   let context: ServicePluginContext;
   let tools: ReturnType<typeof createPortfolioTools>;
-  let generateTool: PluginTool;
+  let createTool: PluginTool;
   let publishTool: PluginTool;
 
   beforeEach(() => {
     context = createMockContext();
     tools = createPortfolioTools("portfolio", context);
-    generateTool = getTool(tools, "portfolio_generate");
+    createTool = getTool(tools, "portfolio_create");
     publishTool = getTool(tools, "portfolio_publish");
   });
 
@@ -139,9 +139,9 @@ describe("Portfolio Tools", () => {
       expect(tools).toHaveLength(2);
     });
 
-    it("should create portfolio_generate tool", () => {
-      expect(generateTool).toBeDefined();
-      expect(generateTool.description).toContain("AI");
+    it("should create portfolio_create tool", () => {
+      expect(createTool).toBeDefined();
+      expect(createTool.description).toContain("case study");
     });
 
     it("should create portfolio_publish tool", () => {
@@ -150,20 +150,21 @@ describe("Portfolio Tools", () => {
     });
   });
 
-  describe("portfolio_generate", () => {
-    it("should queue a generation job with prompt and year", async () => {
-      const result = await generateTool.handler(
-        { prompt: "Create a project about building an API", year: 2024 },
+  describe("portfolio_create", () => {
+    it("should search for related content and queue generation job", async () => {
+      const result = await createTool.handler(
+        { topic: "Rizom Brains", year: 2024 },
         createMockToolContext(),
       );
 
       expect(result.success).toBe(true);
       expect(result.data?.jobId).toBe("job-456");
       expect(context.enqueueJob).toHaveBeenCalled();
+      expect(context.entityService.search).toHaveBeenCalled();
     });
 
-    it("should require prompt", async () => {
-      const result = await generateTool.handler(
+    it("should require topic", async () => {
+      const result = await createTool.handler(
         { year: 2024 },
         createMockToolContext(),
       );
@@ -173,8 +174,8 @@ describe("Portfolio Tools", () => {
     });
 
     it("should require year", async () => {
-      const result = await generateTool.handler(
-        { prompt: "Build something" },
+      const result = await createTool.handler(
+        { topic: "Some Project" },
         createMockToolContext(),
       );
 
@@ -183,8 +184,8 @@ describe("Portfolio Tools", () => {
     });
 
     it("should accept optional title", async () => {
-      const result = await generateTool.handler(
-        { prompt: "Build an API", year: 2023, title: "My API Project" },
+      const result = await createTool.handler(
+        { topic: "API Gateway", year: 2023, title: "My API Project" },
         createMockToolContext(),
       );
 
@@ -195,6 +196,16 @@ describe("Portfolio Tools", () => {
         expect.anything(),
         expect.anything(),
       );
+    });
+
+    it("should include found entities count in response", async () => {
+      const result = await createTool.handler(
+        { topic: "Test Project", year: 2024 },
+        createMockToolContext(),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data?.["relatedEntitiesFound"]).toBeDefined();
     });
   });
 
