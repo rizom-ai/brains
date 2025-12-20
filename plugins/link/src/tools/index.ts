@@ -38,6 +38,7 @@ export function createLinkTools(
                 interfaceId: toolContext.interfaceType,
                 userId: toolContext.userId,
                 channelId: toolContext.channelId,
+                channelName: toolContext.channelName,
                 timestamp: new Date().toISOString(),
               },
             },

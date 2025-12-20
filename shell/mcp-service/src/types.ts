@@ -26,6 +26,7 @@ export interface ToolContext {
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")
   userId: string; // User who invoked the tool
   channelId?: string; // Channel/room context (for Matrix, etc.)
+  channelName?: string; // Human-readable channel name (for display)
 }
 
 /**
@@ -36,6 +37,7 @@ export const ToolContextRoutingSchema = z.object({
   interfaceType: z.string(),
   userId: z.string(),
   channelId: z.string().optional(),
+  channelName: z.string().optional(),
 });
 
 /**

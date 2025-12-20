@@ -18,6 +18,7 @@ export const linkCaptureJobSchema = z.object({
       interfaceId: z.string().optional(),
       userId: z.string().optional(),
       channelId: z.string().optional(),
+      channelName: z.string().optional(),
       timestamp: z.string().optional(),
     })
     .optional(),
@@ -296,11 +297,12 @@ export class LinkCaptureJobHandler
    */
   private resolveSource(metadata?: LinkCaptureJobData["metadata"]): LinkSource {
     const channelId = metadata?.channelId;
+    const channelName = metadata?.channelName;
 
     if (channelId) {
       return {
         ref: `matrix:${channelId}`,
-        label: channelId,
+        label: channelName ?? channelId,
       };
     }
 

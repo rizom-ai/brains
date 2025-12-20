@@ -181,6 +181,7 @@ describe("MatrixInterface", () => {
           userPermissionLevel: "public",
           interfaceType: "matrix",
           channelId: "!room:example.org",
+          channelName: "!room:example.org",
         },
       );
     });
@@ -209,6 +210,7 @@ describe("MatrixInterface", () => {
           userPermissionLevel: "public",
           interfaceType: "matrix",
           channelId: "!room:example.org",
+          channelName: "!room:example.org",
         },
       );
     });

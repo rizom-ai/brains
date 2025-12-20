@@ -3,7 +3,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import type { z } from "@brains/utils";
 import {
   linkSchema,
   linkFrontmatterSchema,

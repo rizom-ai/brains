@@ -207,6 +207,7 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
       conversationId,
       channelId,
+      channelName,
       interfaceType,
     };
 

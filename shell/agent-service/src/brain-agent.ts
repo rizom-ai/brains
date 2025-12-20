@@ -26,6 +26,7 @@ export const brainCallOptionsSchema = z.object({
   userPermissionLevel: z.enum(["anchor", "trusted", "public"]),
   conversationId: z.string(),
   channelId: z.string().optional(),
+  channelName: z.string().optional(),
   interfaceType: z.string(),
 });
 
@@ -58,6 +59,7 @@ export interface BrainAgentFactoryOptions {
 interface ToolContextInfo {
   conversationId: string;
   channelId?: string | undefined;
+  channelName?: string | undefined;
   interfaceType: string;
 }
 
@@ -80,6 +82,9 @@ function convertToSDKTools(
           interfaceType: contextInfo.interfaceType,
           userId: "agent-user",
           channelId: contextInfo.channelId ?? contextInfo.conversationId,
+          ...(contextInfo.channelName && {
+            channelName: contextInfo.channelName,
+          }),
         };
         return t.handler(args, context);
       },
@@ -207,6 +212,7 @@ export function createBrainAgentFactory(
         const toolsWithContext = convertToSDKTools(allowedTools, {
           conversationId: callOptions.conversationId,
           channelId: callOptions.channelId,
+          channelName: callOptions.channelName,
           interfaceType: callOptions.interfaceType,
         });
 

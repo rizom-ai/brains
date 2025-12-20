@@ -175,6 +175,11 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     // Build conversation ID
     const conversationId = `matrix-${roomId}`;
 
+    // Get room name for display
+    const channelName = this.client
+      ? await this.client.getRoomName(roomId)
+      : roomId;
+
     // Look up user's permission level
     const userPermissionLevel = context.getUserPermissionLevel(
       "matrix",
@@ -185,6 +190,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       roomId,
       senderId,
       conversationId,
+      channelName,
       isMentioned,
       userPermissionLevel,
     });
@@ -210,6 +216,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
           userPermissionLevel,
           interfaceType: "matrix",
           channelId: roomId,
+          channelName,
         },
       );
 
