@@ -44,7 +44,7 @@ const ProjectCard = ({
           className="mb-3"
         />
       )}
-      <p className="text-text leading-relaxed">{frontmatter.description}</p>
+      <p className="text-theme leading-relaxed">{frontmatter.description}</p>
     </Card>
   );
 };

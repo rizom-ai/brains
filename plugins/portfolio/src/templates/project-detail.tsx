@@ -22,13 +22,15 @@ const ProjectNavigation = ({
   if (!prevProject && !nextProject) return null;
 
   return (
-    <nav className="flex justify-between items-center pt-12 mt-12 border-t border-subtle">
+    <nav className="flex justify-between items-center pt-12 mt-12 border-t border-theme-muted">
       {prevProject ? (
         <a
           href={prevProject.url}
           className="group flex flex-col items-start max-w-[45%]"
         >
-          <span className="text-sm text-muted mb-1">Previous Project</span>
+          <span className="text-sm text-theme-muted mb-1">
+            Previous Project
+          </span>
           <span className="text-heading font-medium group-hover:text-brand transition-colors">
             {prevProject.metadata.title}
           </span>
@@ -41,7 +43,7 @@ const ProjectNavigation = ({
           href={nextProject.url}
           className="group flex flex-col items-end max-w-[45%] text-right"
         >
-          <span className="text-sm text-muted mb-1">Next Project</span>
+          <span className="text-sm text-theme-muted mb-1">Next Project</span>
           <span className="text-heading font-medium group-hover:text-brand transition-colors">
             {nextProject.metadata.title}
           </span>
@@ -112,17 +114,17 @@ export const ProjectDetailTemplate = ({
             </h1>
 
             {/* Metadata: Year + Technologies */}
-            <div className="flex flex-wrap items-center gap-4 text-muted mb-8">
+            <div className="flex flex-wrap items-center gap-4 text-theme-muted mb-8">
               <span className="text-sm">{metadata.year}</span>
               {frontmatter.technologies &&
                 frontmatter.technologies.length > 0 && (
                   <>
-                    <span className="text-border">|</span>
+                    <span className="text-theme-muted">|</span>
                     <div className="flex flex-wrap gap-2">
                       {frontmatter.technologies.map((tech) => (
                         <span
                           key={tech}
-                          className="text-xs px-2 py-1 bg-subtle rounded-md"
+                          className="text-xs px-2 py-1 bg-theme-muted rounded-md"
                         >
                           {tech}
                         </span>
@@ -132,12 +134,12 @@ export const ProjectDetailTemplate = ({
                 )}
               {frontmatter.url && (
                 <>
-                  <span className="text-border">|</span>
+                  <span className="text-theme-muted">|</span>
                   <a
                     href={frontmatter.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-accent hover:text-brand transition-colors"
+                    className="text-brand hover:text-brand-dark transition-colors"
                   >
                     View Project
                   </a>
@@ -146,7 +148,7 @@ export const ProjectDetailTemplate = ({
             </div>
 
             {/* Description */}
-            <p className="text-lg text-text mb-12 leading-relaxed">
+            <p className="text-lg text-theme mb-12 leading-relaxed">
               {frontmatter.description}
             </p>
 
