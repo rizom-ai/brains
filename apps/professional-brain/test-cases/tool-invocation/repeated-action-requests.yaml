@@ -1,0 +1,44 @@
+id: tool-invocation-repeated-actions
+name: Repeated Action Requests Must Invoke Tools
+description: Tests that repeated requests for the same action actually invoke the tool each time, not mimic previous responses
+type: multi_turn
+tags:
+  - core
+  - critical
+  - anti-fabrication
+  - tool-invocation
+
+turns:
+  # First build request - should invoke tool
+  - userMessage: "Build my website"
+    successCriteria:
+      expectedTools:
+        - toolName: site-builder_build-site
+          shouldBeCalled: true
+      toolCountRange:
+        min: 1
+
+  # Second build request - MUST invoke tool again, not mimic
+  - userMessage: "Build it again"
+    successCriteria:
+      expectedTools:
+        - toolName: site-builder_build-site
+          shouldBeCalled: true
+      toolCountRange:
+        min: 1
+
+  # Third request with different phrasing
+  - userMessage: "One more build please"
+    successCriteria:
+      expectedTools:
+        - toolName: site-builder_build-site
+          shouldBeCalled: true
+      toolCountRange:
+        min: 1
+
+successCriteria:
+  minInstructionFollowingScore: 5
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 80000
