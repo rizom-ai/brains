@@ -2,7 +2,11 @@ import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
-import type { LinkListData } from "../templates/link-list/schema";
+import type { LinkListData, LinkSummary } from "../templates/link-list/schema";
+import type {
+  LinkDetailData,
+  LinkDetail,
+} from "../templates/link-detail/schema";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -17,7 +21,7 @@ const entityFetchQuerySchema = z.object({
 
 /**
  * DataSource for fetching and transforming link entities
- * Handles list view for links
+ * Handles both list view and detail view for links
  */
 export class LinksDataSource implements DataSource {
   public readonly id = "link:entities";
@@ -34,43 +38,27 @@ export class LinksDataSource implements DataSource {
 
   /**
    * Fetch and transform link entities to template-ready format
-   * Currently only supports list view (no detail page for links)
-   * @param context - Optional context (environment, etc.)
+   * Supports both list view and detail view
    */
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
     _context?: BaseDataSourceContext,
   ): Promise<T> {
-    // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
     const adapter = new LinkAdapter();
 
-    if (params.query?.id) {
-      // Links don't have a detail view currently
-      throw new Error("Link detail view not implemented");
-    }
+    // Fetch all links for both list and detail views (needed for prev/next nav)
+    const entities = await this.entityService.listEntities(params.entityType, {
+      limit: 1000,
+    });
 
-    // Fetch entity list
-    const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
-      {};
-    if (params.query?.limit !== undefined) {
-      listOptions.limit = params.query.limit;
-    } else {
-      listOptions.limit = 100;
-    }
-
-    const entities = await this.entityService.listEntities(
-      params.entityType,
-      listOptions,
-    );
-
-    // Transform to LinkListData
-    const links = entities.map((entity) => {
+    // Transform all entities
+    const links: LinkSummary[] = entities.map((entity) => {
       const parsed = adapter.parseLinkBody(entity.content);
       return {
         id: entity.id,
-        title: parsed.title,
+        title: parsed.title ?? entity.id,
         url: parsed.url,
         description: parsed.description,
         summary: parsed.summary,
@@ -89,11 +77,46 @@ export class LinksDataSource implements DataSource {
         new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime(),
     );
 
+    // Handle detail view
+    if (params.query?.id) {
+      return this.fetchDetail(params.query.id, links, outputSchema);
+    }
+
+    // Handle list view
     const listData: LinkListData = {
       links,
       totalCount: links.length,
     };
 
     return outputSchema.parse(listData);
+  }
+
+  /**
+   * Fetch detail view with prev/next navigation
+   */
+  private fetchDetail<T>(
+    id: string,
+    sortedLinks: LinkSummary[],
+    outputSchema: z.ZodSchema<T>,
+  ): T {
+    // Find the link by ID
+    const linkIndex = sortedLinks.findIndex((l) => l.id === id);
+
+    if (linkIndex === -1) {
+      throw new Error(`Link with id "${id}" not found`);
+    }
+
+    const link = sortedLinks[linkIndex];
+    const prevLink = linkIndex > 0 ? sortedLinks[linkIndex - 1] : null;
+    const nextLink =
+      linkIndex < sortedLinks.length - 1 ? sortedLinks[linkIndex + 1] : null;
+
+    const detailData: LinkDetailData = {
+      link: link as LinkDetail,
+      prevLink: prevLink as LinkDetail | null,
+      nextLink: nextLink as LinkDetail | null,
+    };
+
+    return outputSchema.parse(detailData);
   }
 }

@@ -28,7 +28,10 @@ export const LinkListLayout = ({
           <Card key={link.id} variant="vertical">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <CardTitle href={link.url} className="text-lg mb-1 truncate">
+                <CardTitle
+                  href={`/links/${link.id}`}
+                  className="text-lg mb-1 truncate"
+                >
                   {link.title}
                 </CardTitle>
 

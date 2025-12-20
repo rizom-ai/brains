@@ -9,6 +9,7 @@ import {
   type LinkExtractionResult,
 } from "./templates/extraction-template";
 import { linkListTemplate } from "./templates/link-list";
+import { linkDetailTemplate } from "./templates/link-detail";
 import { LinksDataSource } from "./datasources/links-datasource";
 import { UrlFetcher } from "./lib/url-fetcher";
 import { LinkCaptureJobHandler } from "./handlers/capture-handler";
@@ -45,6 +46,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     context.registerTemplates({
       extraction: linkExtractionTemplate,
       "link-list": linkListTemplate,
+      "link-detail": linkDetailTemplate,
     });
 
     // Register DataSource
