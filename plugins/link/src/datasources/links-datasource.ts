@@ -21,7 +21,6 @@ const entityFetchQuerySchema = z.object({
 
 /**
  * DataSource for fetching and transforming link entities
- * Handles both list view and detail view for links
  */
 export class LinksDataSource implements DataSource {
   public readonly id = "link:entities";
@@ -38,7 +37,6 @@ export class LinksDataSource implements DataSource {
 
   /**
    * Fetch and transform link entities to template-ready format
-   * Supports both list view and detail view
    */
   async fetch<T>(
     query: unknown,
@@ -56,21 +54,13 @@ export class LinksDataSource implements DataSource {
       }),
     });
 
-    // Transform entities to LinkSummary (already filtered by entity service)
+    // Transform entities to LinkSummary
     const links: LinkSummary[] = entities.map((entity) => {
-      const parsed = adapter.parseLinkBody(entity.content);
+      const { frontmatter, summary } = adapter.parseLinkContent(entity.content);
       return {
         id: entity.id,
-        title: parsed.title ?? entity.id,
-        url: parsed.url,
-        description: parsed.description,
-        summary: parsed.summary,
-        keywords: parsed.keywords,
-        domain: parsed.domain,
-        capturedAt: parsed.capturedAt,
-        source: parsed.source,
-        status: parsed.status,
-        extractionError: parsed.extractionError,
+        ...frontmatter,
+        summary,
       };
     });
 
@@ -102,7 +92,6 @@ export class LinksDataSource implements DataSource {
     sortedLinks: LinkSummary[],
     outputSchema: z.ZodSchema<T>,
   ): T {
-    // Find the link by ID
     const linkIndex = sortedLinks.findIndex((l) => l.id === id);
 
     if (linkIndex === -1) {

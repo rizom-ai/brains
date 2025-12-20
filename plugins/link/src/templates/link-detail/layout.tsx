@@ -61,6 +61,8 @@ export const LinkDetailLayout = ({
   nextLink,
 }: LinkDetailData): JSX.Element => {
   const isPending = link.status === "pending";
+  // Check if source is from a conversation (Matrix, etc.)
+  const isFromConversation = link.source.ref.startsWith("matrix:");
 
   return (
     <>
@@ -79,11 +81,9 @@ export const LinkDetailLayout = ({
               <p className="font-medium text-yellow-800 dark:text-yellow-200">
                 Pending Review
               </p>
-              {link.extractionError && (
-                <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
-                  {link.extractionError}
-                </p>
-              )}
+              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+                This link needs additional information or review.
+              </p>
             </div>
           )}
 
@@ -93,9 +93,7 @@ export const LinkDetailLayout = ({
             metadata={
               <span className="ml-2">
                 • <span className="text-brand">{link.domain}</span>
-                {link.source.type === "conversation" && (
-                  <span> • from {link.source.title}</span>
-                )}
+                {isFromConversation && <span> • from {link.source.label}</span>}
               </span>
             }
           />

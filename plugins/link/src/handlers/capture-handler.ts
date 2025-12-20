@@ -5,7 +5,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
-import type { LinkSource } from "../schemas/link";
+import type { LinkSource, LinkStatus } from "../schemas/link";
 import type { LinkExtractionResult } from "../templates/extraction-template";
 
 /**
@@ -33,8 +33,7 @@ export const linkCaptureResultSchema = z.object({
   entityId: z.string().optional(),
   title: z.string().optional(),
   url: z.string().optional(),
-  status: z.enum(["pending", "draft", "published", "failed"]).optional(),
-  extractionError: z.string().optional(),
+  status: z.enum(["pending", "draft", "published"]).optional(),
   error: z.string().optional(),
 });
 
@@ -46,7 +45,6 @@ export interface LinkCaptureJobHandlerOptions {
 
 /**
  * Job handler for link capture with AI extraction
- * Handles URL fetching, AI content extraction, and entity creation
  */
 export class LinkCaptureJobHandler
   implements JobHandler<"capture", LinkCaptureJobData, LinkCaptureResult>
@@ -79,10 +77,9 @@ export class LinkCaptureJobHandler
         message: "Starting link capture",
       });
 
-      // Generate deterministic ID from URL
       const entityId = UrlUtils.generateEntityId(url);
 
-      // Check if entity already exists (for deduplication)
+      // Check for existing entity
       await progressReporter.report({
         progress: 10,
         total: 100,
@@ -99,20 +96,19 @@ export class LinkCaptureJobHandler
           url,
           entityId,
         });
-        const parsed = this.linkAdapter.parseLinkBody(existingEntity.content);
+        const { frontmatter } = this.linkAdapter.parseLinkContent(
+          existingEntity.content,
+        );
         return {
           success: true,
           entityId: existingEntity.id,
-          title: parsed.title,
+          title: frontmatter.title,
           url,
-          status: parsed.status,
-          ...(parsed.extractionError && {
-            extractionError: parsed.extractionError,
-          }),
+          status: existingEntity.metadata["status"] as LinkStatus,
         };
       }
 
-      // Fetch URL content using Jina Reader
+      // Fetch URL content
       await progressReporter.report({
         progress: 20,
         total: 100,
@@ -121,7 +117,6 @@ export class LinkCaptureJobHandler
 
       const fetchResult = await this.urlFetcher.fetch(url);
 
-      // Handle URL-level failures
       if (!fetchResult.success) {
         if (
           fetchResult.errorType === "url_not_found" ||
@@ -139,7 +134,7 @@ export class LinkCaptureJobHandler
         }
       }
 
-      // Extract structured content using AI
+      // Extract content with AI
       await progressReporter.report({
         progress: 40,
         total: 100,
@@ -161,14 +156,12 @@ export class LinkCaptureJobHandler
         result: extractionResult,
       });
 
-      // Parse the AI response
       let extractedData: LinkExtractionResult;
       try {
-        if (typeof extractionResult === "string") {
-          extractedData = JSON.parse(extractionResult);
-        } else {
-          extractedData = extractionResult;
-        }
+        extractedData =
+          typeof extractionResult === "string"
+            ? JSON.parse(extractionResult)
+            : extractionResult;
       } catch (parseError) {
         this.logger.error("Failed to parse AI extraction", {
           error:
@@ -189,17 +182,20 @@ export class LinkCaptureJobHandler
         message: "Processing extraction results",
       });
 
-      // Determine the source
       const source = this.resolveSource(metadata);
+      const capturedAt = new Date().toISOString();
 
-      // Handle extraction failure
-      if (extractedData.success === false) {
-        const errorMsg =
-          extractedData.error ?? "Failed to extract meaningful content";
+      // Handle extraction failure or incomplete extraction
+      if (
+        extractedData.success === false ||
+        !extractedData.title ||
+        !extractedData.description ||
+        !extractedData.summary
+      ) {
+        const title = extractedData.title ?? new URL(url).hostname;
 
-        this.logger.info("Link content not extractable, saving as pending", {
+        this.logger.info("Incomplete extraction, saving as pending", {
           url,
-          error: errorMsg,
         });
 
         await progressReporter.report({
@@ -208,109 +204,64 @@ export class LinkCaptureJobHandler
           message: "Saving link as pending",
         });
 
-        const linkBody = this.linkAdapter.createLinkBody({
-          title: new URL(url).hostname,
-          url,
-          keywords: [],
-          source,
+        const content = this.linkAdapter.createLinkContent({
           status: "pending",
-          extractionError: errorMsg,
-        });
-
-        const entity = await this.context.entityService.createEntity({
-          id: entityId,
-          entityType: "link",
-          content: linkBody,
-          metadata: { status: "pending", ...metadata },
-        });
-
-        await progressReporter.report({
-          progress: 100,
-          total: 100,
-          message: "Link saved (pending user input)",
-        });
-
-        return {
-          success: true,
-          entityId: entity.entityId,
-          title: new URL(url).hostname,
-          url,
-          status: "pending",
-          extractionError: errorMsg,
-        };
-      }
-
-      // Validate required fields for complete extraction
-      if (
-        !extractedData.title ||
-        !extractedData.description ||
-        !extractedData.summary
-      ) {
-        this.logger.info("Partial extraction, saving as pending", { url });
-
-        const pendingTitle = extractedData.title ?? new URL(url).hostname;
-        const linkBody = this.linkAdapter.createLinkBody({
-          title: pendingTitle,
+          title,
           url,
           description: extractedData.description,
           summary: extractedData.summary,
           keywords: extractedData.keywords ?? [],
+          domain: new URL(url).hostname,
+          capturedAt,
           source,
-          status: "pending",
-          extractionError: "Incomplete content extraction",
-        });
-
-        await progressReporter.report({
-          progress: 80,
-          total: 100,
-          message: "Saving link as pending (incomplete extraction)",
         });
 
         const entity = await this.context.entityService.createEntity({
           id: entityId,
           entityType: "link",
-          content: linkBody,
-          metadata: { status: "pending", ...metadata },
+          content,
+          metadata: { status: "pending", title },
         });
 
         await progressReporter.report({
           progress: 100,
           total: 100,
-          message: "Link saved (pending - incomplete extraction)",
+          message: "Link saved (pending)",
         });
 
         return {
           success: true,
           entityId: entity.entityId,
-          title: pendingTitle,
+          title,
           url,
           status: "pending",
-          extractionError: "Incomplete content extraction",
         };
       }
 
-      // Create complete link entity
+      // Complete extraction - save as draft
       await progressReporter.report({
         progress: 80,
         total: 100,
         message: `Saving link: "${extractedData.title}"`,
       });
 
-      const linkBody = this.linkAdapter.createLinkBody({
+      const content = this.linkAdapter.createLinkContent({
+        status: "draft",
         title: extractedData.title,
         url,
         description: extractedData.description,
         summary: extractedData.summary,
         keywords: extractedData.keywords ?? [],
+        domain: new URL(url).hostname,
+        capturedAt,
         source,
-        status: "draft",
       });
 
       const entity = await this.context.entityService.createEntity({
         id: entityId,
         entityType: "link",
-        content: linkBody,
-        metadata: { status: "draft", ...metadata },
+        content,
+        metadata: { status: "draft", title: extractedData.title },
       });
 
       await progressReporter.report({
@@ -341,25 +292,22 @@ export class LinkCaptureJobHandler
   }
 
   /**
-   * Resolve source metadata for the link
+   * Resolve source from metadata
    */
   private resolveSource(metadata?: LinkCaptureJobData["metadata"]): LinkSource {
     const channelId = metadata?.channelId;
 
     if (channelId) {
-      // Link captured from a channel (Matrix room, etc.)
       return {
-        slug: channelId,
-        title: channelId,
-        type: "conversation",
+        ref: `matrix:${channelId}`,
+        label: channelId,
       };
     }
 
-    const interfaceId = metadata?.interfaceId ?? "manual";
+    const interfaceId = metadata?.interfaceId ?? "cli";
     return {
-      slug: interfaceId,
-      title: interfaceId.charAt(0).toUpperCase() + interfaceId.slice(1),
-      type: "manual",
+      ref: `${interfaceId}:local`,
+      label: interfaceId.toUpperCase(),
     };
   }
 

@@ -1,10 +1,10 @@
 import { z } from "@brains/utils";
-import { linkBodySchema } from "../../schemas/link";
+import { linkFrontmatterSchema } from "../../schemas/link";
 
-// Schema for link detail - extends linkBody with id
-const linkDetailSchema = linkBodySchema.extend({
+// Schema for link detail - frontmatter fields plus id and summary
+const linkDetailSchema = linkFrontmatterSchema.extend({
   id: z.string(),
-  title: z.string(),
+  summary: z.string().optional(),
 });
 
 // Schema for link detail page data

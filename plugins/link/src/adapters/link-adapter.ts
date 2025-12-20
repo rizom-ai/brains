@@ -1,138 +1,102 @@
 import type { EntityAdapter } from "@brains/plugins";
 import {
   parseMarkdownWithFrontmatter,
-  StructuredContentFormatter,
+  generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z, SourceListFormatter } from "@brains/utils";
+import { z } from "@brains/utils";
 import {
   linkSchema,
-  linkBodySchema,
-  linkSourceSchema,
+  linkFrontmatterSchema,
   type LinkEntity,
-  type LinkBody,
-  type LinkSource,
+  type LinkFrontmatter,
   type LinkMetadata,
-  type LinkStatus,
+  type LinkSource,
 } from "../schemas/link";
 
 /**
- * Link adapter for managing link entities with structured content
+ * Link adapter for managing link entities with frontmatter
+ * Following blog pattern: frontmatter contains structured data, body is the summary
  */
 export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
   public readonly entityType = "link" as const;
   public readonly schema = linkSchema;
 
   /**
-   * Create a structured content formatter for links
+   * Create link content with frontmatter and summary body
    */
-  private createFormatter(title: string): StructuredContentFormatter<LinkBody> {
-    return new StructuredContentFormatter(linkBodySchema, {
-      title,
-      mappings: [
-        { key: "url", label: "URL", type: "string" },
-        { key: "status", label: "Status", type: "string" },
-        { key: "description", label: "Description", type: "string" },
-        { key: "summary", label: "Summary", type: "string" },
-        {
-          key: "keywords",
-          label: "Keywords",
-          type: "array",
-          itemType: "string",
-        },
-        { key: "domain", label: "Domain", type: "string" },
-        { key: "capturedAt", label: "Captured", type: "string" },
-        { key: "extractionError", label: "Extraction Error", type: "string" },
-        {
-          key: "source",
-          label: "Source",
-          type: "custom",
-          formatter: (value: unknown): string => {
-            if (!value) return "";
-            const source = linkSourceSchema.parse(value);
-            return SourceListFormatter.format([source]);
-          },
-          parser: (text: string): unknown => {
-            if (!text || text.trim() === "") return undefined;
-            const sources = SourceListFormatter.parse(text);
-            return sources[0];
-          },
-        },
-      ],
-    });
-  }
-
-  /**
-   * Create structured link body content
-   */
-  public createLinkBody(params: {
+  public createLinkContent(params: {
+    status: LinkFrontmatter["status"];
     title: string;
     url: string;
     description?: string;
     summary?: string;
-    keywords?: string[];
+    keywords: string[];
+    domain: string;
+    capturedAt: string;
     source: LinkSource;
-    status: LinkStatus;
-    extractionError?: string;
   }): string {
-    const formatter = this.createFormatter(params.title);
-    return formatter.format({
+    const frontmatter: LinkFrontmatter = {
+      status: params.status,
+      title: params.title,
       url: params.url,
       description: params.description,
-      summary: params.summary,
-      keywords: params.keywords ?? [],
-      domain: new URL(params.url).hostname,
-      capturedAt: new Date().toISOString(),
+      keywords: params.keywords,
+      domain: params.domain,
+      capturedAt: params.capturedAt,
       source: params.source,
-      status: params.status,
-      extractionError: params.extractionError,
-    });
+    };
+
+    const body = params.summary ?? "";
+    return generateMarkdownWithFrontmatter(body, frontmatter);
   }
 
   /**
-   * Parse link body content
+   * Parse link content to extract frontmatter and summary
    */
-  public parseLinkBody(body: string): LinkBody & { title: string } {
-    // Extract title from H1
-    const titleMatch = body.match(/^#\s+(.+)$/m);
-    const title = titleMatch?.[1]?.trim() ?? "Untitled Link";
+  public parseLinkContent(content: string): {
+    frontmatter: LinkFrontmatter;
+    summary: string;
+  } {
+    const { metadata, content: body } = parseMarkdownWithFrontmatter(
+      content,
+      linkFrontmatterSchema,
+    );
 
-    const formatter = this.createFormatter(title);
-    const parsed = formatter.parse(body);
-
-    return { ...parsed, title };
+    return {
+      frontmatter: metadata,
+      summary: body.trim(),
+    };
   }
 
   /**
-   * Convert entity to markdown with metadata in frontmatter
+   * Convert entity to markdown (returns content as-is, already has frontmatter)
    */
   public toMarkdown(entity: LinkEntity): string {
-    // Links don't use metadata, just return content as-is
     return entity.content;
   }
 
   /**
    * Convert markdown to entity, extracting metadata from frontmatter
+   * Syncs key fields from frontmatter to metadata for fast queries
    */
   public fromMarkdown(markdown: string): Partial<LinkEntity> {
-    // Try to parse frontmatter for metadata
-    const { metadata } = parseMarkdownWithFrontmatter(
-      markdown,
-      z.record(z.unknown()).default({}),
-    );
+    const { frontmatter } = this.parseLinkContent(markdown);
 
     return {
-      content: markdown, // Keep the full markdown including frontmatter
+      content: markdown,
       entityType: "link",
-      metadata: metadata && Object.keys(metadata).length > 0 ? metadata : {},
+      metadata: {
+        title: frontmatter.title,
+        status: frontmatter.status,
+      },
     };
   }
 
   /**
-   * Extract metadata from entity
-   * Links don't use metadata for filtering
+   * Extract metadata from entity for filtering and display
    */
-  public extractMetadata(_entity: LinkEntity): LinkMetadata {
-    return {};
+  public extractMetadata(entity: LinkEntity): LinkMetadata {
+    return entity.metadata;
   }
 
   /**
@@ -148,7 +112,6 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
 
   /**
    * Generate frontmatter for the entity
-   * Links don't use frontmatter - all data is in content body
    */
   public generateFrontMatter(entity: LinkEntity): string {
     return entity.content;

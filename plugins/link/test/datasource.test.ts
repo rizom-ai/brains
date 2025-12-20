@@ -11,47 +11,29 @@ describe("LinksDataSource", () => {
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
-  // Helper to create mock link entities
+  // Helper to create mock link entities with frontmatter format
   const createMockLink = (
     id: string,
     title: string,
     status: LinkStatus,
     capturedAt: string,
   ) => {
-    const content = `# ${title}
+    const content = `---
+status: ${status}
+title: ${title}
+url: https://example.com/${id}
+description: Description for ${title}
+keywords:
+  - test
+  - example
+domain: example.com
+capturedAt: '${capturedAt}'
+source:
+  ref: 'manual:local'
+  label: Manual
+---
 
-## URL
-
-https://example.com/${id}
-
-## Status
-
-${status}
-
-## Description
-
-Description for ${title}
-
-## Summary
-
-Summary for ${title}
-
-## Keywords
-
-- test
-- example
-
-## Domain
-
-example.com
-
-## Captured
-
-${capturedAt}
-
-## Source
-
-- Manual (manual) [manual]`;
+Summary for ${title}`;
     return {
       id,
       entityType: "link",

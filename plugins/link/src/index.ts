@@ -122,7 +122,21 @@ export function createLinkPlugin(config: Partial<LinkConfig> = {}): Plugin {
 export const linkPlugin = createLinkPlugin;
 
 // Export types and schemas for use by other plugins
-export type { LinkConfig, LinkEntity, LinkBody } from "./schemas/link";
-export { linkSchema, linkBodySchema, linkConfigSchema } from "./schemas/link";
+export type {
+  LinkConfig,
+  LinkEntity,
+  LinkFrontmatter,
+  LinkSource,
+  LinkStatus,
+  LinkMetadata,
+} from "./schemas/link";
+export {
+  linkSchema,
+  linkFrontmatterSchema,
+  linkSourceSchema,
+  linkStatusSchema,
+  linkMetadataSchema,
+  linkConfigSchema,
+} from "./schemas/link";
 export { LinkAdapter } from "./adapters/link-adapter";
 export { LinkService } from "./lib/link-service";

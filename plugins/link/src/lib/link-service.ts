@@ -46,10 +46,44 @@ export class LinkService {
   }
 
   /**
+   * Resolve source from capture options
+   */
+  private async resolveSource(
+    options?: LinkCaptureOptions,
+  ): Promise<LinkSource> {
+    const conversationId = options?.metadata?.conversationId;
+
+    if (conversationId) {
+      // Link captured from a conversation (Matrix, etc.)
+      let label = conversationId;
+      try {
+        const conversation = await this.context.getConversation(conversationId);
+        if (conversation?.metadata) {
+          const metadata = JSON.parse(conversation.metadata);
+          label = metadata.channelName ?? conversationId;
+        }
+      } catch (error) {
+        this.context.logger.debug("Could not resolve conversation metadata", {
+          conversationId,
+          error,
+        });
+      }
+      return {
+        ref: `matrix:${conversationId}`,
+        label,
+      };
+    }
+
+    // Manual addition (via MCP, CLI, etc.)
+    const interfaceId = options?.metadata?.interfaceId ?? "cli";
+    return {
+      ref: `${interfaceId}:local`,
+      label: interfaceId.toUpperCase(),
+    };
+  }
+
+  /**
    * Capture a web link with AI extraction
-   * @param url - The URL to capture
-   * @param options - Optional parameters including custom entity ID and metadata
-   * @returns Entity info with status indicating if extraction succeeded or is pending user input
    */
   async captureLink(
     url: string,
@@ -59,15 +93,12 @@ export class LinkService {
     title: string;
     url: string;
     status: LinkStatus;
-    extractionError?: string;
   }> {
-    // Log the capture request
     this.context.logger.debug("Starting link capture", { url });
 
-    // Generate deterministic ID from URL if not provided
     const entityId = options?.id ?? UrlUtils.generateEntityId(url);
 
-    // Check if entity already exists (for deduplication)
+    // Check for existing entity (deduplication)
     const existingEntity = await this.context.entityService.getEntity(
       "link",
       entityId,
@@ -77,24 +108,21 @@ export class LinkService {
         url,
         entityId,
       });
-      // Return existing entity info
-      const parsed = this.linkAdapter.parseLinkBody(existingEntity.content);
+      const { frontmatter } = this.linkAdapter.parseLinkContent(
+        existingEntity.content,
+      );
       return {
         entityId: existingEntity.id,
-        title: parsed.title,
+        title: frontmatter.title,
         url,
-        status: parsed.status,
-        ...(parsed.extractionError && {
-          extractionError: parsed.extractionError,
-        }),
+        status: existingEntity.metadata["status"] as LinkStatus,
       };
     }
 
-    // Fetch URL content using Jina Reader
+    // Fetch URL content
     this.context.logger.debug("Fetching URL content", { url });
     const fetchResult = await this.urlFetcher.fetch(url);
 
-    // Handle URL-level failures (don't save, throw error)
     if (!fetchResult.success) {
       if (
         fetchResult.errorType === "url_not_found" ||
@@ -109,7 +137,7 @@ export class LinkService {
       }
     }
 
-    // Use AI to extract structured content from the fetched markdown
+    // Extract content with AI
     const extractionResult = await this.context.generateContent({
       templateName: "link:extraction",
       prompt: fetchResult.success
@@ -119,20 +147,17 @@ export class LinkService {
       interfacePermissionGrant: "public",
     });
 
-    // Log the raw extraction result
     this.context.logger.debug("AI extraction result", {
       type: typeof extractionResult,
       result: extractionResult,
     });
 
-    // Parse the AI response
     let extractedData;
     try {
-      if (typeof extractionResult === "string") {
-        extractedData = JSON.parse(extractionResult);
-      } else {
-        extractedData = extractionResult;
-      }
+      extractedData =
+        typeof extractionResult === "string"
+          ? JSON.parse(extractionResult)
+          : extractionResult;
     } catch (parseError) {
       this.context.logger.error("Failed to parse AI extraction", {
         error:
@@ -144,142 +169,73 @@ export class LinkService {
       );
     }
 
-    // Log the parsed data
     this.context.logger.debug("Parsed extraction data", { extractedData });
 
-    // Determine the source - resolve channel name ONCE at creation time and store it
-    let source: LinkSource;
-    const conversationId = options?.metadata?.conversationId;
+    const source = await this.resolveSource(options);
+    const capturedAt = new Date().toISOString();
 
-    if (conversationId) {
-      // Link captured from a conversation
-      let conversationTitle = conversationId;
-      try {
-        const conversation = await this.context.getConversation(conversationId);
-        if (conversation?.metadata) {
-          const metadata = JSON.parse(conversation.metadata);
-          conversationTitle = metadata.channelName ?? conversationId;
-        }
-      } catch (error) {
-        this.context.logger.debug("Could not resolve conversation metadata", {
-          conversationId,
-          error,
-        });
-      }
-      source = {
-        slug: conversationId,
-        title: conversationTitle,
-        type: "conversation",
-      };
-    } else {
-      // Manual addition (via MCP, direct API call, etc.)
-      const interfaceId = options?.metadata?.interfaceId ?? "manual";
-      source = {
-        slug: interfaceId,
-        title: interfaceId.charAt(0).toUpperCase() + interfaceId.slice(1),
-        type: "manual",
-      };
-    }
-
-    // Handle extraction failure (content-level - URL was accessible but content not extractable)
-    if (extractedData.success === false) {
-      const errorMsg =
-        extractedData.error ?? "Failed to extract meaningful content";
-
-      this.context.logger.info(
-        "Link content not extractable, saving as pending",
-        {
-          url,
-          error: errorMsg,
-        },
-      );
-
-      const linkBody = this.linkAdapter.createLinkBody({
-        title: new URL(url).hostname,
-        url,
-        keywords: [],
-        source,
-        status: "pending",
-        extractionError: errorMsg,
-      });
-
-      const entity = await this.context.entityService.createEntity({
-        id: entityId,
-        entityType: "link",
-        content: linkBody,
-        metadata: { status: "pending", ...options?.metadata },
-      });
-
-      return {
-        entityId: entity.entityId,
-        title: new URL(url).hostname,
-        url,
-        status: "pending",
-        extractionError: errorMsg,
-      };
-    }
-
-    // Validate required fields for complete extraction
+    // Handle extraction failure - save as pending
     if (
+      extractedData.success === false ||
       !extractedData.title ||
       !extractedData.description ||
       !extractedData.summary
     ) {
-      // Partial extraction - save as pending
-      this.context.logger.info("Partial extraction, saving as pending", {
+      const title = extractedData.title ?? new URL(url).hostname;
+
+      this.context.logger.info("Incomplete extraction, saving as pending", {
         url,
       });
 
-      const pendingTitle = extractedData.title ?? new URL(url).hostname;
-      const linkBody = this.linkAdapter.createLinkBody({
-        title: pendingTitle,
+      const content = this.linkAdapter.createLinkContent({
+        status: "pending",
+        title,
         url,
         description: extractedData.description,
         summary: extractedData.summary,
         keywords: extractedData.keywords ?? [],
+        domain: new URL(url).hostname,
+        capturedAt,
         source,
-        status: "pending",
-        extractionError: "Incomplete content extraction",
       });
 
       const entity = await this.context.entityService.createEntity({
         id: entityId,
         entityType: "link",
-        content: linkBody,
-        metadata: { status: "pending", ...options?.metadata },
+        content,
+        metadata: { status: "pending", title },
       });
 
       return {
         entityId: entity.entityId,
-        title: pendingTitle,
+        title,
         url,
         status: "pending",
-        extractionError: "Incomplete content extraction",
       };
     }
 
-    // Debug logging for keywords
+    // Complete extraction - save as draft
     this.context.logger.info("Extracted keywords", {
       keywords: extractedData.keywords,
     });
 
-    // Create structured content using adapter - this STORES the source in the link body
-    const linkBody = this.linkAdapter.createLinkBody({
+    const content = this.linkAdapter.createLinkContent({
+      status: "draft",
       title: extractedData.title,
       url,
       description: extractedData.description,
       summary: extractedData.summary,
       keywords: extractedData.keywords ?? [],
+      domain: new URL(url).hostname,
+      capturedAt,
       source,
-      status: "draft",
     });
 
-    // Create entity with deterministic ID
     const entity = await this.context.entityService.createEntity({
       id: entityId,
       entityType: "link",
-      content: linkBody,
-      metadata: { status: "draft", ...options?.metadata },
+      content,
+      metadata: { status: "draft", title: extractedData.title },
     });
 
     return {
@@ -312,15 +268,19 @@ export class LinkService {
     });
 
     return results.map((result) => {
-      const parsed = this.linkAdapter.parseLinkBody(result.entity.content);
+      const { frontmatter } = this.linkAdapter.parseLinkContent(
+        result.entity.content,
+      );
       return {
         id: result.entity.id,
-        title: parsed.title,
-        url: parsed.url,
-        ...(parsed.description && { description: parsed.description }),
-        keywords: parsed.keywords,
-        domain: parsed.domain,
-        capturedAt: parsed.capturedAt,
+        title: frontmatter.title,
+        url: frontmatter.url,
+        ...(frontmatter.description && {
+          description: frontmatter.description,
+        }),
+        keywords: frontmatter.keywords,
+        domain: frontmatter.domain,
+        capturedAt: frontmatter.capturedAt,
       };
     });
   }
@@ -343,10 +303,8 @@ export class LinkService {
       capturedAt: string;
     }>
   > {
-    // Build search query
     let searchQuery = query ?? "";
 
-    // Add keyword filters to search query
     if (keywords && keywords.length > 0) {
       const keywordQuery = keywords.map((k) => `keywords: ${k}`).join(" OR ");
       searchQuery = searchQuery
@@ -362,15 +320,19 @@ export class LinkService {
     });
 
     return results.map((result) => {
-      const parsed = this.linkAdapter.parseLinkBody(result.entity.content);
+      const { frontmatter } = this.linkAdapter.parseLinkContent(
+        result.entity.content,
+      );
       return {
         id: result.entity.id,
-        title: parsed.title,
-        url: parsed.url,
-        ...(parsed.description && { description: parsed.description }),
-        keywords: parsed.keywords,
-        domain: parsed.domain,
-        capturedAt: parsed.capturedAt,
+        title: frontmatter.title,
+        url: frontmatter.url,
+        ...(frontmatter.description && {
+          description: frontmatter.description,
+        }),
+        keywords: frontmatter.keywords,
+        domain: frontmatter.domain,
+        capturedAt: frontmatter.capturedAt,
       };
     });
   }
@@ -388,27 +350,25 @@ export class LinkService {
     domain: string;
     capturedAt: string;
     status: LinkStatus;
-    extractionError?: string;
   } | null> {
     const entity = await this.context.entityService.getEntity("link", linkId);
     if (!entity) {
       return null;
     }
 
-    const parsed = this.linkAdapter.parseLinkBody(entity.content);
+    const { frontmatter, summary } = this.linkAdapter.parseLinkContent(
+      entity.content,
+    );
     return {
       id: entity.id,
-      title: parsed.title,
-      url: parsed.url,
-      ...(parsed.description && { description: parsed.description }),
-      ...(parsed.summary && { summary: parsed.summary }),
-      keywords: parsed.keywords,
-      domain: parsed.domain,
-      capturedAt: parsed.capturedAt,
-      status: parsed.status,
-      ...(parsed.extractionError && {
-        extractionError: parsed.extractionError,
-      }),
+      title: frontmatter.title,
+      url: frontmatter.url,
+      ...(frontmatter.description && { description: frontmatter.description }),
+      ...(summary && { summary }),
+      keywords: frontmatter.keywords,
+      domain: frontmatter.domain,
+      capturedAt: frontmatter.capturedAt,
+      status: entity.metadata["status"] as LinkStatus,
     };
   }
 }

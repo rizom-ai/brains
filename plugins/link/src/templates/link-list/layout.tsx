@@ -60,17 +60,8 @@ export const LinkListLayout = ({
                     <time dateTime={link.capturedAt}>
                       Captured {formatDate(link.capturedAt)}
                     </time>
-                    {link.source.type === "conversation" && (
-                      <>
-                        <span>•</span>
-                        <a
-                          href={`/summaries/${link.source.slug}`}
-                          className="text-brand hover:text-brand-dark"
-                        >
-                          {link.source.title}
-                        </a>
-                      </>
-                    )}
+                    <span>•</span>
+                    <span className="text-brand">{link.source.label}</span>
                   </div>
                 </CardMetadata>
               </div>

@@ -6,85 +6,87 @@ import type { LinkEntity } from "../../src";
 import { computeContentHash } from "@brains/utils";
 
 export const mockLinkContent = {
-  simple: `# Test Article
+  simple: `---
+status: draft
+title: Test Article
+url: https://example.com/test
+description: Test description
+keywords:
+  - test
+domain: example.com
+capturedAt: "2025-01-30T10:00:00.000Z"
+source:
+  ref: "cli:local"
+  label: CLI
+---
 
-## URL
+Test summary`,
 
-https://example.com/test
+  withMultipleTags: `---
+status: draft
+title: Test Article
+url: https://example.com/test
+description: Test description
+keywords:
+  - test
+  - example
+domain: example.com
+capturedAt: "2025-01-30T10:00:00.000Z"
+source:
+  ref: "cli:local"
+  label: CLI
+---
 
-## Description
+Test summary`,
 
-Test description
+  published: `---
+status: published
+title: Published Article
+url: https://example.com/published
+description: A published article
+keywords:
+  - published
+domain: example.com
+capturedAt: "2025-01-30T10:00:00.000Z"
+source:
+  ref: "mcp:stdio"
+  label: MCP
+---
 
-## Summary
+Summary of published article`,
 
-Test summary
+  fromMatrix: `---
+status: draft
+title: Matrix Article
+url: https://example.com/matrix
+description: Article from Matrix
+keywords:
+  - matrix
+domain: example.com
+capturedAt: "2025-01-30T10:00:00.000Z"
+source:
+  ref: "matrix:!abc123:rizom.ai"
+  label: "#engineering"
+---
 
-## Keywords
+Summary from Matrix channel`,
 
-- test
+  article1: `---
+status: draft
+title: Article 1
+url: https://example.com/article1
+description: First article
+keywords:
+  - keyword1
+  - keyword2
+domain: example.com
+capturedAt: "2025-01-30T10:00:00.000Z"
+source:
+  ref: "cli:local"
+  label: CLI
+---
 
-## Domain
-
-example.com
-
-## Captured
-
-2025-01-30T10:00:00.000Z`,
-
-  withMultipleTags: `# Test Article
-
-## URL
-
-https://example.com/test
-
-## Description
-
-Test description
-
-## Summary
-
-Test summary
-
-## Keywords
-
-- test
-- example
-
-## Domain
-
-example.com
-
-## Captured
-
-2025-01-30T10:00:00.000Z`,
-
-  article1: `# Article 1
-
-## URL
-
-https://example.com/article1
-
-## Description
-
-First article
-
-## Summary
-
-Summary of first article
-
-## Keywords
-
-- keyword1
-- keyword2
-
-## Domain
-
-example.com
-
-## Captured
-
-2025-01-30T10:00:00.000Z`,
+Summary of first article`,
 };
 
 export const mockLinkEntity = (
@@ -94,7 +96,7 @@ export const mockLinkEntity = (
   entityType: "link" as const,
   content,
   contentHash: computeContentHash(content),
-  metadata: {},
+  metadata: { status: "draft", title: "Test Article" },
   created: "2025-01-30T10:00:00.000Z",
   updated: "2025-01-30T10:00:00.000Z",
 });
@@ -113,7 +115,7 @@ export function createMockLinkEntity(
     contentHash: computeContentHash(content),
     created: overrides.created ?? "2025-01-30T10:00:00.000Z",
     updated: overrides.updated ?? "2025-01-30T10:00:00.000Z",
-    metadata: overrides.metadata ?? {},
+    metadata: overrides.metadata ?? { status: "draft" },
   };
 }
 
