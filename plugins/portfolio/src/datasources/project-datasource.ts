@@ -140,11 +140,10 @@ export class ProjectDataSource implements DataSource {
         limit: 1000,
       });
 
-    // Filter based on environment (same logic as list view)
-    const isPreview = context.environment === "preview";
-    const filteredProjects = isPreview
-      ? allProjects // Preview: show all projects (draft and published)
-      : allProjects.filter((p) => p.metadata.status === "published"); // Production: only published
+    // Filter based on publishedOnly flag (set by site-builder)
+    const filteredProjects = context.publishedOnly
+      ? allProjects.filter((p) => p.metadata.status === "published") // Only published projects
+      : allProjects; // Show all projects (draft and published)
 
     // Sort by year (descending), then by title
     const sortedProjects = filteredProjects.sort((a, b) => {
@@ -195,11 +194,10 @@ export class ProjectDataSource implements DataSource {
       { limit: 1000 },
     );
 
-    // Filter based on environment
-    const isPreview = context.environment === "preview";
-    const filteredProjects = isPreview
-      ? entities // Preview: show all projects (draft and published)
-      : entities.filter((p) => p.metadata.status === "published"); // Production: only published
+    // Filter based on publishedOnly flag (set by site-builder)
+    const filteredProjects = context.publishedOnly
+      ? entities.filter((p) => p.metadata.status === "published") // Only published projects
+      : entities; // Show all projects (draft and published)
 
     // Sort by year (descending), then by title
     const sortedProjects = filteredProjects.sort((a, b) => {

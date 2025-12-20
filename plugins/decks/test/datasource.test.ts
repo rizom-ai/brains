@@ -56,9 +56,7 @@ describe("DeckDataSource", () => {
       deleteEntity: mock(() => ({})),
     } as unknown as IEntityService;
 
-    mockContext = {
-      environment: "test",
-    };
+    mockContext = {};
 
     datasource = new DeckDataSource(mockEntityService, mockLogger);
   });
@@ -68,7 +66,7 @@ describe("DeckDataSource", () => {
       decks: z.array(z.any()),
     });
 
-    it("should show only published decks in production environment", async () => {
+    it("should show only published decks when publishedOnly is true", async () => {
       const decks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -94,7 +92,7 @@ describe("DeckDataSource", () => {
       const result = await datasource.fetch(
         { entityType: "deck" },
         listSchema,
-        { ...mockContext, environment: "production" },
+        { ...mockContext, publishedOnly: true },
       );
 
       expect(result.decks).toHaveLength(2);
@@ -103,7 +101,7 @@ describe("DeckDataSource", () => {
       ).toBe(true);
     });
 
-    it("should show all decks (including drafts) in preview environment", async () => {
+    it("should show all decks (including drafts) when publishedOnly is false", async () => {
       const decks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -123,7 +121,7 @@ describe("DeckDataSource", () => {
       const result = await datasource.fetch(
         { entityType: "deck" },
         listSchema,
-        { ...mockContext, environment: "preview" },
+        { ...mockContext, publishedOnly: false },
       );
 
       expect(result.decks).toHaveLength(3);
@@ -165,7 +163,7 @@ describe("DeckDataSource", () => {
       const result = await datasource.fetch(
         { entityType: "deck" },
         listSchema,
-        { ...mockContext, environment: "production" },
+        { ...mockContext, publishedOnly: true },
       );
 
       expect(result.decks).toHaveLength(3);

@@ -131,7 +131,7 @@ describe("SiteBuilder dataQuery handling", () => {
             entityType: "topic",
             query: { limit: 100 },
           },
-          environment: "preview",
+          publishedOnly: false,
           fallback: undefined,
         }),
       );
@@ -188,7 +188,7 @@ describe("SiteBuilder dataQuery handling", () => {
             entityType: "topic",
             query: { id: "test-topic" },
           },
-          environment: "preview",
+          publishedOnly: false,
           fallback: undefined,
         }),
       );
@@ -266,7 +266,7 @@ describe("SiteBuilder dataQuery handling", () => {
             entityType: "topic",
             query: { limit: 5 },
           },
-          environment: "preview",
+          publishedOnly: false,
           fallback: { fallbackTitle: "No topics" },
         }),
       );
@@ -320,7 +320,7 @@ describe("SiteBuilder dataQuery handling", () => {
           dataParams: {
             entityType: "topic",
           },
-          environment: "preview",
+          publishedOnly: false,
           fallback: undefined,
         }),
       );
@@ -385,7 +385,7 @@ describe("SiteBuilder dataQuery handling", () => {
               anotherParam: 123,
             },
           },
-          environment: "preview",
+          publishedOnly: false,
           fallback: undefined,
         }),
       );

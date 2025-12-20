@@ -70,9 +70,7 @@ Content for ${title}`;
       deleteEntity: mock(() => ({})),
     } as unknown as IEntityService;
 
-    mockContext = {
-      environment: "test",
-    };
+    mockContext = {};
 
     datasource = new BlogDataSource(mockEntityService, mockLogger);
   });
@@ -544,7 +542,7 @@ Content for ${title}`;
       const result = await datasource.fetch(
         { entityType: "post" },
         schema,
-        { ...mockContext, environment: "preview" }, // Preview mode shows all posts
+        { ...mockContext, publishedOnly: false }, // Show all posts (drafts included)
       );
 
       expect(result.posts).toHaveLength(3);
@@ -988,7 +986,7 @@ Content for ${title}`;
       expect(result.pagination?.hasPrevPage).toBe(false);
     });
 
-    it("should only paginate published posts in production", async () => {
+    it("should only paginate published posts when publishedOnly is true", async () => {
       const posts: BlogPost[] = [
         createMockPost(
           "post-1",
@@ -1022,7 +1020,7 @@ Content for ${title}`;
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 2 } },
         paginatedListSchema,
-        { ...mockContext, environment: "production" },
+        { ...mockContext, publishedOnly: true },
       );
 
       expect(result.pagination?.totalItems).toBe(3); // Only 3 published posts

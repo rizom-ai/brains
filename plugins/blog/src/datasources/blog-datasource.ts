@@ -305,11 +305,10 @@ export class BlogDataSource implements DataSource {
     const entities: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", { limit: 1000 });
 
-    // Filter based on environment
-    const isPreview = context.environment === "preview";
-    const filteredPosts = isPreview
-      ? entities // Preview: show all posts (draft and published)
-      : entities.filter((p) => p.metadata.publishedAt); // Production: only published
+    // Filter based on publishedOnly flag (set by site-builder)
+    const filteredPosts = context.publishedOnly
+      ? entities.filter((p) => p.metadata.publishedAt) // Only published posts
+      : entities; // Show all posts (draft and published)
 
     // Sort by publishedAt (from metadata), newest first
     // Published posts come before unpublished

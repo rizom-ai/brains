@@ -245,11 +245,10 @@ export class SiteBuilder implements ISiteBuilder {
           route: RouteDefinition,
           section: SectionDefinition,
         ) => {
-          return this.getContentForSection(
-            section,
-            route,
-            parsedOptions.environment,
-          );
+          // In production, filter to only published content
+          // In preview (or unspecified), show all content including drafts
+          const publishedOnly = parsedOptions.environment === "production";
+          return this.getContentForSection(section, route, publishedOnly);
         },
         getViewTemplate: (name: string) => {
           return this.context.getViewTemplate(name);
@@ -328,7 +327,7 @@ export class SiteBuilder implements ISiteBuilder {
   private async getContentForSection(
     section: SectionDefinition,
     route: { id: string },
-    environment?: string,
+    publishedOnly: boolean,
   ): Promise<unknown> {
     // If no template, only static content is possible
     if (!section.template) {
@@ -365,8 +364,8 @@ export class SiteBuilder implements ISiteBuilder {
         fallback: section.content,
         // Pass URL generator for datasources to add url fields
         generateEntityUrl,
-        // Pass environment if defined
-        ...(environment !== undefined && { environment }),
+        // Filter to published-only content in production builds
+        publishedOnly,
       };
 
       const content = await this.context.resolveContent(templateName, options);

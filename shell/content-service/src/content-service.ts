@@ -155,8 +155,8 @@ export class ContentService implements IContentService {
           if (dataSource.fetch) {
             // Build context from options
             const context: BaseDataSourceContext = {
-              ...(options?.environment !== undefined && {
-                environment: options.environment,
+              ...(options?.publishedOnly !== undefined && {
+                publishedOnly: options.publishedOnly,
               }),
             };
 

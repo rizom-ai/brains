@@ -21,9 +21,7 @@ describe("RSSDataSource", () => {
       getEntityAdapter: mock(() => undefined),
     }) as unknown as IEntityService;
 
-  const mockContext: BaseDataSourceContext = {
-    environment: "test",
-  };
+  const mockContext: BaseDataSourceContext = {};
 
   const post1Content =
     "---\ntitle: First Post\nslug: first-post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1";

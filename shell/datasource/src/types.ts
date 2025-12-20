@@ -6,12 +6,10 @@ import type { z } from "@brains/utils";
  */
 export interface BaseDataSourceContext {
   /**
-   * Build environment (e.g., "preview" or "production")
-   * Allows datasources to adjust behavior based on environment
+   * Whether to filter to only published/complete content
+   * Set by site-builder: true for production, false for preview
    */
-  environment?: string;
-
-  // Room for future extensions (user context, permissions, etc.)
+  publishedOnly?: boolean;
 }
 
 /**

@@ -43,7 +43,7 @@ export class LinksDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: BaseDataSourceContext,
+    context?: BaseDataSourceContext,
   ): Promise<T> {
     const params = entityFetchQuerySchema.parse(query);
     const adapter = new LinkAdapter();
@@ -54,7 +54,7 @@ export class LinksDataSource implements DataSource {
     });
 
     // Transform all entities
-    const links: LinkSummary[] = entities.map((entity) => {
+    const allLinks: LinkSummary[] = entities.map((entity) => {
       const parsed = adapter.parseLinkBody(entity.content);
       return {
         id: entity.id,
@@ -70,6 +70,11 @@ export class LinksDataSource implements DataSource {
         extractionError: parsed.extractionError,
       };
     });
+
+    // Filter based on publishedOnly flag (set by site-builder)
+    const links = context?.publishedOnly
+      ? allLinks.filter((l) => l.status === "complete") // Only complete links
+      : allLinks; // Show all links (pending, complete, failed)
 
     // Sort by captured date, newest first
     links.sort(

@@ -56,8 +56,11 @@ export interface ResolutionOptions {
   transformFormat?: string;
   /** Static fallback content */
   fallback?: unknown;
-  /** Build environment (e.g., "preview" or "production") passed to datasources */
-  environment?: string;
+  /**
+   * Whether to filter to only published/complete content
+   * Set by site-builder: true for production, false for preview
+   */
+  publishedOnly?: boolean;
   /**
    * URL generator function for entity detail pages - passed to datasources via context
    * Required for site builds to ensure consistent routing
