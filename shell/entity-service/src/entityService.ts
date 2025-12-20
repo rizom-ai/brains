@@ -401,6 +401,8 @@ export class EntityService implements IEntityService {
       sortBy?: "created" | "updated";
       sortDirection?: "asc" | "desc";
       filter?: { metadata?: Record<string, unknown> };
+      /** Filter to only entities with metadata.status = "published" */
+      publishedOnly?: boolean;
     },
   ): Promise<T[]> {
     return this.entityQueries.listEntities<T>(entityType, options);

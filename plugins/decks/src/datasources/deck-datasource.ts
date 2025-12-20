@@ -40,7 +40,7 @@ export class DeckDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
@@ -73,18 +73,16 @@ export class DeckDataSource implements DataSource {
       return outputSchema.parse(detailData);
     }
 
-    // Fetch multiple decks (list view)
-    const allDecks = await this.entityService.listEntities<DeckEntity>(
+    // Fetch decks (filtered at database level when publishedOnly is set)
+    const filteredDecks = await this.entityService.listEntities<DeckEntity>(
       params.entityType,
       {
         limit: params.query?.limit ?? 100,
+        ...(context.publishedOnly !== undefined && {
+          publishedOnly: context.publishedOnly,
+        }),
       },
     );
-
-    // Filter based on publishedOnly flag (set by site-builder)
-    const filteredDecks = _context.publishedOnly
-      ? allDecks.filter((d) => d.metadata.status === "published") // Only published decks
-      : allDecks; // Show all decks (draft and published)
 
     // Sort by publishedAt date, newest first (fall back to created if not set)
     const sortedDecks = filteredDecks.sort((a, b) => {

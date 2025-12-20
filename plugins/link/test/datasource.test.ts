@@ -94,37 +94,27 @@ ${capturedAt}
       totalCount: z.number(),
     });
 
-    it("should show only complete links when publishedOnly is true", async () => {
-      const links = [
+    it("should show only published links when publishedOnly is true", async () => {
+      // When publishedOnly is true, entity service filters at database level
+      // Mock returns only published links (simulating entity service filtering)
+      const publishedLinks = [
         createMockLink(
           "link-1",
-          "Complete Link",
-          "complete",
+          "Published Link",
+          "published",
           "2025-01-01T10:00:00.000Z",
         ),
         createMockLink(
-          "link-2",
-          "Pending Link",
-          "pending",
-          "2025-01-02T10:00:00.000Z",
-        ),
-        createMockLink(
-          "link-3",
-          "Failed Link",
-          "failed",
-          "2025-01-03T10:00:00.000Z",
-        ),
-        createMockLink(
           "link-4",
-          "Another Complete",
-          "complete",
+          "Another Published",
+          "published",
           "2025-01-04T10:00:00.000Z",
         ),
       ];
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(links);
+      ).mockResolvedValue(publishedLinks);
 
       const result = await datasource.fetch(
         { entityType: "link" },
@@ -134,29 +124,36 @@ ${capturedAt}
 
       expect(result.links).toHaveLength(2);
       expect(
-        result.links.every((l: { status: string }) => l.status === "complete"),
+        result.links.every((l: { status: string }) => l.status === "published"),
       ).toBe(true);
       expect(result.totalCount).toBe(2);
+
+      // Verify publishedOnly was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("link", {
+        limit: 1000,
+        publishedOnly: true,
+      });
     });
 
-    it("should show all links (including pending/failed) when publishedOnly is false", async () => {
+    it("should show all links (including draft/pending/failed) when publishedOnly is false", async () => {
+      // When publishedOnly is false, entity service returns all links
       const links = [
         createMockLink(
           "link-1",
-          "Complete Link",
-          "complete",
+          "Published Link",
+          "published",
           "2025-01-01T10:00:00.000Z",
         ),
         createMockLink(
           "link-2",
-          "Pending Link",
-          "pending",
+          "Draft Link",
+          "draft",
           "2025-01-02T10:00:00.000Z",
         ),
         createMockLink(
           "link-3",
-          "Failed Link",
-          "failed",
+          "Pending Link",
+          "pending",
           "2025-01-03T10:00:00.000Z",
         ),
       ];
@@ -173,33 +170,24 @@ ${capturedAt}
 
       expect(result.links).toHaveLength(3);
       expect(result.totalCount).toBe(3);
-      // Verify we have all statuses
+      // Verify we have multiple statuses
       const statuses = result.links.map((l: { status: string }) => l.status);
-      expect(statuses).toContain("complete");
+      expect(statuses).toContain("published");
+      expect(statuses).toContain("draft");
       expect(statuses).toContain("pending");
-      expect(statuses).toContain("failed");
+
+      // Verify publishedOnly: false was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("link", {
+        limit: 1000,
+        publishedOnly: false,
+      });
     });
 
     it("should sort links by captured date, newest first", async () => {
       const links = [
-        createMockLink(
-          "link-1",
-          "Oldest",
-          "complete",
-          "2025-01-01T10:00:00.000Z",
-        ),
-        createMockLink(
-          "link-2",
-          "Newest",
-          "complete",
-          "2025-01-03T10:00:00.000Z",
-        ),
-        createMockLink(
-          "link-3",
-          "Middle",
-          "complete",
-          "2025-01-02T10:00:00.000Z",
-        ),
+        createMockLink("link-1", "Oldest", "draft", "2025-01-01T10:00:00.000Z"),
+        createMockLink("link-2", "Newest", "draft", "2025-01-03T10:00:00.000Z"),
+        createMockLink("link-3", "Middle", "draft", "2025-01-02T10:00:00.000Z"),
       ];
 
       (

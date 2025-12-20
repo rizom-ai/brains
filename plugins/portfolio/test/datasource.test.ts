@@ -83,19 +83,14 @@ Outcome for ${title}`;
     });
 
     it("should show only published projects when publishedOnly is true", async () => {
-      const projects: Project[] = [
+      // When publishedOnly is true, entity service filters at database level
+      // Mock returns only published projects (simulating entity service filtering)
+      const publishedProjects: Project[] = [
         createMockProject(
           "proj-1",
           "Published Project",
           "published-project",
           "published",
-          2024,
-        ),
-        createMockProject(
-          "proj-2",
-          "Draft Project",
-          "draft-project",
-          "draft",
           2024,
         ),
         createMockProject(
@@ -109,7 +104,7 @@ Outcome for ${title}`;
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(projects);
+      ).mockResolvedValue(publishedProjects);
 
       const result = await datasource.fetch(
         { entityType: "project" },
@@ -124,9 +119,16 @@ Outcome for ${title}`;
             p.metadata.status === "published",
         ),
       ).toBe(true);
+
+      // Verify publishedOnly was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
+        limit: 1000,
+        publishedOnly: true,
+      });
     });
 
     it("should show all projects (including drafts) when publishedOnly is false", async () => {
+      // When publishedOnly is false, entity service returns all projects
       const projects: Project[] = [
         createMockProject(
           "proj-1",
@@ -168,6 +170,12 @@ Outcome for ${title}`;
       );
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
+
+      // Verify publishedOnly: false was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
+        limit: 1000,
+        publishedOnly: false,
+      });
     });
   });
 

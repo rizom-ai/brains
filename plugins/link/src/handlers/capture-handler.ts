@@ -33,7 +33,7 @@ export const linkCaptureResultSchema = z.object({
   entityId: z.string().optional(),
   title: z.string().optional(),
   url: z.string().optional(),
-  status: z.enum(["complete", "pending", "failed"]).optional(),
+  status: z.enum(["pending", "draft", "published", "failed"]).optional(),
   extractionError: z.string().optional(),
   error: z.string().optional(),
 });
@@ -303,14 +303,14 @@ export class LinkCaptureJobHandler
         summary: extractedData.summary,
         keywords: extractedData.keywords ?? [],
         source,
-        status: "complete",
+        status: "draft",
       });
 
       const entity = await this.context.entityService.createEntity({
         id: entityId,
         entityType: "link",
         content: linkBody,
-        metadata: { status: "complete", ...metadata },
+        metadata: { status: "draft", ...metadata },
       });
 
       await progressReporter.report({
@@ -324,7 +324,7 @@ export class LinkCaptureJobHandler
         entityId: entity.entityId,
         title: extractedData.title,
         url,
-        status: "complete",
+        status: "draft",
       };
     } catch (error) {
       this.logger.error("Link capture job failed", {

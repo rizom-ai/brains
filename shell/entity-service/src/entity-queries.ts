@@ -19,6 +19,8 @@ const listOptionsSchema = z.object({
       metadata: z.record(z.string(), z.unknown()).optional(),
     })
     .optional(),
+  /** Filter to only entities with metadata.status = "published" */
+  publishedOnly: z.boolean().optional(),
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
@@ -91,14 +93,22 @@ export class EntityQueries {
     options: ListOptions = {},
   ): Promise<T[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortBy, sortDirection, filter } = validatedOptions;
+    const { limit, offset, sortBy, sortDirection, filter, publishedOnly } =
+      validatedOptions;
 
     this.logger.debug(
-      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)})`,
+      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
     );
 
     // Build where conditions
     const whereConditions = [eq(entities.entityType, entityType)];
+
+    // Handle publishedOnly filter (filters on metadata.status = "published")
+    if (publishedOnly) {
+      whereConditions.push(
+        sql`json_extract(${entities.metadata}, '$.status') = 'published'`,
+      );
+    }
 
     // Handle metadata filters
     if (filter?.metadata) {

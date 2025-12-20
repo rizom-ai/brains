@@ -64,7 +64,7 @@ describe("LinkPlugin", () => {
           title: "Manual",
           type: "manual",
         },
-        status: "complete",
+        status: "draft",
       });
 
       expect(linkBody).toContain("# Test Article");
@@ -90,7 +90,7 @@ https://example.com/test
 
 ## Status
 
-complete
+draft
 
 ## Description
 
@@ -121,7 +121,7 @@ example.com
 
       expect(parsed.title).toBe("Test Article");
       expect(parsed.url).toBe("https://example.com/test");
-      expect(parsed.status).toBe("complete");
+      expect(parsed.status).toBe("draft");
       expect(parsed.description).toBe("A test article");
       expect(parsed.summary).toBe("This is a test article summary.");
       expect(parsed.keywords).toEqual(["test", "example"]);

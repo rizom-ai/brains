@@ -10,12 +10,18 @@ export const linkSourceSchema = z.object({
 });
 
 /**
- * Link extraction status
- * - complete: AI extraction succeeded with full content
- * - pending: extraction failed, awaiting user input
- * - failed: user declined to provide info or link is permanently broken
+ * Link status
+ * - pending: extraction in progress or failed, awaiting completion
+ * - draft: extraction complete, awaiting review/publication
+ * - published: user explicitly published the link
+ * - failed: link is permanently broken or user declined to provide info
  */
-export const linkStatusSchema = z.enum(["complete", "pending", "failed"]);
+export const linkStatusSchema = z.enum([
+  "pending",
+  "draft",
+  "published",
+  "failed",
+]);
 
 /**
  * Link body schema for structured content storage
@@ -29,7 +35,7 @@ export const linkBodySchema = z.object({
   domain: z.string(),
   capturedAt: z.string().datetime(),
   source: linkSourceSchema,
-  status: linkStatusSchema, // "complete" if extracted, "pending" if needs user input
+  status: linkStatusSchema, // "draft" when extracted, "published" when user publishes
   extractionError: z.string().optional(), // Error message if extraction failed
 });
 

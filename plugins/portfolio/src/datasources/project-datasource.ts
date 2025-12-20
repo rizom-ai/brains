@@ -135,15 +135,14 @@ export class ProjectDataSource implements DataSource {
     const project = parseProjectData(entity);
 
     // For detail view, also fetch prev/next projects for navigation
-    const allProjects: Project[] =
+    // Filtered at database level when publishedOnly is set
+    const filteredProjects: Project[] =
       await this.entityService.listEntities<Project>("project", {
         limit: 1000,
+        ...(context.publishedOnly !== undefined && {
+          publishedOnly: context.publishedOnly,
+        }),
       });
-
-    // Filter based on publishedOnly flag (set by site-builder)
-    const filteredProjects = context.publishedOnly
-      ? allProjects.filter((p) => p.metadata.status === "published") // Only published projects
-      : allProjects; // Show all projects (draft and published)
 
     // Sort by year (descending), then by title
     const sortedProjects = filteredProjects.sort((a, b) => {
@@ -188,16 +187,14 @@ export class ProjectDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Fetch all projects first (we need to filter and sort before pagination)
-    const entities: Project[] = await this.entityService.listEntities<Project>(
-      "project",
-      { limit: 1000 },
-    );
-
-    // Filter based on publishedOnly flag (set by site-builder)
-    const filteredProjects = context.publishedOnly
-      ? entities.filter((p) => p.metadata.status === "published") // Only published projects
-      : entities; // Show all projects (draft and published)
+    // Fetch projects (filtered at database level when publishedOnly is set)
+    const filteredProjects: Project[] =
+      await this.entityService.listEntities<Project>("project", {
+        limit: 1000,
+        ...(context.publishedOnly !== undefined && {
+          publishedOnly: context.publishedOnly,
+        }),
+      });
 
     // Sort by year (descending), then by title
     const sortedProjects = filteredProjects.sort((a, b) => {

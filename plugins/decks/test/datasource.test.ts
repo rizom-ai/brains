@@ -67,7 +67,9 @@ describe("DeckDataSource", () => {
     });
 
     it("should show only published decks when publishedOnly is true", async () => {
-      const decks: DeckEntity[] = [
+      // When publishedOnly is true, entity service filters at database level
+      // Mock returns only published decks (simulating entity service filtering)
+      const publishedDecks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
           "Published Deck",
@@ -75,7 +77,6 @@ describe("DeckDataSource", () => {
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
-        createMockDeck("deck-2", "Draft Deck", "draft-deck", "draft"),
         createMockDeck(
           "deck-3",
           "Another Published",
@@ -87,7 +88,7 @@ describe("DeckDataSource", () => {
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(decks);
+      ).mockResolvedValue(publishedDecks);
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -99,9 +100,16 @@ describe("DeckDataSource", () => {
       expect(
         result.decks.every((d: DeckEntity) => d.status === "published"),
       ).toBe(true);
+
+      // Verify publishedOnly was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("deck", {
+        limit: 100,
+        publishedOnly: true,
+      });
     });
 
     it("should show all decks (including drafts) when publishedOnly is false", async () => {
+      // When publishedOnly is false, entity service returns all decks
       const decks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -129,6 +137,12 @@ describe("DeckDataSource", () => {
       const statuses = result.decks.map((d: DeckEntity) => d.status);
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
+
+      // Verify publishedOnly: false was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("deck", {
+        limit: 100,
+        publishedOnly: false,
+      });
     });
 
     it("should sort decks by publishedAt date, newest first", async () => {

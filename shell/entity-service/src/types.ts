@@ -117,6 +117,8 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
   };
+  /** Filter to only entities with metadata.status = "published" */
+  publishedOnly?: boolean;
 }
 
 /**

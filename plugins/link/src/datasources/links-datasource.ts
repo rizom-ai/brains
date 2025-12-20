@@ -48,13 +48,16 @@ export class LinksDataSource implements DataSource {
     const params = entityFetchQuerySchema.parse(query);
     const adapter = new LinkAdapter();
 
-    // Fetch all links for both list and detail views (needed for prev/next nav)
+    // Fetch links (filtered at database level when publishedOnly is set)
     const entities = await this.entityService.listEntities(params.entityType, {
       limit: 1000,
+      ...(context?.publishedOnly !== undefined && {
+        publishedOnly: context.publishedOnly,
+      }),
     });
 
-    // Transform all entities
-    const allLinks: LinkSummary[] = entities.map((entity) => {
+    // Transform entities to LinkSummary (already filtered by entity service)
+    const links: LinkSummary[] = entities.map((entity) => {
       const parsed = adapter.parseLinkBody(entity.content);
       return {
         id: entity.id,
@@ -70,11 +73,6 @@ export class LinksDataSource implements DataSource {
         extractionError: parsed.extractionError,
       };
     });
-
-    // Filter based on publishedOnly flag (set by site-builder)
-    const links = context?.publishedOnly
-      ? allLinks.filter((l) => l.status === "complete") // Only complete links
-      : allLinks; // Show all links (pending, complete, failed)
 
     // Sort by captured date, newest first
     links.sort(

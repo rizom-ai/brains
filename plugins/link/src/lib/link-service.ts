@@ -271,7 +271,7 @@ export class LinkService {
       summary: extractedData.summary,
       keywords: extractedData.keywords ?? [],
       source,
-      status: "complete",
+      status: "draft",
     });
 
     // Create entity with deterministic ID
@@ -279,14 +279,14 @@ export class LinkService {
       id: entityId,
       entityType: "link",
       content: linkBody,
-      metadata: { status: "complete", ...options?.metadata },
+      metadata: { status: "draft", ...options?.metadata },
     });
 
     return {
       entityId: entity.entityId,
       title: extractedData.title,
       url,
-      status: "complete",
+      status: "draft",
     };
   }
 
