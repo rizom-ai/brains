@@ -111,7 +111,7 @@ export class ProjectDataSource implements DataSource {
   private async fetchSingleProject<T>(
     slug: string,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     // Query by slug in metadata
     const entities: Project[] = await this.entityService.listEntities<Project>(
@@ -140,15 +140,24 @@ export class ProjectDataSource implements DataSource {
         limit: 1000,
       });
 
+    // Filter based on environment (same logic as list view)
+    const isPreview = context.environment === "preview";
+    const filteredProjects = isPreview
+      ? allProjects // Preview: show all projects (draft and published)
+      : allProjects.filter((p) => p.metadata.status === "published"); // Production: only published
+
     // Sort by year (descending), then by title
-    const sortedProjects = allProjects
-      .filter((p) => p.metadata.status === "published")
-      .sort((a, b) => {
-        if (b.metadata.year !== a.metadata.year) {
-          return b.metadata.year - a.metadata.year;
-        }
-        return a.metadata.title.localeCompare(b.metadata.title);
-      });
+    const sortedProjects = filteredProjects.sort((a, b) => {
+      // Published projects come before drafts
+      if (a.metadata.status !== b.metadata.status) {
+        return a.metadata.status === "published" ? -1 : 1;
+      }
+
+      if (b.metadata.year !== a.metadata.year) {
+        return b.metadata.year - a.metadata.year;
+      }
+      return a.metadata.title.localeCompare(b.metadata.title);
+    });
 
     const currentIndex = sortedProjects.findIndex((p) => p.id === entity.id);
     const prevEntity =
