@@ -162,6 +162,52 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     });
   });
 
+  describe("Push on Manual Sync", () => {
+    it("should push new files to remote on single sync call", async () => {
+      // This test reproduces a bug where new files required two sync calls:
+      // 1st sync: file committed but not pushed (manualSync=false meant push conditions weren't met)
+      // 2nd sync: file pushed (now ahead > 0 triggers push)
+      //
+      // Expected behavior: user explicitly calling sync should push in one call
+
+      // Create a new entity file (simulating directory-sync auto-export)
+      const filePath = join(testDir, "link", "test-link-abc123.md");
+      mkdirSync(join(testDir, "link"), { recursive: true });
+      writeFileSync(
+        filePath,
+        "---\ntitle: Test Link\nurl: https://example.com\n---\n\nTest summary",
+      );
+
+      // Call sync tool ONCE (used to require TWICE before fix)
+      const syncTool = gitCapabilities.tools.find(
+        (t) => t.name === "git-sync_sync",
+      );
+      if (!syncTool) throw new Error("Sync tool not found");
+
+      await syncTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
+
+      // Verify file was committed locally
+      const localStatus = await git.status();
+      expect(localStatus.isClean()).toBe(true);
+
+      // Clone the remote to verify file was pushed
+      const verifyDir = join(tmpdir(), `verify-${Date.now()}`);
+      mkdirSync(verifyDir, { recursive: true });
+      await simpleGit(verifyDir).clone(remoteDir, ".", ["--branch", "main"]);
+
+      // Verify the file exists in the cloned repo
+      expect(existsSync(join(verifyDir, "link", "test-link-abc123.md"))).toBe(
+        true,
+      );
+
+      // Clean up verify dir
+      rmSync(verifyDir, { recursive: true, force: true });
+    });
+  });
+
   describe("Status and Sync Operations", () => {
     it("should report accurate status", async () => {
       const statusTool = gitCapabilities.tools.find(

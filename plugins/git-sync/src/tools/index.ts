@@ -10,7 +10,9 @@ export function createSyncTool(gitSync: GitSync, pluginId: string): PluginTool {
     inputSchema: {},
     visibility: "anchor",
     handler: async (): Promise<ToolResponse> => {
-      await gitSync.sync();
+      // Pass manualSync = true since user explicitly requested sync
+      // This ensures changes are pushed to remote in a single call
+      await gitSync.sync(true);
       return {
         success: true,
         message: "Git sync completed successfully",
