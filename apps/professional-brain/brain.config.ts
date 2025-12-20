@@ -26,7 +26,10 @@ const entityRouteConfig = {
   post: { label: "Essay" }, // pluralName defaults to 'essays'
   deck: { label: "Presentation" }, // pluralName defaults to 'presentations'
   project: { label: "Project" }, // Portfolio case studies
-  topic: { label: "Topic" }, // Mobile hamburger menu handles overflow
+  topic: {
+    label: "Topic",
+    navigation: { slot: "secondary" }, // Show in footer only
+  },
   link: {
     label: "Link",
     navigation: { slot: "secondary" }, // Show in footer only
