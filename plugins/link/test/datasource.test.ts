@@ -3,7 +3,7 @@ import { LinksDataSource } from "../src/datasources/links-datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";
 import { z, computeContentHash } from "@brains/utils";
-import type { LinkStatus } from "../src/schemas/link";
+import type { LinkStatus, LinkEntity } from "../src/schemas/link";
 
 describe("LinksDataSource", () => {
   let datasource: LinksDataSource;
@@ -17,7 +17,7 @@ describe("LinksDataSource", () => {
     title: string,
     status: LinkStatus,
     capturedAt: string,
-  ) => {
+  ): LinkEntity => {
     const content = `---
 status: ${status}
 title: ${title}

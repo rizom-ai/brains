@@ -71,7 +71,7 @@ export function createPortfolioTools(
           for (const result of results) {
             const entity = result.entity;
             relatedContent.push(
-              `[${entity.entityType}: ${entity.metadata?.["title"] || entity.id}]\n${entity.content}`,
+              `[${entity.entityType}: ${entity.metadata["title"] ?? entity.id}]\n${entity.content}`,
             );
           }
 

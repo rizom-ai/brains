@@ -212,16 +212,11 @@ export class StreamableHTTPServer {
                 this.logger.info(`Session initialized: ${sessionId}`);
                 this.transports[sessionId] = transport;
               },
+              onsessionclosed: (sessionId: string): void => {
+                this.logger.info(`Session closed: ${sessionId}`);
+                delete this.transports[sessionId];
+              },
             });
-
-            // Set up onclose handler
-            transport.onclose = (): void => {
-              const sid = transport.sessionId;
-              if (sid && this.transports[sid]) {
-                this.logger.info(`Session closed: ${sid}`);
-                delete this.transports[sid];
-              }
-            };
 
             // Connect transport to MCP server
             await this.mcpServer.connect(transport);

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "devDependencies": {
     "@manypkg/cli": "^0.25.1",
-    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "dependency-cruiser": "^17.0.1",
     "eslint": "^8.56.0",
     "husky": "^9.0.11",

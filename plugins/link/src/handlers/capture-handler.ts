@@ -193,7 +193,7 @@ export class LinkCaptureJobHandler
         !extractedData.description ||
         !extractedData.summary
       ) {
-        const title = extractedData.title ?? new URL(url).hostname;
+        const title = extractedData.title || new URL(url).hostname;
 
         this.logger.info("Incomplete extraction, saving as pending", {
           url,
@@ -211,7 +211,7 @@ export class LinkCaptureJobHandler
           url,
           description: extractedData.description,
           summary: extractedData.summary,
-          keywords: extractedData.keywords ?? [],
+          keywords: extractedData.keywords,
           domain: new URL(url).hostname,
           capturedAt,
           source,
@@ -252,7 +252,7 @@ export class LinkCaptureJobHandler
         url,
         description: extractedData.description,
         summary: extractedData.summary,
-        keywords: extractedData.keywords ?? [],
+        keywords: extractedData.keywords,
         domain: new URL(url).hostname,
         capturedAt,
         source,
