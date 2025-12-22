@@ -1,6 +1,7 @@
 import type { PluginTool, ToolResponse, ToolContext } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
+import { validateDomain } from "./dns-validation";
 
 // Schema for tool parameters
 const captureParamsSchema = z.object({
@@ -29,6 +30,16 @@ export function createLinkTools(
         const { url } = captureParamsSchema.parse(input);
 
         try {
+          // Quick DNS validation to catch obviously invalid domains
+          const dnsResult = await validateDomain(url);
+          if (!dnsResult.valid) {
+            return {
+              success: false,
+              error: dnsResult.error,
+              formatted: `_Cannot capture link: ${dnsResult.error}_`,
+            };
+          }
+
           // Enqueue the link capture job for async processing
           const jobId = await context.enqueueJob(
             "capture",

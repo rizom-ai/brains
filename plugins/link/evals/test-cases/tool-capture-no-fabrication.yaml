@@ -1,0 +1,35 @@
+id: link-tool-capture-no-fabrication
+name: Link Capture Must Not Fabricate Success
+description: |
+  Regression test for fabrication bug where agent says "Done!" or "Complete!"
+  without actually invoking the link_capture tool. The agent MUST call the tool
+  before claiming success.
+type: tool_invocation
+tags:
+  - link
+  - tool-invocation
+  - anti-hallucination
+  - regression
+
+turns:
+  - userMessage: "can you capture this link for me: https://example.com/test-article"
+
+successCriteria:
+  expectedTools:
+    - toolName: link_capture
+      shouldBeCalled: true
+      argsContain:
+        url: "https://example.com/test-article"
+  toolCountRange:
+    min: 1
+  # These phrases indicate fabrication if the tool wasn't actually called
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 2
+  maxTokens: 20000
