@@ -1,4 +1,4 @@
-import type { JobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -30,14 +30,20 @@ export type NoteGenerationResult = z.infer<typeof noteGenerationResultSchema>;
  * Job handler for note generation
  * Handles AI-powered content generation and entity creation
  */
-export class NoteGenerationJobHandler
-  implements
-    JobHandler<"generation", NoteGenerationJobData, NoteGenerationResult>
-{
+export class NoteGenerationJobHandler extends BaseJobHandler<
+  "generation",
+  NoteGenerationJobData,
+  NoteGenerationResult
+> {
   constructor(
-    private logger: Logger,
+    logger: Logger,
     private context: ServicePluginContext,
-  ) {}
+  ) {
+    super(logger, {
+      schema: noteGenerationJobSchema,
+      jobTypeName: "note-generation",
+    });
+  }
 
   async process(
     data: NoteGenerationJobData,
@@ -128,25 +134,12 @@ export class NoteGenerationJobHandler
     }
   }
 
-  validateAndParse(data: unknown): NoteGenerationJobData | null {
-    try {
-      return noteGenerationJobSchema.parse(data);
-    } catch (error) {
-      this.logger.error("Invalid note generation job data", { data, error });
-      return null;
-    }
-  }
-
-  async onError(
-    error: Error,
+  protected override summarizeDataForLog(
     data: NoteGenerationJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Note generation job error handler triggered", {
-      error: error.message,
-      jobId,
+  ): Record<string, unknown> {
+    return {
       prompt: data.prompt,
       title: data.title,
-    });
+    };
   }
 }

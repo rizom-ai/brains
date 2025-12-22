@@ -1,4 +1,4 @@
-import type { JobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -38,14 +38,20 @@ export type BlogGenerationResult = z.infer<typeof blogGenerationResultSchema>;
  * Job handler for blog post generation
  * Handles AI-powered content generation and entity creation
  */
-export class BlogGenerationJobHandler
-  implements
-    JobHandler<"generation", BlogGenerationJobData, BlogGenerationResult>
-{
+export class BlogGenerationJobHandler extends BaseJobHandler<
+  "generation",
+  BlogGenerationJobData,
+  BlogGenerationResult
+> {
   constructor(
-    private logger: Logger,
+    logger: Logger,
     private context: ServicePluginContext,
-  ) {}
+  ) {
+    super(logger, {
+      schema: blogGenerationJobSchema,
+      jobTypeName: "blog-generation",
+    });
+  }
 
   async process(
     data: BlogGenerationJobData,
@@ -265,25 +271,15 @@ Add your conclusion here.`;
     }
   }
 
-  validateAndParse(data: unknown): BlogGenerationJobData | null {
-    try {
-      return blogGenerationJobSchema.parse(data);
-    } catch (error) {
-      this.logger.error("Invalid blog generation job data", { data, error });
-      return null;
-    }
-  }
-
-  async onError(
-    error: Error,
+  /**
+   * Summarize data for logging - only include relevant fields
+   */
+  protected override summarizeDataForLog(
     data: BlogGenerationJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Blog generation job error handler triggered", {
-      error: error.message,
-      jobId,
+  ): Record<string, unknown> {
+    return {
       prompt: data.prompt,
       title: data.title,
-    });
+    };
   }
 }

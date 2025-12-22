@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { computeContentHash } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils";
+import { computeContentHash, createSilentLogger } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 
 describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
-  let mockLogger: Logger;
   let mockContext: ServicePluginContext;
   let mockProgressReporter: ProgressReporter;
 
@@ -73,14 +72,6 @@ Content`;
   };
 
   beforeEach(() => {
-    mockLogger = {
-      info: mock(() => {}),
-      error: mock(() => {}),
-      warn: mock(() => {}),
-      debug: mock(() => {}),
-      child: mock(() => mockLogger),
-    } as unknown as Logger;
-
     mockProgressReporter = {
       report: mock(() => Promise.resolve()),
     } as unknown as ProgressReporter;
@@ -115,7 +106,10 @@ Content`;
       },
     } as unknown as ServicePluginContext;
 
-    handler = new BlogGenerationJobHandler(mockLogger, mockContext);
+    handler = new BlogGenerationJobHandler(
+      createSilentLogger("test"),
+      mockContext,
+    );
   });
 
   describe("validateAndParse", () => {
@@ -147,14 +141,6 @@ Content`;
       const result = handler.validateAndParse(data);
 
       expect(result).toBeNull();
-    });
-
-    it("should log error for invalid data", () => {
-      handler.validateAndParse({ seriesIndex: "invalid" });
-
-      expect(
-        (mockLogger.error as ReturnType<typeof mock>).mock.calls.length,
-      ).toBe(1);
     });
   });
 
@@ -667,42 +653,6 @@ Content`;
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Database error");
-    });
-
-    it("should log errors when they occur", async () => {
-      (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mockRejectedValue(new Error("Test error"));
-
-      await handler.process(
-        {
-          title: "Test",
-          content: "Content",
-          excerpt: "Excerpt",
-        },
-        "job-123",
-        mockProgressReporter,
-      );
-
-      expect(
-        (mockLogger.error as ReturnType<typeof mock>).mock.calls.length,
-      ).toBe(1);
-    });
-  });
-
-  describe("onError", () => {
-    it("should log error details", async () => {
-      const error = new Error("Test error");
-      const data = { title: "Test", content: "Content" };
-
-      await handler.onError(error, data, "job-123");
-
-      expect(
-        (mockLogger.error as ReturnType<typeof mock>).mock.calls.length,
-      ).toBe(1);
-      const logCall = (mockLogger.error as ReturnType<typeof mock>).mock
-        .calls[0];
-      expect(logCall?.[0]).toContain("error handler triggered");
     });
   });
 });

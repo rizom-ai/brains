@@ -143,7 +143,7 @@ describe("DirectoryDeleteJobHandler", () => {
       };
       const jobId = "job-456";
 
-      await handler.onError(error, data, jobId);
+      await handler.onError(error, data, jobId, mockProgressReporter);
 
       // Logger is silent, no need to test its calls
     });

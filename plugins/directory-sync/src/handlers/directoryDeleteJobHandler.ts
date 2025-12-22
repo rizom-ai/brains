@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { JobHandler } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
   ProgressReporter,
@@ -21,11 +21,11 @@ const directoryDeleteJobSchema = z.object({
  * Job handler for async directory delete operations
  * Processes entity deletions when files are removed from disk
  */
-export class DirectoryDeleteJobHandler
-  implements
-    JobHandler<"directory-delete", DirectoryDeleteJobData, DeleteResult>
-{
-  private logger: Logger;
+export class DirectoryDeleteJobHandler extends BaseJobHandler<
+  "directory-delete",
+  DirectoryDeleteJobData,
+  DeleteResult
+> {
   private context: ServicePluginContext;
 
   /**
@@ -36,27 +36,11 @@ export class DirectoryDeleteJobHandler
     context: ServicePluginContext,
     _directorySync: DirectorySync,
   ) {
-    this.logger = logger;
+    super(logger, {
+      schema: directoryDeleteJobSchema,
+      jobTypeName: "directory-delete",
+    });
     this.context = context;
-  }
-
-  /**
-   * Validate and parse delete job data
-   */
-  public validateAndParse(data: unknown): DirectoryDeleteJobData | null {
-    try {
-      const parsed = directoryDeleteJobSchema.parse(data);
-      this.logger.debug("Directory delete job data validation successful", {
-        data: parsed,
-      });
-      return parsed;
-    } catch (error) {
-      this.logger.error("Failed to validate directory delete job data", {
-        error,
-        data,
-      });
-      return null;
-    }
   }
 
   /**
@@ -123,20 +107,13 @@ export class DirectoryDeleteJobHandler
     }
   }
 
-  /**
-   * Handle job errors
-   */
-  public async onError(
-    error: Error,
+  protected override summarizeDataForLog(
     data: DirectoryDeleteJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Delete job failed", {
-      jobId,
+  ): Record<string, unknown> {
+    return {
       entityId: data.entityId,
       entityType: data.entityType,
       filePath: data.filePath,
-      error: error.message,
-    });
+    };
   }
 }

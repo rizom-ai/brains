@@ -1,4 +1,4 @@
-import type { JobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify, computeContentHash } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -37,16 +37,22 @@ export type DeckGenerationResult = z.infer<typeof deckGenerationResultSchema>;
  * Job handler for deck generation
  * Handles AI-powered content generation and entity creation
  */
-export class DeckGenerationJobHandler
-  implements
-    JobHandler<"generation", DeckGenerationJobData, DeckGenerationResult>
-{
+export class DeckGenerationJobHandler extends BaseJobHandler<
+  "generation",
+  DeckGenerationJobData,
+  DeckGenerationResult
+> {
   private formatter = new DeckFormatter();
 
   constructor(
-    private logger: Logger,
+    logger: Logger,
     private context: ServicePluginContext,
-  ) {}
+  ) {
+    super(logger, {
+      schema: deckGenerationJobSchema,
+      jobTypeName: "deck-generation",
+    });
+  }
 
   async process(
     data: DeckGenerationJobData,
@@ -241,25 +247,12 @@ Add your conclusion here`;
     }
   }
 
-  validateAndParse(data: unknown): DeckGenerationJobData | null {
-    try {
-      return deckGenerationJobSchema.parse(data);
-    } catch (error) {
-      this.logger.error("Invalid deck generation job data", { data, error });
-      return null;
-    }
-  }
-
-  async onError(
-    error: Error,
+  protected override summarizeDataForLog(
     data: DeckGenerationJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Deck generation job error handler triggered", {
-      error: error.message,
-      jobId,
+  ): Record<string, unknown> {
+    return {
       prompt: data.prompt,
       title: data.title,
-    });
+    };
   }
 }
