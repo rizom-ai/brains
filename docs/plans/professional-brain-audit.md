@@ -49,24 +49,11 @@ Publication date sorting repeated with minor variations:
 
 **Fix:** Create `sortByPublicationDate()` utility in `@brains/utils`
 
-#### 4. Singleton Pattern Boilerplate (24+ services)
-
-Same 20-line pattern in every service:
-
-```typescript
-private static instance: T | null = null;
-public static getInstance(): T { ... }
-public static resetInstance(): void { ... }
-public static createFresh(): T { ... }
-```
-
-**Fix:** Consider TypeScript mixin or base class
-
 ---
 
 ### MEDIUM PRIORITY - Test Quality Issues
 
-#### 5. Type Safety in Tests (50+ occurrences)
+#### 4. Type Safety in Tests (50+ occurrences)
 
 Pattern: `} as unknown as IEntityService;`
 
@@ -76,7 +63,7 @@ Pattern: `} as unknown as IEntityService;`
 
 **Fix:** Use `Partial<T>` pattern or create proper mock factories
 
-#### 6. Missing Test Utilities Package
+#### 5. Missing Test Utilities Package
 
 Logger mocking duplicated in 20+ test files:
 
@@ -90,7 +77,7 @@ mockLogger = {
 
 **Fix:** Create `@brains/test-utils` with shared mock builders
 
-#### 7. Limited Integration Tests
+#### 6. Limited Integration Tests
 
 Current: Heavy unit tests with mocked database
 Gap: No in-memory DB integration tests for entity service
@@ -99,7 +86,7 @@ Gap: No in-memory DB integration tests for entity service
 
 ### MEDIUM PRIORITY - Missing Abstractions
 
-#### 8. Adapter Markdown Utilities
+#### 7. Adapter Markdown Utilities
 
 5 adapters repeat try-catch boilerplate for markdown parsing:
 
@@ -107,13 +94,13 @@ Gap: No in-memory DB integration tests for entity service
 
 **Fix:** Extract `extractBodyWithoutFrontmatter()`, `mergeMetadata()` helpers
 
-#### 9. Pagination Schema Duplication
+#### 8. Pagination Schema Duplication
 
 Identical `paginationInfoSchema` defined in Blog + Portfolio datasources
 
 **Fix:** Move to `@brains/datasource` package
 
-#### 10. Inconsistent Metadata Syncing
+#### 9. Inconsistent Metadata Syncing
 
 Different adapters sync different fields to metadata:
 
@@ -127,7 +114,7 @@ Different adapters sync different fields to metadata:
 
 ### LOW PRIORITY - Inconsistencies
 
-#### 11. Adapter Instance Management
+#### 10. Adapter Instance Management
 
 Mixed patterns:
 
@@ -135,14 +122,14 @@ Mixed patterns:
 - New instance per use: `const adapter = new LinkAdapter();`
 - Injected dependency: stored in constructor
 
-#### 12. Profile Parsing Inconsistency
+#### 11. Profile Parsing Inconsistency
 
 Two different approaches:
 
 - `ProfessionalProfileParser` (uses StructuredContentFormatter)
 - `ProfileAdapter` (direct markdown parsing)
 
-#### 13. Migration Script Duplication
+#### 12. Migration Script Duplication
 
 3 migration files are 85% identical - could use factory function
 
