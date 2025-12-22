@@ -1,132 +1,182 @@
 # Professional Brain Audit - December 2025
 
-## Summary
+## Phase 1: Security & ESLint Fixes ✓ COMPLETE
 
-Audit of professional brain and its dependencies to identify urgent improvements.
+Previous audit addressed:
 
-**False positive from initial scan:** .env files are NOT in git (correctly gitignored).
+- ✓ Updated @modelcontextprotocol/sdk to ^1.24.0 (DNS rebinding vulnerability)
+- ✓ Fixed 6 ESLint warnings in link/portfolio plugins
+- ✓ Deleted unused CompactFooter component
+- ✓ Documented matrix-bot-sdk form-data vulnerability (no fix available upstream)
 
 ---
 
-## HIGH PRIORITY
+## Phase 2: Expanded Code Quality Review
 
-### 1. Security: Update @modelcontextprotocol/sdk
+### HIGH PRIORITY - Code Duplication
 
-**Current:** `^1.12.0` | **Required:** `>=1.24.0` | **Latest:** `1.25.1`
+#### 1. Job Handler Boilerplate (13+ handlers)
 
-- Vulnerability: No DNS rebinding protection (GHSA-w48q-cv73-mx4w)
-- Files: `shell/mcp-service/package.json`, `interfaces/mcp/package.json`
-- Risk: Major version jump (1.12→1.25) may have breaking changes - test after update
+Every job handler repeats ~100 lines of identical code:
 
-### 2. Security: matrix-bot-sdk form-data vulnerability
+- Singleton pattern (getInstance/resetInstance/createFresh)
+- `validateAndParse()` with Zod + logging
+- `onError()` with standard logging
+- Progress reporting pattern
 
-**Current:** `^0.7.1` (latest) | **Status:** No fix available upstream
+**Files:** `plugins/*/src/handlers/*.ts`, `shell/*/src/handlers/*.ts`
 
-- Transitive dep `form-data <2.5.4` has unsafe random boundary (CRITICAL)
-- matrix-bot-sdk hasn't updated yet - monitor for updates
-- **Action:** Document as known risk, no immediate fix possible
+**Fix:** Create `BaseJobHandler<TInput, TOutput>` abstract class
 
-### 3. ESLint Warnings (6 total)
+#### 2. DataSource Query Routing (11+ datasources)
 
-**Link plugin - capture-handler.ts:**
+All datasources repeat:
 
 ```typescript
-// Lines 196, 214, 255 - remove unnecessary ?? (types already non-nullable)
-extractedData.title ?? new URL(url).hostname; // → extractedData.title || new URL(url).hostname
-extractedData.keywords ?? []; // → extractedData.keywords
+if (params.query?.id) return this.fetchSingle(...);
+if (params.query?.limit) return this.fetchList(...);
 ```
 
-**Link plugin - datasource.test.ts:20:**
+**Files:** `plugins/*/src/datasources/*.ts`
+
+**Fix:** Create `BaseListDataSource<T>` with query routing
+
+#### 3. Sorting Logic Duplication (8+ places)
+
+Publication date sorting repeated with minor variations:
+
+- Blog, Portfolio, Decks, Link, Professional-site datasources
+
+**Fix:** Create `sortByPublicationDate()` utility in `@brains/utils`
+
+#### 4. Singleton Pattern Boilerplate (24+ services)
+
+Same 20-line pattern in every service:
 
 ```typescript
-// Add return type
-function createMock() { ... }  // → function createMock(): MockType { ... }
+private static instance: T | null = null;
+public static getInstance(): T { ... }
+public static resetInstance(): void { ... }
+public static createFresh(): T { ... }
 ```
 
-**Portfolio plugin - tools/index.ts:74:**
+**Fix:** Consider TypeScript mixin or base class
+
+---
+
+### MEDIUM PRIORITY - Test Quality Issues
+
+#### 5. Type Safety in Tests (50+ occurrences)
+
+Pattern: `} as unknown as IEntityService;`
+
+- Mocks don't implement full interfaces
+- No compile-time verification
+- Maintenance risk when interfaces change
+
+**Fix:** Use `Partial<T>` pattern or create proper mock factories
+
+#### 6. Missing Test Utilities Package
+
+Logger mocking duplicated in 20+ test files:
 
 ```typescript
-// Remove unnecessary ?. and use ?? instead of ||
-entity.metadata?.["title"] || entity.id; // → entity.metadata["title"] ?? entity.id
+mockLogger = {
+  debug: mock(() => {}),
+  info: mock(() => {}),
+  // ... repeated everywhere
+} as unknown as Logger;
 ```
+
+**Fix:** Create `@brains/test-utils` with shared mock builders
+
+#### 7. Limited Integration Tests
+
+Current: Heavy unit tests with mocked database
+Gap: No in-memory DB integration tests for entity service
 
 ---
 
-## MEDIUM PRIORITY
+### MEDIUM PRIORITY - Missing Abstractions
 
-### 4. Dead Code
+#### 8. Adapter Markdown Utilities
 
-**File:** `plugins/professional-site/src/components/CompactFooter.tsx`
+5 adapters repeat try-catch boilerplate for markdown parsing:
 
-- Component defined but never imported/used
-- Layout uses `Footer` from `@brains/default-site-content` instead
+- Blog, Portfolio, Note, Link, Summary adapters
 
-**Action:** Delete CompactFooter.tsx
+**Fix:** Extract `extractBodyWithoutFrontmatter()`, `mergeMetadata()` helpers
 
-### 5. Test Coverage Gaps
+#### 9. Pagination Schema Duplication
 
-**professional-site plugin:**
+Identical `paginationInfoSchema` defined in Blog + Portfolio datasources
 
-- Only 1 test file: `test/homepage-datasource.test.ts`
-- No tests for: CompactHeader, WavyDivider, ProfessionalLayout, templates
+**Fix:** Move to `@brains/datasource` package
 
-**Action:** Add tests for critical components (at minimum datasources).
+#### 10. Inconsistent Metadata Syncing
 
----
+Different adapters sync different fields to metadata:
 
-## LOW PRIORITY
+- Blog: title, slug, status, publishedAt, seriesName, seriesIndex
+- Link: Only title, status (missing domain, capturedAt)
+- Note: Only title
 
-### 6. Moderate Security Vulnerabilities
-
-- esbuild, tar, body-parser, tough-cookie, request, vite, hono
-- Most are dev dependencies or have limited attack surface
-
-**Action:** Monitor for updates, address in regular dependency maintenance.
+**Fix:** Document standard and ensure consistency
 
 ---
 
-## Execution Order
+### LOW PRIORITY - Inconsistencies
 
-### Step 1: Fix ESLint warnings (quick win)
+#### 11. Adapter Instance Management
 
-```bash
-# After fixes, verify:
-bun run lint  # Should show 0 warnings
-```
+Mixed patterns:
 
-### Step 2: Delete dead code
+- Singleton export: `export const blogPostAdapter = new BlogPostAdapter();`
+- New instance per use: `const adapter = new LinkAdapter();`
+- Injected dependency: stored in constructor
 
-```bash
-rm plugins/professional-site/src/components/CompactFooter.tsx
-# Verify no imports break
-bun run typecheck
-```
+#### 12. Profile Parsing Inconsistency
 
-### Step 3: Update MCP SDK
+Two different approaches:
 
-```bash
-# In shell/mcp-service and interfaces/mcp:
-# Change: "@modelcontextprotocol/sdk": "^1.12.0" → "^1.24.0"
-bun install
-bun run typecheck
-bun test
-```
+- `ProfessionalProfileParser` (uses StructuredContentFormatter)
+- `ProfileAdapter` (direct markdown parsing)
 
-### Step 4: Verify & commit
+#### 13. Migration Script Duplication
 
-```bash
-bun run lint && bun run typecheck && bun test
-```
+3 migration files are 85% identical - could use factory function
 
 ---
 
-## Files to Modify
+## Recommended Refactoring Order
 
-| File                                                         | Change                     |
-| ------------------------------------------------------------ | -------------------------- |
-| `plugins/link/src/handlers/capture-handler.ts`               | 3 ESLint fixes             |
-| `plugins/link/test/datasource.test.ts`                       | 1 ESLint fix (return type) |
-| `plugins/portfolio/src/tools/index.ts`                       | 2 ESLint fixes             |
-| `plugins/professional-site/src/components/CompactFooter.tsx` | DELETE                     |
-| `shell/mcp-service/package.json`                             | Update MCP SDK             |
-| `interfaces/mcp/package.json`                                | Update MCP SDK             |
+| Priority | Task                         | Impact                | Effort |
+| -------- | ---------------------------- | --------------------- | ------ |
+| 1        | Create `BaseJobHandler`      | Eliminate ~1000 lines | Medium |
+| 2        | Create `@brains/test-utils`  | Fix 50+ type casts    | Medium |
+| 3        | Extract sort utilities       | Eliminate ~40 lines   | Low    |
+| 4        | Create `BaseListDataSource`  | Eliminate ~500 lines  | Medium |
+| 5        | Move pagination schema       | Eliminate duplication | Low    |
+| 6        | Standardize adapter patterns | Improve consistency   | Medium |
+
+---
+
+## Files Most Affected
+
+**Job Handlers (13 files):**
+
+- `plugins/blog/src/handlers/blogGenerationJobHandler.ts`
+- `plugins/decks/src/handlers/deckGenerationJobHandler.ts`
+- `plugins/portfolio/src/handlers/generation-handler.ts`
+- `plugins/link/src/handlers/capture-handler.ts`
+- `plugins/topics/src/handlers/topic-*-handler.ts`
+- `plugins/directory-sync/src/handlers/*.ts`
+- `plugins/site-builder/src/handlers/siteBuildJobHandler.ts`
+
+**DataSources (11 files):**
+
+- `plugins/*/src/datasources/*-datasource.ts`
+
+**Test Files (20+ files):**
+
+- All `test/*.test.ts` files with mock setup
