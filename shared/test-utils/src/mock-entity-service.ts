@@ -14,7 +14,7 @@ export interface MockEntityServiceOptions {
 /**
  * Mock entity service type with spyable methods
  */
-export type MockEntityService = {
+export interface MockEntityService {
   getEntity: ReturnType<typeof mock>;
   createEntity: ReturnType<typeof mock>;
   updateEntity: ReturnType<typeof mock>;
@@ -29,7 +29,7 @@ export type MockEntityService = {
   getAsyncJobStatus: ReturnType<typeof mock>;
   getEntityCounts: ReturnType<typeof mock>;
   storeEntityWithEmbedding: ReturnType<typeof mock>;
-};
+}
 
 /**
  * Create a mock EntityService for testing

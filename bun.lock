@@ -457,12 +457,6 @@
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
-      "peerDependencies": {
-        "@brains/entity-service": "^0.1.0",
-        "@brains/job-queue": "^0.0.0",
-        "@brains/plugins": "^1.0.0",
-        "@brains/utils": "^0.1.0",
-      },
     },
     "shared/theme-default": {
       "name": "@brains/theme-default",

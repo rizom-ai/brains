@@ -4,13 +4,13 @@ import type { ProgressReporter } from "@brains/utils";
 /**
  * Mock progress reporter type with spyable methods
  */
-export type MockProgressReporter = {
+export interface MockProgressReporter {
   report: ReturnType<typeof mock>;
   createSub: ReturnType<typeof mock>;
   toCallback: ReturnType<typeof mock>;
   startHeartbeat: ReturnType<typeof mock>;
   stopHeartbeat: ReturnType<typeof mock>;
-};
+}
 
 /**
  * Create a mock ProgressReporter for testing

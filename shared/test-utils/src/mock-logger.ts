@@ -31,13 +31,13 @@ export function createTestLogger(
 /**
  * Mock logger type with spyable methods
  */
-export type MockLogger = {
+export interface MockLogger {
   debug: ReturnType<typeof mock>;
   info: ReturnType<typeof mock>;
   warn: ReturnType<typeof mock>;
   error: ReturnType<typeof mock>;
   child: ReturnType<typeof mock>;
-};
+}
 
 /**
  * Create a mock Logger for testing with spyable methods
