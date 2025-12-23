@@ -5,16 +5,24 @@ import type {
   PluginTool,
 } from "@brains/plugins";
 import { createPortfolioTools } from "../src/tools";
+import { createMockServicePluginContext } from "@brains/test-utils";
 
 // Mock context
 function createMockContext(): ServicePluginContext {
-  return {
-    entityService: {
-      createEntity: mock(() =>
-        Promise.resolve({ entityId: "project-123", contentHash: "abc123" }),
-      ),
-      getEntity: mock(() =>
-        Promise.resolve({
+  const mockContext = createMockServicePluginContext({
+    returns: {
+      enqueueJob: "job-456",
+      generateContent: {
+        title: "AI Project",
+        description: "AI generated description",
+        context: "AI context",
+        problem: "AI problem",
+        solution: "AI solution",
+        outcome: "AI outcome",
+      },
+      entityService: {
+        createEntity: { entityId: "project-123" },
+        getEntity: {
           id: "test-project",
           entityType: "project",
           content: `---
@@ -27,30 +35,37 @@ year: 2024
 ## Context
 
 Test context`,
+          contentHash: "abc123",
+          created: "2024-01-01T00:00:00Z",
+          updated: "2024-01-01T00:00:00Z",
           metadata: {
             title: "Test Project",
             slug: "test-project",
             status: "draft",
             year: 2024,
           },
-        }),
-      ),
-      updateEntity: mock(() =>
-        Promise.resolve({ entityId: "project-123", contentHash: "def456" }),
-      ),
-      deleteEntity: mock(() => Promise.resolve()),
-      listEntities: mock(
-        (
-          _entityType: string,
-          options?: { filter?: { metadata?: { slug?: string } } },
-        ) => {
-          // Return matching project when filter matches
-          if (options?.filter?.metadata?.slug === "test-project") {
-            return Promise.resolve([
-              {
-                id: "test-project",
-                entityType: "project",
-                content: `---
+        },
+        updateEntity: { entityId: "project-123" },
+      },
+    },
+  });
+
+  // Override listEntities with conditional logic using mock cast
+  const listEntitiesMock = mockContext.entityService.listEntities as ReturnType<
+    typeof mock
+  >;
+  listEntitiesMock.mockImplementation(
+    (
+      _entityType: string,
+      options?: { filter?: { metadata?: { slug?: string } } },
+    ) => {
+      // Return matching project when filter matches
+      if (options?.filter?.metadata?.slug === "test-project") {
+        return Promise.resolve([
+          {
+            id: "test-project",
+            entityType: "project",
+            content: `---
 title: Test Project
 status: draft
 description: Test
@@ -72,38 +87,23 @@ Test solution
 ## Outcome
 
 Test outcome`,
-                metadata: {
-                  title: "Test Project",
-                  slug: "test-project",
-                  status: "draft",
-                  year: 2024,
-                },
-              },
-            ]);
-          }
-          return Promise.resolve([]);
-        },
-      ),
-      search: mock(() => Promise.resolve([])),
-    } as unknown as ServicePluginContext["entityService"],
-    enqueueJob: mock(() => Promise.resolve("job-456")),
-    generateContent: mock(() =>
-      Promise.resolve({
-        title: "AI Project",
-        description: "AI generated description",
-        context: "AI context",
-        problem: "AI problem",
-        solution: "AI solution",
-        outcome: "AI outcome",
-      }),
-    ),
-    logger: {
-      info: mock(() => {}),
-      error: mock(() => {}),
-      warn: mock(() => {}),
-      debug: mock(() => {}),
-    } as unknown as ServicePluginContext["logger"],
-  } as unknown as ServicePluginContext;
+            contentHash: "abc123",
+            created: "2024-01-01T00:00:00Z",
+            updated: "2024-01-01T00:00:00Z",
+            metadata: {
+              title: "Test Project",
+              slug: "test-project",
+              status: "draft",
+              year: 2024,
+            },
+          },
+        ]);
+      }
+      return Promise.resolve([]);
+    },
+  );
+
+  return mockContext;
 }
 
 function createMockToolContext(): ToolContext {
@@ -229,13 +229,13 @@ describe("Portfolio Tools", () => {
 
     it("should fail if project not found", async () => {
       // Create context that returns empty for nonexistent slug
-      const emptyContext = {
-        ...context,
-        entityService: {
-          ...context.entityService,
-          listEntities: mock(() => Promise.resolve([])), // Always empty
+      const emptyContext = createMockServicePluginContext({
+        returns: {
+          entityService: {
+            listEntities: [], // Always empty
+          },
         },
-      } as unknown as ServicePluginContext;
+      });
 
       const emptyTools = createPortfolioTools("portfolio", emptyContext);
       const emptyPublishTool = getTool(emptyTools, "portfolio_publish");

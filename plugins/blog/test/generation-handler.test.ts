@@ -5,6 +5,7 @@ import type { ProgressReporter } from "@brains/utils";
 import {
   createSilentLogger,
   createMockProgressReporter,
+  createMockServicePluginContext,
 } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
@@ -78,35 +79,20 @@ Content`;
   beforeEach(() => {
     mockProgressReporter = createMockProgressReporter();
 
-    const mockGenerateContent = mock(() =>
-      Promise.resolve({
-        title: "Generated Title",
-        content: "Generated content",
-        excerpt: "Generated excerpt",
-      }),
-    );
-
-    const mockGetEntity = mock(() =>
-      Promise.resolve(createMockProfile("Test Author")),
-    );
-    const mockListEntities = mock(() => Promise.resolve([]));
-    const mockCreateEntity = mock(() =>
-      Promise.resolve({
-        entityId: "test-slug",
-        entity: {},
-      }),
-    );
-
-    mockContext = {
-      generateContent: mockGenerateContent,
-      entityService: {
-        getEntity: mockGetEntity,
-        listEntities: mockListEntities,
-        createEntity: mockCreateEntity,
-        updateEntity: mock(() => Promise.resolve({ entityId: "", entity: {} })),
-        deleteEntity: mock(() => Promise.resolve({})),
+    mockContext = createMockServicePluginContext({
+      returns: {
+        generateContent: {
+          title: "Generated Title",
+          content: "Generated content",
+          excerpt: "Generated excerpt",
+        },
+        entityService: {
+          getEntity: createMockProfile("Test Author"),
+          listEntities: [],
+          createEntity: { entityId: "test-slug" },
+        },
       },
-    } as unknown as ServicePluginContext;
+    });
 
     handler = new BlogGenerationJobHandler(
       createSilentLogger("test"),

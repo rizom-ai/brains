@@ -1,21 +1,24 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectoryExportJobHandler } from "../../src/handlers/directoryExportJobHandler";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { DirectorySync } from "../../src/lib/directory-sync";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 
 describe("DirectoryExportJobHandler", () => {
   let handler: DirectoryExportJobHandler;
-  let mockContext: ServicePluginContext;
   let mockDirectorySync: DirectorySync;
 
   beforeEach(() => {
-    mockContext = {
-      entityService: {
-        getEntityTypes: mock(() => ["note", "topic"]),
-        listEntities: mock(() => Promise.resolve([])),
+    const mockContext = createMockServicePluginContext({
+      entityTypes: ["note", "topic"],
+      returns: {
+        entityService: {
+          listEntities: [],
+        },
       },
-    } as unknown as ServicePluginContext;
+    });
 
     mockDirectorySync = {
       processEntityExport: mock(() =>

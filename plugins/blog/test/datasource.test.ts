@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { IEntityService, Logger } from "@brains/plugins";

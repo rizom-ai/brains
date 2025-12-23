@@ -1,20 +1,17 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectorySyncJobHandler } from "../../src/handlers/directorySyncJobHandler";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { DirectorySync } from "../../src/lib/directory-sync";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 
 describe("DirectorySyncJobHandler", () => {
   let handler: DirectorySyncJobHandler;
-  let mockContext: ServicePluginContext;
   let mockDirectorySync: DirectorySync;
 
   beforeEach(() => {
-    mockContext = {
-      entityService: {
-        getAsyncJobStatus: mock(() => Promise.resolve(null)),
-      },
-    } as unknown as ServicePluginContext;
+    const mockContext = createMockServicePluginContext();
 
     mockDirectorySync = {
       importEntitiesWithProgress: mock(() =>

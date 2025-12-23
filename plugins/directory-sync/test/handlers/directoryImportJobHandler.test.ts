@@ -1,24 +1,25 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { DirectorySync } from "../../src/lib/directory-sync";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 
 describe("DirectoryImportJobHandler", () => {
   let handler: DirectoryImportJobHandler;
-  let mockContext: ServicePluginContext;
   let mockDirectorySync: DirectorySync;
 
   beforeEach(() => {
-    mockContext = {
-      entityService: {
-        getEntityTypes: mock(() => []),
-        getEntity: mock(() => Promise.resolve(null)),
-        createEntity: mock(() => Promise.resolve({ entityId: "test" })),
-        updateEntity: mock(() => Promise.resolve({ entityId: "test" })),
-        deserializeEntity: mock(() => ({})),
+    const mockContext = createMockServicePluginContext({
+      returns: {
+        entityService: {
+          getEntity: null,
+          createEntity: { entityId: "test" },
+          updateEntity: { entityId: "test" },
+        },
       },
-    } as unknown as ServicePluginContext;
+    });
 
     mockDirectorySync = {
       getAllMarkdownFiles: mock(() => []),

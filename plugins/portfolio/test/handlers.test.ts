@@ -1,61 +1,35 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import type { ServicePluginContext, Logger } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {
   ProjectGenerationJobHandler,
   projectGenerationJobSchema,
 } from "../src/handlers/generation-handler";
+import {
+  createMockServicePluginContext,
+  createMockLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
 
 function createMockContext(): ServicePluginContext {
-  return {
-    entityService: {
-      createEntity: mock(() =>
-        Promise.resolve({ entityId: "project-123", contentHash: "abc123" }),
-      ),
-      getEntity: mock(() => Promise.resolve(null)),
-      updateEntity: mock(() => Promise.resolve()),
-      deleteEntity: mock(() => Promise.resolve()),
-      listEntities: mock(() => Promise.resolve([])),
-      searchEntities: mock(() => Promise.resolve([])),
-    } as unknown as ServicePluginContext["entityService"],
-    enqueueJob: mock(() => Promise.resolve("job-456")),
-    generateContent: mock(() =>
-      Promise.resolve({
+  return createMockServicePluginContext({
+    returns: {
+      enqueueJob: "job-456",
+      generateContent: {
         title: "AI Project Title",
         description: "AI generated description",
         context: "AI generated context",
         problem: "AI generated problem",
         solution: "AI generated solution",
         outcome: "AI generated outcome",
-      }),
-    ),
-    logger: {
-      info: mock(() => {}),
-      error: mock(() => {}),
-      warn: mock(() => {}),
-      debug: mock(() => {}),
-    } as unknown as ServicePluginContext["logger"],
-  } as unknown as ServicePluginContext;
-}
-
-function createMockLogger(): Logger {
-  return {
-    info: mock(() => {}),
-    error: mock(() => {}),
-    warn: mock(() => {}),
-    debug: mock(() => {}),
-    child: mock(() => createMockLogger()),
-  } as unknown as Logger;
-}
-
-function createMockProgressReporter(): ProgressReporter {
-  return {
-    report: mock(() => Promise.resolve()),
-    createSub: mock(() => createMockProgressReporter()),
-    startHeartbeat: mock(() => {}),
-    stopHeartbeat: mock(() => {}),
-    toCallback: mock(() => () => Promise.resolve()),
-  } as unknown as ProgressReporter;
+      },
+      entityService: {
+        createEntity: { entityId: "project-123" },
+        getEntity: null,
+        listEntities: [],
+      },
+    },
+  });
 }
 
 describe("ProjectGenerationJobHandler", () => {
@@ -183,12 +157,19 @@ describe("ProjectGenerationJobHandler", () => {
     });
 
     it("should return error result when generation fails", async () => {
-      const failingContext = {
-        ...context,
-        generateContent: mock(() =>
-          Promise.reject(new Error("AI unavailable")),
-        ),
-      } as unknown as ServicePluginContext;
+      // Create a fresh context with failing generateContent
+      const failingContext = createMockServicePluginContext({
+        returns: {
+          entityService: {
+            createEntity: { entityId: "project-123" },
+            getEntity: null,
+            listEntities: [],
+          },
+        },
+      });
+      spyOn(failingContext, "generateContent").mockRejectedValue(
+        new Error("AI unavailable"),
+      );
 
       const failingHandler = new ProjectGenerationJobHandler(
         logger,

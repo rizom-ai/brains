@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createGenerateTool } from "../src/tools/generate";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogConfig } from "../src/config";
+import { createMockServicePluginContext } from "@brains/test-utils";
 
 // Mock ToolContext for handler calls
 const mockToolContext: ToolContext = {
@@ -19,18 +20,15 @@ describe("Generate Tool", () => {
   };
 
   beforeEach(() => {
-    const mockEnqueueJob = mock(() => Promise.resolve("job-123"));
-
-    mockContext = {
-      enqueueJob: mockEnqueueJob,
-      entityService: {
-        getEntity: mock(() => Promise.resolve(null)),
-        updateEntity: mock(() => Promise.resolve({ entityId: "", entity: {} })),
-        listEntities: mock(() => Promise.resolve([])),
-        createEntity: mock(() => Promise.resolve({})),
-        deleteEntity: mock(() => Promise.resolve({})),
+    mockContext = createMockServicePluginContext({
+      returns: {
+        enqueueJob: "job-123",
+        entityService: {
+          getEntity: null,
+          listEntities: [],
+        },
       },
-    } as unknown as ServicePluginContext;
+    });
 
     generateTool = createGenerateTool(mockContext, mockConfig, "blog");
   });

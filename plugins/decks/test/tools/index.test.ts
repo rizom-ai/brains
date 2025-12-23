@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createGenerateTool, createPublishTool } from "../../src/tools";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
@@ -31,20 +34,16 @@ describe("Deck Tools", () => {
     let generateTool: ReturnType<typeof createGenerateTool>;
 
     beforeEach(() => {
-      const mockEnqueueJob = mock(() => Promise.resolve("job-123"));
-
-      mockContext = {
-        enqueueJob: mockEnqueueJob,
-        entityService: {
-          getEntity: mock(() => Promise.resolve(null)),
-          updateEntity: mock(() =>
-            Promise.resolve({ entityId: "", entity: {} }),
-          ),
-          listEntities: mock(() => Promise.resolve([])),
-          createEntity: mock(() => Promise.resolve({})),
-          deleteEntity: mock(() => Promise.resolve({})),
+      mockContext = createMockServicePluginContext({
+        returns: {
+          enqueueJob: "job-123",
+          entityService: {
+            getEntity: null,
+            listEntities: [],
+            createEntity: { entityId: "test-entity" },
+          },
         },
-      } as unknown as ServicePluginContext;
+      });
 
       generateTool = createGenerateTool(mockContext, "decks");
     });

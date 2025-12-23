@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
-import type { ServicePluginContext } from "@brains/plugins";
 import type { SiteBuilder } from "../../src/lib/site-builder";
 import type { SiteBuilderConfig } from "../../src/config";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;
   let mockSiteBuilder: SiteBuilder;
-  let mockContext: ServicePluginContext;
 
   beforeEach(() => {
     mockSiteBuilder = {
@@ -20,9 +21,7 @@ describe("SiteBuildJobHandler", () => {
       ),
     } as unknown as SiteBuilder;
 
-    mockContext = {
-      sendMessage: mock(() => Promise.resolve()),
-    } as unknown as ServicePluginContext;
+    const mockContext = createMockServicePluginContext();
 
     const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
       title: "Test Site",

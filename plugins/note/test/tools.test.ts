@@ -1,35 +1,26 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import type {
   ServicePluginContext,
   ToolContext,
   PluginTool,
 } from "@brains/plugins";
 import { createNoteTools } from "../src/tools";
+import { createMockServicePluginContext } from "@brains/test-utils";
 
 // Mock context
 function createMockContext(): ServicePluginContext {
-  return {
-    entityService: {
-      createEntity: mock(() =>
-        Promise.resolve({ entityId: "note-123", contentHash: "abc123" }),
-      ),
-      getEntity: mock(() => Promise.resolve(null)),
-      updateEntity: mock(() => Promise.resolve({ entityId: "note-123" })),
-      deleteEntity: mock(() => Promise.resolve()),
-      listEntities: mock(() => Promise.resolve([])),
-      searchEntities: mock(() => Promise.resolve([])),
-    } as unknown as ServicePluginContext["entityService"],
-    enqueueJob: mock(() => Promise.resolve("job-456")),
-    generateContent: mock(() =>
-      Promise.resolve({ title: "AI Title", body: "AI Body" }),
-    ),
-    logger: {
-      info: mock(() => {}),
-      error: mock(() => {}),
-      warn: mock(() => {}),
-      debug: mock(() => {}),
-    } as unknown as ServicePluginContext["logger"],
-  } as unknown as ServicePluginContext;
+  return createMockServicePluginContext({
+    returns: {
+      enqueueJob: "job-456",
+      generateContent: { title: "AI Title", body: "AI Body" },
+      entityService: {
+        createEntity: { entityId: "note-123" },
+        getEntity: null,
+        updateEntity: { entityId: "note-123" },
+        listEntities: [],
+      },
+    },
+  });
 }
 
 function createMockToolContext(): ToolContext {

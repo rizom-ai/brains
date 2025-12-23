@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { LinksDataSource } from "../src/datasources/links-datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";

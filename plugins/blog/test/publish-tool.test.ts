@@ -3,6 +3,7 @@ import { createPublishTool } from "../src/tools/publish";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { computeContentHash } from "@brains/utils";
+import { createMockServicePluginContext } from "@brains/test-utils";
 
 // Mock ToolContext for handler calls
 const mockToolContext: ToolContext = {
@@ -50,23 +51,14 @@ Post content here`;
   };
 
   beforeEach(() => {
-    const mockGetEntity = mock(() => Promise.resolve(null));
-    const mockUpdateEntity = mock(() =>
-      Promise.resolve({ entityId: "", entity: {} }),
-    );
-    const mockListEntities = mock(() => Promise.resolve([]));
-    const mockEnqueueJob = mock(() => Promise.resolve());
-
-    mockContext = {
-      entityService: {
-        getEntity: mockGetEntity,
-        updateEntity: mockUpdateEntity,
-        listEntities: mockListEntities,
-        createEntity: mock(() => Promise.resolve({})),
-        deleteEntity: mock(() => Promise.resolve({})),
+    mockContext = createMockServicePluginContext({
+      returns: {
+        entityService: {
+          getEntity: null,
+          listEntities: [],
+        },
       },
-      enqueueJob: mockEnqueueJob,
-    } as unknown as ServicePluginContext;
+    });
 
     publishTool = createPublishTool(mockContext, "blog");
   });
