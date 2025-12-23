@@ -32,3 +32,38 @@ export {
   type MockServicePluginContextOptions,
   type MockServicePluginContextReturns,
 } from "./mock-service-plugin-context";
+
+// AI service mocks
+export {
+  createMockAIService,
+  type MockAIServiceOptions,
+  type MockAIServiceReturns,
+} from "./mock-ai-service";
+
+// Job queue service mocks
+export {
+  createMockJobQueueService,
+  type MockJobQueueServiceOptions,
+  type MockJobQueueServiceReturns,
+} from "./mock-job-queue-service";
+
+// DataSource registry mocks
+export {
+  createMockDataSourceRegistry,
+  type MockDataSourceRegistryOptions,
+  type MockDataSourceRegistryReturns,
+} from "./mock-datasource-registry";
+
+// Template registry mocks
+export {
+  createMockTemplateRegistry,
+  type MockTemplateRegistryOptions,
+  type MockTemplateRegistryReturns,
+} from "./mock-template-registry";
+
+// Message bus mocks
+export {
+  createMockMessageBus,
+  type MockMessageBusOptions,
+  type MockMessageBusReturns,
+} from "./mock-message-bus";

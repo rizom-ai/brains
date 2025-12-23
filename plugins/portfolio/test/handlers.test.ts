@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { ServicePluginContext, Logger } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {

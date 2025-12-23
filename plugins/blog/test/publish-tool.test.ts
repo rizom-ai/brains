@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createPublishTool } from "../src/tools/publish";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";

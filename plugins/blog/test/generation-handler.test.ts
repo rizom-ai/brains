@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";

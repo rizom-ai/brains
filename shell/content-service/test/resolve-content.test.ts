@@ -3,10 +3,13 @@ import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type { EntityService } from "@brains/entity-service";
-import type { AIService } from "@brains/ai-service";
-import type { DataSourceRegistry, DataSource } from "@brains/datasource";
-import { createSilentLogger } from "@brains/test-utils";
+import type { DataSource } from "@brains/datasource";
+import {
+  createSilentLogger,
+  createMockEntityService,
+  createMockAIService,
+  createMockDataSourceRegistry,
+} from "@brains/test-utils";
 
 // Helper function for tests - simple pluralization
 const testGenerateEntityUrl = (entityType: string, slug: string): string => {
@@ -20,59 +23,23 @@ describe("ContentService.resolveContent", () => {
   let mockDependencies: ContentServiceDependencies;
   let contentService: ContentService;
   let templateRegistry: TemplateRegistry;
-  let mockEntityService: {
-    getEntity: ReturnType<typeof mock>;
-  };
-  let mockDataSourceRegistry: {
-    get: ReturnType<typeof mock>;
-    register: ReturnType<typeof mock>;
-    has: ReturnType<typeof mock>;
-    getIds: ReturnType<typeof mock>;
-    list: ReturnType<typeof mock>;
-    registerWithId: ReturnType<typeof mock>;
-    getAll: ReturnType<typeof mock>;
-    reset: ReturnType<typeof mock>;
-    clear: ReturnType<typeof mock>;
-    dataSources: Map<string, DataSource>;
-    logger: ReturnType<typeof createSilentLogger>;
-  };
 
   beforeEach(() => {
     const mockLogger = createSilentLogger();
 
-    mockEntityService = {
-      getEntity: mock(),
-    };
-
-    const mockAIService = {
-      generateObject: mock(),
-    };
+    const mockEntityService = createMockEntityService();
+    const mockAIService = createMockAIService();
+    const mockDataSourceRegistry = createMockDataSourceRegistry();
 
     // Create a fresh TemplateRegistry for each test
     templateRegistry = TemplateRegistry.createFresh(mockLogger);
 
-    // Create mock DataSourceRegistry
-    mockDataSourceRegistry = {
-      get: mock(),
-      register: mock(),
-      has: mock(),
-      getIds: mock(),
-      list: mock(),
-      registerWithId: mock(),
-      getAll: mock(),
-      reset: mock(),
-      clear: mock(),
-      dataSources: new Map(),
-      logger: mockLogger,
-    };
-
     mockDependencies = {
       logger: mockLogger,
-      entityService: mockEntityService as unknown as EntityService,
-      aiService: mockAIService as unknown as AIService,
+      entityService: mockEntityService,
+      aiService: mockAIService,
       templateRegistry,
-      dataSourceRegistry:
-        mockDataSourceRegistry as unknown as DataSourceRegistry,
+      dataSourceRegistry: mockDataSourceRegistry,
     };
 
     contentService = new ContentService(mockDependencies);
@@ -101,9 +68,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("dashboard", mockTemplate);
-      (mockDataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(
-        mockDataSource,
-      );
+      (
+        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
+      ).mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("dashboard", {
         dataParams: { timeRange: "24h" },
@@ -139,9 +106,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("article", mockTemplate);
-      (mockDataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(
-        mockDataSource,
-      );
+      (
+        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
+      ).mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("article", {
         fallback: "Default content",
@@ -175,7 +142,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("article", mockTemplate);
-      mockEntityService.getEntity.mockResolvedValue({
+      (
+        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({
         id: "article-123",
         type: "site-content-preview",
         content: JSON.stringify(savedArticle),
@@ -190,7 +159,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toEqual(savedArticle);
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
+      expect(mockDependencies.entityService.getEntity).toHaveBeenCalledWith(
         "site-content-preview",
         "article-123",
       );
@@ -209,7 +178,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("dashboard", mockTemplate);
-      mockEntityService.getEntity.mockResolvedValue({
+      (
+        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({
         id: "dashboard-123",
         type: "site-content",
         content: '{"cpu": 50, "memory": 80}',
@@ -226,7 +197,7 @@ describe("ContentService.resolveContent", () => {
 
       // Should skip to fallback since no formatter
       expect(result).toEqual({ cpu: 0, memory: 0 });
-      expect(mockEntityService.getEntity).not.toHaveBeenCalled();
+      expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled();
     });
   });
 
@@ -291,10 +262,12 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("priority-test", mockTemplate);
-      (mockDataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(
-        mockDataSource,
-      );
-      mockEntityService.getEntity.mockResolvedValue({
+      (
+        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
+      ).mockReturnValue(mockDataSource);
+      (
+        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({
         id: "test-123",
         type: "test",
         content: "Saved data",
@@ -311,7 +284,7 @@ describe("ContentService.resolveContent", () => {
 
       expect(result).toBe("Fresh data");
       expect(mockDataSource.fetch).toHaveBeenCalled();
-      expect(mockEntityService.getEntity).not.toHaveBeenCalled(); // Skipped
+      expect(mockDependencies.entityService.getEntity).not.toHaveBeenCalled(); // Skipped
     });
 
     it("should prioritize saved content over fallback", async () => {
@@ -327,7 +300,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("priority-test2", mockTemplate);
-      mockEntityService.getEntity.mockResolvedValue({
+      (
+        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({
         id: "test-456",
         type: "test",
         content: "Saved data",
@@ -343,7 +318,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toBe("Saved data");
-      expect(mockEntityService.getEntity).toHaveBeenCalled();
+      expect(mockDependencies.entityService.getEntity).toHaveBeenCalled();
     });
   });
 
@@ -368,9 +343,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("error-test", mockTemplate);
-      (mockDataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(
-        mockDataSource,
-      );
+      (
+        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
+      ).mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("error-test", {
         fallback: "Fallback after error",
@@ -394,7 +369,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("entity-error", mockTemplate);
-      mockEntityService.getEntity.mockResolvedValue(null);
+      (
+        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(null);
 
       const result = await contentService.resolveContent("entity-error", {
         savedContent: {
@@ -406,7 +383,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toBe("Fallback after missing entity");
-      expect(mockEntityService.getEntity).toHaveBeenCalled();
+      expect(mockDependencies.entityService.getEntity).toHaveBeenCalled();
     });
   });
 
@@ -426,9 +403,9 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("simple-sourced", mockTemplate);
-      (mockDataSourceRegistry.get as ReturnType<typeof mock>).mockReturnValue(
-        mockDataSource,
-      );
+      (
+        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
+      ).mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("simple-sourced", {
         dataParams: { test: true },

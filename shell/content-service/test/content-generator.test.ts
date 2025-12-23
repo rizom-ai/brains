@@ -3,66 +3,39 @@ import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type { EntityService } from "@brains/entity-service";
-import type { AIService } from "@brains/ai-service";
-import type { DataSourceRegistry } from "@brains/datasource";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService,
+  createMockAIService,
+  createMockDataSourceRegistry,
+} from "@brains/test-utils";
 
 describe("ContentService", () => {
   let mockDependencies: ContentServiceDependencies;
   let contentService: ContentService;
   let templateRegistry: TemplateRegistry;
-  let mockEntitySearch: ReturnType<typeof mock>;
-  let mockEntityGetTypes: ReturnType<typeof mock>;
-  let mockAIGenerateObject: ReturnType<typeof mock>;
 
   beforeEach(() => {
     const mockLogger = createSilentLogger();
 
-    mockEntitySearch = mock();
-    mockEntityGetTypes = mock(() => ["note", "link", "project"]);
-    mockAIGenerateObject = mock();
+    const mockEntityService = createMockEntityService({
+      entityTypes: ["note", "link", "project"],
+    });
 
-    const mockEntityService = {
-      search: mockEntitySearch,
-      getEntityTypes: mockEntityGetTypes,
-    };
-
-    const mockAIService = {
-      generateObject: mockAIGenerateObject,
-    };
-
-    const mockGetMessages = mock();
-    mockGetMessages.mockResolvedValue([
-      { role: "user", content: "Test message 1" },
-      { role: "assistant", content: "Test response 1" },
-    ]);
+    const mockAIService = createMockAIService();
 
     // Create a fresh TemplateRegistry for each test
     templateRegistry = TemplateRegistry.createFresh(mockLogger);
 
     // Create mock DataSourceRegistry
-    const mockDataSourceRegistry = {
-      get: mock(),
-      register: mock(),
-      has: mock(),
-      getIds: mock(),
-      list: mock(),
-      registerWithId: mock(),
-      getAll: mock(),
-      reset: mock(),
-      clear: mock(),
-      dataSources: new Map(),
-      logger: mockLogger,
-    };
+    const mockDataSourceRegistry = createMockDataSourceRegistry();
 
     mockDependencies = {
       logger: mockLogger,
-      entityService: mockEntityService as unknown as EntityService,
-      aiService: mockAIService as unknown as AIService,
+      entityService: mockEntityService,
+      aiService: mockAIService,
       templateRegistry,
-      dataSourceRegistry:
-        mockDataSourceRegistry as unknown as DataSourceRegistry,
+      dataSourceRegistry: mockDataSourceRegistry,
     };
 
     contentService = new ContentService(mockDependencies);
