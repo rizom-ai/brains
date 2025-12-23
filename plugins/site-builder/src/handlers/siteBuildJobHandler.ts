@@ -1,5 +1,6 @@
-import type { JobHandler, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import type { SiteBuilder } from "../lib/site-builder";
 import type { LayoutComponent, SiteBuilderConfig } from "../config";
 import {
@@ -12,11 +13,13 @@ import { pluralize } from "@brains/utils";
 /**
  * Job handler for site building operations
  */
-export class SiteBuildJobHandler
-  implements JobHandler<"site-build", SiteBuildJobData, SiteBuildJobResult>
-{
+export class SiteBuildJobHandler extends BaseJobHandler<
+  "site-build",
+  SiteBuildJobData,
+  SiteBuildJobResult
+> {
   constructor(
-    private logger: Logger,
+    logger: Logger,
     private siteBuilder: SiteBuilder,
     private layouts: Record<string, LayoutComponent>,
     private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
@@ -25,7 +28,22 @@ export class SiteBuildJobHandler
     private themeCSS?: string,
     private previewUrl?: string,
     private productionUrl?: string,
-  ) {}
+  ) {
+    super(logger, { jobTypeName: "site-build" });
+  }
+
+  override validateAndParse(data: unknown): SiteBuildJobData | null {
+    try {
+      const result = siteBuildJobSchema.parse(data);
+      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
+        data: this.summarizeDataForLog(result),
+      });
+      return result;
+    } catch (error) {
+      this.logger.warn(`Invalid ${this.jobTypeName} job data`, { data, error });
+      return null;
+    }
+  }
 
   /**
    * Generate URL for an entity detail page
@@ -145,26 +163,12 @@ export class SiteBuildJobHandler
     }
   }
 
-  validateAndParse(data: unknown): SiteBuildJobData | null {
-    try {
-      return siteBuildJobSchema.parse(data);
-    } catch (error) {
-      this.logger.error("Invalid site build job data", { data, error });
-      return null;
-    }
-  }
-
-  async onError(
-    error: Error,
+  protected override summarizeDataForLog(
     data: SiteBuildJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Site build job error handler triggered", {
-      error: error.message,
-      jobId,
+  ): Record<string, unknown> {
+    return {
       environment: data.environment,
       outputDir: data.outputDir,
-    });
-    // Could implement cleanup or notification logic here
+    };
   }
 }

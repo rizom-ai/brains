@@ -6,8 +6,11 @@ import type { JobHandler } from "./types";
  * Configuration options for BaseJobHandler
  */
 export interface BaseJobHandlerConfig<TInput> {
-  /** The Zod schema used to validate job input data */
-  schema: z.ZodSchema<TInput>;
+  /**
+   * The Zod schema used to validate job input data.
+   * Optional if you override validateAndParse().
+   */
+  schema?: z.ZodSchema<TInput>;
   /** The name of the job type (used in log messages) */
   jobTypeName: string;
 }
@@ -58,7 +61,7 @@ export abstract class BaseJobHandler<
 > implements JobHandler<TJobType, TInput, TOutput>
 {
   protected readonly logger: Logger;
-  protected readonly schema: z.ZodSchema<TInput>;
+  protected readonly schema: z.ZodSchema<TInput> | undefined;
   protected readonly jobTypeName: string;
 
   /**
@@ -96,6 +99,12 @@ export abstract class BaseJobHandler<
    * @returns Parsed data if valid, null if invalid
    */
   validateAndParse(data: unknown): TInput | null {
+    if (!this.schema) {
+      throw new Error(
+        `${this.jobTypeName}: No schema provided. Override validateAndParse() or provide a schema.`,
+      );
+    }
+
     try {
       const result = this.schema.parse(data);
 

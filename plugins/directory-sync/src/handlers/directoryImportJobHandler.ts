@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { JobHandler } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
   ProgressReporter,
@@ -20,13 +20,12 @@ const directoryImportJobSchema = z.object({
 /**
  * Job handler for async directory import operations
  * Processes file imports asynchronously with chunked processing
- * Implements Component Interface Standardization pattern
  */
-export class DirectoryImportJobHandler
-  implements
-    JobHandler<"directory-import", DirectoryImportJobData, ImportResult>
-{
-  private logger: Logger;
+export class DirectoryImportJobHandler extends BaseJobHandler<
+  "directory-import",
+  DirectoryImportJobData,
+  ImportResult
+> {
   private context: ServicePluginContext;
   private directorySync: DirectorySync;
 
@@ -38,7 +37,7 @@ export class DirectoryImportJobHandler
     context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
-    this.logger = logger;
+    super(logger, { jobTypeName: "directory-import" });
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -219,27 +218,10 @@ export class DirectoryImportJobHandler
   }
 
   /**
-   * Handle import job errors
+   * Custom validateAndParse to clean up undefined optional properties
+   * for exactOptionalPropertyTypes compliance
    */
-  public async onError(
-    error: Error,
-    data: DirectoryImportJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Directory import job error handler called", {
-      jobId,
-      data,
-      errorMessage: error.message,
-      errorStack: error.stack,
-    });
-
-    // Additional error handling could be added here
-  }
-
-  /**
-   * Validate and parse import job data
-   */
-  public validateAndParse(data: unknown): DirectoryImportJobData | null {
+  override validateAndParse(data: unknown): DirectoryImportJobData | null {
     try {
       const parsed = directoryImportJobSchema.parse(data);
       // Clean up undefined optional properties for exactOptionalPropertyTypes
@@ -252,16 +234,25 @@ export class DirectoryImportJobHandler
       if (parsed.batchIndex !== undefined) {
         result.batchIndex = parsed.batchIndex;
       }
-      this.logger.debug("Directory import job data validation successful", {
-        data: result,
+      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
+        data: this.summarizeDataForLog(result),
       });
       return result;
     } catch (error) {
-      this.logger.warn("Invalid directory import job data", {
+      this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
         data,
         validationError: error instanceof z.ZodError ? error.issues : error,
       });
       return null;
     }
+  }
+
+  protected override summarizeDataForLog(
+    data: DirectoryImportJobData,
+  ): Record<string, unknown> {
+    return {
+      pathCount: data.paths?.length ?? "all",
+      batchSize: data.batchSize,
+    };
   }
 }

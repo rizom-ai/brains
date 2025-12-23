@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { JobHandler } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
   ProgressReporter,
@@ -19,13 +19,12 @@ const directoryExportJobSchema = z.object({
 /**
  * Job handler for async directory export operations
  * Processes entity exports asynchronously with chunked processing
- * Implements Component Interface Standardization pattern
  */
-export class DirectoryExportJobHandler
-  implements
-    JobHandler<"directory-export", DirectoryExportJobData, ExportResult>
-{
-  private logger: Logger;
+export class DirectoryExportJobHandler extends BaseJobHandler<
+  "directory-export",
+  DirectoryExportJobData,
+  ExportResult
+> {
   private context: ServicePluginContext;
   private directorySync: DirectorySync;
 
@@ -37,7 +36,7 @@ export class DirectoryExportJobHandler
     context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
-    this.logger = logger;
+    super(logger, { jobTypeName: "directory-export" });
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -181,27 +180,10 @@ export class DirectoryExportJobHandler
   }
 
   /**
-   * Handle export job errors
+   * Custom validateAndParse to clean up undefined optional properties
+   * for exactOptionalPropertyTypes compliance
    */
-  public async onError(
-    error: Error,
-    data: DirectoryExportJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Directory export job error handler called", {
-      jobId,
-      data,
-      errorMessage: error.message,
-      errorStack: error.stack,
-    });
-
-    // Additional error handling could be added here
-  }
-
-  /**
-   * Validate and parse export job data
-   */
-  public validateAndParse(data: unknown): DirectoryExportJobData | null {
+  override validateAndParse(data: unknown): DirectoryExportJobData | null {
     try {
       const parsed = directoryExportJobSchema.parse(data);
       // Clean up undefined optional properties for exactOptionalPropertyTypes
@@ -211,16 +193,25 @@ export class DirectoryExportJobHandler
       }
       // batchSize always has a value due to .default(100) in schema
       result.batchSize = parsed.batchSize;
-      this.logger.debug("Directory export job data validation successful", {
-        data: result,
+      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
+        data: this.summarizeDataForLog(result),
       });
       return result;
     } catch (error) {
-      this.logger.warn("Invalid directory export job data", {
+      this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
         data,
         validationError: error instanceof z.ZodError ? error.issues : error,
       });
       return null;
     }
+  }
+
+  protected override summarizeDataForLog(
+    data: DirectoryExportJobData,
+  ): Record<string, unknown> {
+    return {
+      entityTypes: data.entityTypes ?? "all",
+      batchSize: data.batchSize,
+    };
   }
 }

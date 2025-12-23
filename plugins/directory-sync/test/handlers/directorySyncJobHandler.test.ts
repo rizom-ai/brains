@@ -1,0 +1,80 @@
+import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { DirectorySyncJobHandler } from "../../src/handlers/directorySyncJobHandler";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySync } from "../../src/lib/directory-sync";
+import { createSilentLogger } from "@brains/utils";
+
+describe("DirectorySyncJobHandler", () => {
+  let handler: DirectorySyncJobHandler;
+  let mockContext: ServicePluginContext;
+  let mockDirectorySync: DirectorySync;
+
+  beforeEach(() => {
+    mockContext = {
+      entityService: {
+        getAsyncJobStatus: mock(() => Promise.resolve(null)),
+      },
+    } as unknown as ServicePluginContext;
+
+    mockDirectorySync = {
+      importEntitiesWithProgress: mock(() =>
+        Promise.resolve({
+          imported: 0,
+          skipped: 0,
+          failed: 0,
+          quarantined: 0,
+          quarantinedFiles: [],
+          errors: [],
+          jobIds: [],
+        }),
+      ),
+      exportEntitiesWithProgress: mock(() =>
+        Promise.resolve({ exported: 0, failed: 0, errors: [] }),
+      ),
+    } as unknown as DirectorySync;
+
+    handler = new DirectorySyncJobHandler(
+      createSilentLogger("test"),
+      mockContext,
+      mockDirectorySync,
+    );
+  });
+
+  describe("validateAndParse", () => {
+    it("should validate correct job data", () => {
+      const data = { operation: "manual" };
+      const result = handler.validateAndParse(data);
+
+      expect(result).not.toBeNull();
+      expect(result?.operation).toBe("manual");
+    });
+
+    it("should accept optional fields", () => {
+      const data = {
+        operation: "initial",
+        paths: ["/path/to/dir"],
+        syncDirection: "import",
+      };
+      const result = handler.validateAndParse(data);
+
+      expect(result).not.toBeNull();
+      expect(result?.operation).toBe("initial");
+      expect(result?.paths).toEqual(["/path/to/dir"]);
+      expect(result?.syncDirection).toBe("import");
+    });
+
+    it("should return null for invalid operation", () => {
+      const result = handler.validateAndParse({ operation: "invalid" });
+      expect(result).toBeNull();
+    });
+
+    it("should clean up undefined optional properties", () => {
+      const data = { operation: "scheduled" };
+      const result = handler.validateAndParse(data);
+
+      expect(result).not.toBeNull();
+      // Should not have undefined properties
+      expect(Object.keys(result as object)).toEqual(["operation"]);
+    });
+  });
+});

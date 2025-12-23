@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { JobHandler } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
   ProgressReporter,
@@ -27,10 +27,11 @@ const directorySyncJobSchema = z.object({
  * Job handler for full directory sync operations
  * Handles both import and export phases with progress reporting
  */
-export class DirectorySyncJobHandler
-  implements JobHandler<"directory-sync", DirectorySyncJobData, SyncResult>
-{
-  private logger: Logger;
+export class DirectorySyncJobHandler extends BaseJobHandler<
+  "directory-sync",
+  DirectorySyncJobData,
+  SyncResult
+> {
   private directorySync: DirectorySync;
   private context: ServicePluginContext;
 
@@ -39,7 +40,7 @@ export class DirectorySyncJobHandler
     context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
-    this.logger = logger;
+    super(logger, { jobTypeName: "directory-sync" });
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -237,7 +238,11 @@ export class DirectorySyncJobHandler
     return pollJobs();
   }
 
-  validateAndParse(data: unknown): DirectorySyncJobData | null {
+  /**
+   * Custom validateAndParse to clean up undefined optional properties
+   * for exactOptionalPropertyTypes compliance
+   */
+  override validateAndParse(data: unknown): DirectorySyncJobData | null {
     try {
       const parsed = directorySyncJobSchema.parse(data);
       // Clean up undefined optional properties for exactOptionalPropertyTypes
@@ -253,10 +258,25 @@ export class DirectorySyncJobHandler
       if (parsed.syncDirection !== undefined) {
         result.syncDirection = parsed.syncDirection;
       }
+      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
+        data: this.summarizeDataForLog(result),
+      });
       return result;
     } catch (error) {
-      this.logger.error("Invalid sync job data", { error });
+      this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
+        data,
+        validationError: error instanceof z.ZodError ? error.issues : error,
+      });
       return null;
     }
+  }
+
+  protected override summarizeDataForLog(
+    data: DirectorySyncJobData,
+  ): Record<string, unknown> {
+    return {
+      operation: data.operation,
+      syncDirection: data.syncDirection,
+    };
   }
 }
