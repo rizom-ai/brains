@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { BatchJobManager } from "../src/batch-job-manager";
 import type { IJobQueueService } from "../src/types";
-import type { MessageBus } from "@brains/messaging-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createMockMessageBus } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
+import type { MessageBus } from "@brains/messaging-service";
 
 // Use consistent test metadata to ensure test expectations match
 const testRootJobId = "test-root-job-id";
@@ -22,7 +22,7 @@ describe("JobProgressMonitor", () => {
 
   // Properly typed mock functions
   let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;
-  let messageBusSendMock: Mock<(...args: unknown[]) => Promise<void>>;
+  let messageBusSendMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
     // Create fresh mocks for each test
@@ -62,17 +62,8 @@ describe("JobProgressMonitor", () => {
       createFresh: mock(() => mockBatchJobManager),
     } as unknown as BatchJobManager;
 
-    messageBusSendMock = mock(() => Promise.resolve());
-
-    mockMessageBus = {
-      send: messageBusSendMock,
-      subscribe: mock((): (() => void) => () => {}),
-      unsubscribe: mock(() => {}),
-      unsubscribeAll: mock(() => {}),
-      getInstance: mock(() => mockMessageBus),
-      resetInstance: mock(() => {}),
-      createFresh: mock(() => mockMessageBus),
-    } as unknown as MessageBus;
+    mockMessageBus = createMockMessageBus();
+    messageBusSendMock = mockMessageBus.send as ReturnType<typeof mock>;
 
     mockLogger = createSilentLogger();
 

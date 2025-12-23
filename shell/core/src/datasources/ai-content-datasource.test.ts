@@ -1,27 +1,24 @@
-import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { AIContentDataSource } from "./ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService } from "@brains/plugins";
-import { createMockEntityService } from "@brains/test-utils";
-import type { TemplateRegistry, Template } from "@brains/templates";
+import {
+  createMockEntityService,
+  createMockAIService,
+  createMockTemplateRegistry,
+} from "@brains/test-utils";
+import type { Template } from "@brains/templates";
 import { z } from "@brains/utils";
 
 describe("AIContentDataSource", () => {
   let aiContentDataSource: AIContentDataSource;
-  let mockGenerateObject: Mock<
-    (
-      systemPrompt: string,
-      userPrompt: string,
-      schema: unknown,
-    ) => Promise<{ object: unknown }>
-  >;
-  let mockAIService: {
-    generateObject: typeof mockGenerateObject;
-  };
+  let mockAIService: IAIService;
+  let mockGenerateObject: ReturnType<typeof mock>;
   let mockEntityService: IEntityService;
-  let mockTemplateRegistry: {
-    get: ReturnType<typeof mock>;
-  };
+  let mockTemplateRegistryInstance: ReturnType<
+    typeof createMockTemplateRegistry
+  >;
+  let mockTemplateGet: ReturnType<typeof mock>;
   let mockGetIdentityContent: ReturnType<typeof mock>;
   let mockGetProfileContent: ReturnType<typeof mock>;
 
@@ -48,26 +45,33 @@ describe("AIContentDataSource", () => {
   };
 
   beforeEach(() => {
-    mockGenerateObject = mock(() =>
-      Promise.resolve({ object: { message: "Test response" } }),
-    );
-    mockAIService = {
-      generateObject: mockGenerateObject,
-    };
+    mockAIService = createMockAIService({
+      returns: {
+        generateObject: { message: "Test response" },
+      },
+    });
+    mockGenerateObject = mockAIService.generateObject as ReturnType<
+      typeof mock
+    >;
 
     mockEntityService = createMockEntityService();
 
-    mockTemplateRegistry = {
-      get: mock(() => testTemplate),
-    };
+    mockTemplateRegistryInstance = createMockTemplateRegistry({
+      returns: {
+        get: testTemplate,
+      },
+    });
+    mockTemplateGet = mockTemplateRegistryInstance.get as ReturnType<
+      typeof mock
+    >;
 
     mockGetIdentityContent = mock(() => defaultIdentityContent);
     mockGetProfileContent = mock(() => defaultProfileContent);
 
     aiContentDataSource = new AIContentDataSource(
-      mockAIService as unknown as IAIService,
+      mockAIService,
       mockEntityService,
-      mockTemplateRegistry as unknown as TemplateRegistry,
+      mockTemplateRegistryInstance,
       mockGetIdentityContent,
       mockGetProfileContent,
     );
@@ -149,7 +153,7 @@ describe("AIContentDataSource", () => {
 
   describe("generate", () => {
     it("should throw error if template not found", async () => {
-      mockTemplateRegistry.get.mockReturnValue(undefined);
+      mockTemplateGet.mockReturnValue(undefined);
 
       const schema = z.object({ message: z.string() });
 
@@ -165,7 +169,7 @@ describe("AIContentDataSource", () => {
     });
 
     it("should throw error if template has no basePrompt", async () => {
-      mockTemplateRegistry.get.mockReturnValue({
+      mockTemplateGet.mockReturnValue({
         name: "no-prompt-template",
         description: "Template without basePrompt",
         schema: z.object({ message: z.string() }),

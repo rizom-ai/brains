@@ -6,7 +6,10 @@ import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import type { IJobQueueService } from "@brains/job-queue";
 
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockJobQueueService,
+} from "@brains/test-utils";
 import { type Logger, createId, computeContentHash } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
 
@@ -66,20 +69,18 @@ describe("EntityService", (): void => {
   let logger: Logger;
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
-  let mockJobQueueService: Partial<IJobQueueService>;
+  let mockJobQueueService: IJobQueueService;
 
   beforeEach((): void => {
     // Reset singletons
     EntityService.resetInstance();
     EntityRegistry.resetInstance();
 
-    // Create minimal mock database (we're not testing DB operations)
-
-    // Create mock job queue service
-    mockJobQueueService = {
-      enqueue: mock(() => Promise.resolve("mock-job-id")),
-      getStatus: mock(() =>
-        Promise.resolve({
+    // Create mock job queue service with specific return values
+    mockJobQueueService = createMockJobQueueService({
+      returns: {
+        enqueue: "mock-job-id",
+        getStatus: {
           status: "completed" as const,
           id: "mock-job-id",
           type: "embedding",
@@ -98,10 +99,9 @@ describe("EntityService", (): void => {
           },
           source: null,
           result: null,
-        }),
-      ),
-      registerHandler: mock(),
-    };
+        },
+      },
+    });
 
     // Create fresh instances
     logger = createSilentLogger();
@@ -110,7 +110,7 @@ describe("EntityService", (): void => {
       embeddingService: mockEmbeddingService,
       entityRegistry,
       logger,
-      jobQueueService: mockJobQueueService as unknown as IJobQueueService,
+      jobQueueService: mockJobQueueService,
       dbConfig: { url: "file::memory:" }, // Use in-memory database for tests
     });
   });
