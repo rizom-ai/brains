@@ -3,7 +3,8 @@ import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { BatchJobManager } from "../src/batch-job-manager";
 import type { IJobQueueService } from "../src/types";
 import type { MessageBus } from "@brains/messaging-service";
-import { createSilentLogger, type Logger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import type { Logger } from "@brains/utils";
 
 // Use consistent test metadata to ensure test expectations match
 const testRootJobId = "test-root-job-id";

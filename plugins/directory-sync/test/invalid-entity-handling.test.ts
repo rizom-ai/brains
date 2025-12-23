@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("Invalid Entity Handling", () => {
   let dirSync: DirectorySync;

@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import type { IMCPService, PluginTool } from "@brains/mcp-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";

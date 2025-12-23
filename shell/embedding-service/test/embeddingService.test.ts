@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { EmbeddingService } from "@/embeddingService";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import * as fastembed from "fastembed";
 
 // Mock the fastembed module

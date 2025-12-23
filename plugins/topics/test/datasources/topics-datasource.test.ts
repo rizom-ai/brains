@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsDataSource } from "../../src/datasources/topics-datasource";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
-  createSilentLogger,
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";

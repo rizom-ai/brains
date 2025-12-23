@@ -7,7 +7,7 @@ import type {
   OutputFormat,
 } from "@brains/plugins";
 import type { RouteDefinition } from "../../src/types/routes";
-import { createSilentLogger } from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";

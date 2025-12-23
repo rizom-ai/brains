@@ -27,7 +27,6 @@ export type {
 } from "./src/index";
 export {
   baseEntitySchema,
-  createSilentLogger,
   createServicePluginContext,
   createCorePluginContext,
   createInterfacePluginContext,

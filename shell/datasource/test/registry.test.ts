@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { DataSourceRegistry } from "../src/registry";
 import type { DataSource } from "../src/types";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { z } from "@brains/utils";
 
 // Test data sources

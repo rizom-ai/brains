@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type { ServicePluginContext } from "@brains/plugins";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
 import type { SiteInfoService } from "../../src/services/site-info-service";

@@ -6,7 +6,8 @@ import type { BatchOperation } from "../src/batch-schemas";
 import type { JobContextInput } from "../src/schema/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
-import { createSilentLogger, createId } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { createId } from "@brains/utils";
 import type { JobQueueDbConfig } from "../src/types";
 
 // Default test metadata (uses JobContextInput - no rootJobId, that's at options level)

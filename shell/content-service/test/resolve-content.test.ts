@@ -6,7 +6,7 @@ import { TemplateRegistry, type Template } from "@brains/templates";
 import type { EntityService } from "@brains/entity-service";
 import type { AIService } from "@brains/ai-service";
 import type { DataSourceRegistry, DataSource } from "@brains/datasource";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 // Helper function for tests - simple pluralization
 const testGenerateEntityUrl = (entityType: string, slug: string): string => {

@@ -8,7 +8,7 @@ import {
   mock,
 } from "bun:test";
 import { SummaryDataSource } from "../../src/datasources/summary-datasource";
-import { createSilentLogger } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins/test";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";

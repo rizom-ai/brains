@@ -43,7 +43,7 @@ import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import type { IAgentService, AgentResponse } from "@brains/agent-service";
 
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 /**
  * Simple, consolidated MockShell implementation for testing plugins

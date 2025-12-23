@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentService } from "./site-content-service";
 import { RouteRegistry } from "./route-registry";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
-  createSilentLogger,
   type ServicePluginContext,
 } from "@brains/plugins/test";
 import { SiteContentOperations } from "./site-content-operations";

@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, mock } from "bun:test";
 import { PreactBuilder } from "../../src/lib/preact-builder";
 import type { StaticSiteBuilderOptions } from "../../src/lib/static-site-builder";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { promises as fs } from "fs";
 import type { Dirent } from "fs";
 

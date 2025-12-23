@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobQueueWorker } from "../src/job-queue-worker";
 import type { JobQueue } from "../src/schema/job-queue";
 import type { JobQueueService } from "../src/job-queue-service";
-import { createSilentLogger, createId } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { createId } from "@brains/utils";
 import type { IJobProgressMonitor, ProgressReporter } from "@brains/utils";
 
 // Mock progress monitor for testing

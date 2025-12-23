@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { NoteGenerationJobHandler } from "../src/handlers/noteGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("NoteGenerationJobHandler", () => {
   let handler: NoteGenerationJobHandler;

@@ -5,7 +5,7 @@ import type { JobQueueDbConfig } from "../../src/types";
 // Import implementations directly for tests - these are test utilities only
 import { createJobQueueDatabase } from "../../src/db";
 import { migrateJobQueue } from "../../src/migrate";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 /**
  * Create a temporary test job queue database

@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
 import { MessageBus } from "@/messageBus";
 
-import { createSilentLogger, type Logger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 
 describe("MessageBus", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AIService } from "../src/aiService";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import * as ai from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";

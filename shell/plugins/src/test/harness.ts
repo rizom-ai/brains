@@ -3,7 +3,7 @@ import type { CorePlugin } from "../core/core-plugin";
 import type { ServicePlugin } from "../service/service-plugin";
 import type { InterfacePlugin } from "../interface/interface-plugin";
 import type { Logger } from "@brains/utils";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
 import type { DataSource } from "@brains/datasource";

@@ -179,7 +179,6 @@ export type { UserPermissionLevel } from "@brains/permission-service";
 export {
   Logger,
   LogLevel,
-  createSilentLogger,
   ProgressReporter,
   ResponseFormatter,
   markdownToHtml,

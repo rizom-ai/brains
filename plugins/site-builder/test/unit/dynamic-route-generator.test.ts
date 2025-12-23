@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import { DynamicRouteGenerator } from "../../src/lib/dynamic-route-generator";
 import { RouteRegistry } from "../../src/lib/route-registry";
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
 describe("DynamicRouteGenerator", () => {

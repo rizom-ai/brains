@@ -3,10 +3,10 @@ import {
   TopicExtractionHandler,
   type TopicExtractionJobData,
 } from "../../src/handlers/topic-extraction-handler";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
-  createSilentLogger,
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";

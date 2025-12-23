@@ -3,12 +3,8 @@ import { z } from "@brains/utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import {
-  createSilentLogger,
-  type Logger,
-  createId,
-  computeContentHash,
-} from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { type Logger, createId, computeContentHash } from "@brains/utils";
 import matter from "gray-matter";
 
 // ============================================================================

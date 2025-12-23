@@ -3,7 +3,7 @@ import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJob
 import type { ServicePluginContext, ProgressReporter } from "@brains/plugins";
 import type { DirectorySync } from "../../src/lib/directory-sync";
 import type { IEntityService } from "@brains/plugins";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("DirectoryDeleteJobHandler", () => {
   const logger = createSilentLogger();

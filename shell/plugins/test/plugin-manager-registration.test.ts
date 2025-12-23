@@ -4,7 +4,7 @@ import { CorePlugin } from "../src/core/core-plugin";
 import { PluginTestHarness } from "../src/test/harness";
 import type { PluginTool, PluginResource, IShell } from "../src/interfaces";
 import type { ServiceRegistry } from "@brains/service-registry";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "@brains/utils";

@@ -3,7 +3,7 @@ import { TemplateRegistry } from "../src/registry";
 import { createTemplate } from "../src/types";
 import { z } from "@brains/utils";
 import { h } from "preact";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("TemplateRegistry", () => {
   let registry: TemplateRegistry;

@@ -8,9 +8,6 @@
 export { Logger, LogLevel } from "./logger";
 export { default as defaultLogger } from "./logger";
 
-// Test utilities
-export { createSilentLogger, createTestLogger } from "./test-utils";
-
 // Markdown utilities
 export {
   parseMarkdown,

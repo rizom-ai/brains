@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
-import { createSilentLogger, z } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils";
 import type { PluginTool, PluginResource } from "../src/types";
 
 describe("MCPService", () => {

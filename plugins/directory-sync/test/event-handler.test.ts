@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { EventHandler } from "../src/lib/event-handler";
 import type { FileOperations } from "../src/lib/file-operations";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("EventHandler", () => {
   const logger = createSilentLogger();

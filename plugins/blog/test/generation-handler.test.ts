@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { computeContentHash, createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 
 describe("BlogGenerationJobHandler", () => {

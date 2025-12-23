@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createInterfacePluginHarness } from "@brains/plugins/test";
 import { WebserverInterface } from "../src/webserver-interface";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("WebserverInterface", () => {
   let harness: ReturnType<

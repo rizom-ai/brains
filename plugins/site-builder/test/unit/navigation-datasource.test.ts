@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
 import { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
-import { createSilentLogger, z } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils";
 
 // Test schema for navigation data (matches what NavigationDataSource returns)
 const testNavigationSchema = z.object({

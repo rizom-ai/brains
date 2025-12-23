@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { ProfileService } from "../src/profile-service";
 import type { IEntityService } from "@brains/entity-service";
-import { createSilentLogger, computeContentHash } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { computeContentHash } from "@brains/utils";
 import type { ProfileEntity } from "../src/schema";
 
 describe("ProfileService", () => {

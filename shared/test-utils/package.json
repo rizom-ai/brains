@@ -1,0 +1,32 @@
+{
+  "name": "@brains/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "test": "bun test",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@brains/entity-service": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@types/node": "^20.0.0",
+    "bun-types": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "@brains/entity-service": "^0.1.0",
+    "@brains/job-queue": "^0.0.0",
+    "@brains/plugins": "^1.0.0",
+    "@brains/utils": "^0.1.0"
+  }
+}

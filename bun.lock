@@ -5,7 +5,7 @@
       "name": "rizom-brains",
       "devDependencies": {
         "@manypkg/cli": "^0.25.1",
-        "@modelcontextprotocol/sdk": "^1.25.1",
+        "@modelcontextprotocol/sdk": "^1.24.0",
         "dependency-cruiser": "^17.0.1",
         "eslint": "^8.56.0",
         "husky": "^9.0.11",
@@ -440,6 +440,28 @@
         "@types/bun": "^1.1.14",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
+      },
+    },
+    "shared/test-utils": {
+      "name": "@brains/test-utils",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@types/node": "^20.0.0",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+      "peerDependencies": {
+        "@brains/entity-service": "^0.1.0",
+        "@brains/job-queue": "^0.0.0",
+        "@brains/plugins": "^1.0.0",
+        "@brains/utils": "^0.1.0",
       },
     },
     "shared/theme-default": {
@@ -985,6 +1007,8 @@
     "@brains/team-brain": ["@brains/team-brain@workspace:apps/team-brain"],
 
     "@brains/templates": ["@brains/templates@workspace:shell/templates"],
+
+    "@brains/test-utils": ["@brains/test-utils@workspace:shared/test-utils"],
 
     "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
 

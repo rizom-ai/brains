@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { DirectorySync } from "../../src/lib/directory-sync";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("DirectoryImportJobHandler", () => {
   let handler: DirectoryImportJobHandler;

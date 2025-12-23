@@ -9,10 +9,10 @@ import {
 } from "bun:test";
 import { DigestHandler } from "../../src/handlers/digest-handler";
 import { SummaryExtractor } from "../../src/lib/summary-extractor";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
-  createSilentLogger,
   type ServicePluginContext,
   type Logger,
   type ConversationDigestPayload,

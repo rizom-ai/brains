@@ -10,7 +10,8 @@ import {
 } from "../../src/manager/pluginManager";
 import { ServiceRegistry } from "@brains/service-registry";
 
-import { createSilentLogger, type Logger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import type { Logger } from "@brains/utils";
 import { MessageBus } from "@brains/messaging-service";
 
 import { match, P } from "ts-pattern";

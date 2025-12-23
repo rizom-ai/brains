@@ -9,10 +9,10 @@ import {
 } from "bun:test";
 import { createGetTool } from "../../src/tools";
 import { SummaryService } from "../../src/lib/summary-service";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
-  createSilentLogger,
   type ServicePluginContext,
   type Logger,
   type ToolContext,

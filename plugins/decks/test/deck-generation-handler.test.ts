@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DeckGenerationJobHandler } from "../src/handlers/deckGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("DeckGenerationJobHandler", () => {
   let handler: DeckGenerationJobHandler;

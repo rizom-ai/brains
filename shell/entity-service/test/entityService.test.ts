@@ -6,12 +6,8 @@ import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import type { IJobQueueService } from "@brains/job-queue";
 
-import {
-  createSilentLogger,
-  type Logger,
-  createId,
-  computeContentHash,
-} from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { type Logger, createId, computeContentHash } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
 
 // Create a mock embedding service

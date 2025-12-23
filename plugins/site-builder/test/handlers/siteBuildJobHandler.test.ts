@@ -3,7 +3,7 @@ import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SiteBuilder } from "../../src/lib/site-builder";
 import type { SiteBuilderConfig } from "../../src/config";
-import { createSilentLogger } from "@brains/utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;

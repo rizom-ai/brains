@@ -1,10 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { TopicService } from "../../src/lib/topic-service";
-import {
-  MockShell,
-  createServicePluginContext,
-  createSilentLogger,
-} from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { MockShell, createServicePluginContext } from "@brains/plugins/test";
 
 describe("TopicService", () => {
   it("should be instantiable", () => {

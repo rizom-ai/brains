@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createGenerateTool, createPublishTool } from "../../src/tools";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
   createServicePluginContext,
-  createSilentLogger,
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";

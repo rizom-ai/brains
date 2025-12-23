@@ -1,6 +1,6 @@
 import { describe, expect, test, mock } from "bun:test";
 import { RSSDataSource } from "../src/datasources/rss-datasource";
-import { createSilentLogger } from "@brains/plugins";
+import { createSilentLogger } from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { BaseDataSourceContext } from "@brains/datasource";
