@@ -145,40 +145,48 @@ export interface RawEntity {
 }
 
 /**
- * Job data for directory sync operations
+ * Schema for directory sync job data
  */
-export interface DirectorySyncJobData {
-  operation: "initial" | "scheduled" | "manual";
-  paths?: string[];
-  entityTypes?: string[];
-  syncDirection?: "import" | "export" | "both";
-}
+export const directorySyncJobSchema = z.object({
+  operation: z.enum(["initial", "scheduled", "manual"]),
+  paths: z.array(z.string()).optional(),
+  entityTypes: z.array(z.string()).optional(),
+  syncDirection: z.enum(["import", "export", "both"]).optional(),
+});
+
+export type DirectorySyncJobData = z.infer<typeof directorySyncJobSchema>;
 
 /**
- * Job data for directory import operations
+ * Schema for directory import job data
  */
-export interface DirectoryImportJobData {
-  paths?: string[];
-  batchSize?: number;
-  batchIndex?: number;
-}
+export const directoryImportJobSchema = z.object({
+  paths: z.array(z.string()).optional(),
+  batchSize: z.number().min(1).optional(),
+  batchIndex: z.number().optional(),
+});
+
+export type DirectoryImportJobData = z.infer<typeof directoryImportJobSchema>;
 
 /**
- * Job data for directory export operations
+ * Schema for directory export job data
  */
-export interface DirectoryExportJobData {
-  entityTypes?: string[];
-  batchSize?: number;
-}
+export const directoryExportJobSchema = z.object({
+  entityTypes: z.array(z.string()).optional(),
+  batchSize: z.number().min(1).optional(),
+});
+
+export type DirectoryExportJobData = z.infer<typeof directoryExportJobSchema>;
 
 /**
- * Job data for directory delete operations
+ * Schema for directory delete job data
  */
-export interface DirectoryDeleteJobData {
-  entityId: string;
-  entityType: string;
-  filePath: string;
-}
+export const directoryDeleteJobSchema = z.object({
+  entityId: z.string(),
+  entityType: z.string(),
+  filePath: z.string(),
+});
+
+export type DirectoryDeleteJobData = z.infer<typeof directoryDeleteJobSchema>;
 
 /**
  * Job request types for file watcher - discriminated union for type safety

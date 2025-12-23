@@ -1,4 +1,3 @@
-import { z } from "@brains/utils";
 import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
@@ -6,16 +5,11 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type { ImportResult, DirectoryImportJobData } from "../types";
-
-/**
- * Schema for directory import job data
- */
-const directoryImportJobSchema = z.object({
-  paths: z.array(z.string()).optional(),
-  batchSize: z.number().min(1).optional().default(100),
-  batchIndex: z.number().optional(),
-});
+import {
+  directoryImportJobSchema,
+  type ImportResult,
+  type DirectoryImportJobData,
+} from "../types";
 
 /**
  * Job handler for async directory import operations
@@ -37,7 +31,10 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
-    super(logger, { jobTypeName: "directory-import" });
+    super(logger, {
+      schema: directoryImportJobSchema,
+      jobTypeName: "directory-import",
+    });
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -215,36 +212,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
       skipped: result.skipped,
       failed: result.failed,
     });
-  }
-
-  /**
-   * Custom validateAndParse to clean up undefined optional properties
-   * for exactOptionalPropertyTypes compliance
-   */
-  override validateAndParse(data: unknown): DirectoryImportJobData | null {
-    try {
-      const parsed = directoryImportJobSchema.parse(data);
-      // Clean up undefined optional properties for exactOptionalPropertyTypes
-      const result: DirectoryImportJobData = {};
-      if (parsed.paths !== undefined) {
-        result.paths = parsed.paths;
-      }
-      // batchSize always has a value due to .default(100) in schema
-      result.batchSize = parsed.batchSize;
-      if (parsed.batchIndex !== undefined) {
-        result.batchIndex = parsed.batchIndex;
-      }
-      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
-        data: this.summarizeDataForLog(result),
-      });
-      return result;
-    } catch (error) {
-      this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
-        data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
-      });
-      return null;
-    }
   }
 
   protected override summarizeDataForLog(

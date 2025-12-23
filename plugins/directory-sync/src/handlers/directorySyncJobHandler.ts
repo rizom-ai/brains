@@ -1,4 +1,3 @@
-import { z } from "@brains/utils";
 import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
@@ -6,22 +5,13 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type {
-  DirectorySyncJobData,
-  SyncResult,
-  ImportResult,
-  ExportResult,
+import {
+  directorySyncJobSchema,
+  type DirectorySyncJobData,
+  type SyncResult,
+  type ImportResult,
+  type ExportResult,
 } from "../types";
-
-/**
- * Schema for directory sync job data
- */
-const directorySyncJobSchema = z.object({
-  operation: z.enum(["initial", "scheduled", "manual"]),
-  paths: z.array(z.string()).optional(),
-  entityTypes: z.array(z.string()).optional(),
-  syncDirection: z.enum(["import", "export", "both"]).optional(),
-});
 
 /**
  * Job handler for full directory sync operations
@@ -40,7 +30,10 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
     context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
-    super(logger, { jobTypeName: "directory-sync" });
+    super(logger, {
+      schema: directorySyncJobSchema,
+      jobTypeName: "directory-sync",
+    });
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -236,39 +229,6 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
     };
 
     return pollJobs();
-  }
-
-  /**
-   * Custom validateAndParse to clean up undefined optional properties
-   * for exactOptionalPropertyTypes compliance
-   */
-  override validateAndParse(data: unknown): DirectorySyncJobData | null {
-    try {
-      const parsed = directorySyncJobSchema.parse(data);
-      // Clean up undefined optional properties for exactOptionalPropertyTypes
-      const result: DirectorySyncJobData = {
-        operation: parsed.operation,
-      };
-      if (parsed.paths !== undefined) {
-        result.paths = parsed.paths;
-      }
-      if (parsed.entityTypes !== undefined) {
-        result.entityTypes = parsed.entityTypes;
-      }
-      if (parsed.syncDirection !== undefined) {
-        result.syncDirection = parsed.syncDirection;
-      }
-      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
-        data: this.summarizeDataForLog(result),
-      });
-      return result;
-    } catch (error) {
-      this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
-        data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
-      });
-      return null;
-    }
   }
 
   protected override summarizeDataForLog(

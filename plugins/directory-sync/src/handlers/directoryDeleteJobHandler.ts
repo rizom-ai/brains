@@ -1,4 +1,3 @@
-import { z } from "@brains/utils";
 import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
@@ -6,16 +5,11 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type { DeleteResult, DirectoryDeleteJobData } from "../types";
-
-/**
- * Schema for directory delete job data
- */
-const directoryDeleteJobSchema = z.object({
-  entityId: z.string(),
-  entityType: z.string(),
-  filePath: z.string(),
-});
+import {
+  directoryDeleteJobSchema,
+  type DeleteResult,
+  type DirectoryDeleteJobData,
+} from "../types";
 
 /**
  * Job handler for async directory delete operations

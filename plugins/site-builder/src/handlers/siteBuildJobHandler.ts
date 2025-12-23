@@ -29,20 +29,10 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     private previewUrl?: string,
     private productionUrl?: string,
   ) {
-    super(logger, { jobTypeName: "site-build" });
-  }
-
-  override validateAndParse(data: unknown): SiteBuildJobData | null {
-    try {
-      const result = siteBuildJobSchema.parse(data);
-      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
-        data: this.summarizeDataForLog(result),
-      });
-      return result;
-    } catch (error) {
-      this.logger.warn(`Invalid ${this.jobTypeName} job data`, { data, error });
-      return null;
-    }
+    super(logger, {
+      schema: siteBuildJobSchema,
+      jobTypeName: "site-build",
+    });
   }
 
   /**
@@ -67,10 +57,14 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<SiteBuildJobResult> {
+    // Apply defaults for optional fields
+    const environment = data.environment ?? "preview";
+    const enableContentGeneration = data.enableContentGeneration ?? false;
+
     try {
       this.logger.debug("Starting site build job", {
         jobId,
-        environment: data.environment,
+        environment,
         outputDir: data.outputDir,
       });
 
@@ -78,7 +72,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       await progressReporter.report({
         progress: 0,
         total: 100,
-        message: `Starting site build for ${data.environment} environment`,
+        message: `Starting site build for ${environment} environment`,
       });
 
       // Use the injected site builder instance
@@ -94,8 +88,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         {
           outputDir: data.outputDir,
           workingDir: data.workingDir,
-          enableContentGeneration: data.enableContentGeneration,
-          environment: data.environment,
+          enableContentGeneration,
+          environment,
           cleanBeforeBuild: true,
           siteConfig: data.siteConfig ?? this.defaultSiteConfig,
           layouts: this.layouts,
@@ -113,7 +107,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 
       this.logger.debug("Site build job completed", {
         jobId,
-        environment: data.environment,
+        environment,
         routesBuilt: result.routesBuilt,
         success: result.success,
       });
@@ -121,12 +115,12 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       // Emit site:build:completed event for other plugins to hook into
       if (result.success) {
         this.logger.info(
-          `Emitting site:build:completed event for ${data.environment} environment`,
+          `Emitting site:build:completed event for ${environment} environment`,
         );
 
         // Select environment-specific URL from config
         const configUrl =
-          data.environment === "preview"
+          environment === "preview"
             ? (this.previewUrl ?? this.productionUrl)
             : this.productionUrl;
 
@@ -139,7 +133,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 
         await this.context.sendMessage("site:build:completed", {
           outputDir: data.outputDir,
-          environment: data.environment,
+          environment,
           routesBuilt: result.routesBuilt,
           siteConfig: {
             ...(data.siteConfig ?? this.defaultSiteConfig),
@@ -153,7 +147,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         success: result.success,
         routesBuilt: result.routesBuilt,
         outputDir: data.outputDir,
-        environment: data.environment,
+        environment,
         ...(result.errors && { errors: result.errors }),
         ...(result.warnings && { warnings: result.warnings }),
       };

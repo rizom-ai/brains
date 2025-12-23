@@ -1,4 +1,3 @@
-import { z } from "@brains/utils";
 import { BaseJobHandler } from "@brains/job-queue";
 import type {
   Logger,
@@ -6,15 +5,11 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type { ExportResult, DirectoryExportJobData } from "../types";
-
-/**
- * Schema for directory export job data
- */
-const directoryExportJobSchema = z.object({
-  entityTypes: z.array(z.string()).optional(),
-  batchSize: z.number().min(1).optional().default(100),
-});
+import {
+  directoryExportJobSchema,
+  type ExportResult,
+  type DirectoryExportJobData,
+} from "../types";
 
 /**
  * Job handler for async directory export operations
@@ -36,7 +31,10 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     context: ServicePluginContext,
     directorySync: DirectorySync,
   ) {
-    super(logger, { jobTypeName: "directory-export" });
+    super(logger, {
+      schema: directoryExportJobSchema,
+      jobTypeName: "directory-export",
+    });
     this.context = context;
     this.directorySync = directorySync;
   }
@@ -176,33 +174,6 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
 
       offset += batchSize;
       hasMore = entities.length === batchSize;
-    }
-  }
-
-  /**
-   * Custom validateAndParse to clean up undefined optional properties
-   * for exactOptionalPropertyTypes compliance
-   */
-  override validateAndParse(data: unknown): DirectoryExportJobData | null {
-    try {
-      const parsed = directoryExportJobSchema.parse(data);
-      // Clean up undefined optional properties for exactOptionalPropertyTypes
-      const result: DirectoryExportJobData = {};
-      if (parsed.entityTypes !== undefined) {
-        result.entityTypes = parsed.entityTypes;
-      }
-      // batchSize always has a value due to .default(100) in schema
-      result.batchSize = parsed.batchSize;
-      this.logger.debug(`${this.jobTypeName} job data validation successful`, {
-        data: this.summarizeDataForLog(result),
-      });
-      return result;
-    } catch (error) {
-      this.logger.warn(`Invalid ${this.jobTypeName} job data`, {
-        data,
-        validationError: error instanceof z.ZodError ? error.issues : error,
-      });
-      return null;
     }
   }
 
