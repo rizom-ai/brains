@@ -1,34 +1,25 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import { EntityDataSource } from "./entity-datasource";
-import type { IEntityService } from "@brains/entity-service";
+import { createMockEntityService } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
 describe("EntityDataSource", () => {
-  let entityDataSource: EntityDataSource;
-  let mockEntityService: {
-    getEntity: ReturnType<typeof mock>;
-  };
-
-  beforeEach(() => {
-    mockEntityService = {
-      getEntity: mock(),
-    };
-
-    entityDataSource = new EntityDataSource(
-      mockEntityService as unknown as IEntityService,
-    );
-  });
-
   describe("metadata", () => {
     it("should have correct id", () => {
+      const mockEntityService = createMockEntityService();
+      const entityDataSource = new EntityDataSource(mockEntityService);
       expect(entityDataSource.id).toBe("shell:entities");
     });
 
     it("should have correct name", () => {
+      const mockEntityService = createMockEntityService();
+      const entityDataSource = new EntityDataSource(mockEntityService);
       expect(entityDataSource.name).toBe("Entity DataSource");
     });
 
     it("should have description", () => {
+      const mockEntityService = createMockEntityService();
+      const entityDataSource = new EntityDataSource(mockEntityService);
       expect(entityDataSource.description).toBeDefined();
     });
   });
@@ -39,11 +30,16 @@ describe("EntityDataSource", () => {
         id: "README",
         entityType: "base",
         content: "# Welcome\n\nThis is the README content.",
+        metadata: {},
+        contentHash: "abc123",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
-      mockEntityService.getEntity.mockResolvedValue(mockEntity);
+      const mockEntityService = createMockEntityService({
+        returns: { getEntity: mockEntity },
+      });
+      const entityDataSource = new EntityDataSource(mockEntityService);
 
       const schema = z.object({
         markdown: z.string(),
@@ -67,6 +63,9 @@ describe("EntityDataSource", () => {
     });
 
     it("should throw error if entityType is missing", async () => {
+      const mockEntityService = createMockEntityService();
+      const entityDataSource = new EntityDataSource(mockEntityService);
+
       const schema = z.object({
         markdown: z.string(),
       });
@@ -84,6 +83,9 @@ describe("EntityDataSource", () => {
     });
 
     it("should throw error if query.id is missing", async () => {
+      const mockEntityService = createMockEntityService();
+      const entityDataSource = new EntityDataSource(mockEntityService);
+
       const schema = z.object({
         markdown: z.string(),
       });
@@ -102,7 +104,10 @@ describe("EntityDataSource", () => {
     });
 
     it("should throw error if entity not found", async () => {
-      mockEntityService.getEntity.mockResolvedValue(null);
+      const mockEntityService = createMockEntityService({
+        returns: { getEntity: null },
+      });
+      const entityDataSource = new EntityDataSource(mockEntityService);
 
       const schema = z.object({
         markdown: z.string(),
@@ -126,11 +131,16 @@ describe("EntityDataSource", () => {
         id: "test",
         entityType: "base",
         content: "Test content",
+        metadata: {},
+        contentHash: "abc123",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
-      mockEntityService.getEntity.mockResolvedValue(mockEntity);
+      const mockEntityService = createMockEntityService({
+        returns: { getEntity: mockEntity },
+      });
+      const entityDataSource = new EntityDataSource(mockEntityService);
 
       const schema = z.object({
         markdown: z.string(),
@@ -153,11 +163,16 @@ describe("EntityDataSource", () => {
         id: "my-link",
         entityType: "link",
         content: "# Link Content\n\nThis is a link entity.",
+        metadata: {},
+        contentHash: "abc123",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
-      mockEntityService.getEntity.mockResolvedValue(mockEntity);
+      const mockEntityService = createMockEntityService({
+        returns: { getEntity: mockEntity },
+      });
+      const entityDataSource = new EntityDataSource(mockEntityService);
 
       const schema = z.object({
         markdown: z.string(),
@@ -185,11 +200,16 @@ describe("EntityDataSource", () => {
         id: "empty",
         entityType: "base",
         content: "",
+        metadata: {},
+        contentHash: "abc123",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       };
 
-      mockEntityService.getEntity.mockResolvedValue(mockEntity);
+      const mockEntityService = createMockEntityService({
+        returns: { getEntity: mockEntity },
+      });
+      const entityDataSource = new EntityDataSource(mockEntityService);
 
       const schema = z.object({
         markdown: z.string(),

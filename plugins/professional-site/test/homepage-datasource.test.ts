@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { HomepageListDataSource } from "../src/datasources/homepage-datasource";
+import { createMockEntityService } from "@brains/test-utils";
 import type { IEntityService, ListOptions } from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
@@ -85,18 +86,15 @@ Content here`;
   };
 
   beforeEach(() => {
-    mockEntityService = {
-      getEntity: mock(() => null),
-      listEntities: mock((entityType: string) => {
-        if (entityType === "profile") return [mockProfile];
-        if (entityType === "post") return [mockPost];
-        if (entityType === "deck") return [mockDeck];
-        return [];
-      }),
-      createEntity: mock(() => ({})),
-      updateEntity: mock(() => ({})),
-      deleteEntity: mock(() => ({})),
-    } as unknown as IEntityService;
+    mockEntityService = createMockEntityService();
+    spyOn(mockEntityService, "listEntities").mockImplementation(
+      (entityType: string) => {
+        if (entityType === "profile") return Promise.resolve([mockProfile]);
+        if (entityType === "post") return Promise.resolve([mockPost]);
+        if (entityType === "deck") return Promise.resolve([mockDeck]);
+        return Promise.resolve([]);
+      },
+    );
 
     datasource = new HomepageListDataSource(mockEntityService);
   });
@@ -133,21 +131,23 @@ Content here`;
       },
     };
 
-    mockEntityService.listEntities = mock(
+    spyOn(mockEntityService, "listEntities").mockImplementation(
       (entityType: string, options?: ListOptions) => {
-        if (entityType === "profile") return [mockProfile];
+        if (entityType === "profile") return Promise.resolve([mockProfile]);
         if (entityType === "post") {
           // Respect filter parameter - only return published posts if filter requests them
           const allPosts = [mockPost, draftPost];
           if (options?.filter?.metadata?.status === "published") {
-            return allPosts.filter((p) => p.metadata.status === "published");
+            return Promise.resolve(
+              allPosts.filter((p) => p.metadata.status === "published"),
+            );
           }
-          return allPosts;
+          return Promise.resolve(allPosts);
         }
-        if (entityType === "deck") return [mockDeck];
-        return [];
+        if (entityType === "deck") return Promise.resolve([mockDeck]);
+        return Promise.resolve([]);
       },
-    ) as unknown as IEntityService["listEntities"];
+    );
 
     datasource = new HomepageListDataSource(mockEntityService);
 
@@ -165,12 +165,14 @@ Content here`;
   });
 
   it("should throw error if profile not found", async () => {
-    mockEntityService.listEntities = mock((entityType: string) => {
-      if (entityType === "profile") return []; // No profile
-      if (entityType === "post") return [mockPost];
-      if (entityType === "deck") return [mockDeck];
-      return [];
-    }) as unknown as IEntityService["listEntities"];
+    spyOn(mockEntityService, "listEntities").mockImplementation(
+      (entityType: string) => {
+        if (entityType === "profile") return Promise.resolve([]); // No profile
+        if (entityType === "post") return Promise.resolve([mockPost]);
+        if (entityType === "deck") return Promise.resolve([mockDeck]);
+        return Promise.resolve([]);
+      },
+    );
 
     datasource = new HomepageListDataSource(mockEntityService);
 

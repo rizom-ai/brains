@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
 import { AIContentDataSource } from "./ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
-import type { IEntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/plugins";
+import { createMockEntityService } from "@brains/test-utils";
 import type { TemplateRegistry, Template } from "@brains/templates";
 import { z } from "@brains/utils";
 
@@ -17,9 +18,7 @@ describe("AIContentDataSource", () => {
   let mockAIService: {
     generateObject: typeof mockGenerateObject;
   };
-  let mockEntityService: {
-    search: ReturnType<typeof mock>;
-  };
+  let mockEntityService: IEntityService;
   let mockTemplateRegistry: {
     get: ReturnType<typeof mock>;
   };
@@ -56,9 +55,7 @@ describe("AIContentDataSource", () => {
       generateObject: mockGenerateObject,
     };
 
-    mockEntityService = {
-      search: mock(() => Promise.resolve([])),
-    };
+    mockEntityService = createMockEntityService();
 
     mockTemplateRegistry = {
       get: mock(() => testTemplate),
@@ -69,7 +66,7 @@ describe("AIContentDataSource", () => {
 
     aiContentDataSource = new AIContentDataSource(
       mockAIService as unknown as IAIService,
-      mockEntityService as unknown as IEntityService,
+      mockEntityService,
       mockTemplateRegistry as unknown as TemplateRegistry,
       mockGetIdentityContent,
       mockGetProfileContent,

@@ -1,6 +1,10 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { z } from "@brains/utils";
 import type { Logger, ProgressReporter } from "@brains/utils";
+import {
+  createMockLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
 import { BaseJobHandler } from "../src/base-job-handler";
 
 // Test input schema - using simple types without defaults for type compatibility
@@ -131,17 +135,8 @@ describe("BaseJobHandler", () => {
   let mockProgressReporter: ProgressReporter;
 
   beforeEach(() => {
-    mockLogger = {
-      debug: mock(() => {}),
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-      child: mock(() => mockLogger),
-    } as unknown as Logger;
-
-    mockProgressReporter = {
-      report: mock(() => Promise.resolve()),
-    } as unknown as ProgressReporter;
+    mockLogger = createMockLogger();
+    mockProgressReporter = createMockProgressReporter();
   });
 
   describe("validateAndParse", () => {

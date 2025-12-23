@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
 import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";
 import { z, computeContentHash } from "@brains/utils";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 
 describe("DeckDataSource", () => {
   let datasource: DeckDataSource;
@@ -40,22 +42,8 @@ describe("DeckDataSource", () => {
   };
 
   beforeEach(() => {
-    mockLogger = {
-      debug: mock(() => {}),
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-      child: mock(() => mockLogger),
-    } as unknown as Logger;
-
-    mockEntityService = {
-      getEntity: mock(() => null),
-      listEntities: mock(() => []),
-      createEntity: mock(() => ({})),
-      updateEntity: mock(() => ({})),
-      deleteEntity: mock(() => ({})),
-    } as unknown as IEntityService;
-
+    mockLogger = createMockLogger();
+    mockEntityService = createMockEntityService();
     mockContext = {};
 
     datasource = new DeckDataSource(mockEntityService, mockLogger);

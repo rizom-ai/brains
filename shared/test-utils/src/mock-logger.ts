@@ -29,18 +29,10 @@ export function createTestLogger(
 }
 
 /**
- * Mock logger type with spyable methods
- */
-export interface MockLogger {
-  debug: ReturnType<typeof mock>;
-  info: ReturnType<typeof mock>;
-  warn: ReturnType<typeof mock>;
-  error: ReturnType<typeof mock>;
-  child: ReturnType<typeof mock>;
-}
-
-/**
  * Create a mock Logger for testing with spyable methods
+ *
+ * Returns a Logger-typed object where all methods are bun mock functions.
+ * The cast is centralized here so test files don't need `as unknown as` casts.
  *
  * Use when you need to assert that specific log calls were made
  *
@@ -50,11 +42,11 @@ export interface MockLogger {
  * const handler = new MyHandler(mockLogger);
  * await handler.process(data);
  *
- * expect(mockLogger.info).toHaveBeenCalledWith("Processing started", { id: "123" });
+ * expect(mockLogger.info).toHaveBeenCalledWith("Processing started");
  * ```
  */
-export function createMockLogger(): MockLogger {
-  const mockLogger: MockLogger = {
+export function createMockLogger(): Logger {
+  const mockLogger = {
     debug: mock(() => {}),
     info: mock(() => {}),
     warn: mock(() => {}),
@@ -62,5 +54,5 @@ export function createMockLogger(): MockLogger {
     child: mock(() => mockLogger),
   };
 
-  return mockLogger;
+  return mockLogger as unknown as Logger;
 }

@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 
@@ -73,9 +76,7 @@ Content`;
   };
 
   beforeEach(() => {
-    mockProgressReporter = {
-      report: mock(() => Promise.resolve()),
-    } as unknown as ProgressReporter;
+    mockProgressReporter = createMockProgressReporter();
 
     const mockGenerateContent = mock(() =>
       Promise.resolve({

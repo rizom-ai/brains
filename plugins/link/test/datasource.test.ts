@@ -4,6 +4,7 @@ import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";
 import { z, computeContentHash } from "@brains/utils";
 import type { LinkStatus, LinkEntity } from "../src/schemas/link";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 
 describe("LinksDataSource", () => {
   let datasource: LinksDataSource;
@@ -49,22 +50,8 @@ Summary for ${title}`;
   };
 
   beforeEach(() => {
-    mockLogger = {
-      debug: mock(() => {}),
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-      child: mock(() => mockLogger),
-    } as unknown as Logger;
-
-    mockEntityService = {
-      getEntity: mock(() => null),
-      listEntities: mock(() => []),
-      createEntity: mock(() => ({})),
-      updateEntity: mock(() => ({})),
-      deleteEntity: mock(() => ({})),
-    } as unknown as IEntityService;
-
+    mockLogger = createMockLogger();
+    mockEntityService = createMockEntityService();
     mockContext = {};
 
     datasource = new LinksDataSource(mockEntityService, mockLogger);

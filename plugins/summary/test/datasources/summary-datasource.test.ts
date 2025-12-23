@@ -8,8 +8,11 @@ import {
   mock,
 } from "bun:test";
 import { SummaryDataSource } from "../../src/datasources/summary-datasource";
-import { createSilentLogger } from "@brains/test-utils";
-import type { IEntityService } from "@brains/plugins/test";
+import {
+  createSilentLogger,
+  createMockEntityService,
+} from "@brains/test-utils";
+import type { IEntityService } from "@brains/plugins";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";
@@ -24,20 +27,7 @@ describe("SummaryDataSource", () => {
     logger = createSilentLogger();
 
     // Create mock entity service
-    mockEntityService = {
-      getEntity: async () => null,
-      createEntity: async () => ({}),
-      updateEntity: async () => ({}),
-      upsertEntity: async () => {},
-      deleteEntity: async () => {},
-      listEntities: async () => [],
-      searchEntities: async () => [],
-      search: async () => [],
-      getEntityTypes: async () => [],
-      getRegistry: () => null,
-      getCapabilities: () => ({}),
-      registerEntity: () => {},
-    } as unknown as IEntityService;
+    mockEntityService = createMockEntityService();
 
     datasource = new SummaryDataSource(mockEntityService, logger);
   });

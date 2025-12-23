@@ -1,100 +1,92 @@
 import { mock } from "bun:test";
-import type { ServicePluginContext } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  IEntityService,
+  Logger,
+} from "@brains/plugins";
 import {
   createMockEntityService,
-  asMockEntityService,
-  type MockEntityService,
+  type MockEntityServiceReturns,
 } from "./mock-entity-service";
-import { createMockLogger, type MockLogger } from "./mock-logger";
+import { createMockLogger } from "./mock-logger";
+
+/**
+ * Return value configuration for mock service plugin context methods
+ */
+export interface MockServicePluginContextReturns {
+  /** Return values for entity service methods */
+  entityService?: MockEntityServiceReturns;
+  /** Return value for generateContent */
+  generateContent?: Record<string, unknown>;
+  /** Return value for enqueueJob */
+  enqueueJob?: string;
+}
 
 /**
  * Options for creating a mock service plugin context
  */
 export interface MockServicePluginContextOptions {
-  /** Custom entity service mock */
-  entityService?: MockEntityService;
+  /** Custom entity service mock (overrides returns.entityService) */
+  entityService?: IEntityService;
   /** Custom logger mock */
-  logger?: MockLogger;
+  logger?: Logger;
   /** Entity types to register */
   entityTypes?: string[];
   /** Plugin ID */
   pluginId?: string;
   /** Data directory path */
   dataDir?: string;
-}
-
-/**
- * Mock service plugin context type with accessible mock methods
- */
-export interface MockServicePluginContext {
-  // Mocked services
-  entityService: MockEntityService;
-  logger: MockLogger;
-
-  // Mocked methods
-  registerEntityType: ReturnType<typeof mock>;
-  registerDataSource: ReturnType<typeof mock>;
-  generateContent: ReturnType<typeof mock>;
-  formatContent: ReturnType<typeof mock>;
-  parseContent: ReturnType<typeof mock>;
-  searchConversations: ReturnType<typeof mock>;
-  getMessages: ReturnType<typeof mock>;
-  enqueueJob: ReturnType<typeof mock>;
-  enqueueBatch: ReturnType<typeof mock>;
-  registerJobHandler: ReturnType<typeof mock>;
-  getJobStatus: ReturnType<typeof mock>;
-  getViewTemplate: ReturnType<typeof mock>;
-  listViewTemplates: ReturnType<typeof mock>;
-  getRenderService: ReturnType<typeof mock>;
-  resolveContent: ReturnType<typeof mock>;
-  getTemplateCapabilities: ReturnType<typeof mock>;
-  getPluginPackageName: ReturnType<typeof mock>;
-  registerEvalHandler: ReturnType<typeof mock>;
-
-  // Core context methods
-  sendMessage: ReturnType<typeof mock>;
-  onMessage: ReturnType<typeof mock>;
-  registerTool: ReturnType<typeof mock>;
-  registerTemplate: ReturnType<typeof mock>;
-  getTemplate: ReturnType<typeof mock>;
-  listTemplates: ReturnType<typeof mock>;
-
-  // Properties
-  pluginId: string;
-  dataDir: string;
+  /** Pre-configured return values for methods */
+  returns?: MockServicePluginContextReturns;
 }
 
 /**
  * Create a mock ServicePluginContext for testing
  *
+ * Returns a ServicePluginContext-typed object where all methods are bun mock functions.
+ * The cast is centralized here so test files don't need `as unknown as` casts.
+ *
  * @example
  * ```typescript
+ * // Simple usage with defaults
+ * const mockContext = createMockServicePluginContext();
+ *
+ * // With pre-configured return values (no casts needed!)
  * const mockContext = createMockServicePluginContext({
  *   entityTypes: ["note", "post"],
+ *   returns: {
+ *     entityService: {
+ *       getEntity: mockEntity,
+ *       deleteEntity: true,
+ *     },
+ *     generateContent: { title: "Generated Title" },
+ *     enqueueJob: "job-123",
+ *   }
  * });
- *
- * // Configure specific behavior
- * mockContext.entityService.getEntity.mockResolvedValue(myEntity);
- * mockContext.generateContent.mockResolvedValue({ title: "Generated" });
  *
  * // Use in handler/tool tests
  * const result = await myTool.execute(input, mockContext);
  *
  * // Verify interactions
- * expect(mockContext.enqueueJob).toHaveBeenCalledWith("my-job", { ... });
+ * expect(mockContext.enqueueJob).toHaveBeenCalledWith("my-job", expect.any(Object));
  * ```
  */
 export function createMockServicePluginContext(
   options: MockServicePluginContextOptions = {},
-): MockServicePluginContext {
+): ServicePluginContext {
   const {
     entityTypes = [],
     pluginId = "test-plugin",
     dataDir = "/tmp/test-data",
+    returns = {},
   } = options;
 
   const entityService =
-    options.entityService ?? createMockEntityService({ entityTypes });
+    options.entityService ??
+    createMockEntityService({
+      entityTypes,
+      ...(returns.entityService ? { returns: returns.entityService } : {}),
+    });
   const logger = options.logger ?? createMockLogger();
 
   return {
@@ -107,7 +99,7 @@ export function createMockServicePluginContext(
     registerDataSource: mock(() => {}),
 
     // Content generation
-    generateContent: mock(() => Promise.resolve({})),
+    generateContent: mock(() => Promise.resolve(returns.generateContent ?? {})),
     formatContent: mock(() => ""),
     parseContent: mock(() => ({})),
 
@@ -116,7 +108,9 @@ export function createMockServicePluginContext(
     getMessages: mock(() => Promise.resolve([])),
 
     // Job queue
-    enqueueJob: mock(() => Promise.resolve("mock-job-id")),
+    enqueueJob: mock(() =>
+      Promise.resolve(returns.enqueueJob ?? "mock-job-id"),
+    ),
     enqueueBatch: mock(() => Promise.resolve("mock-batch-id")),
     registerJobHandler: mock(() => {}),
     getJobStatus: mock(() => Promise.resolve(null)),
@@ -143,18 +137,5 @@ export function createMockServicePluginContext(
     // Properties
     pluginId,
     dataDir,
-  };
-}
-
-/**
- * Cast MockServicePluginContext to ServicePluginContext for type compatibility
- */
-export function asMockServicePluginContext(
-  mockContext: MockServicePluginContext,
-): ServicePluginContext {
-  return {
-    ...mockContext,
-    entityService: asMockEntityService(mockContext.entityService),
-    logger: mockContext.logger,
   } as unknown as ServicePluginContext;
 }

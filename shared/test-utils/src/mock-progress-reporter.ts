@@ -2,18 +2,10 @@ import { mock } from "bun:test";
 import type { ProgressReporter } from "@brains/utils";
 
 /**
- * Mock progress reporter type with spyable methods
- */
-export interface MockProgressReporter {
-  report: ReturnType<typeof mock>;
-  createSub: ReturnType<typeof mock>;
-  toCallback: ReturnType<typeof mock>;
-  startHeartbeat: ReturnType<typeof mock>;
-  stopHeartbeat: ReturnType<typeof mock>;
-}
-
-/**
  * Create a mock ProgressReporter for testing
+ *
+ * Returns a ProgressReporter-typed object where all methods are bun mock functions.
+ * The cast is centralized here so test files don't need `as unknown as` casts.
  *
  * @example
  * ```typescript
@@ -27,8 +19,8 @@ export interface MockProgressReporter {
  * });
  * ```
  */
-export function createMockProgressReporter(): MockProgressReporter {
-  const mockReporter: MockProgressReporter = {
+export function createMockProgressReporter(): ProgressReporter {
+  const mockReporter = {
     report: mock(() => Promise.resolve()),
     createSub: mock(() => mockReporter),
     toCallback: mock(() => () => Promise.resolve()),
@@ -36,14 +28,5 @@ export function createMockProgressReporter(): MockProgressReporter {
     stopHeartbeat: mock(() => {}),
   };
 
-  return mockReporter;
-}
-
-/**
- * Cast MockProgressReporter to ProgressReporter for type compatibility
- */
-export function asMockProgressReporter(
-  mockReporter: MockProgressReporter,
-): ProgressReporter {
   return mockReporter as unknown as ProgressReporter;
 }

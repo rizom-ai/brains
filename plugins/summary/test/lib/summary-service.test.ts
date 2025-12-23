@@ -1,27 +1,10 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryService } from "../../src/lib/summary-service";
-import type { IEntityService } from "@brains/plugins/test";
+import { createMockEntityService } from "@brains/test-utils";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { computeContentHash } from "@brains/utils";
 
 describe("SummaryService", () => {
-  function createMockEntityService(): IEntityService {
-    return {
-      getEntity: async () => null,
-      createEntity: async () => ({}),
-      updateEntity: async () => ({}),
-      upsertEntity: async () => {},
-      deleteEntity: async () => {},
-      listEntities: async () => [],
-      searchEntities: async () => [],
-      search: async () => [],
-      getEntityTypes: async () => [],
-      getRegistry: () => null,
-      getCapabilities: () => ({}),
-      registerEntity: () => {},
-    } as unknown as IEntityService;
-  }
-
   describe("getSummary", () => {
     it("should call getEntity with correct parameters", async () => {
       const mockEntityService = createMockEntityService();
