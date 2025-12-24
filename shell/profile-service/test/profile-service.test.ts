@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { ProfileService } from "../src/profile-service";
 import type { IEntityService } from "@brains/entity-service";
 import {

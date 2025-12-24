@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
 import { createMockEntityService } from "@brains/test-utils";
 import { join } from "path";

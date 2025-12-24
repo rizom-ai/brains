@@ -30,6 +30,7 @@ describe("JobProgressMonitor", () => {
 
     mockJobQueueService = {
       enqueue: mock(() => Promise.resolve("job-id")),
+      dequeue: mock(() => Promise.resolve(null)),
       getStatus: getStatusMock,
       complete: mock(() => Promise.resolve()),
       fail: mock(() => Promise.resolve()),

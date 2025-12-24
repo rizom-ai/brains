@@ -6,6 +6,7 @@ import type { IJobQueueService, JobInfo, JobHandler } from "@brains/job-queue";
  */
 export interface MockJobQueueServiceReturns {
   enqueue?: string;
+  dequeue?: unknown | null;
   getStatus?: JobInfo | null;
   getStatusByEntityId?: JobInfo | null;
   getHandler?: JobHandler | undefined;
@@ -61,6 +62,7 @@ export function createMockJobQueueService(
     unregisterPluginHandlers: mock(() => {}),
     getHandler: mock(() => returns.getHandler),
     enqueue: mock(() => Promise.resolve(returns.enqueue ?? "mock-job-id")),
+    dequeue: mock(() => Promise.resolve(returns.dequeue ?? null)),
     complete: mock(() => Promise.resolve()),
     fail: mock(() => Promise.resolve()),
     update: mock(() => Promise.resolve()),

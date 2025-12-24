@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import type { DirectorySync } from "../src/lib/directory-sync";
 import type { ImportResult, ExportResult } from "../src/types";
-import type { BaseEntity, ProgressReporter } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { computeContentHash } from "@brains/utils";
+import { createMockProgressReporter } from "@brains/test-utils";
 
 /**
  * Test for race condition between import and export phases
@@ -20,11 +21,6 @@ describe("Directory sync race condition", () => {
   let importCallCount = 0;
   let exportCallCount = 0;
   let jobsCompleted = false;
-
-  const createMockReporter = (): ProgressReporter =>
-    ({
-      report: async (): Promise<void> => {},
-    }) as unknown as ProgressReporter;
 
   beforeEach(() => {
     importCallCount = 0;
@@ -82,10 +78,14 @@ describe("Directory sync race condition", () => {
     const exportFn = mockDirectorySync.exportEntitiesWithProgress;
     if (!importFn || !exportFn) throw new Error("Mock not set up");
 
-    const importResult = await importFn(undefined, createMockReporter(), 10);
+    const importResult = await importFn(
+      undefined,
+      createMockProgressReporter(),
+      10,
+    );
 
     // BUG: Export starts immediately without waiting for jobs
-    await exportFn(undefined, createMockReporter(), 10);
+    await exportFn(undefined, createMockProgressReporter(), 10);
 
     // Assertions proving the bug exists
     expect(importCallCount).toBe(1);
@@ -136,13 +136,13 @@ describe("Directory sync race condition", () => {
     const exportFn = mockDirectorySync.exportEntitiesWithProgress;
     if (!importFn || !exportFn) throw new Error("Mock not set up");
 
-    await importFn(undefined, createMockReporter(), 10);
+    await importFn(undefined, createMockProgressReporter(), 10);
 
     // FIX: Wait for all jobs to complete
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     // Export
-    await exportFn(undefined, createMockReporter(), 10);
+    await exportFn(undefined, createMockProgressReporter(), 10);
 
     // After fix, export should run AFTER jobs complete
     expect(exportCalledBeforeJobsComplete).toBe(false);
@@ -215,8 +215,8 @@ describe("Directory sync race condition", () => {
     if (!importFn || !exportFn) throw new Error("Mock not set up");
 
     // BUGGY FLOW: Export runs before jobs complete
-    await importFn(undefined, createMockReporter(), 10);
-    await exportFn(undefined, createMockReporter(), 10);
+    await importFn(undefined, createMockProgressReporter(), 10);
+    await exportFn(undefined, createMockProgressReporter(), 10);
 
     // BUG: File has original content because export ran before job completed
     expect(fileContent).toContain("author: Your Name");
@@ -225,9 +225,9 @@ describe("Directory sync race condition", () => {
     entityInDB = originalEntity; // Reset
     fileContent = editedEntity.content; // File edited again
 
-    await importFn(undefined, createMockReporter(), 10);
+    await importFn(undefined, createMockProgressReporter(), 10);
     await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for jobs
-    await exportFn(undefined, createMockReporter(), 10);
+    await exportFn(undefined, createMockProgressReporter(), 10);
 
     // FIX: File has edited content because export ran AFTER job completed
     expect(fileContent).toContain("author: Yeehaa");

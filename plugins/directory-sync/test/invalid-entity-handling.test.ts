@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";

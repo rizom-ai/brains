@@ -154,6 +154,7 @@ describe("PluginManager", (): void => {
         unregisterPluginHandlers: mock(() => {}),
         getHandler: mock(() => undefined),
         enqueue: mock(async () => "job-123"),
+        dequeue: mock(async () => null),
         complete: mock(async () => {}),
         fail: mock(async () => {}),
         update: mock(async () => {}),

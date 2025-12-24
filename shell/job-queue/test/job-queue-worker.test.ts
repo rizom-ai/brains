@@ -1,23 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobQueueWorker } from "../src/job-queue-worker";
-import type { JobQueue } from "../src/schema/job-queue";
-import type { JobQueueService } from "../src/job-queue-service";
-import { createSilentLogger } from "@brains/test-utils";
+import type { IJobQueueService, JobInfo } from "../src/types";
+import {
+  createSilentLogger,
+  createMockProgressReporter,
+  createMockJobQueueService,
+} from "@brains/test-utils";
 import { createId } from "@brains/utils";
 import type { IJobProgressMonitor, ProgressReporter } from "@brains/utils";
 
-// Mock progress monitor for testing
-const mockProgressReporter: ProgressReporter = {
-  async report(): Promise<void> {},
-  createSub(): ProgressReporter {
-    return mockProgressReporter;
-  },
-  startHeartbeat(): void {},
-  stopHeartbeat(): void {},
-  toCallback() {
-    return async () => {};
-  },
-} as unknown as ProgressReporter;
+// Create module-level mock progress reporter for use by MockProgressMonitor
+const mockProgressReporter = createMockProgressReporter();
 
 class MockProgressMonitor implements IJobProgressMonitor {
   start(): void {
@@ -51,10 +44,10 @@ class MockProgressMonitor implements IJobProgressMonitor {
 
 describe("JobQueueWorker", () => {
   let worker: JobQueueWorker;
-  let mockService: JobQueueService;
+  let mockService: IJobQueueService;
   let mockProgressMonitor: IJobProgressMonitor;
 
-  const testJob: JobQueue = {
+  const testJob: JobInfo = {
     id: "test-job-123",
     type: "embedding",
     data: JSON.stringify({ id: "entity-123", content: "test" }),
@@ -81,17 +74,16 @@ describe("JobQueueWorker", () => {
     // Create mock progress monitor
     mockProgressMonitor = new MockProgressMonitor();
 
-    // Create fresh mock service for each test
-    mockService = {
-      dequeue: mock(() => Promise.resolve(null)),
-      complete: mock(() => Promise.resolve()),
-      fail: mock(() => Promise.resolve()),
-      getHandler: mock(() => ({
-        process: mock(() => Promise.resolve({ success: true })),
-        onError: mock(() => Promise.resolve()),
-        validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
-      })),
-    } as unknown as JobQueueService;
+    // Create fresh mock service using factory
+    mockService = createMockJobQueueService({
+      returns: {
+        getHandler: {
+          process: mock(() => Promise.resolve({ success: true })),
+          onError: mock(() => Promise.resolve()),
+          validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
+        },
+      },
+    });
 
     worker = JobQueueWorker.createFresh(
       mockService,
@@ -200,21 +192,27 @@ describe("JobQueueWorker", () => {
     it("should process jobs when available", async () => {
       // Recreate mock service to return a job once, then null
       let callCount = 0;
-      mockService = {
-        dequeue: mock(() => {
+      mockService = createMockJobQueueService({
+        returns: {
+          getHandler: {
+            process: mock(() => Promise.resolve({ success: true })),
+            onError: mock(() => Promise.resolve()),
+            validateAndParse: mock(() => ({
+              id: "entity-123",
+              content: "test",
+            })),
+          },
+        },
+      });
+      // Override dequeue to return a job once, then null
+      (mockService.dequeue as ReturnType<typeof mock>).mockImplementation(
+        () => {
           callCount++;
           return callCount === 1
             ? Promise.resolve(testJob)
             : Promise.resolve(null);
-        }),
-        complete: mock(() => Promise.resolve()),
-        fail: mock(() => Promise.resolve()),
-        getHandler: mock(() => ({
-          process: mock(() => Promise.resolve({ success: true })),
-          onError: mock(() => Promise.resolve()),
-          validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
-        })),
-      } as unknown as JobQueueService;
+        },
+      );
 
       worker = JobQueueWorker.createFresh(
         mockService,
@@ -260,24 +258,30 @@ describe("JobQueueWorker", () => {
     it("should wait for active jobs before stopping", async () => {
       // Recreate mock service with slow job processing
       let callCount = 0;
-      mockService = {
-        dequeue: mock(() => {
+      mockService = createMockJobQueueService({
+        returns: {
+          getHandler: {
+            process: mock(async () => {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              return { success: true };
+            }),
+            onError: mock(() => Promise.resolve()),
+            validateAndParse: mock(() => ({
+              id: "entity-123",
+              content: "test",
+            })),
+          },
+        },
+      });
+      // Override dequeue to return a job once, then null
+      (mockService.dequeue as ReturnType<typeof mock>).mockImplementation(
+        () => {
           callCount++;
           return callCount === 1
             ? Promise.resolve(testJob)
             : Promise.resolve(null);
-        }),
-        complete: mock(() => Promise.resolve()),
-        fail: mock(() => Promise.resolve()),
-        getHandler: mock(() => ({
-          process: mock(async () => {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            return { success: true };
-          }),
-          onError: mock(() => Promise.resolve()),
-          validateAndParse: mock(() => ({ id: "entity-123", content: "test" })),
-        })),
-      } as unknown as JobQueueService;
+        },
+      );
 
       worker = JobQueueWorker.createFresh(
         mockService,

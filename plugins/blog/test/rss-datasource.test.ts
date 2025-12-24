@@ -1,4 +1,5 @@
-import { describe, expect, test, mock } from "bun:test";
+import type { mock } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { RSSDataSource } from "../src/datasources/rss-datasource";
 import {
   createSilentLogger,

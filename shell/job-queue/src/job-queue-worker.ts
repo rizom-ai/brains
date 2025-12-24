@@ -1,9 +1,12 @@
 import type { Logger } from "@brains/utils";
 import type { IJobProgressMonitor } from "@brains/utils";
-import type { JobQueueService } from "./job-queue-service";
-import type { JobQueue } from "./schema/job-queue";
 import type { JobResult } from "./schemas";
-import type { JobQueueWorkerConfig, JobQueueWorkerStats } from "./types";
+import type {
+  IJobQueueService,
+  JobInfo,
+  JobQueueWorkerConfig,
+  JobQueueWorkerStats,
+} from "./types";
 import { JOB_STATUS } from "./schemas";
 
 /**
@@ -14,7 +17,7 @@ import { JOB_STATUS } from "./schemas";
 export class JobQueueWorker {
   private static instance: JobQueueWorker | null = null;
   private logger: Logger;
-  private jobQueueService: JobQueueService;
+  private jobQueueService: IJobQueueService;
   private progressMonitor: IJobProgressMonitor;
   private config: Required<JobQueueWorkerConfig>;
   private isRunning: boolean = false;
@@ -29,7 +32,7 @@ export class JobQueueWorker {
    * Get the singleton instance
    */
   public static getInstance(
-    jobQueueService: JobQueueService,
+    jobQueueService: IJobQueueService,
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
@@ -54,7 +57,7 @@ export class JobQueueWorker {
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    jobQueueService: JobQueueService,
+    jobQueueService: IJobQueueService,
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
@@ -66,7 +69,7 @@ export class JobQueueWorker {
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    jobQueueService: JobQueueService,
+    jobQueueService: IJobQueueService,
     progressMonitor: IJobProgressMonitor,
     logger: Logger,
     config?: JobQueueWorkerConfig,
@@ -198,7 +201,7 @@ export class JobQueueWorker {
       }
 
       // Get jobs from the queue
-      const jobs: JobQueue[] = [];
+      const jobs: JobInfo[] = [];
       for (let i = 0; i < availableSlots; i++) {
         const job = await this.jobQueueService.dequeue();
         if (job) {
@@ -223,7 +226,7 @@ export class JobQueueWorker {
   /**
    * Wrapper for processing a single job with error handling
    */
-  private async processJobWrapper(job: JobQueue): Promise<void> {
+  private async processJobWrapper(job: JobInfo): Promise<void> {
     const jobId = job.id;
     this.activeJobs.add(jobId);
 
@@ -284,7 +287,7 @@ export class JobQueueWorker {
   /**
    * Process a job using its registered handler
    */
-  private async processJob(job: JobQueue): Promise<JobResult> {
+  private async processJob(job: JobInfo): Promise<JobResult> {
     const handler = this.jobQueueService.getHandler(job.type);
     if (!handler) {
       const error = new Error(

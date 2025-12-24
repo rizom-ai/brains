@@ -107,6 +107,11 @@ export interface IJobQueueService {
   ): Promise<string>;
 
   /**
+   * Dequeue the next available job for processing
+   */
+  dequeue(): Promise<JobInfo | null>;
+
+  /**
    * Mark job as completed
    */
   complete(jobId: string, result: unknown): Promise<void>;
