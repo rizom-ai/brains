@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService,
+} from "@brains/test-utils";
 
 describe("Invalid Entity Handling", () => {
   let dirSync: DirectorySync;
@@ -17,37 +20,56 @@ describe("Invalid Entity Handling", () => {
     testDir = join(tmpdir(), `test-invalid-entity-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
 
-    // Create mock entity service that can simulate failures
-    mockEntityService = {
-      serializeEntity: (entity: BaseEntity): string => {
-        return `# ${entity.id}\n\n${entity.content}`;
-      },
-      deserializeEntity: (
-        _content: string,
-        _entityType: string,
-      ): Partial<BaseEntity> => {
+    // Create mock entity service using factory, then configure for this test
+    mockEntityService = createMockEntityService();
+
+    (
+      mockEntityService.serializeEntity as ReturnType<typeof mock>
+    ).mockImplementation((entity: BaseEntity): string => {
+      return `# ${entity.id}\n\n${entity.content}`;
+    });
+
+    (
+      mockEntityService.deserializeEntity as ReturnType<typeof mock>
+    ).mockImplementation(
+      (_content: string, _entityType: string): Partial<BaseEntity> => {
         if (deserializeError) {
           throw deserializeError;
         }
         return { metadata: {} };
       },
-      getEntity: async (
-        _entityType: string,
-        _id: string,
-      ): Promise<BaseEntity | null> => {
+    );
+
+    (mockEntityService.getEntity as ReturnType<typeof mock>).mockImplementation(
+      async (_entityType: string, _id: string): Promise<BaseEntity | null> => {
         return null; // No existing entities
       },
-      createEntity: async (
+    );
+
+    (
+      mockEntityService.createEntity as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (
         entity: Partial<BaseEntity>,
       ): Promise<{ entityId: string; jobId: string }> => {
         return { entityId: entity.id ?? "test-id", jobId: "test-job" };
       },
-      updateEntity: async (
+    );
+
+    (
+      mockEntityService.updateEntity as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (
         _entity: BaseEntity,
       ): Promise<{ entityId: string; jobId: string }> => {
         return { entityId: _entity.id, jobId: "test-job" };
       },
-      upsertEntity: async (
+    );
+
+    (
+      mockEntityService.upsertEntity as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (
         entity: Partial<BaseEntity>,
       ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
         return {
@@ -56,19 +78,29 @@ describe("Invalid Entity Handling", () => {
           created: true,
         };
       },
-      deleteEntity: async (
-        _entityType: string,
-        _id: string,
-      ): Promise<boolean> => {
+    );
+
+    (
+      mockEntityService.deleteEntity as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (_entityType: string, _id: string): Promise<boolean> => {
         return true;
       },
-      listEntities: async (
+    );
+
+    (
+      mockEntityService.listEntities as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (
         _entityType: string,
         _options?: { limit?: number; offset?: number },
       ): Promise<BaseEntity[]> => {
         return [];
       },
-      search: async (
+    );
+
+    (mockEntityService.search as ReturnType<typeof mock>).mockImplementation(
+      async (
         _query: string,
         _options?: {
           types?: string[];
@@ -79,18 +111,34 @@ describe("Invalid Entity Handling", () => {
       ): Promise<BaseEntity[]> => {
         return [];
       },
-      getEntityTypes: (): string[] => {
-        return ["note", "summary", "topic"];
-      },
-      hasEntityType: (entityType: string): boolean => {
-        return ["note", "summary", "topic"].includes(entityType);
-      },
-      getAsyncJobStatus: async (
+    );
+
+    (
+      mockEntityService.getEntityTypes as ReturnType<typeof mock>
+    ).mockImplementation((): string[] => {
+      return ["note", "summary", "topic"];
+    });
+
+    (
+      mockEntityService.hasEntityType as ReturnType<typeof mock>
+    ).mockImplementation((entityType: string): boolean => {
+      return ["note", "summary", "topic"].includes(entityType);
+    });
+
+    (
+      mockEntityService.getAsyncJobStatus as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (
         _jobId: string,
       ): Promise<{ status: "completed"; progress: number }> => {
         return { status: "completed" as const, progress: 100 };
       },
-      storeEntityWithEmbedding: async (_data: {
+    );
+
+    (
+      mockEntityService.storeEntityWithEmbedding as ReturnType<typeof mock>
+    ).mockImplementation(
+      async (_data: {
         id: string;
         entityType: string;
         content: string;
@@ -102,7 +150,7 @@ describe("Invalid Entity Handling", () => {
       }): Promise<void> => {
         // Mock implementation - does nothing
       },
-    } as unknown as IEntityService;
+    );
 
     // Create directory sync instance
     dirSync = new DirectorySync({

@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { ProfileService } from "../src/profile-service";
 import type { IEntityService } from "@brains/entity-service";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService,
+} from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils";
 import type { ProfileEntity } from "../src/schema";
 
@@ -27,11 +30,14 @@ describe("ProfileService", () => {
       jobId: "job-123",
     });
 
-    // Create mock that delegates to controllable implementations
-    mockEntityService = {
-      getEntity: mock(async () => mockGetEntityImpl()),
-      createEntity: mock(async () => mockCreateEntityImpl()),
-    } as unknown as IEntityService;
+    // Create mock using factory, then override implementations
+    mockEntityService = createMockEntityService();
+    (mockEntityService.getEntity as ReturnType<typeof mock>).mockImplementation(
+      async () => mockGetEntityImpl(),
+    );
+    (
+      mockEntityService.createEntity as ReturnType<typeof mock>
+    ).mockImplementation(async () => mockCreateEntityImpl());
 
     // Create fresh instance with silent logger
     profileService = ProfileService.createFresh(
@@ -246,13 +252,13 @@ View my code on GitHub`;
       };
 
       // Create fresh mock for this test
-      const freshMockEntityService = {
-        getEntity: mock(async () => null),
-        createEntity: mock(async () => ({
-          entityId: "profile",
-          jobId: "job-123",
-        })),
-      } as unknown as IEntityService;
+      const freshMockEntityService = createMockEntityService();
+      (
+        freshMockEntityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(null);
+      (
+        freshMockEntityService.createEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({ entityId: "profile", jobId: "job-123" });
 
       // Create a completely fresh service with custom profile
       const customService = ProfileService.createFresh(

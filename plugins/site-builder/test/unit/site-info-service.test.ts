@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteInfoService } from "../../src/services/site-info-service";
 import type { IEntityService } from "@brains/entity-service";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService,
+} from "@brains/test-utils";
 import type { SiteInfoEntity } from "../../src/services/site-info-schema";
 import { createMockSiteInfo } from "../fixtures/site-entities";
 
@@ -27,11 +30,14 @@ describe("SiteInfoService", () => {
       jobId: "job-123",
     });
 
-    // Create mock that delegates to controllable implementations
-    mockEntityService = {
-      getEntity: mock(async () => mockGetEntityImpl()),
-      createEntity: mock(async () => mockCreateEntityImpl()),
-    } as unknown as IEntityService;
+    // Create mock using factory, then override implementations
+    mockEntityService = createMockEntityService();
+    (mockEntityService.getEntity as ReturnType<typeof mock>).mockImplementation(
+      async () => mockGetEntityImpl(),
+    );
+    (
+      mockEntityService.createEntity as ReturnType<typeof mock>
+    ).mockImplementation(async () => mockCreateEntityImpl());
 
     // Create fresh instance with silent logger
     siteInfoService = SiteInfoService.createFresh(
@@ -239,13 +245,13 @@ Personal knowledge base and professional showcase`,
       };
 
       // Create fresh mock for this test
-      const freshMockEntityService = {
-        getEntity: mock(async () => null),
-        createEntity: mock(async () => ({
-          entityId: "site-info",
-          jobId: "job-123",
-        })),
-      } as unknown as IEntityService;
+      const freshMockEntityService = createMockEntityService();
+      (
+        freshMockEntityService.getEntity as ReturnType<typeof mock>
+      ).mockResolvedValue(null);
+      (
+        freshMockEntityService.createEntity as ReturnType<typeof mock>
+      ).mockResolvedValue({ entityId: "site-info", jobId: "job-123" });
 
       // Create a completely fresh service with custom site info
       const customService = SiteInfoService.createFresh(

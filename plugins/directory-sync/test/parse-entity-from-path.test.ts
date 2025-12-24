@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
-import type { IEntityService } from "@brains/plugins";
+import { createMockEntityService } from "@brains/test-utils";
 import { join } from "path";
 
 describe("FileOperations.parseEntityFromPath", () => {
@@ -8,11 +8,16 @@ describe("FileOperations.parseEntityFromPath", () => {
   const testDir = "/test/brain-data";
 
   beforeEach(() => {
-    const mockEntityService = {
-      serializeEntity: (entity: { id: string; content: string }) =>
+    const mockEntityService = createMockEntityService();
+    (
+      mockEntityService.serializeEntity as ReturnType<typeof mock>
+    ).mockImplementation(
+      (entity: { id: string; content: string }) =>
         `# ${entity.id}\n\n${entity.content}`,
-      deserializeEntity: () => ({ metadata: {} }),
-    } as unknown as IEntityService;
+    );
+    (
+      mockEntityService.deserializeEntity as ReturnType<typeof mock>
+    ).mockImplementation(() => ({ metadata: {} }));
 
     fileOps = new FileOperations(testDir, mockEntityService);
   });

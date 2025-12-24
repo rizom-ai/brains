@@ -1,6 +1,9 @@
 import { describe, expect, test, mock } from "bun:test";
 import { RSSDataSource } from "../src/datasources/rss-datasource";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService as createBaseMockEntityService,
+} from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { BaseDataSourceContext } from "@brains/datasource";
@@ -8,18 +11,13 @@ import { z } from "zod";
 import { computeContentHash } from "@brains/utils";
 
 describe("RSSDataSource", () => {
-  const createMockEntityService = (posts: BlogPost[]): IEntityService =>
-    ({
-      listEntities: mock(async () => posts),
-      getEntity: mock(async () => null),
-      createEntity: mock(() => ({})),
-      updateEntity: mock(() => ({})),
-      deleteEntity: mock(() => true),
-      searchEntities: mock(() => []),
-      getEntityTypes: mock(() => []),
-      registerEntityType: mock(() => {}),
-      getEntityAdapter: mock(() => undefined),
-    }) as unknown as IEntityService;
+  const createMockEntityService = (posts: BlogPost[]): IEntityService => {
+    const mockEntityService = createBaseMockEntityService();
+    (
+      mockEntityService.listEntities as ReturnType<typeof mock>
+    ).mockResolvedValue(posts);
+    return mockEntityService;
+  };
 
   const mockContext: BaseDataSourceContext = {};
 
