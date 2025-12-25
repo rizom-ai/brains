@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/lib/preact-builder";
 import type { BuildContext } from "../../src/lib/static-site-builder";
-import type {
-  ServicePluginContext,
-  ViewTemplate,
-  OutputFormat,
-} from "@brains/plugins";
+import type { ViewTemplate, OutputFormat } from "@brains/plugins";
 import type { RouteDefinition } from "../../src/types/routes";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import { z } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -78,14 +77,6 @@ describe("PreactBuilder", () => {
       listFormats: (): OutputFormat[] => [],
     };
 
-    // Create a minimal mock pluginContext with only necessary fields
-    const mockPluginContext = {
-      getPlugin: (id: string) => ({
-        id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
-      }),
-    } as unknown as ServicePluginContext;
-
     const buildContext: BuildContext = {
       routes: [
         {
@@ -104,7 +95,7 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: mockPluginContext,
+      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test Site Description",
@@ -170,13 +161,6 @@ describe("PreactBuilder", () => {
       listFormats: (): OutputFormat[] => [],
     };
 
-    const mockPluginContext = {
-      getPlugin: (id: string) => ({
-        id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
-      }),
-    } as unknown as ServicePluginContext;
-
     const buildContext: BuildContext = {
       routes: [
         {
@@ -195,7 +179,7 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: mockPluginContext,
+      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test",
@@ -244,13 +228,6 @@ describe("PreactBuilder", () => {
       listFormats: (): OutputFormat[] => [],
     };
 
-    const mockPluginContext = {
-      getPlugin: (id: string) => ({
-        id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
-      }),
-    } as unknown as ServicePluginContext;
-
     const buildContext: BuildContext = {
       routes: [
         {
@@ -269,7 +246,7 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: mockPluginContext,
+      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test",
@@ -330,13 +307,6 @@ describe("PreactBuilder", () => {
       listFormats: (): OutputFormat[] => [],
     };
 
-    const mockPluginContext = {
-      getPlugin: (id: string) => ({
-        id,
-        metadata: { name: id, version: "1.0.0", packageName: `@test/${id}` },
-      }),
-    } as unknown as ServicePluginContext;
-
     const buildContext: BuildContext = {
       routes: [
         {
@@ -359,7 +329,7 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: mockPluginContext,
+      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test",
