@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/job-queue";
-import type { SiteBuilder } from "../lib/site-builder";
+import type { ISiteBuilder } from "../types/site-builder-types";
 import type { LayoutComponent, SiteBuilderConfig } from "../config";
 import {
   siteBuildJobSchema,
@@ -20,7 +20,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 > {
   constructor(
     logger: Logger,
-    private siteBuilder: SiteBuilder,
+    private siteBuilder: ISiteBuilder,
     private layouts: Record<string, LayoutComponent>,
     private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
     private context: ServicePluginContext,

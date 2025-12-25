@@ -1,34 +1,34 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
+import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { ProgressReporter } from "@brains/utils";
-import type { SiteBuilder } from "../../src/lib/site-builder";
 import {
   createSilentLogger,
   createMockProgressReporter,
+  createMockServicePluginContext,
 } from "@brains/test-utils";
 
 describe("SiteBuildJobHandler - Environment URL Selection", () => {
   let mockContext: ServicePluginContext;
-  let mockSiteBuilder: SiteBuilder;
+  let mockSiteBuilder: ISiteBuilder;
   let mockProgressReporter: ProgressReporter;
 
   beforeEach(() => {
-    mockContext = {
-      sendMessage: mock(() => Promise.resolve({ success: true })),
-      logger: createSilentLogger(),
-    } as unknown as ServicePluginContext;
+    mockContext = createMockServicePluginContext();
 
     mockSiteBuilder = {
       build: mock(() =>
         Promise.resolve({
           success: true,
+          outputDir: "/tmp/output",
+          filesGenerated: 5,
           routesBuilt: 5,
           errors: [],
           warnings: [],
         }),
       ),
-    } as unknown as SiteBuilder;
+    };
 
     mockProgressReporter = createMockProgressReporter();
   });

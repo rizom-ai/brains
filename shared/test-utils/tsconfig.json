@@ -3,7 +3,9 @@
   "compilerOptions": {
     "rootDir": ".",
     "composite": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
   },
   "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules"]
