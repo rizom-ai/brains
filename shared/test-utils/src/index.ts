@@ -67,3 +67,10 @@ export {
   type MockMessageBusOptions,
   type MockMessageBusReturns,
 } from "./mock-message-bus";
+
+// Batch job manager mocks
+export {
+  createMockBatchJobManager,
+  type MockBatchJobManagerOptions,
+  type MockBatchJobManagerReturns,
+} from "./mock-batch-job-manager";

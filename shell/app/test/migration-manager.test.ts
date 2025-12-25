@@ -3,6 +3,7 @@ import {
   MigrationManager,
   type MigrationFunctions,
 } from "../src/migration-manager";
+import { createMockLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
 
 describe("MigrationManager", () => {
@@ -28,12 +29,7 @@ describe("MigrationManager", () => {
   };
 
   beforeEach(() => {
-    mockLogger = {
-      debug: mock(() => {}),
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-    } as unknown as Logger;
+    mockLogger = createMockLogger();
 
     mockMigrations = {
       getStandardConfigWithDirectories: mock(() => Promise.resolve(mockConfig)),

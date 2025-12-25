@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
-import type { BatchJobManager } from "../src/batch-job-manager";
-import type { IJobQueueService } from "../src/types";
-import { createSilentLogger, createMockMessageBus } from "@brains/test-utils";
+import type { IBatchJobManager, IJobQueueService } from "../src/types";
+import {
+  createSilentLogger,
+  createMockMessageBus,
+  createMockBatchJobManager,
+} from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
 
@@ -16,7 +19,7 @@ import type { Mock } from "bun:test";
 describe("JobProgressMonitor", () => {
   let monitor: JobProgressMonitor;
   let mockJobQueueService: IJobQueueService;
-  let mockBatchJobManager: BatchJobManager;
+  let mockBatchJobManager: IBatchJobManager;
   let mockMessageBus: MessageBus;
   let mockLogger: Logger;
 
@@ -54,14 +57,7 @@ describe("JobProgressMonitor", () => {
       cleanup: mock(() => Promise.resolve(0)),
     };
 
-    mockBatchJobManager = {
-      enqueueBatch: mock(() => Promise.resolve("batch-id")),
-      getBatchStatus: mock(() => Promise.resolve(null)),
-      getActiveBatches: mock(() => Promise.resolve([])),
-      getInstance: mock(() => mockBatchJobManager),
-      resetInstance: mock(() => {}),
-      createFresh: mock(() => mockBatchJobManager),
-    } as unknown as BatchJobManager;
+    mockBatchJobManager = createMockBatchJobManager();
 
     mockMessageBus = createMockMessageBus();
     messageBusSendMock = mockMessageBus.send as ReturnType<typeof mock>;

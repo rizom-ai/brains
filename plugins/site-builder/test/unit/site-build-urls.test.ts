@@ -1,8 +1,12 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
-import type { ServicePluginContext, ProgressReporter } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { ProgressReporter } from "@brains/utils";
 import type { SiteBuilder } from "../../src/lib/site-builder";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
 
 describe("SiteBuildJobHandler - Environment URL Selection", () => {
   let mockContext: ServicePluginContext;
@@ -26,12 +30,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       ),
     } as unknown as SiteBuilder;
 
-    mockProgressReporter = {
-      report: mock(() => Promise.resolve()),
-      createSub: mock(() => ({
-        toCallback: (): (() => Promise<void>) => mock(() => Promise.resolve()),
-      })),
-    } as unknown as ProgressReporter;
+    mockProgressReporter = createMockProgressReporter();
   });
 
   test("should use productionUrl for production builds", async () => {

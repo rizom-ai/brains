@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SeedDataManager, type FileSystem } from "../src/seed-data-manager";
+import { createMockLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
 import type * as fs from "fs/promises";
 import * as path from "path";
@@ -12,12 +13,7 @@ describe("SeedDataManager", () => {
   const testSeedContentDir = "/test/seed-content";
 
   beforeEach(() => {
-    mockLogger = {
-      debug: mock(() => {}),
-      info: mock(() => {}),
-      warn: mock(() => {}),
-      error: mock(() => {}),
-    } as unknown as Logger;
+    mockLogger = createMockLogger();
 
     mockFs = {
       readdir: mock(() => Promise.resolve([])),
