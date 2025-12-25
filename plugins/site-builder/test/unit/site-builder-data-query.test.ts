@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type { ServicePluginContext } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
 import type { SiteInfoService } from "../../src/services/site-info-service";
@@ -10,7 +13,7 @@ import { TestLayout } from "../test-helpers";
 
 describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;
-  let mockContext: Partial<ServicePluginContext>;
+  let mockContext: ServicePluginContext;
   let mockRouteRegistry: Partial<RouteRegistry>;
   let mockSiteInfoService: Partial<SiteInfoService>;
   let logger: ReturnType<typeof createSilentLogger>;
@@ -22,21 +25,13 @@ describe("SiteBuilder dataQuery handling", () => {
   beforeEach(() => {
     logger = createSilentLogger();
 
-    // Create mock context with resolveContent method
-    mockContext = {
-      logger,
-      resolveContent: mock(),
-      getViewTemplate: mock().mockReturnValue({
-        name: "test-template",
-        component: () => "<div>Test</div>",
-      }),
-      listViewTemplates: mock().mockReturnValue([]),
-      registerTemplates: mock(),
-      entityService: {
-        listEntities: mock().mockResolvedValue([]),
-        getEntityTypes: mock().mockReturnValue([]),
-      } as unknown as ServicePluginContext["entityService"],
-    };
+    // Create mock context using factory
+    mockContext = createMockServicePluginContext({ logger });
+    // Override specific methods for this test
+    (mockContext.getViewTemplate as ReturnType<typeof mock>).mockReturnValue({
+      name: "test-template",
+      component: () => "<div>Test</div>",
+    });
 
     // Create mock route registry
     mockRouteRegistry = {
@@ -74,7 +69,7 @@ describe("SiteBuilder dataQuery handling", () => {
 
     siteBuilder = SiteBuilder.createFresh(
       logger,
-      mockContext as ServicePluginContext,
+      mockContext,
       mockRouteRegistry as RouteRegistry,
       mockSiteInfoService as SiteInfoService,
       mockProfileService as ProfileService,

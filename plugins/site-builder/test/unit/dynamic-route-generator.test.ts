@@ -1,8 +1,12 @@
 import { describe, test, expect, beforeEach } from "bun:test";
+import { mock } from "bun:test";
 import { DynamicRouteGenerator } from "../../src/lib/dynamic-route-generator";
 import { RouteRegistry } from "../../src/lib/route-registry";
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import { z } from "@brains/utils";
 
 describe("DynamicRouteGenerator", () => {
@@ -20,14 +24,18 @@ describe("DynamicRouteGenerator", () => {
     const logger = createSilentLogger("test");
     routeRegistry = new RouteRegistry(logger);
 
-    mockContext = {
-      logger,
-      entityService: {
-        getEntityTypes: () => entityTypes,
-        listEntities: async (type: string) => entities.get(type) ?? [],
-      } as unknown as ServicePluginContext["entityService"],
-      listViewTemplates: () => templates,
-    } as ServicePluginContext;
+    mockContext = createMockServicePluginContext({ logger });
+    // Override entityService methods to use test data
+    (
+      mockContext.entityService.getEntityTypes as ReturnType<typeof mock>
+    ).mockImplementation(() => entityTypes);
+    (
+      mockContext.entityService.listEntities as ReturnType<typeof mock>
+    ).mockImplementation(async (type: string) => entities.get(type) ?? []);
+    // Override listViewTemplates to use test data
+    (
+      mockContext.listViewTemplates as ReturnType<typeof mock>
+    ).mockImplementation(() => templates);
 
     generator = new DynamicRouteGenerator(mockContext, routeRegistry);
   });
@@ -239,30 +247,37 @@ describe("DynamicRouteGenerator", () => {
       for (const { entity, expected } of testCases) {
         const testLogger = createSilentLogger("test");
         const testRegistry = new RouteRegistry(testLogger);
-        const testGenerator = new DynamicRouteGenerator(
+
+        const testContext = createMockServicePluginContext({
+          logger: testLogger,
+        });
+        (
+          testContext.entityService.getEntityTypes as ReturnType<typeof mock>
+        ).mockImplementation(() => [entity]);
+        (
+          testContext.entityService.listEntities as ReturnType<typeof mock>
+        ).mockImplementation(async () => []);
+        (
+          testContext.listViewTemplates as ReturnType<typeof mock>
+        ).mockImplementation(() => [
           {
-            ...mockContext,
-            entityService: {
-              getEntityTypes: () => [entity],
-              listEntities: async () => [],
-            } as unknown as ServicePluginContext["entityService"],
-            listViewTemplates: () => [
-              {
-                name: `test:${entity}-list`,
-                pluginId: "test",
-                schema: z.object({}),
-                renderers: {},
-                interactive: false,
-              },
-              {
-                name: `test:${entity}-detail`,
-                pluginId: "test",
-                schema: z.object({}),
-                renderers: {},
-                interactive: false,
-              },
-            ],
-          } as ServicePluginContext,
+            name: `test:${entity}-list`,
+            pluginId: "test",
+            schema: z.object({}),
+            renderers: {},
+            interactive: false,
+          },
+          {
+            name: `test:${entity}-detail`,
+            pluginId: "test",
+            schema: z.object({}),
+            renderers: {},
+            interactive: false,
+          },
+        ]);
+
+        const testGenerator = new DynamicRouteGenerator(
+          testContext,
           testRegistry,
         );
 

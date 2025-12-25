@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type { EntityRouteConfig } from "../../src/config";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { SiteInfoService } from "../../src/services/site-info-service";
@@ -19,7 +22,7 @@ interface SiteBuilderTestable {
 describe("SiteBuilder - URL Enrichment", () => {
   let siteBuilder: SiteBuilder;
   let testableSiteBuilder: SiteBuilderTestable;
-  let mockContext: Partial<ServicePluginContext>;
+  let mockContext: ServicePluginContext;
   let mockRouteRegistry: Partial<RouteRegistry>;
   let mockSiteInfoService: Partial<SiteInfoService>;
   let mockProfileService: Partial<ProfileService>;
@@ -36,20 +39,12 @@ describe("SiteBuilder - URL Enrichment", () => {
   };
 
   beforeEach(() => {
-    mockContext = {
-      logger,
-      registerTemplates: mock(),
-      getViewTemplate: mock().mockReturnValue({
-        name: "test-template",
-        component: () => "<div>Test</div>",
-      }),
-      listViewTemplates: mock().mockReturnValue([]),
-      resolveContent: mock(),
-      entityService: {
-        listEntities: mock().mockResolvedValue([]),
-        getEntityTypes: mock().mockReturnValue([]),
-      } as unknown as ServicePluginContext["entityService"],
-    };
+    mockContext = createMockServicePluginContext({ logger });
+    // Override specific methods for this test
+    (mockContext.getViewTemplate as ReturnType<typeof mock>).mockReturnValue({
+      name: "test-template",
+      component: () => "<div>Test</div>",
+    });
 
     mockRouteRegistry = {
       list: mock().mockReturnValue([]),
@@ -70,7 +65,7 @@ describe("SiteBuilder - URL Enrichment", () => {
 
     siteBuilder = SiteBuilder.createFresh(
       logger,
-      mockContext as ServicePluginContext,
+      mockContext,
       mockRouteRegistry as RouteRegistry,
       mockSiteInfoService as SiteInfoService,
       mockProfileService as ProfileService,
@@ -295,7 +290,7 @@ describe("SiteBuilder - URL Enrichment", () => {
     it("should handle entity without entityRouteConfig", () => {
       const builderWithoutConfig = SiteBuilder.createFresh(
         logger,
-        mockContext as ServicePluginContext,
+        mockContext,
         mockRouteRegistry as RouteRegistry,
         mockSiteInfoService as SiteInfoService,
         mockProfileService as ProfileService,

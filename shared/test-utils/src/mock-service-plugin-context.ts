@@ -121,6 +121,7 @@ export function createMockServicePluginContext(
     getRenderService: mock(() => ({})),
     resolveContent: mock(() => Promise.resolve(null)),
     getTemplateCapabilities: mock(() => null),
+    registerTemplates: mock(() => {}),
 
     // Plugin metadata
     getPluginPackageName: mock(() => undefined),
