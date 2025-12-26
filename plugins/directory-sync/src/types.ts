@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import type { ProgressReporter, BaseEntity } from "@brains/plugins";
 
 /**
  * Configuration schema for directory sync plugin
@@ -196,3 +197,44 @@ export type JobRequest =
   | { type: "directory-import"; data: DirectoryImportJobData }
   | { type: "directory-export"; data: DirectoryExportJobData }
   | { type: "directory-delete"; data: DirectoryDeleteJobData };
+
+/**
+ * Interface for file operations used by handlers
+ * Allows mocking in tests without depending on the concrete FileOperations class
+ */
+export interface IFileOperations {
+  readEntity(filePath: string): Promise<RawEntity>;
+}
+
+/**
+ * Interface for DirectorySync used by job handlers
+ * Allows mocking in tests without depending on the concrete DirectorySync class
+ */
+export interface IDirectorySync {
+  /** Import entities from directory with progress reporting */
+  importEntitiesWithProgress(
+    paths: string[] | undefined,
+    reporter: ProgressReporter,
+    batchSize: number,
+  ): Promise<ImportResult>;
+
+  /** Export entities to directory with progress reporting */
+  exportEntitiesWithProgress(
+    entityTypes: string[] | undefined,
+    reporter: ProgressReporter,
+    batchSize: number,
+  ): Promise<ExportResult>;
+
+  /** Get all markdown files in the sync directory */
+  getAllMarkdownFiles(): string[];
+
+  /** Process export for a single entity */
+  processEntityExport(entity: BaseEntity): Promise<{
+    success: boolean;
+    deleted?: boolean;
+    error?: string;
+  }>;
+
+  /** File operations for reading/writing entities */
+  readonly fileOps: IFileOperations;
+}

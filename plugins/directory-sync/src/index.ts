@@ -15,6 +15,8 @@ export type {
   ImportResult,
   SyncResult,
   RawEntity,
+  IDirectorySync,
+  IFileOperations,
 } from "./types";
 
 export {

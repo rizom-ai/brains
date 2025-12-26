@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectorySyncJobHandler } from "../../src/handlers/directorySyncJobHandler";
-import type { DirectorySync } from "../../src/lib/directory-sync";
+import type { IDirectorySync } from "../../src/types";
 import {
   createSilentLogger,
   createMockServicePluginContext,
@@ -8,7 +8,7 @@ import {
 
 describe("DirectorySyncJobHandler", () => {
   let handler: DirectorySyncJobHandler;
-  let mockDirectorySync: DirectorySync;
+  let mockDirectorySync: IDirectorySync;
 
   beforeEach(() => {
     const mockContext = createMockServicePluginContext();
@@ -28,7 +28,10 @@ describe("DirectorySyncJobHandler", () => {
       exportEntitiesWithProgress: mock(() =>
         Promise.resolve({ exported: 0, failed: 0, errors: [] }),
       ),
-    } as unknown as DirectorySync;
+      getAllMarkdownFiles: mock(() => []),
+      processEntityExport: mock(() => Promise.resolve({ success: true })),
+      fileOps: { readEntity: mock(() => Promise.resolve({} as never)) },
+    };
 
     handler = new DirectorySyncJobHandler(
       createSilentLogger("test"),

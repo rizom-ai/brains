@@ -4,11 +4,11 @@ import type {
   ProgressReporter,
   ServicePluginContext,
 } from "@brains/plugins";
-import type { DirectorySync } from "../lib/directory-sync";
 import {
   directoryImportJobSchema,
   type ImportResult,
   type DirectoryImportJobData,
+  type IDirectorySync,
 } from "../types";
 
 /**
@@ -21,7 +21,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   ImportResult
 > {
   private context: ServicePluginContext;
-  private directorySync: DirectorySync;
+  private directorySync: IDirectorySync;
 
   /**
    * Create a new instance of the job handler
@@ -29,7 +29,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   constructor(
     logger: Logger,
     context: ServicePluginContext,
-    directorySync: DirectorySync,
+    directorySync: IDirectorySync,
   ) {
     super(logger, {
       schema: directoryImportJobSchema,
