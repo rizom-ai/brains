@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
-import type { DirectorySync } from "../../src/lib/directory-sync";
+import type { IDirectorySync } from "../../src/types";
 import {
   createSilentLogger,
   createMockServicePluginContext,
@@ -9,7 +9,28 @@ import {
 
 describe("DirectoryDeleteJobHandler", () => {
   const logger = createSilentLogger();
-  const mockDirectorySync = {} as DirectorySync;
+  const mockDirectorySync: IDirectorySync = {
+    importEntitiesWithProgress: mock(() =>
+      Promise.resolve({
+        imported: 0,
+        skipped: 0,
+        failed: 0,
+        quarantined: 0,
+        quarantinedFiles: [],
+        errors: [],
+        jobIds: [],
+      }),
+    ),
+    exportEntitiesWithProgress: mock(() =>
+      Promise.resolve({ exported: 0, failed: 0, errors: [] }),
+    ),
+    getAllMarkdownFiles: mock(() => []),
+    processEntityExport: mock(() => Promise.resolve({ success: true })),
+    fileOps: {
+      readEntity: mock(() => Promise.resolve({} as never)),
+      parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
+    },
+  };
 
   const validData = {
     entityId: "technology:ai",

@@ -4,7 +4,7 @@ import type {
   ProgressReporter,
   ServicePluginContext,
 } from "@brains/plugins";
-import type { DirectorySync } from "../lib/directory-sync";
+import type { IDirectorySync } from "../types";
 import {
   directoryDeleteJobSchema,
   type DeleteResult,
@@ -28,7 +28,7 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
   constructor(
     logger: Logger,
     context: ServicePluginContext,
-    _directorySync: DirectorySync,
+    _directorySync: IDirectorySync,
   ) {
     super(logger, {
       schema: directoryDeleteJobSchema,
