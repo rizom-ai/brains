@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { EventHandler } from "../src/lib/event-handler";
-import type { FileOperations } from "../src/lib/file-operations";
+import type { IFileOperations } from "../src/types";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("EventHandler", () => {
   const logger = createSilentLogger();
   let mockImportFn: ReturnType<typeof mock>;
   let mockJobQueueCallback: ReturnType<typeof mock>;
-  let mockFileOperations: FileOperations;
+  let mockFileOperations: IFileOperations;
 
   beforeEach(() => {
     mockImportFn = mock().mockResolvedValue(undefined);
@@ -18,7 +18,14 @@ describe("EventHandler", () => {
         entityType: "topic",
         id: "technology:ai",
       }),
-    } as unknown as FileOperations;
+      readEntity: mock().mockResolvedValue({
+        entityType: "topic",
+        id: "test",
+        content: "test",
+        created: new Date(),
+        updated: new Date(),
+      }),
+    };
   });
 
   describe("with job queue callback", () => {

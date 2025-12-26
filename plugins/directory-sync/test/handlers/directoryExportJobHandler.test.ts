@@ -23,7 +23,10 @@ describe("DirectoryExportJobHandler", () => {
     mockDirectorySync = {
       processEntityExport: mock(() => Promise.resolve({ success: true })),
       getAllMarkdownFiles: mock(() => []),
-      fileOps: { readEntity: mock(() => Promise.resolve({} as never)) },
+      fileOps: {
+        readEntity: mock(() => Promise.resolve({} as never)),
+        parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
+      },
       importEntitiesWithProgress: mock(() =>
         Promise.resolve({
           imported: 0,

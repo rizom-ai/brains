@@ -33,6 +33,7 @@ describe("DirectoryImportJobHandler", () => {
             updated: new Date(),
           }),
         ),
+        parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
       },
       importEntitiesWithProgress: mock(() =>
         Promise.resolve({

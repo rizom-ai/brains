@@ -1,6 +1,5 @@
 import type { Logger } from "@brains/plugins";
-import type { JobRequest } from "../types";
-import type { FileOperations } from "./file-operations";
+import type { JobRequest, IFileOperations } from "../types";
 
 /**
  * Handles file change events from the file watcher
@@ -10,13 +9,13 @@ export class EventHandler {
   private readonly handleImport: (path: string) => Promise<void>;
   private readonly handleDelete: (path: string) => Promise<void>;
   private readonly deleteOnFileRemoval: boolean;
-  private readonly fileOperations: FileOperations;
+  private readonly fileOperations: IFileOperations;
 
   constructor(
     logger: Logger,
     importFn: (paths: string[]) => Promise<unknown>,
     jobQueueCallback: ((job: JobRequest) => Promise<string>) | undefined,
-    fileOperations: FileOperations,
+    fileOperations: IFileOperations,
     deleteOnFileRemoval = true,
   ) {
     this.logger = logger;

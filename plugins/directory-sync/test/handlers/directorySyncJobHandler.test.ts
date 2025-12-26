@@ -30,7 +30,10 @@ describe("DirectorySyncJobHandler", () => {
       ),
       getAllMarkdownFiles: mock(() => []),
       processEntityExport: mock(() => Promise.resolve({ success: true })),
-      fileOps: { readEntity: mock(() => Promise.resolve({} as never)) },
+      fileOps: {
+        readEntity: mock(() => Promise.resolve({} as never)),
+        parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
+      },
     };
 
     handler = new DirectorySyncJobHandler(
