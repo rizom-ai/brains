@@ -1,7 +1,7 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, sortByPublicationDate } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
@@ -140,11 +140,7 @@ export class BlogDataSource implements DataSource {
     }
 
     // Sort by publishedAt, newest first
-    const sortedPosts = publishedPosts.sort((a, b) => {
-      const aDate = a.metadata.publishedAt ?? a.created;
-      const bDate = b.metadata.publishedAt ?? b.created;
-      return new Date(bDate).getTime() - new Date(aDate).getTime();
-    });
+    const sortedPosts = publishedPosts.sort(sortByPublicationDate);
 
     const latestEntity = sortedPosts[0];
     if (!latestEntity) {
@@ -216,11 +212,7 @@ export class BlogDataSource implements DataSource {
       });
 
     // Sort by publishedAt (from metadata) or created if not published
-    const sortedPosts = allPosts.sort((a, b) => {
-      const aDate = a.metadata.publishedAt ?? a.created;
-      const bDate = b.metadata.publishedAt ?? b.created;
-      return new Date(bDate).getTime() - new Date(aDate).getTime();
-    });
+    const sortedPosts = allPosts.sort(sortByPublicationDate);
 
     const currentIndex = sortedPosts.findIndex((p) => p.id === entity.id);
     const prevEntity = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;

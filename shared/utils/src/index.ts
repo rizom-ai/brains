@@ -51,6 +51,9 @@ export type { EntityRouteConfig } from "./entity-url-generator";
 // Hash utilities
 export { computeContentHash } from "./hash";
 
+// Sort utilities
+export { sortByPublicationDate } from "./sort";
+
 // Response types
 export {
   defaultQueryResponseSchema,

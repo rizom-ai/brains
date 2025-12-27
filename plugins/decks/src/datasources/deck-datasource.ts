@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, sortByPublicationDate } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
 import type { DeckListData } from "../templates/deck-list/schema";
 
@@ -85,11 +85,7 @@ export class DeckDataSource implements DataSource {
     );
 
     // Sort by publishedAt date, newest first (fall back to created if not set)
-    const sortedDecks = filteredDecks.sort((a, b) => {
-      const aDate = a.metadata.publishedAt ?? a.created;
-      const bDate = b.metadata.publishedAt ?? b.created;
-      return new Date(bDate).getTime() - new Date(aDate).getTime();
-    });
+    const sortedDecks = filteredDecks.sort(sortByPublicationDate);
 
     // Return DeckEntity[] directly (URLs will be added by site-builder enrichment)
     const listData: DeckListData = {

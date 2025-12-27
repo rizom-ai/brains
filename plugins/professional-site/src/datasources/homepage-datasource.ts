@@ -1,7 +1,7 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { z } from "@brains/utils";
+import { sortByPublicationDate, type z } from "@brains/utils";
 import {
   ProfessionalProfileParser,
   type ProfessionalProfile,
@@ -78,13 +78,7 @@ export class HomepageListDataSource implements DataSource {
     );
 
     // Sort by publishedAt (or created as fallback) and take the 3 most recent
-    const sortedPosts = publishedPosts
-      .sort((a: BlogPost, b: BlogPost) => {
-        const dateA = new Date(a.metadata.publishedAt ?? a.created);
-        const dateB = new Date(b.metadata.publishedAt ?? b.created);
-        return dateB.getTime() - dateA.getTime(); // Newest first
-      })
-      .slice(0, 3);
+    const sortedPosts = publishedPosts.sort(sortByPublicationDate).slice(0, 3);
 
     // Parse frontmatter for posts to include excerpt and other display fields
     const posts: BlogPostWithData[] = sortedPosts.map((post) => {
@@ -111,13 +105,7 @@ export class HomepageListDataSource implements DataSource {
     );
 
     // Sort by publishedAt (or created as fallback) and take the 3 most recent
-    const decks = publishedDecks
-      .sort((a, b) => {
-        const dateA = new Date(a.metadata.publishedAt ?? a.created);
-        const dateB = new Date(b.metadata.publishedAt ?? b.created);
-        return dateB.getTime() - dateA.getTime();
-      })
-      .slice(0, 3);
+    const decks = publishedDecks.sort(sortByPublicationDate).slice(0, 3);
 
     const data: HomepageDataSourceOutput = {
       profile,
