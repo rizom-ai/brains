@@ -9,5 +9,9 @@ export type {
 export { DataSourceRegistry } from "./registry";
 
 // Pagination
-export { paginationInfoSchema } from "./pagination";
-export type { PaginationInfo } from "./pagination";
+export { paginationInfoSchema, paginateItems } from "./pagination";
+export type {
+  PaginationInfo,
+  PaginateOptions,
+  PaginateResult,
+} from "./pagination";

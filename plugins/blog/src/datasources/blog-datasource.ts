@@ -1,7 +1,7 @@
 import {
   type DataSource,
   type BaseDataSourceContext,
-  type PaginationInfo,
+  paginateItems,
 } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -284,18 +284,18 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Fetch all posts first (we need to filter and sort before pagination)
+    // Fetch posts (filtered at database level when publishedOnly is set)
     const entities: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", { limit: 1000 });
-
-    // Filter based on publishedOnly flag (set by site-builder)
-    const filteredPosts = context.publishedOnly
-      ? entities.filter((p) => p.metadata.publishedAt) // Only published posts
-      : entities; // Show all posts (draft and published)
+      await this.entityService.listEntities<BlogPost>("post", {
+        limit: 1000,
+        ...(context.publishedOnly !== undefined && {
+          publishedOnly: context.publishedOnly,
+        }),
+      });
 
     // Sort by publishedAt (from metadata), newest first
     // Published posts come before unpublished
-    const sortedPosts = filteredPosts.sort((a, b) => {
+    const sortedPosts = entities.sort((a, b) => {
       const aPublished = a.metadata.publishedAt;
       const bPublished = b.metadata.publishedAt;
 
@@ -310,39 +310,15 @@ export class BlogDataSource implements DataSource {
       return aPublished ? -1 : 1;
     });
 
-    // Apply pagination if page is specified
-    const currentPage = page ?? 1;
-    const itemsPerPage = pageSize ?? limit ?? sortedPosts.length;
-    const totalItems = sortedPosts.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-    // Calculate slice indices
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    // Get paginated posts
-    const paginatedPosts =
-      page !== undefined
-        ? sortedPosts.slice(startIndex, endIndex)
-        : limit !== undefined
-          ? sortedPosts.slice(0, limit)
-          : sortedPosts;
+    // Paginate
+    const { items: paginatedPosts, pagination } = paginateItems(sortedPosts, {
+      page,
+      limit,
+      pageSize,
+    });
 
     // Parse frontmatter for full data
     const postsWithData = paginatedPosts.map(parsePostData);
-
-    // Build pagination info (only when paginating)
-    const pagination: PaginationInfo | null =
-      page !== undefined
-        ? {
-            currentPage,
-            totalPages,
-            totalItems,
-            pageSize: itemsPerPage,
-            hasNextPage: currentPage < totalPages,
-            hasPrevPage: currentPage > 1,
-          }
-        : null;
 
     const listData = {
       posts: postsWithData,

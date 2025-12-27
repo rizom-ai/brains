@@ -975,7 +975,8 @@ Content for ${title}`;
     });
 
     it("should only paginate published posts when publishedOnly is true", async () => {
-      const posts: BlogPost[] = [
+      // When publishedOnly is true, entity service returns only published posts
+      const publishedPosts: BlogPost[] = [
         createMockPost(
           "post-1",
           "Published 1",
@@ -983,7 +984,6 @@ Content for ${title}`;
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
-        createMockPost("post-2", "Draft 1", "draft-1", "draft"),
         createMockPost(
           "post-3",
           "Published 2",
@@ -991,7 +991,6 @@ Content for ${title}`;
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
-        createMockPost("post-4", "Draft 2", "draft-2", "draft"),
         createMockPost(
           "post-5",
           "Published 3",
@@ -1003,13 +1002,19 @@ Content for ${title}`;
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(publishedPosts);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 2 } },
         paginatedListSchema,
         { ...mockContext, publishedOnly: true },
       );
+
+      // Verify publishedOnly was passed to entity service
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
+        limit: 1000,
+        publishedOnly: true,
+      });
 
       expect(result.pagination?.totalItems).toBe(3); // Only 3 published posts
       expect(result.pagination?.totalPages).toBe(2); // 3 posts / 2 per page = 2 pages

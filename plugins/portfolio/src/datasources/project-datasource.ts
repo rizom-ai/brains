@@ -1,7 +1,7 @@
 import {
   type DataSource,
   type BaseDataSourceContext,
-  type PaginationInfo,
+  paginateItems,
 } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -204,39 +204,14 @@ export class ProjectDataSource implements DataSource {
       return a.metadata.title.localeCompare(b.metadata.title);
     });
 
-    // Apply pagination if page is specified
-    const currentPage = page ?? 1;
-    const itemsPerPage = pageSize ?? limit ?? sortedProjects.length;
-    const totalItems = sortedProjects.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-    // Calculate slice indices
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    // Get paginated projects
-    const paginatedProjects =
-      page !== undefined
-        ? sortedProjects.slice(startIndex, endIndex)
-        : limit !== undefined
-          ? sortedProjects.slice(0, limit)
-          : sortedProjects;
+    // Paginate
+    const { items: paginatedProjects, pagination } = paginateItems(
+      sortedProjects,
+      { page, limit, pageSize },
+    );
 
     // Parse frontmatter for full data
     const projectsWithData = paginatedProjects.map(parseProjectData);
-
-    // Build pagination info (only when paginating)
-    const pagination: PaginationInfo | null =
-      page !== undefined
-        ? {
-            currentPage,
-            totalPages,
-            totalItems,
-            pageSize: itemsPerPage,
-            hasNextPage: currentPage < totalPages,
-            hasPrevPage: currentPage > 1,
-          }
-        : null;
 
     const listData = {
       projects: projectsWithData,
