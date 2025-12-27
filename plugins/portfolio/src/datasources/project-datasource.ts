@@ -1,7 +1,7 @@
 import {
   type DataSource,
   type BaseDataSourceContext,
-  paginateItems,
+  buildPaginationInfo,
 } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -169,11 +169,16 @@ export class ProjectDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Fetch projects with database-level sorting and filtering
+    const currentPage = page ?? 1;
+    const itemsPerPage = pageSize ?? limit ?? 10;
+    const offset = (currentPage - 1) * itemsPerPage;
+
+    // Fetch projects with database-level sorting, filtering, and pagination
     const projects: Project[] = await this.entityService.listEntities<Project>(
       "project",
       {
-        limit: 1000,
+        limit: itemsPerPage,
+        offset,
         sortFields: [
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },
@@ -184,15 +189,19 @@ export class ProjectDataSource implements DataSource {
       },
     );
 
-    // Paginate
-    const { items: paginatedProjects, pagination } = paginateItems(projects, {
-      page,
-      limit,
-      pageSize,
-    });
+    // Get total count for pagination info (only if page is specified)
+    let pagination = null;
+    if (page !== undefined) {
+      const totalItems = await this.entityService.countEntities("project", {
+        ...(context.publishedOnly !== undefined && {
+          publishedOnly: context.publishedOnly,
+        }),
+      });
+      pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
+    }
 
     // Parse frontmatter for full data
-    const projectsWithData = paginatedProjects.map(parseProjectData);
+    const projectsWithData = projects.map(parseProjectData);
 
     const listData = {
       projects: projectsWithData,

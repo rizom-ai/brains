@@ -168,6 +168,13 @@ export interface ICoreEntityService {
   hasEntityType(type: string): boolean;
 
   // Entity counts
+  countEntities(
+    entityType: string,
+    options?: {
+      publishedOnly?: boolean;
+      filter?: { metadata?: Record<string, unknown> };
+    },
+  ): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
 }
 

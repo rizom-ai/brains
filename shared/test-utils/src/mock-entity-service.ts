@@ -12,6 +12,7 @@ export interface MockEntityServiceReturns {
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
   search?: BaseEntity[];
+  countEntities?: number;
 }
 
 /**
@@ -99,6 +100,7 @@ export function createMockEntityService(
     getAsyncJobStatus: mock(() =>
       Promise.resolve({ status: "completed" as const }),
     ),
+    countEntities: mock(() => Promise.resolve(returns.countEntities ?? 0)),
     getEntityCounts: mock(() => Promise.resolve([])),
     storeEntityWithEmbedding: mock(() => Promise.resolve()),
   } as unknown as IEntityService;

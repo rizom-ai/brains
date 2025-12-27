@@ -9,7 +9,11 @@ export type {
 export { DataSourceRegistry } from "./registry";
 
 // Pagination
-export { paginationInfoSchema, paginateItems } from "./pagination";
+export {
+  paginationInfoSchema,
+  paginateItems,
+  buildPaginationInfo,
+} from "./pagination";
 export type {
   PaginationInfo,
   PaginateOptions,

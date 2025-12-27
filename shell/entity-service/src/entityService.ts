@@ -422,6 +422,20 @@ export class EntityService implements IEntityService {
   }
 
   /**
+   * Count entities of a specific type with optional filters
+   * Used for database-level pagination
+   */
+  public async countEntities(
+    entityType: string,
+    options?: {
+      publishedOnly?: boolean;
+      filter?: { metadata?: Record<string, unknown> };
+    },
+  ): Promise<number> {
+    return this.entityQueries.countEntities(entityType, options);
+  }
+
+  /**
    * Get entity counts grouped by type
    */
   public async getEntityCounts(): Promise<

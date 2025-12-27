@@ -195,6 +195,47 @@ export class EntityQueries {
   }
 
   /**
+   * Count entities of a specific type with optional filters
+   * Used for database-level pagination
+   */
+  public async countEntities(
+    entityType: string,
+    options: {
+      publishedOnly?: boolean;
+      filter?: { metadata?: Record<string, unknown> };
+    } = {},
+  ): Promise<number> {
+    const { publishedOnly, filter } = options;
+
+    // Build where conditions (same logic as listEntities)
+    const whereConditions = [eq(entities.entityType, entityType)];
+
+    if (publishedOnly) {
+      whereConditions.push(
+        sql`json_extract(${entities.metadata}, '$.status') = 'published'`,
+      );
+    }
+
+    if (filter?.metadata) {
+      for (const [key, value] of Object.entries(filter.metadata)) {
+        if (value !== undefined) {
+          const jsonPath = `$.${key}`;
+          whereConditions.push(
+            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
+          );
+        }
+      }
+    }
+
+    const result = await this.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(entities)
+      .where(and(...whereConditions));
+
+    return Number(result[0]?.count ?? 0);
+  }
+
+  /**
    * Get entity counts grouped by type
    */
   public async getEntityCounts(): Promise<

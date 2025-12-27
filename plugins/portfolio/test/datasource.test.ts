@@ -108,8 +108,10 @@ Outcome for ${title}`;
       ).toBe(true);
 
       // Verify sortFields and publishedOnly were passed to entity service
+      // Default limit is 10, offset is 0 when no pagination specified
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
-        limit: 1000,
+        limit: 10,
+        offset: 0,
         sortFields: [
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },
@@ -161,8 +163,10 @@ Outcome for ${title}`;
       expect(statuses).toContain("draft");
 
       // Verify sortFields and publishedOnly: false was passed to entity service
+      // Default limit is 10, offset is 0 when no pagination specified
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
-        limit: 1000,
+        limit: 10,
+        offset: 0,
         sortFields: [
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },

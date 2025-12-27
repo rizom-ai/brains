@@ -19,6 +19,26 @@ export const paginationInfoSchema = z.object({
 export type PaginationInfo = z.infer<typeof paginationInfoSchema>;
 
 /**
+ * Build pagination info from total count and page parameters
+ * Used for database-level pagination where we have a separate count query
+ */
+export function buildPaginationInfo(
+  totalItems: number,
+  page: number,
+  pageSize: number,
+): PaginationInfo {
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  return {
+    currentPage: page,
+    totalPages,
+    totalItems,
+    pageSize,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
+  };
+}
+
+/**
  * Options for paginating items
  */
 export interface PaginateOptions {
