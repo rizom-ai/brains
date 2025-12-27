@@ -12,6 +12,7 @@ import {
   blogPostFrontmatterSchema,
 } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
+import { SiteInfoAdapter, type SiteInfoCTA } from "@brains/site-builder-plugin";
 
 /**
  * Homepage data returned by datasource (non-enriched)
@@ -23,6 +24,7 @@ interface HomepageDataSourceOutput {
   decks: DeckEntity[];
   postsListUrl: string;
   decksListUrl: string;
+  cta: SiteInfoCTA;
 }
 
 /**
@@ -107,12 +109,31 @@ export class HomepageListDataSource implements DataSource {
     // Sort by publishedAt (or created as fallback) and take the 3 most recent
     const decks = publishedDecks.sort(sortByPublicationDate).slice(0, 3);
 
+    // Fetch site-info for CTA
+    const siteInfoEntities = await this.entityService.listEntities(
+      "site-info",
+      {
+        limit: 1,
+      },
+    );
+    const siteInfoEntity = siteInfoEntities[0];
+    if (!siteInfoEntity) {
+      throw new Error("Site info not found");
+    }
+
+    const siteInfoAdapter = new SiteInfoAdapter();
+    const siteInfo = siteInfoAdapter.parseSiteInfoBody(siteInfoEntity.content);
+    if (!siteInfo.cta) {
+      throw new Error("CTA not configured in site-info");
+    }
+
     const data: HomepageDataSourceOutput = {
       profile,
       posts,
       decks,
       postsListUrl: this.postsListUrl,
       decksListUrl: this.decksListUrl,
+      cta: siteInfo.cta,
     };
 
     return outputSchema.parse(data);

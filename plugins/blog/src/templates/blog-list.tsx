@@ -31,6 +31,13 @@ export const BlogListTemplate = ({
     title: post.metadata.title,
     date: post.metadata.publishedAt || post.created,
     description: post.frontmatter.excerpt,
+    series:
+      post.frontmatter.seriesName && post.frontmatter.seriesIndex
+        ? {
+            name: post.frontmatter.seriesName,
+            index: post.frontmatter.seriesIndex,
+          }
+        : undefined,
   }));
 
   const title = pageTitle ?? "Essays";

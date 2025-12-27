@@ -18,9 +18,12 @@ export type { HeadProps } from "@brains/ui-library";
 export type { SiteContent } from "./types";
 export { siteContentSchema } from "./types";
 
-// Export site info types
+// Export site info types and adapter
 export type { SiteInfo } from "./types/site-info";
 export { SiteInfoSchema } from "./types/site-info";
+export { SiteInfoAdapter } from "./services/site-info-adapter";
+export type { SiteInfoBody, SiteInfoCTA } from "./services/site-info-schema";
+export { siteInfoCTASchema } from "./services/site-info-schema";
 
 // Export event payload types for plugins that subscribe to build events
 export type { SiteBuildCompletedPayload } from "./types/job-types";

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { ContentListItem } from "./ContentListItem";
+import { ContentListItem, type SeriesInfo } from "./ContentListItem";
 
 export interface ContentItem {
   id: string;
@@ -7,6 +7,7 @@ export interface ContentItem {
   title: string;
   date: string;
   description?: string | undefined;
+  series?: SeriesInfo | undefined;
 }
 
 export interface ContentSectionProps {
@@ -68,6 +69,7 @@ export const ContentSection = ({
                     title={item.title}
                     date={item.date}
                     description={item.description}
+                    series={item.series}
                   />
                 ))}
               </ul>

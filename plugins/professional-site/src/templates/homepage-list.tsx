@@ -2,8 +2,10 @@ import type { JSX } from "preact";
 import type { ProfessionalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
+import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 import { ContentSection, type ContentItem, Head } from "@brains/ui-library";
 import { WavyDivider } from "../components/WavyDivider";
+import { CTASection } from "../components/CTASection";
 
 /**
  * Homepage data structure
@@ -15,6 +17,7 @@ export interface HomepageListData {
   decks: EnrichedDeck[];
   postsListUrl: string;
   decksListUrl: string;
+  cta: SiteInfoCTA;
 }
 
 /**
@@ -27,17 +30,25 @@ export const HomepageListLayout = ({
   decks,
   postsListUrl,
   decksListUrl,
+  cta,
 }: HomepageListData): JSX.Element => {
   // Use tagline if available, fall back to description
   const tagline = profile.tagline || profile.description;
 
-  // Map posts to ContentItem format
+  // Map posts to ContentItem format with series badges
   const postItems: ContentItem[] = posts.map((post) => ({
     id: post.id,
     url: post.url,
     title: post.metadata.title,
     date: post.metadata.publishedAt || post.created,
     description: post.frontmatter.excerpt,
+    series:
+      post.frontmatter.seriesName && post.frontmatter.seriesIndex
+        ? {
+            name: post.frontmatter.seriesName,
+            index: post.frontmatter.seriesIndex,
+          }
+        : undefined,
   }));
 
   // Map decks to ContentItem format
@@ -100,28 +111,33 @@ export const HomepageListLayout = ({
           {/* About Section */}
           {(profile.description ||
             (profile.expertise && profile.expertise.length > 0)) && (
-            <ContentSection title="About" viewAllUrl="/about">
-              <div className="space-y-6">
-                {profile.description && (
-                  <p className="text-lg text-theme leading-relaxed">
-                    {profile.description}
-                  </p>
-                )}
-                {profile.expertise && profile.expertise.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.expertise.map((skill, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </ContentSection>
+            <div className="mb-20 md:mb-32">
+              <ContentSection title="About" viewAllUrl="/about">
+                <div className="space-y-6">
+                  {profile.description && (
+                    <p className="text-lg text-theme leading-relaxed">
+                      {profile.description}
+                    </p>
+                  )}
+                  {profile.expertise && profile.expertise.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {profile.expertise.map((skill, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </ContentSection>
+            </div>
           )}
+
+          {/* CTA Section */}
+          <CTASection cta={cta} socialLinks={profile.socialLinks} />
         </div>
       </div>
     </>

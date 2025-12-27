@@ -24,6 +24,15 @@ export const siteInfoSchema = baseEntitySchema.extend({
 export type SiteInfoEntity = z.infer<typeof siteInfoSchema>;
 
 /**
+ * CTA schema - call-to-action configuration
+ */
+export const siteInfoCTASchema = z.object({
+  heading: z.string().describe("Main CTA heading text"),
+  buttonText: z.string().describe("Call-to-action button text"),
+  buttonLink: z.string().describe("URL or anchor for the CTA button"),
+});
+
+/**
  * Site info body schema - structure of content within the markdown
  * (Not stored as separate entity fields - parsed from content)
  */
@@ -39,17 +48,15 @@ export const siteInfoBodySchema = z.object({
     .enum(["light", "dark"])
     .optional()
     .describe("Default theme mode"),
-  cta: z
-    .object({
-      heading: z.string().describe("Main CTA heading text"),
-      buttonText: z.string().describe("Call-to-action button text"),
-      buttonLink: z.string().describe("URL or anchor for the CTA button"),
-    })
-    .optional()
-    .describe("Call-to-action configuration"),
+  cta: siteInfoCTASchema.optional().describe("Call-to-action configuration"),
 });
 
 /**
  * Site info body type
  */
 export type SiteInfoBody = z.infer<typeof siteInfoBodySchema>;
+
+/**
+ * CTA configuration type
+ */
+export type SiteInfoCTA = NonNullable<SiteInfoBody["cta"]>;

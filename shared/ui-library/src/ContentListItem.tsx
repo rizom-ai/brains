@@ -1,10 +1,16 @@
 import type { JSX } from "preact";
 
+export interface SeriesInfo {
+  name: string;
+  index: number;
+}
+
 export interface ContentListItemProps {
   url: string;
   title: string;
   date: string;
   description?: string | undefined;
+  series?: SeriesInfo | undefined;
 }
 
 /**
@@ -16,11 +22,17 @@ export const ContentListItem = ({
   title,
   date,
   description,
+  series,
 }: ContentListItemProps): JSX.Element => {
   return (
     <li>
       <a href={url} className="group block">
-        <h3 className="text-lg font-medium mb-2 text-heading group-hover:underline">
+        {series && (
+          <span className="text-xs font-medium text-accent uppercase tracking-wide">
+            {String(series.index).padStart(3, "0")} {series.name}
+          </span>
+        )}
+        <h3 className="text-lg font-medium text-heading group-hover:underline mb-2">
           {title}
         </h3>
         <time className="text-sm text-theme-muted block mb-3">

@@ -1,6 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo } from "@brains/site-builder-plugin";
 import { CompactHeader } from "../components/CompactHeader";
+import { WavyDivider } from "../components/WavyDivider";
 import { Footer } from "@brains/default-site-content";
 
 export interface ProfessionalLayoutProps {
@@ -28,6 +29,8 @@ export function ProfessionalLayout({
       />
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
+
+      <WavyDivider />
 
       <Footer
         primaryNavigation={siteInfo.navigation.primary}

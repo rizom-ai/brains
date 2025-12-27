@@ -50,7 +50,7 @@ export type { EntryCardProps } from "./EntryCard";
 export { StatBox } from "./StatBox";
 export type { StatBoxProps } from "./StatBox";
 export { ContentListItem } from "./ContentListItem";
-export type { ContentListItemProps } from "./ContentListItem";
+export type { ContentListItemProps, SeriesInfo } from "./ContentListItem";
 export { ContentSection } from "./ContentSection";
 export type { ContentSectionProps, ContentItem } from "./ContentSection";
 export { HeadProvider, Head, useHead, HeadContext } from "./Head";

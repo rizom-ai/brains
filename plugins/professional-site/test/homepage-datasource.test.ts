@@ -8,6 +8,7 @@ import { z, computeContentHash } from "@brains/utils";
 import { blogPostWithDataSchema } from "@brains/blog";
 import { deckSchema } from "@brains/decks";
 import { professionalProfileSchema } from "../src/schemas";
+import { siteInfoCTASchema } from "@brains/site-builder-plugin";
 
 describe("HomepageListDataSource", () => {
   let datasource: HomepageListDataSource;
@@ -85,6 +86,35 @@ Content here`;
     },
   };
 
+  const siteInfoContent = `# Site Information
+
+## Title
+Test Site
+
+## Description
+A test professional site
+
+## CTA
+
+### Heading
+Let's work together
+
+### Button Text
+Get in Touch
+
+### Button Link
+mailto:test@example.com`;
+
+  const mockSiteInfo = {
+    id: "site-info",
+    entityType: "site-info" as const,
+    content: siteInfoContent,
+    contentHash: computeContentHash(siteInfoContent),
+    created: "2025-01-01T10:00:00.000Z",
+    updated: "2025-01-01T10:00:00.000Z",
+    metadata: {},
+  };
+
   beforeEach(() => {
     mockEntityService = createMockEntityService();
     spyOn(mockEntityService, "listEntities").mockImplementation(
@@ -92,6 +122,7 @@ Content here`;
         if (entityType === "profile") return Promise.resolve([mockProfile]);
         if (entityType === "post") return Promise.resolve([mockPost]);
         if (entityType === "deck") return Promise.resolve([mockDeck]);
+        if (entityType === "site-info") return Promise.resolve([mockSiteInfo]);
         return Promise.resolve([]);
       },
     );
@@ -105,11 +136,12 @@ Content here`;
     expect(datasource.description).toContain("homepage");
   });
 
-  it("should fetch profile, posts, and decks", async () => {
+  it("should fetch profile, posts, decks, and CTA", async () => {
     const schema = z.object({
       profile: professionalProfileSchema,
       posts: z.array(blogPostWithDataSchema),
       decks: z.array(deckSchema),
+      cta: siteInfoCTASchema,
     });
 
     const result = await datasource.fetch({}, schema);
@@ -119,6 +151,8 @@ Content here`;
     expect(result.posts).toHaveLength(1);
     expect(result.posts[0].frontmatter.excerpt).toBe("This is a test excerpt");
     expect(result.decks).toHaveLength(1);
+    expect(result.cta.heading).toBe("Let's work together");
+    expect(result.cta.buttonText).toBe("Get in Touch");
   });
 
   it("should filter published posts only", async () => {
@@ -145,6 +179,7 @@ Content here`;
           return Promise.resolve(allPosts);
         }
         if (entityType === "deck") return Promise.resolve([mockDeck]);
+        if (entityType === "site-info") return Promise.resolve([mockSiteInfo]);
         return Promise.resolve([]);
       },
     );
@@ -170,6 +205,7 @@ Content here`;
         if (entityType === "profile") return Promise.resolve([]); // No profile
         if (entityType === "post") return Promise.resolve([mockPost]);
         if (entityType === "deck") return Promise.resolve([mockDeck]);
+        if (entityType === "site-info") return Promise.resolve([mockSiteInfo]);
         return Promise.resolve([]);
       },
     );
