@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
@@ -65,9 +65,9 @@ describe("ContentService", () => {
       // Register the mock template with the registry
       templateRegistry.register("test-template", mockTemplate);
       // Setup DataSource registry mock to return our mock DataSource
-      (
-        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
-      ).mockReturnValue(mockDataSource);
+      spyOn(mockDependencies.dataSourceRegistry, "get").mockReturnValue(
+        mockDataSource,
+      );
       mockDataSource.generate.mockResolvedValue("raw content");
     });
 

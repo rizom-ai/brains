@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { LinksDataSource } from "../src/datasources/links-datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";
@@ -82,9 +81,9 @@ Summary for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(publishedLinks);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        publishedLinks,
+      );
 
       const result = await datasource.fetch(
         { entityType: "link" },
@@ -128,9 +127,7 @@ Summary for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(links);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(links);
 
       const result = await datasource.fetch(
         { entityType: "link" },
@@ -160,9 +157,7 @@ Summary for ${title}`;
         createMockLink("link-3", "Middle", "draft", "2025-01-02T10:00:00.000Z"),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(links);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(links);
 
       const result = await datasource.fetch(
         { entityType: "link" },

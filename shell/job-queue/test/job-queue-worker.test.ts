@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  spyOn,
+} from "bun:test";
 import { JobQueueWorker } from "../src/job-queue-worker";
 import type { IJobQueueService, JobInfo } from "../src/types";
 import {
@@ -205,14 +213,12 @@ describe("JobQueueWorker", () => {
         },
       });
       // Override dequeue to return a job once, then null
-      (mockService.dequeue as ReturnType<typeof mock>).mockImplementation(
-        () => {
-          callCount++;
-          return callCount === 1
-            ? Promise.resolve(testJob)
-            : Promise.resolve(null);
-        },
-      );
+      spyOn(mockService, "dequeue").mockImplementation(() => {
+        callCount++;
+        return callCount === 1
+          ? Promise.resolve(testJob)
+          : Promise.resolve(null);
+      });
 
       worker = JobQueueWorker.createFresh(
         mockService,
@@ -274,14 +280,12 @@ describe("JobQueueWorker", () => {
         },
       });
       // Override dequeue to return a job once, then null
-      (mockService.dequeue as ReturnType<typeof mock>).mockImplementation(
-        () => {
-          callCount++;
-          return callCount === 1
-            ? Promise.resolve(testJob)
-            : Promise.resolve(null);
-        },
-      );
+      spyOn(mockService, "dequeue").mockImplementation(() => {
+        callCount++;
+        return callCount === 1
+          ? Promise.resolve(testJob)
+          : Promise.resolve(null);
+      });
 
       worker = JobQueueWorker.createFresh(
         mockService,

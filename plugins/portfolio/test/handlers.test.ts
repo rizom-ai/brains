@@ -1,4 +1,3 @@
-import type { mock } from "bun:test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { ServicePluginContext, Logger } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
@@ -114,13 +113,12 @@ describe("ProjectGenerationJobHandler", () => {
 
     it("should create entity with correct structure", async () => {
       const data = { prompt: "Build an API", year: 2024 };
+      const createEntitySpy = spyOn(context.entityService, "createEntity");
       await handler.process(data, "job-123", progressReporter);
 
       expect(context.entityService.createEntity).toHaveBeenCalled();
 
-      const createCall = (
-        context.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityArg = createCall?.[0] as {
         entityType: string;
         content: string;
@@ -138,10 +136,10 @@ describe("ProjectGenerationJobHandler", () => {
 
     it("should report progress throughout processing", async () => {
       const data = { prompt: "Build an API", year: 2024 };
+      const reportSpy = spyOn(progressReporter, "report");
       await handler.process(data, "job-123", progressReporter);
 
-      const reportCalls = (progressReporter.report as ReturnType<typeof mock>)
-        .mock.calls;
+      const reportCalls = reportSpy.mock.calls;
       expect(reportCalls.length).toBeGreaterThanOrEqual(4);
 
       // Check progress increases

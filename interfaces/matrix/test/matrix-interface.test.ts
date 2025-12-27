@@ -1,5 +1,13 @@
 import "./mocks/setup";
-import { describe, it, expect, beforeEach, mock, afterEach } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  mock,
+  afterEach,
+  spyOn,
+} from "bun:test";
 import { MatrixInterface } from "../src";
 import { createInterfacePluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
@@ -368,7 +376,7 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Reset mock for confirmation
-      (mockAgentService.chat as ReturnType<typeof mock>).mockClear();
+      spyOn(mockAgentService, "chat").mockClear();
       mockAgentService.confirmPendingAction = mock(() =>
         Promise.resolve({
           text: "Note deleted successfully.",
@@ -417,7 +425,7 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Reset mock for cancellation
-      (mockAgentService.chat as ReturnType<typeof mock>).mockClear();
+      spyOn(mockAgentService, "chat").mockClear();
       mockAgentService.confirmPendingAction = mock(() =>
         Promise.resolve({
           text: "Action cancelled.",

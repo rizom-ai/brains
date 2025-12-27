@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
 import type { EntityRouteConfig } from "../../src/config";
 import {
@@ -9,7 +9,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { ProfileService } from "@brains/profile-service";
-import { computeContentHash } from "@brains/utils";
+import { computeContentHash, z } from "@brains/utils";
 
 // Type for accessing private methods in tests
 interface SiteBuilderTestable {
@@ -41,9 +41,12 @@ describe("SiteBuilder - URL Enrichment", () => {
   beforeEach(() => {
     mockContext = createMockServicePluginContext({ logger });
     // Override specific methods for this test
-    (mockContext.getViewTemplate as ReturnType<typeof mock>).mockReturnValue({
+    spyOn(mockContext, "getViewTemplate").mockReturnValue({
       name: "test-template",
-      component: () => "<div>Test</div>",
+      pluginId: "test",
+      schema: z.object({}),
+      renderers: {},
+      interactive: false,
     });
 
     mockRouteRegistry = {

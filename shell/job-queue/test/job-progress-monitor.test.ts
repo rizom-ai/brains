@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  mock,
+  spyOn,
+} from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
 import type { IBatchJobManager, IJobQueueService } from "../src/types";
 import {
@@ -60,7 +68,7 @@ describe("JobProgressMonitor", () => {
     mockBatchJobManager = createMockBatchJobManager();
 
     mockMessageBus = createMockMessageBus();
-    messageBusSendMock = mockMessageBus.send as ReturnType<typeof mock>;
+    messageBusSendMock = spyOn(mockMessageBus, "send");
 
     mockLogger = createSilentLogger();
 

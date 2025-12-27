@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
 import type { IEntityService, Logger } from "@brains/plugins";
@@ -74,9 +73,9 @@ describe("DeckDataSource", () => {
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(publishedDecks);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        publishedDecks,
+      );
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -110,9 +109,7 @@ describe("DeckDataSource", () => {
         createMockDeck("deck-3", "Another Draft", "another-draft", "draft"),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(decks);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(decks);
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -158,9 +155,7 @@ describe("DeckDataSource", () => {
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(decks);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(decks);
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -175,9 +170,7 @@ describe("DeckDataSource", () => {
     });
 
     it("should handle empty deck list", async () => {
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -203,9 +196,7 @@ describe("DeckDataSource", () => {
         "2025-01-01T10:00:00.000Z",
       );
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([deck]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
 
       const result = await datasource.fetch(
         { entityType: "deck", query: { id: "test-deck" } },
@@ -217,9 +208,7 @@ describe("DeckDataSource", () => {
     });
 
     it("should throw error when deck not found", async () => {
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       expect(
         datasource.fetch(

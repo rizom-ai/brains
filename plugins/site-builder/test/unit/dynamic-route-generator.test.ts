@@ -1,20 +1,38 @@
-import { describe, test, expect, beforeEach } from "bun:test";
-import { mock } from "bun:test";
+import { describe, test, expect, beforeEach, spyOn } from "bun:test";
 import { DynamicRouteGenerator } from "../../src/lib/dynamic-route-generator";
 import { RouteRegistry } from "../../src/lib/route-registry";
-import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  ViewTemplate,
+  BaseEntity,
+} from "@brains/plugins";
 import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
+// Factory to create complete mock entities
+const createMockEntity = (
+  id: string,
+  entityType: string,
+  slug?: string,
+): BaseEntity => ({
+  id,
+  entityType,
+  content: `# ${id}`,
+  contentHash: `hash-${id}`,
+  created: new Date().toISOString(),
+  updated: new Date().toISOString(),
+  metadata: slug ? { slug } : {},
+});
+
 describe("DynamicRouteGenerator", () => {
   let routeRegistry: RouteRegistry;
   let generator: DynamicRouteGenerator;
   let mockContext: ServicePluginContext;
   let entityTypes: string[];
-  let entities: Map<string, unknown[]>;
+  let entities: Map<string, BaseEntity[]>;
   let templates: ViewTemplate[];
 
   beforeEach(() => {
@@ -24,18 +42,16 @@ describe("DynamicRouteGenerator", () => {
     const logger = createSilentLogger("test");
     routeRegistry = new RouteRegistry(logger);
 
-    mockContext = createMockServicePluginContext({ logger });
+    mockContext = createMockServicePluginContext({
+      logger,
+      listEntitiesImpl: async (type) => entities.get(type) ?? [],
+    });
     // Override entityService methods to use test data
-    (
-      mockContext.entityService.getEntityTypes as ReturnType<typeof mock>
-    ).mockImplementation(() => entityTypes);
-    (
-      mockContext.entityService.listEntities as ReturnType<typeof mock>
-    ).mockImplementation(async (type: string) => entities.get(type) ?? []);
+    spyOn(mockContext.entityService, "getEntityTypes").mockImplementation(
+      () => entityTypes,
+    );
     // Override listViewTemplates to use test data
-    (
-      mockContext.listViewTemplates as ReturnType<typeof mock>
-    ).mockImplementation(() => templates);
+    spyOn(mockContext, "listViewTemplates").mockImplementation(() => templates);
 
     generator = new DynamicRouteGenerator(mockContext, routeRegistry);
   });
@@ -57,16 +73,8 @@ describe("DynamicRouteGenerator", () => {
       // Set up entity type and entities
       entityTypes.push("topic");
       entities.set("topic", [
-        {
-          id: "intro-to-ai",
-          entityType: "topic",
-          metadata: { slug: "intro-to-ai" },
-        },
-        {
-          id: "machine-learning",
-          entityType: "topic",
-          metadata: { slug: "machine-learning" },
-        },
+        createMockEntity("intro-to-ai", "topic", "intro-to-ai"),
+        createMockEntity("machine-learning", "topic", "machine-learning"),
       ]);
 
       // Set up templates
@@ -125,12 +133,8 @@ describe("DynamicRouteGenerator", () => {
 
     test("should handle multiple entity types", async () => {
       entityTypes.push("topic", "profile");
-      entities.set("topic", [
-        { id: "topic1", entityType: "topic", metadata: {} },
-      ]);
-      entities.set("profile", [
-        { id: "user1", entityType: "profile", metadata: {} },
-      ]);
+      entities.set("topic", [createMockEntity("topic1", "topic")]);
+      entities.set("profile", [createMockEntity("user1", "profile")]);
 
       templates.push(
         {
@@ -175,16 +179,8 @@ describe("DynamicRouteGenerator", () => {
       // Set up entity type and entities
       entityTypes.push("blog");
       entities.set("blog", [
-        {
-          id: "post-1",
-          entityType: "blog",
-          metadata: { slug: "post-1" },
-        },
-        {
-          id: "post-2",
-          entityType: "blog",
-          metadata: { slug: "post-2" },
-        },
+        createMockEntity("post-1", "blog", "post-1"),
+        createMockEntity("post-2", "blog", "post-2"),
       ]);
 
       // Set up templates
@@ -215,13 +211,7 @@ describe("DynamicRouteGenerator", () => {
       expect(routeRegistry.get("/blogs/post-2")).toBeDefined();
 
       // Delete one entity
-      entities.set("blog", [
-        {
-          id: "post-2",
-          entityType: "blog",
-          metadata: { slug: "post-2" },
-        },
-      ]);
+      entities.set("blog", [createMockEntity("post-2", "blog", "post-2")]);
 
       // Regenerate routes
       await generator.generateEntityRoutes();
@@ -251,15 +241,13 @@ describe("DynamicRouteGenerator", () => {
         const testContext = createMockServicePluginContext({
           logger: testLogger,
         });
-        (
-          testContext.entityService.getEntityTypes as ReturnType<typeof mock>
-        ).mockImplementation(() => [entity]);
-        (
-          testContext.entityService.listEntities as ReturnType<typeof mock>
-        ).mockImplementation(async () => []);
-        (
-          testContext.listViewTemplates as ReturnType<typeof mock>
-        ).mockImplementation(() => [
+        spyOn(testContext.entityService, "getEntityTypes").mockImplementation(
+          () => [entity],
+        );
+        spyOn(testContext.entityService, "listEntities").mockImplementation(
+          async () => [],
+        );
+        spyOn(testContext, "listViewTemplates").mockImplementation(() => [
           {
             name: `test:${entity}-list`,
             pluginId: "test",
@@ -351,9 +339,7 @@ describe("DynamicRouteGenerator", () => {
     test("should use custom label with default pluralName", async () => {
       // Set up entity type
       entityTypes.push("post");
-      entities.set("post", [
-        { id: "essay-1", entityType: "post", metadata: { slug: "essay-1" } },
-      ]);
+      entities.set("post", [createMockEntity("essay-1", "post", "essay-1")]);
 
       // Set up templates
       templates.push(
@@ -397,9 +383,7 @@ describe("DynamicRouteGenerator", () => {
 
     test("should use custom label with explicit pluralName", async () => {
       entityTypes.push("deck");
-      entities.set("deck", [
-        { id: "deck-1", entityType: "deck", metadata: { slug: "deck-1" } },
-      ]);
+      entities.set("deck", [createMockEntity("deck-1", "deck", "deck-1")]);
 
       templates.push(
         {
@@ -441,12 +425,8 @@ describe("DynamicRouteGenerator", () => {
 
     test("should handle mixed configured and non-configured entity types", async () => {
       entityTypes.push("post", "topic");
-      entities.set("post", [
-        { id: "post-1", entityType: "post", metadata: { slug: "post-1" } },
-      ]);
-      entities.set("topic", [
-        { id: "topic-1", entityType: "topic", metadata: { slug: "topic-1" } },
-      ]);
+      entities.set("post", [createMockEntity("post-1", "post", "post-1")]);
+      entities.set("topic", [createMockEntity("topic-1", "topic", "topic-1")]);
 
       templates.push(
         {
@@ -507,9 +487,7 @@ describe("DynamicRouteGenerator", () => {
 
     test("should maintain backward compatibility without config", async () => {
       entityTypes.push("post");
-      entities.set("post", [
-        { id: "post-1", entityType: "post", metadata: { slug: "post-1" } },
-      ]);
+      entities.set("post", [createMockEntity("post-1", "post", "post-1")]);
 
       templates.push(
         {
@@ -551,11 +529,9 @@ describe("DynamicRouteGenerator", () => {
     test("should generate paginated routes by default", async () => {
       entityTypes.push("post");
       // Create 15 entities to trigger multiple pages with default pageSize of 10
-      const posts = Array.from({ length: 15 }, (_, i) => ({
-        id: `post-${i + 1}`,
-        entityType: "post",
-        metadata: { slug: `post-${i + 1}` },
-      }));
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
       entities.set("post", posts);
 
       templates.push({
@@ -583,11 +559,9 @@ describe("DynamicRouteGenerator", () => {
 
     test("should only show navigation on first page", async () => {
       entityTypes.push("post");
-      const posts = Array.from({ length: 15 }, (_, i) => ({
-        id: `post-${i + 1}`,
-        entityType: "post",
-        metadata: { slug: `post-${i + 1}` },
-      }));
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
       entities.set("post", posts);
 
       templates.push({
@@ -609,11 +583,9 @@ describe("DynamicRouteGenerator", () => {
 
     test("should include baseUrl in paginated route data query", async () => {
       entityTypes.push("post");
-      const posts = Array.from({ length: 15 }, (_, i) => ({
-        id: `post-${i + 1}`,
-        entityType: "post",
-        metadata: { slug: `post-${i + 1}` },
-      }));
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
       entities.set("post", posts);
 
       templates.push({
@@ -640,11 +612,9 @@ describe("DynamicRouteGenerator", () => {
     test("should respect custom pageSize in config", async () => {
       entityTypes.push("post");
       // Create 10 entities, with pageSize of 3 = 4 pages
-      const posts = Array.from({ length: 10 }, (_, i) => ({
-        id: `post-${i + 1}`,
-        entityType: "post",
-        metadata: { slug: `post-${i + 1}` },
-      }));
+      const posts = Array.from({ length: 10 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
       entities.set("post", posts);
 
       templates.push({
@@ -679,11 +649,9 @@ describe("DynamicRouteGenerator", () => {
 
     test("should disable pagination when paginate is false", async () => {
       entityTypes.push("post");
-      const posts = Array.from({ length: 15 }, (_, i) => ({
-        id: `post-${i + 1}`,
-        entityType: "post",
-        metadata: { slug: `post-${i + 1}` },
-      }));
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
       entities.set("post", posts);
 
       templates.push({
@@ -718,11 +686,9 @@ describe("DynamicRouteGenerator", () => {
     test("should generate single page when entities fit in one page", async () => {
       entityTypes.push("post");
       // Only 5 entities with default pageSize of 10
-      const posts = Array.from({ length: 5 }, (_, i) => ({
-        id: `post-${i + 1}`,
-        entityType: "post",
-        metadata: { slug: `post-${i + 1}` },
-      }));
+      const posts = Array.from({ length: 5 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
       entities.set("post", posts);
 
       templates.push({

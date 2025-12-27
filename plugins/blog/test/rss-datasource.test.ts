@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test, spyOn } from "bun:test";
 import { RSSDataSource } from "../src/datasources/rss-datasource";
 import {
   createSilentLogger,
@@ -14,9 +13,7 @@ import { computeContentHash } from "@brains/utils";
 describe("RSSDataSource", () => {
   const createMockEntityService = (posts: BlogPost[]): IEntityService => {
     const mockEntityService = createBaseMockEntityService();
-    (
-      mockEntityService.listEntities as ReturnType<typeof mock>
-    ).mockResolvedValue(posts);
+    spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
     return mockEntityService;
   };
 

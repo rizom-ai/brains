@@ -229,9 +229,7 @@ describe("PluginManager - Direct Registration", () => {
       expect(registeredTools.map((t) => t.tool.name)).toContain("second:tool");
     });
 
-    it("should not use MessageBus for registration", async () => {
-      const emitMock = mock(() => {});
-
+    it("should use direct registration instead of MessageBus", async () => {
       // Create plugin manager (MessageBus no longer needed)
       pluginManager = PluginManager.getInstance(
         mockServiceRegistry,
@@ -242,15 +240,7 @@ describe("PluginManager - Direct Registration", () => {
       pluginManager.registerPlugin(plugin);
       await pluginManager.initializePlugins();
 
-      // MessageBus should not be used for tool/resource registration
-      const mockFn = emitMock as ReturnType<typeof mock>;
-      const calls = mockFn.mock.calls as Array<[string, ...unknown[]]>;
-      const hasRegistrationEvent = calls.some((call) =>
-        /system:tool:register|system:resource:register/.test(call[0]),
-      );
-      expect(hasRegistrationEvent).toBe(false);
-
-      // Direct registration should be used instead
+      // Direct registration should be used instead of MessageBus events
       expect(mockMCPService.registerTool).toHaveBeenCalled();
       expect(mockMCPService.registerResource).toHaveBeenCalled();
     });

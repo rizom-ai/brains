@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { ProjectDataSource } from "../src/datasources/project-datasource";
 import type { Project } from "../src/schemas/project";
 import type { IEntityService, Logger } from "@brains/plugins";
@@ -90,9 +89,9 @@ Outcome for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(publishedProjects);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        publishedProjects,
+      );
 
       const result = await datasource.fetch(
         { entityType: "project" },
@@ -145,9 +144,7 @@ Outcome for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(projects);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(projects);
 
       const result = await datasource.fetch(
         { entityType: "project" },
@@ -213,7 +210,7 @@ Outcome for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetProject])
         .mockResolvedValueOnce(allProjectsSorted);
 
@@ -253,7 +250,7 @@ Outcome for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetProject])
         .mockResolvedValueOnce(publishedProjectsSorted);
 

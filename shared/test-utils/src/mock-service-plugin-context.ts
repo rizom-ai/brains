@@ -3,6 +3,7 @@ import type {
   ServicePluginContext,
   IEntityService,
   Logger,
+  BaseEntity,
 } from "@brains/plugins";
 import {
   createMockEntityService,
@@ -38,6 +39,8 @@ export interface MockServicePluginContextOptions {
   dataDir?: string;
   /** Pre-configured return values for methods */
   returns?: MockServicePluginContextReturns;
+  /** Dynamic implementation for listEntities */
+  listEntitiesImpl?: (type: string) => Promise<BaseEntity[]>;
 }
 
 /**
@@ -79,12 +82,14 @@ export function createMockServicePluginContext(
     pluginId = "test-plugin",
     dataDir = "/tmp/test-data",
     returns = {},
+    listEntitiesImpl,
   } = options;
 
   const entityService =
     options.entityService ??
     createMockEntityService({
       entityTypes,
+      ...(listEntitiesImpl ? { listEntitiesImpl } : {}),
       ...(returns.entityService ? { returns: returns.entityService } : {}),
     });
   const logger = options.logger ?? createMockLogger();
