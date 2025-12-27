@@ -5,7 +5,7 @@ import {
 } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { z, sortByPublicationDate } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
@@ -118,22 +118,20 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     _context: BaseDataSourceContext,
   ): Promise<T> {
-    const allPosts: BlogPost[] =
+    // Get the latest published post using database-level sorting
+    const publishedPosts: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", {
-        limit: 1000,
+        limit: 1,
+        publishedOnly: true,
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
       });
 
-    // Find the most recent published post
-    const publishedPosts = allPosts.filter((p) => p.metadata.publishedAt);
     if (publishedPosts.length === 0) {
       this.logger.info("No published blog posts found for homepage");
       throw new Error("NO_PUBLISHED_POSTS");
     }
 
-    // Sort by publishedAt, newest first
-    const sortedPosts = publishedPosts.sort(sortByPublicationDate);
-
-    const latestEntity = sortedPosts[0];
+    const latestEntity = publishedPosts[0];
     if (!latestEntity) {
       throw new Error("Failed to retrieve latest blog post");
     }
@@ -145,18 +143,14 @@ export class BlogDataSource implements DataSource {
     let seriesPosts = null;
     const seriesName = latestEntity.metadata.seriesName;
     if (seriesName) {
-      const parsedSeriesPosts = allPosts
-        .filter(
-          (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
-        )
-        .sort((a, b) => {
-          const aIndex = a.metadata.seriesIndex ?? 0;
-          const bIndex = b.metadata.seriesIndex ?? 0;
-          return aIndex - bIndex;
-        })
-        .map(parsePostData);
-
-      seriesPosts = parsedSeriesPosts;
+      const seriesEntities: BlogPost[] =
+        await this.entityService.listEntities<BlogPost>("post", {
+          limit: 100,
+          publishedOnly: true,
+          filter: { metadata: { seriesName } },
+          sortFields: [{ field: "seriesIndex", direction: "asc" }],
+        });
+      seriesPosts = seriesEntities.map(parsePostData);
     }
 
     const detailData = {
@@ -196,14 +190,12 @@ export class BlogDataSource implements DataSource {
     // Parse frontmatter for full post data
     const post = parsePostData(entity);
 
-    // For detail view, also fetch prev/next posts and series posts
-    const allPosts: BlogPost[] =
+    // For detail view, fetch posts sorted for prev/next navigation
+    const sortedPosts: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", {
         limit: 1000,
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
       });
-
-    // Sort by publishedAt (from metadata) or created if not published
-    const sortedPosts = allPosts.sort(sortByPublicationDate);
 
     const currentIndex = sortedPosts.findIndex((p) => p.id === entity.id);
     const prevEntity = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
@@ -214,22 +206,18 @@ export class BlogDataSource implements DataSource {
     const prevPost = prevEntity ? parsePostData(prevEntity) : null;
     const nextPost = nextEntity ? parsePostData(nextEntity) : null;
 
-    // Get series posts if this is part of a series (using metadata.seriesName)
+    // Get series posts if this is part of a series
     let seriesPosts = null;
     const seriesName = entity.metadata.seriesName;
     if (seriesName) {
-      const parsedSeriesPosts = allPosts
-        .filter(
-          (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
-        )
-        .sort((a, b) => {
-          const aIndex = a.metadata.seriesIndex ?? 0;
-          const bIndex = b.metadata.seriesIndex ?? 0;
-          return aIndex - bIndex;
-        })
-        .map(parsePostData);
-
-      seriesPosts = parsedSeriesPosts;
+      const seriesEntities: BlogPost[] =
+        await this.entityService.listEntities<BlogPost>("post", {
+          limit: 100,
+          publishedOnly: true,
+          filter: { metadata: { seriesName } },
+          sortFields: [{ field: "seriesIndex", direction: "asc" }],
+        });
+      seriesPosts = seriesEntities.map(parsePostData);
     }
 
     const detailData = {
@@ -250,20 +238,14 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     _context: BaseDataSourceContext,
   ): Promise<T> {
-    const allPosts: BlogPost[] =
+    const seriesEntities: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", {
-        limit: 1000,
+        limit: 100,
+        filter: { metadata: { seriesName } },
+        sortFields: [{ field: "seriesIndex", direction: "asc" }],
       });
 
-    // Filter and sort using metadata
-    const seriesPosts = allPosts
-      .filter((p) => p.metadata.seriesName === seriesName)
-      .sort((a, b) => {
-        const aIndex = a.metadata.seriesIndex ?? 0;
-        const bIndex = b.metadata.seriesIndex ?? 0;
-        return aIndex - bIndex;
-      })
-      .map(parsePostData); // Parse frontmatter for full data
+    const seriesPosts = seriesEntities.map(parsePostData);
 
     const seriesData = {
       seriesName,
@@ -284,34 +266,18 @@ export class BlogDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Fetch posts (filtered at database level when publishedOnly is set)
+    // Fetch posts with database-level sorting and filtering
     const entities: BlogPost[] =
       await this.entityService.listEntities<BlogPost>("post", {
         limit: 1000,
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
         ...(context.publishedOnly !== undefined && {
           publishedOnly: context.publishedOnly,
         }),
       });
 
-    // Sort by publishedAt (from metadata), newest first
-    // Published posts come before unpublished
-    const sortedPosts = entities.sort((a, b) => {
-      const aPublished = a.metadata.publishedAt;
-      const bPublished = b.metadata.publishedAt;
-
-      // If both published or both unpublished, sort by date
-      if ((aPublished && bPublished) || (!aPublished && !bPublished)) {
-        const aDate = aPublished ?? a.created;
-        const bDate = bPublished ?? b.created;
-        return new Date(bDate).getTime() - new Date(aDate).getTime();
-      }
-
-      // Published posts come before unpublished
-      return aPublished ? -1 : 1;
-    });
-
     // Paginate
-    const { items: paginatedPosts, pagination } = paginateItems(sortedPosts, {
+    const { items: paginatedPosts, pagination } = paginateItems(entities, {
       page,
       limit,
       pageSize,

@@ -65,14 +65,8 @@ Content for ${title}`;
 
   describe("fetchLatestPost", () => {
     it("should fetch the most recent published post", async () => {
-      const posts: BlogPost[] = [
-        createMockPost(
-          "post-1",
-          "Older Post",
-          "older-post",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
+      // Mock returns only the first post (limit: 1, already sorted by DB)
+      const latestPost: BlogPost[] = [
         createMockPost(
           "post-2",
           "Latest Post",
@@ -80,18 +74,11 @@ Content for ${title}`;
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
-        createMockPost(
-          "post-3",
-          "Middle Post",
-          "middle-post",
-          "published",
-          "2025-01-02T10:00:00.000Z",
-        ),
       ];
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(latestPost);
 
       const schema = z.object({
         post: z.any(),
@@ -114,15 +101,8 @@ Content for ${title}`;
     });
 
     it("should exclude draft posts when fetching latest", async () => {
-      const posts: BlogPost[] = [
-        createMockPost(
-          "post-1",
-          "Published Post",
-          "published-post",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
-        createMockPost("post-2", "Draft Post", "draft-post", "draft"),
+      // Mock returns only the latest published post (publishedOnly: true, limit: 1)
+      const latestPublished: BlogPost[] = [
         createMockPost(
           "post-3",
           "Another Published",
@@ -134,7 +114,7 @@ Content for ${title}`;
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(latestPublished);
 
       const schema = z.object({
         post: z.any(),
@@ -154,14 +134,10 @@ Content for ${title}`;
     });
 
     it("should throw error when no published posts exist", async () => {
-      const posts: BlogPost[] = [
-        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
-        createMockPost("post-2", "Draft 2", "draft-2", "draft"),
-      ];
-
+      // publishedOnly: true returns empty when no published posts
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue([]);
 
       const schema = z.object({
         post: z.any(),
@@ -180,7 +156,21 @@ Content for ${title}`;
     });
 
     it("should include series posts if latest post is part of a series", async () => {
-      const posts: BlogPost[] = [
+      // First call: fetch latest post (limit: 1)
+      const latestPost: BlogPost[] = [
+        createMockPost(
+          "post-3",
+          "Latest Post",
+          "latest-post",
+          "published",
+          "2025-01-03T10:00:00.000Z",
+          "My Series",
+          3,
+        ),
+      ];
+
+      // Second call: fetch series posts (sorted by seriesIndex)
+      const seriesPosts: BlogPost[] = [
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -210,9 +200,9 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      (mockEntityService.listEntities as ReturnType<typeof mock>)
+        .mockResolvedValueOnce(latestPost)
+        .mockResolvedValueOnce(seriesPosts);
 
       const schema = z.object({
         post: z.any(),
@@ -245,15 +235,8 @@ Content for ${title}`;
         "2025-01-02T10:00:00.000Z",
       );
 
-      const allPosts: BlogPost[] = [
-        createMockPost(
-          "post-1",
-          "Older Post",
-          "older-post",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
-        targetPost,
+      // DB returns sorted by publishedAt desc: newest first
+      const allPostsSorted: BlogPost[] = [
         createMockPost(
           "post-3",
           "Newer Post",
@@ -261,12 +244,20 @@ Content for ${title}`;
           "published",
           "2025-01-03T10:00:00.000Z",
         ),
+        targetPost,
+        createMockPost(
+          "post-1",
+          "Older Post",
+          "older-post",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+        ),
       ];
 
-      // First call: fetch by slug, Second call: fetch all for navigation
+      // First call: fetch by slug, Second call: fetch all for navigation (already sorted)
       (mockEntityService.listEntities as ReturnType<typeof mock>)
         .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPosts);
+        .mockResolvedValueOnce(allPostsSorted);
 
       const schema = z.object({
         post: z.any(),
@@ -282,8 +273,8 @@ Content for ${title}`;
       );
 
       expect(result.post.id).toBe("post-2");
-      expect(result.prevPost?.id).toBe("post-3"); // Newer post (prev)
-      expect(result.nextPost?.id).toBe("post-1"); // Older post (next)
+      expect(result.prevPost?.id).toBe("post-3"); // Newer post (prev in sorted list)
+      expect(result.nextPost?.id).toBe("post-1"); // Older post (next in sorted list)
       expect(result.seriesPosts).toBeNull();
     });
 
@@ -319,7 +310,38 @@ Content for ${title}`;
         2,
       );
 
-      const allPosts: BlogPost[] = [
+      // All posts sorted by publishedAt desc for navigation
+      const allPostsSorted: BlogPost[] = [
+        createMockPost(
+          "post-4",
+          "Other Post",
+          "other-post",
+          "published",
+          "2025-01-04T10:00:00.000Z",
+        ),
+        createMockPost(
+          "post-3",
+          "Series Part 3",
+          "series-part-3",
+          "published",
+          "2025-01-03T10:00:00.000Z",
+          "My Series",
+          3,
+        ),
+        targetPost,
+        createMockPost(
+          "post-1",
+          "Series Part 1",
+          "series-part-1",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+          "My Series",
+          1,
+        ),
+      ];
+
+      // Series posts sorted by seriesIndex asc
+      const seriesPosts: BlogPost[] = [
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -339,19 +361,13 @@ Content for ${title}`;
           "My Series",
           3,
         ),
-        createMockPost(
-          "post-4",
-          "Other Post",
-          "other-post",
-          "published",
-          "2025-01-04T10:00:00.000Z",
-        ),
       ];
 
-      // First call: fetch by slug, Second call: fetch all for navigation
+      // First call: fetch by slug, Second call: fetch all for navigation, Third call: fetch series
       (mockEntityService.listEntities as ReturnType<typeof mock>)
         .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPosts);
+        .mockResolvedValueOnce(allPostsSorted)
+        .mockResolvedValueOnce(seriesPosts);
 
       const schema = z.object({
         post: z.any(),
@@ -382,7 +398,8 @@ Content for ${title}`;
         "2025-01-03T10:00:00.000Z",
       );
 
-      const allPosts: BlogPost[] = [
+      // Sorted by publishedAt desc: targetPost is first (newest)
+      const allPostsSorted: BlogPost[] = [
         targetPost,
         createMockPost(
           "post-2",
@@ -396,7 +413,7 @@ Content for ${title}`;
       // First call: fetch by slug, Second call: fetch all for navigation
       (mockEntityService.listEntities as ReturnType<typeof mock>)
         .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPosts);
+        .mockResolvedValueOnce(allPostsSorted);
 
       const schema = z.object({
         post: z.any(),
@@ -425,7 +442,8 @@ Content for ${title}`;
         "2025-01-01T10:00:00.000Z",
       );
 
-      const allPosts: BlogPost[] = [
+      // Sorted by publishedAt desc: targetPost is last (oldest)
+      const allPostsSorted: BlogPost[] = [
         createMockPost(
           "post-1",
           "Newer Post",
@@ -439,7 +457,7 @@ Content for ${title}`;
       // First call: fetch by slug, Second call: fetch all for navigation
       (mockEntityService.listEntities as ReturnType<typeof mock>)
         .mockResolvedValueOnce([targetPost])
-        .mockResolvedValueOnce(allPosts);
+        .mockResolvedValueOnce(allPostsSorted);
 
       const schema = z.object({
         post: z.any(),
@@ -462,14 +480,8 @@ Content for ${title}`;
 
   describe("fetchPostList", () => {
     it("should fetch and sort all posts by publishedAt", async () => {
-      const posts: BlogPost[] = [
-        createMockPost(
-          "post-1",
-          "Oldest",
-          "oldest",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
+      // DB returns posts already sorted by publishedAt desc
+      const postsSorted: BlogPost[] = [
         createMockPost(
           "post-2",
           "Newest",
@@ -484,11 +496,18 @@ Content for ${title}`;
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
+        createMockPost(
+          "post-1",
+          "Oldest",
+          "oldest",
+          "published",
+          "2025-01-01T10:00:00.000Z",
+        ),
       ];
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(postsSorted);
 
       const schema = z.object({
         posts: z.array(z.any()),
@@ -506,9 +525,9 @@ Content for ${title}`;
       expect(result.posts[2].id).toBe("post-1"); // Oldest last
     });
 
-    it("should put published posts before drafts", async () => {
-      const posts: BlogPost[] = [
-        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
+    it("should return posts in database-sorted order (publishedAt desc)", async () => {
+      // DB sorts by publishedAt desc - drafts without publishedAt come after published posts
+      const postsSorted: BlogPost[] = [
         createMockPost(
           "post-2",
           "Published",
@@ -516,12 +535,13 @@ Content for ${title}`;
           "published",
           "2025-01-01T10:00:00.000Z",
         ),
+        createMockPost("post-1", "Draft 1", "draft-1", "draft"),
         createMockPost("post-3", "Draft 2", "draft-2", "draft"),
       ];
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(postsSorted);
 
       const schema = z.object({
         posts: z.array(z.any()),
@@ -651,16 +671,8 @@ Content for ${title}`;
 
   describe("fetchSeriesPosts", () => {
     it("should fetch posts in a series ordered by index", async () => {
-      const posts: BlogPost[] = [
-        createMockPost(
-          "post-3",
-          "Series Part 3",
-          "series-part-3",
-          "published",
-          "2025-01-03T10:00:00.000Z",
-          "My Series",
-          3,
-        ),
+      // DB returns series posts sorted by seriesIndex asc
+      const seriesPostsSorted: BlogPost[] = [
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -680,19 +692,19 @@ Content for ${title}`;
           2,
         ),
         createMockPost(
-          "other",
-          "Other Post",
-          "other-post",
+          "post-3",
+          "Series Part 3",
+          "series-part-3",
           "published",
-          "2025-01-04T10:00:00.000Z",
-          "Other Series",
-          1,
+          "2025-01-03T10:00:00.000Z",
+          "My Series",
+          3,
         ),
       ];
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(seriesPostsSorted);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -713,7 +725,8 @@ Content for ${title}`;
     });
 
     it("should include draft posts in series", async () => {
-      const posts: BlogPost[] = [
+      // DB returns series posts sorted by seriesIndex asc
+      const seriesPostsSorted: BlogPost[] = [
         createMockPost(
           "post-1",
           "Series Part 1",
@@ -736,7 +749,7 @@ Content for ${title}`;
 
       (
         mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      ).mockResolvedValue(seriesPostsSorted);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -1010,9 +1023,10 @@ Content for ${title}`;
         { ...mockContext, publishedOnly: true },
       );
 
-      // Verify publishedOnly was passed to entity service
+      // Verify sortFields and publishedOnly were passed to entity service
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
         limit: 1000,
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
         publishedOnly: true,
       });
 

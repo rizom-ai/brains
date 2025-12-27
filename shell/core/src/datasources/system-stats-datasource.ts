@@ -107,8 +107,7 @@ export class SystemStatsDataSource implements DataSource {
     for (const type of entityTypes) {
       const entities = await this.entityService.listEntities(type, {
         limit: 5,
-        sortBy: "updated",
-        sortDirection: "desc",
+        sortFields: [{ field: "updated", direction: "desc" }],
       });
       allEntities.push(...entities);
     }

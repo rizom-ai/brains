@@ -398,8 +398,7 @@ export class EntityService implements IEntityService {
     options?: {
       limit?: number;
       offset?: number;
-      sortBy?: "created" | "updated";
-      sortDirection?: "asc" | "desc";
+      sortFields?: Array<{ field: string; direction: "asc" | "desc" }>;
       filter?: { metadata?: Record<string, unknown> };
       /** Filter to only entities with metadata.status = "published" */
       publishedOnly?: boolean;

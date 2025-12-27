@@ -126,28 +126,18 @@ export class ProjectDataSource implements DataSource {
     // Parse frontmatter and structured content
     const project = parseProjectData(entity);
 
-    // For detail view, also fetch prev/next projects for navigation
-    // Filtered at database level when publishedOnly is set
-    const filteredProjects: Project[] =
+    // For detail view, fetch projects sorted for prev/next navigation
+    const sortedProjects: Project[] =
       await this.entityService.listEntities<Project>("project", {
         limit: 1000,
+        sortFields: [
+          { field: "year", direction: "desc" },
+          { field: "title", direction: "asc" },
+        ],
         ...(context.publishedOnly !== undefined && {
           publishedOnly: context.publishedOnly,
         }),
       });
-
-    // Sort by year (descending), then by title
-    const sortedProjects = filteredProjects.sort((a, b) => {
-      // Published projects come before drafts
-      if (a.metadata.status !== b.metadata.status) {
-        return a.metadata.status === "published" ? -1 : 1;
-      }
-
-      if (b.metadata.year !== a.metadata.year) {
-        return b.metadata.year - a.metadata.year;
-      }
-      return a.metadata.title.localeCompare(b.metadata.title);
-    });
 
     const currentIndex = sortedProjects.findIndex((p) => p.id === entity.id);
     const prevEntity =
@@ -179,36 +169,27 @@ export class ProjectDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Fetch projects (filtered at database level when publishedOnly is set)
-    const filteredProjects: Project[] =
-      await this.entityService.listEntities<Project>("project", {
+    // Fetch projects with database-level sorting and filtering
+    const projects: Project[] = await this.entityService.listEntities<Project>(
+      "project",
+      {
         limit: 1000,
+        sortFields: [
+          { field: "year", direction: "desc" },
+          { field: "title", direction: "asc" },
+        ],
         ...(context.publishedOnly !== undefined && {
           publishedOnly: context.publishedOnly,
         }),
-      });
-
-    // Sort by year (descending), then by title
-    const sortedProjects = filteredProjects.sort((a, b) => {
-      // Published projects come before drafts
-      if (a.metadata.status !== b.metadata.status) {
-        return a.metadata.status === "published" ? -1 : 1;
-      }
-
-      // Then by year (newest first)
-      if (b.metadata.year !== a.metadata.year) {
-        return b.metadata.year - a.metadata.year;
-      }
-
-      // Then by title
-      return a.metadata.title.localeCompare(b.metadata.title);
-    });
+      },
+    );
 
     // Paginate
-    const { items: paginatedProjects, pagination } = paginateItems(
-      sortedProjects,
-      { page, limit, pageSize },
-    );
+    const { items: paginatedProjects, pagination } = paginateItems(projects, {
+      page,
+      limit,
+      pageSize,
+    });
 
     // Parse frontmatter for full data
     const projectsWithData = paginatedProjects.map(parseProjectData);

@@ -108,9 +108,13 @@ Outcome for ${title}`;
         ),
       ).toBe(true);
 
-      // Verify publishedOnly was passed to entity service
+      // Verify sortFields and publishedOnly were passed to entity service
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
         limit: 1000,
+        sortFields: [
+          { field: "year", direction: "desc" },
+          { field: "title", direction: "asc" },
+        ],
         publishedOnly: true,
       });
     });
@@ -159,9 +163,13 @@ Outcome for ${title}`;
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
 
-      // Verify publishedOnly: false was passed to entity service
+      // Verify sortFields and publishedOnly: false was passed to entity service
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
         limit: 1000,
+        sortFields: [
+          { field: "year", direction: "desc" },
+          { field: "title", direction: "asc" },
+        ],
         publishedOnly: false,
       });
     });
@@ -175,8 +183,8 @@ Outcome for ${title}`;
     });
 
     it("should include draft projects in prev/next when publishedOnly is false", async () => {
-      // Sort order: published first (by year desc), then drafts (by year desc)
-      // So: proj-2 (published 2024) -> proj-1 (published 2023) -> proj-3 (draft 2024)
+      // Sort order: by year desc, then title asc
+      // So: proj-2 (2024 Published), proj-3 (2024 Draft), proj-1 (2023 Published)
       const targetProject = createMockProject(
         "proj-1",
         "Published 2023",
@@ -185,7 +193,15 @@ Outcome for ${title}`;
         2023,
       );
 
-      const allProjects: Project[] = [
+      // DB returns sorted by year desc, title asc
+      const allProjectsSorted: Project[] = [
+        createMockProject(
+          "proj-3",
+          "Draft Project",
+          "draft-project",
+          "draft",
+          2024,
+        ),
         createMockProject(
           "proj-2",
           "Published 2024",
@@ -194,19 +210,12 @@ Outcome for ${title}`;
           2024,
         ),
         targetProject,
-        createMockProject(
-          "proj-3",
-          "Draft Project",
-          "draft-project",
-          "draft",
-          2024,
-        ),
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
       (mockEntityService.listEntities as ReturnType<typeof mock>)
         .mockResolvedValueOnce([targetProject])
-        .mockResolvedValueOnce(allProjects);
+        .mockResolvedValueOnce(allProjectsSorted);
 
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "published-2023" } },
@@ -215,9 +224,10 @@ Outcome for ${title}`;
       );
 
       expect(result.project.id).toBe("proj-1");
-      // Draft project should be included in navigation (comes after this published project)
-      expect(result.prevProject?.id).toBe("proj-2"); // Previous published
-      expect(result.nextProject?.id).toBe("proj-3"); // Draft is included
+      // Sorted by year desc, title asc: proj-3 (2024), proj-2 (2024), proj-1 (2023)
+      // proj-1 is last, so prev is proj-2, next is null
+      expect(result.prevProject?.id).toBe("proj-2");
+      expect(result.nextProject).toBeNull();
     });
 
     it("should exclude draft projects from prev/next when publishedOnly is true", async () => {
@@ -229,7 +239,10 @@ Outcome for ${title}`;
         2024,
       );
 
-      const allProjects: Project[] = [
+      // When publishedOnly is true, DB returns only published projects
+      // Sorted by year desc, title asc
+      const publishedProjectsSorted: Project[] = [
+        targetProject, // 2024
         createMockProject(
           "proj-1",
           "Published 2023",
@@ -237,20 +250,12 @@ Outcome for ${title}`;
           "published",
           2023,
         ),
-        targetProject,
-        createMockProject(
-          "proj-3",
-          "Draft Project",
-          "draft-project",
-          "draft",
-          2024,
-        ),
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
       (mockEntityService.listEntities as ReturnType<typeof mock>)
         .mockResolvedValueOnce([targetProject])
-        .mockResolvedValueOnce(allProjects);
+        .mockResolvedValueOnce(publishedProjectsSorted);
 
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "middle-project" } },
@@ -259,9 +264,10 @@ Outcome for ${title}`;
       );
 
       expect(result.project.id).toBe("proj-2");
-      // Draft project should NOT be in navigation when publishedOnly is true
-      expect(result.prevProject).toBeNull(); // No prev because draft is excluded
-      expect(result.nextProject?.id).toBe("proj-1"); // Only published project
+      // Sorted by year desc: proj-2 (2024) is first, proj-1 (2023) is second
+      // proj-2 is first, so prev is null, next is proj-1
+      expect(result.prevProject).toBeNull();
+      expect(result.nextProject?.id).toBe("proj-1");
     });
   });
 

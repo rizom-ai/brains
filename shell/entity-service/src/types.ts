@@ -105,14 +105,24 @@ export interface EntityAdapter<
 }
 
 /**
+ * Sort field specification for multi-field sorting
+ */
+export interface SortField {
+  /** Field to sort by - "created", "updated", or a metadata field name */
+  field: string;
+  /** Sort direction */
+  direction: "asc" | "desc";
+}
+
+/**
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
 export interface ListOptions<TMetadata = Record<string, unknown>> {
   limit?: number;
   offset?: number;
-  sortBy?: "created" | "updated";
-  sortDirection?: "asc" | "desc";
+  /** Multi-field sorting - supports system fields (created, updated) and metadata fields */
+  sortFields?: SortField[];
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;

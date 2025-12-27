@@ -1,10 +1,18 @@
 import type { EntityDB } from "./db";
 import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
-import { eq, and, desc, asc, sql } from "drizzle-orm";
+import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
 import { z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
+
+/**
+ * Schema for sort field
+ */
+const sortFieldSchema = z.object({
+  field: z.string(),
+  direction: z.enum(["asc", "desc"]),
+});
 
 /**
  * Schema for list entities options
@@ -12,8 +20,7 @@ import type { EntitySerializer } from "./entity-serializer";
 const listOptionsSchema = z.object({
   limit: z.number().int().positive().optional().default(20),
   offset: z.number().int().min(0).optional().default(0),
-  sortBy: z.enum(["created", "updated"]).optional().default("updated"),
-  sortDirection: z.enum(["asc", "desc"]).optional().default("desc"),
+  sortFields: z.array(sortFieldSchema).optional(),
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
@@ -93,7 +100,7 @@ export class EntityQueries {
     options: ListOptions = {},
   ): Promise<T[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortBy, sortDirection, filter, publishedOnly } =
+    const { limit, offset, sortFields, filter, publishedOnly } =
       validatedOptions;
 
     this.logger.debug(
@@ -124,6 +131,9 @@ export class EntityQueries {
       }
     }
 
+    // Build order by clauses
+    const orderByClauses = this.buildOrderByClauses(sortFields);
+
     // Query database
     const query = this.db
       .select()
@@ -131,11 +141,7 @@ export class EntityQueries {
       .where(and(...whereConditions))
       .limit(limit)
       .offset(offset)
-      .orderBy(
-        sortDirection === "desc"
-          ? desc(sortBy === "created" ? entities.created : entities.updated)
-          : asc(sortBy === "created" ? entities.created : entities.updated),
-      );
+      .orderBy(...orderByClauses);
 
     const result = await query;
 
@@ -158,6 +164,34 @@ export class EntityQueries {
     );
 
     return entityList;
+  }
+
+  /**
+   * Build ORDER BY clauses from sortFields
+   * Supports system fields (created, updated) and metadata fields via json_extract
+   */
+  private buildOrderByClauses(
+    sortFields?: Array<{ field: string; direction: "asc" | "desc" }>,
+  ): SQL[] {
+    // Default: sort by updated desc
+    if (!sortFields || sortFields.length === 0) {
+      return [desc(entities.updated)];
+    }
+
+    return sortFields.map(({ field, direction }) => {
+      const orderFn = direction === "desc" ? desc : asc;
+
+      // System fields
+      if (field === "created") {
+        return orderFn(entities.created);
+      }
+      if (field === "updated") {
+        return orderFn(entities.updated);
+      }
+
+      // Metadata fields - use json_extract
+      return orderFn(sql`json_extract(${entities.metadata}, '$.' || ${field})`);
+    });
   }
 
   /**
