@@ -1,4 +1,13 @@
-import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  mock,
+  afterEach,
+  spyOn,
+  type Mock,
+} from "bun:test";
 import { EmbeddingService } from "@/embeddingService";
 import { createSilentLogger } from "@brains/test-utils";
 import * as fastembed from "fastembed";
@@ -35,13 +44,25 @@ void mock.module("fs/promises", () => ({
 
 describe("EmbeddingService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
+  let initSpy: Mock<() => Promise<typeof mockEmbedModel | null>>;
+  let embedSpy: Mock<
+    (texts: string[]) => AsyncGenerator<number[][], void, unknown>
+  >;
 
   beforeEach(() => {
     EmbeddingService.resetInstance();
     logger = createSilentLogger();
+
+    // Set up spies
+    initSpy = spyOn(
+      fastembed.FlagEmbedding,
+      "init",
+    ) as unknown as typeof initSpy;
+    embedSpy = spyOn(mockEmbedModel, "embed") as unknown as typeof embedSpy;
+
     // Reset mocks
-    (fastembed.FlagEmbedding.init as ReturnType<typeof mock>).mockClear();
-    (mockEmbedModel.embed as ReturnType<typeof mock>).mockClear();
+    initSpy.mockClear();
+    embedSpy.mockClear();
   });
 
   afterEach(() => {
@@ -101,12 +122,14 @@ describe("EmbeddingService", () => {
       await service.generateEmbedding("test");
 
       expect(fastembed.FlagEmbedding.init).toHaveBeenCalledTimes(1);
-      const initCall = (fastembed.FlagEmbedding.init as ReturnType<typeof mock>)
-        .mock.calls[0]?.[0];
-      expect(initCall.model).toBe("fast-all-MiniLM-L6-v2");
-      expect(initCall.maxLength).toBe(512);
-      expect(initCall.cacheDir).toBe("./cache/embeddings");
-      expect(initCall.showDownloadProgress).toBe(false);
+      expect(fastembed.FlagEmbedding.init).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: "fast-all-MiniLM-L6-v2",
+          maxLength: 512,
+          cacheDir: "./cache/embeddings",
+          showDownloadProgress: false,
+        }),
+      );
     });
 
     it("should only initialize once", async () => {
@@ -129,9 +152,7 @@ describe("EmbeddingService", () => {
       );
       const error = new Error("Model loading failed");
 
-      (
-        fastembed.FlagEmbedding.init as ReturnType<typeof mock>
-      ).mockRejectedValueOnce(error);
+      initSpy.mockRejectedValueOnce(error);
 
       void expect(service.generateEmbedding("test")).rejects.toThrow(
         "Failed to initialize embedding model: Error: Model loading failed",
@@ -145,9 +166,7 @@ describe("EmbeddingService", () => {
       );
 
       // Delay the initialization to test concurrent calls
-      (
-        fastembed.FlagEmbedding.init as ReturnType<typeof mock>
-      ).mockImplementationOnce(
+      initSpy.mockImplementationOnce(
         () =>
           new Promise((resolve) =>
             setTimeout(() => resolve(mockEmbedModel), 10),
@@ -229,7 +248,7 @@ describe("EmbeddingService", () => {
       );
 
       // Mock embed to return empty batch
-      (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
+      embedSpy.mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
           return (async function* (): AsyncGenerator<
             number[][],
@@ -253,7 +272,7 @@ describe("EmbeddingService", () => {
       );
 
       // Mock embed to return wrong dimensions
-      (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
+      embedSpy.mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
           return (async function* (): AsyncGenerator<
             number[][],
@@ -276,7 +295,7 @@ describe("EmbeddingService", () => {
         "./cache/embeddings",
       );
 
-      (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
+      embedSpy.mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
           throw new Error("Embedding generation failed");
         },
@@ -338,7 +357,7 @@ describe("EmbeddingService", () => {
       const texts = Array(100).fill("text");
 
       // Mock to return embeddings in multiple batches
-      (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
+      embedSpy.mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
           return (async function* (): AsyncGenerator<
             number[][],
@@ -365,7 +384,7 @@ describe("EmbeddingService", () => {
         "./cache/embeddings",
       );
 
-      (mockEmbedModel.embed as ReturnType<typeof mock>).mockImplementationOnce(
+      embedSpy.mockImplementationOnce(
         (): AsyncGenerator<number[][], void, unknown> => {
           throw new Error("Batch generation failed");
         },
@@ -387,9 +406,7 @@ describe("EmbeddingService", () => {
       );
 
       // Mock init to return null model
-      (
-        fastembed.FlagEmbedding.init as ReturnType<typeof mock>
-      ).mockResolvedValueOnce(null);
+      initSpy.mockResolvedValueOnce(null);
 
       void expect(service.generateEmbedding("test")).rejects.toThrow(
         "Embedding model not initialized",

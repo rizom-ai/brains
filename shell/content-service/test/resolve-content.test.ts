@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
@@ -23,6 +23,8 @@ describe("ContentService.resolveContent", () => {
   let mockDependencies: ContentServiceDependencies;
   let contentService: ContentService;
   let templateRegistry: TemplateRegistry;
+  let dataSourceGetSpy: ReturnType<typeof spyOn>;
+  let getEntitySpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
     const mockLogger = createSilentLogger();
@@ -41,6 +43,10 @@ describe("ContentService.resolveContent", () => {
       templateRegistry,
       dataSourceRegistry: mockDataSourceRegistry,
     };
+
+    // Set up spies
+    dataSourceGetSpy = spyOn(mockDataSourceRegistry, "get");
+    getEntitySpy = spyOn(mockEntityService, "getEntity");
 
     contentService = new ContentService(mockDependencies);
   });
@@ -68,9 +74,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("dashboard", mockTemplate);
-      (
-        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
-      ).mockReturnValue(mockDataSource);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("dashboard", {
         dataParams: { timeRange: "24h" },
@@ -106,9 +110,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("article", mockTemplate);
-      (
-        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
-      ).mockReturnValue(mockDataSource);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("article", {
         fallback: "Default content",
@@ -142,9 +144,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("article", mockTemplate);
-      (
-        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      getEntitySpy.mockResolvedValue({
         id: "article-123",
         type: "site-content-preview",
         content: JSON.stringify(savedArticle),
@@ -178,9 +178,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("dashboard", mockTemplate);
-      (
-        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      getEntitySpy.mockResolvedValue({
         id: "dashboard-123",
         type: "site-content",
         content: '{"cpu": 50, "memory": 80}',
@@ -262,12 +260,8 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("priority-test", mockTemplate);
-      (
-        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
-      ).mockReturnValue(mockDataSource);
-      (
-        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+      getEntitySpy.mockResolvedValue({
         id: "test-123",
         type: "test",
         content: "Saved data",
@@ -300,9 +294,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("priority-test2", mockTemplate);
-      (
-        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      getEntitySpy.mockResolvedValue({
         id: "test-456",
         type: "test",
         content: "Saved data",
@@ -343,9 +335,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("error-test", mockTemplate);
-      (
-        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
-      ).mockReturnValue(mockDataSource);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("error-test", {
         fallback: "Fallback after error",
@@ -369,9 +359,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("entity-error", mockTemplate);
-      (
-        mockDependencies.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(null);
+      getEntitySpy.mockResolvedValue(null);
 
       const result = await contentService.resolveContent("entity-error", {
         savedContent: {
@@ -403,9 +391,7 @@ describe("ContentService.resolveContent", () => {
       };
 
       templateRegistry.register("simple-sourced", mockTemplate);
-      (
-        mockDependencies.dataSourceRegistry.get as ReturnType<typeof mock>
-      ).mockReturnValue(mockDataSource);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
 
       const result = await contentService.resolveContent("simple-sourced", {
         dataParams: { test: true },
