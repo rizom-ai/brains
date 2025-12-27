@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { IEntityService, Logger } from "@brains/plugins";
@@ -12,6 +11,7 @@ describe("BlogDataSource", () => {
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
+  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   // Sample test data
   const createMockPost = (
@@ -60,6 +60,12 @@ Content for ${title}`;
     mockEntityService = createMockEntityService();
     mockContext = {};
 
+    // Set up spy for mock method
+    listEntitiesSpy = spyOn(
+      mockEntityService,
+      "listEntities",
+    ) as unknown as typeof listEntitiesSpy;
+
     datasource = new BlogDataSource(mockEntityService, mockLogger);
   });
 
@@ -76,9 +82,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(latestPost);
+      listEntitiesSpy.mockResolvedValue(latestPost);
 
       const schema = z.object({
         post: z.any(),
@@ -112,9 +116,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(latestPublished);
+      listEntitiesSpy.mockResolvedValue(latestPublished);
 
       const schema = z.object({
         post: z.any(),
@@ -135,9 +137,7 @@ Content for ${title}`;
 
     it("should throw error when no published posts exist", async () => {
       // publishedOnly: true returns empty when no published posts
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      listEntitiesSpy.mockResolvedValue([]);
 
       const schema = z.object({
         post: z.any(),
@@ -200,7 +200,7 @@ Content for ${title}`;
         ),
       ];
 
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      listEntitiesSpy
         .mockResolvedValueOnce(latestPost)
         .mockResolvedValueOnce(seriesPosts);
 
@@ -255,7 +255,7 @@ Content for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation (already sorted)
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      listEntitiesSpy
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted);
 
@@ -279,9 +279,7 @@ Content for ${title}`;
     });
 
     it("should throw error when post not found", async () => {
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      listEntitiesSpy.mockResolvedValue([]);
 
       const schema = z.object({
         post: z.any(),
@@ -364,7 +362,7 @@ Content for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation, Third call: fetch series
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      listEntitiesSpy
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(seriesPosts);
@@ -411,7 +409,7 @@ Content for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      listEntitiesSpy
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted);
 
@@ -455,7 +453,7 @@ Content for ${title}`;
       ];
 
       // First call: fetch by slug, Second call: fetch all for navigation
-      (mockEntityService.listEntities as ReturnType<typeof mock>)
+      listEntitiesSpy
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted);
 
@@ -505,9 +503,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(postsSorted);
+      listEntitiesSpy.mockResolvedValue(postsSorted);
 
       const schema = z.object({
         posts: z.array(z.any()),
@@ -539,9 +535,7 @@ Content for ${title}`;
         createMockPost("post-3", "Draft 2", "draft-2", "draft"),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(postsSorted);
+      listEntitiesSpy.mockResolvedValue(postsSorted);
 
       const schema = z.object({
         posts: z.array(z.any()),
@@ -584,9 +578,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const schema = z.object({
         posts: z.array(
@@ -610,9 +602,7 @@ Content for ${title}`;
     });
 
     it("should handle empty post list", async () => {
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      listEntitiesSpy.mockResolvedValue([]);
 
       const schema = z.object({
         posts: z.array(
@@ -646,9 +636,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const schema = z.object({
         posts: z.array(z.any()),
@@ -702,9 +690,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(seriesPostsSorted);
+      listEntitiesSpy.mockResolvedValue(seriesPostsSorted);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -747,9 +733,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(seriesPostsSorted);
+      listEntitiesSpy.mockResolvedValue(seriesPostsSorted);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -767,9 +751,7 @@ Content for ${title}`;
     });
 
     it("should handle series with no posts", async () => {
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      listEntitiesSpy.mockResolvedValue([]);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -809,9 +791,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -870,9 +850,7 @@ Content for ${title}`;
         ),
       );
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 3 } },
@@ -901,9 +879,7 @@ Content for ${title}`;
         ),
       );
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 2, pageSize: 3 } },
@@ -928,9 +904,7 @@ Content for ${title}`;
         ),
       );
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 4, pageSize: 3 } },
@@ -955,9 +929,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(posts);
+      listEntitiesSpy.mockResolvedValue(posts);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -969,9 +941,7 @@ Content for ${title}`;
     });
 
     it("should handle empty results with pagination", async () => {
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      listEntitiesSpy.mockResolvedValue([]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 10 } },
@@ -1013,9 +983,7 @@ Content for ${title}`;
         ),
       ];
 
-      (
-        mockEntityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue(publishedPosts);
+      listEntitiesSpy.mockResolvedValue(publishedPosts);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 2 } },

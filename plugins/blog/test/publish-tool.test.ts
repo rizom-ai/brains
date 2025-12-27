@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { createPublishTool } from "../src/tools/publish";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
@@ -15,6 +14,10 @@ const mockToolContext: ToolContext = {
 describe("Publish Tool", () => {
   let mockContext: ServicePluginContext;
   let publishTool: ReturnType<typeof createPublishTool>;
+  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let updateEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let enqueueJobSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   const createMockPost = (
     id: string,
@@ -61,6 +64,24 @@ Post content here`;
       },
     });
 
+    // Set up spies for mock methods
+    getEntitySpy = spyOn(
+      mockContext.entityService,
+      "getEntity",
+    ) as unknown as typeof getEntitySpy;
+    updateEntitySpy = spyOn(
+      mockContext.entityService,
+      "updateEntity",
+    ) as unknown as typeof updateEntitySpy;
+    listEntitiesSpy = spyOn(
+      mockContext.entityService,
+      "listEntities",
+    ) as unknown as typeof listEntitiesSpy;
+    enqueueJobSpy = spyOn(
+      mockContext,
+      "enqueueJob",
+    ) as unknown as typeof enqueueJobSpy;
+
     publishTool = createPublishTool(mockContext, "blog");
   });
 
@@ -89,9 +110,7 @@ Post content here`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockImplementation(() => Promise.resolve(draftPost));
+      getEntitySpy.mockResolvedValue(draftPost);
 
       const result = await publishTool.handler(
         { id: "test-post" },
@@ -103,9 +122,7 @@ Post content here`;
       expect(result.message).toContain("My Draft Post");
 
       // Verify updateEntity was called
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       expect(updateCall).toBeDefined();
 
       const updatedPost = updateCall?.[0] as BlogPost;
@@ -123,15 +140,11 @@ Post content here`;
       );
       const beforePublish = new Date().toISOString();
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockImplementation(() => Promise.resolve(draftPost));
+      getEntitySpy.mockResolvedValue(draftPost);
 
       await publishTool.handler({ id: "test-post" }, mockToolContext);
 
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       if (!updateCall) throw new Error("updateEntity not called");
       const updatedPost = updateCall[0] as BlogPost;
 
@@ -151,15 +164,11 @@ Post content here`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
+      getEntitySpy.mockResolvedValue(draftPost);
 
       await publishTool.handler({ id: "test-post" }, mockToolContext);
 
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       const updatedPost = updateCall?.[0] as BlogPost;
 
       // Content should have updated frontmatter
@@ -175,15 +184,11 @@ Post content here`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
+      getEntitySpy.mockResolvedValue(draftPost);
 
       await publishTool.handler({ id: "test-post" }, mockToolContext);
 
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       const updatedPost = updateCall?.[0] as BlogPost;
 
       // Check that original content is preserved
@@ -203,17 +208,13 @@ Post content here`;
         "2025-01-01T10:00:00.000Z",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(publishedPost);
+      getEntitySpy.mockResolvedValue(publishedPost);
 
       const beforePublish = new Date().toISOString();
 
       await publishTool.handler({ id: "test-post" }, mockToolContext);
 
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       const updatedPost = updateCall?.[0] as BlogPost;
 
       // Should have new publishedAt timestamp
@@ -229,9 +230,7 @@ Post content here`;
 
   describe("error handling", () => {
     it("should return error when post not found", async () => {
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(null);
+      getEntitySpy.mockResolvedValue(null);
 
       const result = await publishTool.handler(
         { id: "nonexistent" },
@@ -253,9 +252,7 @@ Post content here`;
         metadata: { title: "Test", slug: "test", status: "draft" },
       };
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(invalidPost);
+      getEntitySpy.mockResolvedValue(invalidPost);
 
       const result = await publishTool.handler(
         { id: "test-post" },
@@ -275,12 +272,8 @@ Post content here`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
-      (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mockRejectedValue(new Error("Database error"));
+      getEntitySpy.mockResolvedValue(draftPost);
+      updateEntitySpy.mockRejectedValue(new Error("Database error"));
 
       const result = await publishTool.handler(
         { id: "test-post" },
@@ -317,9 +310,7 @@ Post content here`;
         "draft",
       );
 
-      (
-        mockContext.entityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([draftPost]);
+      listEntitiesSpy.mockResolvedValue([draftPost]);
 
       const result = await publishTool.handler(
         { slug: "my-draft-post" },
@@ -331,9 +322,7 @@ Post content here`;
       expect(result.message).toContain("My Draft Post");
 
       // Verify updateEntity was called
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       expect(updateCall).toBeDefined();
 
       const updatedPost = updateCall?.[0] as BlogPost;
@@ -342,9 +331,7 @@ Post content here`;
     });
 
     it("should return error when slug not found", async () => {
-      (
-        mockContext.entityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([]);
+      listEntitiesSpy.mockResolvedValue([]);
 
       const result = await publishTool.handler(
         { slug: "nonexistent-slug" },
@@ -364,9 +351,7 @@ Post content here`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
+      getEntitySpy.mockResolvedValue(draftPost);
 
       await publishTool.handler(
         { id: "test-post", slug: "other-slug" },
@@ -374,14 +359,8 @@ Post content here`;
       );
 
       // Should call getEntity (for ID lookup), not listEntities (for slug lookup)
-      expect(
-        (mockContext.entityService.getEntity as ReturnType<typeof mock>).mock
-          .calls.length,
-      ).toBe(1);
-      expect(
-        (mockContext.entityService.listEntities as ReturnType<typeof mock>).mock
-          .calls.length,
-      ).toBe(0);
+      expect(getEntitySpy.mock.calls.length).toBe(1);
+      expect(listEntitiesSpy.mock.calls.length).toBe(0);
     });
   });
 
@@ -415,15 +394,11 @@ Content`;
         },
       };
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(seriesPost);
+      getEntitySpy.mockResolvedValue(seriesPost);
 
       await publishTool.handler({ id: "series-post" }, mockToolContext);
 
-      const updateCall = (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const updateCall = updateEntitySpy.mock.calls[0];
       const updatedPost = updateCall?.[0] as BlogPost;
 
       expect(updatedPost.metadata.seriesName).toBe("My Series");
@@ -442,17 +417,12 @@ Content`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
+      getEntitySpy.mockResolvedValue(draftPost);
 
       await publishTool.handler({ id: "test-post" }, mockToolContext);
 
       // Verify updateEntity was called (which triggers entity:updated)
-      expect(
-        (mockContext.entityService.updateEntity as ReturnType<typeof mock>).mock
-          .calls.length,
-      ).toBe(1);
+      expect(updateEntitySpy.mock.calls.length).toBe(1);
     });
 
     it("should not directly enqueue site-build job", async () => {
@@ -463,16 +433,12 @@ Content`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
+      getEntitySpy.mockResolvedValue(draftPost);
 
       await publishTool.handler({ id: "test-post" }, mockToolContext);
 
       // Should NOT call enqueueJob (relies on entity:updated message instead)
-      expect(
-        (mockContext.enqueueJob as ReturnType<typeof mock>).mock.calls.length,
-      ).toBe(0);
+      expect(enqueueJobSpy.mock.calls.length).toBe(0);
     });
   });
 
@@ -485,12 +451,8 @@ Content`;
         "draft",
       );
 
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(draftPost);
-      (
-        mockContext.entityService.updateEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      getEntitySpy.mockResolvedValue(draftPost);
+      updateEntitySpy.mockResolvedValue({
         entityId: "test-post",
         entity: draftPost,
       });

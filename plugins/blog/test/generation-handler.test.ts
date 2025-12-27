@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
@@ -15,6 +14,11 @@ describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
   let mockContext: ServicePluginContext;
   let mockProgressReporter: ProgressReporter;
+  let generateContentSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let reportSpy: Mock<(...args: unknown[]) => void>;
 
   const createMockProfile = (
     name: string,
@@ -95,6 +99,28 @@ Content`;
       },
     });
 
+    // Set up spies for mock methods
+    generateContentSpy = spyOn(
+      mockContext,
+      "generateContent",
+    ) as unknown as typeof generateContentSpy;
+    getEntitySpy = spyOn(
+      mockContext.entityService,
+      "getEntity",
+    ) as unknown as typeof getEntitySpy;
+    listEntitiesSpy = spyOn(
+      mockContext.entityService,
+      "listEntities",
+    ) as unknown as typeof listEntitiesSpy;
+    createEntitySpy = spyOn(
+      mockContext.entityService,
+      "createEntity",
+    ) as unknown as typeof createEntitySpy;
+    reportSpy = spyOn(
+      mockProgressReporter,
+      "report",
+    ) as unknown as typeof reportSpy;
+
     handler = new BlogGenerationJobHandler(
       createSilentLogger("test"),
       mockContext,
@@ -135,9 +161,7 @@ Content`;
 
   describe("process - AI generates everything", () => {
     it("should generate title, content, and excerpt with AI", async () => {
-      (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      generateContentSpy.mockResolvedValue({
         title: "AI Generated Title",
         content: "AI generated content here",
         excerpt: "AI generated excerpt",
@@ -154,9 +178,7 @@ Content`;
       expect(result.slug).toBe("ai-generated-title");
 
       // Verify AI generation was called
-      const generateCall = (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const generateCall = generateContentSpy.mock.calls[0];
       expect(generateCall).toBeDefined();
       expect(
         (generateCall?.[0] as Record<string, unknown>)["prompt"],
@@ -169,9 +191,7 @@ Content`;
     it("should use default prompt when none provided", async () => {
       await handler.process({}, "job-123", mockProgressReporter);
 
-      const generateCall = (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const generateCall = generateContentSpy.mock.calls[0];
       expect(
         (generateCall?.[0] as Record<string, unknown>)["prompt"],
       ).toContain("knowledge base");
@@ -187,9 +207,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const generateCall = (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const generateCall = generateContentSpy.mock.calls[0];
       expect(
         (generateCall?.[0] as Record<string, unknown>)["prompt"],
       ).toContain("AI Series");
@@ -202,9 +220,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const reportCalls = (
-        mockProgressReporter.report as ReturnType<typeof mock>
-      ).mock.calls;
+      const reportCalls = reportSpy.mock.calls;
       expect(reportCalls.length).toBeGreaterThan(2);
       expect(
         (reportCalls[0]?.[0] as Record<string, unknown>)["message"],
@@ -219,9 +235,7 @@ Content`;
 
   describe("process - AI generates excerpt only", () => {
     it("should generate excerpt when title and content provided", async () => {
-      (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      generateContentSpy.mockResolvedValue({
         excerpt: "AI generated excerpt",
       });
 
@@ -237,9 +251,7 @@ Content`;
       expect(result.success).toBe(true);
 
       // Verify excerpt generation was called
-      const generateCall = (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const generateCall = generateContentSpy.mock.calls[0];
       expect(
         (generateCall?.[0] as Record<string, unknown>)["templateName"],
       ).toBe("blog:excerpt");
@@ -252,9 +264,7 @@ Content`;
     });
 
     it("should use generated excerpt in entity creation", async () => {
-      (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      generateContentSpy.mockResolvedValue({
         excerpt: "Generated excerpt text",
       });
 
@@ -267,9 +277,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
       expect(entityData.content).toContain("excerpt: Generated excerpt text");
     });
@@ -291,10 +299,7 @@ Content`;
       expect(result.title).toBe("My Title");
 
       // Verify no AI generation calls
-      expect(
-        (mockContext.generateContent as ReturnType<typeof mock>).mock.calls
-          .length,
-      ).toBe(0);
+      expect(generateContentSpy.mock.calls.length).toBe(0);
     });
 
     it("should create entity with provided content", async () => {
@@ -308,9 +313,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       expect(entityData.content).toContain("title: Custom Title");
@@ -359,9 +362,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       // ID should be set to the title for human-readable filenames (matches existing convention)
@@ -377,9 +378,7 @@ Content`;
 
   describe("process - author extraction", () => {
     it("should extract author from profile entity", async () => {
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(createMockProfile("John Doe"));
+      getEntitySpy.mockResolvedValue(createMockProfile("John Doe"));
 
       await handler.process(
         {
@@ -391,18 +390,14 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       expect(entityData.content).toContain("author: John Doe");
     });
 
     it("should return error when profile not found", async () => {
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(null);
+      getEntitySpy.mockResolvedValue(null);
 
       const result = await handler.process(
         {
@@ -419,9 +414,10 @@ Content`;
     });
 
     it("should return error when profile has no content", async () => {
-      (
-        mockContext.entityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({ ...createMockProfile("Test"), content: "" });
+      getEntitySpy.mockResolvedValue({
+        ...createMockProfile("Test"),
+        content: "",
+      });
 
       const result = await handler.process(
         {
@@ -452,9 +448,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       expect(entityData.content).toContain("seriesName: My Series");
@@ -464,9 +458,7 @@ Content`;
     });
 
     it("should auto-increment series index when not provided", async () => {
-      (
-        mockContext.entityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([
+      listEntitiesSpy.mockResolvedValue([
         createMockPost(
           "post-1",
           "test-post-1",
@@ -498,9 +490,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       // Should be 3 (2 existing + 1 new)
@@ -509,9 +499,7 @@ Content`;
     });
 
     it("should count only published posts in series for indexing", async () => {
-      (
-        mockContext.entityService.listEntities as ReturnType<typeof mock>
-      ).mockResolvedValue([
+      listEntitiesSpy.mockResolvedValue([
         createMockPost(
           "post-1",
           "test-post-1",
@@ -532,9 +520,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       // Should be 2 (1 published + 1 new)
@@ -554,9 +540,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       expect(entityData.content).toContain("status: draft");
@@ -576,9 +560,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const createCall = (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0];
+      const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
       // URL is quoted in YAML frontmatter
@@ -586,9 +568,7 @@ Content`;
     });
 
     it("should return entityId and slug on success", async () => {
-      (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({
+      createEntitySpy.mockResolvedValue({
         entityId: "my-post-slug",
         entity: {},
       });
@@ -611,9 +591,7 @@ Content`;
 
   describe("error handling", () => {
     it("should handle AI generation errors", async () => {
-      (
-        mockContext.generateContent as ReturnType<typeof mock>
-      ).mockRejectedValue(new Error("AI service unavailable"));
+      generateContentSpy.mockRejectedValue(new Error("AI service unavailable"));
 
       const result = await handler.process(
         { prompt: "Test" },
@@ -626,9 +604,7 @@ Content`;
     });
 
     it("should handle entity creation errors", async () => {
-      (
-        mockContext.entityService.createEntity as ReturnType<typeof mock>
-      ).mockRejectedValue(new Error("Database error"));
+      createEntitySpy.mockRejectedValue(new Error("Database error"));
 
       const result = await handler.process(
         {

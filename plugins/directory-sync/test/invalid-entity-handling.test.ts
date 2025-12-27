@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
@@ -24,15 +23,13 @@ describe("Invalid Entity Handling", () => {
     // Create mock entity service using factory, then configure for this test
     mockEntityService = createMockEntityService();
 
-    (
-      mockEntityService.serializeEntity as ReturnType<typeof mock>
-    ).mockImplementation((entity: BaseEntity): string => {
-      return `# ${entity.id}\n\n${entity.content}`;
-    });
+    spyOn(mockEntityService, "serializeEntity").mockImplementation(
+      (entity: BaseEntity): string => {
+        return `# ${entity.id}\n\n${entity.content}`;
+      },
+    );
 
-    (
-      mockEntityService.deserializeEntity as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "deserializeEntity").mockImplementation(
       (_content: string, _entityType: string): Partial<BaseEntity> => {
         if (deserializeError) {
           throw deserializeError;
@@ -41,15 +38,11 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    (mockEntityService.getEntity as ReturnType<typeof mock>).mockImplementation(
-      async (_entityType: string, _id: string): Promise<BaseEntity | null> => {
-        return null; // No existing entities
-      },
+    spyOn(mockEntityService, "getEntity").mockImplementation(
+      async () => null, // No existing entities
     );
 
-    (
-      mockEntityService.createEntity as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "createEntity").mockImplementation(
       async (
         entity: Partial<BaseEntity>,
       ): Promise<{ entityId: string; jobId: string }> => {
@@ -57,9 +50,7 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    (
-      mockEntityService.updateEntity as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "updateEntity").mockImplementation(
       async (
         _entity: BaseEntity,
       ): Promise<{ entityId: string; jobId: string }> => {
@@ -67,9 +58,7 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    (
-      mockEntityService.upsertEntity as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "upsertEntity").mockImplementation(
       async (
         entity: Partial<BaseEntity>,
       ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
@@ -81,54 +70,29 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    (
-      mockEntityService.deleteEntity as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "deleteEntity").mockImplementation(
       async (_entityType: string, _id: string): Promise<boolean> => {
         return true;
       },
     );
 
-    (
-      mockEntityService.listEntities as ReturnType<typeof mock>
-    ).mockImplementation(
-      async (
-        _entityType: string,
-        _options?: { limit?: number; offset?: number },
-      ): Promise<BaseEntity[]> => {
-        return [];
+    spyOn(mockEntityService, "listEntities").mockImplementation(async () => []);
+
+    spyOn(mockEntityService, "search").mockImplementation(async () => []);
+
+    spyOn(mockEntityService, "getEntityTypes").mockImplementation(
+      (): string[] => {
+        return ["note", "summary", "topic"];
       },
     );
 
-    (mockEntityService.search as ReturnType<typeof mock>).mockImplementation(
-      async (
-        _query: string,
-        _options?: {
-          types?: string[];
-          limit?: number;
-          sortBy?: string;
-          sortDirection?: "asc" | "desc";
-        },
-      ): Promise<BaseEntity[]> => {
-        return [];
+    spyOn(mockEntityService, "hasEntityType").mockImplementation(
+      (entityType: string): boolean => {
+        return ["note", "summary", "topic"].includes(entityType);
       },
     );
 
-    (
-      mockEntityService.getEntityTypes as ReturnType<typeof mock>
-    ).mockImplementation((): string[] => {
-      return ["note", "summary", "topic"];
-    });
-
-    (
-      mockEntityService.hasEntityType as ReturnType<typeof mock>
-    ).mockImplementation((entityType: string): boolean => {
-      return ["note", "summary", "topic"].includes(entityType);
-    });
-
-    (
-      mockEntityService.getAsyncJobStatus as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "getAsyncJobStatus").mockImplementation(
       async (
         _jobId: string,
       ): Promise<{ status: "completed"; progress: number }> => {
@@ -136,9 +100,7 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    (
-      mockEntityService.storeEntityWithEmbedding as ReturnType<typeof mock>
-    ).mockImplementation(
+    spyOn(mockEntityService, "storeEntityWithEmbedding").mockImplementation(
       async (_data: {
         id: string;
         entityType: string;
