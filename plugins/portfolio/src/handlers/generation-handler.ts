@@ -1,4 +1,4 @@
-import type { JobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -47,14 +47,20 @@ interface GeneratedProjectContent {
  * Job handler for portfolio project generation
  * Handles AI-powered content generation and entity creation
  */
-export class ProjectGenerationJobHandler
-  implements
-    JobHandler<"generation", ProjectGenerationJobData, ProjectGenerationResult>
-{
-  constructor(
-    private logger: Logger,
-    private context: ServicePluginContext,
-  ) {}
+export class ProjectGenerationJobHandler extends BaseJobHandler<
+  "generation",
+  ProjectGenerationJobData,
+  ProjectGenerationResult
+> {
+  private readonly context: ServicePluginContext;
+
+  constructor(logger: Logger, context: ServicePluginContext) {
+    super(logger, {
+      schema: projectGenerationJobSchema,
+      jobTypeName: "project-generation",
+    });
+    this.context = context;
+  }
 
   async process(
     data: ProjectGenerationJobData,
@@ -165,26 +171,13 @@ export class ProjectGenerationJobHandler
     }
   }
 
-  validateAndParse(data: unknown): ProjectGenerationJobData | null {
-    try {
-      return projectGenerationJobSchema.parse(data);
-    } catch (error) {
-      this.logger.error("Invalid project generation job data", { data, error });
-      return null;
-    }
-  }
-
-  async onError(
-    error: Error,
+  protected override summarizeDataForLog(
     data: ProjectGenerationJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Project generation job error handler triggered", {
-      error: error.message,
-      jobId,
-      prompt: data.prompt,
+  ): Record<string, unknown> {
+    return {
+      prompt: data.prompt.substring(0, 100),
       year: data.year,
       title: data.title,
-    });
+    };
   }
 }

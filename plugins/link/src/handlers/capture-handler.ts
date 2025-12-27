@@ -1,4 +1,4 @@
-import type { JobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -47,17 +47,25 @@ export interface LinkCaptureJobHandlerOptions {
 /**
  * Job handler for link capture with AI extraction
  */
-export class LinkCaptureJobHandler
-  implements JobHandler<"capture", LinkCaptureJobData, LinkCaptureResult>
-{
+export class LinkCaptureJobHandler extends BaseJobHandler<
+  "capture",
+  LinkCaptureJobData,
+  LinkCaptureResult
+> {
+  private readonly context: ServicePluginContext;
   private linkAdapter: LinkAdapter;
   private urlFetcher: UrlFetcher;
 
   constructor(
-    private logger: Logger,
-    private context: ServicePluginContext,
+    logger: Logger,
+    context: ServicePluginContext,
     options?: LinkCaptureJobHandlerOptions,
   ) {
+    super(logger, {
+      schema: linkCaptureJobSchema,
+      jobTypeName: "link-capture",
+    });
+    this.context = context;
     this.linkAdapter = new LinkAdapter();
     this.urlFetcher = new UrlFetcher(
       options?.jinaApiKey ? { jinaApiKey: options.jinaApiKey } : undefined,
@@ -313,24 +321,12 @@ export class LinkCaptureJobHandler
     };
   }
 
-  validateAndParse(data: unknown): LinkCaptureJobData | null {
-    try {
-      return linkCaptureJobSchema.parse(data);
-    } catch (error) {
-      this.logger.error("Invalid link capture job data", { data, error });
-      return null;
-    }
-  }
-
-  async onError(
-    error: Error,
+  protected override summarizeDataForLog(
     data: LinkCaptureJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Link capture job error handler triggered", {
-      error: error.message,
-      jobId,
+  ): Record<string, unknown> {
+    return {
       url: data.url,
-    });
+      interfaceId: data.metadata?.interfaceId,
+    };
   }
 }

@@ -193,7 +193,7 @@ describe("ProjectGenerationJobHandler", () => {
       const error = new Error("Processing failed");
       const data = { prompt: "Build an API", year: 2024 };
 
-      await handler.onError(error, data, "job-123");
+      await handler.onError(error, data, "job-123", progressReporter);
 
       expect(logger.error).toHaveBeenCalled();
     });

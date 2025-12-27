@@ -1,10 +1,10 @@
 import type {
-  JobHandler,
   ServicePluginContext,
   ProgressReporter,
   Logger,
   BaseEntity,
 } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import { z, createId, computeContentHash } from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 
@@ -36,15 +36,20 @@ interface TopicExtractionResult {
  * Job handler for extracting topics from an entity using AI
  * This runs asynchronously so it doesn't block entity creation
  */
-export class TopicExtractionHandler
-  implements JobHandler<string, TopicExtractionJobData, TopicExtractionResult>
-{
+export class TopicExtractionHandler extends BaseJobHandler<
+  "topic-extraction",
+  TopicExtractionJobData,
+  TopicExtractionResult
+> {
   private topicExtractor: TopicExtractor;
+  private readonly context: ServicePluginContext;
 
-  constructor(
-    private readonly context: ServicePluginContext,
-    private readonly logger: Logger,
-  ) {
+  constructor(context: ServicePluginContext, logger: Logger) {
+    super(logger, {
+      schema: topicExtractionJobDataSchema,
+      jobTypeName: "topic-extraction",
+    });
+    this.context = context;
     this.topicExtractor = new TopicExtractor(context, logger);
   }
 
@@ -178,15 +183,13 @@ export class TopicExtractionHandler
     }
   }
 
-  validateAndParse(data: unknown): TopicExtractionJobData | null {
-    const result = topicExtractionJobDataSchema.safeParse(data);
-    if (!result.success) {
-      this.logger.error("Invalid topic extraction job data", {
-        error: result.error.format(),
-      });
-      return null;
-    }
-
-    return result.data;
+  protected override summarizeDataForLog(
+    data: TopicExtractionJobData,
+  ): Record<string, unknown> {
+    return {
+      entityId: data.entityId,
+      entityType: data.entityType,
+      contentLength: data.entityContent.length,
+    };
   }
 }

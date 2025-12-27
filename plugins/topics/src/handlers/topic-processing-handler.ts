@@ -1,9 +1,9 @@
 import type {
-  JobHandler,
   ServicePluginContext,
   ProgressReporter,
   Logger,
 } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/job-queue";
 import { z } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 
@@ -43,15 +43,18 @@ interface TopicProcessingResult {
  * Job handler for processing individual extracted topics
  * This handler is used by the batch extraction process to handle each topic separately
  */
-export class TopicProcessingHandler
-  implements JobHandler<string, TopicProcessingJobData, TopicProcessingResult>
-{
+export class TopicProcessingHandler extends BaseJobHandler<
+  "topic-processing",
+  TopicProcessingJobData,
+  TopicProcessingResult
+> {
   private topicService: TopicService;
 
-  constructor(
-    context: ServicePluginContext,
-    private readonly logger: Logger,
-  ) {
+  constructor(context: ServicePluginContext, logger: Logger) {
+    super(logger, {
+      schema: topicProcessingJobDataSchema,
+      jobTypeName: "topic-processing",
+    });
     this.topicService = new TopicService(context.entityService, logger);
   }
 
@@ -168,15 +171,13 @@ export class TopicProcessingHandler
     }
   }
 
-  validateAndParse(data: unknown): TopicProcessingJobData | null {
-    const result = topicProcessingJobDataSchema.safeParse(data);
-    if (!result.success) {
-      this.logger.error("Invalid topic processing job data", {
-        error: result.error.format(),
-      });
-      return null;
-    }
-
-    return result.data;
+  protected override summarizeDataForLog(
+    data: TopicProcessingJobData,
+  ): Record<string, unknown> {
+    return {
+      topicTitle: data.topic.title,
+      sourceEntityId: data.sourceEntityId,
+      sourceEntityType: data.sourceEntityType,
+    };
   }
 }
