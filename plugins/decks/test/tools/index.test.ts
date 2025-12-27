@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { createGenerateTool, createPublishTool } from "../../src/tools";
 import {
   createSilentLogger,
@@ -33,6 +32,7 @@ describe("Deck Tools", () => {
   describe("createGenerateTool", () => {
     let mockContext: ServicePluginContext;
     let generateTool: ReturnType<typeof createGenerateTool>;
+    let enqueueJobSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
     beforeEach(() => {
       mockContext = createMockServicePluginContext({
@@ -45,6 +45,11 @@ describe("Deck Tools", () => {
           },
         },
       });
+
+      enqueueJobSpy = spyOn(
+        mockContext,
+        "enqueueJob",
+      ) as unknown as typeof enqueueJobSpy;
 
       generateTool = createGenerateTool(mockContext, "decks");
     });
@@ -87,8 +92,7 @@ describe("Deck Tools", () => {
         expect(result.message).toContain("queued");
 
         // Verify enqueueJob was called correctly
-        const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-          .mock.calls[0];
+        const enqueueCall = enqueueJobSpy.mock.calls[0];
         expect(enqueueCall).toBeDefined();
         expect(enqueueCall?.[0]).toBe("generation"); // Job type
         expect((enqueueCall?.[1] as Record<string, unknown>)["prompt"]).toBe(
@@ -110,8 +114,7 @@ describe("Deck Tools", () => {
           "job-123",
         );
 
-        const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-          .mock.calls[0];
+        const enqueueCall = enqueueJobSpy.mock.calls[0];
         const jobData = enqueueCall?.[1] as Record<string, unknown>;
         expect(jobData["title"]).toBe("My Presentation");
         expect(jobData["content"]).toBe("# Slide 1\n\n---\n\n# Slide 2");
@@ -132,8 +135,7 @@ describe("Deck Tools", () => {
 
         expect(result.success).toBe(true);
 
-        const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-          .mock.calls[0];
+        const enqueueCall = enqueueJobSpy.mock.calls[0];
         const jobData = enqueueCall?.[1] as Record<string, unknown>;
         expect(jobData["author"]).toBe("Test Author");
         expect(jobData["event"]).toBe("Tech Conference 2024");
@@ -171,9 +173,7 @@ describe("Deck Tools", () => {
 
     describe("error handling", () => {
       it("should handle enqueueJob errors gracefully", async () => {
-        (mockContext.enqueueJob as ReturnType<typeof mock>).mockRejectedValue(
-          new Error("Queue full"),
-        );
+        enqueueJobSpy.mockRejectedValue(new Error("Queue full"));
 
         const result = await generateTool.handler(
           { prompt: "Test" },
@@ -197,9 +197,7 @@ describe("Deck Tools", () => {
 
     describe("return data", () => {
       it("should return jobId in data field", async () => {
-        (mockContext.enqueueJob as ReturnType<typeof mock>).mockResolvedValue(
-          "custom-job-id",
-        );
+        enqueueJobSpy.mockResolvedValue("custom-job-id");
 
         const result = await generateTool.handler(
           { prompt: "Test" },
@@ -233,8 +231,7 @@ describe("Deck Tools", () => {
 
         expect(result.success).toBe(true);
 
-        const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-          .mock.calls[0];
+        const enqueueCall = enqueueJobSpy.mock.calls[0];
         const jobData = enqueueCall?.[1] as Record<string, unknown>;
         expect(jobData["skipAi"]).toBe(true);
         expect(jobData["title"]).toBe("My Deck");
@@ -252,8 +249,7 @@ describe("Deck Tools", () => {
 
         expect(result.success).toBe(true);
 
-        const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-          .mock.calls[0];
+        const enqueueCall = enqueueJobSpy.mock.calls[0];
         const jobData = enqueueCall?.[1] as Record<string, unknown>;
         expect(jobData["skipAi"]).toBe(true);
         expect(jobData["content"]).toBe("# Slide 1\n\n---\n\n# Slide 2");

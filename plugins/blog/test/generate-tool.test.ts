@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { createGenerateTool } from "../src/tools/generate";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogConfig } from "../src/config";
@@ -14,6 +13,7 @@ const mockToolContext: ToolContext = {
 describe("Generate Tool", () => {
   let mockContext: ServicePluginContext;
   let generateTool: ReturnType<typeof createGenerateTool>;
+  let enqueueJobSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   const mockConfig: BlogConfig = {
     defaultPrompt: "Write a blog post about my work",
     paginate: true,
@@ -30,6 +30,11 @@ describe("Generate Tool", () => {
         },
       },
     });
+
+    enqueueJobSpy = spyOn(
+      mockContext,
+      "enqueueJob",
+    ) as unknown as typeof enqueueJobSpy;
 
     generateTool = createGenerateTool(mockContext, mockConfig, "blog");
   });
@@ -66,8 +71,7 @@ describe("Generate Tool", () => {
       expect(result.message).toContain("queued");
 
       // Verify enqueueJob was called correctly
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       expect(enqueueCall).toBeDefined();
       expect(enqueueCall?.[0]).toBe("generation"); // Job type
       expect((enqueueCall?.[1] as Record<string, unknown>)["prompt"]).toBe(
@@ -87,8 +91,7 @@ describe("Generate Tool", () => {
       expect(result.success).toBe(true);
       expect((result.data as Record<string, unknown>)["jobId"]).toBe("job-123");
 
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["title"]).toBe("My Post");
       expect(jobData["content"]).toBe("Post content here");
@@ -110,8 +113,7 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["seriesName"]).toBe("AI Series");
       expect(jobData["seriesIndex"]).toBe(1);
@@ -147,9 +149,7 @@ describe("Generate Tool", () => {
 
   describe("error handling", () => {
     it("should handle enqueueJob errors gracefully", async () => {
-      (mockContext.enqueueJob as ReturnType<typeof mock>).mockRejectedValue(
-        new Error("Queue full"),
-      );
+      enqueueJobSpy.mockRejectedValue(new Error("Queue full"));
 
       const result = await generateTool.handler(
         { prompt: "Test" },
@@ -195,8 +195,7 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["seriesName"]).toBe("My Series");
       expect(jobData["seriesIndex"]).toBe(1);
@@ -214,8 +213,7 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["seriesName"]).toBe("My Series");
       expect(jobData["seriesIndex"]).toBeUndefined();
@@ -224,9 +222,7 @@ describe("Generate Tool", () => {
 
   describe("return data", () => {
     it("should return jobId in data field", async () => {
-      (mockContext.enqueueJob as ReturnType<typeof mock>).mockResolvedValue(
-        "custom-job-id",
-      );
+      enqueueJobSpy.mockResolvedValue("custom-job-id");
 
       const result = await generateTool.handler(
         { prompt: "Test" },
@@ -260,8 +256,7 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["skipAi"]).toBe(true);
       expect(jobData["title"]).toBe("My Post");
@@ -279,8 +274,7 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = (mockContext.enqueueJob as ReturnType<typeof mock>)
-        .mock.calls[0];
+      const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["skipAi"]).toBe(true);
       expect(jobData["content"]).toBe("Some blog content here");
