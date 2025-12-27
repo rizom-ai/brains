@@ -1,4 +1,13 @@
-import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
+import {
+  describe,
+  expect,
+  it,
+  beforeEach,
+  mock,
+  afterEach,
+  spyOn,
+  type Mock,
+} from "bun:test";
 import { AIService } from "../src/aiService";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
@@ -36,13 +45,26 @@ void mock.module("@ai-sdk/anthropic", () => ({
 
 describe("AIService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
+  let generateTextSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let generateObjectSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     AIService.resetInstance();
     logger = createSilentLogger();
+
+    // Set up spies
+    generateTextSpy = spyOn(
+      ai,
+      "generateText",
+    ) as unknown as typeof generateTextSpy;
+    generateObjectSpy = spyOn(
+      ai,
+      "generateObject",
+    ) as unknown as typeof generateObjectSpy;
+
     // Reset mocks
-    (ai.generateText as ReturnType<typeof mock>).mockClear();
-    (ai.generateObject as ReturnType<typeof mock>).mockClear();
+    generateTextSpy.mockClear();
+    generateObjectSpy.mockClear();
   });
 
   afterEach(() => {
@@ -164,7 +186,7 @@ describe("AIService", () => {
       const service = AIService.createFresh({}, logger);
       const error = new Error("Generation failed");
 
-      (ai.generateText as ReturnType<typeof mock>).mockRejectedValueOnce(error);
+      generateTextSpy.mockRejectedValueOnce(error);
 
       void expect(service.generateText("System", "User")).rejects.toThrow(
         "AI text generation failed",
@@ -195,10 +217,11 @@ describe("AIService", () => {
 
       await service.generateText("System", "User");
 
-      const call = (ai.generateText as ReturnType<typeof mock>).mock
-        .calls[0]?.[0];
-      expect(call.temperature).toBe(0.7);
-      expect(call.maxTokens).toBe(1000);
+      const call = generateTextSpy.mock.calls[0]?.[0] as
+        | Record<string, unknown>
+        | undefined;
+      expect(call?.temperature).toBe(0.7);
+      expect(call?.maxTokens).toBe(1000);
     });
   });
 
@@ -241,9 +264,7 @@ describe("AIService", () => {
       const service = AIService.createFresh({}, logger);
       const error = new Error("Object generation failed");
 
-      (ai.generateObject as ReturnType<typeof mock>).mockRejectedValueOnce(
-        error,
-      );
+      generateObjectSpy.mockRejectedValueOnce(error);
 
       void expect(
         service.generateObject("System", "User", testSchema),
@@ -299,9 +320,7 @@ describe("AIService", () => {
       const service = AIService.createFresh({}, logger);
       const customError = new Error("Custom API error");
 
-      (ai.generateText as ReturnType<typeof mock>).mockRejectedValueOnce(
-        customError,
-      );
+      generateTextSpy.mockRejectedValueOnce(customError);
 
       void expect(service.generateText("System", "User")).rejects.toThrow(
         "AI text generation failed",

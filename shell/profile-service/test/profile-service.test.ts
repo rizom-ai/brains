@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { ProfileService } from "../src/profile-service";
 import type { IEntityService } from "@brains/entity-service";
 import {
@@ -16,6 +15,8 @@ describe("ProfileService", () => {
 
   let mockEntityService: IEntityService;
   let profileService: ProfileService;
+  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     // Reset singleton
@@ -33,12 +34,17 @@ describe("ProfileService", () => {
 
     // Create mock using factory, then override implementations
     mockEntityService = createMockEntityService();
-    (mockEntityService.getEntity as ReturnType<typeof mock>).mockImplementation(
-      async () => mockGetEntityImpl(),
-    );
-    (
-      mockEntityService.createEntity as ReturnType<typeof mock>
-    ).mockImplementation(async () => mockCreateEntityImpl());
+    getEntitySpy = spyOn(
+      mockEntityService,
+      "getEntity",
+    ) as unknown as typeof getEntitySpy;
+    createEntitySpy = spyOn(
+      mockEntityService,
+      "createEntity",
+    ) as unknown as typeof createEntitySpy;
+
+    getEntitySpy.mockImplementation(async () => mockGetEntityImpl());
+    createEntitySpy.mockImplementation(async () => mockCreateEntityImpl());
 
     // Create fresh instance with silent logger
     profileService = ProfileService.createFresh(
@@ -133,9 +139,9 @@ https://github.com/rizom-ai`;
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
       // Check that it created with default values
-      const createCall = (
-        mockEntityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0]?.[0];
+      const createCall = createEntitySpy.mock.calls[0]?.[0] as
+        | Record<string, unknown>
+        | undefined;
       expect(createCall).toBeDefined();
       expect(createCall).toMatchObject({
         id: "profile",
@@ -143,7 +149,7 @@ https://github.com/rizom-ai`;
       });
 
       // Content should contain default profile data
-      expect(createCall?.content).toContain("Unknown");
+      expect(createCall?.["content"]).toContain("Unknown");
     });
 
     it("should not create entity when one already exists", async () => {
@@ -254,12 +260,11 @@ View my code on GitHub`;
 
       // Create fresh mock for this test
       const freshMockEntityService = createMockEntityService();
-      (
-        freshMockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(null);
-      (
-        freshMockEntityService.createEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({ entityId: "profile", jobId: "job-123" });
+      spyOn(freshMockEntityService, "getEntity").mockResolvedValue(null);
+      spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
+        entityId: "profile",
+        jobId: "job-123",
+      });
 
       // Create a completely fresh service with custom profile
       const customService = ProfileService.createFresh(
@@ -297,13 +302,13 @@ View my code on GitHub`;
       // Should have created entity with custom values
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
-      const createCall = (
-        mockEntityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0]?.[0];
+      const createCall = createEntitySpy.mock.calls[0]?.[0] as
+        | Record<string, unknown>
+        | undefined;
 
-      expect(createCall?.content).toContain("Rizom");
-      expect(createCall?.content).toContain("Open-source collective");
-      expect(createCall?.content).not.toContain("Unknown");
+      expect(createCall?.["content"]).toContain("Rizom");
+      expect(createCall?.["content"]).toContain("Open-source collective");
+      expect(createCall?.["content"]).not.toContain("Unknown");
     });
 
     it("should fall back to hardcoded default when custom profile is not provided", () => {

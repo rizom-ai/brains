@@ -1,5 +1,4 @@
-import type { mock } from "bun:test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { IdentityService } from "../src/identity-service";
 import type { IEntityService } from "@brains/entity-service";
 import {
@@ -16,6 +15,8 @@ describe("IdentityService", () => {
 
   let mockEntityService: IEntityService;
   let identityService: IdentityService;
+  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     // Reset singleton
@@ -33,12 +34,17 @@ describe("IdentityService", () => {
 
     // Create mock using factory, then override implementations
     mockEntityService = createMockEntityService();
-    (mockEntityService.getEntity as ReturnType<typeof mock>).mockImplementation(
-      async () => mockGetEntityImpl(),
-    );
-    (
-      mockEntityService.createEntity as ReturnType<typeof mock>
-    ).mockImplementation(async () => mockCreateEntityImpl());
+    getEntitySpy = spyOn(
+      mockEntityService,
+      "getEntity",
+    ) as unknown as typeof getEntitySpy;
+    createEntitySpy = spyOn(
+      mockEntityService,
+      "createEntity",
+    ) as unknown as typeof createEntitySpy;
+
+    getEntitySpy.mockImplementation(async () => mockGetEntityImpl());
+    createEntitySpy.mockImplementation(async () => mockCreateEntityImpl());
 
     // Create fresh instance with silent logger
     identityService = IdentityService.createFresh(
@@ -121,9 +127,9 @@ Help with academic research
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
       // Check that it created with default values
-      const createCall = (
-        mockEntityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0]?.[0];
+      const createCall = createEntitySpy.mock.calls[0]?.[0] as
+        | Record<string, unknown>
+        | undefined;
       expect(createCall).toBeDefined();
       expect(createCall).toMatchObject({
         id: "identity",
@@ -131,8 +137,8 @@ Help with academic research
       });
 
       // Content should contain default identity data
-      expect(createCall?.content).toContain("Personal knowledge assistant");
-      expect(createCall?.content).toContain("clarity");
+      expect(createCall?.["content"]).toContain("Personal knowledge assistant");
+      expect(createCall?.["content"]).toContain("clarity");
     });
 
     it("should not create entity when one already exists", async () => {
@@ -217,12 +223,11 @@ Existing purpose
 
       // Create fresh mock for this test
       const freshMockEntityService = createMockEntityService();
-      (
-        freshMockEntityService.getEntity as ReturnType<typeof mock>
-      ).mockResolvedValue(null);
-      (
-        freshMockEntityService.createEntity as ReturnType<typeof mock>
-      ).mockResolvedValue({ entityId: "identity", jobId: "job-123" });
+      spyOn(freshMockEntityService, "getEntity").mockResolvedValue(null);
+      spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
+        entityId: "identity",
+        jobId: "job-123",
+      });
 
       // Create a completely fresh service with custom identity
       const customService = IdentityService.createFresh(
@@ -259,13 +264,15 @@ Existing purpose
       // Should have created entity with custom values
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
-      const createCall = (
-        mockEntityService.createEntity as ReturnType<typeof mock>
-      ).mock.calls[0]?.[0];
+      const createCall = createEntitySpy.mock.calls[0]?.[0] as
+        | Record<string, unknown>
+        | undefined;
 
-      expect(createCall?.content).toContain("Research assistant");
-      expect(createCall?.content).toContain("rigor");
-      expect(createCall?.content).not.toContain("Personal knowledge assistant");
+      expect(createCall?.["content"]).toContain("Research assistant");
+      expect(createCall?.["content"]).toContain("rigor");
+      expect(createCall?.["content"]).not.toContain(
+        "Personal knowledge assistant",
+      );
     });
 
     it("should fall back to hardcoded default when custom identity is not provided", () => {
