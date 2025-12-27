@@ -22,10 +22,8 @@ import {
 } from "./templates/project-detail";
 import { projectGenerationTemplate } from "./templates/generation-template";
 import { ProjectGenerationJobHandler } from "./handlers/generation-handler";
-import {
-  ProjectDataSource,
-  paginationInfoSchema,
-} from "./datasources/project-datasource";
+import { ProjectDataSource } from "./datasources/project-datasource";
+import { paginationInfoSchema } from "@brains/datasource";
 import packageJson from "../package.json";
 
 /**

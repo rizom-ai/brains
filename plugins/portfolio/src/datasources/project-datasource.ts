@@ -1,4 +1,8 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
+import {
+  type DataSource,
+  type BaseDataSourceContext,
+  type PaginationInfo,
+} from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -23,18 +27,6 @@ const entityFetchQuerySchema = z.object({
     })
     .optional(),
 });
-
-// Pagination schema for Zod validation
-export const paginationInfoSchema = z.object({
-  currentPage: z.number(),
-  totalPages: z.number(),
-  totalItems: z.number(),
-  pageSize: z.number(),
-  hasNextPage: z.boolean(),
-  hasPrevPage: z.boolean(),
-});
-
-export type PaginationInfo = z.infer<typeof paginationInfoSchema>;
 
 // Re-export for convenience
 export type { ProjectWithData };

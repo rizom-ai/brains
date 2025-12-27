@@ -25,9 +25,9 @@ import { homepageTemplate } from "./templates/homepage";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import {
   BlogDataSource,
-  paginationInfoSchema,
   type BlogPostWithData,
 } from "./datasources/blog-datasource";
+import { paginationInfoSchema } from "@brains/datasource";
 import { generateRSSFeed } from "./rss/feed-generator";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { BlogPost } from "./schemas/blog-post";

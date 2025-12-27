@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
-import type { PaginationInfo } from "../datasources/blog-datasource";
+import type { PaginationInfo } from "@brains/datasource";
 import {
   ContentSection,
   type ContentItem,

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedProject } from "../schemas/project";
-import type { PaginationInfo } from "../datasources/project-datasource";
+import type { PaginationInfo } from "@brains/datasource";
 import {
   Card,
   CardTitle,

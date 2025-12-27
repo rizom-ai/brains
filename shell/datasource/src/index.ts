@@ -7,3 +7,7 @@ export type {
 
 // Registry
 export { DataSourceRegistry } from "./registry";
+
+// Pagination
+export { paginationInfoSchema } from "./pagination";
+export type { PaginationInfo } from "./pagination";
