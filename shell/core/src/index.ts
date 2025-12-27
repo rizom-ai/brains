@@ -27,7 +27,7 @@ export {
   createShellConfig,
   shellConfigSchema,
 } from "./config";
-export type { ShellConfig } from "./config";
+export type { ShellConfig, StandardConfig } from "./config";
 
 // Re-export essential types that don't trigger side effects
 export type { IEmbeddingService } from "@brains/embedding-service";

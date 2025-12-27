@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import {
   MigrationManager,
-  type MigrationFunctions,
+  type IMigrationFunctions,
 } from "../src/migration-manager";
 import { createMockLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
 
 describe("MigrationManager", () => {
   let mockLogger: Logger;
-  let mockMigrations: MigrationFunctions;
+  let mockMigrations: IMigrationFunctions;
   let migrationManager: MigrationManager;
   const mockConfig = {
     database: {
@@ -36,7 +36,7 @@ describe("MigrationManager", () => {
       migrateEntities: mock(() => Promise.resolve()),
       migrateJobQueue: mock(() => Promise.resolve()),
       migrateConversations: mock(() => Promise.resolve()),
-    } as unknown as MigrationFunctions;
+    };
 
     migrationManager = new MigrationManager(mockLogger, mockMigrations);
   });

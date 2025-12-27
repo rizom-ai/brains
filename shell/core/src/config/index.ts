@@ -5,4 +5,8 @@ export {
   getStandardConfig,
   getStandardConfigWithDirectories,
 } from "./shellConfig";
-export type { ShellConfig, ShellConfigInput } from "./shellConfig";
+export type {
+  ShellConfig,
+  ShellConfigInput,
+  StandardConfig,
+} from "./shellConfig";

@@ -1,14 +1,28 @@
 import type { Logger } from "@brains/utils";
-import { getStandardConfigWithDirectories } from "@brains/core";
+import {
+  getStandardConfigWithDirectories,
+  type StandardConfig,
+} from "@brains/core";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 
-export interface MigrationFunctions {
-  getStandardConfigWithDirectories: typeof getStandardConfigWithDirectories;
-  migrateEntities: typeof migrateEntities;
-  migrateJobQueue: typeof migrateJobQueue;
-  migrateConversations: typeof migrateConversations;
+/**
+ * Database configuration with URL and optional auth token
+ */
+export interface DatabaseConfig {
+  url: string;
+  authToken?: string;
+}
+
+/**
+ * Interface for migration functions - enables dependency injection and testing
+ */
+export interface IMigrationFunctions {
+  getStandardConfigWithDirectories(): Promise<StandardConfig>;
+  migrateEntities(config: DatabaseConfig, logger?: Logger): Promise<void>;
+  migrateJobQueue(config: DatabaseConfig, logger?: Logger): Promise<void>;
+  migrateConversations(config: DatabaseConfig, logger?: Logger): Promise<void>;
 }
 
 export interface DatabaseUrlOverrides {
@@ -19,9 +33,9 @@ export interface DatabaseUrlOverrides {
 
 export class MigrationManager {
   private logger: Logger;
-  private migrations: MigrationFunctions;
+  private migrations: IMigrationFunctions;
 
-  constructor(logger: Logger, migrations?: MigrationFunctions) {
+  constructor(logger: Logger, migrations?: IMigrationFunctions) {
     this.logger = logger;
     this.migrations = migrations ?? {
       getStandardConfigWithDirectories,
@@ -61,9 +75,7 @@ export class MigrationManager {
     this.logger.debug("All database migrations completed successfully");
   }
 
-  private async migrateEntityDatabase(
-    config: Awaited<ReturnType<typeof getStandardConfigWithDirectories>>,
-  ): Promise<void> {
+  private async migrateEntityDatabase(config: StandardConfig): Promise<void> {
     this.logger.debug("Running entity database migrations...");
     await this.migrations.migrateEntities(
       {
@@ -76,9 +88,7 @@ export class MigrationManager {
     );
   }
 
-  private async migrateJobQueueDatabase(
-    config: Awaited<ReturnType<typeof getStandardConfigWithDirectories>>,
-  ): Promise<void> {
+  private async migrateJobQueueDatabase(config: StandardConfig): Promise<void> {
     this.logger.debug("Running job queue database migrations...");
     await this.migrations.migrateJobQueue(
       {
@@ -92,7 +102,7 @@ export class MigrationManager {
   }
 
   private async migrateConversationDatabase(
-    config: Awaited<ReturnType<typeof getStandardConfigWithDirectories>>,
+    config: StandardConfig,
   ): Promise<void> {
     this.logger.debug("Running conversation database migrations...");
     await this.migrations.migrateConversations(
