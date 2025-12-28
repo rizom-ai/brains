@@ -68,12 +68,14 @@ export type BlogPostWithData = z.infer<typeof blogPostWithDataSchema>;
 /**
  * Enriched blog post schema (used for validation)
  * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
+ * seriesUrl is optional and only present for posts that belong to a series
  */
 export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
   listUrl: z.string().optional(),
   listLabel: z.string().optional(),
+  seriesUrl: z.string().optional(),
 });
 
 /**
@@ -85,6 +87,7 @@ export const templateBlogPostSchema = blogPostWithDataSchema.extend({
   typeLabel: z.string(),
   listUrl: z.string(),
   listLabel: z.string(),
+  seriesUrl: z.string().optional(), // URL to series detail page (if post is in a series)
 });
 
 /**

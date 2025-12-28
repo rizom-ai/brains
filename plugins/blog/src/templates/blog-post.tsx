@@ -37,7 +37,10 @@ export const BlogPostTemplate = ({
     { label: post.listLabel, href: post.listUrl },
   ];
   if (post.frontmatter.seriesName) {
-    breadcrumbItems.push({ label: post.frontmatter.seriesName });
+    breadcrumbItems.push({
+      label: post.frontmatter.seriesName,
+      href: post.seriesUrl,
+    });
   }
   breadcrumbItems.push({ label: post.frontmatter.title });
 

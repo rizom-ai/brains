@@ -5,7 +5,7 @@ import {
 } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
@@ -35,19 +35,29 @@ export type { BlogPostWithData };
 /**
  * Parse frontmatter and extract body from entity
  * Uses Zod schema to validate the output
+ * Includes seriesUrl if the post belongs to a series
  */
-function parsePostData(entity: BlogPost): BlogPostWithData {
+function parsePostData(
+  entity: BlogPost,
+): BlogPostWithData & { seriesUrl?: string } {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
     blogPostFrontmatterSchema,
   );
 
+  // Compute series URL if post belongs to a series
+  const seriesName = parsed.metadata.seriesName;
+  const seriesUrl = seriesName ? `/series/${slugify(seriesName)}` : undefined;
+
   // Use schema to validate and parse
-  return blogPostWithDataSchema.parse({
-    ...entity,
-    frontmatter: parsed.metadata,
-    body: parsed.content, // Markdown without frontmatter
-  });
+  return {
+    ...blogPostWithDataSchema.parse({
+      ...entity,
+      frontmatter: parsed.metadata,
+      body: parsed.content, // Markdown without frontmatter
+    }),
+    ...(seriesUrl && { seriesUrl }),
+  };
 }
 
 /**

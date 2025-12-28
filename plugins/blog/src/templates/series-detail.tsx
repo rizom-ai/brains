@@ -44,10 +44,9 @@ export const SeriesDetailTemplate = ({
   }
 
   // Safe to access - we've already returned early if posts is empty
-  const firstPost = posts[0]!;
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: "Home", href: "/" },
-    { label: firstPost.listLabel, href: firstPost.listUrl },
+    { label: "Series", href: "/series" },
     { label: seriesName },
   ];
 
