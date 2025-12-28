@@ -4,7 +4,7 @@ import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 import { ContentSection, type ContentItem, Head } from "@brains/ui-library";
-import { WavyDivider } from "../components/WavyDivider";
+import { AnimatedWaveDivider } from "../components/AnimatedWaveDivider";
 import { CTASection } from "../components/CTASection";
 
 /**
@@ -84,7 +84,7 @@ export const HomepageListLayout = ({
           </div>
         </header>
 
-        <WavyDivider />
+        <AnimatedWaveDivider />
 
         {/* Main Content - Single Column with Header-Left Layout */}
         <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">

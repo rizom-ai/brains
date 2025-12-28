@@ -1,12 +1,16 @@
 import type { JSX } from "preact";
 
-interface WavyDividerProps {
+interface AnimatedWaveDividerProps {
   mirror?: boolean;
 }
 
-export const WavyDivider = ({
+/**
+ * Animated wave divider with flowing line animation
+ * Used as a decorative section separator (different from ui-library's WavyDivider which is a filled footer transition)
+ */
+export const AnimatedWaveDivider = ({
   mirror = false,
-}: WavyDividerProps): JSX.Element => {
+}: AnimatedWaveDividerProps): JSX.Element => {
   return (
     <div
       className={`w-full h-16 md:h-20 bg-theme overflow-hidden relative ${mirror ? "rotate-180" : ""}`}
