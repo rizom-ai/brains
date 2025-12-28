@@ -66,7 +66,7 @@ export const HomepageListLayout = ({
 
   return (
     <>
-      <Head title={title} description={description} />
+      <Head title={title} description={description} ogType="website" />
       <div className="homepage-list bg-theme">
         {/* Full-width Hero Section */}
         <header className="w-full py-24 md:py-40 px-6 md:px-12 bg-theme">

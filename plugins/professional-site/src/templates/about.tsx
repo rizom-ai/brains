@@ -20,7 +20,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
 
   return (
     <>
-      <Head title={title} description={description} />
+      <Head title={title} description={description} ogType="profile" />
       <div className="about-page bg-theme">
         {/* Hero Section */}
         <header className="w-full py-16 md:py-24 px-6 md:px-12 bg-theme">
