@@ -44,7 +44,7 @@ export function CompactHeader({
           </a>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex gap-6">
+          <nav className="hidden md:flex gap-6" aria-label="Main navigation">
             {navigation.map((item) => (
               <a
                 key={item.href}
@@ -62,8 +62,9 @@ export function CompactHeader({
             onclick="toggleMobileMenu()"
             type="button"
             className="md:hidden p-2 text-theme hover:text-brand transition-colors"
-            aria-label="Toggle menu"
+            aria-label="Toggle navigation menu"
             aria-expanded="false"
+            aria-controls="mobile-menu"
             id="mobile-menu-button"
           >
             <svg
@@ -71,6 +72,7 @@ export function CompactHeader({
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               {/* Hamburger icon */}
               <path
@@ -95,6 +97,7 @@ export function CompactHeader({
         {/* Mobile navigation menu */}
         <nav
           id="mobile-menu"
+          aria-label="Mobile navigation"
           className="md:hidden overflow-hidden transition-all duration-300 ease-in-out max-h-0 opacity-0"
         >
           <div className="flex flex-col gap-3 mt-4 pb-2 pt-4 border-t border-theme">
