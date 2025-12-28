@@ -28,10 +28,19 @@ export function generateIdFromText(text: string, suffix?: string): string {
 }
 
 /**
+ * Words that don't change form in plural
+ */
+const INVARIANT_WORDS = new Set(["series", "species", "sheep", "deer", "fish"]);
+
+/**
  * Simple English pluralization for common cases
- * Handles: -y → -ies, -s/-x/-ch → -es, default → -s
+ * Handles: invariant words, -y → -ies, -s/-x/-ch → -es, default → -s
  */
 export function pluralize(word: string): string {
+  // Check for invariant words (case-insensitive)
+  if (INVARIANT_WORDS.has(word.toLowerCase())) {
+    return word;
+  }
   // Handle common cases
   if (word.endsWith("y")) {
     return word.slice(0, -1) + "ies";

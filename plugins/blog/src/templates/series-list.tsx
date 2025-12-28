@@ -1,82 +1,80 @@
 import type { JSX } from "preact";
-import type { EnrichedBlogPost } from "../schemas/blog-post";
 import {
   Card,
-  CardImage,
   CardTitle,
   CardMetadata,
   ListPageHeader,
   EmptyState,
   Head,
+  Breadcrumb,
+  type BreadcrumbItem,
 } from "@brains/ui-library";
-import { calculateReadingTime } from "@brains/utils";
-import { PostMetadata } from "./PostMetadata";
+
+export interface SeriesItem {
+  name: string;
+  slug: string;
+  postCount: number;
+}
 
 export interface SeriesListProps {
-  seriesName: string;
-  posts: EnrichedBlogPost[];
+  series: SeriesItem[];
 }
 
 /**
- * Series list template - displays all posts in a specific series
+ * Series list template - displays all series
  */
 export const SeriesListTemplate = ({
-  seriesName,
-  posts,
+  series,
 }: SeriesListProps): JSX.Element => {
-  const title = `Series: ${seriesName}`;
-  const description = `${posts.length} ${posts.length === 1 ? "post" : "posts"} in the ${seriesName} series`;
+  const title = "Series";
+  const description = `${series.length} ${series.length === 1 ? "series" : "series"} of essays`;
+
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { label: "Home", href: "/" },
+    { label: "Series" },
+  ];
+
+  if (series.length === 0) {
+    return (
+      <>
+        <Head title={title} description={description} />
+        <section className="series-list-section flex-grow min-h-screen">
+          <div className="container mx-auto px-6 md:px-8 max-w-4xl py-20">
+            <Breadcrumb items={breadcrumbItems} />
+            <EmptyState message="No series yet." />
+          </div>
+        </section>
+      </>
+    );
+  }
 
   return (
     <>
       <Head title={title} description={description} />
       <section className="series-list-section flex-grow min-h-screen">
         <div className="container mx-auto px-6 md:px-8 max-w-4xl py-20">
+          <Breadcrumb items={breadcrumbItems} />
+
           <ListPageHeader
-            title={`Series: ${seriesName}`}
-            count={posts.length}
-            singularLabel="post"
-            description="in this series"
-            className="mb-4"
+            title="Series"
+            count={series.length}
+            singularLabel="series"
+            className="mb-8"
           />
 
-          <div className="space-y-6">
-            {posts.map((post) => (
-              <Card key={post.id} variant="horizontal">
-                {post.frontmatter.coverImage && (
-                  <CardImage
-                    src={post.frontmatter.coverImage}
-                    alt={post.frontmatter.title}
-                    size="small"
-                  />
-                )}
-
+          <div className="space-y-4">
+            {series.map((item) => (
+              <Card key={item.slug} variant="horizontal">
                 <div className="flex-grow">
-                  <CardMetadata className="mb-2">
-                    <div className="text-sm text-brand">
-                      Part {post.frontmatter.seriesIndex} of {posts.length}
-                    </div>
-                  </CardMetadata>
-
-                  <CardTitle href={post.url}>
-                    {post.frontmatter.title}
+                  <CardTitle href={`/series/${item.slug}`}>
+                    {item.name}
                   </CardTitle>
-
                   <CardMetadata>
-                    <PostMetadata
-                      publishedAt={post.frontmatter.publishedAt}
-                      readingTime={calculateReadingTime(post.body)}
-                    />
+                    {item.postCount} {item.postCount === 1 ? "post" : "posts"}
                   </CardMetadata>
-
-                  <p className="text-theme-muted">{post.frontmatter.excerpt}</p>
                 </div>
               </Card>
             ))}
-
-            {posts.length === 0 && (
-              <EmptyState message="No posts in this series yet." />
-            )}
           </div>
         </div>
       </section>

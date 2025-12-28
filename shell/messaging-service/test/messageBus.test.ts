@@ -556,6 +556,45 @@ describe("MessageBus", () => {
       expect("success" in result && result.success).toBe(false);
     });
 
+    it("should await all handlers for broadcast messages before returning", async () => {
+      const executionOrder: string[] = [];
+
+      const handler1 = mock(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+        executionOrder.push("handler1");
+        return { success: true };
+      });
+      const handler2 = mock(async () => {
+        await new Promise((r) => setTimeout(r, 30));
+        executionOrder.push("handler2");
+        return { success: true };
+      });
+      const handler3 = mock(() => {
+        executionOrder.push("handler3");
+        return { success: true };
+      });
+
+      messageBus.subscribe("sync:initial:completed", handler1);
+      messageBus.subscribe("sync:initial:completed", handler2);
+      messageBus.subscribe("sync:initial:completed", handler3);
+
+      // Send with broadcast=true - should await all handlers
+      await messageBus.send(
+        "sync:initial:completed",
+        { success: true },
+        "directory-sync",
+        undefined,
+        undefined,
+        true,
+      );
+
+      // All handlers should have been called AND completed
+      expect(executionOrder).toHaveLength(3);
+      expect(handler1).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(handler3).toHaveBeenCalledTimes(1);
+    });
+
     it("should stop at first success for non-broadcast messages", async () => {
       const handler1 = mock(() => ({ success: true, data: "first" }));
       const handler2 = mock(() => ({ success: true, data: "second" }));

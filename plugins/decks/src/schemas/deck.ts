@@ -45,21 +45,25 @@ export type DeckEntity = z.infer<typeof deckSchema>;
 
 /**
  * Enriched deck schema (used for validation)
- * url and typeLabel are optional to allow validation before enrichment
+ * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
  */
 export const enrichedDeckSchema = deckSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
 });
 
 /**
  * Enriched deck type (used by components)
- * url and typeLabel are required - always present after enrichment
+ * All enrichment fields are required - always present after enrichment
  */
 export type EnrichedDeck = Omit<
   z.infer<typeof enrichedDeckSchema>,
-  "url" | "typeLabel"
+  "url" | "typeLabel" | "listUrl" | "listLabel"
 > & {
   url: string;
   typeLabel: string;
+  listUrl: string;
+  listLabel: string;
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { slugify, generateIdFromText } from "../src/string-utils";
+import { slugify, generateIdFromText, pluralize } from "../src/string-utils";
 
 describe("string-utils", () => {
   describe("slugify", () => {
@@ -102,6 +102,38 @@ describe("string-utils", () => {
       expect(id).not.toContain("  ");
       expect(id).not.toStartWith("-");
       expect(id).not.toEndWith("-");
+    });
+  });
+
+  describe("pluralize", () => {
+    it("should add -s to regular words", () => {
+      expect(pluralize("post")).toBe("posts");
+      expect(pluralize("link")).toBe("links");
+      expect(pluralize("topic")).toBe("topics");
+    });
+
+    it("should change -y to -ies", () => {
+      expect(pluralize("category")).toBe("categories");
+      expect(pluralize("summary")).toBe("summaries");
+    });
+
+    it("should add -es to words ending in -s, -x, -ch", () => {
+      expect(pluralize("box")).toBe("boxes");
+      expect(pluralize("watch")).toBe("watches");
+      expect(pluralize("bus")).toBe("buses");
+    });
+
+    it("should handle invariant words that stay the same", () => {
+      expect(pluralize("series")).toBe("series");
+      expect(pluralize("species")).toBe("species");
+      expect(pluralize("sheep")).toBe("sheep");
+      expect(pluralize("deer")).toBe("deer");
+      expect(pluralize("fish")).toBe("fish");
+    });
+
+    it("should handle invariant words case-insensitively", () => {
+      expect(pluralize("Series")).toBe("Series");
+      expect(pluralize("SERIES")).toBe("SERIES");
     });
   });
 });

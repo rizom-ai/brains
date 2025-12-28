@@ -50,9 +50,18 @@ export type MessageHandler<T = unknown, R = unknown> = (
 ) => Promise<MessageResponse<R>> | MessageResponse<R>;
 
 /**
+ * Options for sending messages
+ */
+export interface MessageSendOptions {
+  /** If true, all handlers are called regardless of responses */
+  broadcast?: boolean;
+}
+
+/**
  * Message sender type
  */
 export type MessageSender = <T = unknown, R = unknown>(
   type: string,
   payload: T,
+  options?: MessageSendOptions,
 ) => Promise<MessageResponse<R>>;

@@ -99,8 +99,15 @@ export function createCorePluginContext(
   const logger = shell.getLogger().child(pluginId);
 
   // Create a MessageSender that uses the messageBus
-  const sendMessage: MessageSender = async (channel, message) => {
-    return messageBus.send(channel, message, pluginId);
+  const sendMessage: MessageSender = async (channel, message, options) => {
+    return messageBus.send(
+      channel,
+      message,
+      pluginId,
+      undefined, // target
+      undefined, // metadata
+      options?.broadcast,
+    );
   };
 
   return {

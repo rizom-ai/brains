@@ -34,10 +34,12 @@ const entityWithSlugSchema = baseEntitySchema.extend({
     .passthrough(), // Allow other metadata fields
 });
 
-// Type for enriched entity with url and typeLabel
+// Type for enriched entity with url, typeLabel, listUrl, and listLabel
 type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
   url: string;
   typeLabel: string;
+  listUrl: string;
+  listLabel: string;
 };
 
 export class SiteBuilder implements ISiteBuilder {
@@ -434,15 +436,30 @@ export class SiteBuilder implements ISiteBuilder {
         const entityType = entity.entityType;
         const slug = entity.metadata.slug;
 
-        // Build properly typed enriched entity
+        // Build properly typed enriched entity with navigation context
         const config = this.entityRouteConfig?.[entityType];
+
+        // Compute typeLabel (singular)
+        const typeLabel = config
+          ? config.label
+          : entityType.charAt(0).toUpperCase() + entityType.slice(1);
+
+        // Compute listUrl and listLabel (plural) for breadcrumbs
+        // Match dynamic-route-generator logic: use config.pluralName or derive from label
+        const pluralName = config
+          ? (config.pluralName ?? config.label.toLowerCase() + "s")
+          : pluralize(entityType);
+        const listUrl = `/${pluralName}`;
+        const listLabel =
+          pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
+
         const enrichedEntity: EnrichedEntity = {
           ...enriched,
           ...entity,
           url: generateEntityUrl(entityType, slug),
-          typeLabel: config
-            ? config.label
-            : entityType.charAt(0).toUpperCase() + entityType.slice(1),
+          typeLabel,
+          listUrl,
+          listLabel,
         };
 
         return enrichedEntity;

@@ -9,12 +9,19 @@ import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { blogPostSchema, enrichedBlogPostSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
+import { seriesSchema } from "./schemas/series";
+import { seriesAdapter } from "./adapters/series-adapter";
+import { SeriesManager } from "./services/series-manager";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "./templates/blog-post";
+import {
+  SeriesDetailTemplate,
+  type SeriesDetailProps,
+} from "./templates/series-detail";
 import {
   SeriesListTemplate,
   type SeriesListProps,
@@ -27,6 +34,7 @@ import {
   BlogDataSource,
   type BlogPostWithData,
 } from "./datasources/blog-datasource";
+import { SeriesDataSource } from "./datasources/series-datasource";
 import { paginationInfoSchema } from "@brains/datasource";
 import { generateRSSFeed } from "./rss/feed-generator";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -59,12 +67,67 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     // Register post entity type
     context.registerEntityType("post", blogPostSchema, blogPostAdapter);
 
+    // Register series entity type (auto-derived from posts)
+    context.registerEntityType("series", seriesSchema, seriesAdapter);
+
+    // Create series manager for auto-deriving series from posts
+    const seriesManager = new SeriesManager(
+      context.entityService,
+      this.logger.child("SeriesManager"),
+    );
+
+    // Subscribe to post changes to sync series
+    context.subscribe<
+      { entityType: string; entity: BlogPost },
+      { success: boolean }
+    >("entity:created", async (message) => {
+      if (message.payload.entityType === "post") {
+        await seriesManager.handlePostChange(message.payload.entity);
+      }
+      return { success: true };
+    });
+
+    context.subscribe<
+      { entityType: string; entity: BlogPost },
+      { success: boolean }
+    >("entity:updated", async (message) => {
+      if (message.payload.entityType === "post") {
+        await seriesManager.handlePostChange(message.payload.entity);
+      }
+      return { success: true };
+    });
+
+    context.subscribe<
+      { entityType: string; entityId: string },
+      { success: boolean }
+    >("entity:deleted", async (message) => {
+      if (message.payload.entityType === "post") {
+        // Full sync since we don't have the deleted post's data
+        await seriesManager.syncSeriesFromPosts();
+      }
+      return { success: true };
+    });
+
+    // Initial sync of series from existing posts
+    context.subscribe("sync:initial:completed", async () => {
+      this.logger.info("Initial sync completed, syncing series from posts");
+      await seriesManager.syncSeriesFromPosts();
+      return { success: true };
+    });
+
     // Register blog datasource
     const blogDataSource = new BlogDataSource(
       context.entityService,
       this.logger.child("BlogDataSource"),
     );
     context.registerDataSource(blogDataSource);
+
+    // Register series datasource
+    const seriesDataSource = new SeriesDataSource(
+      context.entityService,
+      this.logger.child("SeriesDataSource"),
+    );
+    context.registerDataSource(seriesDataSource);
 
     // Register RSS datasource
     const { RSSDataSource } = await import("./datasources/rss-datasource");
@@ -124,23 +187,47 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           interactive: false,
         },
       }),
-      "post-series": createTemplate<
+      "series-list": createTemplate<
+        {
+          series: Array<{ name: string; slug: string; postCount: number }>;
+        },
+        SeriesListProps
+      >({
+        name: "series-list",
+        description: "List of all series",
+        schema: z.object({
+          series: z.array(
+            z.object({
+              name: z.string(),
+              slug: z.string(),
+              postCount: z.number(),
+            }),
+          ),
+        }),
+        dataSourceId: "blog:series",
+        requiredPermission: "public",
+        layout: {
+          component: SeriesListTemplate,
+          interactive: false,
+        },
+      }),
+      "series-detail": createTemplate<
         {
           seriesName: string;
           posts: z.infer<typeof enrichedBlogPostSchema>[];
         },
-        SeriesListProps
+        SeriesDetailProps
       >({
-        name: "post-series",
-        description: "Blog series list template",
+        name: "series-detail",
+        description: "Posts in a specific series",
         schema: z.object({
           seriesName: z.string(),
           posts: z.array(enrichedBlogPostSchema),
         }),
-        dataSourceId: "blog:entities",
+        dataSourceId: "blog:series",
         requiredPermission: "public",
         layout: {
-          component: SeriesListTemplate,
+          component: SeriesDetailTemplate,
           interactive: false,
         },
       }),

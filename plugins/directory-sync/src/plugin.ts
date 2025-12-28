@@ -147,15 +147,22 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           }
 
           // Emit message when initial sync AND embedding jobs complete
-          await context.sendMessage("sync:initial:completed", {
-            success: true,
-          });
+          // Use broadcast to ensure ALL handlers are called (not just the first one)
+          await context.sendMessage(
+            "sync:initial:completed",
+            { success: true },
+            { broadcast: true },
+          );
         } catch (error) {
           this.error("Initial sync failed", error);
-          await context.sendMessage("sync:initial:completed", {
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          });
+          await context.sendMessage(
+            "sync:initial:completed",
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            { broadcast: true },
+          );
         }
 
         return { success: true };

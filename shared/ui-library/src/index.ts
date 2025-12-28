@@ -61,3 +61,5 @@ export type {
 } from "./Head";
 export { Pagination } from "./Pagination";
 export type { PaginationProps } from "./Pagination";
+export { Breadcrumb } from "./Breadcrumb";
+export type { BreadcrumbProps, BreadcrumbItem } from "./Breadcrumb";

@@ -4,6 +4,7 @@ export type {
   MessageResponse,
   MessageHandler,
   MessageSender,
+  MessageSendOptions,
   MessageWithPayload,
   IMessageBus,
   MessageContext,

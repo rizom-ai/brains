@@ -15,6 +15,7 @@ export {
   type MessageWithPayload,
   type MessageHandler,
   type MessageSender,
+  type MessageSendOptions,
   type BaseMessage,
 } from "./base-types";
 

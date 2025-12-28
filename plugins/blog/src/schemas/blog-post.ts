@@ -67,24 +67,28 @@ export type BlogPostWithData = z.infer<typeof blogPostWithDataSchema>;
 
 /**
  * Enriched blog post schema (used for validation)
- * url and typeLabel are optional to allow validation before enrichment
+ * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
  */
 export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
 });
 
 /**
  * Template blog post schema (used for template validation)
- * url and typeLabel are required - always present after enrichment
+ * All enrichment fields are required - always present after enrichment
  */
 export const templateBlogPostSchema = blogPostWithDataSchema.extend({
   url: z.string(),
   typeLabel: z.string(),
+  listUrl: z.string(),
+  listLabel: z.string(),
 });
 
 /**
  * Enriched blog post type (used by components)
- * url and typeLabel are required - always present after enrichment
+ * All enrichment fields (url, typeLabel, listUrl, listLabel) are required
  */
 export type EnrichedBlogPost = z.infer<typeof templateBlogPostSchema>;

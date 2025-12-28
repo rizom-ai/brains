@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
 import { markdownToHtml, calculateReadingTime } from "@brains/utils";
-import { ProseContent, Head } from "@brains/ui-library";
+import {
+  ProseContent,
+  Head,
+  Breadcrumb,
+  type BreadcrumbItem,
+} from "@brains/ui-library";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
 import { SeriesSidebar, SeriesCollapsible } from "./SeriesSidebar";
 import { PostNavigation } from "./PostNavigation";
@@ -26,6 +31,16 @@ export const BlogPostTemplate = ({
   const readingTime = calculateReadingTime(post.body);
   const hasSeries = Boolean(post.frontmatter.seriesName && seriesPosts);
 
+  // Build breadcrumb items from enriched post data
+  const breadcrumbItems: BreadcrumbItem[] = [
+    { label: "Home", href: "/" },
+    { label: post.listLabel, href: post.listUrl },
+  ];
+  if (post.frontmatter.seriesName) {
+    breadcrumbItems.push({ label: post.frontmatter.seriesName });
+  }
+  breadcrumbItems.push({ label: post.frontmatter.title });
+
   return (
     <>
       <Head
@@ -44,6 +59,9 @@ export const BlogPostTemplate = ({
           >
             {/* Main content column */}
             <div className="flex-1 max-w-3xl">
+              {/* Breadcrumb navigation */}
+              <Breadcrumb items={breadcrumbItems} />
+
               {/* Cover Image */}
               {post.frontmatter.coverImage && (
                 <img
