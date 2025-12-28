@@ -346,9 +346,13 @@ export class DynamicRouteGenerator {
 
     if (config) {
       // Use custom config
-      // pluralName is for URL paths, label is always config.label + "s" capitalized
-      const pluralName = config.pluralName ?? config.label.toLowerCase() + "s";
-      const displayLabel = this.capitalize(config.label.toLowerCase() + "s");
+      // pluralName is for URL paths (uses explicit value or pluralized label)
+      // displayLabel is for navigation (always derived from label, properly pluralized)
+      const pluralName =
+        config.pluralName ?? pluralize(config.label.toLowerCase());
+      const displayLabel = this.capitalize(
+        pluralize(config.label.toLowerCase()),
+      );
       return {
         pluralName,
         label: displayLabel,

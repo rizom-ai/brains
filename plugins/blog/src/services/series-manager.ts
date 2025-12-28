@@ -16,6 +16,7 @@ export class SeriesManager {
   /**
    * Sync all series entities from current posts
    * Creates new series, updates existing ones, deletes orphaned ones
+   * Note: postCount is computed dynamically when fetching, not stored
    */
   async syncSeriesFromPosts(): Promise<void> {
     this.logger.debug("Syncing series from posts");
@@ -23,21 +24,16 @@ export class SeriesManager {
     // Get all posts
     const posts = await this.entityService.listEntities<BlogPost>("post", {});
 
-    // Aggregate posts by series name
-    const seriesMap = new Map<string, { name: string; postCount: number }>();
+    // Collect unique series names from posts
+    const seriesNames = new Set<string>();
     for (const post of posts) {
       const seriesName = post.metadata.seriesName;
       if (seriesName) {
-        const existing = seriesMap.get(seriesName);
-        if (existing) {
-          existing.postCount++;
-        } else {
-          seriesMap.set(seriesName, { name: seriesName, postCount: 1 });
-        }
+        seriesNames.add(seriesName);
       }
     }
 
-    this.logger.debug(`Found ${seriesMap.size} unique series in posts`);
+    this.logger.debug(`Found ${seriesNames.size} unique series in posts`);
 
     // Get existing series entities
     const existingSeries = await this.entityService.listEntities<Series>(
@@ -47,11 +43,11 @@ export class SeriesManager {
 
     // Create/update series entities
     const processedIds = new Set<string>();
-    for (const [, seriesInfo] of seriesMap) {
-      const seriesId = `series-${slugify(seriesInfo.name)}`;
+    for (const seriesName of seriesNames) {
+      const seriesId = `series-${slugify(seriesName)}`;
       processedIds.add(seriesId);
 
-      const content = `# ${seriesInfo.name}\n\nA series of ${seriesInfo.postCount} posts.`;
+      const content = `# ${seriesName}`;
 
       const seriesEntity: Series = {
         id: seriesId,
@@ -61,14 +57,13 @@ export class SeriesManager {
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {
-          name: seriesInfo.name,
-          slug: slugify(seriesInfo.name),
-          postCount: seriesInfo.postCount,
+          name: seriesName,
+          slug: slugify(seriesName),
         },
       };
 
       await this.entityService.upsertEntity(seriesEntity);
-      this.logger.debug(`Upserted series: ${seriesInfo.name}`);
+      this.logger.debug(`Upserted series: ${seriesName}`);
     }
 
     // Delete orphaned series (series with no posts)

@@ -53,18 +53,14 @@ Content for ${title}`;
     };
   };
 
-  const createMockSeries = (
-    name: string,
-    slug: string,
-    postCount: number,
-  ): Series => ({
+  const createMockSeries = (name: string, slug: string): Series => ({
     id: `series-${slug}`,
     entityType: "series",
     content: `# ${name}`,
     contentHash: computeContentHash(`# ${name}`),
     created: "2025-01-01T10:00:00.000Z",
     updated: "2025-01-01T10:00:00.000Z",
-    metadata: { name, slug, postCount },
+    metadata: { name, slug },
   });
 
   beforeEach(() => {
@@ -77,13 +73,23 @@ Content for ${title}`;
   describe("fetchSeriesList", () => {
     it("should return all series entities", async () => {
       const seriesEntities = [
-        createMockSeries("New Institutions", "new-institutions", 2),
-        createMockSeries("Other Series", "other-series", 1),
+        createMockSeries("New Institutions", "new-institutions"),
+        createMockSeries("Other Series", "other-series"),
+      ];
+      const posts = [
+        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
+        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
+        createMockPost("3", "Post 3", "post-3", "Other Series", 1),
       ];
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        seriesEntities,
-      );
+      // Mock listEntities to return series for "series" type and posts for "post" type
+      spyOn(mockEntityService, "listEntities").mockImplementation(((
+        entityType: string,
+      ) => {
+        if (entityType === "series") return Promise.resolve(seriesEntities);
+        if (entityType === "post") return Promise.resolve(posts);
+        return Promise.resolve([]);
+      }) as typeof mockEntityService.listEntities);
 
       const schema = z.object({
         series: z.array(
@@ -115,7 +121,10 @@ Content for ${title}`;
     });
 
     it("should return empty array when no series exist", async () => {
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+      // Mock both series and posts as empty
+      spyOn(mockEntityService, "listEntities").mockImplementation(() =>
+        Promise.resolve([]),
+      );
 
       const schema = z.object({
         series: z.array(
@@ -165,13 +174,22 @@ Content for ${title}`;
   describe("DynamicRouteGenerator query format", () => {
     it("should handle list query with entityType format", async () => {
       const seriesEntities = [
-        createMockSeries("New Institutions", "new-institutions", 2),
-        createMockSeries("Other Series", "other-series", 1),
+        createMockSeries("New Institutions", "new-institutions"),
+        createMockSeries("Other Series", "other-series"),
+      ];
+      const posts = [
+        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
+        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
+        createMockPost("3", "Post 3", "post-3", "Other Series", 1),
       ];
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        seriesEntities,
-      );
+      spyOn(mockEntityService, "listEntities").mockImplementation(((
+        entityType: string,
+      ) => {
+        if (entityType === "series") return Promise.resolve(seriesEntities);
+        if (entityType === "post") return Promise.resolve(posts);
+        return Promise.resolve([]);
+      }) as typeof mockEntityService.listEntities);
 
       const schema = z.object({
         series: z.array(
@@ -200,7 +218,7 @@ Content for ${title}`;
 
     it("should handle detail query with entityType format using id as slug", async () => {
       const seriesEntities = [
-        createMockSeries("New Institutions", "new-institutions", 2),
+        createMockSeries("New Institutions", "new-institutions"),
       ];
       const posts = [
         createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
@@ -231,13 +249,24 @@ Content for ${title}`;
 
     it("should handle paginated list query", async () => {
       const seriesEntities = [
-        createMockSeries("Series A", "series-a", 3),
-        createMockSeries("Series B", "series-b", 2),
+        createMockSeries("Series A", "series-a"),
+        createMockSeries("Series B", "series-b"),
+      ];
+      const posts = [
+        createMockPost("1", "Post 1", "post-1", "Series A", 1),
+        createMockPost("2", "Post 2", "post-2", "Series A", 2),
+        createMockPost("3", "Post 3", "post-3", "Series A", 3),
+        createMockPost("4", "Post 4", "post-4", "Series B", 1),
+        createMockPost("5", "Post 5", "post-5", "Series B", 2),
       ];
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(
-        seriesEntities,
-      );
+      spyOn(mockEntityService, "listEntities").mockImplementation(((
+        entityType: string,
+      ) => {
+        if (entityType === "series") return Promise.resolve(seriesEntities);
+        if (entityType === "post") return Promise.resolve(posts);
+        return Promise.resolve([]);
+      }) as typeof mockEntityService.listEntities);
 
       const schema = z.object({
         series: z.array(

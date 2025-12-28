@@ -27,8 +27,15 @@ import yeehaaTheme from "@brains/theme-yeehaa";
 const entityRouteConfig = {
   post: { label: "Essay" },
   deck: { label: "Presentation" },
-  topic: { label: "Topic" },
   project: { label: "Project" },
+  series: {
+    label: "Series",
+    navigation: { slot: "secondary" },
+  },
+  topic: {
+    label: "Topic",
+    navigation: { slot: "secondary" },
+  },
   note: {
     label: "Note",
     navigation: { show: false },

@@ -105,7 +105,7 @@ export class SeriesDataSource implements DataSource {
     const params = normalizeQuery(query);
 
     if (params.type === "list") {
-      return this.fetchSeriesList(outputSchema);
+      return this.fetchSeriesList(outputSchema, context);
     }
 
     // params.type === "detail" at this point
@@ -129,17 +129,38 @@ export class SeriesDataSource implements DataSource {
 
   /**
    * Fetch list of all series from series entities
+   * Computes postCount dynamically by counting posts per series
    */
-  private async fetchSeriesList<T>(outputSchema: z.ZodSchema<T>): Promise<T> {
-    const seriesEntities = await this.entityService.listEntities<Series>(
-      "series",
-      {},
-    );
+  private async fetchSeriesList<T>(
+    outputSchema: z.ZodSchema<T>,
+    context: BaseDataSourceContext,
+  ): Promise<T> {
+    // Fetch series entities and posts in parallel
+    // Use high limit to ensure all posts are counted
+    // Filter posts by publishedOnly if specified
+    const [seriesEntities, posts] = await Promise.all([
+      this.entityService.listEntities<Series>("series", { limit: 1000 }),
+      this.entityService.listEntities<BlogPost>("post", {
+        limit: 1000,
+        ...(context.publishedOnly !== undefined && {
+          publishedOnly: context.publishedOnly,
+        }),
+      }),
+    ]);
+
+    // Count posts per series
+    const postCounts = new Map<string, number>();
+    for (const post of posts) {
+      const seriesName = post.metadata.seriesName;
+      if (seriesName) {
+        postCounts.set(seriesName, (postCounts.get(seriesName) ?? 0) + 1);
+      }
+    }
 
     const series = seriesEntities.map((entity) => ({
       name: entity.metadata.name,
       slug: entity.metadata.slug,
-      postCount: entity.metadata.postCount,
+      postCount: postCounts.get(entity.metadata.name) ?? 0,
     }));
 
     this.logger.debug(`Found ${series.length} series entities`);

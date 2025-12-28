@@ -34,7 +34,7 @@ const INVARIANT_WORDS = new Set(["series", "species", "sheep", "deer", "fish"]);
 
 /**
  * Simple English pluralization for common cases
- * Handles: invariant words, -y → -ies, -s/-x/-ch → -es, default → -s
+ * Handles: invariant words, consonant+y → -ies, -s/-x/-ch → -es, default → -s
  */
 export function pluralize(word: string): string {
   // Check for invariant words (case-insensitive)
@@ -42,8 +42,13 @@ export function pluralize(word: string): string {
     return word;
   }
   // Handle common cases
-  if (word.endsWith("y")) {
-    return word.slice(0, -1) + "ies";
+  // Only consonant + y becomes ies (baby → babies), vowel + y stays ys (essay → essays)
+  if (word.endsWith("y") && word.length > 1) {
+    const beforeY = word[word.length - 2];
+    const isVowelBeforeY = "aeiou".includes(beforeY?.toLowerCase() ?? "");
+    if (!isVowelBeforeY) {
+      return word.slice(0, -1) + "ies";
+    }
   }
   if (word.endsWith("s") || word.endsWith("x") || word.endsWith("ch")) {
     return word + "es";

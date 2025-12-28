@@ -78,12 +78,11 @@ Content for ${title}`;
         metadata: {
           name: "New Institutions",
           slug: "new-institutions",
-          postCount: 1,
         },
       });
     });
 
-    it("should aggregate multiple posts into same series", async () => {
+    it("should create one entity for multiple posts in same series", async () => {
       const posts = [
         createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
         createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
@@ -102,12 +101,12 @@ Content for ${title}`;
 
       await manager.syncSeriesFromPosts();
 
-      // Should only create one series entity
+      // Should only create one series entity (postCount computed dynamically when fetching)
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
         metadata: {
           name: "New Institutions",
-          postCount: 3,
+          slug: "new-institutions",
         },
       });
     });
@@ -162,7 +161,7 @@ Content for ${title}`;
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
         metadata: {
           name: "New Institutions",
-          postCount: 1,
+          slug: "new-institutions",
         },
       });
     });
@@ -180,7 +179,7 @@ Content for ${title}`;
             contentHash: "",
             created: "",
             updated: "",
-            metadata: { name: "Old Series", slug: "old-series", postCount: 0 },
+            metadata: { name: "Old Series", slug: "old-series" },
           },
         ]); // series
 

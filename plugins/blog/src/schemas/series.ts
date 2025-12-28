@@ -8,7 +8,6 @@ export const seriesMetadataSchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string().optional(),
-  postCount: z.number(),
 });
 
 /**
