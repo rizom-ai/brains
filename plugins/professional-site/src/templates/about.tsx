@@ -1,6 +1,7 @@
 import type { JSX } from "preact";
 import type { ProfessionalProfile } from "../schemas";
-import { Head } from "@brains/ui-library";
+import { Head, ProseContent } from "@brains/ui-library";
+import { markdownToHtml } from "@brains/utils";
 
 /**
  * About page data structure
@@ -43,11 +44,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
               <h2 className="text-2xl font-semibold mb-6 text-heading">
                 Story
               </h2>
-              <div className="prose prose-lg text-theme leading-relaxed space-y-4">
-                {profile.story.split("\n").map((paragraph, i) => (
-                  <p key={i}>{paragraph}</p>
-                ))}
-              </div>
+              <ProseContent html={markdownToHtml(profile.story)} />
             </section>
           )}
 
