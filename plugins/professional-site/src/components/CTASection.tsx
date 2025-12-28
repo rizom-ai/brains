@@ -1,11 +1,6 @@
 import type { JSX } from "preact";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
-
-interface SocialLink {
-  platform: string;
-  url: string;
-  label?: string | undefined;
-}
+import type { SocialLink } from "@brains/ui-library";
 
 interface CTASectionProps {
   cta: SiteInfoCTA;
