@@ -20,7 +20,6 @@
     "@brains/profile-service": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "lucide-preact": "^0.460.0",
     "preact": "^10.19.3"
   },
   "devDependencies": {

@@ -313,7 +313,6 @@
         "@brains/profile-service": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
-        "lucide-preact": "^0.460.0",
         "preact": "^10.19.3",
       },
       "devDependencies": {
@@ -450,7 +449,6 @@
         "@brains/eslint-config": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/site-builder-plugin": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/node": "^20.0.0",
