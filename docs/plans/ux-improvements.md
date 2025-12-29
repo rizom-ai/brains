@@ -1,23 +1,30 @@
 # Professional Brain UX Improvements Plan
 
-## Confirmed Items
+## Completed (Frontend)
 
-### Frontend
-
-1. **CTA Email** - Fix placeholder in seed-content
+1. ✅ **CTA Email** - Fixed placeholder in seed-content
 2. ~~Home Nav~~ - Skip (logo already links to home)
-3. **Mobile Menu** - Close on link click
-4. **Mobile Menu** - Escape key to close
-5. **Mobile Menu** - Focus trap (Tab stays within)
-6. **Mobile Menu** - Focus management (first link on open, button on close)
-7. **Focus Rings** - Add consistent focus utilities
-8. **Prose Classes** - Extract to reusable theme class
+3. ✅ **Mobile Menu** - Close on link click
+4. ✅ **Mobile Menu** - Escape key to close
+5. ✅ **Mobile Menu** - Focus trap (Tab stays within)
+6. ✅ **Mobile Menu** - Focus management (first link on open, button on close)
+7. ✅ **Focus Rings** - Added focus-ring utilities to theme
+8. ~~Prose Classes~~ - Skip (inline Tailwind is fine, no benefit to extracting)
 
-### Agent Interaction
+## Deferred: Agent Interaction UX (Needs Separate Plan)
 
-9. **Tool Status** - Show tool names in CLI spinner
-10. **Async Jobs** - CLI job completion feedback
-11. **Confirmation** - Accept more inputs, add help text
+These require a larger refactor touching multiple layers. Need plan + tests first.
+
+9. **Tool Status** - Show tool names during execution (all interfaces)
+10. **Async Jobs** - Job completion feedback (shared in MessageInterfacePlugin)
+11. **Confirmation** - Accept more inputs, add help text (shared utility)
+
+### Architecture Notes
+
+- Tool invocation events should emit via MessageBus from brain-agent
+- MessageInterfacePlugin should subscribe and handle for all interfaces
+- Need callback in BrainAgentFactoryOptions → shellInitializer → MessageBus
+- Tests needed before implementation
 
 ---
 
