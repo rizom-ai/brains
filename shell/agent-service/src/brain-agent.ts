@@ -17,6 +17,12 @@ import { z } from "@brains/utils";
 import type { IdentityBody } from "@brains/identity-service";
 import type { PluginTool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/permission-service";
+import type { IMessageBus } from "@brains/messaging-service";
+import {
+  createToolExecuteWrapper,
+  createMessageBusEmitter,
+  type ToolEventEmitter,
+} from "./tool-events";
 
 /**
  * Schema for runtime call options
@@ -51,6 +57,8 @@ export interface BrainAgentFactoryOptions {
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
   maxTokens?: number | undefined;
+  /** Message bus for emitting tool invocation events */
+  messageBus: IMessageBus;
 }
 
 /**
@@ -66,18 +74,20 @@ interface ToolContextInfo {
 /**
  * Convert PluginTool array to AI SDK tool format
  * Uses dynamicTool for runtime-defined tools with unknown input types
+ * Wraps each tool's execute function to emit invocation events
  */
 function convertToSDKTools(
   pluginTools: PluginTool[],
   contextInfo: ToolContextInfo,
+  emitter: ToolEventEmitter,
 ): ToolSet {
   const sdkTools: ToolSet = {};
 
   for (const t of pluginTools) {
-    sdkTools[t.name] = dynamicTool({
-      description: t.description,
-      inputSchema: z.object(t.inputSchema),
-      execute: async (args: unknown) => {
+    // Create a wrapped execute function that emits events
+    const wrappedExecute = createToolExecuteWrapper(
+      t.name,
+      async (args: unknown) => {
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           userId: "agent-user",
@@ -88,6 +98,14 @@ function convertToSDKTools(
         };
         return t.handler(args, context);
       },
+      contextInfo,
+      emitter,
+    );
+
+    sdkTools[t.name] = dynamicTool({
+      description: t.description,
+      inputSchema: z.object(t.inputSchema),
+      execute: wrappedExecute,
     });
   }
 
@@ -189,17 +207,24 @@ When asking for confirmation, clearly describe what will happen.
 export function createBrainAgentFactory(
   options: BrainAgentFactoryOptions,
 ): (config: BrainAgentConfig) => ToolLoopAgent<BrainCallOptions> {
-  const { model, webSearch, temperature, maxTokens } = options;
+  const { model, webSearch, temperature, maxTokens, messageBus } = options;
+
+  // Create event emitter backed by message bus
+  const emitter = createMessageBusEmitter(messageBus);
 
   return function createBrainAgent(
     config: BrainAgentConfig,
   ): ToolLoopAgent<BrainCallOptions> {
     // Pre-convert all tools - activeTools will filter which ones are available
     // Use a default context for initial tools (will be overridden in prepareCall)
-    const allTools = convertToSDKTools(config.tools, {
-      conversationId: "",
-      interfaceType: "agent",
-    });
+    const allTools = convertToSDKTools(
+      config.tools,
+      {
+        conversationId: "",
+        interfaceType: "agent",
+      },
+      emitter,
+    );
 
     return new ToolLoopAgent({
       model,
@@ -214,12 +239,16 @@ export function createBrainAgentFactory(
         const allowedToolNames = allowedTools.map((t) => t.name);
 
         // Convert tools with proper context from call options
-        const toolsWithContext = convertToSDKTools(allowedTools, {
-          conversationId: callOptions.conversationId,
-          channelId: callOptions.channelId,
-          channelName: callOptions.channelName,
-          interfaceType: callOptions.interfaceType,
-        });
+        const toolsWithContext = convertToSDKTools(
+          allowedTools,
+          {
+            conversationId: callOptions.conversationId,
+            channelId: callOptions.channelId,
+            channelName: callOptions.channelName,
+            interfaceType: callOptions.interfaceType,
+          },
+          emitter,
+        );
 
         return {
           ...settings,

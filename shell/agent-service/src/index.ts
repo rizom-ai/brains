@@ -26,3 +26,16 @@ export type {
   BrainAgentFactoryOptions,
   BrainCallOptions,
 } from "./brain-agent";
+
+// Tool event types
+export type {
+  ToolContextInfo,
+  ToolInvocationEvent,
+  ToolCompletionEvent,
+  ToolEventEmitter,
+} from "./tool-events";
+
+export {
+  createToolExecuteWrapper,
+  createMessageBusEmitter,
+} from "./tool-events";

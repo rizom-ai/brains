@@ -417,12 +417,13 @@ export class ShellInitializer {
       this.config.profile,
     );
 
-    // Create agent factory with AI service config
+    // Create agent factory with AI service config and message bus for tool events
     const agentFactory = createBrainAgentFactory({
       model: aiService.getModel(),
       webSearch: aiService.getConfig().webSearch,
       temperature: aiService.getConfig().temperature,
       maxTokens: aiService.getConfig().maxTokens,
+      messageBus,
     });
 
     // Agent service for AI-powered conversation
