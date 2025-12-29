@@ -6,9 +6,17 @@ A plugin for multi-provider social media posting with:
 
 - **LinkedIn** support (first provider, extensible to others)
 - **Post buffer** - editable queue of drafts waiting to publish
-- **Auto-generation** - create posts from blog posts/summaries via AI
+- **Auto-generation** - create posts from blog posts or decks via AI (includes source URL)
 - **Manual creation** - write posts directly
 - **Cron publishing** - auto-publish next queued post at configurable interval
+
+## V1 Scope (Keep It Simple)
+
+- **Text-only** - no image attachments (can add later)
+- **No preview feature** - draft → queued flow is sufficient
+- **No analytics** - fire and forget publishing
+- **No queue limit** - unlimited queue size
+- **3 retry limit** - failed posts move to "failed" status after 3 attempts
 
 ---
 
@@ -50,7 +58,9 @@ socialPostFrontmatterSchema = z.object({
   publishedAt: z.string().datetime().optional(),
   platformPostId: z.string().optional(),
   sourceEntityId: z.string().optional(),
-  sourceEntityType: z.string().optional(),
+  sourceEntityType: z.enum(["post", "deck"]).optional(), // Blog post or deck
+  sourceUrl: z.string().optional(), // URL to include in social post
+  retryCount: z.number().default(0), // Track publish attempts
   lastError: z.string().optional(),
 });
 
@@ -127,11 +137,12 @@ Creates social posts from prompts OR existing content:
 generateInputSchema = z.object({
   prompt: z.string().optional(),
   platform: z.enum(["linkedin"]).default("linkedin"),
-  sourceType: z.enum(["blog", "summary"]).optional(),
+  sourceType: z.enum(["post", "deck"]).optional(), // Blog post or deck
   sourceId: z.string().optional(),
   content: z.string().optional(), // Direct content (skip AI)
   addToQueue: z.boolean().default(true),
 });
+// Note: When sourceType is provided, the source URL is auto-included in the generated post
 ```
 
 **Reference**: `plugins/blog/src/tools/generate.ts`
@@ -190,8 +201,11 @@ editInputSchema = z.object({
 
 - Get post entity
 - Call LinkedIn API
-- Update entity: `status: "published"`, `platformPostId`, `publishedAt`
-- On error: `status: "failed"`, `lastError`
+- On success: Update `status: "published"`, `platformPostId`, `publishedAt`
+- On error:
+  - Increment `retryCount`
+  - If `retryCount >= 3`: Update `status: "failed"`, `lastError`
+  - If `retryCount < 3`: Keep `status: "queued"` (will retry on next cycle), update `lastError`
 
 ### 4.3 Publish Checker Handler (`src/handlers/publishCheckerHandler.ts`)
 
@@ -235,15 +249,57 @@ LinkedIn Share API v2: `POST https://api.linkedin.com/v2/ugcPosts`
 
 ### 5.2 Provider Interface (`src/lib/provider.ts`)
 
-For future extensibility:
+Output adapters that transform stored content to each platform's API format:
 
 ```typescript
 interface SocialMediaProvider {
   platform: string;
-  createPost(content: string): Promise<{ postId: string }>;
+
+  // Transform stored content → platform-specific API format
+  createPost(
+    content: string,
+    options?: PostOptions,
+  ): Promise<{ postId: string }>;
+
+  // Platform-specific validation (length, format, etc.)
+  validateContent(content: string): { valid: boolean; error?: string };
+
+  // Platform limits
+  getMaxLength(): number;
+
+  // Credential validation
   validateCredentials(): Promise<boolean>;
 }
+
+// Example: LinkedIn transforms content to UGC API format
+class LinkedInProvider implements SocialMediaProvider {
+  async createPost(content: string) {
+    const payload = {
+      author: `urn:li:person:${this.userId}`,
+      lifecycleState: "PUBLISHED",
+      specificContent: {
+        "com.linkedin.ugc.ShareContent": {
+          shareCommentary: { text: content },
+          shareMediaCategory: "NONE",
+        },
+      },
+      visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+    };
+    // POST to LinkedIn API
+  }
+
+  getMaxLength() {
+    return 3000;
+  }
+}
 ```
+
+Each platform provider handles:
+
+- API format transformation (content → platform-specific payload)
+- Character limit validation
+- Authentication headers
+- Error response parsing
 
 ---
 
@@ -350,10 +406,15 @@ Mock entities for testing.
 
 ```
 draft → queued → published
-                ↘ failed (can retry → queued)
+           ↓ (retry 1-2)
+           ↓ stays queued
+           ↓ (retry 3)
+           → failed
 ```
 
 - **draft**: Created but not ready
 - **queued**: Ready to publish, waiting in queue (ordered by queueOrder)
 - **published**: Successfully posted (has platformPostId, publishedAt)
-- **failed**: Publish error (has lastError, can move back to queued)
+- **failed**: Publish error after 3 retries (has lastError, retryCount=3)
+
+Note: Failed posts stay failed until manually edited. To retry, reset `retryCount` to 0 and change `status` back to "queued".
