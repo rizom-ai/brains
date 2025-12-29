@@ -35,26 +35,38 @@ export class SeriesManager {
 
     this.logger.debug(`Found ${seriesNames.size} unique series in posts`);
 
-    // Get existing series entities
+    // Get existing series entities (indexed by ID for quick lookup)
     const existingSeries = await this.entityService.listEntities<Series>(
       "series",
       {},
     );
+    const existingSeriesMap = new Map<string, Series>();
+    for (const series of existingSeries) {
+      existingSeriesMap.set(series.id, series);
+    }
 
-    // Create/update series entities
+    // Create series entities only if they don't already exist
     const processedIds = new Set<string>();
     for (const seriesName of seriesNames) {
       const seriesId = `series-${slugify(seriesName)}`;
       processedIds.add(seriesId);
 
       const content = `# ${seriesName}`;
+      const contentHash = computeContentHash(content);
+
+      // Check if series already exists with same content
+      const existing = existingSeriesMap.get(seriesId);
+      if (existing && existing.contentHash === contentHash) {
+        this.logger.debug(`Series already exists unchanged: ${seriesName}`);
+        continue;
+      }
 
       const seriesEntity: Series = {
         id: seriesId,
         entityType: "series",
         content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
+        contentHash,
+        created: existing?.created ?? new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {
           name: seriesName,
