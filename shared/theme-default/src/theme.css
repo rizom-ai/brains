@@ -440,7 +440,7 @@
     background-image: radial-gradient(circle at 1px 1px, var(--color-pattern-dot) 1px, transparent 0);
     background-size: 20px 20px;
   }
-  
+
   /* CTA background pattern (larger dots) */
   .cta-bg-pattern {
     background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
@@ -493,5 +493,17 @@
   }
   [data-theme="light"] .moon-icon {
     display: block;
+  }
+}
+
+/* Focus ring utilities for accessibility */
+@layer utilities {
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
+  }
+
+  /* Focus ring for dark/brand backgrounds */
+  .focus-ring-light {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand;
   }
 }

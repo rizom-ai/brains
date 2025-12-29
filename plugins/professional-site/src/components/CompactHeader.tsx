@@ -105,6 +105,8 @@ export function CompactHeader({
               <a
                 key={item.href}
                 href={item.href}
+                // @ts-expect-error - onclick is valid HTML attribute for SSR
+                onclick="closeMobileMenu()"
                 className="text-sm text-theme hover:text-brand transition-colors py-1"
               >
                 {item.label}

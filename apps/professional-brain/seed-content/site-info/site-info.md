@@ -24,4 +24,4 @@ Get in Touch
 
 ### Button Link
 
-mailto:you@example.com
+mailto:yeehaa@rizom.ai
