@@ -1,6 +1,7 @@
 import {
   MessageInterfacePlugin,
   type InterfacePluginContext,
+  parseConfirmationResponse,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import type { IAgentService } from "@brains/agent-service";
@@ -274,11 +275,16 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     conversationId: string,
     roomId: string,
   ): Promise<void> {
-    const normalizedMessage = message.toLowerCase().trim();
-    const isConfirmed =
-      normalizedMessage === "yes" ||
-      normalizedMessage === "y" ||
-      normalizedMessage === "confirm";
+    const result = parseConfirmationResponse(message);
+
+    // Unrecognized response - show help
+    if (result === undefined) {
+      this.sendMessageToChannel(
+        roomId,
+        "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+      );
+      return;
+    }
 
     // Clear pending confirmation
     this.pendingConfirmations.delete(conversationId);
@@ -286,7 +292,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     // Call AgentService to confirm or cancel
     const response = await this.getAgentService().confirmPendingAction(
       conversationId,
-      isConfirmed,
+      result.confirmed,
     );
 
     // Send response

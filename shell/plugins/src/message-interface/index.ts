@@ -9,3 +9,9 @@ export {
   formatProgressMessage,
   type ProgressHandlers,
 } from "./progress-handler";
+
+export {
+  parseConfirmationResponse,
+  formatConfirmationPrompt,
+  ConfirmationTracker,
+} from "./confirmation-handler";

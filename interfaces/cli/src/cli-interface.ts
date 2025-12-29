@@ -2,6 +2,7 @@ import {
   MessageInterfacePlugin,
   type InterfacePluginContext,
   PluginError,
+  parseConfirmationResponse,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import type { JobProgressEvent } from "@brains/plugins";
@@ -241,11 +242,16 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     message: string,
     conversationId: string,
   ): Promise<void> {
-    const normalizedMessage = message.toLowerCase().trim();
-    const isConfirmed =
-      normalizedMessage === "yes" ||
-      normalizedMessage === "y" ||
-      normalizedMessage === "confirm";
+    const result = parseConfirmationResponse(message);
+
+    // Unrecognized response - show help
+    if (result === undefined) {
+      this.sendMessageToChannel(
+        null,
+        "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+      );
+      return;
+    }
 
     // Clear pending confirmation
     this.pendingConfirmation = false;
@@ -253,7 +259,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     // Call AgentService to confirm or cancel
     const response = await this.getAgentService().confirmPendingAction(
       conversationId,
-      isConfirmed,
+      result.confirmed,
     );
 
     // Send response to UI

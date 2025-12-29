@@ -24,6 +24,9 @@ export {
   formatCompletionMessage,
   formatProgressMessage,
   type ProgressHandlers,
+  parseConfirmationResponse,
+  formatConfirmationPrompt,
+  ConfirmationTracker,
 } from "./message-interface";
 
 // Plugin types and interfaces
