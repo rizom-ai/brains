@@ -1,0 +1,27 @@
+{
+  "name": "@brains/social-media",
+  "version": "0.1.0",
+  "description": "Multi-provider social media posting with queue-based publishing",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}

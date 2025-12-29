@@ -351,6 +351,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/social-media": {
+      "name": "@brains/social-media",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/summary": {
       "name": "@brains/summary",
       "version": "0.1.0",
@@ -992,6 +1008,8 @@
     "@brains/service-registry": ["@brains/service-registry@workspace:shell/service-registry"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
+
+    "@brains/social-media": ["@brains/social-media@workspace:plugins/social-media"],
 
     "@brains/summary": ["@brains/summary@workspace:plugins/summary"],
 
