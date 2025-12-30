@@ -1,0 +1,47 @@
+id: social-media-generate-from-blog
+name: Generate LinkedIn post from blog content
+description: Tests that AI generates a promotional LinkedIn post from blog post content
+type: plugin
+tags:
+  - social-media
+  - linkedin
+  - from-source
+  - core
+plugin: social-media
+handler: generation
+
+input:
+  content: |
+    # Building Resilient Microservices
+
+    Microservices architecture has become the standard for building scalable applications.
+    However, building resilient microservices requires careful consideration of failure modes.
+
+    ## Key Principles
+
+    1. Design for failure - assume every dependency can fail
+    2. Implement circuit breakers to prevent cascade failures
+    3. Use bulkheads to isolate critical components
+    4. Add retry logic with exponential backoff
+
+    ## Conclusion
+
+    Building resilient systems takes effort upfront but pays dividends when things go wrong.
+    Start with these patterns and iterate based on your specific needs.
+  platform: linkedin
+
+expectedOutput:
+  hasFields:
+    - content
+  fieldValidation:
+    - field: content
+      minLength: 100
+      maxLength: 3000
+  contentContains:
+    - field: content
+      patterns:
+        - "[Mm]icroservice|[Rr]esilien|[Ss]cala"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

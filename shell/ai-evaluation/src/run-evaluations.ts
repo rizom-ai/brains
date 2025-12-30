@@ -5,6 +5,7 @@
  * Usage from an app directory:
  *   bun run eval                              # Run all evaluations
  *   bun run eval --test tool-invocation-list  # Run specific test(s)
+ *   bun run eval --filter my-test            # Alias for --test
  *   bun run eval --tags core                  # Run only tests with 'core' tag
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
  *   bun run eval --verbose                    # Show verbose output
@@ -130,6 +131,7 @@ Usage: bun run eval [options]
 
 Options:
   --test <ids>        Run specific test(s), comma-separated
+  --filter <ids>      Alias for --test
   --tags <tags>       Filter tests by tag(s), comma-separated
   --type <type>       Filter by type: "agent" or "plugin"
   --url <url>         Run against a remote brain instance
@@ -141,6 +143,7 @@ Options:
 Examples:
   bun run eval                              Run all tests
   bun run eval --test tool-invocation-list  Run single test
+  bun run eval --filter my-test             Run single test (alias)
   bun run eval --test list,search           Run multiple tests
   bun run eval --tags core                  Run tests tagged 'core'
   bun run eval --type plugin                Run only plugin tests
@@ -167,7 +170,7 @@ export async function main(): Promise<void> {
   const skipLLMJudge = args.includes("--skip-llm-judge");
   const verbose = args.includes("--verbose") || args.includes("-v");
   const tags = parseFlag(args, "--tags");
-  const testCaseIds = parseFlag(args, "--test");
+  const testCaseIds = parseFlag(args, "--test") ?? parseFlag(args, "--filter");
   const testTypeArg = parseSingleFlag(args, "--type");
   const testType =
     testTypeArg === "agent" || testTypeArg === "plugin"

@@ -1,0 +1,41 @@
+id: social-media-professional-tone
+name: Generate professional LinkedIn post
+description: Tests that AI generates a LinkedIn post with appropriate professional tone, no emojis
+type: plugin
+tags:
+  - social-media
+  - linkedin
+  - tone
+  - quality
+plugin: social-media
+handler: generation
+
+input:
+  prompt: "Share insights about effective remote team management"
+  platform: linkedin
+
+expectedOutput:
+  hasFields:
+    - content
+  fieldValidation:
+    - field: content
+      minLength: 150
+      maxLength: 2500
+  contentNotContains:
+    - field: content
+      patterns:
+        - "!!!"
+        - "AMAZING"
+        - "INCREDIBLE"
+        - "YOU WON'T BELIEVE"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    customCriteria:
+      - name: professional_tone
+        description: "Content maintains professional, LinkedIn-appropriate tone without clickbait"
+        minScore: 4
+      - name: no_emojis
+        description: "Content does not contain any emojis"
+        minScore: 5

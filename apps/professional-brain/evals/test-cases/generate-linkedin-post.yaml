@@ -1,0 +1,31 @@
+id: social-media-generate-linkedin-post
+name: Generate LinkedIn post from prompt
+description: Tests that AI generates an engaging LinkedIn post from a topic prompt
+type: plugin
+tags:
+  - social-media
+  - linkedin
+  - generation
+  - core
+plugin: social-media
+handler: generation
+
+input:
+  prompt: "Write a LinkedIn post about the importance of continuous learning in tech"
+  platform: linkedin
+
+expectedOutput:
+  hasFields:
+    - content
+  fieldValidation:
+    - field: content
+      minLength: 100
+      maxLength: 3000
+  contentContains:
+    - field: content
+      patterns:
+        - "[Ll]earn|[Gg]row|[Dd]evelop|[Ss]kill"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
