@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { AIContentDataSource } from "./ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService } from "@brains/plugins";
@@ -8,7 +8,7 @@ import {
   createMockTemplateRegistry,
 } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z, EntityUrlGenerator } from "@brains/utils";
 
 describe("AIContentDataSource", () => {
   let aiContentDataSource: AIContentDataSource;
@@ -45,6 +45,14 @@ describe("AIContentDataSource", () => {
   };
 
   beforeEach(() => {
+    // Configure EntityUrlGenerator with test entity types
+    EntityUrlGenerator.resetInstance();
+    EntityUrlGenerator.getInstance().configure({
+      post: { label: "Post" },
+      deck: { label: "Deck" },
+      note: { label: "Note" },
+    });
+
     mockAIService = createMockAIService({
       returns: {
         generateObject: { message: "Test response" },
@@ -75,6 +83,10 @@ describe("AIContentDataSource", () => {
       mockGetIdentityContent,
       mockGetProfileContent,
     );
+  });
+
+  afterEach(() => {
+    EntityUrlGenerator.resetInstance();
   });
 
   describe("metadata", () => {
