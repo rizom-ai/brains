@@ -1,0 +1,30 @@
+id: social-media-generate-edit-agent
+name: Generate and refine LinkedIn post flow
+description: Tests multi-turn flow where user generates a post then asks for changes
+type: multi_turn
+tags:
+  - social-media
+  - linkedin
+  - agent
+  - multi-turn
+
+turns:
+  - userMessage: "Create a LinkedIn post about the future of work and decentralized organizations"
+    successCriteria:
+      expectedTools:
+        - toolName: social-media_generate
+          shouldBeCalled: true
+
+  - userMessage: "Make it shorter and more punchy, remove any hashtags"
+
+successCriteria:
+  # First turn must generate
+  expectedTools:
+    - toolName: social-media_generate
+      shouldBeCalled: true
+  # Agent should respond with confirmation of changes
+  responseContains:
+    - "short"
+
+efficiency:
+  maxToolCalls: 8

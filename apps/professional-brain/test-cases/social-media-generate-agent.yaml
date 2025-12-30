@@ -1,0 +1,21 @@
+id: social-media-generate-agent
+name: Generate LinkedIn post via natural language
+description: Tests that the agent correctly invokes the social-media generate tool when asked to create a LinkedIn post
+type: tool_invocation
+tags:
+  - social-media
+  - linkedin
+  - agent
+  - core
+
+turns:
+  - userMessage: "Create a LinkedIn post about ecosystem architecture and how it differs from traditional organizational design"
+
+successCriteria:
+  expectedTools:
+    - toolName: social-media_generate
+      argsContain:
+        platform: linkedin
+      shouldBeCalled: true
+  responseContains:
+    - "LinkedIn"

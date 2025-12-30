@@ -1,0 +1,18 @@
+id: social-media-queue-list-agent
+name: List social media publish queue
+description: Tests that the agent correctly invokes the queue tool with list action when asked about scheduled posts
+type: tool_invocation
+tags:
+  - social-media
+  - queue
+  - agent
+
+turns:
+  - userMessage: "Show me what's in my LinkedIn publish queue"
+
+successCriteria:
+  expectedTools:
+    - toolName: social-media_queue
+      argsContain:
+        action: list
+      shouldBeCalled: true

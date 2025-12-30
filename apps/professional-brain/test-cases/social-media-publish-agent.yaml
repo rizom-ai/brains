@@ -1,0 +1,21 @@
+id: social-media-publish-agent
+name: Handle publish request with no posts
+description: Tests that the agent correctly checks for posts and informs user when none exist
+type: response_quality
+tags:
+  - social-media
+  - linkedin
+  - agent
+  - publish
+
+turns:
+  - userMessage: "Publish my latest LinkedIn post now"
+
+successCriteria:
+  # Agent should check for existing posts
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+  # Agent should inform user there's nothing to publish
+  responseContains:
+    - "post"
