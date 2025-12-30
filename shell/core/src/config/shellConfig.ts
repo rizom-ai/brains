@@ -222,5 +222,10 @@ export function createShellConfig(
     result.evalHandlerRegistry = overrides.evalHandlerRegistry;
   }
 
+  // Only add siteBaseUrl if it's defined
+  if (overrides.siteBaseUrl !== undefined) {
+    result.siteBaseUrl = overrides.siteBaseUrl;
+  }
+
   return result;
 }

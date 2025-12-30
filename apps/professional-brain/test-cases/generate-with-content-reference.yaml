@@ -1,0 +1,25 @@
+id: social-media-url-reference
+name: Generate LinkedIn post with URL references
+description: Tests that AI includes URLs when referencing content from knowledge base
+type: plugin
+tags:
+  - social-media
+  - linkedin
+  - url-reference
+  - core
+plugin: social-media
+handler: generation
+
+input:
+  prompt: "Write a LinkedIn post about ecosystem architecture and decentralization"
+  platform: linkedin
+
+expectedOutput:
+  # Check that content field contains a yeehaa.io URL
+  validateEach:
+    - path: "content"
+      matches: "https://yeehaa\\.io/"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

@@ -21,6 +21,67 @@ export class OutputValidator {
         actual: typeof output,
         message: `Expected array output but got ${typeof output}`,
       });
+    } else if (typeof output === "object" && output !== null) {
+      // Handle object outputs
+      failures.push(...this.validateObject(output, expected));
+    }
+
+    return failures;
+  }
+
+  /**
+   * Validate object output using validateEach on the object itself
+   */
+  private validateObject(
+    output: object,
+    expected: ExpectedOutput,
+  ): FailureDetail[] {
+    const failures: FailureDetail[] = [];
+
+    // Check validateEach - validate paths against the object
+    if (expected.validateEach) {
+      for (const check of expected.validateEach) {
+        const value = this.getPathValue(output, check.path);
+
+        // Check exists
+        if (check.exists !== undefined) {
+          const exists = value !== undefined;
+          if (exists !== check.exists) {
+            failures.push({
+              criterion: "validateEach.exists",
+              expected: check.exists ? "exists" : "does not exist",
+              actual: exists ? "exists" : "does not exist",
+              message: `${check.path}: expected ${check.exists ? "to exist" : "not to exist"}`,
+            });
+          }
+        }
+
+        // Check equals
+        if (check.equals !== undefined && value !== check.equals) {
+          failures.push({
+            criterion: "validateEach.equals",
+            expected: JSON.stringify(check.equals),
+            actual: JSON.stringify(value),
+            message: `${check.path}: expected ${JSON.stringify(check.equals)}, got ${JSON.stringify(value)}`,
+          });
+        }
+
+        // Check matches (regex)
+        if (check.matches !== undefined) {
+          const pattern = new RegExp(check.matches);
+          if (typeof value !== "string" || !pattern.test(value)) {
+            failures.push({
+              criterion: "validateEach.matches",
+              expected: `matches /${check.matches}/`,
+              actual:
+                typeof value === "string"
+                  ? `"${value.slice(0, 100)}..."`
+                  : typeof value,
+              message: `${check.path}: expected to match /${check.matches}/`,
+            });
+          }
+        }
+      }
     }
 
     return failures;

@@ -40,10 +40,8 @@ When source content (blog post, deck, etc.) is provided in the context:
 - INCLUDE the URL naturally in your post to let readers explore more
 - Frame it through personal experience or observation when possible
 
-When relevant content from the knowledge base is available in context:
-- Reference it naturally if it adds value to your point
-- Include URLs to let readers dive deeper
-- Don't force references - only include if genuinely relevant
+CRITICAL - URL Inclusion:
+When URLs are provided in the knowledge base context, you MUST include at least one relevant URL in your post. This is a hard requirement, not optional. Place the URL naturally in the flow or on its own line near the end (before hashtags).
 
 LinkedIn-specific guidelines:
 1. LENGTH: 150-300 words performs best. First 3 lines are visible before "see more"

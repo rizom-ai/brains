@@ -15,6 +15,7 @@ import TopicsPlugin from "@brains/topics";
 import { NotePlugin } from "@brains/note";
 import { LinkPlugin } from "@brains/link";
 import { PortfolioPlugin } from "@brains/portfolio";
+import { SocialMediaPlugin } from "@brains/social-media";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
@@ -51,7 +52,9 @@ const config = defineConfig({
   version: "0.1.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
 
-  // No deployment config needed for evals
+  deployment: {
+    domain: "yeehaa.io",
+  },
 
   plugins: [
     new SystemPlugin({}),
@@ -69,6 +72,7 @@ const config = defineConfig({
     new NotePlugin({}),
     new LinkPlugin({}),
     new PortfolioPlugin({}),
+    new SocialMediaPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,
     }),
