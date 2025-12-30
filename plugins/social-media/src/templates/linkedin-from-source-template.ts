@@ -49,6 +49,7 @@ DON'T:
 - Be overly promotional or salesy
 - Use clickbait tactics
 - Give away the entire content
+- Use emojis
 
 DO:
 - Share the key insight that makes it worth reading

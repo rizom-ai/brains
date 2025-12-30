@@ -5,6 +5,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { z } from "@brains/utils";
 import { socialPostSchema } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
@@ -108,7 +109,37 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       );
     }
 
+    // Register eval handlers for testing
+    this.registerEvalHandlers(context);
+
     this.logger.info("Social media plugin registered successfully");
+  }
+
+  /**
+   * Register eval handlers for plugin testing
+   */
+  private registerEvalHandlers(context: ServicePluginContext): void {
+    // Generate LinkedIn post from prompt or content
+    const generationInputSchema = z.object({
+      prompt: z.string().optional(),
+      content: z.string().optional(),
+      platform: z.enum(["linkedin"]).default("linkedin"),
+    });
+
+    context.registerEvalHandler("generation", async (input: unknown) => {
+      const parsed = generationInputSchema.parse(input);
+
+      const generationPrompt = parsed.content
+        ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
+        : (parsed.prompt ?? "Write an engaging LinkedIn post");
+
+      return context.generateContent<{
+        content: string;
+      }>({
+        prompt: generationPrompt,
+        templateName: `social-media:generation-${parsed.platform}`,
+      });
+    });
   }
 
   /**

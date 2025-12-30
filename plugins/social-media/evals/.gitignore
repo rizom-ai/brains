@@ -1,0 +1,11 @@
+# Environment
+.env
+
+# Build artifacts
+dist/
+
+# Cache
+cache/
+
+# Keep evaluation results tracked (they're useful for comparison)
+# !data/evaluation-results/

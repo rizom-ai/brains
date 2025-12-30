@@ -1,0 +1,35 @@
+id: social-media-call-to-action
+name: Generate LinkedIn post with engagement hook
+description: Tests that AI generates a LinkedIn post that encourages engagement
+type: plugin
+tags:
+  - social-media
+  - linkedin
+  - engagement
+  - quality
+plugin: social-media
+handler: generation
+
+input:
+  prompt: "Write about lessons learned from a failed product launch"
+  platform: linkedin
+
+expectedOutput:
+  hasFields:
+    - content
+  fieldValidation:
+    - field: content
+      minLength: 200
+      maxLength: 3000
+  contentContains:
+    - field: content
+      patterns:
+        - "\\?|[Ss]hare|[Cc]omment|[Tt]houghts|[Ee]xperience"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    customCriteria:
+      - name: engagement_potential
+        description: "Content includes a question or call-to-action that encourages comments"
+        minScore: 3

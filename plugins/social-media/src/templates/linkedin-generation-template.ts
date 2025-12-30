@@ -39,7 +39,7 @@ LinkedIn-specific guidelines:
 6. HASHTAGS: 3-5 relevant hashtags at the end, not inline
 7. CTA: End with a question to drive comments ("What's your experience with...?")
 8. TONE: Professional but personable. Thought leadership, not sales pitch
-9. AVOID: Corporate buzzwords, excessive emojis, "I'm excited to announce"
+9. AVOID: Corporate buzzwords, emojis, "I'm excited to announce"
 10. AUTHENTICITY: Share genuine insights, lessons learned, or unique perspectives
 
 The goal is to provide value first - build trust through useful content, not self-promotion.`,
