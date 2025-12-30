@@ -94,6 +94,11 @@ export class App {
       shellConfig.name = this.config.name;
       shellConfig.version = this.config.version;
 
+      // Set site base URL from deployment domain for entity link generation
+      if (this.config.deployment?.domain) {
+        shellConfig.siteBaseUrl = this.config.deployment.domain;
+      }
+
       // Pass the global logger instance which has already been configured
       // In CLI mode, it's already set to use stderr in run()
       this.shell = Shell.createFresh(shellConfig, {

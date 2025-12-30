@@ -135,6 +135,10 @@ export const shellConfigSchema = z.object({
   // Data directory - where plugins store entity files (e.g., directory-sync, git-sync)
   // Default: ./brain-data, can be overridden for evals or custom deployments
   dataDir: z.string().default("./brain-data"),
+
+  // Site base URL for generating entity links (e.g., "yeehaa.io")
+  // Used by AI content generation to include URLs when referencing entities
+  siteBaseUrl: z.string().optional(),
 });
 
 export type ShellConfig = z.infer<typeof shellConfigSchema> & {

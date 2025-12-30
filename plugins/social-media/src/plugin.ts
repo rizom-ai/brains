@@ -15,8 +15,7 @@ import { createPublishTool } from "./tools/publish";
 import { createEditTool } from "./tools/edit";
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
-import { linkedinGenerationTemplate } from "./templates/linkedin-generation-template";
-import { linkedinFromSourceTemplate } from "./templates/linkedin-from-source-template";
+import { linkedinTemplate } from "./templates/linkedin-template";
 import { GenerationJobHandler } from "./handlers/generationHandler";
 import { PublishJobHandler } from "./handlers/publishHandler";
 import { PublishCheckerJobHandler } from "./handlers/publishCheckerHandler";
@@ -60,8 +59,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
 
     // Register AI templates
     context.registerTemplates({
-      "generation-linkedin": linkedinGenerationTemplate,
-      "from-source-linkedin": linkedinFromSourceTemplate,
+      linkedin: linkedinTemplate,
     });
 
     // Initialize providers
@@ -137,7 +135,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
         content: string;
       }>({
         prompt: generationPrompt,
-        templateName: `social-media:generation-${parsed.platform}`,
+        templateName: `social-media:${parsed.platform}`,
       });
     });
   }

@@ -72,7 +72,8 @@ export { LinkedInClient, createLinkedInProvider } from "./lib/linkedin-client";
 
 // Template exports
 export {
-  linkedinGenerationTemplate,
-  linkedinFromSourceTemplate,
+  linkedinTemplate,
+  linkedinPostSchema,
+  type LinkedInPost,
   getTemplateName,
 } from "./templates";

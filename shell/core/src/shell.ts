@@ -657,6 +657,7 @@ export class Shell implements IShell {
       this.templateRegistry,
       () => this.identityService.getIdentityContent(),
       () => this.profileService.getProfileContent(),
+      this.config.siteBaseUrl,
     );
     this.dataSourceRegistry.register(aiContentDataSource);
     this.logger.debug("Registered AI Content DataSource");

@@ -1,5 +1,5 @@
 import { mock } from "bun:test";
-import type { BaseEntity } from "@brains/entity-service";
+import type { BaseEntity, SearchResult } from "@brains/entity-service";
 import type { IEntityService } from "@brains/plugins";
 
 /**
@@ -11,7 +11,7 @@ export interface MockEntityServiceReturns {
   updateEntity?: { entityId: string; jobId?: string };
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
-  search?: BaseEntity[];
+  search?: SearchResult[];
   countEntities?: number;
 }
 

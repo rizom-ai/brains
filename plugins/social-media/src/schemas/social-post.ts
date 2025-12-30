@@ -52,7 +52,6 @@ export const socialPostFrontmatterSchema = z.object({
   sourceEntityType: sourceEntityTypeSchema
     .optional()
     .describe("Source entity type (post, deck)"),
-  sourceUrl: z.string().optional().describe("URL to include in social post"),
   retryCount: z.number().default(0).describe("Number of publish attempts"),
   lastError: z.string().optional().describe("Last publish error if failed"),
 });

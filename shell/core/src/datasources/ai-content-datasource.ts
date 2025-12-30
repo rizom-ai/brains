@@ -2,7 +2,7 @@ import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { z } from "@brains/utils";
+import { z, pluralize } from "@brains/utils";
 
 /**
  * Zod schema for GenerationContext validation
@@ -37,6 +37,7 @@ export class AIContentDataSource implements DataSource {
     private readonly templateRegistry: TemplateRegistry,
     private readonly getIdentityContent: () => string,
     private readonly getProfileContent: () => string,
+    private readonly siteBaseUrl?: string,
   ) {}
 
   /**
@@ -127,10 +128,21 @@ export class AIContentDataSource implements DataSource {
     // Add entity context to inform the generation
     if (relevantEntities.length > 0) {
       const entityContext = relevantEntities
-        .map(
-          (result) =>
-            `[${result.entity.entityType}] ${result.entity.id}: ${result.excerpt}`,
-        )
+        .map((result) => {
+          const { entity, excerpt } = result;
+          const entityType = entity.entityType;
+          const slugSchema = z.object({ slug: z.string() });
+          const parsed = slugSchema.safeParse(entity.metadata);
+          const slug = parsed.success ? parsed.data.slug : entity.id;
+
+          // Include URL if site base URL is configured
+          if (this.siteBaseUrl) {
+            const url = `https://${this.siteBaseUrl}/${pluralize(entityType)}/${slug}`;
+            return `[${entityType}] ${entity.id}: ${excerpt} (${url})`;
+          }
+
+          return `[${entityType}] ${entity.id}: ${excerpt}`;
+        })
         .join("\n");
       prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
     }

@@ -151,6 +151,174 @@ describe("AIContentDataSource", () => {
     });
   });
 
+  describe("entity context with URLs", () => {
+    it("should include URLs in entity context when siteBaseUrl is provided", async () => {
+      const entityServiceWithSearch = createMockEntityService({
+        returns: {
+          search: [
+            {
+              entity: {
+                id: "my-blog-post",
+                entityType: "post",
+                content: "Test content",
+                metadata: { slug: "my-blog-post" },
+                contentHash: "abc",
+                created: "2024-01-01",
+                updated: "2024-01-01",
+              },
+              score: 0.9,
+              excerpt: "This is a test blog post about AI",
+            },
+          ],
+        },
+      });
+
+      const dataSourceWithUrl = new AIContentDataSource(
+        mockAIService,
+        entityServiceWithSearch,
+        mockTemplateRegistryInstance,
+        mockGetIdentityContent,
+        mockGetProfileContent,
+        "yeehaa.io",
+      );
+
+      const schema = z.object({ message: z.string() });
+      await dataSourceWithUrl.generate(
+        { templateName: "test-template", prompt: "Tell me about AI" },
+        schema,
+      );
+
+      const userPromptArg = mockGenerateObject.mock.calls[0]?.[1];
+      expect(userPromptArg).toContain("https://yeehaa.io/posts/my-blog-post");
+    });
+
+    it("should use entity slug for URL when available", async () => {
+      const entityServiceWithSearch = createMockEntityService({
+        returns: {
+          search: [
+            {
+              entity: {
+                id: "deck-123",
+                entityType: "deck",
+                content: "Test deck",
+                metadata: { slug: "my-presentation-slug" },
+                contentHash: "abc",
+                created: "2024-01-01",
+                updated: "2024-01-01",
+              },
+              score: 0.9,
+              excerpt: "A presentation about testing",
+            },
+          ],
+        },
+      });
+
+      const dataSourceWithUrl = new AIContentDataSource(
+        mockAIService,
+        entityServiceWithSearch,
+        mockTemplateRegistryInstance,
+        mockGetIdentityContent,
+        mockGetProfileContent,
+        "example.com",
+      );
+
+      const schema = z.object({ message: z.string() });
+      await dataSourceWithUrl.generate(
+        {
+          templateName: "test-template",
+          prompt: "Tell me about presentations",
+        },
+        schema,
+      );
+
+      const userPromptArg = mockGenerateObject.mock.calls[0]?.[1];
+      expect(userPromptArg).toContain(
+        "https://example.com/decks/my-presentation-slug",
+      );
+    });
+
+    it("should fall back to entity id when slug not available", async () => {
+      const entityServiceWithSearch = createMockEntityService({
+        returns: {
+          search: [
+            {
+              entity: {
+                id: "note-456",
+                entityType: "note",
+                content: "Test note",
+                metadata: {},
+                contentHash: "abc",
+                created: "2024-01-01",
+                updated: "2024-01-01",
+              },
+              score: 0.9,
+              excerpt: "A personal note",
+            },
+          ],
+        },
+      });
+
+      const dataSourceWithUrl = new AIContentDataSource(
+        mockAIService,
+        entityServiceWithSearch,
+        mockTemplateRegistryInstance,
+        mockGetIdentityContent,
+        mockGetProfileContent,
+        "example.com",
+      );
+
+      const schema = z.object({ message: z.string() });
+      await dataSourceWithUrl.generate(
+        { templateName: "test-template", prompt: "Find notes" },
+        schema,
+      );
+
+      const userPromptArg = mockGenerateObject.mock.calls[0]?.[1];
+      expect(userPromptArg).toContain("https://example.com/notes/note-456");
+    });
+
+    it("should not include URLs when siteBaseUrl is not provided", async () => {
+      const entityServiceWithSearch = createMockEntityService({
+        returns: {
+          search: [
+            {
+              entity: {
+                id: "my-blog-post",
+                entityType: "post",
+                content: "Test content",
+                metadata: { slug: "my-blog-post" },
+                contentHash: "abc",
+                created: "2024-01-01",
+                updated: "2024-01-01",
+              },
+              score: 0.9,
+              excerpt: "This is a test blog post",
+            },
+          ],
+        },
+      });
+
+      const dataSourceWithoutUrl = new AIContentDataSource(
+        mockAIService,
+        entityServiceWithSearch,
+        mockTemplateRegistryInstance,
+        mockGetIdentityContent,
+        mockGetProfileContent,
+        // No siteBaseUrl
+      );
+
+      const schema = z.object({ message: z.string() });
+      await dataSourceWithoutUrl.generate(
+        { templateName: "test-template", prompt: "Tell me about blogs" },
+        schema,
+      );
+
+      const userPromptArg = mockGenerateObject.mock.calls[0]?.[1];
+      expect(userPromptArg).not.toContain("https://");
+      expect(userPromptArg).toContain("[post] my-blog-post:");
+    });
+  });
+
   describe("generate", () => {
     it("should throw error if template not found", async () => {
       mockTemplateGet.mockReturnValue(undefined);

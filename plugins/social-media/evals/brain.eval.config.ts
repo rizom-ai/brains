@@ -10,6 +10,10 @@ const config = defineConfig({
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
   database: `file:/tmp/social-media-eval-${Date.now()}.db`,
 
+  deployment: {
+    domain: "example.com",
+  },
+
   plugins: [new SocialMediaPlugin({})],
 });
 

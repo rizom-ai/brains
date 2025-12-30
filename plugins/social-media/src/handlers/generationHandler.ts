@@ -71,8 +71,6 @@ export class GenerationJobHandler extends BaseJobHandler<
         message: "Starting social post generation",
       });
 
-      let sourceUrl: string | undefined;
-
       // Case 1: Direct content provided (no AI needed)
       if (content) {
         await progressReporter.report({
@@ -107,17 +105,24 @@ export class GenerationJobHandler extends BaseJobHandler<
           message: "Generating social post from source content",
         });
 
+        // Extract slug from metadata for source reference
+        const slugSchema = z.object({ slug: z.string() });
+        const parsed = slugSchema.safeParse(sourceEntity.metadata);
+        const slug = parsed.success ? parsed.data.slug : sourceEntityId;
+
         // Generate post from source content using platform-specific template
         const generated = await this.context.generateContent<{
           content: string;
-          sourceUrl?: string;
         }>({
-          prompt: `Create an engaging ${platform} post to promote this content:\n\n${sourceEntity.content}`,
-          templateName: getTemplateName("from-source", platform),
+          prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
+
+Source: ${sourceEntityType}/${slug}
+
+${sourceEntity.content}`,
+          templateName: getTemplateName(platform),
         });
 
         content = generated.content;
-        sourceUrl = generated.sourceUrl;
 
         await progressReporter.report({
           progress: 50,
@@ -138,7 +143,7 @@ export class GenerationJobHandler extends BaseJobHandler<
           content: string;
         }>({
           prompt: prompt,
-          templateName: getTemplateName("generation", platform),
+          templateName: getTemplateName(platform),
         });
 
         content = generated.content;
@@ -196,7 +201,6 @@ export class GenerationJobHandler extends BaseJobHandler<
         ...(queueOrder !== undefined && { queueOrder }),
         ...(sourceEntityId && { sourceEntityId }),
         ...(sourceEntityType && { sourceEntityType }),
-        ...(sourceUrl && { sourceUrl }),
       };
 
       const postContent = socialPostAdapter.createPostContent(frontmatter, "");
