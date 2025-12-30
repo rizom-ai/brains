@@ -8,6 +8,7 @@ import type {
   IEntityService,
   BaseEntity,
   EntityAdapter,
+  EntityTypeConfig,
 } from "@brains/entity-service";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
@@ -68,9 +69,10 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
     entityType: string,
     schema: z.ZodSchema<T>,
     adapter: EntityAdapter<T>,
+    config?: EntityTypeConfig,
   ): void {
     const context = this.getContext();
-    context.registerEntityType(entityType, schema, adapter);
+    context.registerEntityType(entityType, schema, adapter, config);
   }
 
   /**

@@ -106,6 +106,7 @@ export type {
   IEntityService,
   ICoreEntityService,
   IEntityRegistry,
+  EntityTypeConfig,
 } from "@brains/entity-service";
 export {
   baseEntitySchema,

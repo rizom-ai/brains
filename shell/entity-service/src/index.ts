@@ -17,6 +17,7 @@ export type {
   EntityService as IEntityService,
   ICoreEntityService,
   EntityDbConfig,
+  EntityTypeConfig,
 } from "./types";
 
 // Export schemas

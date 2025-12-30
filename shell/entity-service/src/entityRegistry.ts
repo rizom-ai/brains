@@ -4,6 +4,7 @@ import type {
   BaseEntity,
   EntityAdapter,
   EntityRegistry as IEntityRegistry,
+  EntityTypeConfig,
 } from "./types";
 
 /**
@@ -15,6 +16,7 @@ export class EntityRegistry implements IEntityRegistry {
 
   private entitySchemas = new Map<string, z.ZodType<unknown>>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
+  private entityConfigs = new Map<string, EntityTypeConfig>();
   private logger: Logger;
 
   /**
@@ -56,6 +58,7 @@ export class EntityRegistry implements IEntityRegistry {
     type: string,
     schema: z.ZodType<unknown>,
     adapter: EntityAdapter<TEntity, TMetadata>,
+    config?: EntityTypeConfig,
   ): void {
     this.logger.debug(`Registering entity type: ${type}`);
 
@@ -68,12 +71,15 @@ export class EntityRegistry implements IEntityRegistry {
 
     // Schema validation handled by Zod - works correctly with extended schemas
 
-    // Register schema and adapter
+    // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(
       type,
       adapter as EntityAdapter<BaseEntity<Record<string, unknown>>>,
     );
+    if (config) {
+      this.entityConfigs.set(type, config);
+    }
 
     this.logger.debug(`Registered entity type: ${type}`);
   }
@@ -127,5 +133,25 @@ export class EntityRegistry implements IEntityRegistry {
    */
   getAllEntityTypes(): string[] {
     return Array.from(this.entitySchemas.keys());
+  }
+
+  /**
+   * Get configuration for a specific entity type
+   */
+  getEntityTypeConfig(type: string): EntityTypeConfig {
+    return this.entityConfigs.get(type) ?? {};
+  }
+
+  /**
+   * Get weight map for all registered entity types with non-default weights
+   */
+  getWeightMap(): Record<string, number> {
+    const weightMap: Record<string, number> = {};
+    for (const [type, config] of this.entityConfigs) {
+      if (config.weight !== undefined) {
+        weightMap[type] = config.weight;
+      }
+    }
+    return weightMap;
   }
 }

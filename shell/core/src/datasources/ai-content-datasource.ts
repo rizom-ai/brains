@@ -2,7 +2,7 @@ import type { DataSource } from "@brains/datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
-import { z, pluralize } from "@brains/utils";
+import { z, EntityUrlGenerator } from "@brains/utils";
 
 /**
  * Zod schema for GenerationContext validation
@@ -65,8 +65,16 @@ export class AIContentDataSource implements DataSource {
     const searchTerms = [template.basePrompt, context.prompt]
       .filter(Boolean)
       .join(" ");
+
+    // Get weight map from entity service for search boosting
+    const weightMap = this.entityService.getWeightMap();
+    const hasWeights = Object.keys(weightMap).length > 0;
+
     const relevantEntities = searchTerms
-      ? await this.entityService.search(searchTerms, { limit: 5 })
+      ? await this.entityService.search(searchTerms, {
+          limit: 5,
+          ...(hasWeights && { weight: weightMap }),
+        })
       : [];
 
     // Build enhanced prompt with template, user context, entity context, and conversation context
@@ -127,6 +135,7 @@ export class AIContentDataSource implements DataSource {
 
     // Add entity context to inform the generation
     if (relevantEntities.length > 0) {
+      const urlGenerator = EntityUrlGenerator.getInstance();
       const entityContext = relevantEntities
         .map((result) => {
           const { entity, excerpt } = result;
@@ -135,9 +144,10 @@ export class AIContentDataSource implements DataSource {
           const parsed = slugSchema.safeParse(entity.metadata);
           const slug = parsed.success ? parsed.data.slug : entity.id;
 
-          // Include URL if site base URL is configured
-          if (this.siteBaseUrl) {
-            const url = `https://${this.siteBaseUrl}/${pluralize(entityType)}/${slug}`;
+          // Include URL only for entity types with configured routes
+          if (this.siteBaseUrl && urlGenerator.hasRoute(entityType)) {
+            const path = urlGenerator.generateUrl(entityType, slug);
+            const url = `https://${this.siteBaseUrl}${path}`;
             return `[${entityType}] ${entity.id}: ${excerpt} (${url})`;
           }
 

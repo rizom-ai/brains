@@ -9,6 +9,7 @@ import type {
   IEntityService,
   BaseEntity,
   EntityAdapter,
+  EntityTypeConfig,
 } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
@@ -40,6 +41,7 @@ export interface ServicePluginContext extends CorePluginContext {
     entityType: string,
     schema: z.ZodSchema<T>,
     adapter: EntityAdapter<T>,
+    config?: EntityTypeConfig,
   ) => void;
 
   // DataSource registration
@@ -125,8 +127,8 @@ export function createServicePluginContext(
 
     // Entity service access
     entityService,
-    registerEntityType: (entityType, schema, adapter): void => {
-      entityRegistry.registerEntityType(entityType, schema, adapter);
+    registerEntityType: (entityType, schema, adapter, config): void => {
+      entityRegistry.registerEntityType(entityType, schema, adapter, config);
     },
 
     // DataSource registration

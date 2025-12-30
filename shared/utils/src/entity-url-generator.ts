@@ -44,6 +44,15 @@ export class EntityUrlGenerator {
   }
 
   /**
+   * Check if an entity type has a configured route (is linkable)
+   * @param entityType The entity type to check
+   * @returns true if the entity type has an explicit route configuration
+   */
+  hasRoute(entityType: string): boolean {
+    return this.entityRouteConfig?.[entityType] !== undefined;
+  }
+
+  /**
    * Generate URL for an entity detail page
    * @param entityType The entity type (e.g., 'post', 'deck')
    * @param slug The entity slug or ID

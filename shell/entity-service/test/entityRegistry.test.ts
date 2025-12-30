@@ -313,4 +313,81 @@ This note has frontmatter metadata.`;
     expect(parsedContent.content).toBe("This note has frontmatter metadata.");
     expect(parsedContent.category).toBe("testing");
   });
+
+  describe("entity type config", () => {
+    test("registerEntityType with config stores weight", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", registryNoteSchema, adapter, {
+        weight: 2.0,
+      });
+
+      const config = freshRegistry.getEntityTypeConfig("note");
+      expect(config.weight).toBe(2.0);
+    });
+
+    test("registerEntityType without config uses default", (): void => {
+      // Registry from beforeEach doesn't have config
+      const config = registry.getEntityTypeConfig("note");
+      expect(config.weight).toBeUndefined();
+    });
+
+    test("getEntityTypeConfig for unregistered type returns empty config", (): void => {
+      const config = registry.getEntityTypeConfig("unknown");
+      expect(config).toEqual({});
+    });
+
+    test("getWeightMap returns weights for all types with non-default weights", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", registryNoteSchema, adapter, {
+        weight: 2.0,
+      });
+
+      // Create another adapter for testing
+      const anotherAdapter = new NoteAdapter();
+      anotherAdapter.entityType = "post";
+      const postSchema = noteSchema.extend({
+        entityType: z.literal("post"),
+      });
+
+      freshRegistry.registerEntityType("post", postSchema, anotherAdapter, {
+        weight: 1.5,
+      });
+
+      const weightMap = freshRegistry.getWeightMap();
+      expect(weightMap).toEqual({
+        note: 2.0,
+        post: 1.5,
+      });
+    });
+
+    test("getWeightMap excludes types without weight config", (): void => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+
+      // Register without config
+      freshRegistry.registerEntityType("note", registryNoteSchema, adapter);
+
+      // Create another adapter with config
+      const anotherAdapter = new NoteAdapter();
+      anotherAdapter.entityType = "post";
+      const postSchema = noteSchema.extend({
+        entityType: z.literal("post"),
+      });
+
+      freshRegistry.registerEntityType("post", postSchema, anotherAdapter, {
+        weight: 1.5,
+      });
+
+      const weightMap = freshRegistry.getWeightMap();
+      expect(weightMap).toEqual({
+        post: 1.5,
+      });
+      expect(weightMap["note"]).toBeUndefined();
+    });
+
+    test("getWeightMap returns empty object when no weights configured", (): void => {
+      // Registry from beforeEach has no weights configured
+      const weightMap = registry.getWeightMap();
+      expect(weightMap).toEqual({});
+    });
+  });
 });

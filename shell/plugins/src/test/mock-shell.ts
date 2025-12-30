@@ -229,6 +229,9 @@ export class MockShell implements IShell {
           : await this.getEntityService().createEntity(entity);
         return { ...result, created: !exists };
       },
+      getWeightMap: () => ({}),
+      countEntities: async () => 0,
+      getEntityCounts: async () => [],
     } as unknown as IEntityService;
   }
 

@@ -33,9 +33,11 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
-    // Register deck entity type with formatter
+    // Register deck entity type with formatter and elevated weight for search
     const formatter = new DeckFormatter();
-    context.registerEntityType("deck", formatter.schema, formatter);
+    context.registerEntityType("deck", formatter.schema, formatter, {
+      weight: 1.5,
+    });
 
     // Register deck datasource
     const datasource = new DeckDataSource(context.entityService, this.logger);

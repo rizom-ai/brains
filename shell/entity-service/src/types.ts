@@ -140,6 +140,16 @@ export interface SearchOptions {
   types?: string[];
   sortBy?: "relevance" | "created" | "updated";
   sortDirection?: "asc" | "desc";
+  /** Score multipliers per entity type - applied after initial search */
+  weight?: Record<string, number>;
+}
+
+/**
+ * Configuration for entity type registration
+ */
+export interface EntityTypeConfig {
+  /** Score multiplier for search results (default: 1.0) */
+  weight?: number;
 }
 
 /**
@@ -176,6 +186,9 @@ export interface ICoreEntityService {
     },
   ): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
+
+  /** Get weight map for all registered entity types with non-default weights */
+  getWeightMap(): Record<string, number>;
 }
 
 /**
@@ -249,6 +262,7 @@ export interface EntityRegistry {
     type: string,
     schema: z.ZodType<unknown>,
     adapter: EntityAdapter<TEntity, TMetadata>,
+    config?: EntityTypeConfig,
   ): void;
 
   getSchema(type: string): z.ZodType<unknown>;
@@ -265,6 +279,12 @@ export interface EntityRegistry {
   validateEntity<TData = unknown>(type: string, entity: unknown): TData;
 
   getAllEntityTypes(): string[];
+
+  /** Get configuration for a specific entity type */
+  getEntityTypeConfig(type: string): EntityTypeConfig;
+
+  /** Get weight map for all registered entity types with non-default weights */
+  getWeightMap(): Record<string, number>;
 }
 
 /**

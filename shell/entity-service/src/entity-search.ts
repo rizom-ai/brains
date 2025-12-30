@@ -15,6 +15,7 @@ const searchOptionsSchema = z.object({
   offset: z.number().int().min(0).optional().default(0),
   types: z.array(z.string()).optional().default([]),
   excludeTypes: z.array(z.string()).optional().default([]),
+  weight: z.record(z.string(), z.number()).optional(),
 });
 
 /**
@@ -47,7 +48,10 @@ export class EntitySearch {
     options?: SearchOptions,
   ): Promise<SearchResult<T>[]> {
     const validatedOptions = searchOptionsSchema.parse(options ?? {});
-    const { limit, offset, types, excludeTypes } = validatedOptions;
+    const { limit, offset, types, excludeTypes, weight } = validatedOptions;
+
+    // Check if we have weights to apply
+    const hasWeights = weight && Object.keys(weight).length > 0;
 
     this.logger.debug(`Searching entities with query: "${query}"`);
 
@@ -56,6 +60,28 @@ export class EntitySearch {
 
     // Convert Float32Array to JSON array for SQL
     const embeddingArray = Array.from(queryEmbedding);
+
+    // Build weighted score expression
+    // Base score: (1 - distance/2) converts distance to 0-1 similarity
+    // With weights: multiply by entity type weight
+    const distanceExpr = sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)}))`;
+    const baseScoreExpr = sql`(1.0 - ${distanceExpr} / 2.0)`;
+
+    let weightedScoreExpr;
+    if (hasWeights) {
+      // Build dynamic CASE expression from weight map
+      const cases = Object.entries(weight).map(
+        ([entityType, w]) =>
+          sql`WHEN ${entities.entityType} = ${entityType} THEN ${w}`,
+      );
+      weightedScoreExpr =
+        sql<number>`(${baseScoreExpr} * (CASE ${sql.join(cases, sql` `)} ELSE 1.0 END))`.as(
+          "weighted_score",
+        );
+    } else {
+      // No weights - just use base score
+      weightedScoreExpr = sql<number>`${baseScoreExpr}`.as("weighted_score");
+    }
 
     // Build the base select
     const baseSelect = {
@@ -67,10 +93,9 @@ export class EntitySearch {
       updated: entities.updated,
       metadata: entities.metadata,
       // Calculate cosine distance (0 = identical, 1 = orthogonal, 2 = opposite)
-      distance:
-        sql<number>`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)}))`.as(
-          "distance",
-        ),
+      distance: sql<number>`${distanceExpr}`.as("distance"),
+      // Weighted score for ordering and return value
+      weighted_score: weightedScoreExpr,
     };
 
     // Build where conditions
@@ -97,7 +122,7 @@ export class EntitySearch {
       .select(baseSelect)
       .from(entities)
       .where(and(...whereConditions))
-      .orderBy(sql`distance`)
+      .orderBy(sql`weighted_score DESC`)
       .limit(limit)
       .offset(offset);
 
@@ -122,8 +147,8 @@ export class EntitySearch {
           ...parsedContent,
         });
 
-        // Convert distance to similarity score (1 - distance/2 to normalize to 0-1 range)
-        const score = 1 - row.distance / 2;
+        // Use weighted_score from SQL (already includes weight multipliers if provided)
+        const score = row.weighted_score;
 
         // Create a more readable excerpt
         const excerpt = this.createExcerpt(row.content, query);

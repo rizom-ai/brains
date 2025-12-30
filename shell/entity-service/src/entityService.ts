@@ -445,6 +445,13 @@ export class EntityService implements IEntityService {
   }
 
   /**
+   * Get weight map for all registered entity types with non-default weights
+   */
+  public getWeightMap(): Record<string, number> {
+    return this.entityRegistry.getWeightMap();
+  }
+
+  /**
    * Serialize an entity to markdown format
    */
   public serializeEntity(entity: BaseEntity): string {

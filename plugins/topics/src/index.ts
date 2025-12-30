@@ -35,9 +35,11 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
-    // Register topic entity type
+    // Register topic entity type with lower weight (metadata entity)
     const adapter = new TopicAdapter();
-    context.registerEntityType("topic", adapter.schema, adapter);
+    context.registerEntityType("topic", adapter.schema, adapter, {
+      weight: 0.5,
+    });
 
     // Register templates
     context.registerTemplates({

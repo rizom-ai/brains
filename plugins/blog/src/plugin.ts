@@ -64,8 +64,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
   ): Promise<void> {
     this.pluginContext = context;
 
-    // Register post entity type
-    context.registerEntityType("post", blogPostSchema, blogPostAdapter);
+    // Register post entity type with high weight for search prioritization
+    context.registerEntityType("post", blogPostSchema, blogPostAdapter, {
+      weight: 2.0,
+    });
 
     // Register series entity type (auto-derived from posts)
     context.registerEntityType("series", seriesSchema, seriesAdapter);
