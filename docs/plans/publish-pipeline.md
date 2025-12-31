@@ -6,57 +6,130 @@ Create a comprehensive publishing infrastructure that can be shared across plugi
 
 ## Key Decisions
 
-1. **New package**: `@brains/publish-pipeline` (not adding to existing package)
-2. **Status states**: `draft`, `queued`, `published`, `failed` (use "queued" not "pending")
-3. **QueueManager**: Class instance, not utility functions
-4. **Two publish paths**:
+1. **Architecture**: Shell service (`shell/publish-service`) + shared schemas (`shared/publish-pipeline`)
+2. **Integration**: Message-driven - plugins send/receive messages via message bus
+3. **Status states**: `draft`, `queued`, `published`, `failed` (use "queued" not "pending")
+4. **Single scheduler**: One daemon in publish-service manages all entity type queues
+5. **Two publish paths**:
    - Queue path: draft → queued → published/failed (via scheduler)
    - Direct path: draft → published (immediate, bypass queue)
-5. **Scheduler**: Always on - `queued` status means "will auto-publish"
-6. **Retries**: Uniform across all publishers (internal and external)
-7. **Migration**: Build full infrastructure first, then migrate all plugins
-8. **Blog/Decks**: Get full queue tools + scheduler (not just publish factory)
-9. **Storage**: Keep `queueOrder`/`retryCount` in frontmatter for simplicity
+6. **Scheduler**: Always on - `queued` status means "will auto-publish"
+7. **Retries**: Uniform across all publishers (internal and external)
+8. **Storage**: Keep `queueOrder`/`retryCount` in frontmatter for simplicity
 
-## Current State Analysis
+## Architecture Overview
 
-### Blog/Decks Publishing (Synchronous)
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         Message Bus                              │
+│  publish:register, publish:queue, publish:direct,               │
+│  publish:remove, publish:reorder, publish:completed, etc.       │
+└─────────────────────────────────────────────────────────────────┘
+        ▲                    ▲                    ▲
+        │                    │                    │
+   ┌────┴────┐          ┌────┴────┐          ┌────┴────┐
+   │  blog   │          │  decks  │          │ social  │
+   │ plugin  │          │ plugin  │          │  media  │
+   └─────────┘          └─────────┘          └─────────┘
+        │                    │                    │
+        │  registers         │  registers         │  registers
+        │  entity type       │  entity type       │  entity type
+        ▼                    ▼                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      publish-service                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │ Queue Manager│  │   Scheduler  │  │   Provider   │          │
+│  │  (per type)  │  │   (single)   │  │   Registry   │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-- **Location**: `plugins/blog/src/tools/publish.ts`, `plugins/decks/src/tools/publish.ts`
-- **Pattern**: Direct entity update - sets `status: "published"` and `publishedAt`
-- No queue, no scheduling, no external API calls
+## Message Bus Events
 
-### Social-Media Publishing (Asynchronous + Retries)
+### Plugin → Service
 
-- **GenerationJobHandler**: Creates posts (draft or queued)
-- **PublishCheckerJobHandler**: Self-re-enqueueing daemon polling for queued posts
-- **PublishJobHandler**: Publishes to external platform with retry logic
-- **Queue tools**: add, remove, reorder, list
+| Message            | Payload                              | Description                         |
+| ------------------ | ------------------------------------ | ----------------------------------- |
+| `publish:register` | `{ entityType, provider?, config? }` | Register entity type for publishing |
+| `publish:queue`    | `{ entityType, entityId }`           | Add entity to publish queue         |
+| `publish:direct`   | `{ entityType, entityId }`           | Publish immediately (bypass queue)  |
+| `publish:remove`   | `{ entityType, entityId }`           | Remove from queue                   |
+| `publish:reorder`  | `{ entityType, entityId, position }` | Change queue position               |
+| `publish:list`     | `{ entityType }`                     | Request queue contents              |
 
-### Common Patterns Identified
+### Service → Plugin
 
-1. **Status Machine**: `draft → queued → published | failed`
-2. **Queue Management**: position ordering, add/remove operations
-3. **Publish Action**: update status + timestamp (+ optional external call)
-4. **Scheduled Publishing**: daemon pattern for automated publishing
+| Message                 | Payload                                       | Description           |
+| ----------------------- | --------------------------------------------- | --------------------- |
+| `publish:queued`        | `{ entityType, entityId, position }`          | Entity added to queue |
+| `publish:completed`     | `{ entityType, entityId, result }`            | Publish succeeded     |
+| `publish:failed`        | `{ entityType, entityId, error, retryCount }` | Publish failed        |
+| `publish:list:response` | `{ entityType, queue: [...] }`                | Queue contents        |
 
-## Architecture: `@brains/publish-pipeline` Package
+## Package Structure
 
-### New Package Location
+### Shell Service: `shell/publish-service/`
 
-`packages/publish-pipeline/`
+Core logic for queue management, scheduling, and publishing.
 
-### Core Components
+```
+shell/publish-service/
+├── src/
+│   ├── index.ts
+│   ├── publish-service.ts       # Main service, message handlers
+│   ├── queue-manager.ts         # Queue operations per entity type
+│   ├── scheduler.ts             # Single daemon for all queues
+│   ├── provider-registry.ts     # Manages publish providers
+│   ├── retry-tracker.ts         # Retry logic with backoff
+│   └── handlers/
+│       ├── register-handler.ts  # Handle publish:register
+│       ├── queue-handler.ts     # Handle publish:queue
+│       └── publish-handler.ts   # Execute actual publishing
+├── test/
+│   ├── queue-manager.test.ts
+│   ├── scheduler.test.ts
+│   └── publish-service.test.ts
+├── package.json
+└── tsconfig.json
+```
 
-#### 1. Status Machine
+### Shared Package: `shared/publish-pipeline/`
+
+Schemas and types shared between service and plugins.
+
+```
+shared/publish-pipeline/
+├── src/
+│   ├── index.ts
+│   ├── schemas/
+│   │   └── publishable.ts       # Status, queue metadata schemas
+│   └── types/
+│       ├── provider.ts          # PublishProvider interface
+│       ├── messages.ts          # Message payload types
+│       └── config.ts            # Registration config types
+├── test/
+│   └── schemas.test.ts
+├── package.json
+└── tsconfig.json
+```
+
+## Core Components
+
+### 1. Publishable Schemas (shared)
 
 ```typescript
 // Status types shared across publishable entities
-type PublishStatus = "draft" | "queued" | "published" | "failed";
+export type PublishStatus = "draft" | "queued" | "published" | "failed";
 
-// Zod schemas for status fields
-const publishStatusSchema = z.enum(["draft", "queued", "published", "failed"]);
-const publishableMetadataSchema = z.object({
+export const publishStatusSchema = z.enum([
+  "draft",
+  "queued",
+  "published",
+  "failed",
+]);
+
+// Fields plugins should include in their entity metadata
+export const publishableMetadataSchema = z.object({
   status: publishStatusSchema.default("draft"),
   queueOrder: z.number().optional(),
   publishedAt: z.string().datetime().optional(),
@@ -65,196 +138,237 @@ const publishableMetadataSchema = z.object({
 });
 ```
 
-#### 2. Publish Provider Interface
+### 2. Publish Provider Interface (shared)
 
 ```typescript
-interface PublishProvider<TResult = { id: string }> {
+export interface PublishResult {
+  id: string;
+  url?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PublishProvider {
   name: string;
-  publish(content: string, metadata: Record<string, unknown>): Promise<TResult>;
+  publish(
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Promise<PublishResult>;
   validateCredentials?(): Promise<boolean>;
 }
 
-// Internal provider (just updates entity)
-class InternalPublishProvider implements PublishProvider {
-  async publish(content, metadata) {
-    return { id: "internal" }; // No external call needed
+// Default provider for internal publishing (blog, decks)
+export class InternalPublishProvider implements PublishProvider {
+  name = "internal";
+  async publish(): Promise<PublishResult> {
+    return { id: "internal" };
   }
 }
 ```
 
-#### 3. Queue Manager
+### 3. Queue Manager (service)
 
 ```typescript
-class QueueManager<T extends Entity> {
-  constructor(
-    private context: ServicePluginContext,
-    private entityType: string,
-    private adapter: EntityAdapter<T>,
-  );
+class QueueManager {
+  private queues: Map<string, EntityQueue> = new Map();
 
-  async add(entityId: string): Promise<{ position: number }>;
-  async remove(entityId: string): Promise<void>;
-  async reorder(entityId: string, newPosition: number): Promise<void>;
-  async list(): Promise<Array<{ entity: T; position: number }>>;
-  async getNext(): Promise<T | null>;
+  async add(
+    entityType: string,
+    entityId: string,
+  ): Promise<{ position: number }>;
+  async remove(entityType: string, entityId: string): Promise<void>;
+  async reorder(
+    entityType: string,
+    entityId: string,
+    position: number,
+  ): Promise<void>;
+  async list(entityType: string): Promise<QueueEntry[]>;
+  async getNext(entityType: string): Promise<QueueEntry | null>;
+  async getNextAcrossTypes(): Promise<QueueEntry | null>; // For single scheduler
 }
 ```
 
-#### 4. Publish Tool Factory
+### 4. Scheduler (service)
 
 ```typescript
-interface CreatePublishToolConfig<T extends Entity> {
-  entityType: string;
-  displayName: string;
-  frontmatterSchema: ZodSchema;
-  adapter: EntityAdapter<T>;
-  provider?: PublishProvider; // Optional for external publishing
-  getMetadataUpdates?: (fm: unknown) => Partial<T["metadata"]>;
-}
-
-function createPublishTool<T extends Entity>(
-  context: ServicePluginContext,
-  pluginId: string,
-  config: CreatePublishToolConfig<T>,
-): PluginTool;
-```
-
-#### 5. Queue Tool Factory
-
-```typescript
-function createQueueTool<T extends Entity>(
-  context: ServicePluginContext,
-  pluginId: string,
-  queueManager: QueueManager<T>,
-): PluginTool;
-```
-
-#### 6. Publish Scheduler (Daemon Base)
-
-```typescript
-abstract class PublishScheduler<T extends Entity> extends BaseJobHandler {
+class PublishScheduler {
   constructor(
-    logger: Logger,
-    protected context: ServicePluginContext,
-    protected queueManager: QueueManager<T>,
-    protected config: { interval: number; enabled: boolean },
+    private queueManager: QueueManager,
+    private providerRegistry: ProviderRegistry,
+    private messageBus: MessageBus,
+    private config: SchedulerConfig,
   );
 
-  // Template method - subclasses implement actual publishing
-  protected abstract publishEntity(entity: T): Promise<PublishResult>;
+  async start(): Promise<void>;
+  async stop(): Promise<void>;
 
-  async process(): Promise<SchedulerResult> {
-    const next = await this.queueManager.getNext();
-    if (next) await this.publishEntity(next);
-    await this.scheduleNext();
-    return { success: true };
+  // Called on interval - processes next item from any queue
+  private async tick(): Promise<void> {
+    const next = await this.queueManager.getNextAcrossTypes();
+    if (next) {
+      await this.publishEntity(next);
+    }
+    this.scheduleNextTick();
   }
 }
 ```
 
-#### 7. Retry Utilities
+### 5. Provider Registry (service)
 
 ```typescript
-interface RetryConfig {
-  maxRetries: number;
-  backoffMs: number;
-  backoffMultiplier: number;
-}
+class ProviderRegistry {
+  private providers: Map<string, PublishProvider> = new Map();
+  private defaultProvider = new InternalPublishProvider();
 
-async function withRetry<T>(
-  fn: () => Promise<T>,
-  config: RetryConfig,
-  onRetry?: (attempt: number, error: Error) => void,
-): Promise<T>;
-
-// For job handlers - tracks retry state in entity
-class RetryTracker {
-  shouldRetry(entity: Entity, config: RetryConfig): boolean;
-  recordFailure(entity: Entity, error: Error): Entity;
-  recordSuccess(entity: Entity): Entity;
+  register(entityType: string, provider: PublishProvider): void;
+  get(entityType: string): PublishProvider;
 }
 ```
 
-## Package Structure
+## Plugin Integration
 
+### Registration (plugin init)
+
+```typescript
+// In social-media plugin
+async init(context: ServicePluginContext) {
+  // Register with publish service
+  context.messageBus.publish("publish:register", {
+    entityType: "social-post",
+    provider: new LinkedInProvider(config),
+    config: {
+      maxRetries: 3,
+      retryBackoffMs: 5000,
+    },
+  });
+
+  // Subscribe to results
+  context.messageBus.subscribe("publish:completed", this.handlePublishComplete);
+  context.messageBus.subscribe("publish:failed", this.handlePublishFailed);
+}
 ```
-packages/publish-pipeline/
-├── src/
-│   ├── index.ts
-│   ├── schemas/
-│   │   └── publishable.ts          # Status, queue schemas
-│   ├── queue/
-│   │   ├── queue-manager.ts        # Queue operations
-│   │   └── queue-tool.ts           # Tool factory
-│   ├── publish/
-│   │   ├── provider.ts             # Provider interface
-│   │   ├── internal-provider.ts    # Default (no external API)
-│   │   └── publish-tool.ts         # Tool factory
-│   ├── scheduler/
-│   │   └── publish-scheduler.ts    # Daemon base class
-│   └── retry/
-│       └── retry-utils.ts          # Retry helpers
-└── test/
-    ├── queue-manager.test.ts
-    ├── publish-tool.test.ts
-    └── retry-utils.test.ts
+
+### Queue Tool (plugin)
+
+```typescript
+// Simple tool that sends message to service
+export function createQueueTool(pluginId: string): PluginTool {
+  return {
+    name: `${pluginId}_queue`,
+    handler: async (input, context) => {
+      const { action, entityId, position } = input;
+
+      switch (action) {
+        case "add":
+          context.messageBus.publish("publish:queue", { entityType, entityId });
+          break;
+        case "remove":
+          context.messageBus.publish("publish:remove", {
+            entityType,
+            entityId,
+          });
+          break;
+        case "reorder":
+          context.messageBus.publish("publish:reorder", {
+            entityType,
+            entityId,
+            position,
+          });
+          break;
+      }
+    },
+  };
+}
+```
+
+### Direct Publish Tool (plugin)
+
+```typescript
+// Bypass queue, publish immediately
+export function createPublishTool(pluginId: string): PluginTool {
+  return {
+    name: `${pluginId}_publish`,
+    handler: async (input, context) => {
+      context.messageBus.publish("publish:direct", { entityType, entityId });
+    },
+  };
+}
 ```
 
 ## Implementation Plan
 
-### Phase 1: Build Complete Package
+### Phase 1: Shared Package
 
-1. Create `packages/publish-pipeline/` with package.json, tsconfig
-2. Implement schemas (publishable status, queue metadata)
-3. Implement `QueueManager` class
-4. Implement `createQueueTool` factory
-5. Implement `PublishProvider` interface + `InternalPublishProvider`
-6. Implement `createPublishTool` factory
-7. Implement `PublishScheduler` base class
-8. Implement retry utilities
-9. Write tests for all components
-10. Export everything from index.ts
+1. Create `shared/publish-pipeline/` with package.json, tsconfig
+2. Implement publishable schemas
+3. Implement provider interface + InternalPublishProvider
+4. Implement message payload types
+5. Write tests for schemas
+6. Export everything from index.ts
 
-### Phase 2: Migrate All Plugins
+### Phase 2: Shell Service
 
-1. **social-media**: Refactor to use package
-   - queue.ts → use `createQueueTool`
-   - publishHandler.ts → use retry utilities
-   - publishCheckerHandler.ts → extend `PublishScheduler`
-2. **blog**: Add queue + scheduler
-   - publish.ts → use `createPublishTool`
-   - Add queue tool using `createQueueTool`
-   - Add scheduler extending `PublishScheduler`
-3. **decks**: Add queue + scheduler
-   - publish.ts → use `createPublishTool`
-   - Add queue tool using `createQueueTool`
-   - Add scheduler extending `PublishScheduler`
+1. Create `shell/publish-service/` with package.json, tsconfig
+2. Implement QueueManager
+3. Implement ProviderRegistry
+4. Implement Scheduler
+5. Implement RetryTracker
+6. Implement message handlers
+7. Implement PublishService (main entry)
+8. Write tests for all components
 
-### Phase 3: Cleanup
+### Phase 3: Migrate Plugins
+
+1. **social-media**: Refactor to use service
+   - Remove PublishCheckerJobHandler (scheduler now in service)
+   - Keep PublishJobHandler but triggered via message
+   - Register LinkedInProvider with service
+   - Update queue tool to send messages
+2. **blog**: Add queue + publish support
+   - Register entity type with service (internal provider)
+   - Add queue tool
+   - Keep existing publish tool (sends publish:direct)
+3. **decks**: Add queue + publish support
+   - Same as blog
+
+### Phase 4: Cleanup
 
 1. Remove duplicated code from plugins
 2. Update turbo.json build order
 3. Run all tests, fix any issues
+4. Update documentation
 
 ## Files to Create
 
-- `packages/publish-pipeline/package.json`
-- `packages/publish-pipeline/tsconfig.json`
-- `packages/publish-pipeline/src/index.ts`
-- `packages/publish-pipeline/src/schemas/publishable.ts`
-- `packages/publish-pipeline/src/queue/queue-manager.ts`
-- `packages/publish-pipeline/src/queue/queue-tool.ts`
-- `packages/publish-pipeline/src/publish/provider.ts`
-- `packages/publish-pipeline/src/publish/internal-provider.ts`
-- `packages/publish-pipeline/src/publish/publish-tool.ts`
-- `packages/publish-pipeline/src/scheduler/publish-scheduler.ts`
-- `packages/publish-pipeline/src/retry/retry-utils.ts`
+### Shared Package
+
+- `shared/publish-pipeline/package.json`
+- `shared/publish-pipeline/tsconfig.json`
+- `shared/publish-pipeline/src/index.ts`
+- `shared/publish-pipeline/src/schemas/publishable.ts`
+- `shared/publish-pipeline/src/types/provider.ts`
+- `shared/publish-pipeline/src/types/messages.ts`
+- `shared/publish-pipeline/src/types/config.ts`
+- `shared/publish-pipeline/test/schemas.test.ts`
+
+### Shell Service
+
+- `shell/publish-service/package.json`
+- `shell/publish-service/tsconfig.json`
+- `shell/publish-service/src/index.ts`
+- `shell/publish-service/src/publish-service.ts`
+- `shell/publish-service/src/queue-manager.ts`
+- `shell/publish-service/src/scheduler.ts`
+- `shell/publish-service/src/provider-registry.ts`
+- `shell/publish-service/src/retry-tracker.ts`
+- `shell/publish-service/src/handlers/register-handler.ts`
+- `shell/publish-service/src/handlers/queue-handler.ts`
+- `shell/publish-service/src/handlers/publish-handler.ts`
+- `shell/publish-service/test/*.test.ts`
 
 ## Files to Modify
 
-- `plugins/blog/src/tools/publish.ts` - Use factory
-- `plugins/decks/src/tools/publish.ts` - Use factory
-- `plugins/social-media/src/tools/queue.ts` - Use factory
-- `plugins/social-media/src/handlers/publishCheckerHandler.ts` - Extend base
-- `plugins/social-media/src/handlers/publishHandler.ts` - Use retry utils
-- `turbo.json` - Add new package to build order
+- `plugins/blog/src/plugin.ts` - Register with publish service
+- `plugins/decks/src/plugin.ts` - Register with publish service
+- `plugins/social-media/src/plugin.ts` - Refactor to use service
+- `plugins/social-media/src/handlers/` - Remove scheduler, keep provider logic
+- `turbo.json` - Add new packages to build order
