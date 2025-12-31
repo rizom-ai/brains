@@ -94,24 +94,26 @@ export function createEditTool(
           };
         }
 
-        // Parse current frontmatter
+        // Parse current frontmatter and body
         const parsed = parseMarkdownWithFrontmatter(
           post.content,
           socialPostFrontmatterSchema,
         );
 
-        // Build updated frontmatter
+        // Build updated frontmatter (metadata only, content goes in body)
         const updatedFrontmatter = {
           ...parsed.metadata,
-          ...(content !== undefined && { content }),
           ...(status !== undefined && { status }),
           retryCount: parsed.metadata.retryCount ?? 0,
         };
 
-        // Regenerate content with updated frontmatter
+        // Use new content if provided, otherwise keep existing body
+        const updatedBody = content ?? parsed.content;
+
+        // Regenerate markdown with updated frontmatter and body
         const updatedContent = socialPostAdapter.createPostContent(
           updatedFrontmatter,
-          parsed.content,
+          updatedBody,
         );
 
         // Regenerate slug if content changed
@@ -130,9 +132,9 @@ export function createEditTool(
         await context.entityService.updateEntity(updatedPost);
 
         const preview =
-          updatedFrontmatter.content.length > 50
-            ? `${updatedFrontmatter.content.slice(0, 50)}...`
-            : updatedFrontmatter.content;
+          updatedBody.length > 50
+            ? `${updatedBody.slice(0, 50)}...`
+            : updatedBody;
 
         const formatted = formatAsEntity(
           {

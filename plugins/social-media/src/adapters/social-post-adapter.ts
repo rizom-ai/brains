@@ -58,18 +58,16 @@ export class SocialPostAdapter
 
   /**
    * Parse markdown with frontmatter to create partial social post entity
-   * Syncs frontmatter → metadata for key searchable fields
-   * Auto-generates slug from content if not provided
+   * Post text is in markdown body, metadata in frontmatter
+   * Auto-generates slug from body content
    */
   public fromMarkdown(markdown: string): Partial<SocialPost> {
-    // Parse frontmatter
-    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
-      markdown,
-      socialPostFrontmatterSchema,
-    );
+    // Parse frontmatter and body
+    const { content: body, metadata: frontmatter } =
+      parseMarkdownWithFrontmatter(markdown, socialPostFrontmatterSchema);
 
-    // Auto-generate slug from content preview
-    const slug = this.generateSlugFromContent(frontmatter.content);
+    // Auto-generate slug from body content preview
+    const slug = this.generateSlugFromContent(body);
 
     // Sync key fields from frontmatter to metadata for fast queries
     return {
@@ -132,6 +130,17 @@ export class SocialPostAdapter
       ...metadata,
       retryCount: metadata.retryCount ?? 0,
     };
+  }
+
+  /**
+   * Extract post text from entity body (not frontmatter)
+   */
+  public getPostContent(entity: SocialPost): string {
+    const { content: body } = parseMarkdownWithFrontmatter(
+      entity.content,
+      socialPostFrontmatterSchema,
+    );
+    return body;
   }
 
   /**

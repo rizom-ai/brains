@@ -8,6 +8,10 @@ import {
   sourceEntityTypeSchema,
 } from "../../src/schemas/social-post";
 
+/**
+ * Note: Post content goes in markdown BODY, not frontmatter.
+ * Frontmatter only contains metadata (platform, status, etc.)
+ */
 describe("Social Post Schemas", () => {
   describe("platformSchema", () => {
     it("should accept 'linkedin' as valid platform", () => {
@@ -51,7 +55,6 @@ describe("Social Post Schemas", () => {
   describe("socialPostFrontmatterSchema", () => {
     it("should validate complete frontmatter", () => {
       const validFrontmatter = {
-        content: "Check out my new blog post about TypeScript!",
         platform: "linkedin",
         status: "draft",
         queueOrder: 1,
@@ -63,7 +66,6 @@ describe("Social Post Schemas", () => {
 
     it("should validate minimal frontmatter (only required fields)", () => {
       const minimalFrontmatter = {
-        content: "Hello world!",
         platform: "linkedin",
         status: "draft",
       };
@@ -73,12 +75,10 @@ describe("Social Post Schemas", () => {
 
     it("should validate frontmatter with source entity reference", () => {
       const withSource = {
-        content: "Read my latest article",
         platform: "linkedin",
         status: "queued",
         sourceEntityId: "post-123",
         sourceEntityType: "post",
-        sourceUrl: "https://example.com/blog/my-article",
       };
       const result = socialPostFrontmatterSchema.safeParse(withSource);
       expect(result.success).toBe(true);
@@ -86,12 +86,10 @@ describe("Social Post Schemas", () => {
 
     it("should validate frontmatter with deck source", () => {
       const withDeckSource = {
-        content: "Check out my presentation",
         platform: "linkedin",
         status: "queued",
         sourceEntityId: "deck-456",
         sourceEntityType: "deck",
-        sourceUrl: "https://example.com/decks/my-presentation",
       };
       const result = socialPostFrontmatterSchema.safeParse(withDeckSource);
       expect(result.success).toBe(true);
@@ -99,7 +97,6 @@ describe("Social Post Schemas", () => {
 
     it("should validate frontmatter with error state", () => {
       const failedPost = {
-        content: "This post failed to publish",
         platform: "linkedin",
         status: "failed",
         retryCount: 3,
@@ -111,7 +108,6 @@ describe("Social Post Schemas", () => {
 
     it("should validate published frontmatter", () => {
       const published = {
-        content: "Successfully published!",
         platform: "linkedin",
         status: "published",
         publishedAt: "2024-01-15T10:30:00Z",
@@ -121,18 +117,8 @@ describe("Social Post Schemas", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should reject frontmatter without required content", () => {
-      const noContent = {
-        platform: "linkedin",
-        status: "draft",
-      };
-      const result = socialPostFrontmatterSchema.safeParse(noContent);
-      expect(result.success).toBe(false);
-    });
-
     it("should reject invalid source entity type", () => {
       const invalidSource = {
-        content: "Test",
         platform: "linkedin",
         status: "draft",
         sourceEntityType: "summary",
@@ -143,7 +129,6 @@ describe("Social Post Schemas", () => {
 
     it("should default retryCount to 0", () => {
       const noRetryCount = {
-        content: "Test",
         platform: "linkedin",
         status: "draft",
       };
@@ -211,8 +196,7 @@ describe("Social Post Schemas", () => {
       const validEntity = {
         id: "social-post-123",
         entityType: "social-post",
-        content:
-          "---\ncontent: Hello\nplatform: linkedin\nstatus: draft\n---\n",
+        content: "---\nplatform: linkedin\nstatus: draft\n---\nHello world!",
         metadata: {
           slug: "hello-post",
           platform: "linkedin",

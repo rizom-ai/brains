@@ -1,33 +1,50 @@
 import type { EntityAdapter } from "@brains/plugins";
 import type { z } from "@brains/utils";
 import {
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
+import {
   seriesSchema,
+  seriesMetadataSchema,
   type Series,
   type SeriesMetadata,
 } from "../schemas/series";
 
 /**
  * Adapter for series entities
- * Series are auto-derived from posts, so the adapter is minimal
+ * Series are auto-derived from posts but stored with frontmatter for round-trip sync
  */
 export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
   public readonly entityType = "series" as const;
   public readonly schema = seriesSchema;
 
   /**
-   * Convert series entity to markdown
+   * Convert series entity to markdown with frontmatter
    */
   public toMarkdown(entity: Series): string {
-    return entity.content;
+    const frontmatter: Record<string, unknown> = {
+      name: entity.metadata.name,
+      slug: entity.metadata.slug,
+    };
+    if (entity.metadata.description) {
+      frontmatter["description"] = entity.metadata.description;
+    }
+    return generateMarkdownWithFrontmatter(entity.content, frontmatter);
   }
 
   /**
    * Parse markdown to partial series entity
    */
   public fromMarkdown(markdown: string): Partial<Series> {
+    const { content, metadata } = parseMarkdownWithFrontmatter(
+      markdown,
+      seriesMetadataSchema,
+    );
     return {
-      content: markdown,
+      content,
       entityType: "series",
+      metadata,
     };
   }
 
@@ -42,15 +59,15 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
    * Parse frontmatter from markdown
    */
   public parseFrontMatter<TFrontmatter>(
-    _markdown: string,
+    markdown: string,
     schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
-    // Series entities don't use frontmatter
-    return schema.parse({});
+    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
+    return metadata;
   }
 
   /**
-   * Generate frontmatter for series entity
+   * Generate frontmatter - not used since toMarkdown handles it directly
    */
   public generateFrontMatter(): string {
     return "";

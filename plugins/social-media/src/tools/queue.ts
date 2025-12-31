@@ -107,10 +107,11 @@ async function handleList(
       post.content,
       socialPostFrontmatterSchema,
     );
+    // Content is in body, not frontmatter
     const preview =
-      parsed.metadata.content.length > 50
-        ? `${parsed.metadata.content.slice(0, 50)}...`
-        : parsed.metadata.content;
+      parsed.content.length > 50
+        ? `${parsed.content.slice(0, 50)}...`
+        : parsed.content;
     return {
       position: index + 1,
       id: post.id,

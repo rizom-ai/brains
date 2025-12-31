@@ -107,12 +107,12 @@ export class PublishJobHandler extends BaseJobHandler<
         message: `Publishing to ${platform}`,
       });
 
-      // Attempt to publish
+      // Attempt to publish - content is in markdown body, not frontmatter
       let platformPostId: string;
       const publishedAt = new Date().toISOString();
 
       try {
-        const result = await provider.createPost(parsed.metadata.content);
+        const result = await provider.createPost(parsed.content);
         platformPostId = result.postId;
       } catch (publishError) {
         // Handle publish failure

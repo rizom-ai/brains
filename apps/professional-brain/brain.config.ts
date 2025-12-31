@@ -13,6 +13,7 @@ import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
 import TopicsPlugin from "@brains/topics";
+import { socialMediaPlugin } from "@brains/social-media";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
@@ -100,6 +101,7 @@ const config = defineConfig({
     linkPlugin({}),
     portfolioPlugin({}),
     new TopicsPlugin({}),
+    socialMediaPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,
     }),

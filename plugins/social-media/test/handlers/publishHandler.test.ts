@@ -116,14 +116,14 @@ describe("PublishJobHandler", () => {
       const { socialPostAdapter } = await import(
         "../../src/adapters/social-post-adapter"
       );
+      // Content goes in body, not frontmatter
       const markdown = socialPostAdapter.createPostContent(
         {
-          content: "Test post",
           platform: "linkedin",
           status: "queued",
           retryCount: 0,
         },
-        "",
+        "Test post",
       );
       const partial = socialPostAdapter.fromMarkdown(markdown);
       await context.entityService.createEntity({

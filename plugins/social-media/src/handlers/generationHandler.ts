@@ -192,9 +192,8 @@ ${sourceEntity.content}`,
         };
       }
 
-      // Create frontmatter
+      // Create frontmatter (metadata only, content goes in body)
       const frontmatter: SocialPostFrontmatter = {
-        content,
         platform,
         status,
         retryCount: 0,
@@ -203,7 +202,11 @@ ${sourceEntity.content}`,
         ...(sourceEntityType && { sourceEntityType }),
       };
 
-      const postContent = socialPostAdapter.createPostContent(frontmatter, "");
+      // Content goes in markdown body, not frontmatter
+      const postContent = socialPostAdapter.createPostContent(
+        frontmatter,
+        content,
+      );
       const partial = socialPostAdapter.fromMarkdown(postContent);
 
       await progressReporter.report({

@@ -30,10 +30,9 @@ export type SourceEntityType = z.infer<typeof sourceEntityTypeSchema>;
 
 /**
  * Social post frontmatter schema (stored in content as YAML frontmatter)
- * Contains all social post data for human editing
+ * Post text goes in markdown body, metadata in frontmatter
  */
 export const socialPostFrontmatterSchema = z.object({
-  content: z.string().describe("The post content/text"),
   platform: platformSchema.describe("Target platform"),
   status: socialPostStatusSchema,
   queueOrder: z
