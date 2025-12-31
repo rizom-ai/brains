@@ -4,6 +4,20 @@
 
 Create a comprehensive publishing infrastructure that can be shared across plugins (blog, decks, social-media, future plugins). Enable scheduled/queued publishing for all content types.
 
+## Key Decisions
+
+1. **New package**: `@brains/publish-pipeline` (not adding to existing package)
+2. **Status states**: `draft`, `queued`, `published`, `failed` (use "queued" not "pending")
+3. **QueueManager**: Class instance, not utility functions
+4. **Two publish paths**:
+   - Queue path: draft → queued → published/failed (via scheduler)
+   - Direct path: draft → published (immediate, bypass queue)
+5. **Scheduler**: Always on - `queued` status means "will auto-publish"
+6. **Retries**: Uniform across all publishers (internal and external)
+7. **Migration**: Build full infrastructure first, then migrate all plugins
+8. **Blog/Decks**: Get full queue tools + scheduler (not just publish factory)
+9. **Storage**: Keep `queueOrder`/`retryCount` in frontmatter for simplicity
+
 ## Current State Analysis
 
 ### Blog/Decks Publishing (Synchronous)
@@ -186,41 +200,41 @@ packages/publish-pipeline/
     └── retry-utils.test.ts
 ```
 
-## Migration Plan
+## Implementation Plan
 
-### Phase 1: Create Package Infrastructure
+### Phase 1: Build Complete Package
 
 1. Create `packages/publish-pipeline/` with package.json, tsconfig
 2. Implement schemas (publishable status, queue metadata)
-3. Write tests for schemas
+3. Implement `QueueManager` class
+4. Implement `createQueueTool` factory
+5. Implement `PublishProvider` interface + `InternalPublishProvider`
+6. Implement `createPublishTool` factory
+7. Implement `PublishScheduler` base class
+8. Implement retry utilities
+9. Write tests for all components
+10. Export everything from index.ts
 
-### Phase 2: Queue Management
+### Phase 2: Migrate All Plugins
 
-1. Implement `QueueManager` class
-2. Implement `createQueueTool` factory
-3. Write tests
-4. Refactor social-media queue.ts to use factory
+1. **social-media**: Refactor to use package
+   - queue.ts → use `createQueueTool`
+   - publishHandler.ts → use retry utilities
+   - publishCheckerHandler.ts → extend `PublishScheduler`
+2. **blog**: Add queue + scheduler
+   - publish.ts → use `createPublishTool`
+   - Add queue tool using `createQueueTool`
+   - Add scheduler extending `PublishScheduler`
+3. **decks**: Add queue + scheduler
+   - publish.ts → use `createPublishTool`
+   - Add queue tool using `createQueueTool`
+   - Add scheduler extending `PublishScheduler`
 
-### Phase 3: Publish Tool Factory
+### Phase 3: Cleanup
 
-1. Implement `PublishProvider` interface
-2. Implement `InternalPublishProvider`
-3. Implement `createPublishTool` factory
-4. Write tests
-5. Refactor blog/decks publish.ts to use factory
-
-### Phase 4: Scheduler Infrastructure
-
-1. Implement `PublishScheduler` base class
-2. Implement retry utilities
-3. Write tests
-4. Refactor social-media PublishCheckerJobHandler to extend base
-
-### Phase 5: Enable Queue for Blog/Decks
-
-1. Add queue tool to blog plugin
-2. Add queue tool to decks plugin
-3. (Optional) Add publish scheduler to blog/decks
+1. Remove duplicated code from plugins
+2. Update turbo.json build order
+3. Run all tests, fix any issues
 
 ## Files to Create
 
