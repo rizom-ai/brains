@@ -457,23 +457,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shared/publish-pipeline": {
-      "name": "@brains/publish-pipeline",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/job-queue": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/node": "^20.0.0",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "shared/test-utils": {
       "name": "@brains/test-utils",
       "version": "0.1.0",
@@ -872,6 +855,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "shell/publish-service": {
+      "name": "@brains/publish-service",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/messaging-service": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.14",
+        "typescript": "^5.3.3",
+      },
+    },
     "shell/render-service": {
       "name": "@brains/render-service",
       "version": "0.1.0",
@@ -1020,7 +1019,7 @@
 
     "@brains/profile-service": ["@brains/profile-service@workspace:shell/profile-service"],
 
-    "@brains/publish-pipeline": ["@brains/publish-pipeline@workspace:shared/publish-pipeline"],
+    "@brains/publish-service": ["@brains/publish-service@workspace:shell/publish-service"],
 
     "@brains/render-service": ["@brains/render-service@workspace:shell/render-service"],
 
