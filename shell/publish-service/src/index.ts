@@ -28,3 +28,6 @@ export {
   type RetryConfig,
   type RetryInfo,
 } from "./retry-tracker";
+
+// Main service
+export { PublishService, type PublishServiceConfig } from "./publish-service";
