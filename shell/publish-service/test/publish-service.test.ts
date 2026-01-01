@@ -87,7 +87,7 @@ describe("PublishService", () => {
     it("should subscribe to all message types on start", async () => {
       await service.start();
 
-      expect(messageBus.subscribe).toHaveBeenCalledTimes(6);
+      expect(messageBus.subscribe).toHaveBeenCalledTimes(8);
     });
 
     it("should call unsubscribe functions on stop", async () => {
@@ -98,7 +98,7 @@ describe("PublishService", () => {
       for (const list of messageBus._handlers.values()) {
         totalHandlers += list.length;
       }
-      expect(totalHandlers).toBe(6);
+      expect(totalHandlers).toBe(8);
 
       await service.stop();
 
@@ -259,16 +259,7 @@ describe("PublishService", () => {
   });
 
   describe("publish:direct handler", () => {
-    it("should publish directly with provider", async () => {
-      const publishMock = mock(() =>
-        Promise.resolve({ id: "result-1", url: "http://example.com" }),
-      );
-      const provider: PublishProvider = {
-        name: "test",
-        publish: publishMock,
-      };
-
-      service.registerProvider("blog-post", provider);
+    it("should send execute message for plugin to handle", async () => {
       await service.start();
       messageBus._sentMessages.length = 0;
 
@@ -278,26 +269,10 @@ describe("PublishService", () => {
       });
 
       expect(results[0]).toMatchObject({ success: true });
-      expect(publishMock).toHaveBeenCalled();
-    });
 
-    it("should send completed notification on success", async () => {
-      const provider: PublishProvider = {
-        name: "test",
-        publish: async () => ({ id: "result-1" }),
-      };
-
-      service.registerProvider("blog-post", provider);
-      await service.start();
-      messageBus._sentMessages.length = 0;
-
-      await messageBus._trigger(PUBLISH_MESSAGES.DIRECT, {
-        entityType: "blog-post",
-        entityId: "post-1",
-      });
-
+      // Should emit execute message for plugin to handle
       expect(messageBus.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.COMPLETED,
+        PUBLISH_MESSAGES.EXECUTE,
         expect.objectContaining({
           entityType: "blog-post",
           entityId: "post-1",
@@ -305,34 +280,68 @@ describe("PublishService", () => {
         "publish-service",
       );
     });
+  });
 
-    it("should send failed notification on error", async () => {
-      const provider: PublishProvider = {
-        name: "test",
-        publish: async () => {
-          throw new Error("Network error");
-        },
-      };
-
-      service.registerProvider("blog-post", provider);
+  describe("message mode integration", () => {
+    it("should send execute message when scheduler processes queue", async () => {
       await service.start();
-      messageBus._sentMessages.length = 0;
 
-      const results = await messageBus._trigger(PUBLISH_MESSAGES.DIRECT, {
+      // Add to queue
+      await messageBus._trigger(PUBLISH_MESSAGES.QUEUE, {
         entityType: "blog-post",
         entityId: "post-1",
       });
 
-      expect(results[0]).toMatchObject({
-        success: false,
-        error: "Network error",
+      messageBus._sentMessages.length = 0;
+
+      // Wait for scheduler tick
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Should have sent execute message
+      const executeMessages = messageBus._sentMessages.filter(
+        (m) => m.type === PUBLISH_MESSAGES.EXECUTE,
+      );
+      expect(executeMessages.length).toBeGreaterThan(0);
+      expect(executeMessages[0]?.payload).toMatchObject({
+        entityType: "blog-post",
+        entityId: "post-1",
       });
+    });
+
+    it("should forward completed notification from scheduler", async () => {
+      await service.start();
+      messageBus._sentMessages.length = 0;
+
+      // Simulate plugin calling completePublish
+      service.getScheduler().completePublish("blog-post", "post-1", {
+        id: "platform-123",
+        url: "https://example.com/post/123",
+      });
+
+      expect(messageBus.send).toHaveBeenCalledWith(
+        PUBLISH_MESSAGES.COMPLETED,
+        expect.objectContaining({
+          entityType: "blog-post",
+          entityId: "post-1",
+          result: { id: "platform-123", url: "https://example.com/post/123" },
+        }),
+        "publish-service",
+      );
+    });
+
+    it("should forward failed notification from scheduler", async () => {
+      await service.start();
+      messageBus._sentMessages.length = 0;
+
+      // Simulate plugin calling failPublish
+      service.getScheduler().failPublish("blog-post", "post-1", "API error");
+
       expect(messageBus.send).toHaveBeenCalledWith(
         PUBLISH_MESSAGES.FAILED,
         expect.objectContaining({
           entityType: "blog-post",
           entityId: "post-1",
-          error: "Network error",
+          error: "API error",
         }),
         "publish-service",
       );

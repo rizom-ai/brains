@@ -3,19 +3,36 @@
  *
  * Implements Component Interface Standardization pattern.
  * Runs on an interval, processing the oldest queued entity across all types.
+ *
+ * Two modes:
+ * 1. Provider mode (default): Calls provider.publish() directly
+ * 2. Message mode: Emits publish:execute message for plugins to handle
  */
 
+import type { IMessageBus } from "@brains/messaging-service";
 import type { QueueManager, QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
 import type { PublishResult } from "./types/provider";
+import { PUBLISH_MESSAGES } from "./types/messages";
+
+export interface PublishExecuteEvent {
+  entityType: string;
+  entityId: string;
+}
 
 export interface SchedulerConfig {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
   tickIntervalMs?: number;
+  /** Optional message bus for message-driven publishing */
+  messageBus?: IMessageBus;
+  /** Callback when entity is ready to publish (message mode) */
+  onExecute?: (event: PublishExecuteEvent) => void;
+  /** Callback on successful publish (provider mode) */
   onPublish?: (event: PublishSuccessEvent) => void;
+  /** Callback on failed publish (provider mode) */
   onFailed?: (event: PublishFailedEvent) => void;
 }
 
@@ -42,6 +59,8 @@ export class PublishScheduler {
   private providerRegistry: ProviderRegistry;
   private retryTracker: RetryTracker;
   private tickIntervalMs: number;
+  private messageBus: IMessageBus | undefined;
+  private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
   private onPublish: ((event: PublishSuccessEvent) => void) | undefined;
   private onFailed: ((event: PublishFailedEvent) => void) | undefined;
 
@@ -81,8 +100,17 @@ export class PublishScheduler {
     this.providerRegistry = config.providerRegistry;
     this.retryTracker = config.retryTracker;
     this.tickIntervalMs = config.tickIntervalMs ?? DEFAULT_TICK_INTERVAL;
+    this.messageBus = config.messageBus;
+    this.onExecute = config.onExecute;
     this.onPublish = config.onPublish;
     this.onFailed = config.onFailed;
+  }
+
+  /**
+   * Check if running in message-driven mode
+   */
+  private isMessageMode(): boolean {
+    return this.messageBus !== undefined;
   }
 
   /**
@@ -144,18 +172,53 @@ export class PublishScheduler {
   }
 
   /**
-   * Process a queue entry - publish and handle result
+   * Process a queue entry - either emit message or call provider
    */
   private async processEntry(entry: QueueEntry): Promise<void> {
+    // Remove from queue first
+    await this.queueManager.remove(entry.entityType, entry.entityId);
+
+    if (this.isMessageMode()) {
+      // Message mode: emit execute message for plugin to handle
+      await this.emitExecute(entry);
+    } else {
+      // Provider mode: call provider directly
+      await this.executeWithProvider(entry);
+    }
+  }
+
+  /**
+   * Emit publish:execute message (message mode)
+   */
+  private async emitExecute(entry: QueueEntry): Promise<void> {
+    const event: PublishExecuteEvent = {
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+    };
+
+    // Send message
+    if (this.messageBus) {
+      await this.messageBus.send(
+        PUBLISH_MESSAGES.EXECUTE,
+        event,
+        "publish-service",
+      );
+    }
+
+    // Call callback
+    this.onExecute?.(event);
+  }
+
+  /**
+   * Execute publishing with provider (provider mode)
+   */
+  private async executeWithProvider(entry: QueueEntry): Promise<void> {
     const provider = this.providerRegistry.get(entry.entityType);
 
     try {
       // TODO: In the full implementation, we need to fetch entity content
       // For now, pass empty content - plugins will need to provide content
       const result = await provider.publish("", {});
-
-      // Remove from queue on success
-      await this.queueManager.remove(entry.entityType, entry.entityId);
 
       // Clear any retry info
       this.retryTracker.clearRetries(entry.entityId);
@@ -174,9 +237,6 @@ export class PublishScheduler {
       this.retryTracker.recordFailure(entry.entityId, errorMessage);
       const retryInfo = this.retryTracker.getRetryInfo(entry.entityId);
 
-      // Remove from queue (will be re-queued if retrying)
-      await this.queueManager.remove(entry.entityType, entry.entityId);
-
       // Notify failure
       this.onFailed?.({
         entityType: entry.entityType,
@@ -186,6 +246,63 @@ export class PublishScheduler {
         willRetry: retryInfo?.willRetry ?? false,
       });
     }
+  }
+
+  /**
+   * Report successful publish (called by plugin in message mode)
+   */
+  public completePublish(
+    entityType: string,
+    entityId: string,
+    result: PublishResult,
+  ): void {
+    // Clear retry info
+    this.retryTracker.clearRetries(entityId);
+
+    // Send completed message
+    if (this.messageBus) {
+      void this.messageBus.send(
+        PUBLISH_MESSAGES.COMPLETED,
+        { entityType, entityId, result },
+        "publish-service",
+      );
+    }
+
+    // Call callback
+    this.onPublish?.({ entityType, entityId, result });
+  }
+
+  /**
+   * Report failed publish (called by plugin in message mode)
+   */
+  public failPublish(
+    entityType: string,
+    entityId: string,
+    error: string,
+  ): void {
+    // Record failure
+    this.retryTracker.recordFailure(entityId, error);
+    const retryInfo = this.retryTracker.getRetryInfo(entityId);
+
+    const event: PublishFailedEvent = {
+      entityType,
+      entityId,
+      error,
+      retryCount: retryInfo?.retryCount ?? 1,
+      willRetry: retryInfo?.willRetry ?? false,
+    };
+
+    // Send failed message
+    if (this.messageBus) {
+      void this.messageBus.send(
+        PUBLISH_MESSAGES.FAILED,
+        event,
+        "publish-service",
+      );
+    }
+
+    // Call callback
+    this.onFailed?.(event);
   }
 
   /**

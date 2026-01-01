@@ -42,9 +42,32 @@ export interface PublishListPayload {
   entityType: string;
 }
 
+/** Report successful publish (plugin → service) */
+export interface PublishReportSuccessPayload {
+  entityType: string;
+  entityId: string;
+  result: {
+    id: string;
+    url?: string;
+  };
+}
+
+/** Report failed publish (plugin → service) */
+export interface PublishReportFailurePayload {
+  entityType: string;
+  entityId: string;
+  error: string;
+}
+
 /**
  * Message payloads for service → plugin communication
  */
+
+/** Entity is ready to publish - plugin should handle */
+export interface PublishExecutePayload {
+  entityType: string;
+  entityId: string;
+}
 
 /** Entity was added to queue */
 export interface PublishQueuedPayload {
@@ -93,8 +116,11 @@ export const PUBLISH_MESSAGES = {
   REMOVE: "publish:remove",
   REORDER: "publish:reorder",
   LIST: "publish:list",
+  REPORT_SUCCESS: "publish:report:success",
+  REPORT_FAILURE: "publish:report:failure",
 
   // Service → Plugin
+  EXECUTE: "publish:execute",
   QUEUED: "publish:queued",
   COMPLETED: "publish:completed",
   FAILED: "publish:failed",

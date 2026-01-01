@@ -22,6 +22,8 @@ import type {
   PublishRemovePayload,
   PublishReorderPayload,
   PublishListPayload,
+  PublishReportSuccessPayload,
+  PublishReportFailurePayload,
 } from "./types/messages";
 import type { PublishProvider } from "./types/provider";
 
@@ -89,6 +91,7 @@ export class PublishService {
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
       tickIntervalMs: config.tickIntervalMs ?? 60000,
+      messageBus: this.messageBus, // Enable message mode
       onPublish: (event) => this.handlePublishSuccess(event),
       onFailed: (event) => this.handlePublishFailed(event),
     });
@@ -179,6 +182,22 @@ export class PublishService {
       ),
     );
 
+    // Report success handler (plugin reporting successful publish)
+    this.unsubscribers.push(
+      this.messageBus.subscribe<PublishReportSuccessPayload>(
+        PUBLISH_MESSAGES.REPORT_SUCCESS,
+        async (msg) => this.handleReportSuccess(msg),
+      ),
+    );
+
+    // Report failure handler (plugin reporting failed publish)
+    this.unsubscribers.push(
+      this.messageBus.subscribe<PublishReportFailurePayload>(
+        PUBLISH_MESSAGES.REPORT_FAILURE,
+        async (msg) => this.handleReportFailure(msg),
+      ),
+    );
+
     this.logger.debug("Subscribed to publish messages");
   }
 
@@ -241,52 +260,25 @@ export class PublishService {
 
   /**
    * Handle publish:direct message
+   *
+   * Emits publish:execute for the plugin to handle.
+   * Plugin should call completePublish or failPublish when done.
    */
   private async handleDirect(
     msg: MessageWithPayload<PublishDirectPayload>,
   ): Promise<{ success: boolean; data?: unknown; error?: string }> {
     const { entityType, entityId } = msg.payload;
 
-    try {
-      // TODO: Fetch entity content from entity service
-      // For now, pass empty content - the provider needs to fetch it
-      const result = await this.scheduler.publishDirect(
-        entityType,
-        entityId,
-        "",
-        {},
-      );
+    // Emit execute message for plugin to handle
+    await this.messageBus.send(
+      PUBLISH_MESSAGES.EXECUTE,
+      { entityType, entityId },
+      "publish-service",
+    );
 
-      // Send completed notification
-      await this.messageBus.send(
-        PUBLISH_MESSAGES.COMPLETED,
-        { entityType, entityId, result },
-        "publish-service",
-      );
+    this.logger.debug(`Direct publish requested: ${entityId}`, { entityType });
 
-      this.logger.info(`Direct publish completed: ${entityId}`, { entityType });
-
-      return { success: true, data: result };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      this.logger.error(`Direct publish failed: ${errorMessage}`);
-
-      // Send failed notification
-      await this.messageBus.send(
-        PUBLISH_MESSAGES.FAILED,
-        {
-          entityType,
-          entityId,
-          error: errorMessage,
-          retryCount: 0,
-          willRetry: false,
-        },
-        "publish-service",
-      );
-
-      return { success: false, error: errorMessage };
-    }
+    return { success: true };
   }
 
   /**
@@ -414,6 +406,64 @@ export class PublishService {
     );
   }
 
+  /**
+   * Handle publish:report:success message (plugin reporting successful publish)
+   */
+  private async handleReportSuccess(
+    msg: MessageWithPayload<PublishReportSuccessPayload>,
+  ): Promise<{ success: boolean }> {
+    const { entityType, entityId, result } = msg.payload;
+
+    // Clear retry info
+    this.retryTracker.clearRetries(entityId);
+
+    // Send completed notification
+    await this.messageBus.send(
+      PUBLISH_MESSAGES.COMPLETED,
+      { entityType, entityId, result },
+      "publish-service",
+    );
+
+    this.logger.info(`Publish reported success: ${entityId}`, { entityType });
+
+    return { success: true };
+  }
+
+  /**
+   * Handle publish:report:failure message (plugin reporting failed publish)
+   */
+  private async handleReportFailure(
+    msg: MessageWithPayload<PublishReportFailurePayload>,
+  ): Promise<{ success: boolean }> {
+    const { entityType, entityId, error } = msg.payload;
+
+    // Record failure for retry tracking
+    this.retryTracker.recordFailure(entityId, error);
+    const retryInfo = this.retryTracker.getRetryInfo(entityId);
+
+    // Send failed notification
+    await this.messageBus.send(
+      PUBLISH_MESSAGES.FAILED,
+      {
+        entityType,
+        entityId,
+        error,
+        retryCount: retryInfo?.retryCount ?? 1,
+        willRetry: retryInfo?.willRetry ?? false,
+      },
+      "publish-service",
+    );
+
+    this.logger.info(`Publish reported failure: ${entityId}`, {
+      entityType,
+      error,
+      retryCount: retryInfo?.retryCount,
+      willRetry: retryInfo?.willRetry,
+    });
+
+    return { success: true };
+  }
+
   // Expose components for testing
   public getQueueManager(): QueueManager {
     return this.queueManager;
@@ -421,6 +471,10 @@ export class PublishService {
 
   public getProviderRegistry(): ProviderRegistry {
     return this.providerRegistry;
+  }
+
+  public getRetryTracker(): RetryTracker {
+    return this.retryTracker;
   }
 
   public getScheduler(): PublishScheduler {
