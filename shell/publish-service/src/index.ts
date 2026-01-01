@@ -14,9 +14,17 @@ export * from "./types/provider";
 export * from "./types/messages";
 export * from "./types/config";
 
-// Service (to be implemented)
-// export * from "./publish-service";
-// export * from "./queue-manager";
-// export * from "./scheduler";
-// export * from "./provider-registry";
-// export * from "./retry-tracker";
+// Service components
+export { QueueManager, type QueueEntry } from "./queue-manager";
+export { ProviderRegistry } from "./provider-registry";
+export {
+  PublishScheduler,
+  type SchedulerConfig,
+  type PublishSuccessEvent,
+  type PublishFailedEvent,
+} from "./scheduler";
+export {
+  RetryTracker,
+  type RetryConfig,
+  type RetryInfo,
+} from "./retry-tracker";
