@@ -356,6 +356,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/plugins": "workspace:*",
+        "@brains/publish-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
