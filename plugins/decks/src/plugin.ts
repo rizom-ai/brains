@@ -13,6 +13,7 @@ import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
 import { createDeckTools } from "./tools";
+import type { DeckEntity } from "./schemas/deck";
 import packageJson from "../package.json";
 
 // No configuration needed for decks plugin
@@ -61,7 +62,113 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);
 
+    // Register with publish-pipeline
+    await this.registerWithPublishPipeline(context);
+    this.subscribeToPublishExecute(context);
+
     this.logger.info("Decks plugin registered successfully");
+  }
+
+  /**
+   * Register with publish-pipeline using internal provider
+   */
+  private async registerWithPublishPipeline(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    const internalProvider = {
+      name: "internal",
+      publish: async (): Promise<{ id: string }> => {
+        return { id: "internal" };
+      },
+    };
+
+    await context.sendMessage("publish:register", {
+      entityType: "deck",
+      provider: internalProvider,
+    });
+
+    this.logger.info("Registered deck with publish-pipeline");
+  }
+
+  /**
+   * Subscribe to publish:execute messages from publish-pipeline
+   */
+  private subscribeToPublishExecute(context: ServicePluginContext): void {
+    const formatter = new DeckFormatter();
+
+    context.subscribe<
+      { entityType: string; entityId: string },
+      { success: boolean }
+    >("publish:execute", async (msg) => {
+      const { entityType, entityId } = msg.payload;
+
+      // Only handle deck entities
+      if (entityType !== "deck") {
+        return { success: true };
+      }
+
+      try {
+        const deck = await context.entityService.getEntity<DeckEntity>(
+          "deck",
+          entityId,
+        );
+
+        if (!deck) {
+          await context.sendMessage("publish:report:failure", {
+            entityType,
+            entityId,
+            error: `Deck not found: ${entityId}`,
+          });
+          return { success: true };
+        }
+
+        // Skip already published decks
+        if (deck.metadata.status === "published") {
+          this.logger.debug(`Deck already published: ${entityId}`);
+          return { success: true };
+        }
+
+        const publishedAt = new Date().toISOString();
+        const updatedDeck: DeckEntity = {
+          ...deck,
+          status: "published",
+          publishedAt,
+          metadata: {
+            ...deck.metadata,
+            status: "published",
+            publishedAt,
+          },
+        };
+
+        const updatedContent = formatter.toMarkdown(updatedDeck);
+
+        await context.entityService.updateEntity({
+          ...updatedDeck,
+          content: updatedContent,
+        });
+
+        await context.sendMessage("publish:report:success", {
+          entityType,
+          entityId,
+          result: { id: entityId },
+        });
+
+        this.logger.info(`Published deck: ${entityId}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        await context.sendMessage("publish:report:failure", {
+          entityType,
+          entityId,
+          error: errorMessage,
+        });
+        this.logger.error(`Failed to publish deck: ${errorMessage}`);
+      }
+
+      return { success: true };
+    });
+
+    this.logger.debug("Subscribed to publish:execute messages");
   }
 
   /**

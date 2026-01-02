@@ -15,6 +15,11 @@ import { blogPostAdapter } from "../adapters/blog-post-adapter";
 export const publishInputSchema = z.object({
   id: z.string().optional().describe("Blog post ID"),
   slug: z.string().optional().describe("Blog post slug"),
+  direct: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Publish immediately (true) or add to queue (false)"),
 });
 
 export type PublishInput = z.infer<typeof publishInputSchema>;
@@ -29,12 +34,12 @@ export function createPublishTool(
   return {
     name: `${pluginId}_publish`,
     description:
-      "Publish a blog post (sets publishedAt and triggers site rebuild)",
+      "Publish a blog post immediately (direct=true) or add to queue for scheduled publishing (direct=false)",
     inputSchema: publishInputSchema.shape,
     visibility: "anchor",
     handler: async (input: unknown): Promise<ToolResponse> => {
       try {
-        const { id, slug } = publishInputSchema.parse(input);
+        const { id, slug, direct } = publishInputSchema.parse(input);
 
         // Validate that at least one identifier is provided
         if (!id && !slug) {
@@ -78,7 +83,62 @@ export function createPublishTool(
           blogPostFrontmatterSchema,
         );
 
-        // Update frontmatter with published status and timestamp
+        // Handle queue mode (direct=false)
+        if (!direct) {
+          // Cannot queue already published posts
+          if (post.metadata.status === "published") {
+            return {
+              success: false,
+              error: "Post is already published",
+              formatted: "_Post is already published_",
+            };
+          }
+
+          // Update status to queued
+          const updatedFrontmatter = {
+            ...parsed.metadata,
+            status: "queued" as const,
+          };
+
+          const updatedContent = blogPostAdapter.createPostContent(
+            updatedFrontmatter,
+            parsed.content,
+          );
+
+          const updatedPost: BlogPost = {
+            ...post,
+            content: updatedContent,
+            metadata: {
+              ...post.metadata,
+              status: "queued",
+            },
+          };
+          await context.entityService.updateEntity(updatedPost);
+
+          // Send queue message to publish-pipeline
+          await context.sendMessage("publish:queue", {
+            entityType: "post",
+            entityId: post.id,
+          });
+
+          const formatted = formatAsEntity(
+            {
+              id: post.id,
+              title: parsed.metadata.title,
+              status: "queued",
+            },
+            { title: "Blog Post Queued" },
+          );
+
+          return {
+            success: true,
+            data: { postId: post.id },
+            message: `Blog post "${parsed.metadata.title}" added to queue`,
+            formatted,
+          };
+        }
+
+        // Direct publish mode (default)
         const publishedAt = new Date().toISOString();
         const updatedFrontmatter = {
           ...parsed.metadata,
@@ -98,7 +158,7 @@ export function createPublishTool(
           content: updatedContent,
           metadata: {
             title: updatedFrontmatter.title,
-            slug: updatedFrontmatter.slug ?? post.metadata.slug, // Preserve existing slug if not in frontmatter
+            slug: updatedFrontmatter.slug ?? post.metadata.slug,
             status: updatedFrontmatter.status,
             publishedAt: updatedFrontmatter.publishedAt,
             seriesName: updatedFrontmatter.seriesName,
@@ -106,9 +166,6 @@ export function createPublishTool(
           },
         };
         const result = await context.entityService.updateEntity(updatedPost);
-
-        // Entity update will automatically trigger entity:updated message
-        // which site-builder subscribes to for rebuilding
 
         const formatted = formatAsEntity(
           {

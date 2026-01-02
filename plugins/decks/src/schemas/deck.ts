@@ -1,13 +1,19 @@
 import { z } from "@brains/utils";
 
 /**
+ * Deck status
+ */
+export const deckStatusSchema = z.enum(["draft", "queued", "published"]);
+export type DeckStatus = z.infer<typeof deckStatusSchema>;
+
+/**
  * Deck metadata schema
  * Key fields stored in metadata for fast queries and URL generation
  */
 export const deckMetadataSchema = z.object({
   slug: z.string(), // Generated from title if not provided, used for URLs
   title: z.string(),
-  status: z.enum(["draft", "published"]),
+  status: deckStatusSchema,
   publishedAt: z.string().datetime().optional(),
 });
 
@@ -32,7 +38,7 @@ export const deckSchema = z.object({
   title: z.string().describe("Presentation title"),
   description: z.string().optional().describe("Brief description"),
   author: z.string().optional().describe("Author name"),
-  status: z.enum(["draft", "published"]).describe("Publication status"),
+  status: deckStatusSchema.describe("Publication status"),
   publishedAt: z
     .string()
     .datetime()

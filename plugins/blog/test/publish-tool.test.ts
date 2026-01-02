@@ -470,4 +470,91 @@ Content`;
       ).toBe("test-post");
     });
   });
+
+  describe("direct flag", () => {
+    it("should default to direct=true (immediate publish)", async () => {
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
+
+      getEntitySpy.mockResolvedValue(draftPost);
+
+      const result = await publishTool.handler(
+        { id: "test-post" },
+        mockToolContext,
+      );
+
+      // With direct=true (default), should update entity immediately
+      expect(result.success).toBe(true);
+      expect(updateEntitySpy.mock.calls.length).toBe(1);
+      const updatedPost = updateEntitySpy.mock.calls[0]?.[0] as BlogPost;
+      expect(updatedPost.metadata.status).toBe("published");
+    });
+
+    it("should publish immediately with direct=true", async () => {
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
+
+      getEntitySpy.mockResolvedValue(draftPost);
+
+      const result = await publishTool.handler(
+        { id: "test-post", direct: true },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      expect(updateEntitySpy.mock.calls.length).toBe(1);
+      const updatedPost = updateEntitySpy.mock.calls[0]?.[0] as BlogPost;
+      expect(updatedPost.metadata.status).toBe("published");
+    });
+
+    it("should add to queue with direct=false", async () => {
+      const draftPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "draft",
+      );
+
+      getEntitySpy.mockResolvedValue(draftPost);
+
+      const result = await publishTool.handler(
+        { id: "test-post", direct: false },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      // With direct=false, should update status to queued
+      expect(updateEntitySpy.mock.calls.length).toBe(1);
+      const updatedPost = updateEntitySpy.mock.calls[0]?.[0] as BlogPost;
+      expect(updatedPost.metadata.status).toBe("queued");
+    });
+
+    it("should not queue already published posts", async () => {
+      const publishedPost = createMockPost(
+        "test-post",
+        "Test Post",
+        "test-post",
+        "published",
+        "2025-01-01T10:00:00.000Z",
+      );
+
+      getEntitySpy.mockResolvedValue(publishedPost);
+
+      const result = await publishTool.handler(
+        { id: "test-post", direct: false },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result["error"]).toContain("already published");
+    });
+  });
 });

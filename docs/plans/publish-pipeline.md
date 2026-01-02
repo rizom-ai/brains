@@ -1,21 +1,23 @@
 # Publishing Pipeline Abstraction Plan
 
+> **Status: COMPLETED** - All phases implemented as of 2026-01-02
+
 ## Goal
 
 Create a comprehensive publishing infrastructure that can be shared across plugins (blog, decks, social-media, future plugins). Enable scheduled/queued publishing for all content types.
 
 ## Key Decisions
 
-1. **Architecture**: Shell service (`shell/publish-service`) + shared schemas (`shared/publish-pipeline`)
+1. **Architecture**: Single plugin (`plugins/publish-pipeline`) handles queue management, scheduling, and provider registry
 2. **Integration**: Message-driven - plugins send/receive messages via message bus
-3. **Status states**: `draft`, `queued`, `published`, `failed` (use "queued" not "pending")
-4. **Single scheduler**: One daemon in publish-service manages all entity type queues
+3. **Status states**: `draft`, `queued`, `published` (entity status tracked in frontmatter)
+4. **Per-type scheduling**: Each entity type can have independent scheduling configuration
 5. **Two publish paths**:
-   - Queue path: draft → queued → published/failed (via scheduler)
-   - Direct path: draft → published (immediate, bypass queue)
-6. **Scheduler**: Always on - `queued` status means "will auto-publish"
+   - Queue path: draft → queued → published (via scheduler with `direct=false`)
+   - Direct path: draft → published (immediate, bypass queue with `direct=true`, default)
+6. **Scheduler**: Managed by publish-pipeline, triggered via messages
 7. **Retries**: Uniform across all publishers (internal and external)
-8. **Storage**: Keep `queueOrder`/`retryCount` in frontmatter for simplicity
+8. **Storage**: Queue state managed centrally by publish-pipeline (not in entity frontmatter)
 
 ## Architecture Overview
 
@@ -68,39 +70,19 @@ Create a comprehensive publishing infrastructure that can be shared across plugi
 
 ## Package Structure
 
-### Shell Service: `shell/publish-service/`
+### Plugin: `plugins/publish-pipeline/`
 
-Core logic for queue management, scheduling, and publishing.
+Core logic for queue management, scheduling, and publishing - implemented as a single plugin.
 
 ```
-shell/publish-service/
+plugins/publish-pipeline/
 ├── src/
 │   ├── index.ts
-│   ├── publish-service.ts       # Main service, message handlers
+│   ├── plugin.ts                # Main plugin with message handlers
 │   ├── queue-manager.ts         # Queue operations per entity type
-│   ├── scheduler.ts             # Single daemon for all queues
+│   ├── scheduler.ts             # Daemon for scheduled publishing
 │   ├── provider-registry.ts     # Manages publish providers
 │   ├── retry-tracker.ts         # Retry logic with backoff
-│   └── handlers/
-│       ├── register-handler.ts  # Handle publish:register
-│       ├── queue-handler.ts     # Handle publish:queue
-│       └── publish-handler.ts   # Execute actual publishing
-├── test/
-│   ├── queue-manager.test.ts
-│   ├── scheduler.test.ts
-│   └── publish-service.test.ts
-├── package.json
-└── tsconfig.json
-```
-
-### Shared Package: `shared/publish-pipeline/`
-
-Schemas and types shared between service and plugins.
-
-```
-shared/publish-pipeline/
-├── src/
-│   ├── index.ts
 │   ├── schemas/
 │   │   └── publishable.ts       # Status, queue metadata schemas
 │   └── types/
@@ -108,7 +90,10 @@ shared/publish-pipeline/
 │       ├── messages.ts          # Message payload types
 │       └── config.ts            # Registration config types
 ├── test/
-│   └── schemas.test.ts
+│   ├── queue-manager.test.ts
+│   ├── scheduler.test.ts
+│   ├── provider-registry.test.ts
+│   └── plugin.test.ts
 ├── package.json
 └── tsconfig.json
 ```
@@ -296,79 +281,100 @@ export function createPublishTool(pluginId: string): PluginTool {
 
 ## Implementation Plan
 
-### Phase 1: Shared Package
+### Phase 1: Core Plugin ✅ COMPLETED
 
-1. Create `shared/publish-pipeline/` with package.json, tsconfig
-2. Implement publishable schemas
-3. Implement provider interface + InternalPublishProvider
-4. Implement message payload types
-5. Write tests for schemas
-6. Export everything from index.ts
+1. ✅ Created `plugins/publish-pipeline/` with package.json, tsconfig
+2. ✅ Implemented publishable schemas
+3. ✅ Implemented provider interface + InternalPublishProvider
+4. ✅ Implemented message payload types
+5. ✅ Wrote tests for schemas
+6. ✅ Exported everything from index.ts
 
-### Phase 2: Shell Service
+### Phase 2: Service Components ✅ COMPLETED
 
-1. Create `shell/publish-service/` with package.json, tsconfig
-2. Implement QueueManager
-3. Implement ProviderRegistry
-4. Implement Scheduler
-5. Implement RetryTracker
-6. Implement message handlers
-7. Implement PublishService (main entry)
-8. Write tests for all components
+1. ✅ Implemented QueueManager
+2. ✅ Implemented ProviderRegistry
+3. ✅ Implemented Scheduler
+4. ✅ Implemented RetryTracker
+5. ✅ Implemented message handlers (register, queue, direct, execute, report)
+6. ✅ Implemented PublishPipelinePlugin (main entry)
+7. ✅ Wrote tests for all components
 
-### Phase 3: Migrate Plugins
+### Phase 3: Migrate Plugins ✅ COMPLETED
 
-1. **social-media**: Refactor to use service
-   - Remove PublishCheckerJobHandler (scheduler now in service)
-   - Keep PublishJobHandler but triggered via message
-   - Register LinkedInProvider with service
-   - Update queue tool to send messages
-2. **blog**: Add queue + publish support
-   - Register entity type with service (internal provider)
-   - Add queue tool
-   - Keep existing publish tool (sends publish:direct)
-3. **decks**: Add queue + publish support
-   - Same as blog
+1. **social-media**: ✅ Refactored to use service
+   - ✅ Removed PublishCheckerJobHandler (scheduler now in publish-pipeline)
+   - ✅ Removed old PublishJobHandler (replaced by PublishExecuteHandler)
+   - ✅ Added PublishExecuteHandler for message-driven publishing
+   - ✅ Registered LinkedInProvider with publish-pipeline
+   - ✅ Updated queue tool to send messages
+2. **blog**: ✅ Added queue + publish support
+   - ✅ Registered entity type with publish-pipeline (internal provider)
+   - ✅ Added queue tool (list, remove, reorder)
+   - ✅ Updated publish tool with `direct` flag (default: true)
+   - ✅ Subscribed to publish:execute messages
+3. **decks**: ✅ Added queue + publish support
+   - ✅ Same pattern as blog
 
-### Phase 4: Cleanup
+### Phase 4: Cleanup ✅ COMPLETED
 
-1. Remove duplicated code from plugins
-2. Update turbo.json build order
-3. Run all tests, fix any issues
-4. Update documentation
+1. ✅ Removed obsolete handlers from social-media
+2. ✅ All tests passing (1831 tests)
+3. ✅ TypeScript compiles without errors
+4. ✅ Documentation updated
 
-## Files to Create
+## Files Created
 
-### Shared Package
+### Publish Pipeline Plugin
 
-- `shared/publish-pipeline/package.json`
-- `shared/publish-pipeline/tsconfig.json`
-- `shared/publish-pipeline/src/index.ts`
-- `shared/publish-pipeline/src/schemas/publishable.ts`
-- `shared/publish-pipeline/src/types/provider.ts`
-- `shared/publish-pipeline/src/types/messages.ts`
-- `shared/publish-pipeline/src/types/config.ts`
-- `shared/publish-pipeline/test/schemas.test.ts`
+- `plugins/publish-pipeline/package.json`
+- `plugins/publish-pipeline/tsconfig.json`
+- `plugins/publish-pipeline/src/index.ts`
+- `plugins/publish-pipeline/src/plugin.ts`
+- `plugins/publish-pipeline/src/queue-manager.ts`
+- `plugins/publish-pipeline/src/scheduler.ts`
+- `plugins/publish-pipeline/src/provider-registry.ts`
+- `plugins/publish-pipeline/src/retry-tracker.ts`
+- `plugins/publish-pipeline/src/schemas/publishable.ts`
+- `plugins/publish-pipeline/src/types/provider.ts`
+- `plugins/publish-pipeline/src/types/messages.ts`
+- `plugins/publish-pipeline/src/types/config.ts`
+- `plugins/publish-pipeline/test/*.test.ts`
 
-### Shell Service
+### Plugin Tools
 
-- `shell/publish-service/package.json`
-- `shell/publish-service/tsconfig.json`
-- `shell/publish-service/src/index.ts`
-- `shell/publish-service/src/publish-service.ts`
-- `shell/publish-service/src/queue-manager.ts`
-- `shell/publish-service/src/scheduler.ts`
-- `shell/publish-service/src/provider-registry.ts`
-- `shell/publish-service/src/retry-tracker.ts`
-- `shell/publish-service/src/handlers/register-handler.ts`
-- `shell/publish-service/src/handlers/queue-handler.ts`
-- `shell/publish-service/src/handlers/publish-handler.ts`
-- `shell/publish-service/test/*.test.ts`
+- `plugins/blog/src/tools/queue.ts` - Queue management tool
+- `plugins/decks/src/tools/queue.ts` - Queue management tool
+- `plugins/social-media/src/handlers/publishExecuteHandler.ts` - Message-driven publish
 
-## Files to Modify
+### Tests
 
-- `plugins/blog/src/plugin.ts` - Register with publish service
-- `plugins/decks/src/plugin.ts` - Register with publish service
-- `plugins/social-media/src/plugin.ts` - Refactor to use service
-- `plugins/social-media/src/handlers/` - Remove scheduler, keep provider logic
-- `turbo.json` - Add new packages to build order
+- `plugins/social-media/test/tools/queue-messages.test.ts`
+- `plugins/social-media/test/plugin-registration.test.ts`
+- `plugins/social-media/test/plugin-execute.test.ts`
+- `plugins/blog/test/plugin-registration.test.ts`
+- `plugins/blog/test/queue-tool.test.ts`
+- `plugins/decks/test/publish-tool.test.ts`
+- `plugins/decks/test/queue-tool.test.ts`
+- `plugins/decks/test/plugin-registration.test.ts`
+
+## Files Modified
+
+- `plugins/blog/src/plugin.ts` - Register with publish-pipeline, subscribe to execute
+- `plugins/blog/src/tools/publish.ts` - Added `direct` flag
+- `plugins/blog/src/tools/index.ts` - Export queue tool
+- `plugins/blog/src/schemas/blog-post.ts` - Added `queued` status
+- `plugins/decks/src/plugin.ts` - Register with publish-pipeline, subscribe to execute
+- `plugins/decks/src/tools/publish.ts` - Added `direct` flag
+- `plugins/decks/src/tools/index.ts` - Export queue tool
+- `plugins/decks/src/schemas/deck.ts` - Added `queued` status
+- `plugins/social-media/src/plugin.ts` - Refactored to use publish-pipeline messages
+- `plugins/social-media/src/tools/queue.ts` - Send messages instead of direct calls
+- `plugins/social-media/src/handlers/index.ts` - Removed old handlers
+
+## Files Removed
+
+- `plugins/social-media/src/handlers/publishCheckerHandler.ts` - Replaced by publish-pipeline scheduler
+- `plugins/social-media/src/handlers/publishHandler.ts` - Replaced by publishExecuteHandler
+- `plugins/social-media/test/handlers/publishCheckerHandler.test.ts`
+- `plugins/social-media/test/handlers/publishHandler.test.ts`

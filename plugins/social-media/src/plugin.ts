@@ -17,8 +17,6 @@ import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { linkedinTemplate } from "./templates/linkedin-template";
 import { GenerationJobHandler } from "./handlers/generationHandler";
-import { PublishJobHandler } from "./handlers/publishHandler";
-import { PublishCheckerJobHandler } from "./handlers/publishCheckerHandler";
 import {
   PublishExecuteHandler,
   type PublishExecutePayload,
@@ -77,41 +75,8 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     );
     context.registerJobHandler("generation", generationHandler);
 
-    const publishHandler = new PublishJobHandler(
-      this.logger.child("PublishJobHandler"),
-      context,
-      this.config,
-      this.providers,
-    );
-    context.registerJobHandler("publish", publishHandler);
-
-    const publishCheckerHandler = new PublishCheckerJobHandler(
-      this.logger.child("PublishCheckerJobHandler"),
-      context,
-      this.config,
-      this.id,
-    );
-    context.registerJobHandler("publish-checker", publishCheckerHandler);
-
-    // Auto-start publish checker if enabled
-    if (this.config.enabled) {
-      this.logger.info("Starting publish checker daemon");
-      await context.enqueueJob(
-        "publish-checker",
-        {},
-        null, // Background job, no tool context
-        {
-          source: `${this.id}:startup`,
-          deduplication: "skip", // Skip if already queued
-          metadata: {
-            operationType: "data_processing",
-            operationTarget: "publish-checker",
-          },
-        },
-      );
-    }
-
-    // Subscribe to publish:execute messages from publish-pipeline
+    // Register with publish-pipeline and subscribe to execute messages
+    await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
 
     // Register eval handlers for testing
@@ -160,6 +125,31 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       this.providers.set("linkedin", linkedinProvider);
       this.logger.info("LinkedIn provider initialized");
     }
+  }
+
+  /**
+   * Register entity type and provider with publish-pipeline
+   */
+  private async registerWithPublishPipeline(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    // Only register if we have providers configured
+    if (this.providers.size === 0) {
+      this.logger.debug(
+        "No providers configured, skipping publish-pipeline registration",
+      );
+      return;
+    }
+
+    // Get the first provider (typically linkedin)
+    const provider = this.providers.values().next().value;
+
+    await context.sendMessage("publish:register", {
+      entityType: "social-post",
+      provider: provider,
+    });
+
+    this.logger.info("Registered social-post with publish-pipeline");
   }
 
   /**

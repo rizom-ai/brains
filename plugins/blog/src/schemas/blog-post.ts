@@ -2,13 +2,19 @@ import { z } from "zod";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**
+ * Blog post status
+ */
+export const blogPostStatusSchema = z.enum(["draft", "queued", "published"]);
+export type BlogPostStatus = z.infer<typeof blogPostStatusSchema>;
+
+/**
  * Blog post frontmatter schema (stored in content as YAML frontmatter)
  * Contains all blog post data for human editing
  */
 export const blogPostFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(), // Auto-generated from title if not provided
-  status: z.enum(["draft", "published"]),
+  status: blogPostStatusSchema,
   publishedAt: z.string().datetime().optional(),
   excerpt: z.string(),
   author: z.string(),
@@ -31,7 +37,7 @@ export type BlogPostFrontmatter = z.infer<typeof blogPostFrontmatterSchema>;
 export const blogPostMetadataSchema = z.object({
   title: z.string(),
   slug: z.string(), // Required in metadata for fast slug-based queries
-  status: z.enum(["draft", "published"]),
+  status: blogPostStatusSchema,
   publishedAt: z.string().datetime().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),

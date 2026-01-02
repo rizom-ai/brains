@@ -4,23 +4,17 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { z, formatAsEntity, formatAsList } from "@brains/utils";
-import type { SocialPost } from "../schemas/social-post";
+import type { BlogPost } from "../schemas/blog-post";
 
 /**
- * Input schema for social-media:queue tool
+ * Input schema for blog:queue tool
  */
 export const queueInputSchema = z.object({
   action: z
-    .enum(["add", "remove", "reorder", "list"])
+    .enum(["remove", "reorder", "list"])
     .describe("Queue action to perform"),
-  postId: z
-    .string()
-    .optional()
-    .describe("Post ID for add/remove/reorder actions"),
-  slug: z
-    .string()
-    .optional()
-    .describe("Post slug for add/remove/reorder actions"),
+  id: z.string().optional().describe("Post ID for remove/reorder actions"),
+  slug: z.string().optional().describe("Post slug for remove/reorder actions"),
   position: z
     .number()
     .optional()
@@ -30,7 +24,7 @@ export const queueInputSchema = z.object({
 export type QueueInput = z.infer<typeof queueInputSchema>;
 
 /**
- * Create the social-media:queue tool
+ * Create the blog:queue tool
  */
 export function createQueueTool(
   context: ServicePluginContext,
@@ -38,24 +32,20 @@ export function createQueueTool(
 ): PluginTool {
   return {
     name: `${pluginId}_queue`,
-    description:
-      "Manage the social post publish queue (add, remove, reorder, list)",
+    description: "Manage the blog post publish queue (list, remove, reorder)",
     inputSchema: queueInputSchema.shape,
     visibility: "anchor",
     handler: async (input: unknown): Promise<ToolResponse> => {
       try {
-        const { action, postId, slug, position } =
-          queueInputSchema.parse(input);
+        const { action, id, slug, position } = queueInputSchema.parse(input);
 
         switch (action) {
           case "list":
             return await handleList(context);
-          case "add":
-            return await handleAdd(context, postId, slug);
           case "remove":
-            return await handleRemove(context, postId, slug);
+            return await handleRemove(context, id, slug);
           case "reorder":
-            return await handleReorder(context, postId, slug, position);
+            return await handleReorder(context, id, slug, position);
           default:
             return {
               success: false,
@@ -82,18 +72,13 @@ async function handleList(
   context: ServicePluginContext,
 ): Promise<ToolResponse> {
   // Send list request to publish-pipeline
-  await context.sendMessage("publish:list", { entityType: "social-post" });
+  await context.sendMessage("publish:list", { entityType: "post" });
 
-  // For now, also query locally for immediate response
-  // The publish-pipeline will respond via publish:list:response
-  const posts = await context.entityService.listEntities<SocialPost>(
-    "social-post",
-    {
-      filter: { metadata: { status: "queued" } },
-      sortFields: [{ field: "queueOrder", direction: "asc" }],
-      limit: 100,
-    },
-  );
+  // Also query locally for immediate response
+  const posts = await context.entityService.listEntities<BlogPost>("post", {
+    filter: { metadata: { status: "queued" } },
+    limit: 100,
+  });
 
   if (posts.length === 0) {
     return {
@@ -107,18 +92,15 @@ async function handleList(
   const items = posts.map((post, index) => ({
     position: index + 1,
     id: post.id,
-    platform: post.metadata.platform,
-    preview:
-      post.content.length > 50
-        ? `${post.content.slice(0, 50)}...`
-        : post.content,
+    title: post.metadata.title,
+    slug: post.metadata.slug,
   }));
 
   const formatted = formatAsList(items, {
     header: "**Publish Queue**",
-    title: (item: { position: number; platform: string; preview: string }) =>
-      `[${item.platform}] ${item.preview}`,
-    numbered: true,
+    title: (item: { position: number; title: string }) =>
+      `${item.position}. ${item.title}`,
+    numbered: false,
   });
 
   return {
@@ -130,67 +112,16 @@ async function handleList(
 }
 
 /**
- * Add a post to the queue via publish-pipeline
- */
-async function handleAdd(
-  context: ServicePluginContext,
-  postId?: string,
-  slug?: string,
-): Promise<ToolResponse> {
-  const post = await findPost(context, postId, slug);
-  if (!post) {
-    return notFoundResponse(postId, slug);
-  }
-
-  if (post.metadata.status === "queued") {
-    return {
-      success: false,
-      error: "Post is already in queue",
-      formatted: "_Post is already in queue_",
-    };
-  }
-
-  if (post.metadata.status === "published") {
-    return {
-      success: false,
-      error: "Cannot queue an already published post",
-      formatted: "_Cannot queue an already published post_",
-    };
-  }
-
-  // Send queue message to publish-pipeline
-  await context.sendMessage("publish:queue", {
-    entityType: "social-post",
-    entityId: post.id,
-  });
-
-  const formatted = formatAsEntity(
-    {
-      id: post.id,
-      status: "queued",
-    },
-    { title: "Post Added to Queue" },
-  );
-
-  return {
-    success: true,
-    data: { postId: post.id },
-    message: "Post added to queue",
-    formatted,
-  };
-}
-
-/**
  * Remove a post from the queue via publish-pipeline
  */
 async function handleRemove(
   context: ServicePluginContext,
-  postId?: string,
+  id?: string,
   slug?: string,
 ): Promise<ToolResponse> {
-  const post = await findPost(context, postId, slug);
+  const post = await findPost(context, id, slug);
   if (!post) {
-    return notFoundResponse(postId, slug);
+    return notFoundResponse(id, slug);
   }
 
   if (post.metadata.status !== "queued") {
@@ -203,13 +134,14 @@ async function handleRemove(
 
   // Send remove message to publish-pipeline
   await context.sendMessage("publish:remove", {
-    entityType: "social-post",
+    entityType: "post",
     entityId: post.id,
   });
 
   const formatted = formatAsEntity(
     {
       id: post.id,
+      title: post.metadata.title,
       status: "draft",
     },
     { title: "Post Removed from Queue" },
@@ -228,7 +160,7 @@ async function handleRemove(
  */
 async function handleReorder(
   context: ServicePluginContext,
-  postId?: string,
+  id?: string,
   slug?: string,
   position?: number,
 ): Promise<ToolResponse> {
@@ -240,9 +172,9 @@ async function handleReorder(
     };
   }
 
-  const post = await findPost(context, postId, slug);
+  const post = await findPost(context, id, slug);
   if (!post) {
-    return notFoundResponse(postId, slug);
+    return notFoundResponse(id, slug);
   }
 
   if (post.metadata.status !== "queued") {
@@ -255,7 +187,7 @@ async function handleReorder(
 
   // Send reorder message to publish-pipeline
   await context.sendMessage("publish:reorder", {
-    entityType: "social-post",
+    entityType: "post",
     entityId: post.id,
     position,
   });
@@ -263,6 +195,7 @@ async function handleReorder(
   const formatted = formatAsEntity(
     {
       id: post.id,
+      title: post.metadata.title,
       position,
     },
     { title: "Post Reordered" },
@@ -281,20 +214,17 @@ async function handleReorder(
  */
 async function findPost(
   context: ServicePluginContext,
-  postId?: string,
+  id?: string,
   slug?: string,
-): Promise<SocialPost | null> {
-  if (postId) {
-    return context.entityService.getEntity<SocialPost>("social-post", postId);
+): Promise<BlogPost | null> {
+  if (id) {
+    return context.entityService.getEntity<BlogPost>("post", id);
   }
   if (slug) {
-    const posts = await context.entityService.listEntities<SocialPost>(
-      "social-post",
-      {
-        filter: { metadata: { slug } },
-        limit: 1,
-      },
-    );
+    const posts = await context.entityService.listEntities<BlogPost>("post", {
+      filter: { metadata: { slug } },
+      limit: 1,
+    });
     return posts[0] ?? null;
   }
   return null;
@@ -303,8 +233,8 @@ async function findPost(
 /**
  * Not found response helper
  */
-function notFoundResponse(postId?: string, slug?: string): ToolResponse {
-  const identifier = postId ?? slug ?? "unknown";
+function notFoundResponse(id?: string, slug?: string): ToolResponse {
+  const identifier = id ?? slug ?? "unknown";
   return {
     success: false,
     error: `Post not found: ${identifier}`,

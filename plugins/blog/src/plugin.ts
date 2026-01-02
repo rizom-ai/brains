@@ -14,6 +14,7 @@ import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
+import { createQueueTool } from "./tools/queue";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -245,6 +246,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     );
     context.registerJobHandler("generation", blogGenerationHandler);
 
+    // Register with publish-pipeline
+    await this.registerWithPublishPipeline(context);
+    this.subscribeToPublishExecute(context);
+
     // Subscribe to site:build:completed to auto-generate RSS feed
     context.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
       "site:build:completed",
@@ -314,6 +319,117 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         templateName: "blog:excerpt",
       });
     });
+  }
+
+  /**
+   * Register with publish-pipeline using internal provider
+   */
+  private async registerWithPublishPipeline(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    // Internal provider for blog posts (no external API)
+    const internalProvider = {
+      name: "internal",
+      publish: async (): Promise<{ id: string }> => {
+        return { id: "internal" };
+      },
+    };
+
+    await context.sendMessage("publish:register", {
+      entityType: "post",
+      provider: internalProvider,
+    });
+
+    this.logger.info("Registered post with publish-pipeline");
+  }
+
+  /**
+   * Subscribe to publish:execute messages from publish-pipeline
+   */
+  private subscribeToPublishExecute(context: ServicePluginContext): void {
+    context.subscribe<
+      { entityType: string; entityId: string },
+      { success: boolean }
+    >("publish:execute", async (msg) => {
+      const { entityType, entityId } = msg.payload;
+
+      // Only handle post entities
+      if (entityType !== "post") {
+        return { success: true };
+      }
+
+      try {
+        // Get the post
+        const post = await context.entityService.getEntity<BlogPost>(
+          "post",
+          entityId,
+        );
+
+        if (!post) {
+          await context.sendMessage("publish:report:failure", {
+            entityType,
+            entityId,
+            error: `Post not found: ${entityId}`,
+          });
+          return { success: true };
+        }
+
+        // Skip already published posts
+        if (post.metadata.status === "published") {
+          this.logger.debug(`Post already published: ${entityId}`);
+          return { success: true };
+        }
+
+        // Parse frontmatter and publish
+        const parsed = parseMarkdownWithFrontmatter(
+          post.content,
+          blogPostFrontmatterSchema,
+        );
+
+        const publishedAt = new Date().toISOString();
+        const updatedFrontmatter = {
+          ...parsed.metadata,
+          status: "published" as const,
+          publishedAt,
+        };
+
+        const updatedContent = blogPostAdapter.createPostContent(
+          updatedFrontmatter,
+          parsed.content,
+        );
+
+        await context.entityService.updateEntity({
+          ...post,
+          content: updatedContent,
+          metadata: {
+            ...post.metadata,
+            status: "published",
+            publishedAt,
+          },
+        });
+
+        await context.sendMessage("publish:report:success", {
+          entityType,
+          entityId,
+          result: { id: entityId },
+        });
+
+        this.logger.info(`Published post: ${entityId}`);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        await context.sendMessage("publish:report:failure", {
+          entityType,
+          entityId,
+          error: errorMessage,
+        });
+        this.logger.error(`Failed to publish post: ${errorMessage}`);
+      }
+
+      return { success: true };
+    });
+
+    this.logger.debug("Subscribed to publish:execute messages");
   }
 
   /**
@@ -402,6 +518,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     return [
       createGenerateTool(this.pluginContext, this.config, this.id),
       createPublishTool(this.pluginContext, this.id),
+      createQueueTool(this.pluginContext, this.id),
     ];
   }
 
