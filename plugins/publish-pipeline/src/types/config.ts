@@ -1,3 +1,5 @@
+import { z } from "@brains/utils";
+
 /**
  * Configuration for publish behavior per entity type
  */
@@ -43,3 +45,19 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
   intervalMs: 60000, // 1 minute
   enabled: true,
 };
+
+/**
+ * Plugin configuration schema
+ */
+export const publishPipelineConfigSchema = z.object({
+  /** Interval in milliseconds between queue checks */
+  tickIntervalMs: z.number().optional().default(60000),
+
+  /** Maximum number of retry attempts */
+  maxRetries: z.number().optional().default(3),
+
+  /** Base delay in milliseconds for retry backoff */
+  retryBaseDelayMs: z.number().optional().default(5000),
+});
+
+export type PublishPipelineConfig = z.infer<typeof publishPipelineConfigSchema>;

@@ -1,7 +1,6 @@
 import type { Logger } from "@brains/utils";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, MessageSender } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { PUBLISH_MESSAGES } from "@brains/publish-service";
 import type { SocialPost } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -12,16 +11,8 @@ export interface PublishExecutePayload {
   entityId: string;
 }
 
-/**
- * Message sender function type (matches plugin context sendMessage)
- */
-export type SendMessageFn = (
-  channel: string,
-  message: unknown,
-) => Promise<unknown>;
-
 export interface PublishExecuteHandlerConfig {
-  sendMessage: SendMessageFn;
+  sendMessage: MessageSender;
   logger: Logger;
   entityService: IEntityService;
   providers: Map<string, SocialMediaProvider>;
@@ -33,7 +24,7 @@ export interface PublishExecuteHandlerConfig {
  * This replaces the job-based publishing with message-driven publishing.
  */
 export class PublishExecuteHandler {
-  private sendMessage: SendMessageFn;
+  private sendMessage: MessageSender;
   private logger: Logger;
   private entityService: IEntityService;
   private providers: Map<string, SocialMediaProvider>;
@@ -200,7 +191,7 @@ export class PublishExecuteHandler {
     entityId: string,
     platformPostId: string,
   ): Promise<void> {
-    await this.sendMessage(PUBLISH_MESSAGES.REPORT_SUCCESS, {
+    await this.sendMessage("publish:report:success", {
       entityType,
       entityId,
       result: { id: platformPostId },
@@ -208,14 +199,14 @@ export class PublishExecuteHandler {
   }
 
   /**
-   * Report failed publish to the publish-service
+   * Report failed publish to the publish-pipeline
    */
   private async reportFailure(
     entityType: string,
     entityId: string,
     error: string,
   ): Promise<void> {
-    await this.sendMessage(PUBLISH_MESSAGES.REPORT_FAILURE, {
+    await this.sendMessage("publish:report:failure", {
       entityType,
       entityId,
       error,

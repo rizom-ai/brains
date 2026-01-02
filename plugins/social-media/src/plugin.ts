@@ -19,6 +19,10 @@ import { linkedinTemplate } from "./templates/linkedin-template";
 import { GenerationJobHandler } from "./handlers/generationHandler";
 import { PublishJobHandler } from "./handlers/publishHandler";
 import { PublishCheckerJobHandler } from "./handlers/publishCheckerHandler";
+import {
+  PublishExecuteHandler,
+  type PublishExecutePayload,
+} from "./handlers/publishExecuteHandler";
 import { createLinkedInProvider } from "./lib/linkedin-client";
 import type { SocialMediaProvider } from "./lib/provider";
 import packageJson from "../package.json";
@@ -107,6 +111,9 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       );
     }
 
+    // Subscribe to publish:execute messages from publish-pipeline
+    this.subscribeToPublishExecute(context);
+
     // Register eval handlers for testing
     this.registerEvalHandlers(context);
 
@@ -153,6 +160,29 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       this.providers.set("linkedin", linkedinProvider);
       this.logger.info("LinkedIn provider initialized");
     }
+  }
+
+  /**
+   * Subscribe to publish:execute messages from publish-pipeline
+   */
+  private subscribeToPublishExecute(context: ServicePluginContext): void {
+    const executeHandler = new PublishExecuteHandler({
+      sendMessage: context.sendMessage,
+      logger: this.logger.child("PublishExecuteHandler"),
+      entityService: context.entityService,
+      providers: this.providers,
+      maxRetries: this.config.maxRetries,
+    });
+
+    context.subscribe<PublishExecutePayload, { success: boolean }>(
+      "publish:execute",
+      async (msg) => {
+        await executeHandler.handle(msg.payload);
+        return { success: true };
+      },
+    );
+
+    this.logger.debug("Subscribed to publish:execute messages");
   }
 
   /**

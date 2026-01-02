@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/publish-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

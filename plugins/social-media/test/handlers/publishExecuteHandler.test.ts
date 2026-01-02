@@ -2,19 +2,17 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import {
   PublishExecuteHandler,
   type PublishExecuteHandlerConfig,
-  type SendMessageFn,
 } from "../../src/handlers/publishExecuteHandler";
-import { PUBLISH_MESSAGES } from "@brains/publish-service";
 import type { SocialPost } from "../../src/schemas/social-post";
 import type { SocialMediaProvider } from "../../src/lib/provider";
 
-// Mock message sender
+// Mock message sender - tracks sent messages and allows assertions
 function createMockMessageSender(): {
-  sendMessage: SendMessageFn;
+  sendMessage: ReturnType<typeof mock>;
   _sentMessages: Array<{ type: string; payload: unknown }>;
-  send: ReturnType<typeof mock>;
 } {
   const sentMessages: Array<{ type: string; payload: unknown }> = [];
+
   const sendFn = mock(async (type: string, payload: unknown) => {
     sentMessages.push({ type, payload });
     return { success: true };
@@ -23,7 +21,6 @@ function createMockMessageSender(): {
   return {
     sendMessage: sendFn,
     _sentMessages: sentMessages,
-    send: sendFn,
   };
 }
 
@@ -95,7 +92,7 @@ describe("PublishExecuteHandler", () => {
     providers = new Map([["linkedin", linkedinProvider]]);
 
     const config: PublishExecuteHandlerConfig = {
-      sendMessage: messageSender.sendMessage,
+      sendMessage: messageSender.sendMessage as never,
       logger: logger as never,
       entityService: entityService as never,
       providers,
@@ -129,8 +126,8 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.REPORT_SUCCESS,
+      expect(messageSender.sendMessage).toHaveBeenCalledWith(
+        "publish:report:success",
         expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
@@ -165,8 +162,8 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.REPORT_FAILURE,
+      expect(messageSender.sendMessage).toHaveBeenCalledWith(
+        "publish:report:failure",
         expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
@@ -189,8 +186,8 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.REPORT_FAILURE,
+      expect(messageSender.sendMessage).toHaveBeenCalledWith(
+        "publish:report:failure",
         expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
@@ -210,8 +207,8 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.REPORT_FAILURE,
+      expect(messageSender.sendMessage).toHaveBeenCalledWith(
+        "publish:report:failure",
         expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
@@ -254,7 +251,7 @@ describe("PublishExecuteHandler", () => {
       });
 
       expect(linkedinProvider.createPost).not.toHaveBeenCalled();
-      expect(messageSender.send).not.toHaveBeenCalled();
+      expect(messageSender.sendMessage).not.toHaveBeenCalled();
     });
   });
 });

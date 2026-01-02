@@ -1,7 +1,7 @@
 /**
- * @brains/publish-service
+ * @brains/publish-pipeline
  *
- * Shell service for managing entity publishing queues and scheduling.
+ * Plugin for managing entity publishing queues and scheduling.
  * Provides centralized queue management, scheduling, and retry logic
  * for all publishable entity types.
  */
@@ -14,7 +14,7 @@ export * from "./types/provider";
 export * from "./types/messages";
 export * from "./types/config";
 
-// Service components
+// Service components (for direct use or testing)
 export { QueueManager, type QueueEntry } from "./queue-manager";
 export { ProviderRegistry } from "./provider-registry";
 export {
@@ -29,5 +29,5 @@ export {
   type RetryInfo,
 } from "./retry-tracker";
 
-// Main service
-export { PublishService, type PublishServiceConfig } from "./publish-service";
+// Plugin
+export { PublishPipelinePlugin, publishPipelinePlugin } from "./plugin";

@@ -324,6 +324,21 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/publish-pipeline": {
+      "name": "@brains/publish-pipeline",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.1.14",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/site-builder": {
       "name": "@brains/site-builder-plugin",
       "version": "0.0.1",
@@ -1019,6 +1034,8 @@
     "@brains/professional-site": ["@brains/professional-site@workspace:plugins/professional-site"],
 
     "@brains/profile-service": ["@brains/profile-service@workspace:shell/profile-service"],
+
+    "@brains/publish-pipeline": ["@brains/publish-pipeline@workspace:plugins/publish-pipeline"],
 
     "@brains/publish-service": ["@brains/publish-service@workspace:shell/publish-service"],
 
