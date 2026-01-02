@@ -1,0 +1,182 @@
+import type {
+  PluginTool,
+  ToolContext,
+  ServicePluginContext,
+} from "@brains/plugins";
+import { z, formatAsEntity } from "@brains/utils";
+import type { ProviderRegistry } from "../provider-registry";
+import type { BaseEntity } from "@brains/entity-service";
+import type { PublishableMetadata } from "../schemas/publishable";
+
+/**
+ * Input schema for publish-pipeline:publish tool
+ */
+export const publishInputSchema = z.object({
+  entityType: z
+    .string()
+    .describe("Entity type to publish (e.g., social-post, post, deck)"),
+  id: z.string().optional().describe("Entity ID to publish"),
+  slug: z.string().optional().describe("Entity slug to publish"),
+});
+
+export type PublishInput = z.infer<typeof publishInputSchema>;
+
+/**
+ * Output schema for publish-pipeline:publish tool
+ */
+export const publishOutputSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+  error: z.string().optional(),
+  formatted: z.string().optional(),
+  data: z
+    .object({
+      entityType: z.string().optional(),
+      entityId: z.string().optional(),
+      platformId: z.string().optional(),
+      url: z.string().optional(),
+    })
+    .optional(),
+});
+
+export type PublishOutput = z.infer<typeof publishOutputSchema>;
+
+/**
+ * Create the publish-pipeline:publish tool
+ *
+ * This is a centralized publish tool that directly publishes any registered
+ * entity type using the appropriate provider.
+ *
+ * @param context - Plugin context for entity access
+ * @param pluginId - Plugin ID for tool naming
+ * @param providerRegistry - Registry of providers per entity type
+ */
+export function createPublishTool(
+  context: ServicePluginContext,
+  pluginId: string,
+  providerRegistry: ProviderRegistry,
+): PluginTool<PublishOutput> {
+  return {
+    name: `${pluginId}_publish`,
+    description:
+      "Publish an entity directly to its platform. Works with any registered entity type (social-post, post, deck, etc.)",
+    inputSchema: publishInputSchema.shape,
+    outputSchema: publishOutputSchema,
+    visibility: "anchor",
+    handler: async (
+      input: unknown,
+      _toolContext: ToolContext,
+    ): Promise<PublishOutput> => {
+      try {
+        const parsed = publishInputSchema.safeParse(input);
+
+        if (!parsed.success) {
+          return {
+            success: false,
+            error: "entityType is required",
+            formatted: "_Error: entityType is required_",
+          };
+        }
+
+        const { entityType, id, slug } = parsed.data;
+
+        // Validate that at least one identifier is provided
+        if (!id && !slug) {
+          return {
+            success: false,
+            error: "Either 'id' or 'slug' must be provided",
+            formatted: "_Error: Either 'id' or 'slug' must be provided_",
+          };
+        }
+
+        // Find the entity (typed as publishable)
+        type PublishableEntity = BaseEntity<PublishableMetadata>;
+        let entity: PublishableEntity | null = null;
+        if (id) {
+          entity = await context.entityService.getEntity<PublishableEntity>(
+            entityType,
+            id,
+          );
+        } else if (slug) {
+          const entities =
+            await context.entityService.listEntities<PublishableEntity>(
+              entityType,
+              {
+                filter: { metadata: { slug } },
+                limit: 1,
+              },
+            );
+          entity = entities[0] ?? null;
+        }
+
+        if (!entity) {
+          const identifier = id ?? slug;
+          return {
+            success: false,
+            error: `Entity not found: ${entityType}:${identifier}`,
+            formatted: `_Entity not found: ${entityType}:${identifier}_`,
+          };
+        }
+
+        // Check if already published
+        if (entity.metadata.status === "published") {
+          return {
+            success: false,
+            error: "Entity is already published",
+            formatted: "_Entity is already published_",
+          };
+        }
+
+        // Get the provider for this entity type
+        const provider = providerRegistry.get(entityType);
+
+        // Publish using the provider
+        const result = await provider.publish(
+          entity.content,
+          entity.metadata ?? {},
+        );
+
+        // Update entity status
+        await context.entityService.updateEntity({
+          ...entity,
+          metadata: {
+            ...entity.metadata,
+            status: "published",
+            publishedAt: new Date().toISOString(),
+            platformId: result.id,
+          },
+        });
+
+        const formatted = formatAsEntity(
+          {
+            entityType,
+            entityId: entity.id,
+            platformId: result.id,
+            url: result.url,
+            status: "published",
+          },
+          { title: "Published" },
+        );
+
+        return {
+          success: true,
+          data: {
+            entityType,
+            entityId: entity.id,
+            platformId: result.id,
+            url: result.url,
+          },
+          message: `Published ${entityType}:${entity.id}`,
+          formatted,
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        return {
+          success: false,
+          error: msg,
+          formatted: `_Error: ${msg}_`,
+        };
+      }
+    },
+  };
+}

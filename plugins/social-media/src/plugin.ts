@@ -10,19 +10,16 @@ import { socialPostSchema } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
 import { createGenerateTool } from "./tools/generate";
-import { createQueueTool } from "./tools/queue";
-import { createPublishTool } from "./tools/publish";
-import { createEditTool } from "./tools/edit";
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { linkedinTemplate } from "./templates/linkedin-template";
 import { GenerationJobHandler } from "./handlers/generationHandler";
+import type { PublishProvider } from "@brains/utils";
 import {
   PublishExecuteHandler,
   type PublishExecutePayload,
 } from "./handlers/publishExecuteHandler";
 import { createLinkedInProvider } from "./lib/linkedin-client";
-import type { SocialMediaProvider } from "./lib/provider";
 import packageJson from "../package.json";
 
 /**
@@ -31,7 +28,7 @@ import packageJson from "../package.json";
  */
 export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
   private pluginContext?: ServicePluginContext;
-  private providers = new Map<string, SocialMediaProvider>();
+  private providers = new Map<string, PublishProvider>();
 
   constructor(config: SocialMediaConfigInput) {
     super("social-media", packageJson, config, socialMediaConfigSchema);
@@ -183,12 +180,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       throw new Error("Plugin context not initialized");
     }
 
-    return [
-      createGenerateTool(this.pluginContext, this.config, this.id),
-      createQueueTool(this.pluginContext, this.id),
-      createPublishTool(this.pluginContext, this.id),
-      createEditTool(this.pluginContext, this.id),
-    ];
+    return [createGenerateTool(this.pluginContext, this.config, this.id)];
   }
 
   /**

@@ -14,7 +14,6 @@ import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
 import { createGenerateTool } from "./tools/generate";
 import { createPublishTool } from "./tools/publish";
-import { createQueueTool } from "./tools/queue";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -518,7 +517,6 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     return [
       createGenerateTool(this.pluginContext, this.config, this.id),
       createPublishTool(this.pluginContext, this.id),
-      createQueueTool(this.pluginContext, this.id),
     ];
   }
 

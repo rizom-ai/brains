@@ -42,9 +42,9 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
       expect(registerMessage?.payload).toMatchObject({
         entityType: "social-post",
       });
-      // Verify provider is included (LinkedInClient has `platform`, not `name`)
+      // Verify provider is included
       expect(registerMessage?.payload).toHaveProperty(
-        "provider.platform",
+        "provider.name",
         "linkedin",
       );
     });

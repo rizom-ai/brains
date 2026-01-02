@@ -40,17 +40,8 @@ export { SocialPostDataSource } from "./datasources/social-post-datasource";
 // Tool exports
 export {
   createGenerateTool,
-  createQueueTool,
-  createPublishTool,
-  createEditTool,
   generateInputSchema,
-  queueInputSchema,
-  publishInputSchema,
-  editInputSchema,
   type GenerateInput,
-  type QueueInput,
-  type PublishInput,
-  type EditInput,
 } from "./tools";
 
 // Handler exports
@@ -63,8 +54,7 @@ export {
   type PublishExecutePayload,
 } from "./handlers";
 
-// Provider exports
-export type { SocialMediaProvider, CreatePostResult } from "./lib/provider";
+// Provider exports (uses PublishProvider from @brains/publish-pipeline)
 export { LinkedInClient, createLinkedInProvider } from "./lib/linkedin-client";
 
 // Template exports

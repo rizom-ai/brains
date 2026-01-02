@@ -10,10 +10,10 @@
  */
 
 import type { IMessageBus } from "@brains/messaging-service";
+import type { PublishResult } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
-import type { PublishResult } from "./types/provider";
 import { PUBLISH_MESSAGES } from "./types/messages";
 
 export interface PublishExecuteEvent {

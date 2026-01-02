@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
+import type { PublishProvider } from "@brains/utils";
 import {
   PublishExecuteHandler,
   type PublishExecuteHandlerConfig,
 } from "../../src/handlers/publishExecuteHandler";
 import type { SocialPost } from "../../src/schemas/social-post";
-import type { SocialMediaProvider } from "../../src/lib/provider";
 
 // Mock message sender - tracks sent messages and allows assertions
 function createMockMessageSender(): {
@@ -76,8 +76,8 @@ describe("PublishExecuteHandler", () => {
   let messageSender: ReturnType<typeof createMockMessageSender>;
   let logger: ReturnType<typeof createMockLogger>;
   let entityService: ReturnType<typeof createMockEntityService>;
-  let providers: Map<string, SocialMediaProvider>;
-  let linkedinProvider: SocialMediaProvider;
+  let providers: Map<string, PublishProvider>;
+  let linkedinProvider: PublishProvider;
 
   beforeEach(() => {
     messageSender = createMockMessageSender();
@@ -85,8 +85,8 @@ describe("PublishExecuteHandler", () => {
     entityService = createMockEntityService();
 
     linkedinProvider = {
-      platform: "linkedin",
-      createPost: mock(() => Promise.resolve({ postId: "linkedin-123" })),
+      name: "linkedin",
+      publish: mock(() => Promise.resolve({ id: "linkedin-123" })),
       validateCredentials: mock(() => Promise.resolve(true)),
     };
     providers = new Map([["linkedin", linkedinProvider]]);
@@ -115,7 +115,7 @@ describe("PublishExecuteHandler", () => {
         "social-post",
         "post-1",
       );
-      expect(linkedinProvider.createPost).toHaveBeenCalled();
+      expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
     it("should send report:success on successful publish", async () => {
@@ -198,7 +198,7 @@ describe("PublishExecuteHandler", () => {
 
     it("should send report:failure when provider throws", async () => {
       entityService.getEntity = mock(() => Promise.resolve(samplePost));
-      linkedinProvider.createPost = mock(() =>
+      linkedinProvider.publish = mock(() =>
         Promise.reject(new Error("API rate limit exceeded")),
       );
 
@@ -219,7 +219,7 @@ describe("PublishExecuteHandler", () => {
 
     it("should update entity status to failed after provider error", async () => {
       entityService.getEntity = mock(() => Promise.resolve(samplePost));
-      linkedinProvider.createPost = mock(() =>
+      linkedinProvider.publish = mock(() =>
         Promise.reject(new Error("API error")),
       );
 
@@ -250,7 +250,7 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(linkedinProvider.createPost).not.toHaveBeenCalled();
+      expect(linkedinProvider.publish).not.toHaveBeenCalled();
       expect(messageSender.sendMessage).not.toHaveBeenCalled();
     });
   });

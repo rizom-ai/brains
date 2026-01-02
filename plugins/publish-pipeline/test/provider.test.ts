@@ -1,9 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import {
-  InternalPublishProvider,
-  type PublishProvider,
-  type PublishResult,
-} from "../src/types/provider";
+import type { PublishProvider, PublishResult } from "@brains/utils";
+import { InternalPublishProvider } from "../src/types/provider";
 
 describe("InternalPublishProvider", () => {
   it("should have name 'internal'", () => {

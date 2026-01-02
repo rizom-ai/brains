@@ -79,3 +79,6 @@ export type {
   ZodOutput,
   ZodTypeAny,
 } from "./zod";
+
+// Publish types - shared between publish-pipeline and content plugins
+export type { PublishResult, PublishProvider } from "./publish-types";

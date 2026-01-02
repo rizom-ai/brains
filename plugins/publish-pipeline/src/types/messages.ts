@@ -1,4 +1,4 @@
-import type { PublishProvider } from "./provider";
+import type { PublishProvider } from "@brains/utils";
 import type { PublishConfig } from "./config";
 
 /**

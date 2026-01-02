@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { PublishPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type { PublishProvider } from "../src/types/provider";
+import type { PublishProvider } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
 import { MockShell } from "@brains/plugins/test";
 

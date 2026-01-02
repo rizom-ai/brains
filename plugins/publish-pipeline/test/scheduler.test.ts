@@ -3,7 +3,7 @@ import { PublishScheduler } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
-import type { PublishProvider } from "../src/types/provider";
+import type { PublishProvider } from "@brains/utils";
 
 describe("PublishScheduler", () => {
   let scheduler: PublishScheduler;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ProviderRegistry } from "../src/provider-registry";
-import type { PublishProvider } from "../src/types/provider";
+import type { PublishProvider } from "@brains/utils";
 
 describe("ProviderRegistry", () => {
   let registry: ProviderRegistry;

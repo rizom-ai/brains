@@ -8,6 +8,8 @@
 import type { Plugin, PluginTool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
+import { createQueueTool } from "./tools/queue";
+import { createPublishTool } from "./tools/publish";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { PublishScheduler } from "./scheduler";
@@ -31,6 +33,7 @@ import packageJson from "../package.json";
  * Manages entity publishing queues and scheduling
  */
 export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> {
+  private pluginContext?: ServicePluginContext;
   private queueManager!: QueueManager;
   private providerRegistry!: ProviderRegistry;
   private retryTracker!: RetryTracker;
@@ -51,6 +54,8 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    this.pluginContext = context;
+
     // Initialize components
     this.queueManager = QueueManager.createFresh();
     this.providerRegistry = ProviderRegistry.createFresh();
@@ -343,7 +348,14 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    return [];
+    if (!this.pluginContext) {
+      throw new Error("Plugin context not initialized");
+    }
+
+    return [
+      createQueueTool(this.pluginContext, this.id, this.queueManager),
+      createPublishTool(this.pluginContext, this.id, this.providerRegistry),
+    ];
   }
 
   public async cleanup(): Promise<void> {

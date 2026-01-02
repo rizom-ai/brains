@@ -1,10 +1,9 @@
-import type { Logger } from "@brains/utils";
+import type { Logger, PublishProvider } from "@brains/utils";
 import type { IEntityService, MessageSender } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { SocialPost } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
-import type { SocialMediaProvider } from "../lib/provider";
 
 export interface PublishExecutePayload {
   entityType: string;
@@ -15,7 +14,7 @@ export interface PublishExecuteHandlerConfig {
   sendMessage: MessageSender;
   logger: Logger;
   entityService: IEntityService;
-  providers: Map<string, SocialMediaProvider>;
+  providers: Map<string, PublishProvider>;
   maxRetries: number;
 }
 
@@ -27,7 +26,7 @@ export class PublishExecuteHandler {
   private sendMessage: MessageSender;
   private logger: Logger;
   private entityService: IEntityService;
-  private providers: Map<string, SocialMediaProvider>;
+  private providers: Map<string, PublishProvider>;
   private maxRetries: number;
 
   constructor(config: PublishExecuteHandlerConfig) {
@@ -94,7 +93,7 @@ export class PublishExecuteHandler {
 
       // Attempt to publish
       try {
-        const result = await provider.createPost(parsed.content);
+        const result = await provider.publish(parsed.content, post.metadata);
 
         // Update entity as published
         const publishedAt = new Date().toISOString();
@@ -104,7 +103,7 @@ export class PublishExecuteHandler {
           ...metadataWithoutQueue,
           status: "published" as const,
           publishedAt,
-          platformPostId: result.postId,
+          platformPostId: result.id,
           retryCount: parsed.metadata.retryCount ?? 0,
         };
         const updatedContent = socialPostAdapter.createPostContent(
@@ -124,11 +123,11 @@ export class PublishExecuteHandler {
         });
 
         // Report success
-        await this.reportSuccess(entityType, entityId, result.postId);
+        await this.reportSuccess(entityType, entityId, result.id);
 
         this.logger.info(`Post published successfully: ${entityId}`, {
           platform,
-          platformPostId: result.postId,
+          platformPostId: result.id,
         });
       } catch (publishError) {
         const errorMessage =

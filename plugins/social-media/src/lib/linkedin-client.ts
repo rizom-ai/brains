@@ -1,5 +1,4 @@
-import type { Logger } from "@brains/utils";
-import type { SocialMediaProvider, CreatePostResult } from "./provider";
+import type { Logger, PublishProvider, PublishResult } from "@brains/utils";
 import type { LinkedinConfig } from "../config";
 
 /**
@@ -17,8 +16,8 @@ interface LinkedInUserInfo {
  *
  * @see https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
  */
-export class LinkedInClient implements SocialMediaProvider {
-  public readonly platform = "linkedin";
+export class LinkedInClient implements PublishProvider {
+  public readonly name = "linkedin";
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
   private cachedUserId: string | null = null;
 
@@ -28,9 +27,12 @@ export class LinkedInClient implements SocialMediaProvider {
   ) {}
 
   /**
-   * Create a text post on LinkedIn
+   * Publish a text post to LinkedIn
    */
-  async createPost(content: string): Promise<CreatePostResult> {
+  async publish(
+    content: string,
+    _metadata: Record<string, unknown>,
+  ): Promise<PublishResult> {
     if (!this.config.accessToken) {
       throw new Error("LinkedIn access token not configured");
     }
@@ -77,7 +79,7 @@ export class LinkedInClient implements SocialMediaProvider {
 
     this.logger.info("LinkedIn post created", { postId });
 
-    const result: CreatePostResult = { postId };
+    const result: PublishResult = { id: postId };
     if (postId) {
       result.url = `https://www.linkedin.com/feed/update/${postId}`;
     }
@@ -141,6 +143,6 @@ export class LinkedInClient implements SocialMediaProvider {
 export function createLinkedInProvider(
   config: LinkedinConfig,
   logger: Logger,
-): SocialMediaProvider {
+): PublishProvider {
   return new LinkedInClient(config, logger);
 }
