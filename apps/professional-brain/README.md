@@ -1,67 +1,124 @@
-# Professional Brain
+# Rover
 
-A brain application for individual professionals that serves dual purposes:
+**Your personal knowledge catalyst**
 
-1. **Knowledge Management**: Personal note-taking, content capture, and organization
-2. **Public Showcase**: Professional portfolio and blog with public-facing website
+You're an independent professional. A consultant, coach, creator, or expert of some kind. You have ideas worth sharing and expertise people want to tap into. But managing your knowledge, building your online presence, and staying accessible to clients — that's a lot of spinning plates.
 
-## Quick Start
+Rover handles it. One system for your knowledge, your website, and your availability. All working together.
 
-```bash
-# Copy environment configuration
-cp .env.example .env
+## What You Get
 
-# Edit .env and add your ANTHROPIC_API_KEY
+**A professional website** — Your essays, presentations, and projects published to the web. No WordPress, no page builders, no hiring a developer. Just write, and your site updates.
 
-# Install dependencies (from repo root)
-bun install
+**An AI assistant** — Rover lives inside your brain (the digital one). It helps you think through ideas, find connections in your past work, and draft new content.
 
-# Run in development mode
-bun run dev
-```
+**A way to scale yourself** — Here's the interesting part: other people can talk to Rover too. Potential clients, collaborators, curious readers — they can chat with your collected knowledge even when you're not available.
 
-The preview site will be available at http://localhost:4321
+## What Goes in Your Brain
 
-## Features
+Everything you think, write, and create:
 
-- **Directory Sync**: Bidirectional sync between markdown files and database
-- **Site Builder**: Static site generation with default theme
-- **System Tools**: Health checks and system information
-- **Preview Server**: Local development server with hot reload
+- **Essays** — Long-form writing that establishes your expertise
+- **Presentations** — Slide decks from talks and workshops
+- **Notes** — Quick thoughts, drafts, works in progress
+- **Links** — Interesting things you've found and want to remember
+- **Projects** — Case studies and portfolio pieces
+- **Social posts** — Content for LinkedIn, Twitter, and the like
+- **Topics** — Themes that connect your ideas
+- **Summaries** — Distilled versions of longer content
 
-## Configuration
+All stored as simple markdown files. No lock-in, no proprietary formats. Just text.
 
-Edit `.env` to configure:
+## Why Rover?
 
-- `ANTHROPIC_API_KEY`: Required for AI features
-- `PREVIEW_PORT`: Preview server port (default: 4321)
-- `SYNC_PATH`: Directory for markdown content (default: ./brain-data)
+As an independent professional, your knowledge _is_ your product. But it's probably scattered — notes here, documents there, half-finished drafts everywhere. Hard to access, impossible to share.
 
-See `.env.example` for all available options.
+Rover brings it together and makes it conversational. Chat with your own ideas. Ask Rover to help you think through a problem or find connections between things you wrote months apart. Use it as a sparring partner when you're developing new concepts.
 
-## Seed Content
+And because others can chat with your Rover too, your expertise becomes accessible even when you're busy, asleep, or on vacation.
 
-The `seed-content/` directory contains initial content that will be synced to the database on first run:
+## The Flywheel
 
-- `identity/identity.md`: AI assistant personality and behavior
-- `profile/profile.md`: Professional profile information
-- `site-info/site-info.md`: Website presentation and configuration
-- `HOME.md`: Homepage content
-- `README.md`: About page content
+Here's what makes Rover different from a static website or a dumb chatbot: it gets smarter as you feed it.
 
-Edit these files to customize your brain.
+Add an essay, and Rover can reference it in conversations. Capture a link, and Rover remembers what you found interesting about it. The more you put in, the more useful Rover becomes — better answers, sharper connections, more relevant suggestions.
 
-## Scripts
+But it works the other way too. Rover helps you create. Draft social posts from your essays. Generate summaries of your presentations. Turn rough notes into polished content. That content goes back into the brain, making Rover smarter still.
 
-- `bun run dev`: Start with hot reload
-- `bun run start`: Start in production mode
-- `bun run typecheck`: Run TypeScript type checking
-- `bun run test`: Run tests
-- `bun run clean`: Remove build artifacts
+Your knowledge compounds. Your brain grows. Your website expands. All from the same flywheel.
 
-## Next Steps
+## Your Brain, Their Conversation
 
-After Phase 1, additional plugins will be added:
+When someone talks to your Rover, they're essentially having a conversation with your collected knowledge. Not a search engine — a thinking partner that understands your perspective.
 
-- **Blog Plugin**: Long-form content with publishing workflow
-- **Portfolio Plugin**: Project showcase (future)
+Say you've written extensively about organizational design. Someone curious about the topic can chat with your Rover and explore your ideas interactively. They can push back, ask follow-up questions, and riff on your thinking. It's like they're sparring with you, except you don't have to be there.
+
+You stay in control of what's in the brain. They get access to a knowledgeable conversation partner shaped by your ideas.
+
+## Two Modes
+
+**As the owner (anchor)**, you have full access. You can:
+
+- Add notes, essays, and other content
+- Organize and connect your ideas
+- Generate summaries and social posts
+- Build out your brain over time
+
+**As a visitor**, you can:
+
+- Chat with Rover about the brain's content
+- Explore ideas and ask questions
+- Use the owner's knowledge as a thinking partner
+- Get perspectives informed by their work
+
+## Talk to Rover Anywhere
+
+Rover meets you where you are. Currently available on:
+
+- **Matrix** — Open protocol, privacy-respecting chat
+
+Coming soon:
+
+- Discord
+- Slack
+- And more
+
+No special apps needed. Just start a conversation.
+
+## Your Website, Handled
+
+Your brain isn't just a knowledge base — it's your professional website. A fast, clean site that showcases your essays, presentations, and projects. Your domain, your brand.
+
+No separate CMS to manage. No deployment pipelines to figure out. Write an essay, mark it as published, and it's live. Add a case study to your portfolio, and it appears. Your brain and your website are the same thing.
+
+This is what independent professionals actually need: a web presence that grows with their thinking, not a static brochure they have to manually update.
+
+## Just Markdown
+
+Here's what makes this work: everything is markdown.
+
+Your brain is a folder of `.md` files. That's it. No database to manage, no proprietary format to worry about. If you can edit a text file, you can edit your brain.
+
+This means you can use whatever tools you already love:
+
+- **Obsidian** — Full-featured knowledge management with graph views and plugins
+- **VS Code** — If you prefer a code editor
+- **iA Writer** — For distraction-free writing
+- **Vim** — If that's your thing
+- **Any text editor** — Seriously, any of them
+
+Your files sync bidirectionally. Edit in Obsidian, Rover sees it. Add something through Rover, it appears in your folder. The tools stay out of each other's way.
+
+Version control works too. Your brain is just files, so Git works exactly as you'd expect. Track changes, branch experiments, roll back mistakes.
+
+## Get Your Own Rover
+
+Want to set up your own brain with Rover? The whole thing is open source.
+
+Check out the [Brains project on GitHub](https://github.com/rizom-ai/brains) to get started.
+
+For development details, see [DEVELOPMENT.md](./DEVELOPMENT.md).
+
+---
+
+_Rover is built on the Brains platform — a plugin-based system for personal knowledge management and AI-assisted thinking._
