@@ -1,19 +1,15 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createGenerateTool } from "./generate";
-import { createPublishTool } from "./publish";
 
 export { createGenerateTool } from "./generate";
-export { createPublishTool } from "./publish";
 
 /**
  * Create all deck tools
+ * Publish tool removed - use publish-pipeline_publish instead
  */
 export function createDeckTools(
   context: ServicePluginContext,
   pluginId: string,
 ): PluginTool[] {
-  return [
-    createGenerateTool(context, pluginId),
-    createPublishTool(context, pluginId),
-  ];
+  return [createGenerateTool(context, pluginId)];
 }

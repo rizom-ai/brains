@@ -13,7 +13,6 @@ import { seriesSchema } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
 import { createGenerateTool } from "./tools/generate";
-import { createPublishTool } from "./tools/publish";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -514,10 +513,8 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     }
 
     // Note: RSS generation is automatic via site:build:completed event
-    return [
-      createGenerateTool(this.pluginContext, this.config, this.id),
-      createPublishTool(this.pluginContext, this.id),
-    ];
+    // Publish tool removed - use publish-pipeline_publish instead
+    return [createGenerateTool(this.pluginContext, this.config, this.id)];
   }
 
   /**

@@ -14,6 +14,7 @@ import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
 import TopicsPlugin from "@brains/topics";
 import { socialMediaPlugin } from "@brains/social-media";
+import { publishPipelinePlugin } from "@brains/publish-pipeline";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
@@ -95,6 +96,7 @@ const config = defineConfig({
       previewPort: 4321,
       previewDistDir: "./dist/site-preview",
     }),
+    publishPipelinePlugin({}),
     blogPlugin({}),
     decksPlugin({}),
     notePlugin({}),

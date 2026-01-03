@@ -126,28 +126,21 @@ describe("Portfolio Tools", () => {
   let context: ServicePluginContext;
   let tools: ReturnType<typeof createPortfolioTools>;
   let createTool: PluginTool;
-  let publishTool: PluginTool;
 
   beforeEach(() => {
     context = createMockContext();
     tools = createPortfolioTools("portfolio", context);
     createTool = getTool(tools, "portfolio_create");
-    publishTool = getTool(tools, "portfolio_publish");
   });
 
   describe("createPortfolioTools", () => {
-    it("should create two tools", () => {
-      expect(tools).toHaveLength(2);
+    it("should create one tool (publish moved to publish-pipeline)", () => {
+      expect(tools).toHaveLength(1);
     });
 
     it("should create portfolio_create tool", () => {
       expect(createTool).toBeDefined();
       expect(createTool.description).toContain("case study");
-    });
-
-    it("should create portfolio_publish tool", () => {
-      expect(publishTool).toBeDefined();
-      expect(publishTool.description.toLowerCase()).toContain("publish");
     });
   });
 
@@ -210,44 +203,5 @@ describe("Portfolio Tools", () => {
     });
   });
 
-  describe("portfolio_publish", () => {
-    it("should publish a draft project", async () => {
-      const result = await publishTool.handler(
-        { slug: "test-project" },
-        createMockToolContext(),
-      );
-
-      expect(result.success).toBe(true);
-      expect(context.entityService.updateEntity).toHaveBeenCalled();
-    });
-
-    it("should require slug", async () => {
-      const result = await publishTool.handler({}, createMockToolContext());
-
-      expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
-    });
-
-    it("should fail if project not found", async () => {
-      // Create context that returns empty for nonexistent slug
-      const emptyContext = createMockServicePluginContext({
-        returns: {
-          entityService: {
-            listEntities: [], // Always empty
-          },
-        },
-      });
-
-      const emptyTools = createPortfolioTools("portfolio", emptyContext);
-      const emptyPublishTool = getTool(emptyTools, "portfolio_publish");
-
-      const result = await emptyPublishTool.handler(
-        { slug: "nonexistent" },
-        createMockToolContext(),
-      );
-
-      expect(result.success).toBe(false);
-      expect(result["error"]).toContain("not found");
-    });
-  });
+  // Publish tool tests removed - publish functionality moved to publish-pipeline
 });

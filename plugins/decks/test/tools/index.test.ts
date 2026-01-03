@@ -1,21 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
-import { createGenerateTool, createPublishTool } from "../../src/tools";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-} from "@brains/test-utils";
-import {
-  MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
-  type Logger,
-} from "@brains/plugins/test";
+import { createGenerateTool } from "../../src/tools";
+import { createMockServicePluginContext } from "@brains/test-utils";
+import { type ServicePluginContext } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
-import { DeckFormatter } from "../../src/formatters/deck-formatter";
-import {
-  createMockDeckEntity,
-  createMockDeckInput,
-} from "../fixtures/deck-entities";
 
 const mockToolContext: ToolContext = {
   userId: "test-user",
@@ -23,12 +10,6 @@ const mockToolContext: ToolContext = {
 };
 
 describe("Deck Tools", () => {
-  let logger: Logger;
-
-  beforeEach(() => {
-    logger = createSilentLogger();
-  });
-
   describe("createGenerateTool", () => {
     let mockContext: ServicePluginContext;
     let generateTool: ReturnType<typeof createGenerateTool>;
@@ -257,109 +238,5 @@ describe("Deck Tools", () => {
     });
   });
 
-  describe("createPublishTool", () => {
-    let context: ServicePluginContext;
-    let mockShell: MockShell;
-    const formatter = new DeckFormatter();
-
-    // Helper to create a deck entity with proper markdown content
-    const createDeckEntity = async (
-      title: string,
-      slug: string,
-    ): Promise<string> => {
-      const slideContent = "# Slide 1\n\n---\n\n# Slide 2";
-
-      const deckData = createMockDeckEntity({
-        id: "temp",
-        content: slideContent,
-        title,
-        description: "Test description",
-        metadata: {
-          slug,
-          title,
-          status: "draft",
-        },
-      });
-
-      // Generate proper markdown with frontmatter
-      const markdown = formatter.toMarkdown(deckData);
-
-      // Create entity - use spread to pass all deck fields
-      const entityInput = createMockDeckInput({
-        content: markdown,
-        title,
-        description: "Test description",
-        metadata: {
-          slug,
-          title,
-          status: "draft",
-        },
-      });
-
-      const result = await context.entityService.createEntity(entityInput);
-
-      return result.entityId;
-    };
-
-    beforeEach(() => {
-      mockShell = MockShell.createFresh({ logger });
-      context = createServicePluginContext(mockShell, "decks");
-    });
-
-    it("should create publish tool with correct metadata", () => {
-      const tool = createPublishTool(context, "decks");
-
-      expect(tool.name).toBe("decks_publish");
-      expect(tool.description).toContain("Publish a deck");
-      expect(tool.inputSchema).toBeDefined();
-      expect(tool.visibility).toBe("anchor");
-    });
-
-    it("should return error when neither id nor slug provided", async () => {
-      const tool = createPublishTool(context, "decks");
-
-      const result = await tool.handler({}, mockToolContext);
-
-      expect(result.success).toBe(false);
-      expect(result["error"]).toContain(
-        "Either 'id' or 'slug' must be provided",
-      );
-    });
-
-    it("should return error when deck not found", async () => {
-      const tool = createPublishTool(context, "decks");
-
-      const result = await tool.handler({ id: "nonexistent" }, mockToolContext);
-
-      expect(result.success).toBe(false);
-      expect(result["error"]).toContain("Deck not found: nonexistent");
-    });
-
-    it("should publish deck by id", async () => {
-      // Create a deck entity with proper markdown content
-      const deckId = await createDeckEntity("Test Deck", "test-deck");
-
-      // Now publish it
-      const publishTool = createPublishTool(context, "decks");
-      const result = await publishTool.handler({ id: deckId }, mockToolContext);
-
-      expect(result.success).toBe(true);
-      expect(result.message).toContain("published successfully");
-    });
-
-    it("should publish deck by slug", async () => {
-      // Create a deck entity with proper markdown content
-      await createDeckEntity("Another Deck", "another-deck");
-
-      // Now publish it by slug
-      const publishTool = createPublishTool(context, "decks");
-      const result = await publishTool.handler(
-        { slug: "another-deck" },
-        mockToolContext,
-      );
-
-      expect(result.success).toBe(true);
-      expect(result.message).toContain("published successfully");
-    });
-  });
+  // Publish tool tests removed - publish functionality moved to publish-pipeline
 });
