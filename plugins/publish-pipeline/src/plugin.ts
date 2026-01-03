@@ -76,9 +76,8 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
-      tickIntervalMs: this.config.tickIntervalMs,
-      ...(this.config.entityIntervals && {
-        entityIntervals: this.config.entityIntervals,
+      ...(this.config.entitySchedules && {
+        entitySchedules: this.config.entitySchedules,
       }),
       messageBus: messageBusAdapter as never,
       onPublish: (event) => this.handlePublishSuccess(context, event),

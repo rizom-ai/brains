@@ -50,15 +50,24 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
  * Plugin configuration schema
  */
 export const publishPipelineConfigSchema = z.object({
-  /** Default interval in milliseconds between queue checks */
-  tickIntervalMs: z.number().optional().default(60000),
-
   /**
-   * Per-entity-type intervals in milliseconds.
-   * Allows different publish rates for different content types.
-   * Example: { post: 3600000, deck: 3600000, 'social-post': 300000 }
+   * Per-entity-type cron schedules.
+   * Uses standard cron syntax with optional seconds field.
+   * Entity types without a schedule are processed immediately when queued.
+   *
+   * Examples:
+   *   "0 9 * * *"      - Daily at 9am
+   *   "0 9 * * 1-5"    - Weekdays at 9am
+   *   "0 *\/6 * * *"    - Every 6 hours
+   *   "* * * * * *"    - Every second (6-field format)
+   *
+   * Usage:
+   *   entitySchedules: {
+   *     post: "0 9 * * *",        // Blog posts at 9am daily
+   *     'social-post': "0 9,12,18 * * *" // Social at 9am, noon, 6pm
+   *   }
    */
-  entityIntervals: z.record(z.string(), z.number()).optional(),
+  entitySchedules: z.record(z.string(), z.string()).optional(),
 
   /** Maximum number of retry attempts */
   maxRetries: z.number().optional().default(3),

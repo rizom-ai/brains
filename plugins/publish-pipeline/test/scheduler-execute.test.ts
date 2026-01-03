@@ -43,7 +43,6 @@ describe("PublishScheduler - Execute Message Mode", () => {
       queueManager,
       providerRegistry,
       retryTracker,
-      tickIntervalMs: 10,
       messageBus,
       onExecute: onExecuteMock,
     });
@@ -59,8 +58,8 @@ describe("PublishScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       // Should have sent execute message
       const executeMessages = messageBus._sentMessages.filter(
@@ -77,8 +76,8 @@ describe("PublishScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       expect(onExecuteMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -92,8 +91,8 @@ describe("PublishScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       const queue = await queueManager.list("social-post");
       expect(queue.length).toBe(0);
@@ -109,8 +108,8 @@ describe("PublishScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       // Provider should NOT be called when using message-driven mode
       expect(publishMock).not.toHaveBeenCalled();

@@ -25,7 +25,6 @@ describe("PublishScheduler", () => {
       queueManager,
       providerRegistry,
       retryTracker,
-      tickIntervalMs: 10,
       onPublish: mockOnPublish,
       onFailed: mockOnFailed,
     });
@@ -69,8 +68,8 @@ describe("PublishScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger (immediate mode runs every second)
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       expect(publishMock).toHaveBeenCalled();
     });
@@ -85,8 +84,8 @@ describe("PublishScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       expect(mockOnPublish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -106,8 +105,8 @@ describe("PublishScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       const queue = await queueManager.list("blog-post");
       expect(queue.length).toBe(0);
@@ -127,8 +126,8 @@ describe("PublishScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       expect(mockOnFailed).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -151,8 +150,8 @@ describe("PublishScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for tick
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
       const retryInfo = retryTracker.getRetryInfo("post-1");
       expect(retryInfo?.retryCount).toBe(1);
@@ -188,109 +187,51 @@ describe("PublishScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
-        tickIntervalMs: 10,
       });
       const instance2 = PublishScheduler.getInstance({
         queueManager,
         providerRegistry,
         retryTracker,
-        tickIntervalMs: 10,
       });
 
       expect(instance1).toBe(instance2);
     });
   });
 
-  describe("per-entity-type intervals", () => {
-    it("should use type-specific interval when configured", async () => {
+  describe("cron-based scheduling", () => {
+    it("should process entity when cron schedule triggers", async () => {
       const blogPublishMock = mock(() =>
         Promise.resolve({ id: "blog-result-1" }),
-      );
-      const socialPublishMock = mock(() =>
-        Promise.resolve({ id: "social-result-1" }),
       );
 
       providerRegistry.register("blog-post", {
         name: "blog",
         publish: blogPublishMock,
       });
-      providerRegistry.register("social-post", {
-        name: "social",
-        publish: socialPublishMock,
-      });
 
-      // Create scheduler with different intervals per type
-      const schedulerWithIntervals = PublishScheduler.createFresh({
+      // Create scheduler with cron that runs every second
+      const schedulerWithCron = PublishScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
-        tickIntervalMs: 10,
-        entityIntervals: {
-          "blog-post": 1000, // 1 second for blog posts
-          "social-post": 10, // 10ms for social posts
+        entitySchedules: {
+          "blog-post": "* * * * * *", // Every second
         },
         onPublish: mockOnPublish,
       });
 
-      // Add items to both queues
       await queueManager.add("blog-post", "post-1");
-      await queueManager.add("social-post", "social-1");
-      await schedulerWithIntervals.start();
+      await schedulerWithCron.start();
 
-      // Wait for first tick - social should be processed (10ms interval)
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for cron to trigger
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      expect(socialPublishMock).toHaveBeenCalled();
-      // Blog should also be processed on first tick (never processed before)
       expect(blogPublishMock).toHaveBeenCalled();
 
-      // Add more items
-      await queueManager.add("social-post", "social-2");
-      await queueManager.add("blog-post", "post-2");
-
-      // Wait another 50ms - social should process again, but blog should not (1s interval)
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      expect(socialPublishMock.mock.calls.length).toBeGreaterThanOrEqual(2);
-      expect(blogPublishMock.mock.calls.length).toBe(1); // Still just 1
-
-      await schedulerWithIntervals.stop();
+      await schedulerWithCron.stop();
     });
 
-    it("should use default interval for types without specific interval", async () => {
-      const deckPublishMock = mock(() =>
-        Promise.resolve({ id: "deck-result" }),
-      );
-
-      providerRegistry.register("deck", {
-        name: "deck",
-        publish: deckPublishMock,
-      });
-
-      // Create scheduler with entityIntervals but no deck interval
-      const schedulerWithIntervals = PublishScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        tickIntervalMs: 10, // Default 10ms
-        entityIntervals: {
-          "blog-post": 1000, // Only configure blog-post
-        },
-        onPublish: mockOnPublish,
-      });
-
-      await queueManager.add("deck", "deck-1");
-      await schedulerWithIntervals.start();
-
-      // Wait for tick - deck should use default 10ms interval
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      expect(deckPublishMock).toHaveBeenCalled();
-
-      await schedulerWithIntervals.stop();
-    });
-
-    it("should track last processed time per entity type", async () => {
+    it("should use different schedules for different entity types", async () => {
       const blogPublishMock = mock(() =>
         Promise.resolve({ id: "blog-result" }),
       );
@@ -307,41 +248,108 @@ describe("PublishScheduler", () => {
         publish: socialPublishMock,
       });
 
-      // Very long interval for blog, short for social
-      const schedulerWithIntervals = PublishScheduler.createFresh({
+      // Blog: far future (won't trigger), Social: every second
+      const schedulerWithCron = PublishScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
-        tickIntervalMs: 10,
-        entityIntervals: {
-          "blog-post": 10000, // 10 seconds
-          "social-post": 10, // 10ms
+        entitySchedules: {
+          "blog-post": "0 0 1 1 *", // Jan 1st at midnight only
+          "social-post": "* * * * * *", // Every second
         },
         onPublish: mockOnPublish,
       });
 
-      // Add initial items - both should be "due" (never processed)
       await queueManager.add("blog-post", "post-1");
       await queueManager.add("social-post", "social-1");
-      await schedulerWithIntervals.start();
+      await schedulerWithCron.start();
 
-      await new Promise((resolve) => setTimeout(resolve, 30));
+      await new Promise((resolve) => setTimeout(resolve, 1200));
 
-      // Both should have been processed once (first time is always due)
-      expect(blogPublishMock.mock.calls.length).toBe(1);
-      expect(socialPublishMock.mock.calls.length).toBe(1);
+      // Social should have been called, blog should not
+      expect(socialPublishMock).toHaveBeenCalled();
+      expect(blogPublishMock).not.toHaveBeenCalled();
 
-      // Add more items
+      await schedulerWithCron.stop();
+    });
+
+    it("should process immediately for entity types without cron schedule", async () => {
+      const deckPublishMock = mock(() =>
+        Promise.resolve({ id: "deck-result" }),
+      );
+
+      providerRegistry.register("deck", {
+        name: "deck",
+        publish: deckPublishMock,
+      });
+
+      // No cron for deck - should process on next tick (immediate mode)
+      const schedulerWithCron = PublishScheduler.createFresh({
+        queueManager,
+        providerRegistry,
+        retryTracker,
+        entitySchedules: {
+          "blog-post": "0 0 1 1 *", // Only blog has cron
+        },
+        onPublish: mockOnPublish,
+      });
+
+      await queueManager.add("deck", "deck-1");
+      await schedulerWithCron.start();
+
+      // Should process quickly (immediate mode polls every 1s by default)
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      expect(deckPublishMock).toHaveBeenCalled();
+
+      await schedulerWithCron.stop();
+    });
+
+    it("should process one item per cron trigger", async () => {
+      const blogPublishMock = mock(() =>
+        Promise.resolve({ id: "blog-result" }),
+      );
+
+      providerRegistry.register("blog-post", {
+        name: "blog",
+        publish: blogPublishMock,
+      });
+
+      const schedulerWithCron = PublishScheduler.createFresh({
+        queueManager,
+        providerRegistry,
+        retryTracker,
+        entitySchedules: {
+          "blog-post": "* * * * * *", // Every second
+        },
+        onPublish: mockOnPublish,
+      });
+
+      // Add 3 items
+      await queueManager.add("blog-post", "post-1");
       await queueManager.add("blog-post", "post-2");
-      await queueManager.add("social-post", "social-2");
+      await queueManager.add("blog-post", "post-3");
+      await schedulerWithCron.start();
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait ~1.5 seconds - should process 1-2 items (one per second)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Social should have processed again, blog should not (10s interval not elapsed)
-      expect(blogPublishMock.mock.calls.length).toBe(1);
-      expect(socialPublishMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(blogPublishMock.mock.calls.length).toBeLessThanOrEqual(2);
 
-      await schedulerWithIntervals.stop();
+      await schedulerWithCron.stop();
+    });
+
+    it("should validate cron expression format", () => {
+      expect(() =>
+        PublishScheduler.createFresh({
+          queueManager,
+          providerRegistry,
+          retryTracker,
+          entitySchedules: {
+            "blog-post": "invalid cron",
+          },
+        }),
+      ).toThrow();
     });
   });
 });

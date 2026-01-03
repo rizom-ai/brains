@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "croner": "^9.1.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

@@ -1,14 +1,15 @@
 /**
- * PublishScheduler - Single daemon that processes all publish queues
+ * PublishScheduler - Cron-based scheduler for publish queues
  *
  * Implements Component Interface Standardization pattern.
- * Runs on an interval, processing the oldest queued entity across all types.
+ * Uses croner for cron-based scheduling per entity type.
  *
  * Two modes:
  * 1. Provider mode (default): Calls provider.publish() directly
  * 2. Message mode: Emits publish:execute message for plugins to handle
  */
 
+import { Cron } from "croner";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { PublishResult } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
@@ -25,13 +26,11 @@ export interface SchedulerConfig {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
-  tickIntervalMs?: number;
   /**
-   * Per-entity-type intervals in milliseconds.
-   * Allows different publish rates for different content types.
-   * Entity types not in this map use tickIntervalMs.
+   * Per-entity-type cron schedules.
+   * Entity types without a schedule are processed immediately (every second).
    */
-  entityIntervals?: Record<string, number>;
+  entitySchedules?: Record<string, string>;
   /** Optional message bus for message-driven publishing */
   messageBus?: IMessageBus;
   /** Callback when entity is ready to publish (message mode) */
@@ -56,7 +55,8 @@ export interface PublishFailedEvent {
   willRetry: boolean;
 }
 
-const DEFAULT_TICK_INTERVAL = 60000; // 1 minute
+/** Default cron for immediate processing (every second) */
+const IMMEDIATE_CRON = "* * * * * *";
 
 export class PublishScheduler {
   private static instance: PublishScheduler | null = null;
@@ -64,16 +64,15 @@ export class PublishScheduler {
   private queueManager: QueueManager;
   private providerRegistry: ProviderRegistry;
   private retryTracker: RetryTracker;
-  private tickIntervalMs: number;
-  private entityIntervals: Record<string, number>;
-  private lastProcessedByType: Map<string, number> = new Map();
+  private entitySchedules: Record<string, string>;
+  private cronJobs: Map<string, Cron> = new Map();
+  private immediateCron: Cron | null = null;
   private messageBus: IMessageBus | undefined;
   private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
   private onPublish: ((event: PublishSuccessEvent) => void) | undefined;
   private onFailed: ((event: PublishFailedEvent) => void) | undefined;
 
   private running = false;
-  private tickTimeout: ReturnType<typeof setTimeout> | null = null;
 
   /**
    * Get the singleton instance
@@ -107,12 +106,31 @@ export class PublishScheduler {
     this.queueManager = config.queueManager;
     this.providerRegistry = config.providerRegistry;
     this.retryTracker = config.retryTracker;
-    this.tickIntervalMs = config.tickIntervalMs ?? DEFAULT_TICK_INTERVAL;
-    this.entityIntervals = config.entityIntervals ?? {};
+    this.entitySchedules = config.entitySchedules ?? {};
     this.messageBus = config.messageBus;
     this.onExecute = config.onExecute;
     this.onPublish = config.onPublish;
     this.onFailed = config.onFailed;
+
+    // Validate all cron expressions upfront
+    this.validateCronExpressions();
+  }
+
+  /**
+   * Validate all cron expressions
+   */
+  private validateCronExpressions(): void {
+    for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {
+      try {
+        // Try to create a cron to validate the expression
+        const testCron = new Cron(cronExpr);
+        testCron.stop();
+      } catch (error) {
+        throw new Error(
+          `Invalid cron expression for ${entityType}: "${cronExpr}" - ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
   }
 
   /**
@@ -129,7 +147,19 @@ export class PublishScheduler {
     if (this.running) return;
 
     this.running = true;
-    this.scheduleNextTick();
+
+    // Create cron jobs for each configured entity type
+    for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {
+      const job = new Cron(cronExpr, () => {
+        void this.processEntityType(entityType);
+      });
+      this.cronJobs.set(entityType, job);
+    }
+
+    // Create a default cron for entity types without schedules (immediate mode)
+    this.immediateCron = new Cron(IMMEDIATE_CRON, () => {
+      void this.processUnscheduledTypes();
+    });
   }
 
   /**
@@ -137,9 +167,17 @@ export class PublishScheduler {
    */
   public async stop(): Promise<void> {
     this.running = false;
-    if (this.tickTimeout) {
-      clearTimeout(this.tickTimeout);
-      this.tickTimeout = null;
+
+    // Stop all cron jobs
+    for (const job of this.cronJobs.values()) {
+      job.stop();
+    }
+    this.cronJobs.clear();
+
+    // Stop immediate cron
+    if (this.immediateCron) {
+      this.immediateCron.stop();
+      this.immediateCron = null;
     }
   }
 
@@ -151,63 +189,43 @@ export class PublishScheduler {
   }
 
   /**
-   * Get the interval for an entity type
+   * Process a specific entity type (called by its cron job)
    */
-  private getIntervalForType(entityType: string): number {
-    return this.entityIntervals[entityType] ?? this.tickIntervalMs;
-  }
-
-  /**
-   * Check if an entity type is due for processing
-   */
-  private isTypeDue(entityType: string): boolean {
-    const lastProcessed = this.lastProcessedByType.get(entityType);
-    if (lastProcessed === undefined) {
-      return true; // Never processed, so it's due
-    }
-    const interval = this.getIntervalForType(entityType);
-    return Date.now() - lastProcessed >= interval;
-  }
-
-  /**
-   * Process the next tick - check queue and publish
-   */
-  private async tick(): Promise<void> {
+  private async processEntityType(entityType: string): Promise<void> {
     if (!this.running) return;
 
     try {
-      // Get all queued entity types
+      const next = await this.queueManager.getNext(entityType);
+      if (next) {
+        await this.processEntry(next);
+      }
+    } catch (error) {
+      console.error(`Scheduler error for ${entityType}:`, error);
+    }
+  }
+
+  /**
+   * Process entity types that don't have a cron schedule (immediate mode)
+   */
+  private async processUnscheduledTypes(): Promise<void> {
+    if (!this.running) return;
+
+    try {
       const queuedTypes = await this.queueManager.getQueuedEntityTypes();
 
-      // Find the first entity type that is due for processing
+      // Find types without a schedule
       for (const entityType of queuedTypes) {
-        if (this.isTypeDue(entityType)) {
+        if (!this.entitySchedules[entityType]) {
           const next = await this.queueManager.getNext(entityType);
           if (next) {
             await this.processEntry(next);
-            // Update last processed time for this type
-            this.lastProcessedByType.set(entityType, Date.now());
             break; // Process one item per tick
           }
         }
       }
     } catch (error) {
-      // Log error but continue running
-      console.error("Scheduler tick error:", error);
+      console.error("Scheduler error for unscheduled types:", error);
     }
-
-    this.scheduleNextTick();
-  }
-
-  /**
-   * Schedule the next tick
-   */
-  private scheduleNextTick(): void {
-    if (!this.running) return;
-
-    this.tickTimeout = setTimeout(() => {
-      void this.tick();
-    }, this.tickIntervalMs);
   }
 
   /**

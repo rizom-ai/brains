@@ -330,6 +330,7 @@
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
+        "croner": "^9.1.0",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -371,7 +372,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/plugins": "workspace:*",
-        "@brains/publish-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -871,22 +871,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shell/publish-service": {
-      "name": "@brains/publish-service",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/entity-service": "workspace:*",
-        "@brains/job-queue": "workspace:*",
-        "@brains/messaging-service": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.1.14",
-        "typescript": "^5.3.3",
-      },
-    },
     "shell/render-service": {
       "name": "@brains/render-service",
       "version": "0.1.0",
@@ -1036,8 +1020,6 @@
     "@brains/profile-service": ["@brains/profile-service@workspace:shell/profile-service"],
 
     "@brains/publish-pipeline": ["@brains/publish-pipeline@workspace:plugins/publish-pipeline"],
-
-    "@brains/publish-service": ["@brains/publish-service@workspace:shell/publish-service"],
 
     "@brains/render-service": ["@brains/render-service@workspace:shell/render-service"],
 
@@ -1590,6 +1572,8 @@
     "cors": ["cors@2.8.5", "", { "dependencies": { "object-assign": "^4", "vary": "^1" } }, "sha512-KIHbLJqu73RGr/hnbrO9uBeixNGuvSQjul/jdFvS/KFSIH1hWVd1ng7zOHx+YrEfInLG7q4n6GHQ9cDtxv/P6g=="],
 
     "cosmiconfig": ["cosmiconfig@9.0.0", "", { "dependencies": { "env-paths": "^2.2.1", "import-fresh": "^3.3.0", "js-yaml": "^4.1.0", "parse-json": "^5.2.0" }, "peerDependencies": { "typescript": ">=4.9.5" }, "optionalPeers": ["typescript"] }, "sha512-itvL5h8RETACmOTFc4UfIyB2RfEHi71Ax6E/PivVxq9NseKbOWpeyHEOIbmAw1rs8Ak0VursQNww7lf7YtUwzg=="],
+
+    "croner": ["croner@9.1.0", "", {}, "sha512-p9nwwR4qyT5W996vBZhdvBCnMhicY5ytZkR4D1Xj0wuTDEiMnjwR57Q3RXYY/s0EpX6Ay3vgIcfaR+ewGHsi+g=="],
 
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 

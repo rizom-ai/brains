@@ -12,7 +12,7 @@ describe("PublishPipelinePlugin - Report Handlers", () => {
   beforeEach(async () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
-    plugin = new PublishPipelinePlugin({ tickIntervalMs: 100 });
+    plugin = new PublishPipelinePlugin({});
     await plugin.register(mockShell);
   });
 
@@ -69,7 +69,6 @@ describe("PublishPipelinePlugin - Report Handlers", () => {
     it("should indicate willRetry=false after max retries", async () => {
       // Create plugin with maxRetries=2
       const limitedPlugin = new PublishPipelinePlugin({
-        tickIntervalMs: 100,
         maxRetries: 2,
       });
       const limitedShell = MockShell.createFresh({

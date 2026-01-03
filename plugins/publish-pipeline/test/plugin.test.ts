@@ -13,7 +13,7 @@ describe("PublishPipelinePlugin", () => {
   beforeEach(async () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
-    plugin = new PublishPipelinePlugin({ tickIntervalMs: 100 });
+    plugin = new PublishPipelinePlugin({});
     await plugin.register(mockShell);
   });
 
