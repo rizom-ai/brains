@@ -50,8 +50,15 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
  * Plugin configuration schema
  */
 export const publishPipelineConfigSchema = z.object({
-  /** Interval in milliseconds between queue checks */
+  /** Default interval in milliseconds between queue checks */
   tickIntervalMs: z.number().optional().default(60000),
+
+  /**
+   * Per-entity-type intervals in milliseconds.
+   * Allows different publish rates for different content types.
+   * Example: { post: 3600000, deck: 3600000, 'social-post': 300000 }
+   */
+  entityIntervals: z.record(z.string(), z.number()).optional(),
 
   /** Maximum number of retry attempts */
   maxRetries: z.number().optional().default(3),

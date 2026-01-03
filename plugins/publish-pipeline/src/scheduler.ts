@@ -26,6 +26,12 @@ export interface SchedulerConfig {
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
   tickIntervalMs?: number;
+  /**
+   * Per-entity-type intervals in milliseconds.
+   * Allows different publish rates for different content types.
+   * Entity types not in this map use tickIntervalMs.
+   */
+  entityIntervals?: Record<string, number>;
   /** Optional message bus for message-driven publishing */
   messageBus?: IMessageBus;
   /** Callback when entity is ready to publish (message mode) */
@@ -59,6 +65,8 @@ export class PublishScheduler {
   private providerRegistry: ProviderRegistry;
   private retryTracker: RetryTracker;
   private tickIntervalMs: number;
+  private entityIntervals: Record<string, number>;
+  private lastProcessedByType: Map<string, number> = new Map();
   private messageBus: IMessageBus | undefined;
   private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
   private onPublish: ((event: PublishSuccessEvent) => void) | undefined;
@@ -100,6 +108,7 @@ export class PublishScheduler {
     this.providerRegistry = config.providerRegistry;
     this.retryTracker = config.retryTracker;
     this.tickIntervalMs = config.tickIntervalMs ?? DEFAULT_TICK_INTERVAL;
+    this.entityIntervals = config.entityIntervals ?? {};
     this.messageBus = config.messageBus;
     this.onExecute = config.onExecute;
     this.onPublish = config.onPublish;
@@ -142,15 +151,45 @@ export class PublishScheduler {
   }
 
   /**
+   * Get the interval for an entity type
+   */
+  private getIntervalForType(entityType: string): number {
+    return this.entityIntervals[entityType] ?? this.tickIntervalMs;
+  }
+
+  /**
+   * Check if an entity type is due for processing
+   */
+  private isTypeDue(entityType: string): boolean {
+    const lastProcessed = this.lastProcessedByType.get(entityType);
+    if (lastProcessed === undefined) {
+      return true; // Never processed, so it's due
+    }
+    const interval = this.getIntervalForType(entityType);
+    return Date.now() - lastProcessed >= interval;
+  }
+
+  /**
    * Process the next tick - check queue and publish
    */
   private async tick(): Promise<void> {
     if (!this.running) return;
 
     try {
-      const next = await this.queueManager.getNextAcrossTypes();
-      if (next) {
-        await this.processEntry(next);
+      // Get all queued entity types
+      const queuedTypes = await this.queueManager.getQueuedEntityTypes();
+
+      // Find the first entity type that is due for processing
+      for (const entityType of queuedTypes) {
+        if (this.isTypeDue(entityType)) {
+          const next = await this.queueManager.getNext(entityType);
+          if (next) {
+            await this.processEntry(next);
+            // Update last processed time for this type
+            this.lastProcessedByType.set(entityType, Date.now());
+            break; // Process one item per tick
+          }
+        }
       }
     } catch (error) {
       // Log error but continue running

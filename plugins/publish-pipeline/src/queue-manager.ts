@@ -177,6 +177,19 @@ export class QueueManager {
   }
 
   /**
+   * Get entity types that have items in queue
+   */
+  public async getQueuedEntityTypes(): Promise<string[]> {
+    const types: string[] = [];
+    for (const [entityType, queue] of this.queues.entries()) {
+      if (queue.length > 0) {
+        types.push(entityType);
+      }
+    }
+    return types;
+  }
+
+  /**
    * Get or create a queue for an entity type
    */
   private getOrCreateQueue(entityType: string): QueueEntry[] {
