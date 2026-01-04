@@ -195,16 +195,16 @@ export class Shell implements IShell {
       await this.identityService.initialize();
       await this.profileService.initialize();
 
-      // Mark shell as initialized BEFORE starting worker
-      // This prevents race conditions where jobs run before shell is ready
+      // Mark shell as initialized BEFORE emitting ready event
+      // This ensures shell methods are available to plugins:ready handlers
       this.initialized = true;
       this.logger.debug("Shell initialized successfully");
 
-      // Start the job queue worker AFTER shell is initialized
-      // This ensures generateContent and other methods are available to job handlers
-      await this.jobQueueWorker.start();
-
-      // Emit event to signal all plugins are initialized AND worker is ready
+      // Emit system:plugins:ready BEFORE starting background services
+      // This is critical: plugins must complete their ready handlers before
+      // any background processing begins. For example:
+      // - directory-sync needs to set up initial sync before jobs run
+      // - Pending jobs from previous runs must not execute until plugins are ready
       await this.messageBus.send(
         "system:plugins:ready",
         {
@@ -218,7 +218,9 @@ export class Shell implements IShell {
       );
       this.logger.debug("Emitted system:plugins:ready event");
 
-      // Start the job progress monitor
+      // Start background services AFTER plugins:ready handlers complete
+      // This ensures pending jobs from previous runs don't execute prematurely
+      await this.jobQueueWorker.start();
       this.jobProgressMonitor.start();
     } catch (error) {
       this.logger.error("Failed to initialize Shell", error);
