@@ -106,13 +106,13 @@ describe("SocialPostDataSource", () => {
       expect(result.post).toBeNull();
     });
 
-    it("should throw error when post not found by slug", async () => {
+    it("should throw error when post not found by id", async () => {
       let error: Error | null = null;
       try {
         await dataSource.fetch(
           {
             entityType: "social-post",
-            query: { slug: "non-existent-slug" },
+            query: { id: "non-existent-slug" },
           },
           singlePostSchema,
         );

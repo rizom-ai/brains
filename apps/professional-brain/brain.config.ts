@@ -44,6 +44,11 @@ const entityRouteConfig = {
     label: "Note",
     navigation: { show: false }, // Notes are personal, hide from navigation
   },
+  "social-post": {
+    label: "Social Post",
+    pluralName: "social-posts",
+    navigation: { slot: "secondary" }, // Show in footer only
+  },
 };
 
 const config = defineConfig({

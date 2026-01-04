@@ -4,6 +4,16 @@ export {
   type LinkedInPost,
 } from "./linkedin-template";
 
+export {
+  SocialPostListTemplate,
+  type SocialPostListProps,
+} from "./social-post-list";
+
+export {
+  SocialPostDetailTemplate,
+  type SocialPostDetailProps,
+} from "./social-post-detail";
+
 import type { Template } from "@brains/plugins";
 
 /**

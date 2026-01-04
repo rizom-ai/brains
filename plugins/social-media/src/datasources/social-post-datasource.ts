@@ -1,4 +1,8 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
+import {
+  type DataSource,
+  type BaseDataSourceContext,
+  buildPaginationInfo,
+} from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -14,12 +18,15 @@ const querySchema = z.object({
   entityType: z.string(),
   query: z
     .object({
-      slug: z.string().optional(),
+      id: z.string().optional(), // Slug lookup (used by dynamic route generator)
       platform: z.enum(["linkedin"]).optional(),
       status: z.enum(["draft", "queued", "published", "failed"]).optional(),
       sortByQueue: z.boolean().optional(),
       nextInQueue: z.boolean().optional(),
       limit: z.number().optional(),
+      page: z.number().optional(),
+      pageSize: z.number().optional(),
+      baseUrl: z.string().optional(),
     })
     .optional(),
 });
@@ -72,9 +79,9 @@ export class SocialPostDataSource implements DataSource {
       return this.fetchNextInQueue(outputSchema);
     }
 
-    // Case 2: Fetch single post by slug
-    if (params.query?.slug) {
-      return this.fetchBySlug(params.query.slug, outputSchema);
+    // Case 2: Fetch single post by slug (id param contains the slug)
+    if (params.query?.id) {
+      return this.fetchBySlug(params.query.id, outputSchema);
     }
 
     // Case 3: Fetch list with optional filters
@@ -83,6 +90,9 @@ export class SocialPostDataSource implements DataSource {
       params.query?.status,
       params.query?.sortByQueue,
       params.query?.limit,
+      params.query?.page,
+      params.query?.pageSize,
+      params.query?.baseUrl,
       outputSchema,
     );
   }
@@ -127,43 +137,54 @@ export class SocialPostDataSource implements DataSource {
   }
 
   /**
-   * Fetch list of posts with optional filters
+   * Fetch list of posts with optional filters and pagination
    */
   private async fetchPostList<T>(
     platform: "linkedin" | undefined,
     status: "draft" | "queued" | "published" | "failed" | undefined,
     sortByQueue: boolean | undefined,
     limit: number | undefined,
+    page: number | undefined,
+    pageSize: number | undefined,
+    baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
   ): Promise<T> {
-    // Build filter from query params
     const metadataFilter: Record<string, string> = {};
-    if (platform) {
-      metadataFilter["platform"] = platform;
-    }
-    if (status) {
-      metadataFilter["status"] = status;
-    }
-
+    if (platform) metadataFilter["platform"] = platform;
+    if (status) metadataFilter["status"] = status;
     const hasFilter = Object.keys(metadataFilter).length > 0;
 
-    // Determine sort order
     const sortFields = sortByQueue
       ? [{ field: "queueOrder" as const, direction: "asc" as const }]
       : [{ field: "created" as const, direction: "desc" as const }];
+
+    const currentPage = page ?? 1;
+    const itemsPerPage = pageSize ?? limit ?? 100;
+    const offset = (currentPage - 1) * itemsPerPage;
 
     const entities: SocialPost[] =
       await this.entityService.listEntities<SocialPost>("social-post", {
         ...(hasFilter && { filter: { metadata: metadataFilter } }),
         sortFields,
-        limit: limit ?? 100,
+        limit: itemsPerPage,
+        offset,
       });
+
+    let pagination = null;
+    if (page !== undefined) {
+      const totalItems = await this.entityService.countEntities("social-post", {
+        ...(hasFilter && { filter: { metadata: metadataFilter } }),
+      });
+      pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
+    }
 
     const posts = entities.map(parsePostData);
 
     return outputSchema.parse({
       posts,
-      totalCount: posts.length,
+      totalCount: pagination?.totalItems ?? posts.length,
+      pagination,
+      baseUrl,
     });
   }
 }

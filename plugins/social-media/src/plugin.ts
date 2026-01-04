@@ -6,13 +6,26 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { socialPostSchema } from "./schemas/social-post";
+import { createTemplate } from "@brains/templates";
+import { paginationInfoSchema } from "@brains/datasource";
+import {
+  socialPostSchema,
+  enrichedSocialPostSchema,
+} from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
 import { createGenerateTool } from "./tools/generate";
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { linkedinTemplate } from "./templates/linkedin-template";
+import {
+  SocialPostListTemplate,
+  type SocialPostListProps,
+} from "./templates/social-post-list";
+import {
+  SocialPostDetailTemplate,
+  type SocialPostDetailProps,
+} from "./templates/social-post-detail";
 import { GenerationJobHandler } from "./handlers/generationHandler";
 import type { PublishProvider } from "@brains/utils";
 import {
@@ -59,6 +72,49 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     // Register AI templates
     context.registerTemplates({
       linkedin: linkedinTemplate,
+    });
+
+    // Register view templates for routes
+    const postListSchema = z.object({
+      posts: z.array(enrichedSocialPostSchema),
+      totalCount: z.number().optional(),
+      pagination: paginationInfoSchema.nullable(),
+      baseUrl: z.string().optional(),
+    });
+
+    const postDetailSchema = z.object({
+      post: enrichedSocialPostSchema,
+    });
+
+    context.registerTemplates({
+      "social-post-list": createTemplate<
+        z.infer<typeof postListSchema>,
+        SocialPostListProps
+      >({
+        name: "social-post-list",
+        description: "Social post list page template",
+        schema: postListSchema,
+        dataSourceId: "social-media:posts",
+        requiredPermission: "public",
+        layout: {
+          component: SocialPostListTemplate,
+          interactive: false,
+        },
+      }),
+      "social-post-detail": createTemplate<
+        z.infer<typeof postDetailSchema>,
+        SocialPostDetailProps
+      >({
+        name: "social-post-detail",
+        description: "Individual social post template",
+        schema: postDetailSchema,
+        dataSourceId: "social-media:posts",
+        requiredPermission: "public",
+        layout: {
+          component: SocialPostDetailTemplate,
+          interactive: false,
+        },
+      }),
     });
 
     // Initialize providers

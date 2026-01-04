@@ -51,7 +51,7 @@ export const socialPostFrontmatterSchema = z.object({
   sourceEntityType: sourceEntityTypeSchema
     .optional()
     .describe("Source entity type (post, deck)"),
-  retryCount: z.number().default(0).describe("Number of publish attempts"),
+  retryCount: z.number().optional().describe("Number of publish attempts"),
   lastError: z.string().optional().describe("Last publish error if failed"),
 });
 
@@ -93,3 +93,16 @@ export const socialPostWithDataSchema = socialPostSchema.extend({
 });
 
 export type SocialPostWithData = z.infer<typeof socialPostWithDataSchema>;
+
+/**
+ * Enriched social post schema for templates (includes URL fields)
+ * Fields are optional to allow validation before site-builder enrichment
+ */
+export const enrichedSocialPostSchema = socialPostWithDataSchema.extend({
+  url: z.string().optional(),
+  listUrl: z.string().optional(),
+  listLabel: z.string().optional(),
+  typeLabel: z.string().optional(),
+});
+
+export type EnrichedSocialPost = z.infer<typeof enrichedSocialPostSchema>;

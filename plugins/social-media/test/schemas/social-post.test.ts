@@ -127,13 +127,13 @@ describe("Social Post Schemas", () => {
       expect(result.success).toBe(false);
     });
 
-    it("should default retryCount to 0", () => {
+    it("should accept missing retryCount as optional", () => {
       const noRetryCount = {
         platform: "linkedin",
         status: "draft",
       };
       const result = socialPostFrontmatterSchema.parse(noRetryCount);
-      expect(result.retryCount).toBe(0);
+      expect(result.retryCount).toBeUndefined();
     });
   });
 
