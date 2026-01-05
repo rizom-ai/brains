@@ -322,6 +322,133 @@ describe("FileOperations", () => {
     });
   });
 
+  describe("Image File Support", () => {
+    // Minimal 1x1 pixel PNG as binary
+    const TINY_PNG_BYTES = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BYTES.toString("base64")}`;
+
+    it("should read image files from image/ directory as base64 data URLs", async () => {
+      // Create image file in image/ directory
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const imagePath = join(testDir, "image", "test-photo.png");
+      writeFileSync(imagePath, TINY_PNG_BYTES);
+
+      const entity = await fileOps.readEntity("image/test-photo.png");
+
+      expect(entity.entityType).toBe("image");
+      expect(entity.id).toBe("test-photo");
+      expect(entity.content).toBe(TINY_PNG_DATA_URL);
+    });
+
+    it("should write image entities as binary files in image/ directory", async () => {
+      const entity = {
+        id: "my-image",
+        entityType: "image",
+        content: TINY_PNG_DATA_URL,
+        contentHash: computeContentHash(TINY_PNG_DATA_URL),
+        metadata: { format: "png" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      await fileOps.writeEntity(entity);
+
+      const expectedPath = join(testDir, "image", "my-image.png");
+      expect(existsSync(expectedPath)).toBe(true);
+
+      // Verify binary content
+      const writtenBytes = readFileSync(expectedPath);
+      expect(writtenBytes.equals(TINY_PNG_BYTES)).toBe(true);
+    });
+
+    it("should include image files from image/ directory in getAllSyncFiles", () => {
+      // Create mix of markdown and image files
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      mkdirSync(join(testDir, "image"), { recursive: true });
+
+      writeFileSync(join(testDir, "note", "test.md"), "# Note");
+      writeFileSync(join(testDir, "image", "photo.png"), TINY_PNG_BYTES);
+      writeFileSync(join(testDir, "image", "banner.jpg"), TINY_PNG_BYTES);
+
+      const files = fileOps.getAllSyncFiles();
+
+      expect(files).toContain("note/test.md");
+      expect(files).toContain("image/photo.png");
+      expect(files).toContain("image/banner.jpg");
+    });
+
+    it("should NOT include image files from non-image directories", () => {
+      // Create image files in wrong directory
+      mkdirSync(join(testDir, "note"), { recursive: true });
+
+      writeFileSync(join(testDir, "note", "test.md"), "# Note");
+      writeFileSync(join(testDir, "note", "photo.png"), TINY_PNG_BYTES); // Wrong!
+
+      const files = fileOps.getAllSyncFiles();
+
+      expect(files).toContain("note/test.md");
+      expect(files).not.toContain("note/photo.png"); // Should be ignored
+    });
+
+    it("should handle different image formats in image/ directory", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+
+      // Test various image extensions
+      const extensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+
+      for (const ext of extensions) {
+        const fileName = `test${ext}`;
+        writeFileSync(join(testDir, "image", fileName), TINY_PNG_BYTES);
+
+        const entity = await fileOps.readEntity(`image/${fileName}`);
+        expect(entity.entityType).toBe("image");
+        expect(entity.id).toBe("test");
+      }
+    });
+
+    it("should use correct extension when writing image entities", async () => {
+      const jpgEntity = {
+        id: "photo",
+        entityType: "image",
+        content: "data:image/jpeg;base64," + TINY_PNG_BYTES.toString("base64"),
+        contentHash: "abc",
+        metadata: { format: "jpg" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      await fileOps.writeEntity(jpgEntity);
+
+      expect(existsSync(join(testDir, "image", "photo.jpg"))).toBe(true);
+      expect(existsSync(join(testDir, "image", "photo.png"))).toBe(false);
+    });
+
+    it("should roundtrip image entities correctly", async () => {
+      const entity = {
+        id: "roundtrip-test",
+        entityType: "image",
+        content: TINY_PNG_DATA_URL,
+        contentHash: computeContentHash(TINY_PNG_DATA_URL),
+        metadata: { format: "png" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      // Write
+      await fileOps.writeEntity(entity);
+
+      // Read back
+      const readEntity = await fileOps.readEntity("image/roundtrip-test.png");
+
+      expect(readEntity.id).toBe("roundtrip-test");
+      expect(readEntity.entityType).toBe("image");
+      expect(readEntity.content).toBe(TINY_PNG_DATA_URL);
+    });
+  });
+
   describe("Windows Compatibility", () => {
     it("should not create files with colons in the filename", async () => {
       const entityContent = "test";

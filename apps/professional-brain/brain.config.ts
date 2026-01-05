@@ -11,6 +11,7 @@ import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
+import { imagePlugin } from "@brains/image";
 import { portfolioPlugin } from "@brains/portfolio";
 import TopicsPlugin from "@brains/topics";
 import { socialMediaPlugin } from "@brains/social-media";
@@ -106,6 +107,7 @@ const config = defineConfig({
     decksPlugin({}),
     notePlugin({}),
     linkPlugin({}),
+    imagePlugin({}),
     portfolioPlugin({}),
     new TopicsPlugin({}),
     socialMediaPlugin({}),

@@ -47,12 +47,16 @@
         "@brains/default-site-content": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/git-sync": "workspace:*",
+        "@brains/image": "workspace:*",
+        "@brains/link": "workspace:*",
         "@brains/matrix": "workspace:*",
         "@brains/mcp": "workspace:*",
         "@brains/note": "workspace:*",
         "@brains/portfolio": "workspace:*",
         "@brains/professional-site": "workspace:*",
+        "@brains/publish-pipeline": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/social-media": "workspace:*",
         "@brains/system": "workspace:*",
         "@brains/theme-default": "workspace:*",
         "@brains/theme-yeehaa": "workspace:*",
@@ -242,6 +246,24 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "plugins/image": {
+      "name": "@brains/image",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -988,6 +1010,8 @@
     "@brains/git-sync": ["@brains/git-sync@workspace:plugins/git-sync"],
 
     "@brains/identity-service": ["@brains/identity-service@workspace:shell/identity-service"],
+
+    "@brains/image": ["@brains/image@workspace:plugins/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
 

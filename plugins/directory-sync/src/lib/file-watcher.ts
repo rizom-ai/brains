@@ -99,11 +99,24 @@ export class FileWatcher {
   }
 
   /**
+   * Check if a file is an image in the image/ directory
+   */
+  private isImageInImageDir(path: string): boolean {
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+    const relativePath = path.replace(this.syncPath + "/", "");
+    const isInImageDir = relativePath.startsWith("image/");
+    const hasImageExt = imageExtensions.some((ext) =>
+      path.toLowerCase().endsWith(ext),
+    );
+    return isInImageDir && hasImageExt;
+  }
+
+  /**
    * Handle file change events by batching them
    */
   private async handleFileChange(event: string, path: string): Promise<void> {
-    // Only process markdown files
-    if (!path.endsWith(".md")) {
+    // Only process markdown files or images in image/ directory
+    if (!path.endsWith(".md") && !this.isImageInImageDir(path)) {
       return;
     }
 

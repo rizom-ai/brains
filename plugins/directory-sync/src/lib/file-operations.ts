@@ -1,5 +1,5 @@
 import type { BaseEntity, IEntityService } from "@brains/plugins";
-import { join, basename, dirname } from "path";
+import { join, dirname, extname } from "path";
 import {
   mkdirSync,
   readFileSync,
@@ -11,6 +11,55 @@ import {
 } from "fs";
 import { computeContentHash } from "@brains/utils";
 import type { RawEntity, DirectorySyncStatus } from "../types";
+
+/**
+ * Supported image file extensions
+ */
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+
+/**
+ * Check if a file is an image based on extension
+ */
+function isImageFile(filePath: string): boolean {
+  const ext = extname(filePath).toLowerCase();
+  return IMAGE_EXTENSIONS.includes(ext);
+}
+
+/**
+ * Get MIME type for image extension
+ */
+function getMimeTypeForExtension(ext: string): string {
+  const normalized = ext.toLowerCase().replace(".", "");
+  switch (normalized) {
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "webp":
+      return "image/webp";
+    case "svg":
+      return "image/svg+xml";
+    default:
+      return "image/png";
+  }
+}
+
+/**
+ * Get file extension for image format
+ */
+function getExtensionForFormat(format: string): string {
+  switch (format.toLowerCase()) {
+    case "jpeg":
+      return ".jpg";
+    case "svg+xml":
+      return ".svg";
+    default:
+      return `.${format.toLowerCase()}`;
+  }
+}
 
 /**
  * Handles file I/O operations for directory sync
@@ -65,13 +114,23 @@ export class FileOperations {
       // Has subdirectories - join with colons
       const lastPart = idPathParts[idPathParts.length - 1];
       if (lastPart) {
-        const filename = lastPart.replace(".md", "");
+        // Strip any known extension (.md or image extensions)
+        const ext = extname(lastPart).toLowerCase();
+        const filename =
+          ext === ".md" || IMAGE_EXTENSIONS.includes(ext)
+            ? lastPart.slice(0, -ext.length)
+            : lastPart;
         idPathParts[idPathParts.length - 1] = filename;
       }
       id = idPathParts.join(":");
     } else {
-      // Simple case - just filename
-      id = basename(idPathParts[0] ?? "", ".md");
+      // Simple case - just filename, strip extension
+      const filename = idPathParts[0] ?? "";
+      const ext = extname(filename).toLowerCase();
+      id =
+        ext === ".md" || IMAGE_EXTENSIONS.includes(ext)
+          ? filename.slice(0, -ext.length)
+          : filename;
     }
 
     return { entityType, id };
@@ -85,7 +144,6 @@ export class FileOperations {
       ? filePath
       : join(this.syncPath, filePath);
 
-    const markdown = readFileSync(fullPath, "utf-8");
     const stats = statSync(fullPath);
 
     // Parse entity info from path
@@ -96,10 +154,22 @@ export class FileOperations {
       stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
     const updated = stats.mtime;
 
+    // Handle image files: read as binary and convert to base64 data URL
+    let content: string;
+    if (isImageFile(filePath)) {
+      const buffer = readFileSync(fullPath);
+      const base64 = buffer.toString("base64");
+      const ext = extname(filePath);
+      const mimeType = getMimeTypeForExtension(ext);
+      content = `data:${mimeType};base64,${base64}`;
+    } else {
+      content = readFileSync(fullPath, "utf-8");
+    }
+
     return {
       entityType,
       id,
-      content: markdown,
+      content,
       created,
       updated,
     };
@@ -109,8 +179,6 @@ export class FileOperations {
    * Write entity to file
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
-    // Serialize entity to markdown
-    const markdown = this.entityService.serializeEntity(entity);
     const filePath = this.getEntityFilePath(entity);
 
     // Ensure directory exists (only for non-base entities)
@@ -121,8 +189,23 @@ export class FileOperations {
       }
     }
 
-    // Write markdown file
-    writeFileSync(filePath, markdown, "utf-8");
+    // Handle image entities: convert base64 data URL to binary
+    if (entity.entityType === "image") {
+      // Extract base64 from data URL
+      const match = entity.content.match(/^data:image\/[a-z+]+;base64,(.+)$/i);
+      if (match?.[1]) {
+        const buffer = Buffer.from(match[1], "base64");
+        writeFileSync(filePath, buffer);
+      } else {
+        // Assume raw base64 if not a data URL
+        const buffer = Buffer.from(entity.content, "base64");
+        writeFileSync(filePath, buffer);
+      }
+    } else {
+      // Serialize entity to markdown
+      const markdown = this.entityService.serializeEntity(entity);
+      writeFileSync(filePath, markdown, "utf-8");
+    }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
     const updatedTime = new Date(entity.updated);
@@ -130,9 +213,13 @@ export class FileOperations {
   }
 
   /**
-   * Get file path for entity by ID and type
+   * Get file path for entity by ID, type, and optional extension
    */
-  getFilePath(entityId: string, entityType: string): string {
+  getFilePath(
+    entityId: string,
+    entityType: string,
+    extension: string = ".md",
+  ): string {
     // Split ID by colons to create subdirectory structure
     const idParts = entityId.split(":");
 
@@ -145,8 +232,8 @@ export class FileOperations {
     // If only one part (no colons), simple flat file
     if (cleanParts.length === 1) {
       return isBase
-        ? join(this.syncPath, `${cleanParts[0]}.md`)
-        : join(this.syncPath, entityType, `${cleanParts[0]}.md`);
+        ? join(this.syncPath, `${cleanParts[0]}${extension}`)
+        : join(this.syncPath, entityType, `${cleanParts[0]}${extension}`);
     }
 
     // For multiple parts, check if first part matches entity type
@@ -162,9 +249,14 @@ export class FileOperations {
 
     // Build path - base entities in root, others in type subdirectory
     if (isBase) {
-      return join(this.syncPath, ...directories, `${filename}.md`);
+      return join(this.syncPath, ...directories, `${filename}${extension}`);
     } else {
-      return join(this.syncPath, entityType, ...directories, `${filename}.md`);
+      return join(
+        this.syncPath,
+        entityType,
+        ...directories,
+        `${filename}${extension}`,
+      );
     }
   }
 
@@ -172,7 +264,22 @@ export class FileOperations {
    * Get file path for entity
    */
   getEntityFilePath(entity: BaseEntity): string {
-    return this.getFilePath(entity.id, entity.entityType);
+    // Determine file extension based on entity type
+    let extension = ".md";
+    if (entity.entityType === "image") {
+      // Get format from metadata or extract from content data URL
+      const format = (entity.metadata as { format?: string }).format;
+      if (format) {
+        extension = getExtensionForFormat(format);
+      } else {
+        // Try to extract from data URL
+        const match = entity.content.match(/^data:image\/([a-z+]+);base64,/i);
+        if (match?.[1]) {
+          extension = getExtensionForFormat(match[1]);
+        }
+      }
+    }
+    return this.getFilePath(entity.id, entity.entityType, extension);
   }
 
   /**
@@ -211,6 +318,51 @@ export class FileOperations {
     };
 
     findMarkdownFiles(this.syncPath);
+    return files;
+  }
+
+  /**
+   * Get all syncable files in sync directory (markdown + images in image/ dir)
+   */
+  getAllSyncFiles(): string[] {
+    const files: string[] = [];
+
+    if (!existsSync(this.syncPath)) {
+      return files;
+    }
+
+    // Recursively find all syncable files
+    const findSyncFiles = (
+      currentPath: string,
+      relativePath: string = "",
+      inImageDir: boolean = false,
+    ): void => {
+      const entries = readdirSync(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const entryPath = join(currentPath, entry.name);
+        const relativeEntryPath = relativePath
+          ? join(relativePath, entry.name)
+          : entry.name;
+
+        if (entry.isFile() && !entry.name.endsWith(".invalid")) {
+          // Include .md files from anywhere
+          if (entry.name.endsWith(".md")) {
+            files.push(relativeEntryPath);
+          }
+          // Include image files only from image/ directory
+          else if (inImageDir && isImageFile(entry.name)) {
+            files.push(relativeEntryPath);
+          }
+        } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
+          // Track if we're entering the image directory
+          const isImageDir = entry.name === "image" && relativePath === "";
+          findSyncFiles(entryPath, relativeEntryPath, inImageDir || isImageDir);
+        }
+      }
+    };
+
+    findSyncFiles(this.syncPath);
     return files;
   }
 
