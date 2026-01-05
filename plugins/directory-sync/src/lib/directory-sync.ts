@@ -24,6 +24,7 @@ import type { BatchMetadata } from "./batch-operations";
 import { FileOperations } from "./file-operations";
 import { ProgressOperations } from "./progress-operations";
 import { EventHandler } from "./event-handler";
+import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 
 /**
  * DirectorySync options schema
@@ -64,6 +65,7 @@ export class DirectorySync {
   private batchOperationsManager: BatchOperationsManager;
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
+  private imageConverter: FrontmatterImageConverter;
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
 
   constructor(options: DirectorySyncOptions) {
@@ -95,6 +97,10 @@ export class DirectorySync {
       this.logger,
       this.entityService,
       this.fileOperations,
+    );
+    this.imageConverter = new FrontmatterImageConverter(
+      this.entityService,
+      this.logger,
     );
 
     this.logger.debug("Initialized with path", {
@@ -372,6 +378,31 @@ export class DirectorySync {
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
+    // Step 0: Convert coverImage URLs to coverImageId references
+    try {
+      const conversionResult = await this.imageConverter.convert(
+        rawEntity.content,
+      );
+      if (conversionResult.converted) {
+        rawEntity.content = conversionResult.content;
+        // Rewrite the source file with the converted content
+        const fullPath = filePath.startsWith(this.syncPath)
+          ? filePath
+          : join(this.syncPath, filePath);
+        writeFileSync(fullPath, conversionResult.content, "utf-8");
+        this.logger.debug("Converted coverImage URL to coverImageId", {
+          path: filePath,
+          imageId: conversionResult.imageId,
+        });
+      }
+    } catch (error) {
+      // Image conversion failure is non-fatal - continue with original content
+      this.logger.debug("Image conversion skipped", {
+        path: filePath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Step 1: Deserialize (validation errors should quarantine)
     let parsedEntity;
     try {

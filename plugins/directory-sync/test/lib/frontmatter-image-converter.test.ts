@@ -3,6 +3,10 @@ import { FrontmatterImageConverter } from "../../src/lib/frontmatter-image-conve
 import type { IEntityService } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 
+// Valid 1x1 PNG with proper headers for dimension detection
+const VALID_PNG_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 describe("FrontmatterImageConverter", () => {
   let converter: FrontmatterImageConverter;
   let mockEntityService: IEntityService;
@@ -10,9 +14,7 @@ describe("FrontmatterImageConverter", () => {
   const logger = createSilentLogger();
 
   beforeEach(() => {
-    mockFetcher = mock(() =>
-      Promise.resolve("data:image/png;base64,iVBORw0KGgo="),
-    );
+    mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
 
     mockEntityService = {
       listEntities: mock(() => Promise.resolve([])),
@@ -32,7 +34,7 @@ describe("FrontmatterImageConverter", () => {
     test("should convert coverImage URL to coverImageId", async () => {
       const content = `---
 title: Test Post
-coverImage: https://example.com/image.png
+coverImageUrl: https://example.com/image.png
 ---
 
 Post content here.`;
@@ -41,7 +43,7 @@ Post content here.`;
 
       expect(result.converted).toBe(true);
       expect(result.content).toContain("coverImageId:");
-      expect(result.content).not.toContain("coverImage:");
+      expect(result.content).not.toContain("coverImageUrl:");
       expect(mockFetcher).toHaveBeenCalledWith("https://example.com/image.png");
     });
 
@@ -63,7 +65,7 @@ Post content here.`;
     test("should skip if coverImage is not an HTTP URL", async () => {
       const content = `---
 title: Test Post
-coverImage: local-image.png
+coverImageUrl: local-image.png
 ---
 
 Post content here.`;
@@ -90,9 +92,7 @@ Post content here.`;
 
     test("should reuse existing image entity with same sourceUrl", async () => {
       // Create everything fresh for this test
-      const localFetcher = mock(() =>
-        Promise.resolve("data:image/png;base64,xxx"),
-      );
+      const localFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
       const localLogger = createSilentLogger();
 
       const entityServiceWithExisting = {
@@ -117,7 +117,7 @@ Post content here.`;
 
       const content = `---
 title: Test Post
-coverImage: https://example.com/image.png
+coverImageUrl: https://example.com/image.png
 ---
 
 Post content here.`;
@@ -135,7 +135,7 @@ Post content here.`;
 
       const content = `---
 title: Test Post
-coverImage: https://example.com/image.png
+coverImageUrl: https://example.com/image.png
 ---
 
 Post content here.`;
@@ -150,7 +150,7 @@ Post content here.`;
       const content = `---
 title: Test Post
 author: John Doe
-coverImage: https://example.com/image.png
+coverImageUrl: https://example.com/image.png
 tags:
   - test
   - demo
@@ -166,10 +166,11 @@ Post content here.`;
       expect(result.content).toContain("tags:");
     });
 
-    test("should generate image ID from URL filename", async () => {
+    test("should generate image ID from post slug", async () => {
       const content = `---
-title: Test Post
-coverImage: https://example.com/path/to/my-awesome-image.png
+title: My Awesome Post
+slug: my-awesome-post
+coverImageUrl: https://example.com/path/to/image.png
 ---
 
 Post content here.`;
@@ -178,16 +179,17 @@ Post content here.`;
 
       expect(mockEntityService.createEntity).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: "my-awesome-image",
+          id: "my-awesome-post-cover",
           entityType: "image",
         }),
       );
     });
 
-    test("should store sourceUrl in image metadata for deduplication", async () => {
+    test("should use post title for image title and alt", async () => {
       const content = `---
-title: Test Post
-coverImage: https://example.com/image.png
+title: My Awesome Post
+slug: my-awesome-post
+coverImageUrl: https://example.com/image.png
 ---
 
 Post content here.`;
@@ -197,10 +199,52 @@ Post content here.`;
       expect(mockEntityService.createEntity).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
+            title: "Cover image for My Awesome Post",
+            alt: "Cover image for My Awesome Post",
             sourceUrl: "https://example.com/image.png",
           }),
         }),
       );
+    });
+
+    test("should use coverImageAlt when provided", async () => {
+      const content = `---
+title: My Awesome Post
+slug: my-awesome-post
+coverImageUrl: https://example.com/image.png
+coverImageAlt: A beautiful sunset over the mountains
+---
+
+Post content here.`;
+
+      await converter.convert(content);
+
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            title: "Cover image for My Awesome Post",
+            alt: "A beautiful sunset over the mountains",
+          }),
+        }),
+      );
+    });
+
+    test("should remove coverImageAlt from frontmatter after conversion", async () => {
+      const content = `---
+title: My Awesome Post
+slug: my-awesome-post
+coverImageUrl: https://example.com/image.png
+coverImageAlt: Custom alt text
+---
+
+Post content here.`;
+
+      const result = await converter.convert(content);
+
+      expect(result.converted).toBe(true);
+      expect(result.content).not.toContain("coverImageAlt:");
+      expect(result.content).not.toContain("coverImageUrl:");
+      expect(result.content).toContain("coverImageId:");
     });
   });
 });

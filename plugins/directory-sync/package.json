@@ -19,6 +19,7 @@
     "clean": "rm -rf .turbo"
   },
   "dependencies": {
+    "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "chokidar": "^3.5.3",
