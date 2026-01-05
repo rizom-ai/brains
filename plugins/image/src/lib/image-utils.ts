@@ -69,37 +69,8 @@ export function isValidDataUrl(str: string): boolean {
   return /^data:image\/[a-z+]+;base64,.+$/i.test(str);
 }
 
-/**
- * Check if string is an HTTP(S) URL
- */
-export function isHttpUrl(str: string): boolean {
-  return /^https?:\/\//i.test(str);
-}
-
-/**
- * Fetch an image from URL and return as base64 data URL
- */
-export async function fetchImageAsBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch image: ${response.status} ${response.statusText}`,
-    );
-  }
-
-  const contentType = response.headers.get("content-type");
-  if (!contentType?.startsWith("image/")) {
-    throw new Error(`URL does not point to an image: ${contentType}`);
-  }
-
-  const arrayBuffer = await response.arrayBuffer();
-  const base64 = Buffer.from(arrayBuffer).toString("base64");
-
-  // Extract format from content-type (e.g., "image/png" -> "png")
-  const format = contentType.split("/")[1]?.split(";")[0] ?? "png";
-
-  return createDataUrl(base64, format);
-}
+// Re-export HTTP utilities from @brains/utils for convenience
+export { isHttpUrl, fetchImageAsBase64 } from "@brains/utils";
 
 /**
  * Get image dimensions from base64 data

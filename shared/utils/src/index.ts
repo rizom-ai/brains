@@ -54,6 +54,13 @@ export { computeContentHash } from "./hash";
 // Sort utilities
 export { sortByPublicationDate } from "./sort";
 
+// HTTP utilities
+export {
+  isHttpUrl,
+  fetchAsBase64DataUrl,
+  fetchImageAsBase64,
+} from "./http-utils";
+
 // Response types
 export {
   defaultQueryResponseSchema,

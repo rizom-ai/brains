@@ -17,6 +17,7 @@ export type ImageFormat = z.infer<typeof imageFormatSchema>;
 /**
  * Image entity metadata schema
  * All fields required (auto-detected on upload)
+ * sourceUrl is optional - used for deduplication when importing from URLs
  */
 export const imageMetadataSchema = z.object({
   title: z.string(),
@@ -24,6 +25,7 @@ export const imageMetadataSchema = z.object({
   format: imageFormatSchema,
   width: z.number(),
   height: z.number(),
+  sourceUrl: z.string().url().optional(),
 });
 
 export type ImageMetadata = z.infer<typeof imageMetadataSchema>;

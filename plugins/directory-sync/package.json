@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*",
     "chokidar": "^3.5.3",
     "gray-matter": "^4.0.3"
   },
