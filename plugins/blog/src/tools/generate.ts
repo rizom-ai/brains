@@ -31,7 +31,10 @@ export const generateInputSchema = z.object({
     .string()
     .optional()
     .describe("Short excerpt/summary (will be auto-generated if not provided)"),
-  coverImage: z.string().optional(),
+  coverImageId: z
+    .string()
+    .optional()
+    .describe("ID of an image entity to use as cover image"),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
   skipAi: z

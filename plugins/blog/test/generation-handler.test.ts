@@ -548,13 +548,13 @@ Content`;
       expect(entityData.metadata.publishedAt).toBeUndefined();
     });
 
-    it("should include cover image when provided", async () => {
+    it("should include cover image ID when provided", async () => {
       await handler.process(
         {
           title: "Test",
           content: "Content",
           excerpt: "Excerpt",
-          coverImage: "https://example.com/image.jpg",
+          coverImageId: "hero-image",
         },
         "job-123",
         mockProgressReporter,
@@ -563,8 +563,7 @@ Content`;
       const createCall = createEntitySpy.mock.calls[0];
       const entityData = createCall?.[0] as BlogPost;
 
-      // URL is quoted in YAML frontmatter
-      expect(entityData.content).toContain("https://example.com/image.jpg");
+      expect(entityData.content).toContain("coverImageId: hero-image");
     });
 
     it("should return entityId and slug on success", async () => {

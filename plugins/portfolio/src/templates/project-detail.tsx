@@ -91,18 +91,18 @@ export const ProjectDetailTemplate = ({
       <Head
         title={frontmatter.title}
         description={frontmatter.description}
-        {...(frontmatter.coverImage && {
-          ogImage: frontmatter.coverImage,
+        {...(frontmatter.coverImageId && {
+          ogImage: frontmatter.coverImageId,
         })}
         ogType="article"
       />
       <article className="project-detail">
         <div className="container mx-auto px-6 md:px-8 py-12 md:py-20">
           <div className="max-w-3xl mx-auto">
-            {/* Cover Image */}
-            {frontmatter.coverImage && (
+            {/* Cover Image - TODO: resolve coverImageId to data URL */}
+            {frontmatter.coverImageId && (
               <img
-                src={frontmatter.coverImage}
+                src={frontmatter.coverImageId}
                 alt={frontmatter.title}
                 className="w-full h-80 md:h-96 object-cover rounded-lg mb-8 shadow-lg"
               />

@@ -12,7 +12,7 @@ export const projectFrontmatterSchema = z.object({
   publishedAt: z.string().datetime().optional(),
   description: z.string(), // 1-2 sentence summary for cards
   year: z.number(), // Year project began, used for ordering
-  coverImage: z.string().optional(),
+  coverImageId: z.string().optional(), // References an image entity by ID
   technologies: z.array(z.string()).optional(),
   url: z.string().url().optional(), // Link to live project
 });
@@ -61,11 +61,13 @@ export type ProjectContent = z.infer<typeof projectContentSchema>;
 /**
  * Project with parsed data (returned by datasource)
  * Extends Project with parsed frontmatter, body, and structured content
+ * coverImageUrl is resolved from coverImageId and contains the actual image data URL
  */
 export const projectWithDataSchema = projectSchema.extend({
   frontmatter: projectFrontmatterSchema,
   body: z.string(),
   structuredContent: projectContentSchema.optional(),
+  coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
 });
 
 export type ProjectWithData = z.infer<typeof projectWithDataSchema>;

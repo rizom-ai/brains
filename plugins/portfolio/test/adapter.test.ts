@@ -70,7 +70,7 @@ title: My Portfolio Project
 status: published
 description: A cool project I built
 year: 2023
-coverImage: /images/project.png
+coverImageId: hero-image
 technologies:
   - TypeScript
   - React

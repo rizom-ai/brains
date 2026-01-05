@@ -28,9 +28,10 @@ const ProjectCard = ({
 
   return (
     <Card href={url}>
-      {frontmatter.coverImage && (
+      {/* TODO: resolve coverImageId to data URL */}
+      {frontmatter.coverImageId && (
         <img
-          src={frontmatter.coverImage}
+          src={frontmatter.coverImageId}
           alt={frontmatter.title}
           className="w-full h-56 object-cover rounded-md mb-4"
         />

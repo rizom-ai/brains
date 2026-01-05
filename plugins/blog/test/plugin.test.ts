@@ -238,13 +238,13 @@ Series post content`;
       expect(metadata["seriesIndex"]).toBe(1);
     });
 
-    it("should handle cover image in frontmatter", () => {
+    it("should handle cover image ID in frontmatter", () => {
       const content = `---
 title: Post With Image
 status: draft
 excerpt: Has a cover image
 author: Image Author
-coverImage: https://example.com/image.png
+coverImageId: hero-image
 ---
 
 Post with cover image`;
@@ -264,14 +264,11 @@ Post with cover image`;
       };
 
       const markdown = adapter.toMarkdown(entity);
-      // YAML serialization may quote the URL
-      expect(markdown).toMatch(
-        /coverImage:.*https:\/\/example\.com\/image\.png/,
-      );
+      expect(markdown).toContain("coverImageId: hero-image");
 
       const metadata = adapter.extractMetadata(entity);
-      // coverImage is in frontmatter, not metadata
-      expect("coverImage" in metadata).toBe(false);
+      // coverImageId is in frontmatter, not metadata
+      expect("coverImageId" in metadata).toBe(false);
     });
 
     it("should merge auto-generated slug from metadata into frontmatter when missing", () => {

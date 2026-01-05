@@ -724,5 +724,72 @@ describe("DynamicRouteGenerator", () => {
       expect(routeRegistry.get("/posts")).toBeDefined();
       expect(routeRegistry.get("/posts/page/2")).toBeUndefined();
     });
+
+    test("should not match 'social-post-list' template when looking for 'post' entity type", async () => {
+      // Regression test: template matching should be exact, not suffix-based
+      // "social-post-list" ends with "post-list" but should NOT match entity type "post"
+      entityTypes.push("post", "social-post");
+      entities.set("post", [createMockEntity("my-post", "post", "my-post")]);
+      entities.set("social-post", [
+        createMockEntity("tweet-1", "social-post", "tweet-1"),
+      ]);
+
+      // Register both templates - social-post-list could incorrectly match "post"
+      // if using simple endsWith() check
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "social-media:social-post-list",
+          pluginId: "social-media",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+        {
+          name: "social-media:social-post-detail",
+          pluginId: "social-media",
+          schema: z.object({}),
+          renderers: {},
+          interactive: false,
+        },
+      );
+
+      await generator.generateEntityRoutes();
+
+      // Verify "post" routes use the correct template
+      const postIndexRoute = routeRegistry.get("/posts");
+      expect(postIndexRoute).toBeDefined();
+      expect(postIndexRoute?.sections[0]?.template).toBe("blog:post-list");
+
+      const postDetailRoute = routeRegistry.get("/posts/my-post");
+      expect(postDetailRoute).toBeDefined();
+      expect(postDetailRoute?.sections[0]?.template).toBe("blog:post-detail");
+
+      // Verify "social-post" routes use the correct template
+      const socialPostIndexRoute = routeRegistry.get("/social-posts");
+      expect(socialPostIndexRoute).toBeDefined();
+      expect(socialPostIndexRoute?.sections[0]?.template).toBe(
+        "social-media:social-post-list",
+      );
+
+      const socialPostDetailRoute = routeRegistry.get("/social-posts/tweet-1");
+      expect(socialPostDetailRoute).toBeDefined();
+      expect(socialPostDetailRoute?.sections[0]?.template).toBe(
+        "social-media:social-post-detail",
+      );
+    });
   });
 });

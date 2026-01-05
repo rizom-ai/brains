@@ -13,7 +13,7 @@ export const blogGenerationJobSchema = z.object({
   title: z.string().optional(),
   content: z.string().optional(),
   excerpt: z.string().optional(),
-  coverImage: z.string().optional(),
+  coverImageId: z.string().optional(),
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
   skipAi: z.boolean().optional(),
@@ -58,7 +58,7 @@ export class BlogGenerationJobHandler extends BaseJobHandler<
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<BlogGenerationResult> {
-    const { prompt, coverImage, seriesName, seriesIndex, skipAi } = data;
+    const { prompt, coverImageId, seriesName, seriesIndex, skipAi } = data;
     let { title, content, excerpt } = data;
 
     try {
@@ -219,7 +219,7 @@ Add your conclusion here.`;
         status: "draft" as const,
         excerpt: finalExcerpt,
         author,
-        ...(coverImage && { coverImage }),
+        ...(coverImageId && { coverImageId }),
         ...(seriesName && { seriesName }),
         ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
       };

@@ -68,9 +68,9 @@ export const SeriesDetailTemplate = ({
           <div className="space-y-6">
             {posts.map((post) => (
               <Card key={post.id} variant="horizontal">
-                {post.frontmatter.coverImage && (
+                {post.coverImageUrl && (
                   <CardImage
-                    src={post.frontmatter.coverImage}
+                    src={post.coverImageUrl}
                     alt={post.frontmatter.title}
                     size="small"
                   />

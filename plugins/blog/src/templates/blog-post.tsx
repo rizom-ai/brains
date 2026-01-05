@@ -49,8 +49,8 @@ export const BlogPostTemplate = ({
       <Head
         title={post.frontmatter.title}
         description={post.frontmatter.excerpt}
-        {...(post.frontmatter.coverImage && {
-          ogImage: post.frontmatter.coverImage,
+        {...(post.coverImageUrl && {
+          ogImage: post.coverImageUrl,
         })}
         ogType="article"
       />
@@ -66,9 +66,9 @@ export const BlogPostTemplate = ({
               <Breadcrumb items={breadcrumbItems} />
 
               {/* Cover Image */}
-              {post.frontmatter.coverImage && (
+              {post.coverImageUrl && (
                 <img
-                  src={post.frontmatter.coverImage}
+                  src={post.coverImageUrl}
                   alt={post.frontmatter.title}
                   className="w-full h-80 md:h-96 object-cover rounded-lg mb-8 shadow-lg"
                 />

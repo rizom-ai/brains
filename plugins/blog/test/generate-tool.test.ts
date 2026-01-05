@@ -104,7 +104,7 @@ describe("Generate Tool", () => {
           title: "AI Post",
           content: "AI content",
           excerpt: "AI excerpt",
-          coverImage: "https://example.com/image.jpg",
+          coverImageId: "hero-image",
           seriesName: "AI Series",
           seriesIndex: 1,
         },
@@ -117,7 +117,7 @@ describe("Generate Tool", () => {
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
       expect(jobData["seriesName"]).toBe("AI Series");
       expect(jobData["seriesIndex"]).toBe(1);
-      expect(jobData["coverImage"]).toBe("https://example.com/image.jpg");
+      expect(jobData["coverImageId"]).toBe("hero-image");
     });
 
     it("should include correct job metadata", async () => {

@@ -288,20 +288,33 @@ export class DynamicRouteGenerator {
     const allTemplates = this.context.listViewTemplates();
 
     // Look for templates matching the pattern [entityType]-list/detail
+    // Must match exactly after namespace separator (":") to avoid
+    // "social-post-list" matching entity type "post"
     let listTemplateName: string | undefined;
     let detailTemplateName: string | undefined;
+
+    const listSuffix = `${entityType}-list`;
+    const detailSuffix = `${entityType}-detail`;
 
     for (const template of allTemplates) {
       const templateName = template.name;
 
-      // Check for list template
-      if (templateName.endsWith(`${entityType}-list`)) {
-        listTemplateName = templateName;
+      // Check for list template - must be exact match after ":" or at start
+      if (templateName.endsWith(listSuffix)) {
+        const prefix = templateName.slice(0, -listSuffix.length);
+        // Valid if no prefix, or prefix ends with ":" (namespace separator)
+        if (prefix === "" || prefix.endsWith(":")) {
+          listTemplateName = templateName;
+        }
       }
 
-      // Check for detail template
-      if (templateName.endsWith(`${entityType}-detail`)) {
-        detailTemplateName = templateName;
+      // Check for detail template - must be exact match after ":" or at start
+      if (templateName.endsWith(detailSuffix)) {
+        const prefix = templateName.slice(0, -detailSuffix.length);
+        // Valid if no prefix, or prefix ends with ":" (namespace separator)
+        if (prefix === "" || prefix.endsWith(":")) {
+          detailTemplateName = templateName;
+        }
       }
     }
 

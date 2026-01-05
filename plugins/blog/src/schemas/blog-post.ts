@@ -18,7 +18,7 @@ export const blogPostFrontmatterSchema = z.object({
   publishedAt: z.string().datetime().optional(),
   excerpt: z.string(),
   author: z.string(),
-  coverImage: z.string().optional(),
+  coverImageId: z.string().optional(), // References an image entity by ID
   seriesName: z.string().optional(),
   seriesIndex: z.number().optional(),
   // SEO metadata (optional, with smart fallbacks)
@@ -63,10 +63,12 @@ export type BlogPost = z.infer<typeof blogPostSchema>;
 /**
  * Blog post with parsed frontmatter data (returned by datasource)
  * Extends BlogPost with parsed frontmatter and body (markdown without frontmatter)
+ * coverImageUrl is resolved from coverImageId and contains the actual image data URL
  */
 export const blogPostWithDataSchema = blogPostSchema.extend({
   frontmatter: blogPostFrontmatterSchema,
   body: z.string(),
+  coverImageUrl: z.string().optional(), // Resolved data URL from coverImageId
 });
 
 export type BlogPostWithData = z.infer<typeof blogPostWithDataSchema>;
