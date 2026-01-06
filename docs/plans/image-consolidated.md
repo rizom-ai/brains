@@ -2,18 +2,20 @@
 
 ## Status Summary
 
-| Feature                                   | Status   |
-| ----------------------------------------- | -------- |
-| Image plugin core                         | Complete |
-| image_upload, image_get, image_list tools | Complete |
-| Binary image import (directory-sync)      | Complete |
-| coverImageUrl → coverImageId conversion   | Complete |
-| Non-blocking image extraction             | Complete |
-| Inline markdown images                    | TODO     |
-| image_describe tool (AI alt text)         | TODO     |
-| image_update tool                         | TODO     |
-| Site-builder image extraction             | TODO     |
-| coverImageId for decks/series             | TODO     |
+| Feature                                   | Status                      |
+| ----------------------------------------- | --------------------------- |
+| Image as shared package (was plugin)      | Complete                    |
+| Image registered as builtin entity type   | Complete                    |
+| image_upload, image_get, image_list tools | Complete (in system plugin) |
+| Binary image import (directory-sync)      | Complete                    |
+| coverImageUrl → coverImageId conversion   | Complete                    |
+| Non-blocking image extraction             | Complete                    |
+| Inline markdown images                    | Complete                    |
+| ImageReferenceResolver in entity-service  | Complete                    |
+| Site-builder image extraction             | TODO                        |
+| image_generate tool (AI image creation)   | TODO                        |
+| image_describe tool (AI alt text)         | TODO                        |
+| coverImageId for decks/series             | TODO                        |
 
 ---
 
@@ -104,9 +106,11 @@ if (imageUrl) {
 
 ---
 
-## Phase 2: Inline Markdown Images
+## Phase 2: Inline Markdown Images ✅ COMPLETE
 
 Convert `![alt](https://url)` → `![alt](entity://image/{id})` in post body.
+
+**Implementation:** See commits `bcb6e8e8`, `0b8d07fa`, `3e960ddb`
 
 ### 2.1 MarkdownImageConverter
 
@@ -136,32 +140,7 @@ At render time:
 
 ---
 
-## Phase 3: Image Tools
-
-### 3.1 image_describe
-
-**File:** `plugins/image/src/tools/index.ts`
-
-AI-generate alt text from image content:
-
-1. Retrieve image entity
-2. Send base64 to vision model
-3. Generate descriptive alt text
-4. Update entity metadata
-
-### 3.2 image_update
-
-**File:** `plugins/image/src/tools/index.ts`
-
-Update image metadata (title, alt, tags):
-
-```typescript
-image_update({ id, title?, alt?, tags? })
-```
-
----
-
-## Phase 4: Site-Builder Image Extraction
+## Phase 3: Site-Builder Image Extraction
 
 ### Problem
 
@@ -182,6 +161,43 @@ At build time:
 const imageMap = await extractImagesToStatic(imageIds, outputDir);
 // Templates receive imageMap for URL resolution
 ```
+
+---
+
+## Phase 4: AI Image Tools
+
+### 4.1 image_generate (TODO)
+
+**File:** `plugins/system/src/tools/image-tools.ts`
+
+AI-generate images from text prompts:
+
+1. Accept text prompt describing desired image
+2. Send prompt to image generation model (OpenAI DALL-E / other provider)
+3. Receive generated image as base64
+4. Create image entity with generated content
+5. Return image ID
+
+**Input:**
+
+```typescript
+{
+  prompt: string;           // Text description of desired image
+  title?: string;           // Optional title (defaults to truncated prompt)
+  style?: string;           // Optional style hints (e.g., "photorealistic", "illustration")
+}
+```
+
+### 4.2 image_describe (TODO)
+
+**File:** `plugins/system/src/tools/image-tools.ts`
+
+AI-generate alt text from image content:
+
+1. Retrieve image entity
+2. Send base64 to vision model
+3. Generate descriptive alt text
+4. Update entity metadata
 
 ---
 
@@ -232,9 +248,9 @@ Use cases:
 ## Implementation Order
 
 1. ~~**Phase 1**: Non-blocking extraction~~ ✅ Complete
-2. **Phase 2**: Inline markdown images
-3. **Phase 3**: image_describe, image_update tools
-4. **Phase 4**: Site-builder extraction
+2. ~~**Phase 2**: Inline markdown images~~ ✅ Complete
+3. **Phase 3**: Site-builder image extraction
+4. **Phase 4**: AI image tools (image_generate, image_describe)
 5. **Phase 5**: Cover images for decks/series
 
 ---
