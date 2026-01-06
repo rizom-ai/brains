@@ -25,6 +25,7 @@ import { FileOperations } from "./file-operations";
 import { ProgressOperations } from "./progress-operations";
 import { EventHandler } from "./event-handler";
 import { FrontmatterImageConverter } from "./frontmatter-image-converter";
+import { MarkdownImageConverter } from "./markdown-image-converter";
 
 /**
  * DirectorySync options schema
@@ -65,7 +66,8 @@ export class DirectorySync {
   private batchOperationsManager: BatchOperationsManager;
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
-  private imageConverter: FrontmatterImageConverter;
+  private coverImageConverter: FrontmatterImageConverter;
+  private inlineImageConverter: MarkdownImageConverter;
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
 
   constructor(options: DirectorySyncOptions) {
@@ -98,7 +100,11 @@ export class DirectorySync {
       this.entityService,
       this.fileOperations,
     );
-    this.imageConverter = new FrontmatterImageConverter(
+    this.coverImageConverter = new FrontmatterImageConverter(
+      this.entityService,
+      this.logger,
+    );
+    this.inlineImageConverter = new MarkdownImageConverter(
       this.entityService,
       this.logger,
     );
@@ -370,10 +376,10 @@ export class DirectorySync {
   }
 
   /**
-   * Queue image conversion job if content has coverImageUrl that needs conversion
+   * Queue cover image conversion job if content has coverImageUrl that needs conversion
    * This is non-blocking - just queues a job and returns immediately
    */
-  private queueImageConversionIfNeeded(
+  private queueCoverImageConversionIfNeeded(
     content: string,
     filePath: string,
   ): void {
@@ -383,7 +389,7 @@ export class DirectorySync {
     }
 
     // Detect if conversion is needed (sync, fast)
-    const detection = this.imageConverter.detectCoverImageUrl(content);
+    const detection = this.coverImageConverter.detectCoverImageUrl(content);
     if (!detection) {
       return;
     }
@@ -395,7 +401,7 @@ export class DirectorySync {
 
     // Queue the conversion job (non-blocking)
     this.jobQueueCallback({
-      type: "image-convert",
+      type: "cover-image-convert",
       data: {
         filePath: fullPath,
         sourceUrl: detection.sourceUrl,
@@ -411,9 +417,58 @@ export class DirectorySync {
       });
     });
 
-    this.logger.debug("Queued image conversion job", {
+    this.logger.debug("Queued cover image conversion job", {
       filePath,
       sourceUrl: detection.sourceUrl,
+    });
+  }
+
+  /**
+   * Queue inline image conversion job if content has HTTP image URLs in body
+   * This is non-blocking - just queues a job and returns immediately
+   */
+  private queueInlineImageConversionIfNeeded(
+    content: string,
+    filePath: string,
+    postSlug: string,
+  ): void {
+    // Skip if no job queue callback configured
+    if (!this.jobQueueCallback) {
+      return;
+    }
+
+    // Detect if conversion is needed (sync, fast)
+    const detections = this.inlineImageConverter.detectInlineImages(
+      content,
+      postSlug,
+    );
+    if (detections.length === 0) {
+      return;
+    }
+
+    // Get absolute path for the job
+    const fullPath = filePath.startsWith(this.syncPath)
+      ? filePath
+      : join(this.syncPath, filePath);
+
+    // Queue the conversion job (non-blocking)
+    this.jobQueueCallback({
+      type: "inline-image-convert",
+      data: {
+        filePath: fullPath,
+        postSlug,
+      },
+    }).catch((error) => {
+      // Log but don't fail - image conversion is best-effort
+      this.logger.warn("Failed to queue inline image conversion job", {
+        filePath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
+    this.logger.debug("Queued inline image conversion job", {
+      filePath,
+      imageCount: detections.length,
     });
   }
 
@@ -426,8 +481,15 @@ export class DirectorySync {
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
-    // Step 0: Queue image conversion if needed (non-blocking)
-    this.queueImageConversionIfNeeded(rawEntity.content, filePath);
+    // Step 0: Queue image conversions if needed (non-blocking)
+    // Cover image: coverImageUrl → coverImageId
+    this.queueCoverImageConversionIfNeeded(rawEntity.content, filePath);
+    // Inline images: ![alt](https://...) → ![alt](entity://image/{id})
+    this.queueInlineImageConversionIfNeeded(
+      rawEntity.content,
+      filePath,
+      rawEntity.id,
+    );
 
     // Step 1: Deserialize (validation errors should quarantine)
     let parsedEntity;

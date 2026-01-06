@@ -18,9 +18,9 @@ import {
 } from "@brains/image";
 
 /**
- * Schema for image conversion job data
+ * Schema for cover image conversion job data
  */
-export const imageConversionJobDataSchema = z.object({
+export const coverImageConversionJobDataSchema = z.object({
   /** Path to the markdown file to update */
   filePath: z.string(),
   /** URL of the image to fetch */
@@ -33,8 +33,8 @@ export const imageConversionJobDataSchema = z.object({
   customAlt: z.string().optional(),
 });
 
-export type ImageConversionJobData = z.infer<
-  typeof imageConversionJobDataSchema
+export type CoverImageConversionJobData = z.infer<
+  typeof coverImageConversionJobDataSchema
 >;
 
 interface ImageConversionResult {
@@ -59,9 +59,9 @@ export type ImageFetcher = (url: string) => Promise<string>;
  * 5. Creates image entity
  * 6. Updates file frontmatter (coverImageUrl → coverImageId)
  */
-export class ImageConversionJobHandler extends BaseJobHandler<
-  "image-convert",
-  ImageConversionJobData,
+export class CoverImageConversionJobHandler extends BaseJobHandler<
+  "cover-image-convert",
+  CoverImageConversionJobData,
   ImageConversionResult
 > {
   private readonly context: ServicePluginContext;
@@ -73,15 +73,15 @@ export class ImageConversionJobHandler extends BaseJobHandler<
     fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
     super(logger, {
-      schema: imageConversionJobDataSchema,
-      jobTypeName: "image-convert",
+      schema: coverImageConversionJobDataSchema,
+      jobTypeName: "cover-image-convert",
     });
     this.context = context;
     this.fetcher = fetcher;
   }
 
   async process(
-    data: ImageConversionJobData,
+    data: CoverImageConversionJobData,
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<ImageConversionResult> {
@@ -269,7 +269,7 @@ export class ImageConversionJobHandler extends BaseJobHandler<
   }
 
   protected override summarizeDataForLog(
-    data: ImageConversionJobData,
+    data: CoverImageConversionJobData,
   ): Record<string, unknown> {
     return {
       filePath: data.filePath,

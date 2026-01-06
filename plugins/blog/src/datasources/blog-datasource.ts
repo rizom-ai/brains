@@ -12,7 +12,7 @@ import {
   blogPostWithDataSchema,
   type BlogPostWithData,
 } from "../schemas/blog-post";
-import { ImageReferenceResolver } from "../lib/image-reference-resolver";
+import type { ImageReferenceResolver } from "../lib/image-reference-resolver";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({

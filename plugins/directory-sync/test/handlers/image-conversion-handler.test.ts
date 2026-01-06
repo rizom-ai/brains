@@ -9,8 +9,8 @@ import {
 } from "bun:test";
 import * as fs from "fs";
 import {
-  ImageConversionJobHandler,
-  type ImageConversionJobData,
+  CoverImageConversionJobHandler,
+  type CoverImageConversionJobData,
 } from "../../src/handlers/image-conversion-handler";
 import {
   createSilentLogger,
@@ -23,8 +23,8 @@ import { ProgressReporter } from "@brains/utils";
 const VALID_PNG_DATA_URL =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-describe("ImageConversionJobHandler", () => {
-  let handler: ImageConversionJobHandler;
+describe("CoverImageConversionJobHandler", () => {
+  let handler: CoverImageConversionJobHandler;
   let context: ServicePluginContext;
   let logger: Logger;
   let progressReporter: ProgressReporter;
@@ -63,7 +63,7 @@ describe("ImageConversionJobHandler", () => {
 
     mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
 
-    handler = new ImageConversionJobHandler(context, logger, mockFetcher);
+    handler = new CoverImageConversionJobHandler(context, logger, mockFetcher);
     progressReporter = createProgressReporter();
 
     // Mock file system operations - reset any previous spies first
@@ -174,8 +174,8 @@ describe("ImageConversionJobHandler", () => {
 
   describe("process", () => {
     const createValidJobData = (
-      overrides: Partial<ImageConversionJobData> = {},
-    ): ImageConversionJobData => ({
+      overrides: Partial<CoverImageConversionJobData> = {},
+    ): CoverImageConversionJobData => ({
       filePath: "/path/to/post.md",
       sourceUrl: "https://example.com/image.jpg",
       postTitle: "Test Post",

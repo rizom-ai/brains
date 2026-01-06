@@ -190,9 +190,9 @@ export const directoryDeleteJobSchema = z.object({
 export type DirectoryDeleteJobData = z.infer<typeof directoryDeleteJobSchema>;
 
 /**
- * Schema for image conversion job data
+ * Schema for cover image conversion job data
  */
-export const imageConversionJobSchema = z.object({
+export const coverImageConversionJobSchema = z.object({
   filePath: z.string(),
   sourceUrl: z.string().url(),
   postTitle: z.string(),
@@ -200,7 +200,23 @@ export const imageConversionJobSchema = z.object({
   customAlt: z.string().optional(),
 });
 
-export type ImageConversionJobData = z.infer<typeof imageConversionJobSchema>;
+export type CoverImageConversionJobData = z.infer<
+  typeof coverImageConversionJobSchema
+>;
+
+/**
+ * Schema for inline image conversion job data
+ */
+export const inlineImageConversionJobSchema = z.object({
+  /** Path to the markdown file to update */
+  filePath: z.string(),
+  /** Slug of the post (used for generating image IDs) */
+  postSlug: z.string(),
+});
+
+export type InlineImageConversionJobData = z.infer<
+  typeof inlineImageConversionJobSchema
+>;
 
 /**
  * Job request types for file watcher - discriminated union for type safety
@@ -210,7 +226,8 @@ export type JobRequest =
   | { type: "directory-import"; data: DirectoryImportJobData }
   | { type: "directory-export"; data: DirectoryExportJobData }
   | { type: "directory-delete"; data: DirectoryDeleteJobData }
-  | { type: "image-convert"; data: ImageConversionJobData };
+  | { type: "cover-image-convert"; data: CoverImageConversionJobData }
+  | { type: "inline-image-convert"; data: InlineImageConversionJobData };
 
 /**
  * Interface for file operations used by handlers

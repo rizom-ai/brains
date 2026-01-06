@@ -112,7 +112,7 @@ Post content here.`;
 
     // Verify a job was queued
     expect(queuedJobs.length).toBe(1);
-    expect(queuedJobs[0]?.type).toBe("image-convert");
+    expect(queuedJobs[0]?.type).toBe("cover-image-convert");
     expect(queuedJobs[0]?.data).toEqual({
       filePath: postPath,
       sourceUrl: "https://example.com/hero.jpg",
