@@ -1,16 +1,16 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { SystemPlugin } from "../src/plugin";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("SystemPlugin", () => {
-  let harness: ReturnType<typeof createCorePluginHarness>;
+  let harness: ReturnType<typeof createServicePluginHarness>;
   let plugin: SystemPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
     // Create test harness with dataDir for context
-    harness = createCorePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
     capabilities = await harness.installPlugin(plugin);
@@ -23,13 +23,13 @@ describe("SystemPlugin", () => {
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("system");
-      expect(plugin.type).toBe("core");
+      expect(plugin.type).toBe("service");
       expect(plugin.version).toBeDefined();
     });
 
     it("should provide all expected tools", () => {
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools.length).toBe(10);
+      expect(capabilities.tools.length).toBe(13);
 
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("system_search");
@@ -42,6 +42,10 @@ describe("SystemPlugin", () => {
       expect(toolNames).toContain("system_get-profile");
       expect(toolNames).toContain("system_get-messages");
       expect(toolNames).toContain("system_get-status");
+      // Image tools
+      expect(toolNames).toContain("system_image-upload");
+      expect(toolNames).toContain("system_image-get");
+      expect(toolNames).toContain("system_image-list");
     });
   });
 

@@ -11,11 +11,14 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
+    "@brains/image": "workspace:*",
     "@brains/job-queue": "workspace:*",
-    "@brains/plugins": "workspace:*"
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^20.0.0",

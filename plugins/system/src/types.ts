@@ -3,6 +3,7 @@ import type {
   SearchResult,
   BaseEntity,
   AppInfo,
+  EntityInput,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
@@ -63,4 +64,10 @@ export interface ISystemPlugin {
   getIdentityData(): IdentityBody;
   getProfileData(): ProfileBody;
   getAppInfo(): Promise<AppInfo>;
+  /**
+   * Create a new entity
+   */
+  createEntity<T extends BaseEntity>(
+    entity: EntityInput<T>,
+  ): Promise<{ entityId: string; jobId: string }>;
 }

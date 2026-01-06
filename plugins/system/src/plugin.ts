@@ -1,4 +1,4 @@
-import { CorePlugin } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import type {
   PluginTool,
   BaseEntity,
@@ -7,6 +7,7 @@ import type {
   IdentityBody,
   ProfileBody,
   AppInfo,
+  EntityInput,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
@@ -27,7 +28,7 @@ import packageJson from "../package.json";
  * - Get: Retrieve specific entities by ID
  * - Job Status: Monitor background operations
  */
-export class SystemPlugin extends CorePlugin<SystemConfig> {
+export class SystemPlugin extends ServicePlugin<SystemConfig> {
   // After validation with defaults, config is complete
   declare protected config: SystemConfig;
 
@@ -314,5 +315,17 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
       throw new Error("Plugin not registered");
     }
     return this.context.getAppInfo();
+  }
+
+  /**
+   * Create a new entity
+   */
+  public async createEntity<T extends BaseEntity>(
+    entity: EntityInput<T>,
+  ): Promise<{ entityId: string; jobId: string }> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.entityService.createEntity(entity);
   }
 }
