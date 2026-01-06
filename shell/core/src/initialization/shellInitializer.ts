@@ -41,6 +41,7 @@ import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
 import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
 import { ProfileAdapter, ProfileService } from "@brains/profile-service";
+import { imageSchema, imageAdapter } from "@brains/image";
 import {
   AgentService,
   createBrainAgentFactory,
@@ -228,6 +229,24 @@ export class ShellInitializer {
     } catch (error) {
       this.logger.error("Failed to register profile entity support", error);
       throw new Error("Failed to register profile entity type");
+    }
+  }
+
+  /**
+   * Register image entity support
+   * This provides base64 image storage with entity://image/{id} references
+   */
+  public registerImageSupport(entityRegistry: IEntityRegistry): void {
+    this.logger.debug("Registering image entity support");
+
+    try {
+      // Register with entity registry
+      entityRegistry.registerEntityType("image", imageSchema, imageAdapter);
+
+      this.logger.debug("Image entity support registered successfully");
+    } catch (error) {
+      this.logger.error("Failed to register image entity support", error);
+      throw new Error("Failed to register image entity type");
     }
   }
 
@@ -588,7 +607,10 @@ export class ShellInitializer {
       // Step 4: Register profile entity support
       this.registerProfileSupport(entityRegistry);
 
-      // Step 5: Initialize plugins
+      // Step 5: Register image entity support (builtin)
+      this.registerImageSupport(entityRegistry);
+
+      // Step 6: Initialize plugins
       await this.initializePlugins(pluginManager);
 
       this.logger.debug("Shell ready");

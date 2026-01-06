@@ -1,9 +1,4 @@
-export { ImagePlugin, imagePlugin } from "./plugin";
-export {
-  imageConfigSchema,
-  type ImageConfig,
-  type ImageConfigInput,
-} from "./config";
+// Image entity schemas and types
 export {
   imageSchema,
   imageMetadataSchema,
@@ -14,8 +9,15 @@ export {
   type ImageFormat,
   type ResolvedImage,
 } from "./schemas/image";
+
+// Image entity adapter
 export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
+export type { CreateImageInput } from "./adapters/image-adapter";
+
+// Image resolver utility
 export { resolveImage } from "./lib/image-resolver";
+
+// Image utilities
 export {
   parseDataUrl,
   createDataUrl,
@@ -25,3 +27,4 @@ export {
   isHttpUrl,
   fetchImageAsBase64,
 } from "./lib/image-utils";
+export type { ParsedDataUrl } from "./lib/image-utils";

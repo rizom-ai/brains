@@ -1,4 +1,4 @@
-import type { EntityAdapter } from "@brains/plugins";
+import type { EntityAdapter } from "@brains/entity-service";
 import type { z } from "@brains/utils";
 import {
   imageSchema,

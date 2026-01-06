@@ -1,7 +1,7 @@
 {
   "name": "@brains/image",
   "version": "0.1.0",
-  "description": "Image entity support with base64 storage and AI-powered alt text generation",
+  "description": "Image entity support with base64 storage - schemas, adapter, and utilities",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -13,13 +13,11 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/plugins": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
-    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "bun-types": "latest",

@@ -47,7 +47,6 @@
         "@brains/default-site-content": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/git-sync": "workspace:*",
-        "@brains/image": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/matrix": "workspace:*",
         "@brains/mcp": "workspace:*",
@@ -248,24 +247,6 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/image": {
-      "name": "@brains/image",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -478,6 +459,22 @@
         "@typescript-eslint/eslint-plugin": "^8.33.0",
         "@typescript-eslint/parser": "^8.33.0",
         "eslint-config-prettier": "^8.10.0",
+      },
+    },
+    "shared/image": {
+      "name": "@brains/image",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
       },
     },
     "shared/product-site-content": {
@@ -713,10 +710,12 @@
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/identity-service": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/permission-service": "workspace:*",
+        "@brains/profile-service": "workspace:*",
         "@brains/render-service": "workspace:*",
         "@brains/service-registry": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1014,7 +1013,7 @@
 
     "@brains/identity-service": ["@brains/identity-service@workspace:shell/identity-service"],
 
-    "@brains/image": ["@brains/image@workspace:plugins/image"],
+    "@brains/image": ["@brains/image@workspace:shared/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
 
