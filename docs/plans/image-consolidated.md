@@ -2,21 +2,22 @@
 
 ## Status Summary
 
-| Feature                                   | Status                  |
-| ----------------------------------------- | ----------------------- |
-| Image plugin core                         | Complete                |
-| image_upload, image_get, image_list tools | Complete                |
-| Binary image import (directory-sync)      | Complete                |
-| coverImageUrl → coverImageId conversion   | Complete (but blocking) |
-| **Non-blocking image extraction**         | **TODO - Priority**     |
-| Inline markdown images                    | TODO                    |
-| image_describe tool (AI alt text)         | TODO                    |
-| image_update tool                         | TODO                    |
-| Site-builder image extraction             | TODO                    |
+| Feature                                   | Status   |
+| ----------------------------------------- | -------- |
+| Image plugin core                         | Complete |
+| image_upload, image_get, image_list tools | Complete |
+| Binary image import (directory-sync)      | Complete |
+| coverImageUrl → coverImageId conversion   | Complete |
+| Non-blocking image extraction             | Complete |
+| Inline markdown images                    | TODO     |
+| image_describe tool (AI alt text)         | TODO     |
+| image_update tool                         | TODO     |
+| Site-builder image extraction             | TODO     |
+| coverImageId for decks/series             | TODO     |
 
 ---
 
-## Phase 1: Non-Blocking Image Extraction (PRIORITY)
+## Phase 1: Non-Blocking Image Extraction ✅ COMPLETE
 
 ### Problem
 
@@ -184,12 +185,57 @@ const imageMap = await extractImagesToStatic(imageIds, outputDir);
 
 ---
 
+## Phase 5: Cover Images for Other Plugins
+
+Add `coverImageId` support to additional entity types.
+
+### 5.1 Decks
+
+**File:** `plugins/decks/src/schemas/deck.ts`
+
+Add to deck metadata:
+
+```typescript
+coverImageId: z.string().optional(),
+```
+
+Use cases:
+
+- Presentation thumbnail/cover slide
+- Deck listing cards
+
+### 5.2 Series
+
+**File:** `plugins/blog/src/schemas/series.ts`
+
+Add to series metadata:
+
+```typescript
+coverImageId: z.string().optional(),
+```
+
+Use cases:
+
+- Series collection cover
+- Series listing cards
+
+### Key Files
+
+| File                                 | Action        |
+| ------------------------------------ | ------------- |
+| `plugins/decks/src/schemas/deck.ts`  | Add field     |
+| `plugins/blog/src/schemas/series.ts` | Add field     |
+| Templates using decks/series         | Display cover |
+
+---
+
 ## Implementation Order
 
-1. **Phase 1.1-1.4**: Non-blocking extraction (immediate priority)
+1. ~~**Phase 1**: Non-blocking extraction~~ ✅ Complete
 2. **Phase 2**: Inline markdown images
 3. **Phase 3**: image_describe, image_update tools
 4. **Phase 4**: Site-builder extraction
+5. **Phase 5**: Cover images for decks/series
 
 ---
 
