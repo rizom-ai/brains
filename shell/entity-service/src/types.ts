@@ -163,6 +163,15 @@ export interface ICoreEntityService {
     id: string,
   ): Promise<T | null>;
 
+  /**
+   * Get entity without content resolution (raw)
+   * Used internally to avoid recursion when resolving image references
+   */
+  getEntityRaw<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null>;
+
   listEntities<T extends BaseEntity>(
     type: string,
     options?: ListOptions,

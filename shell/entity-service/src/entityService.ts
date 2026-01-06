@@ -27,6 +27,7 @@ import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
+import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 
 /**
  * Options for creating an EntityService instance
@@ -61,6 +62,7 @@ export class EntityService implements IEntityService {
   private entitySearch: EntitySearch;
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
+  private contentResolver: ContentResolver;
 
   /**
    * Get the singleton instance of EntityService
@@ -127,6 +129,7 @@ export class EntityService implements IEntityService {
       this.entityRegistry,
       this.logger,
     );
+    this.contentResolver = new ContentResolver(this.logger);
 
     // Register embedding job handler with job queue service
     const embeddingJobHandler = EmbeddingJobHandler.createFresh(
@@ -240,9 +243,34 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Get an entity by ID
+   * Get an entity by ID (with content resolution)
+   * Resolves entity://image/{id} references to data URLs
    */
   public async getEntity<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null> {
+    const entity = await this.getEntityRaw<T>(entityType, id);
+    if (!entity) {
+      return null;
+    }
+
+    // Resolve content if this entity type supports it
+    if (shouldResolveContent(entityType) && entity.content) {
+      const result = await this.contentResolver.resolve(entity.content, this);
+      if (result.resolvedCount > 0) {
+        return { ...entity, content: result.content };
+      }
+    }
+
+    return entity;
+  }
+
+  /**
+   * Get an entity by ID (raw, without content resolution)
+   * Used internally to avoid recursion when resolving image references
+   */
+  public async getEntityRaw<T extends BaseEntity>(
     entityType: string,
     id: string,
   ): Promise<T | null> {
