@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
+import { ImageReferenceResolver } from "../src/lib/image-reference-resolver";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { IEntityService, Logger } from "@brains/plugins";
 import type { BaseDataSourceContext } from "@brains/datasource";
@@ -66,7 +67,15 @@ Content for ${title}`;
       "listEntities",
     ) as unknown as typeof listEntitiesSpy;
 
-    datasource = new BlogDataSource(mockEntityService, mockLogger);
+    const imageResolver = new ImageReferenceResolver(
+      mockEntityService,
+      mockLogger,
+    );
+    datasource = new BlogDataSource(
+      mockEntityService,
+      mockLogger,
+      imageResolver,
+    );
   });
 
   describe("fetchLatestPost", () => {

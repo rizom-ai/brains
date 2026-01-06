@@ -16,7 +16,9 @@ export {
   generateMarkdown,
   markdownToHtml,
   stripMarkdown,
+  extractMarkdownImages,
 } from "./markdown";
+export type { ExtractedImage } from "./markdown";
 
 // Progress utilities
 export { ProgressReporter } from "./progress";

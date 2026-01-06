@@ -34,6 +34,7 @@ import {
   type BlogPostWithData,
 } from "./datasources/blog-datasource";
 import { SeriesDataSource } from "./datasources/series-datasource";
+import { ImageReferenceResolver } from "./lib/image-reference-resolver";
 import { paginationInfoSchema } from "@brains/datasource";
 import { generateRSSFeed } from "./rss/feed-generator";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
@@ -117,9 +118,14 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     });
 
     // Register blog datasource
+    const imageResolver = new ImageReferenceResolver(
+      context.entityService,
+      this.logger.child("ImageReferenceResolver"),
+    );
     const blogDataSource = new BlogDataSource(
       context.entityService,
       this.logger.child("BlogDataSource"),
+      imageResolver,
     );
     context.registerDataSource(blogDataSource);
 

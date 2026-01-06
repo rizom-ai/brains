@@ -2,6 +2,8 @@ import matter from "gray-matter";
 import { marked } from "marked";
 import { remark } from "remark";
 import { toString } from "mdast-util-to-string";
+import { visit } from "unist-util-visit";
+import type { Image } from "mdast";
 
 /**
  * Parse frontmatter and content from markdown
@@ -139,4 +141,60 @@ export function markdownToHtml(markdown: string): string {
 export function stripMarkdown(text: string): string {
   const tree = remark().parse(text);
   return toString(tree);
+}
+
+/**
+ * Extracted image info from markdown content
+ */
+export interface ExtractedImage {
+  /** The image URL */
+  url: string;
+  /** The alt text (empty string if not provided) */
+  alt: string;
+  /** Optional title attribute */
+  title?: string | undefined;
+  /** Start position in the original content */
+  position?:
+    | {
+        start: { line: number; column: number; offset: number };
+        end: { line: number; column: number; offset: number };
+      }
+    | undefined;
+}
+
+/**
+ * Extract all images from markdown content using AST parsing
+ * Automatically excludes images inside code blocks
+ *
+ * @param markdown The markdown content to parse
+ * @returns Array of extracted image information
+ */
+export function extractMarkdownImages(markdown: string): ExtractedImage[] {
+  const images: ExtractedImage[] = [];
+
+  const tree = remark().parse(markdown);
+
+  visit(tree, "image", (node: Image) => {
+    images.push({
+      url: node.url,
+      alt: node.alt ?? "",
+      title: node.title ?? undefined,
+      position: node.position
+        ? {
+            start: {
+              line: node.position.start.line,
+              column: node.position.start.column,
+              offset: node.position.start.offset ?? 0,
+            },
+            end: {
+              line: node.position.end.line,
+              column: node.position.end.column,
+              offset: node.position.end.offset ?? 0,
+            },
+          }
+        : undefined,
+    });
+  });
+
+  return images;
 }
