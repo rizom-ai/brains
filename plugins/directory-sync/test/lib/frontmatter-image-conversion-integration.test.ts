@@ -14,23 +14,28 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import type { JobRequest } from "../../src/types";
 
-// Valid 1x1 PNG bytes for mock fetch responses
-const VALID_PNG_BASE64 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-const VALID_PNG_BUFFER = Buffer.from(VALID_PNG_BASE64, "base64");
-
-describe("DirectorySync - FrontmatterImageConverter Integration", () => {
+describe("DirectorySync - Non-blocking Image Conversion", () => {
   let tempDir: string;
   let mockEntityService: IEntityService;
   let directorySync: DirectorySync;
+  let queuedJobs: JobRequest[];
+  let mockJobQueueCallback: ReturnType<typeof mock>;
   const logger = createSilentLogger();
 
   beforeEach(() => {
     // Create temp directory
     tempDir = mkdtempSync(join(tmpdir(), "directory-sync-image-test-"));
 
-    // Create mock entity service - listEntities returns [] by default
+    // Track queued jobs
+    queuedJobs = [];
+    mockJobQueueCallback = mock((job: JobRequest) => {
+      queuedJobs.push(job);
+      return Promise.resolve("mock-job-id");
+    });
+
+    // Create mock entity service
     mockEntityService = createMockEntityService({
       entityTypes: ["post", "image"],
       returns: {
@@ -71,6 +76,9 @@ describe("DirectorySync - FrontmatterImageConverter Integration", () => {
       logger,
       autoSync: false,
     });
+
+    // Set up job queue callback
+    directorySync.setJobQueueCallback(mockJobQueueCallback);
   });
 
   afterEach(() => {
@@ -82,7 +90,7 @@ describe("DirectorySync - FrontmatterImageConverter Integration", () => {
     }
   });
 
-  test("should convert coverImage URL to coverImageId during import", async () => {
+  test("should queue image conversion job for coverImageUrl", async () => {
     // Create post directory
     const postDir = join(tempDir, "post");
     mkdirSync(postDir, { recursive: true });
@@ -91,6 +99,7 @@ describe("DirectorySync - FrontmatterImageConverter Integration", () => {
     const postPath = join(postDir, "test-post.md");
     const originalContent = `---
 title: Test Post
+slug: test-post
 coverImageUrl: https://example.com/hero.jpg
 ---
 
@@ -98,41 +107,64 @@ Post content here.`;
 
     writeFileSync(postPath, originalContent);
 
-    // Mock fetch for image download with valid PNG data
-    const mockFetch = mock(() =>
-      Promise.resolve({
-        ok: true,
-        headers: new Map([["content-type", "image/png"]]),
-        arrayBuffer: () => Promise.resolve(VALID_PNG_BUFFER.buffer),
-      } as unknown as Response),
-    );
-    global.fetch = mockFetch as unknown as typeof fetch;
-
     // Import entities
     const result = await directorySync.importEntities();
 
-    // Verify the file was rewritten with coverImageId
-    const updatedContent = readFileSync(postPath, "utf-8");
-    expect(updatedContent).toContain("coverImageId:");
-    expect(updatedContent).not.toContain("coverImageUrl: https://");
+    // Verify a job was queued
+    expect(queuedJobs.length).toBe(1);
+    expect(queuedJobs[0]?.type).toBe("image-convert");
+    expect(queuedJobs[0]?.data).toEqual({
+      filePath: postPath,
+      sourceUrl: "https://example.com/hero.jpg",
+      postTitle: "Test Post",
+      postSlug: "test-post",
+      customAlt: undefined,
+    });
 
-    // Verify image entity was created
-    expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entityType: "image",
-      }),
-    );
+    // Verify file was NOT modified (non-blocking)
+    const fileContent = readFileSync(postPath, "utf-8");
+    expect(fileContent).toBe(originalContent);
 
-    // Verify post was imported
+    // Verify post was still imported
     expect(result.imported).toBe(1);
   });
 
-  test("should skip conversion if coverImageId already exists", async () => {
+  test("should include customAlt in queued job", async () => {
     // Create post directory
     const postDir = join(tempDir, "post");
     mkdirSync(postDir, { recursive: true });
 
-    // Write a post file that already has coverImageId
+    // Write a post with coverImageAlt
+    const postPath = join(postDir, "alt-post.md");
+    const originalContent = `---
+title: Alt Post
+slug: alt-post
+coverImageUrl: https://example.com/hero.jpg
+coverImageAlt: Custom description
+---
+
+Post content here.`;
+
+    writeFileSync(postPath, originalContent);
+
+    // Import entities
+    await directorySync.importEntities();
+
+    // Verify job includes customAlt
+    expect(queuedJobs.length).toBe(1);
+    expect(queuedJobs[0]?.data).toEqual(
+      expect.objectContaining({
+        customAlt: "Custom description",
+      }),
+    );
+  });
+
+  test("should not queue job if coverImageId already exists", async () => {
+    // Create post directory
+    const postDir = join(tempDir, "post");
+    mkdirSync(postDir, { recursive: true });
+
+    // Write a post that already has coverImageId
     const postPath = join(postDir, "converted-post.md");
     const content = `---
 title: Already Converted Post
@@ -146,18 +178,14 @@ Post content here.`;
     // Import entities
     const result = await directorySync.importEntities();
 
-    // Verify the file was NOT modified
-    const fileContent = readFileSync(postPath, "utf-8");
-    expect(fileContent).toBe(content);
-
-    // Verify no image was created
-    expect(mockEntityService.createEntity).not.toHaveBeenCalled();
+    // Verify no job was queued
+    expect(queuedJobs.length).toBe(0);
 
     // Verify post was imported
     expect(result.imported).toBe(1);
   });
 
-  test("should skip conversion for non-HTTP coverImage values", async () => {
+  test("should not queue job for non-HTTP coverImage values", async () => {
     // Create post directory
     const postDir = join(tempDir, "post");
     mkdirSync(postDir, { recursive: true });
@@ -176,173 +204,100 @@ Post content here.`;
     // Import entities
     const result = await directorySync.importEntities();
 
-    // Verify the file was NOT modified
-    const fileContent = readFileSync(postPath, "utf-8");
-    expect(fileContent).toBe(content);
+    // Verify no job was queued (not an HTTP URL)
+    expect(queuedJobs.length).toBe(0);
 
-    // Verify no image was created
-    expect(mockEntityService.createEntity).not.toHaveBeenCalled();
-
+    // Verify post was imported
     expect(result.imported).toBe(1);
   });
 
-  test("should reuse existing image entity with same sourceUrl", async () => {
-    // Create post directory
-    const postDir = join(tempDir, "post");
-    mkdirSync(postDir, { recursive: true });
-
-    // Write a post with coverImage URL
-    const postPath = join(postDir, "reuse-image-post.md");
-    const originalContent = `---
-title: Reuse Image Post
-coverImageUrl: https://example.com/existing.jpg
----
-
-Post content here.`;
-
-    writeFileSync(postPath, originalContent);
-
-    // Create a new mock entity service that returns existing image
-    const mockEntityServiceWithImage = createMockEntityService({
-      entityTypes: ["post", "image"],
-      returns: {
-        listEntities: [
-          {
-            id: "existing-image-id",
-            entityType: "image",
-            content: "data:image/jpeg;base64,xxx",
-            metadata: { sourceUrl: "https://example.com/existing.jpg" },
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-            contentHash: "mock-hash",
-          },
-        ],
-      },
-    });
-
-    // Mock upsertEntity for post creation
-    mockEntityServiceWithImage.upsertEntity = mock(() =>
-      Promise.resolve({
-        entityId: "test-post-id",
-        jobId: "job-2",
-        created: false,
-      }),
-    );
-
-    // Mock deserializeEntity
-    mockEntityServiceWithImage.deserializeEntity = mock((content: string) => {
-      const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-      const metadata: Record<string, unknown> = {};
-
-      if (frontmatterMatch?.[1]) {
-        const frontmatterLines = frontmatterMatch[1].split("\n");
-        for (const line of frontmatterLines) {
-          const [key, ...valueParts] = line.split(": ");
-          if (key && valueParts.length > 0) {
-            metadata[key.trim()] = valueParts.join(": ").trim();
-          }
-        }
-      }
-
-      return {
-        metadata,
-        content,
-      };
-    });
-
-    // Create new DirectorySync with this service
-    const directorySyncWithImage = new DirectorySync({
+  test("should not queue job if no job queue callback configured", async () => {
+    // Create DirectorySync WITHOUT job queue callback
+    const directorySyncNoQueue = new DirectorySync({
       syncPath: tempDir,
-      entityService: mockEntityServiceWithImage,
+      entityService: mockEntityService,
       logger,
       autoSync: false,
     });
+    // Note: NOT calling setJobQueueCallback
 
-    // Import entities
-    const result = await directorySyncWithImage.importEntities();
-
-    // Verify the file was rewritten with existing image ID
-    const updatedContent = readFileSync(postPath, "utf-8");
-    expect(updatedContent).toContain("coverImageId: existing-image-id");
-
-    // Verify NO new image was created (reused existing)
-    expect(mockEntityServiceWithImage.createEntity).not.toHaveBeenCalled();
-
-    expect(result.imported).toBe(1);
-  });
-
-  test("should handle fetch errors gracefully", async () => {
     // Create post directory
     const postDir = join(tempDir, "post");
     mkdirSync(postDir, { recursive: true });
 
     // Write a post with coverImage URL
-    const postPath = join(postDir, "fetch-error-post.md");
+    const postPath = join(postDir, "no-queue-post.md");
     const originalContent = `---
-title: Fetch Error Post
-coverImageUrl: https://example.com/broken.jpg
+title: No Queue Post
+slug: no-queue-post
+coverImageUrl: https://example.com/hero.jpg
 ---
 
 Post content here.`;
 
     writeFileSync(postPath, originalContent);
 
-    // Mock fetch to fail
-    global.fetch = mock(() =>
-      Promise.reject(new Error("Network error")),
-    ) as unknown as typeof fetch;
+    // Import entities - should not throw
+    const result = await directorySyncNoQueue.importEntities();
 
-    // Import entities
-    const result = await directorySync.importEntities();
-
-    // Verify the file was NOT modified (graceful failure)
-    const fileContent = readFileSync(postPath, "utf-8");
-    expect(fileContent).toBe(originalContent);
-
-    // Post should still be imported with original content
+    // Verify post was imported (gracefully handled)
     expect(result.imported).toBe(1);
   });
 
-  test("should preserve other frontmatter fields during conversion", async () => {
+  test("should generate slug from title if not provided", async () => {
     // Create post directory
     const postDir = join(tempDir, "post");
     mkdirSync(postDir, { recursive: true });
 
-    // Write a post with many frontmatter fields
-    const postPath = join(postDir, "preserve-fields-post.md");
+    // Write a post without explicit slug
+    const postPath = join(postDir, "no-slug-post.md");
     const originalContent = `---
-title: Preserve Fields Post
-author: John Doe
+title: My Awesome Post Title
 coverImageUrl: https://example.com/hero.jpg
-tags:
-  - test
-  - demo
-status: draft
 ---
 
 Post content here.`;
 
     writeFileSync(postPath, originalContent);
-
-    // Mock fetch for image download with valid PNG data
-    global.fetch = mock(() =>
-      Promise.resolve({
-        ok: true,
-        headers: new Map([["content-type", "image/png"]]),
-        arrayBuffer: () => Promise.resolve(VALID_PNG_BUFFER.buffer),
-      } as unknown as Response),
-    ) as unknown as typeof fetch;
 
     // Import entities
     await directorySync.importEntities();
 
-    // Verify the file preserves other fields
-    const updatedContent = readFileSync(postPath, "utf-8");
-    expect(updatedContent).toContain("title: Preserve Fields Post");
-    expect(updatedContent).toContain("author: John Doe");
-    expect(updatedContent).toContain("coverImageId:");
-    expect(updatedContent).toContain("tags:");
-    expect(updatedContent).toContain("status: draft");
-    expect(updatedContent).not.toContain("coverImageUrl: https://");
+    // Verify job has generated slug
+    expect(queuedJobs.length).toBe(1);
+    expect(queuedJobs[0]?.data).toEqual(
+      expect.objectContaining({
+        postSlug: "my-awesome-post-title",
+      }),
+    );
+  });
+
+  test("should handle job queue errors gracefully", async () => {
+    // Set up failing job queue
+    directorySync.setJobQueueCallback(() =>
+      Promise.reject(new Error("Queue error")),
+    );
+
+    // Create post directory
+    const postDir = join(tempDir, "post");
+    mkdirSync(postDir, { recursive: true });
+
+    // Write a post with coverImage URL
+    const postPath = join(postDir, "queue-error-post.md");
+    const originalContent = `---
+title: Queue Error Post
+slug: queue-error-post
+coverImageUrl: https://example.com/hero.jpg
+---
+
+Post content here.`;
+
+    writeFileSync(postPath, originalContent);
+
+    // Import entities - should not throw
+    const result = await directorySync.importEntities();
+
+    // Verify post was still imported (queue error is non-fatal)
+    expect(result.imported).toBe(1);
   });
 });

@@ -247,4 +247,103 @@ Post content here.`;
       expect(result.content).toContain("coverImageId:");
     });
   });
+
+  describe("detectCoverImageUrl", () => {
+    test("should detect coverImageUrl in frontmatter", () => {
+      const content = `---
+title: Test Post
+slug: test-post
+coverImageUrl: https://example.com/image.png
+---
+
+Post content here.`;
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).not.toBeNull();
+      expect(result?.sourceUrl).toBe("https://example.com/image.png");
+      expect(result?.postTitle).toBe("Test Post");
+      expect(result?.postSlug).toBe("test-post");
+    });
+
+    test("should return null if no coverImageUrl", () => {
+      const content = `---
+title: Test Post
+slug: test-post
+---
+
+Post content here.`;
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).toBeNull();
+    });
+
+    test("should return null if already has coverImageId", () => {
+      const content = `---
+title: Test Post
+slug: test-post
+coverImageId: existing-id
+coverImageUrl: https://example.com/image.png
+---
+
+Post content here.`;
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).toBeNull();
+    });
+
+    test("should return null if coverImageUrl is not HTTP", () => {
+      const content = `---
+title: Test Post
+slug: test-post
+coverImageUrl: local-image.png
+---
+
+Post content here.`;
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).toBeNull();
+    });
+
+    test("should generate slug from title if not provided", () => {
+      const content = `---
+title: My Awesome Post Title
+coverImageUrl: https://example.com/image.png
+---
+
+Post content here.`;
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).not.toBeNull();
+      expect(result?.postSlug).toBe("my-awesome-post-title");
+    });
+
+    test("should include customAlt when coverImageAlt is provided", () => {
+      const content = `---
+title: Test Post
+slug: test-post
+coverImageUrl: https://example.com/image.png
+coverImageAlt: Custom description
+---
+
+Post content here.`;
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).not.toBeNull();
+      expect(result?.customAlt).toBe("Custom description");
+    });
+
+    test("should return null for invalid frontmatter", () => {
+      const content = "Not valid markdown with frontmatter";
+
+      const result = converter.detectCoverImageUrl(content);
+
+      expect(result).toBeNull();
+    });
+  });
 });

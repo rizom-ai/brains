@@ -20,6 +20,7 @@ import {
   DirectoryImportJobHandler,
   DirectorySyncJobHandler,
   DirectoryDeleteJobHandler,
+  ImageConversionJobHandler,
 } from "./handlers";
 import { createDirectorySyncTools } from "./tools";
 import "./types/job-augmentation";
@@ -589,6 +590,13 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       directorySync,
     );
     context.registerJobHandler("directory-delete", deleteHandler);
+
+    // Register image conversion job handler (non-blocking image URL fetch)
+    const imageConversionHandler = new ImageConversionJobHandler(
+      context,
+      this.logger.child("ImageConversionJobHandler"),
+    );
+    context.registerJobHandler("image-convert", imageConversionHandler);
 
     this.debug("Registered async job handlers");
   }

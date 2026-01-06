@@ -190,13 +190,27 @@ export const directoryDeleteJobSchema = z.object({
 export type DirectoryDeleteJobData = z.infer<typeof directoryDeleteJobSchema>;
 
 /**
+ * Schema for image conversion job data
+ */
+export const imageConversionJobSchema = z.object({
+  filePath: z.string(),
+  sourceUrl: z.string().url(),
+  postTitle: z.string(),
+  postSlug: z.string(),
+  customAlt: z.string().optional(),
+});
+
+export type ImageConversionJobData = z.infer<typeof imageConversionJobSchema>;
+
+/**
  * Job request types for file watcher - discriminated union for type safety
  */
 export type JobRequest =
   | { type: "directory-sync"; data: DirectorySyncJobData }
   | { type: "directory-import"; data: DirectoryImportJobData }
   | { type: "directory-export"; data: DirectoryExportJobData }
-  | { type: "directory-delete"; data: DirectoryDeleteJobData };
+  | { type: "directory-delete"; data: DirectoryDeleteJobData }
+  | { type: "image-convert"; data: ImageConversionJobData };
 
 /**
  * Interface for file operations used by handlers

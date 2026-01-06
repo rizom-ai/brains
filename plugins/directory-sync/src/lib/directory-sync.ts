@@ -370,6 +370,54 @@ export class DirectorySync {
   }
 
   /**
+   * Queue image conversion job if content has coverImageUrl that needs conversion
+   * This is non-blocking - just queues a job and returns immediately
+   */
+  private queueImageConversionIfNeeded(
+    content: string,
+    filePath: string,
+  ): void {
+    // Skip if no job queue callback configured
+    if (!this.jobQueueCallback) {
+      return;
+    }
+
+    // Detect if conversion is needed (sync, fast)
+    const detection = this.imageConverter.detectCoverImageUrl(content);
+    if (!detection) {
+      return;
+    }
+
+    // Get absolute path for the job
+    const fullPath = filePath.startsWith(this.syncPath)
+      ? filePath
+      : join(this.syncPath, filePath);
+
+    // Queue the conversion job (non-blocking)
+    this.jobQueueCallback({
+      type: "image-convert",
+      data: {
+        filePath: fullPath,
+        sourceUrl: detection.sourceUrl,
+        postTitle: detection.postTitle,
+        postSlug: detection.postSlug,
+        customAlt: detection.customAlt,
+      },
+    }).catch((error) => {
+      // Log but don't fail - image conversion is best-effort
+      this.logger.warn("Failed to queue image conversion job", {
+        filePath,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+
+    this.logger.debug("Queued image conversion job", {
+      filePath,
+      sourceUrl: detection.sourceUrl,
+    });
+  }
+
+  /**
    * Process entity import with deserialization and update check
    * Separates validation errors (quarantine) from transient errors (fail without quarantine)
    */
@@ -378,30 +426,8 @@ export class DirectorySync {
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
-    // Step 0: Convert coverImage URLs to coverImageId references
-    try {
-      const conversionResult = await this.imageConverter.convert(
-        rawEntity.content,
-      );
-      if (conversionResult.converted) {
-        rawEntity.content = conversionResult.content;
-        // Rewrite the source file with the converted content
-        const fullPath = filePath.startsWith(this.syncPath)
-          ? filePath
-          : join(this.syncPath, filePath);
-        writeFileSync(fullPath, conversionResult.content, "utf-8");
-        this.logger.debug("Converted coverImage URL to coverImageId", {
-          path: filePath,
-          imageId: conversionResult.imageId,
-        });
-      }
-    } catch (error) {
-      // Image conversion failure is non-fatal - continue with original content
-      this.logger.debug("Image conversion skipped", {
-        path: filePath,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+    // Step 0: Queue image conversion if needed (non-blocking)
+    this.queueImageConversionIfNeeded(rawEntity.content, filePath);
 
     // Step 1: Deserialize (validation errors should quarantine)
     let parsedEntity;

@@ -46,6 +46,17 @@ interface ImageContext {
   customAlt?: string | undefined;
 }
 
+/**
+ * Detection result for coverImageUrl in frontmatter
+ * Contains all info needed to queue an image conversion job
+ */
+export interface CoverImageDetection {
+  sourceUrl: string;
+  postTitle: string;
+  postSlug: string;
+  customAlt?: string | undefined;
+}
+
 /** Function to fetch an image URL and return base64 data URL */
 export type ImageFetcher = (url: string) => Promise<string>;
 
@@ -66,6 +77,49 @@ export class FrontmatterImageConverter {
     private fetcher: ImageFetcher = fetchImageAsBase64,
   ) {
     this.logger = logger.child("FrontmatterImageConverter");
+  }
+
+  /**
+   * Detect if content has a coverImageUrl that needs conversion
+   * This is a sync method for quick detection before queueing a job
+   *
+   * @returns Detection info if conversion is needed, null otherwise
+   */
+  detectCoverImageUrl(content: string): CoverImageDetection | null {
+    // Parse frontmatter
+    let parsed;
+    try {
+      parsed = parseMarkdown(content);
+    } catch {
+      return null;
+    }
+
+    const { frontmatter } = parsed;
+
+    // Validate frontmatter has coverImageUrl
+    const result = coverImageFrontmatterSchema.safeParse(frontmatter);
+    if (!result.success) {
+      return null;
+    }
+
+    // Skip if already converted
+    if (result.data.coverImageId) {
+      return null;
+    }
+
+    const { title, slug, coverImageUrl, coverImageAlt } = result.data;
+
+    // Skip if not an HTTP URL
+    if (!isHttpUrl(coverImageUrl)) {
+      return null;
+    }
+
+    return {
+      sourceUrl: coverImageUrl,
+      postTitle: title,
+      postSlug: slug ?? slugify(title),
+      customAlt: coverImageAlt,
+    };
   }
 
   /**
