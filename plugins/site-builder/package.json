@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@brains/default-site-content": "workspace:*",
-    "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile-service": "workspace:*",
     "@brains/theme-default": "workspace:*",

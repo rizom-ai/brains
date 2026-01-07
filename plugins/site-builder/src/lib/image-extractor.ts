@@ -1,7 +1,19 @@
 import type { IEntityService, Logger } from "@brains/plugins";
-import type { Image } from "@brains/image";
 import { promises as fs } from "fs";
 import { join } from "path";
+
+// Image entity type (inline to avoid @brains/image dependency during investigation)
+interface ImageEntity {
+  id: string;
+  entityType: string;
+  content: string;
+  metadata: {
+    format?: string;
+  };
+  created: string;
+  updated: string;
+  contentHash: string;
+}
 
 /**
  * Map of image ID to static URL path
@@ -82,7 +94,7 @@ export class ImageExtractor {
 
     for (const imageId of allIds) {
       try {
-        const image = await this.entityService.getEntity<Image>(
+        const image = await this.entityService.getEntity<ImageEntity>(
           "image",
           imageId,
         );
@@ -133,7 +145,10 @@ export class ImageExtractor {
   /**
    * Detect image format from metadata or data URL
    */
-  private detectFormat(metadata: Image["metadata"], dataUrl: string): string {
+  private detectFormat(
+    metadata: ImageEntity["metadata"],
+    dataUrl: string,
+  ): string {
     // Try metadata first (ImageMetadata has typed format field)
     if (metadata.format) {
       return metadata.format;

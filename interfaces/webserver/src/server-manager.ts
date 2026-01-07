@@ -7,6 +7,13 @@ import type { Logger } from "@brains/utils";
 import { join, resolve } from "path";
 import { existsSync } from "fs";
 
+// WORKAROUND: Capture native Response before @hono/node-server can override it.
+// The MCP SDK's streamableHttp.js imports @hono/node-server which calls getRequestListener(),
+// overriding global.Response with a custom _Response class. Bun.serve doesn't recognize
+// _Response objects, causing "Expected a Response object" errors.
+// TODO: File issue with MCP SDK - they shouldn't override globals on Bun.
+const NativeResponse = globalThis.Response;
+
 export interface ServerManagerOptions {
   logger: Logger;
   previewDistDir?: string;
@@ -189,7 +196,16 @@ export class ServerManager {
 
     this.servers.preview = Bun.serve({
       port: this.options.previewPort,
-      fetch: app.fetch,
+      fetch: async (req) => {
+        const res = await app.fetch(req);
+        // Ensure native Response for Bun.serve (see WORKAROUND comment at top)
+        if (res.constructor === NativeResponse) return res;
+        return new NativeResponse(res.body, {
+          status: res.status,
+          statusText: res.statusText,
+          headers: res.headers,
+        });
+      },
     });
 
     const url = `http://localhost:${this.options.previewPort}`;
@@ -218,7 +234,16 @@ export class ServerManager {
 
     this.servers.production = Bun.serve({
       port: this.options.productionPort,
-      fetch: app.fetch,
+      fetch: async (req) => {
+        const res = await app.fetch(req);
+        // Ensure native Response for Bun.serve (see WORKAROUND comment at top)
+        if (res.constructor === NativeResponse) return res;
+        return new NativeResponse(res.body, {
+          status: res.status,
+          statusText: res.statusText,
+          headers: res.headers,
+        });
+      },
     });
 
     const url = `http://localhost:${this.options.productionPort}`;
