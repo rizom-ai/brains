@@ -389,6 +389,102 @@ describe("PreactBuilder", () => {
     expect(workingExists).toBe(false);
   });
 
+  it("should extract inline data URLs to static files", async () => {
+    // REGRESSION TEST: This is the REAL scenario - the entity service resolves
+    // entity://image/{id} to data URLs BEFORE content reaches site-builder.
+    // Site-builder must detect these data URLs and extract them to static files.
+    const builder = createPreactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+
+    const samplePngDataUrl =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    const mockPluginContext = createMockServicePluginContext();
+
+    // Component receives content with data URL already inlined
+    // (this is what happens when entity service resolves the image)
+    const BlogPostComponent = (props: unknown): VNode => {
+      const { coverImageUrl } = props as { coverImageUrl: string };
+      return h("article", {}, [h("img", { src: coverImageUrl, alt: "Cover" })]);
+    };
+
+    const viewRegistry = {
+      getViewTemplate: (_name: string): ViewTemplate => ({
+        name: "blog-post",
+        schema: z.object({ coverImageUrl: z.string() }),
+        pluginId: "test-plugin",
+        renderers: { web: BlogPostComponent },
+        interactive: false,
+      }),
+      registerRoute: (): void => {},
+      getRoute: (): undefined => undefined,
+      listRoutes: (): RouteDefinition[] => [],
+      registerViewTemplate: (): void => {},
+      listViewTemplates: (): ViewTemplate[] => [],
+      validateViewTemplate: (): boolean => true,
+      getRenderer: (): undefined => undefined,
+      hasRenderer: (): boolean => false,
+      listFormats: (): OutputFormat[] => [],
+    };
+
+    const buildContext: BuildContext = {
+      routes: [
+        {
+          id: "blog-post",
+          path: "/blog/my-post",
+          title: "My Post",
+          description: "Test blog post",
+          layout: "default",
+          sections: [
+            {
+              id: "content",
+              template: "blog-post",
+              // Content has data URL already inlined (simulating entity service resolution)
+              content: { coverImageUrl: samplePngDataUrl },
+            },
+          ],
+        },
+      ],
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+      pluginContext: mockPluginContext,
+      siteConfig: {
+        title: "Test Site",
+        description: "Test",
+      },
+      getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test",
+        navigation: { primary: [], secondary: [] },
+        copyright: "© 2025 Test",
+      }),
+    };
+
+    await builder.build(buildContext, () => {});
+
+    // CRITICAL: HTML should NOT contain inline data URLs
+    const html = await fs.readFile(
+      join(outputDir, "blog/my-post/index.html"),
+      "utf-8",
+    );
+    expect(html).not.toContain("data:image/png;base64");
+    // Should have extracted to a static file with a hash-based name
+    expect(html).toMatch(/\/images\/[a-f0-9]+\.png/);
+
+    // Verify at least one image was extracted to the images directory
+    const imagesDir = join(outputDir, "images");
+    const imagesDirExists = await fs
+      .access(imagesDir)
+      .then(() => true)
+      .catch(() => false);
+    expect(imagesDirExists).toBe(true);
+  });
+
   it("should NOT inline data URLs - must extract images to static files", async () => {
     // REGRESSION TEST: Production builds should use static file URLs, not inline data URLs
     // This test verifies that even when content contains data URLs, the output HTML

@@ -1,6 +1,7 @@
 import type { IEntityService, Logger } from "@brains/plugins";
 import { promises as fs } from "fs";
 import { join } from "path";
+import { createHash } from "crypto";
 
 // Image entity type (inline to avoid @brains/image dependency during investigation)
 interface ImageEntity {
@@ -33,6 +34,12 @@ const MARKDOWN_IMAGE_REGEX = /!\[[^\]]*\]\(entity:\/\/image\/([^)]+)\)/g;
  * Captures the image ID from: src="entity://image/id" or src='entity://image/id'
  */
 const HTML_IMG_SRC_REGEX = /src=["']entity:\/\/image\/([^"']+)["']/g;
+
+/**
+ * Regex to match data URLs in img src attributes
+ * Captures the full data URL from: src="data:image/..." or src='data:image/...'
+ */
+const DATA_URL_REGEX = /src=["'](data:image\/[^"']+)["']/g;
 
 /**
  * Extracts image entities to static files during build
@@ -186,5 +193,110 @@ export class ImageExtractor {
   private extractBase64(dataUrl: string): string | null {
     const match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
     return match?.[1] ?? null;
+  }
+
+  /**
+   * Detect all unique data URLs in content
+   * Finds inline data:image URLs in img src attributes
+   *
+   * @param content The HTML content to scan
+   * @returns Array of unique data URLs
+   */
+  detectDataUrls(content: string): string[] {
+    const dataUrls = new Set<string>();
+    const regex = new RegExp(DATA_URL_REGEX.source, "g");
+
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      if (match[1]) {
+        dataUrls.add(match[1]);
+      }
+    }
+
+    return [...dataUrls];
+  }
+
+  /**
+   * Extract data URLs from content to static files
+   * Creates hash-based filenames for deduplication
+   *
+   * @param contents Array of HTML content strings to scan
+   * @returns Map of dataUrl hash → static URL path
+   */
+  async extractDataUrlsFromContent(contents: string[]): Promise<ImageMap> {
+    // Collect all unique data URLs from all content
+    const allDataUrls = new Set<string>();
+    for (const content of contents) {
+      const urls = this.detectDataUrls(content);
+      for (const url of urls) {
+        allDataUrls.add(url);
+      }
+    }
+
+    if (allDataUrls.size === 0) {
+      return {};
+    }
+
+    // Create images directory
+    const imagesDir = join(this.outputDir, "images");
+    await fs.mkdir(imagesDir, { recursive: true });
+
+    // Extract each data URL to a file
+    const imageMap: ImageMap = {};
+
+    for (const dataUrl of allDataUrls) {
+      try {
+        // Generate hash-based ID from the data URL content
+        const hash = this.hashDataUrl(dataUrl);
+
+        // Determine format from data URL
+        const format = this.detectFormatFromDataUrl(dataUrl);
+
+        // Extract base64 data and write to file
+        const base64Data = this.extractBase64(dataUrl);
+        if (!base64Data) {
+          this.logger.warn("Could not extract base64 data from data URL");
+          continue;
+        }
+
+        const fileName = `${hash}.${format}`;
+        const filePath = join(imagesDir, fileName);
+        const buffer = Buffer.from(base64Data, "base64");
+
+        await fs.writeFile(filePath, buffer);
+
+        // Add to map with hash as key (for lookup) and static URL as value
+        imageMap[hash] = `/images/${fileName}`;
+
+        this.logger.debug("Extracted data URL to static file", {
+          hash,
+          path: `/images/${fileName}`,
+        });
+      } catch (error) {
+        this.logger.warn("Failed to extract data URL", {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    return imageMap;
+  }
+
+  /**
+   * Generate a short hash from a data URL for use as filename
+   */
+  private hashDataUrl(dataUrl: string): string {
+    return createHash("sha256").update(dataUrl).digest("hex").slice(0, 16);
+  }
+
+  /**
+   * Detect format from data URL (without metadata)
+   */
+  private detectFormatFromDataUrl(dataUrl: string): string {
+    const match = dataUrl.match(/^data:image\/([^;]+);/);
+    if (match?.[1]) {
+      return match[1];
+    }
+    return "png";
   }
 }

@@ -21,6 +21,7 @@ import { createHTMLShell } from "./html-generator";
 import { z } from "@brains/utils";
 import { ImageExtractor } from "./image-extractor";
 import { ImageReferenceResolver } from "./image-reference-resolver";
+import { createHash } from "crypto";
 
 /**
  * Preact-based static site builder
@@ -363,8 +364,8 @@ export class PreactBuilder implements StaticSiteBuilder {
   }
 
   /**
-   * Extract images from entity://image references and resolve them in HTML files.
-   * This converts inline entity references to static file URLs for production builds.
+   * Extract images from entity://image references and data URLs, resolve them in HTML files.
+   * This converts inline references to static file URLs for production builds.
    */
   private async extractAndResolveImages(context: BuildContext): Promise<void> {
     this.logger.debug("Extracting and resolving image references");
@@ -384,42 +385,104 @@ export class PreactBuilder implements StaticSiteBuilder {
       htmlContents.push(content);
     }
 
-    // Extract images to static files
     const extractor = new ImageExtractor(
       this.outputDir,
       context.pluginContext.entityService,
       this.logger,
     );
-    const imageMap = await extractor.extractFromContent(htmlContents);
 
-    if (Object.keys(imageMap).length === 0) {
-      this.logger.debug("No entity://image references found in HTML");
+    // Extract entity://image references to static files
+    const entityImageMap = await extractor.extractFromContent(htmlContents);
+
+    // Extract inline data URLs to static files
+    const dataUrlImageMap =
+      await extractor.extractDataUrlsFromContent(htmlContents);
+
+    const totalExtracted =
+      Object.keys(entityImageMap).length + Object.keys(dataUrlImageMap).length;
+
+    if (totalExtracted === 0) {
+      this.logger.debug("No images found to extract");
       return;
     }
 
-    this.logger.debug(`Extracted ${Object.keys(imageMap).length} images`);
+    this.logger.debug(`Extracted ${totalExtracted} images to static files`);
 
-    // Create resolver in static mode with the imageMap
-    const resolver = ImageReferenceResolver.static(imageMap, this.logger);
-
-    // Process each HTML file and replace entity://image references
+    // Process each HTML file
     for (const filePath of htmlFiles) {
-      const content = await fs.readFile(filePath, "utf-8");
-      const result = await resolver.resolve(content);
+      let content = await fs.readFile(filePath, "utf-8");
+      let modified = false;
 
-      if (result.resolvedCount > 0 || result.failedCount > 0) {
-        await fs.writeFile(filePath, result.content, "utf-8");
-        this.logger.debug(
-          `Resolved ${result.resolvedCount} images in ${filePath}`,
+      // Replace entity://image references with static URLs
+      if (Object.keys(entityImageMap).length > 0) {
+        const resolver = ImageReferenceResolver.static(
+          entityImageMap,
+          this.logger,
         );
-
-        if (result.failedCount > 0) {
-          this.logger.warn(
-            `Failed to resolve ${result.failedCount} images in ${filePath}`,
+        const result = await resolver.resolve(content);
+        if (result.resolvedCount > 0) {
+          content = result.content;
+          modified = true;
+          this.logger.debug(
+            `Resolved ${result.resolvedCount} entity://image refs in ${filePath}`,
           );
         }
       }
+
+      // Replace data URLs with static URLs
+      if (Object.keys(dataUrlImageMap).length > 0) {
+        const dataUrlResult = this.replaceDataUrls(content, dataUrlImageMap);
+        if (dataUrlResult.replacedCount > 0) {
+          content = dataUrlResult.content;
+          modified = true;
+          this.logger.debug(
+            `Replaced ${dataUrlResult.replacedCount} data URLs in ${filePath}`,
+          );
+        }
+      }
+
+      if (modified) {
+        await fs.writeFile(filePath, content, "utf-8");
+      }
     }
+  }
+
+  /**
+   * Replace data URLs in content with static file URLs
+   */
+  private replaceDataUrls(
+    content: string,
+    imageMap: { [hash: string]: string },
+  ): { content: string; replacedCount: number } {
+    let modifiedContent = content;
+    let replacedCount = 0;
+
+    // For each hash in the map, find the corresponding data URL and replace it
+    for (const [hash, staticUrl] of Object.entries(imageMap)) {
+      // Find data URLs that hash to this value
+      const dataUrlRegex = /src=(["'])(data:image\/[^"']+)\1/g;
+      modifiedContent = modifiedContent.replace(
+        dataUrlRegex,
+        (match, quote, dataUrl) => {
+          // Check if this data URL hashes to the current hash
+          const urlHash = this.hashDataUrl(dataUrl);
+          if (urlHash === hash) {
+            replacedCount++;
+            return `src=${quote}${staticUrl}${quote}`;
+          }
+          return match;
+        },
+      );
+    }
+
+    return { content: modifiedContent, replacedCount };
+  }
+
+  /**
+   * Generate hash from data URL (same as ImageExtractor)
+   */
+  private hashDataUrl(dataUrl: string): string {
+    return createHash("sha256").update(dataUrl).digest("hex").slice(0, 16);
   }
 
   /**

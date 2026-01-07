@@ -12,7 +12,7 @@
 | Non-blocking image extraction             | Complete                    |
 | Inline markdown images                    | Complete                    |
 | ImageReferenceResolver in entity-service  | Complete                    |
-| Site-builder image extraction             | TODO                        |
+| Site-builder image extraction             | Complete                    |
 | image_generate tool (AI image creation)   | TODO                        |
 | image_describe tool (AI alt text)         | TODO                        |
 | coverImageId for decks/series             | TODO                        |
@@ -140,7 +140,7 @@ At render time:
 
 ---
 
-## Phase 3: Site-Builder Image Extraction
+## Phase 3: Site-Builder Image Extraction ✅ COMPLETE
 
 ### Problem
 
@@ -377,7 +377,7 @@ Use cases:
 
 1. ~~**Phase 1**: Non-blocking extraction~~ ✅ Complete
 2. ~~**Phase 2**: Inline markdown images~~ ✅ Complete
-3. **Phase 3**: Site-builder image extraction
+3. ~~**Phase 3**: Site-builder image extraction~~ ✅ Complete
 4. **Phase 4**: AI image tools (image_generate, image_describe)
 5. **Phase 5**: Cover images for decks/series
 

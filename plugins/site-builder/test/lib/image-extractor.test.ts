@@ -162,6 +162,92 @@ describe("ImageExtractor", () => {
     });
   });
 
+  describe("detectDataUrls", () => {
+    test("should detect data URLs in img src attributes", () => {
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `<img src="${SAMPLE_PNG_DATA_URL}" alt="Test"/>`;
+
+      const dataUrls = extractor.detectDataUrls(content);
+
+      expect(dataUrls).toHaveLength(1);
+      expect(dataUrls[0]).toContain("data:image/png;base64");
+    });
+
+    test("should detect multiple data URLs", () => {
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `
+        <img src="${SAMPLE_PNG_DATA_URL}" alt="PNG"/>
+        <img src="${SAMPLE_JPEG_DATA_URL}" alt="JPEG"/>
+      `;
+
+      const dataUrls = extractor.detectDataUrls(content);
+
+      expect(dataUrls).toHaveLength(2);
+    });
+
+    test("should return unique data URLs only", () => {
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `
+        <img src="${SAMPLE_PNG_DATA_URL}" alt="First"/>
+        <img src="${SAMPLE_PNG_DATA_URL}" alt="Second"/>
+      `;
+
+      const dataUrls = extractor.detectDataUrls(content);
+
+      expect(dataUrls).toHaveLength(1);
+    });
+  });
+
+  describe("extractDataUrlsFromContent", () => {
+    test("should extract data URL to file and return imageMap", async () => {
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `<img src="${SAMPLE_PNG_DATA_URL}" alt="Test"/>`;
+
+      const imageMap = await extractor.extractDataUrlsFromContent([content]);
+
+      // Should have one entry with a hash-based filename
+      const entries = Object.entries(imageMap);
+      expect(entries).toHaveLength(1);
+
+      const [hash, staticUrl] = entries[0]!;
+      expect(hash).toMatch(/^[a-f0-9]+$/); // Hash-based key
+      expect(staticUrl).toMatch(/\/images\/[a-f0-9]+\.png$/);
+
+      // Verify file was created
+      const fileName = staticUrl.replace("/images/", "");
+      const filePath = join(testOutputDir, "images", fileName);
+      const exists = await fs
+        .access(filePath)
+        .then(() => true)
+        .catch(() => false);
+      expect(exists).toBe(true);
+    });
+  });
+
   describe("extractFromContent", () => {
     test("should extract image to file and return imageMap", async () => {
       const mockEntityService = createMockEntityService({
