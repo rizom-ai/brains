@@ -107,6 +107,59 @@ describe("ImageExtractor", () => {
 
       expect(refs).toHaveLength(0);
     });
+
+    test("should detect entity://image in HTML img src attributes", () => {
+      // REGRESSION TEST: HTML img tags should be detected, not just markdown
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `<article><img src="entity://image/cover-image" alt="Cover"/></article>`;
+
+      const refs = extractor.detectImageReferences(content);
+
+      expect(refs).toHaveLength(1);
+      expect(refs[0]).toBe("cover-image");
+    });
+
+    test("should detect entity://image in HTML img with single quotes", () => {
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `<img src='entity://image/single-quote-id' alt='Test'/>`;
+
+      const refs = extractor.detectImageReferences(content);
+
+      expect(refs).toHaveLength(1);
+      expect(refs[0]).toBe("single-quote-id");
+    });
+
+    test("should detect both markdown and HTML image references", () => {
+      const mockEntityService = createMockEntityService();
+      const extractor = new ImageExtractor(
+        testOutputDir,
+        mockEntityService,
+        logger,
+      );
+
+      const content = `
+        <img src="entity://image/html-image"/>
+        ![Markdown](entity://image/markdown-image)
+      `;
+
+      const refs = extractor.detectImageReferences(content);
+
+      expect(refs).toHaveLength(2);
+      expect(refs).toContain("html-image");
+      expect(refs).toContain("markdown-image");
+    });
   });
 
   describe("extractFromContent", () => {

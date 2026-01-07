@@ -26,7 +26,13 @@ export interface ImageMap {
  * Regex to match entity://image references in markdown
  * Captures the image ID from: ![alt](entity://image/id)
  */
-const ENTITY_IMAGE_REGEX = /!\[[^\]]*\]\(entity:\/\/image\/([^)]+)\)/g;
+const MARKDOWN_IMAGE_REGEX = /!\[[^\]]*\]\(entity:\/\/image\/([^)]+)\)/g;
+
+/**
+ * Regex to match entity://image references in HTML img src attributes
+ * Captures the image ID from: src="entity://image/id" or src='entity://image/id'
+ */
+const HTML_IMG_SRC_REGEX = /src=["']entity:\/\/image\/([^"']+)["']/g;
 
 /**
  * Extracts image entities to static files during build
@@ -47,16 +53,26 @@ export class ImageExtractor {
 
   /**
    * Detect all unique entity://image IDs in content
+   * Handles both markdown ![alt](entity://image/id) and HTML <img src="entity://image/id">
    *
-   * @param content The markdown content to scan
+   * @param content The markdown/HTML content to scan
    * @returns Array of unique image IDs
    */
   detectImageReferences(content: string): string[] {
     const ids = new Set<string>();
-    const regex = new RegExp(ENTITY_IMAGE_REGEX.source, "g");
 
+    // Match markdown format: ![alt](entity://image/id)
+    const markdownRegex = new RegExp(MARKDOWN_IMAGE_REGEX.source, "g");
     let match;
-    while ((match = regex.exec(content)) !== null) {
+    while ((match = markdownRegex.exec(content)) !== null) {
+      if (match[1]) {
+        ids.add(match[1]);
+      }
+    }
+
+    // Match HTML format: src="entity://image/id" or src='entity://image/id'
+    const htmlRegex = new RegExp(HTML_IMG_SRC_REGEX.source, "g");
+    while ((match = htmlRegex.exec(content)) !== null) {
       if (match[1]) {
         ids.add(match[1]);
       }

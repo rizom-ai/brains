@@ -19,6 +19,8 @@ import type { CSSProcessor } from "../css/css-processor";
 import { TailwindCSSProcessor } from "../css/css-processor";
 import { createHTMLShell } from "./html-generator";
 import { z } from "@brains/utils";
+import { ImageExtractor } from "./image-extractor";
+import { ImageReferenceResolver } from "./image-reference-resolver";
 
 /**
  * Preact-based static site builder
@@ -54,6 +56,10 @@ export class PreactBuilder implements StaticSiteBuilder {
       onProgress(`Building route: ${route.path}`);
       await this.buildRoute(route, context, siteInfo);
     }
+
+    // Extract images from entity://image references to static files
+    onProgress("Extracting images to static files");
+    await this.extractAndResolveImages(context);
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress("Processing Tailwind CSS");
@@ -354,6 +360,92 @@ export class PreactBuilder implements StaticSiteBuilder {
         await fs.copyFile(srcPath, destPath);
       }
     }
+  }
+
+  /**
+   * Extract images from entity://image references and resolve them in HTML files.
+   * This converts inline entity references to static file URLs for production builds.
+   */
+  private async extractAndResolveImages(context: BuildContext): Promise<void> {
+    this.logger.debug("Extracting and resolving image references");
+
+    // Collect all HTML files
+    const htmlFiles = await this.collectHtmlFiles(this.outputDir);
+
+    if (htmlFiles.length === 0) {
+      this.logger.debug("No HTML files found to process");
+      return;
+    }
+
+    // Read all HTML content
+    const htmlContents: string[] = [];
+    for (const filePath of htmlFiles) {
+      const content = await fs.readFile(filePath, "utf-8");
+      htmlContents.push(content);
+    }
+
+    // Extract images to static files
+    const extractor = new ImageExtractor(
+      this.outputDir,
+      context.pluginContext.entityService,
+      this.logger,
+    );
+    const imageMap = await extractor.extractFromContent(htmlContents);
+
+    if (Object.keys(imageMap).length === 0) {
+      this.logger.debug("No entity://image references found in HTML");
+      return;
+    }
+
+    this.logger.debug(`Extracted ${Object.keys(imageMap).length} images`);
+
+    // Create resolver in static mode with the imageMap
+    const resolver = ImageReferenceResolver.static(imageMap, this.logger);
+
+    // Process each HTML file and replace entity://image references
+    for (const filePath of htmlFiles) {
+      const content = await fs.readFile(filePath, "utf-8");
+      const result = await resolver.resolve(content);
+
+      if (result.resolvedCount > 0 || result.failedCount > 0) {
+        await fs.writeFile(filePath, result.content, "utf-8");
+        this.logger.debug(
+          `Resolved ${result.resolvedCount} images in ${filePath}`,
+        );
+
+        if (result.failedCount > 0) {
+          this.logger.warn(
+            `Failed to resolve ${result.failedCount} images in ${filePath}`,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Recursively collect all HTML files from a directory
+   */
+  private async collectHtmlFiles(dir: string): Promise<string[]> {
+    const htmlFiles: string[] = [];
+
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          const subFiles = await this.collectHtmlFiles(fullPath);
+          htmlFiles.push(...subFiles);
+        } else if (entry.name.endsWith(".html")) {
+          htmlFiles.push(fullPath);
+        }
+      }
+    } catch {
+      // Directory doesn't exist yet, return empty
+    }
+
+    return htmlFiles;
   }
 }
 

@@ -388,4 +388,346 @@ describe("PreactBuilder", () => {
     expect(outputExists).toBe(false);
     expect(workingExists).toBe(false);
   });
+
+  it("should NOT inline data URLs - must extract images to static files", async () => {
+    // REGRESSION TEST: Production builds should use static file URLs, not inline data URLs
+    // This test verifies that even when content contains data URLs, the output HTML
+    // uses static file paths for better caching and smaller HTML files.
+    const builder = createPreactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+
+    const samplePngDataUrl =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    const mockPluginContext = createMockServicePluginContext();
+    Object.defineProperty(mockPluginContext.entityService, "getEntity", {
+      value: async (type: string, id: string) => {
+        if (type === "image" && id === "cover-image") {
+          return {
+            id: "cover-image",
+            entityType: "image",
+            content: samplePngDataUrl,
+            metadata: { format: "png" },
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            contentHash: "abc123",
+          };
+        }
+        return null;
+      },
+    });
+
+    // Component that displays content from a blog post
+    // The content comes through getContent which should have entity://image references
+    const BlogPostComponent = (props: unknown): VNode => {
+      const { coverImageId } = props as { coverImageId: string };
+      // In the real flow, this would use entity://image/{id} reference
+      // The site-builder should extract this to a static file
+      return h("article", {}, [
+        h("img", { src: `entity://image/${coverImageId}`, alt: "Cover" }),
+      ]);
+    };
+
+    const viewRegistry = {
+      getViewTemplate: (_name: string): ViewTemplate => ({
+        name: "blog-post",
+        schema: z.object({ coverImageId: z.string() }),
+        pluginId: "test-plugin",
+        renderers: { web: BlogPostComponent },
+        interactive: false,
+      }),
+      registerRoute: (): void => {},
+      getRoute: (): undefined => undefined,
+      listRoutes: (): RouteDefinition[] => [],
+      registerViewTemplate: (): void => {},
+      listViewTemplates: (): ViewTemplate[] => [],
+      validateViewTemplate: (): boolean => true,
+      getRenderer: (): undefined => undefined,
+      hasRenderer: (): boolean => false,
+      listFormats: (): OutputFormat[] => [],
+    };
+
+    const buildContext: BuildContext = {
+      routes: [
+        {
+          id: "blog-post",
+          path: "/blog/my-post",
+          title: "My Post",
+          description: "Test blog post",
+          layout: "default",
+          sections: [
+            {
+              id: "content",
+              template: "blog-post",
+              content: { coverImageId: "cover-image" },
+            },
+          ],
+        },
+      ],
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+      pluginContext: mockPluginContext,
+      siteConfig: {
+        title: "Test Site",
+        description: "Test",
+      },
+      getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test",
+        navigation: { primary: [], secondary: [] },
+        copyright: "© 2025 Test",
+      }),
+    };
+
+    await builder.build(buildContext, () => {});
+
+    // CRITICAL: HTML should NOT contain inline data URLs
+    const html = await fs.readFile(
+      join(outputDir, "blog/my-post/index.html"),
+      "utf-8",
+    );
+    expect(html).not.toContain("data:image/png;base64");
+    expect(html).toContain("/images/cover-image.png");
+
+    // Verify image was extracted to static file
+    const imagePath = join(outputDir, "images", "cover-image.png");
+    const imageExists = await fs
+      .access(imagePath)
+      .then(() => true)
+      .catch(() => false);
+    expect(imageExists).toBe(true);
+  });
+
+  it("should extract entity://image from markdown content in sections", async () => {
+    // REGRESSION TEST: Images in markdown content should be extracted to static files
+    // This tests the flow where a datasource returns content with entity://image references
+    const builder = createPreactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+
+    const samplePngDataUrl =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    const mockPluginContext = createMockServicePluginContext();
+    Object.defineProperty(mockPluginContext.entityService, "getEntity", {
+      value: async (type: string, id: string) => {
+        if (type === "image" && id === "inline-image") {
+          return {
+            id: "inline-image",
+            entityType: "image",
+            content: samplePngDataUrl,
+            metadata: { format: "png" },
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            contentHash: "def456",
+          };
+        }
+        return null;
+      },
+    });
+
+    // Component that renders an image from content
+    const ContentComponent = (props: unknown): VNode => {
+      const { imageId } = props as { imageId: string };
+      // Render an img tag with entity://image reference
+      return h("div", {}, [
+        h("p", {}, "Here is an image:"),
+        h("img", { src: `entity://image/${imageId}`, alt: "Inline" }),
+      ]);
+    };
+
+    const viewRegistry = {
+      getViewTemplate: (_name: string): ViewTemplate => ({
+        name: "content-with-image",
+        schema: z.object({ imageId: z.string() }),
+        pluginId: "test-plugin",
+        renderers: { web: ContentComponent },
+        interactive: false,
+      }),
+      registerRoute: (): void => {},
+      getRoute: (): undefined => undefined,
+      listRoutes: (): RouteDefinition[] => [],
+      registerViewTemplate: (): void => {},
+      listViewTemplates: (): ViewTemplate[] => [],
+      validateViewTemplate: (): boolean => true,
+      getRenderer: (): undefined => undefined,
+      hasRenderer: (): boolean => false,
+      listFormats: (): OutputFormat[] => [],
+    };
+
+    // Content returned by getContent contains the imageId
+    const contentWithImageRef = {
+      imageId: "inline-image",
+    };
+
+    const buildContext: BuildContext = {
+      routes: [
+        {
+          id: "essay",
+          path: "/essays/test-essay",
+          title: "Test Essay",
+          description: "Essay with inline images",
+          layout: "default",
+          sections: [
+            {
+              id: "content",
+              template: "content-with-image",
+              dataQuery: {
+                entityType: "blog",
+                template: "content-with-image",
+                query: { slug: "test-essay" },
+              },
+            },
+          ],
+        },
+      ],
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+      pluginContext: mockPluginContext,
+      siteConfig: {
+        title: "Test Site",
+        description: "Test",
+      },
+      getContent: async () => contentWithImageRef,
+      layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test",
+        navigation: { primary: [], secondary: [] },
+        copyright: "© 2025 Test",
+      }),
+    };
+
+    await builder.build(buildContext, () => {});
+
+    // Verify image was extracted to static file
+    const imagePath = join(outputDir, "images", "inline-image.png");
+    const imageExists = await fs
+      .access(imagePath)
+      .then(() => true)
+      .catch(() => false);
+    expect(imageExists).toBe(true);
+
+    // Verify HTML uses static URL, not entity://image reference
+    const html = await fs.readFile(
+      join(outputDir, "essays/test-essay/index.html"),
+      "utf-8",
+    );
+    expect(html).not.toContain("entity://image/inline-image");
+    expect(html).toContain("/images/inline-image.png");
+  });
+
+  it("should extract and resolve entity://image references", async () => {
+    const builder = createPreactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+
+    // Sample PNG data URL for test
+    const samplePngDataUrl =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+    // Create mock entity service that returns an image
+    const mockPluginContext = createMockServicePluginContext();
+    Object.defineProperty(mockPluginContext.entityService, "getEntity", {
+      value: async (type: string, id: string) => {
+        if (type === "image" && id === "test-image") {
+          return {
+            id: "test-image",
+            entityType: "image",
+            content: samplePngDataUrl,
+            metadata: { format: "png" },
+            created: new Date().toISOString(),
+            updated: new Date().toISOString(),
+            contentHash: "abc123",
+          };
+        }
+        return null;
+      },
+    });
+
+    // Create component that renders an entity://image reference
+    const ImageComponent = (): VNode => {
+      return h("div", {}, [
+        h("img", { src: "entity://image/test-image", alt: "Test" }),
+        h("p", {}, "![Alt text](entity://image/test-image)"),
+      ]);
+    };
+
+    const viewRegistry = {
+      getViewTemplate: (_name: string): ViewTemplate => ({
+        name: "image-test",
+        schema: z.object({}),
+        pluginId: "test-plugin",
+        renderers: { web: ImageComponent },
+        interactive: false,
+      }),
+      registerRoute: (): void => {},
+      getRoute: (): undefined => undefined,
+      listRoutes: (): RouteDefinition[] => [],
+      registerViewTemplate: (): void => {},
+      listViewTemplates: (): ViewTemplate[] => [],
+      validateViewTemplate: (): boolean => true,
+      getRenderer: (): undefined => undefined,
+      hasRenderer: (): boolean => false,
+      listFormats: (): OutputFormat[] => [],
+    };
+
+    const buildContext: BuildContext = {
+      routes: [
+        {
+          id: "image-test",
+          path: "/",
+          title: "Image Test",
+          description: "Test image extraction",
+          layout: "default",
+          sections: [
+            {
+              id: "content",
+              template: "image-test",
+              content: {},
+            },
+          ],
+        },
+      ],
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+      pluginContext: mockPluginContext,
+      siteConfig: {
+        title: "Test Site",
+        description: "Test",
+      },
+      getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test",
+        navigation: { primary: [], secondary: [] },
+        copyright: "© 2025 Test",
+      }),
+    };
+
+    await builder.build(buildContext, () => {});
+
+    // Check that image was extracted to static file
+    const imagePath = join(outputDir, "images", "test-image.png");
+    const imageExists = await fs
+      .access(imagePath)
+      .then(() => true)
+      .catch(() => false);
+    expect(imageExists).toBe(true);
+
+    // Check that HTML was updated with static URL
+    const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    expect(html).toContain("/images/test-image.png");
+    expect(html).not.toContain("entity://image/test-image");
+  });
 });
