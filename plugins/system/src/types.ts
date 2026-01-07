@@ -5,6 +5,10 @@ import type {
   AppInfo,
   EntityInput,
 } from "@brains/plugins";
+import type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
 import type { IdentityBody } from "@brains/identity-service";
@@ -70,4 +74,15 @@ export interface ISystemPlugin {
   createEntity<T extends BaseEntity>(
     entity: EntityInput<T>,
   ): Promise<{ entityId: string; jobId: string }>;
+  /**
+   * Generate an image from a text prompt using DALL-E 3
+   */
+  generateImage(
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult>;
+  /**
+   * Check if image generation is available (OpenAI API key configured)
+   */
+  canGenerateImages(): boolean;
 }

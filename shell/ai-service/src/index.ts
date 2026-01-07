@@ -12,4 +12,9 @@ export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
 export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 
 // Export types
-export type { AIModelConfig, IAIService } from "./types";
+export type {
+  AIModelConfig,
+  IAIService,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "./types";

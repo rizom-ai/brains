@@ -4,6 +4,10 @@ import type {
   ContentGenerationConfig,
   EvalHandler,
 } from "../interfaces";
+import type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
 import type {
   IEntityService,
@@ -49,6 +53,13 @@ export interface ServicePluginContext extends CorePluginContext {
 
   // AI content generation
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+
+  // AI image generation (requires OPENAI_API_KEY)
+  generateImage: (
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ) => Promise<ImageGenerationResult>;
+  canGenerateImages: () => boolean;
 
   // Content formatting and parsing using template formatter
   formatContent: <T = unknown>(templateName: string, data: T) => string;
@@ -142,6 +153,17 @@ export function createServicePluginContext(
       config: ContentGenerationConfig,
     ): Promise<T> => {
       return shell.generateContent(config);
+    },
+
+    // AI image generation
+    generateImage: async (
+      prompt: string,
+      options?: ImageGenerationOptions,
+    ): Promise<ImageGenerationResult> => {
+      return shell.generateImage(prompt, options);
+    },
+    canGenerateImages: (): boolean => {
+      return shell.canGenerateImages();
     },
 
     // Content formatting and parsing using template formatter

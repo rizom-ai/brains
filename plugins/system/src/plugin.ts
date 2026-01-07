@@ -10,6 +10,10 @@ import type {
   EntityInput,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
+import type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 import type { Conversation, Message } from "@brains/conversation-service";
 import {
   systemConfigSchema,
@@ -327,5 +331,28 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
       throw new Error("Plugin not registered");
     }
     return this.context.entityService.createEntity(entity);
+  }
+
+  /**
+   * Generate an image from a text prompt using DALL-E 3
+   */
+  public async generateImage(
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.generateImage(prompt, options);
+  }
+
+  /**
+   * Check if image generation is available
+   */
+  public canGenerateImages(): boolean {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.canGenerateImages();
   }
 }

@@ -4,6 +4,7 @@ import type { Image } from "@brains/image";
 import { imageAdapter } from "@brains/image";
 import { isValidDataUrl, isHttpUrl, fetchImageAsBase64 } from "@brains/image";
 import type { ISystemPlugin } from "../types";
+import type { ImageGenerationOptions } from "@brains/ai-service";
 
 /**
  * Input schema for image_upload tool
@@ -236,6 +237,153 @@ function createImageListTool(
 }
 
 /**
+ * Build a contextual base prompt for image generation
+ * Incorporates identity and profile for brand consistency
+ */
+function buildImageBasePrompt(plugin: ISystemPlugin): string {
+  const identity = plugin.getIdentityData();
+  const profile = plugin.getProfileData();
+
+  // Build context from available data
+  const contextParts: string[] = [];
+
+  if (identity.name) {
+    contextParts.push(`Brand/Creator: ${identity.name}`);
+  }
+  if (identity.role) {
+    contextParts.push(`Focus: ${identity.role}`);
+  }
+  if (identity.values?.length) {
+    contextParts.push(`Values: ${identity.values.join(", ")}`);
+  }
+  if (profile.description) {
+    contextParts.push(`Context: ${profile.description}`);
+  }
+
+  const brandContext =
+    contextParts.length > 0
+      ? `\nBrand context:\n${contextParts.map((p) => `- ${p}`).join("\n")}\n`
+      : "";
+
+  return `Create an illustrative, artistic image.
+
+Style guidelines:
+- Modern, clean aesthetic with bold colors and clear composition
+- Illustrative and conceptual, NOT photorealistic
+- Visually striking with good contrast (works well with text overlays)
+- Abstract or stylized representations of concepts
+- Professional and polished look
+${brandContext}
+Image subject: `;
+}
+
+/**
+ * Input schema for image_generate tool
+ */
+const generateInputSchema = z.object({
+  prompt: z
+    .string()
+    .describe("Text description of the image to generate (be specific)"),
+  title: z.string().describe("Title for the generated image (used as ID)"),
+  size: z
+    .enum(["1024x1024", "1792x1024", "1024x1792"])
+    .optional()
+    .describe("Image size: square, landscape (default), or portrait"),
+  style: z
+    .enum(["vivid", "natural"])
+    .optional()
+    .describe("Style: vivid (dramatic, default) or natural (less hyper-real)"),
+});
+
+/**
+ * Create the image_generate tool
+ */
+function createImageGenerateTool(
+  plugin: ISystemPlugin,
+  pluginId: string,
+): PluginTool {
+  return {
+    name: `${pluginId}_image-generate`,
+    description:
+      "Generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
+    inputSchema: generateInputSchema.shape,
+    visibility: "anchor",
+    handler: async (
+      input: unknown,
+      _toolContext: ToolContext,
+    ): Promise<ToolResponse> => {
+      try {
+        // Check if image generation is available
+        if (!plugin.canGenerateImages()) {
+          return {
+            status: "error",
+            message:
+              "Image generation not available: OPENAI_API_KEY not configured",
+            formatted:
+              "_Image generation not available: OPENAI_API_KEY not configured_",
+          };
+        }
+
+        const { prompt, title, size, style } = generateInputSchema.parse(input);
+
+        // Build options
+        const options: ImageGenerationOptions = {};
+        if (size) options.size = size;
+        if (style) options.style = style;
+
+        // Build full prompt with base context
+        const basePrompt = buildImageBasePrompt(plugin);
+        const fullPrompt = basePrompt + prompt;
+
+        // Generate the image
+        const result = await plugin.generateImage(fullPrompt, options);
+
+        // Create image entity from the generated data URL
+        const entityData = imageAdapter.createImageEntity({
+          dataUrl: result.dataUrl,
+          title,
+        });
+
+        // Generate slug from title
+        const slug = slugify(title);
+
+        // Create entity in database
+        const createResult = await plugin.createEntity({
+          ...entityData,
+          id: slug,
+        });
+
+        const formatted = formatAsEntity(
+          {
+            id: slug,
+            title,
+            format: entityData.metadata.format,
+            width: entityData.metadata.width,
+            height: entityData.metadata.height,
+            prompt: prompt.slice(0, 100) + (prompt.length > 100 ? "..." : ""),
+          },
+          { title: "Image Generated" },
+        );
+
+        return {
+          status: "success",
+          data: { imageId: slug, jobId: createResult.jobId },
+          message: `Image generated: ${title} (${entityData.metadata.width}x${entityData.metadata.height})`,
+          formatted,
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        return {
+          status: "error",
+          message: msg,
+          formatted: `_Error: ${msg}_`,
+        };
+      }
+    },
+  };
+}
+
+/**
  * Create all image tools
  */
 export function createImageTools(
@@ -246,5 +394,6 @@ export function createImageTools(
     createImageUploadTool(plugin, pluginId),
     createImageGetTool(plugin, pluginId),
     createImageListTool(plugin, pluginId),
+    createImageGenerateTool(plugin, pluginId),
   ];
 }

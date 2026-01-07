@@ -25,7 +25,11 @@ import { type IMCPService, type IMCPTransport } from "@brains/mcp-service";
 import type { DaemonRegistry, Daemon } from "@brains/daemon-registry";
 import { type IConversationService } from "@brains/conversation-service";
 import type { ContentService } from "@brains/content-service";
-import { type IAIService } from "@brains/ai-service";
+import type {
+  IAIService,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 import type { PermissionService } from "@brains/permission-service";
 import { Logger } from "@brains/utils";
 import { type IJobProgressMonitor } from "@brains/utils";
@@ -382,6 +386,17 @@ export class Shell implements IShell {
 
   public getAIService(): IAIService {
     return this.aiService;
+  }
+
+  public generateImage(
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult> {
+    return this.aiService.generateImage(prompt, options);
+  }
+
+  public canGenerateImages(): boolean {
+    return this.aiService.canGenerateImages();
   }
 
   public getPluginManager(): PluginManager {

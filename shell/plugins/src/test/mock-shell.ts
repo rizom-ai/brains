@@ -42,6 +42,10 @@ import type { DataSourceRegistry, DataSource } from "@brains/datasource";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import type { IAgentService, AgentResponse } from "@brains/agent-service";
+import type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 
 import { createSilentLogger } from "@brains/test-utils";
 
@@ -411,6 +415,24 @@ export class MockShell implements IShell {
       ...(context && { data: contextData }),
       interfacePermissionGrant: "public",
     });
+  }
+
+  async generateImage(
+    _prompt: string,
+    _options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult> {
+    // Mock implementation - return a tiny placeholder image
+    const placeholderBase64 =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    return {
+      base64: placeholderBase64,
+      dataUrl: `data:image/png;base64,${placeholderBase64}`,
+    };
+  }
+
+  canGenerateImages(): boolean {
+    // Mock implementation - return false by default (no OpenAI key in tests)
+    return false;
   }
 
   async getActiveJobs(_types?: string[]): Promise<JobInfo[]> {

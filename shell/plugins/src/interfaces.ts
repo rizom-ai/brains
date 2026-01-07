@@ -44,6 +44,10 @@ import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
 import type { IAgentService } from "@brains/agent-service";
+import type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
 
 /**
  * Handler function for plugin evaluations
@@ -141,6 +145,14 @@ export interface IShell {
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
+
+  // Image generation (requires OPENAI_API_KEY)
+  generateImage(
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult>;
+  canGenerateImages(): boolean;
+
   registerTemplates(
     templates: Record<string, Template>,
     pluginId?: string,

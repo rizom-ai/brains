@@ -1,9 +1,19 @@
-import { generateText, generateObject } from "ai";
+import {
+  generateText,
+  generateObject,
+  experimental_generateImage as generateImage,
+} from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
-import type { AIModelConfig, IAIService } from "./types";
+import type {
+  AIModelConfig,
+  IAIService,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "./types";
 
 /**
  * Default model configuration
@@ -18,6 +28,7 @@ export class AIService implements IAIService {
   private config: AIModelConfig;
   private logger: Logger;
   private anthropicProvider;
+  private openaiProvider: ReturnType<typeof createOpenAI> | null = null;
 
   /**
    * Get the singleton instance
@@ -58,6 +69,11 @@ export class AIService implements IAIService {
     this.anthropicProvider = config.apiKey
       ? createAnthropic({ apiKey: config.apiKey })
       : anthropic;
+
+    // Create OpenAI provider for image generation if key provided
+    if (config.openaiApiKey) {
+      this.openaiProvider = createOpenAI({ apiKey: config.openaiApiKey });
+    }
   }
 
   /**
@@ -182,5 +198,51 @@ export class AIService implements IAIService {
    */
   public getConfig(): AIModelConfig {
     return { ...this.config };
+  }
+
+  /**
+   * Check if image generation is available
+   */
+  public canGenerateImages(): boolean {
+    return this.openaiProvider !== null;
+  }
+
+  /**
+   * Generate an image from a text prompt using DALL-E 3
+   */
+  public async generateImage(
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult> {
+    if (!this.openaiProvider) {
+      throw new Error(
+        "Image generation not available: OPENAI_API_KEY not configured",
+      );
+    }
+
+    this.logger.debug("Generating image", { prompt: prompt.slice(0, 100) });
+
+    try {
+      const result = await generateImage({
+        model: this.openaiProvider.image("dall-e-3"),
+        prompt,
+        size: options?.size ?? "1792x1024", // Landscape default for cover images
+        providerOptions: {
+          openai: {
+            style: options?.style ?? "vivid",
+          },
+        },
+      });
+
+      const base64 = result.image.base64;
+      const dataUrl = `data:image/png;base64,${base64}`;
+
+      this.logger.debug("Image generated successfully");
+
+      return { base64, dataUrl };
+    } catch (error) {
+      this.logger.error("Failed to generate image", error);
+      throw new Error("Image generation failed");
+    }
   }
 }

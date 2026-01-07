@@ -107,6 +107,8 @@ export const shellConfigSchema = z.object({
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
+    // OpenAI API key for image generation (optional)
+    openaiApiKey: z.string().optional(),
   }),
 
   // Embedding configuration (required - no defaults)
@@ -188,6 +190,7 @@ export function createShellConfig(
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
       webSearch: overrides.ai?.webSearch ?? true,
+      openaiApiKey: process.env["OPENAI_API_KEY"] ?? overrides.ai?.openaiApiKey,
     },
     embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {
