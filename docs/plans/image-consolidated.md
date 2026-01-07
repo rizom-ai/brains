@@ -146,20 +146,130 @@ At render time:
 
 Production builds shouldn't inline base64 images (large HTML, no caching).
 
-### Solution
+### Architecture
 
-At build time:
+Separation of concerns with two components:
 
-1. Collect all referenced image entities
-2. Extract base64 → write to `dist/images/{id}.{format}`
-3. Templates use `/images/{id}.{format}` paths
+```
+┌─────────────────────────┐
+│  ImageExtractor         │  ← Runs first during build
+│  - Scans content        │
+│  - Writes to dist/images│
+│  - Returns imageMap     │
+│    {id → "/images/x.png"}│
+└───────────┬─────────────┘
+            │ imageMap
+            ▼
+┌─────────────────────────┐
+│  ImageReferenceResolver │  ← Already exists (blog plugin)
+│  - Takes imageMap       │
+│  - Replaces entity://   │
+│    with URLs from map   │
+└─────────────────────────┘
+```
 
-**File:** `plugins/site-builder/src/lib/build.ts`
+### 3.1 ImageExtractor (NEW)
+
+**File:** `plugins/site-builder/src/lib/image-extractor.ts`
+
+Extracts image entities to static files:
 
 ```typescript
-// During build
-const imageMap = await extractImagesToStatic(imageIds, outputDir);
-// Templates receive imageMap for URL resolution
+interface ImageMap {
+  [imageId: string]: string; // imageId → "/images/{id}.{format}"
+}
+
+export class ImageExtractor {
+  constructor(
+    private outputDir: string,
+    private entityService: IEntityService,
+    private logger: Logger,
+  ) {}
+
+  /**
+   * Scan content for entity://image references, extract to files
+   * @returns Map of imageId → static URL path
+   */
+  async extractFromContent(contents: string[]): Promise<ImageMap> {
+    // 1. Detect all entity://image/{id} references
+    // 2. Fetch unique image entities
+    // 3. Write base64 → dist/images/{id}.{format}
+    // 4. Return { imageId: "/images/id.png", ... }
+  }
+}
+```
+
+### 3.2 Refactor ImageReferenceResolver
+
+**File:** `plugins/blog/src/lib/image-reference-resolver.ts`
+
+Make resolver accept pre-built imageMap (static URLs) OR fetch entities (data URLs):
+
+```typescript
+type ResolutionMode =
+  | { mode: "static"; imageMap: ImageMap } // Production: use static URLs
+  | { mode: "inline"; entityService: IEntityService }; // Dev: inline data URLs
+
+export class ImageReferenceResolver {
+  constructor(
+    private resolution: ResolutionMode,
+    private logger: Logger,
+  ) {}
+
+  async resolve(content: string): Promise<ResolveResult> {
+    // If static mode: use imageMap for URLs
+    // If inline mode: fetch entities, use data URLs (current behavior)
+  }
+}
+```
+
+### 3.3 Integration in PreactBuilder
+
+**File:** `plugins/site-builder/src/lib/preact-builder.ts`
+
+```typescript
+async build(context: BuildContext, onProgress): Promise<void> {
+  // ... existing route building ...
+
+  // NEW: Extract images to static files
+  onProgress("Extracting images to static files");
+  const extractor = new ImageExtractor(
+    this.outputDir,
+    context.pluginContext.entityService,
+    this.logger,
+  );
+
+  // Collect all content that may have image references
+  const allContent = await this.collectContentWithImages(context);
+  const imageMap = await extractor.extractFromContent(allContent);
+
+  // Post-process HTML files to replace entity:// with static URLs
+  await this.replaceImageReferences(imageMap);
+
+  // ... rest of build ...
+}
+```
+
+### Key Files
+
+| File                                                    | Action     |
+| ------------------------------------------------------- | ---------- |
+| `plugins/site-builder/src/lib/image-extractor.ts`       | **CREATE** |
+| `plugins/site-builder/test/lib/image-extractor.test.ts` | **CREATE** |
+| `plugins/blog/src/lib/image-reference-resolver.ts`      | Refactor   |
+| `plugins/site-builder/src/lib/preact-builder.ts`        | Integrate  |
+
+### Output Structure
+
+```
+dist/
+├── images/
+│   ├── my-photo.png
+│   ├── hero-banner.jpg
+│   └── diagram.svg
+├── index.html          (references /images/my-photo.png)
+└── blog/
+    └── post/index.html (references /images/hero-banner.jpg)
 ```
 
 ---
