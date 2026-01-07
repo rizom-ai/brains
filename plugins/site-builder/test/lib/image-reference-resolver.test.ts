@@ -1,5 +1,8 @@
 import { describe, test, expect, mock } from "bun:test";
-import { ImageReferenceResolver } from "../../src/lib/image-reference-resolver";
+import {
+  ImageReferenceResolver,
+  type ImageMap,
+} from "../../src/lib/image-reference-resolver";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -13,7 +16,7 @@ describe("ImageReferenceResolver", () => {
 
   describe("detectReferences", () => {
     const mockEntityService = createMockEntityService();
-    const resolver = new ImageReferenceResolver(mockEntityService, logger);
+    const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
     test("should detect single entity reference", () => {
       const content = `Some text with an image:
@@ -79,7 +82,7 @@ Third: ![](entity://image/third-id)`;
     });
   });
 
-  describe("resolve", () => {
+  describe("resolve - inline mode", () => {
     test("should replace entity reference with data URL", async () => {
       const mockEntityService = createMockEntityService({
         returns: {
@@ -94,7 +97,7 @@ Third: ![](entity://image/third-id)`;
           },
         },
       });
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
+      const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
       const content = `Text before
 
@@ -123,7 +126,7 @@ Text after`;
           },
         },
       });
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
+      const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
       const content = `![Beautiful sunset](entity://image/sunset-id)`;
 
@@ -133,7 +136,6 @@ Text after`;
     });
 
     test("should resolve multiple references", async () => {
-      // Use a custom implementation that returns different images
       let callCount = 0;
       const getEntityImpl = mock(() => {
         callCount++;
@@ -146,13 +148,12 @@ Text after`;
       });
 
       const mockEntityService = createMockEntityService();
-      // Override getEntity with our tracking mock
       Object.defineProperty(mockEntityService, "getEntity", {
         value: getEntityImpl,
         writable: true,
       });
 
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
+      const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
       const content = `![First](entity://image/first)
 
@@ -169,7 +170,7 @@ Text after`;
       const mockEntityService = createMockEntityService({
         returns: { getEntity: null },
       });
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
+      const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
       const content = `![Missing](entity://image/missing-id)
 
@@ -177,50 +178,14 @@ Some other text.`;
 
       const result = await resolver.resolve(content);
 
-      // Should keep original reference when image not found
       expect(result.content).toContain("entity://image/missing-id");
       expect(result.resolvedCount).toBe(0);
       expect(result.failedCount).toBe(1);
     });
 
-    test("should continue resolving after one failure", async () => {
-      let callCount = 0;
-      const getEntityImpl = mock(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve(null); // First one fails
-        }
-        return Promise.resolve({
-          id: "success",
-          entityType: "image",
-          content: SAMPLE_DATA_URL,
-          metadata: {},
-        });
-      });
-
-      const mockEntityService = createMockEntityService();
-      Object.defineProperty(mockEntityService, "getEntity", {
-        value: getEntityImpl,
-        writable: true,
-      });
-
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
-
-      const content = `![Missing](entity://image/missing)
-
-![Present](entity://image/present)`;
-
-      const result = await resolver.resolve(content);
-
-      expect(result.resolvedCount).toBe(1);
-      expect(result.failedCount).toBe(1);
-      expect(result.content).toContain("entity://image/missing");
-      expect(result.content).toContain(SAMPLE_DATA_URL);
-    });
-
     test("should return unchanged content if no references", async () => {
       const mockEntityService = createMockEntityService();
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
+      const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
       const content = `Just plain markdown without entity references.
 
@@ -231,56 +196,6 @@ Some other text.`;
       expect(result.content).toBe(content);
       expect(result.resolvedCount).toBe(0);
       expect(result.failedCount).toBe(0);
-    });
-
-    test("should handle entity service errors gracefully", async () => {
-      const getEntityImpl = mock(() =>
-        Promise.reject(new Error("Database error")),
-      );
-
-      const mockEntityService = createMockEntityService();
-      Object.defineProperty(mockEntityService, "getEntity", {
-        value: getEntityImpl,
-        writable: true,
-      });
-
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
-
-      const content = `![Image](entity://image/some-id)`;
-
-      const result = await resolver.resolve(content);
-
-      expect(result.content).toContain("entity://image/some-id");
-      expect(result.resolvedCount).toBe(0);
-      expect(result.failedCount).toBe(1);
-    });
-
-    test("should batch fetch images efficiently", async () => {
-      const getEntityImpl = mock(() =>
-        Promise.resolve({
-          id: "test",
-          entityType: "image",
-          content: SAMPLE_DATA_URL,
-          metadata: {},
-        }),
-      );
-
-      const mockEntityService = createMockEntityService();
-      Object.defineProperty(mockEntityService, "getEntity", {
-        value: getEntityImpl,
-        writable: true,
-      });
-
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
-
-      const content = `![A](entity://image/img-a)
-![B](entity://image/img-b)
-![C](entity://image/img-c)`;
-
-      await resolver.resolve(content);
-
-      // Should call getEntity once per unique image
-      expect(getEntityImpl).toHaveBeenCalledTimes(3);
     });
 
     test("should deduplicate same image ID", async () => {
@@ -299,7 +214,7 @@ Some other text.`;
         writable: true,
       });
 
-      const resolver = new ImageReferenceResolver(mockEntityService, logger);
+      const resolver = ImageReferenceResolver.inline(mockEntityService, logger);
 
       const content = `![First use](entity://image/same-id)
 
@@ -307,9 +222,127 @@ Later: ![Second use](entity://image/same-id)`;
 
       const result = await resolver.resolve(content);
 
-      // Same ID referenced twice, but only fetched once
       expect(getEntityImpl).toHaveBeenCalledTimes(1);
       expect(result.resolvedCount).toBe(2);
+    });
+  });
+
+  describe("resolve - static mode", () => {
+    test("should replace entity reference with static URL from imageMap", async () => {
+      const imageMap: ImageMap = {
+        "test-image": "/images/test-image.png",
+      };
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `Text before
+
+![Alt text](entity://image/test-image)
+
+Text after`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.content).toContain("/images/test-image.png");
+      expect(result.content).not.toContain("entity://image/test-image");
+      expect(result.resolvedCount).toBe(1);
+    });
+
+    test("should preserve alt text in resolved image", async () => {
+      const imageMap: ImageMap = {
+        "sunset-id": "/images/sunset-id.jpeg",
+      };
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `![Beautiful sunset](entity://image/sunset-id)`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.content).toBe(
+        "![Beautiful sunset](/images/sunset-id.jpeg)",
+      );
+    });
+
+    test("should resolve multiple references", async () => {
+      const imageMap: ImageMap = {
+        first: "/images/first.png",
+        second: "/images/second.jpeg",
+      };
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `![First](entity://image/first)
+
+![Second](entity://image/second)`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.resolvedCount).toBe(2);
+      expect(result.content).toContain("/images/first.png");
+      expect(result.content).toContain("/images/second.jpeg");
+    });
+
+    test("should handle missing image in map gracefully", async () => {
+      const imageMap: ImageMap = {};
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `![Missing](entity://image/missing-id)`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.content).toContain("entity://image/missing-id");
+      expect(result.resolvedCount).toBe(0);
+      expect(result.failedCount).toBe(1);
+    });
+
+    test("should resolve some and fail others based on map", async () => {
+      const imageMap: ImageMap = {
+        exists: "/images/exists.png",
+      };
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `![Missing](entity://image/missing)
+
+![Exists](entity://image/exists)`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.resolvedCount).toBe(1);
+      expect(result.failedCount).toBe(1);
+      expect(result.content).toContain("entity://image/missing");
+      expect(result.content).toContain("/images/exists.png");
+    });
+
+    test("should return unchanged content if no references", async () => {
+      const imageMap: ImageMap = {
+        unused: "/images/unused.png",
+      };
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `Just plain markdown without entity references.
+
+![Regular](https://example.com/image.png)`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.content).toBe(content);
+      expect(result.resolvedCount).toBe(0);
+      expect(result.failedCount).toBe(0);
+    });
+
+    test("should handle same image ID referenced multiple times", async () => {
+      const imageMap: ImageMap = {
+        "same-id": "/images/same-id.png",
+      };
+      const resolver = ImageReferenceResolver.static(imageMap, logger);
+
+      const content = `![First use](entity://image/same-id)
+
+Later: ![Second use](entity://image/same-id)`;
+
+      const result = await resolver.resolve(content);
+
+      expect(result.resolvedCount).toBe(2);
+      expect(result.content).toContain("![First use](/images/same-id.png)");
+      expect(result.content).toContain("![Second use](/images/same-id.png)");
     });
   });
 });

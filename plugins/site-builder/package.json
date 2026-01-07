@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@brains/default-site-content": "workspace:*",
+    "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile-service": "workspace:*",
     "@brains/theme-default": "workspace:*",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.14",
     "@types/react": "^19.0.3",

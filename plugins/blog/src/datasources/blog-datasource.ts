@@ -12,7 +12,6 @@ import {
   blogPostWithDataSchema,
   type BlogPostWithData,
 } from "../schemas/blog-post";
-import type { ImageReferenceResolver } from "../lib/image-reference-resolver";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -99,23 +98,6 @@ async function resolvePostsCoverImages<T extends BlogPostWithData>(
 }
 
 /**
- * Resolve inline entity://image references in post body
- */
-async function resolvePostInlineImages<T extends BlogPostWithData>(
-  post: T,
-  resolver: ImageReferenceResolver,
-): Promise<T> {
-  const result = await resolver.resolve(post.body);
-  if (result.resolvedCount > 0) {
-    return {
-      ...post,
-      body: result.content,
-    };
-  }
-  return post;
-}
-
-/**
  * DataSource for fetching and transforming blog post entities
  * Handles list views, detail views, and series views for blog posts
  */
@@ -128,7 +110,6 @@ export class BlogDataSource implements DataSource {
   constructor(
     private entityService: IEntityService,
     private readonly logger: Logger,
-    private readonly imageResolver: ImageReferenceResolver,
   ) {
     this.logger.debug("BlogDataSource initialized");
   }
@@ -203,11 +184,8 @@ export class BlogDataSource implements DataSource {
     }
 
     let post = parsePostData(latestEntity);
-    // Resolve cover image and inline images
+    // Resolve cover image (inline images resolved by site-builder)
     post = await resolvePostCoverImage(post, this.entityService);
-    if (this.imageResolver) {
-      post = await resolvePostInlineImages(post, this.imageResolver);
-    }
 
     // For home page, we don't need prev/next navigation
     // But include series posts if this is part of a series
@@ -262,12 +240,10 @@ export class BlogDataSource implements DataSource {
       throw new Error(`Blog post not found with slug: ${slug}`);
     }
 
-    // Parse frontmatter for full post data and resolve images
+    // Parse frontmatter for full post data and resolve cover image
+    // (inline images resolved by site-builder)
     let post = parsePostData(entity);
     post = await resolvePostCoverImage(post, this.entityService);
-    if (this.imageResolver) {
-      post = await resolvePostInlineImages(post, this.imageResolver);
-    }
 
     // For detail view, fetch posts sorted for prev/next navigation
     const sortedPosts: BlogPost[] =

@@ -148,27 +148,69 @@ Production builds shouldn't inline base64 images (large HTML, no caching).
 
 ### Architecture
 
-Separation of concerns with two components:
+**Key insight:** The decision to use inline data URLs vs static files is a BUILD-TIME decision, not a plugin decision. Therefore:
+
+1. **Datasources return raw content** with `entity://image/{id}` references
+2. **Site-builder owns resolution** - decides mode based on build context
+3. **ImageReferenceResolver moves to site-builder** (not blog plugin)
 
 ```
 ┌─────────────────────────┐
-│  ImageExtractor         │  ← Runs first during build
-│  - Scans content        │
-│  - Writes to dist/images│
-│  - Returns imageMap     │
-│    {id → "/images/x.png"}│
+│  BlogDataSource         │  ← Returns raw content
+│  (blog plugin)          │     with entity://image refs
 └───────────┬─────────────┘
-            │ imageMap
+            │ raw content
             ▼
 ┌─────────────────────────┐
-│  ImageReferenceResolver │  ← Already exists (blog plugin)
-│  - Takes imageMap       │
-│  - Replaces entity://   │
-│    with URLs from map   │
+│  Site-Builder           │  ← Owns build-time decisions
+│  - Fetches content      │
+│  - Extracts images      │
+│  - Resolves references  │
 └─────────────────────────┘
+            │
+    ┌───────┴───────┐
+    ▼               ▼
+ Static Mode    Inline Mode
+ (production)   (dev/preview)
 ```
 
-### 3.1 ImageExtractor (NEW)
+### 3.1 Remove ImageReferenceResolver from Blog Plugin
+
+**File:** `plugins/blog/src/datasources/blog-datasource.ts`
+
+Remove image resolution - return raw content:
+
+```typescript
+// BEFORE: BlogDataSource resolved images internally
+// AFTER: Returns raw content with entity://image refs unchanged
+async fetchPost(id: string): Promise<BlogPost | null> {
+  const post = await this.entityService.getEntity("blog", id);
+  return post; // No image resolution here
+}
+```
+
+**File:** `plugins/blog/src/plugin.ts`
+
+Remove ImageReferenceResolver instantiation.
+
+### 3.2 Move ImageReferenceResolver to Site-Builder
+
+**File:** `plugins/site-builder/src/lib/image-reference-resolver.ts` (MOVE)
+
+```typescript
+type ResolutionMode =
+  | { mode: "static"; imageMap: ImageMap } // Production: use static URLs
+  | { mode: "inline"; entityService: IEntityService }; // Dev: inline data URLs
+
+export class ImageReferenceResolver {
+  static inline(entityService, logger): ImageReferenceResolver;
+  static static(imageMap, logger): ImageReferenceResolver;
+
+  async resolve(content: string): Promise<ResolveResult>;
+}
+```
+
+### 3.3 ImageExtractor (NEW)
 
 **File:** `plugins/site-builder/src/lib/image-extractor.ts`
 
@@ -186,10 +228,6 @@ export class ImageExtractor {
     private logger: Logger,
   ) {}
 
-  /**
-   * Scan content for entity://image references, extract to files
-   * @returns Map of imageId → static URL path
-   */
   async extractFromContent(contents: string[]): Promise<ImageMap> {
     // 1. Detect all entity://image/{id} references
     // 2. Fetch unique image entities
@@ -199,65 +237,45 @@ export class ImageExtractor {
 }
 ```
 
-### 3.2 Refactor ImageReferenceResolver
-
-**File:** `plugins/blog/src/lib/image-reference-resolver.ts`
-
-Make resolver accept pre-built imageMap (static URLs) OR fetch entities (data URLs):
-
-```typescript
-type ResolutionMode =
-  | { mode: "static"; imageMap: ImageMap } // Production: use static URLs
-  | { mode: "inline"; entityService: IEntityService }; // Dev: inline data URLs
-
-export class ImageReferenceResolver {
-  constructor(
-    private resolution: ResolutionMode,
-    private logger: Logger,
-  ) {}
-
-  async resolve(content: string): Promise<ResolveResult> {
-    // If static mode: use imageMap for URLs
-    // If inline mode: fetch entities, use data URLs (current behavior)
-  }
-}
-```
-
-### 3.3 Integration in PreactBuilder
+### 3.4 Integration in PreactBuilder
 
 **File:** `plugins/site-builder/src/lib/preact-builder.ts`
 
 ```typescript
 async build(context: BuildContext, onProgress): Promise<void> {
-  // ... existing route building ...
+  // 1. Build routes (HTML with entity://image refs)
+  for (const route of context.routes) {
+    await this.buildRoute(route, context, siteInfo);
+  }
 
-  // NEW: Extract images to static files
+  // 2. Extract images to static files
   onProgress("Extracting images to static files");
   const extractor = new ImageExtractor(
     this.outputDir,
     context.pluginContext.entityService,
     this.logger,
   );
-
-  // Collect all content that may have image references
-  const allContent = await this.collectContentWithImages(context);
+  const allContent = await this.collectAllContent(context);
   const imageMap = await extractor.extractFromContent(allContent);
 
-  // Post-process HTML files to replace entity:// with static URLs
-  await this.replaceImageReferences(imageMap);
-
-  // ... rest of build ...
+  // 3. Post-process HTML files to replace entity:// with static URLs
+  const resolver = ImageReferenceResolver.static(imageMap, this.logger);
+  await this.resolveImageReferencesInHtml(resolver);
 }
 ```
 
 ### Key Files
 
-| File                                                    | Action     |
-| ------------------------------------------------------- | ---------- |
-| `plugins/site-builder/src/lib/image-extractor.ts`       | **CREATE** |
-| `plugins/site-builder/test/lib/image-extractor.test.ts` | **CREATE** |
-| `plugins/blog/src/lib/image-reference-resolver.ts`      | Refactor   |
-| `plugins/site-builder/src/lib/preact-builder.ts`        | Integrate  |
+| File                                                             | Action            |
+| ---------------------------------------------------------------- | ----------------- |
+| `plugins/site-builder/src/lib/image-extractor.ts`                | **CREATE**        |
+| `plugins/site-builder/src/lib/image-reference-resolver.ts`       | **MOVE**          |
+| `plugins/site-builder/test/lib/image-extractor.test.ts`          | **CREATE**        |
+| `plugins/site-builder/test/lib/image-reference-resolver.test.ts` | **MOVE**          |
+| `plugins/blog/src/lib/image-reference-resolver.ts`               | **DELETE**        |
+| `plugins/blog/src/datasources/blog-datasource.ts`                | Remove resolution |
+| `plugins/blog/src/plugin.ts`                                     | Remove resolver   |
+| `plugins/site-builder/src/lib/preact-builder.ts`                 | Integrate         |
 
 ### Output Structure
 
