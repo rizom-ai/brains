@@ -698,8 +698,8 @@ export class DirectorySync {
       jobIds: [],
     };
 
-    // Get all files to process
-    const filesToProcess = paths ?? this.fileOperations.getAllMarkdownFiles();
+    // Get all files to process (markdown + images from image/ directory)
+    const filesToProcess = paths ?? this.fileOperations.getAllSyncFiles();
 
     // Process each file
     for (const filePath of filesToProcess) {
