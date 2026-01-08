@@ -102,6 +102,9 @@ export interface EntityAdapter<
 
   // Generate frontmatter for markdown
   generateFrontMatter(entity: TEntity): string;
+
+  /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
+  supportsCoverImage?: boolean;
 }
 
 /**

@@ -17,6 +17,9 @@ export {
   markdownToHtml,
   stripMarkdown,
   extractMarkdownImages,
+  updateFrontmatterField,
+  getCoverImageId,
+  setCoverImageId,
 } from "./markdown";
 export type { ExtractedImage } from "./markdown";
 

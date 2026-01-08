@@ -4,6 +4,7 @@ import type {
   BaseEntity,
   AppInfo,
   EntityInput,
+  EntityAdapter,
 } from "@brains/plugins";
 import type {
   ImageGenerationOptions,
@@ -85,4 +86,16 @@ export interface ISystemPlugin {
    * Check if image generation is available (OpenAI API key configured)
    */
   canGenerateImages(): boolean;
+  /**
+   * Get adapter for an entity type (to check capabilities like supportsCoverImage)
+   */
+  getAdapter<T extends BaseEntity>(
+    entityType: string,
+  ): EntityAdapter<T> | undefined;
+  /**
+   * Update an existing entity
+   */
+  updateEntity<T extends BaseEntity>(
+    entity: T,
+  ): Promise<{ entityId: string; jobId: string }>;
 }

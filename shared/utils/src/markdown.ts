@@ -198,3 +198,43 @@ export function extractMarkdownImages(markdown: string): ExtractedImage[] {
 
   return images;
 }
+
+/**
+ * Update a single field in frontmatter, preserving all other fields
+ */
+export function updateFrontmatterField(
+  markdown: string,
+  field: string,
+  value: unknown,
+): string {
+  const { frontmatter, content } = parseMarkdown(markdown);
+  if (value === null || value === undefined) {
+    delete frontmatter[field];
+  } else {
+    frontmatter[field] = value;
+  }
+  return generateMarkdown(frontmatter, content);
+}
+
+/**
+ * Get cover image ID from any entity that stores it in frontmatter
+ */
+export function getCoverImageId(entity: { content: string }): string | null {
+  const { frontmatter } = parseMarkdown(entity.content);
+  return (frontmatter["coverImageId"] as string) ?? null;
+}
+
+/**
+ * Set cover image ID on any entity, returns new entity with updated content
+ */
+export function setCoverImageId<T extends { content: string }>(
+  entity: T,
+  imageId: string | null,
+): T {
+  const updatedContent = updateFrontmatterField(
+    entity.content,
+    "coverImageId",
+    imageId,
+  );
+  return { ...entity, content: updatedContent };
+}

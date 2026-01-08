@@ -22,6 +22,7 @@ export class BlogPostAdapter
 {
   public readonly entityType = "post" as const;
   public readonly schema = blogPostSchema;
+  public readonly supportsCoverImage = true;
 
   /**
    * Convert blog post entity to markdown with frontmatter

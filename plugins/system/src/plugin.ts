@@ -8,6 +8,7 @@ import type {
   ProfileBody,
   AppInfo,
   EntityInput,
+  EntityAdapter,
 } from "@brains/plugins";
 import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type {
@@ -354,5 +355,29 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
       throw new Error("Plugin not registered");
     }
     return this.context.canGenerateImages();
+  }
+
+  /**
+   * Get adapter for an entity type (to check capabilities)
+   */
+  public getAdapter<T extends BaseEntity>(
+    entityType: string,
+  ): EntityAdapter<T> | undefined {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.getAdapter<T>(entityType);
+  }
+
+  /**
+   * Update an existing entity
+   */
+  public async updateEntity<T extends BaseEntity>(
+    entity: T,
+  ): Promise<{ entityId: string; jobId: string }> {
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return this.context.updateEntity(entity);
   }
 }

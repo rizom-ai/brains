@@ -72,6 +72,7 @@ function generateBodyMarkdown(content: ProjectContent): string {
 export class ProjectAdapter implements EntityAdapter<Project, ProjectMetadata> {
   public readonly entityType = "project" as const;
   public readonly schema = projectSchema;
+  public readonly supportsCoverImage = true;
 
   /**
    * Convert project entity to markdown with frontmatter

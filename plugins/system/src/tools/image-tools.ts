@@ -1,5 +1,5 @@
 import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
-import { z, slugify, formatAsEntity } from "@brains/utils";
+import { z, slugify, formatAsEntity, setCoverImageId } from "@brains/utils";
 import type { Image } from "@brains/image";
 import { imageAdapter } from "@brains/image";
 import { isValidDataUrl, isHttpUrl, fetchImageAsBase64 } from "@brains/image";
@@ -384,6 +384,97 @@ function createImageGenerateTool(
 }
 
 /**
+ * Input schema for set-cover tool
+ */
+const setCoverInputSchema = z.object({
+  entityType: z.string().describe("Entity type (e.g., 'post', 'project')"),
+  entityId: z.string().describe("Entity ID or slug"),
+  imageId: z
+    .string()
+    .nullable()
+    .describe("Image ID to set as cover, or null to remove"),
+});
+
+/**
+ * Create the set-cover tool
+ */
+function createSetCoverTool(
+  plugin: ISystemPlugin,
+  pluginId: string,
+): PluginTool {
+  return {
+    name: `${pluginId}_set-cover`,
+    description:
+      "Set or remove cover image on an entity that supports it (blog posts, projects)",
+    inputSchema: setCoverInputSchema.shape,
+    visibility: "anchor",
+    handler: async (
+      input: unknown,
+      _toolContext: ToolContext,
+    ): Promise<ToolResponse> => {
+      try {
+        const { entityType, entityId, imageId } =
+          setCoverInputSchema.parse(input);
+
+        // Get adapter and check capability
+        const adapter = plugin.getAdapter(entityType);
+        if (!adapter?.supportsCoverImage) {
+          return {
+            status: "error",
+            message: `Entity type '${entityType}' doesn't support cover images`,
+            formatted: `_Entity type '${entityType}' doesn't support cover images_`,
+          };
+        }
+
+        // Get entity
+        const entity = await plugin.findEntity(entityType, entityId);
+        if (!entity) {
+          return {
+            status: "error",
+            message: `Entity not found: ${entityId}`,
+            formatted: `_Entity not found: ${entityId}_`,
+          };
+        }
+
+        // Validate image exists (if setting, not removing)
+        if (imageId) {
+          const image = await plugin.getEntity("image", imageId);
+          if (!image) {
+            return {
+              status: "error",
+              message: `Image not found: ${imageId}`,
+              formatted: `_Image not found: ${imageId}_`,
+            };
+          }
+        }
+
+        // Update entity using shared utility
+        const updated = setCoverImageId(entity, imageId);
+        await plugin.updateEntity(updated);
+
+        const message = imageId
+          ? `Cover image set to '${imageId}' on ${entityType}/${entityId}`
+          : `Cover image removed from ${entityType}/${entityId}`;
+
+        return {
+          status: "success",
+          data: { entityType, entityId, imageId },
+          message,
+          formatted: message,
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        return {
+          status: "error",
+          message: msg,
+          formatted: `_Error: ${msg}_`,
+        };
+      }
+    },
+  };
+}
+
+/**
  * Create all image tools
  */
 export function createImageTools(
@@ -395,5 +486,6 @@ export function createImageTools(
     createImageGetTool(plugin, pluginId),
     createImageListTool(plugin, pluginId),
     createImageGenerateTool(plugin, pluginId),
+    createSetCoverTool(plugin, pluginId),
   ];
 }

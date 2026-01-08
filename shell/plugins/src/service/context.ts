@@ -47,6 +47,12 @@ export interface ServicePluginContext extends CorePluginContext {
     adapter: EntityAdapter<T>,
     config?: EntityTypeConfig,
   ) => void;
+  getAdapter: <T extends BaseEntity>(
+    entityType: string,
+  ) => EntityAdapter<T> | undefined;
+  updateEntity: <T extends BaseEntity>(
+    entity: T,
+  ) => Promise<{ entityId: string; jobId: string }>;
 
   // DataSource registration
   registerDataSource: (dataSource: DataSource) => void;
@@ -140,6 +146,20 @@ export function createServicePluginContext(
     entityService,
     registerEntityType: (entityType, schema, adapter, config): void => {
       entityRegistry.registerEntityType(entityType, schema, adapter, config);
+    },
+    getAdapter: <T extends BaseEntity>(
+      entityType: string,
+    ): EntityAdapter<T> | undefined => {
+      try {
+        return entityRegistry.getAdapter<T>(entityType);
+      } catch {
+        return undefined;
+      }
+    },
+    updateEntity: async <T extends BaseEntity>(
+      entity: T,
+    ): Promise<{ entityId: string; jobId: string }> => {
+      return entityService.updateEntity(entity);
     },
 
     // DataSource registration

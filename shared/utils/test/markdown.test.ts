@@ -4,6 +4,9 @@ import {
   extractTitle,
   extractIndexedFields,
   generateMarkdown,
+  updateFrontmatterField,
+  getCoverImageId,
+  setCoverImageId,
 } from "../src/markdown";
 
 describe("Markdown Utilities", () => {
@@ -185,6 +188,181 @@ contentWeight: -0.5
       const markdown = generateMarkdown({}, "Just content");
 
       expect(markdown.trim()).toBe("Just content");
+    });
+  });
+
+  describe("updateFrontmatterField", () => {
+    it("should add a new field to frontmatter", () => {
+      const markdown = `---
+title: Test
+---
+
+Content here`;
+
+      const result = updateFrontmatterField(
+        markdown,
+        "coverImageId",
+        "my-image",
+      );
+      const parsed = parseMarkdown(result);
+
+      expect(parsed.frontmatter["coverImageId"]).toBe("my-image");
+      expect(parsed.frontmatter["title"]).toBe("Test");
+      expect(parsed.content).toBe("Content here");
+    });
+
+    it("should update an existing field", () => {
+      const markdown = `---
+title: Test
+coverImageId: old-image
+---
+
+Content here`;
+
+      const result = updateFrontmatterField(
+        markdown,
+        "coverImageId",
+        "new-image",
+      );
+      const parsed = parseMarkdown(result);
+
+      expect(parsed.frontmatter["coverImageId"]).toBe("new-image");
+    });
+
+    it("should remove field when value is null", () => {
+      const markdown = `---
+title: Test
+coverImageId: some-image
+---
+
+Content here`;
+
+      const result = updateFrontmatterField(markdown, "coverImageId", null);
+      const parsed = parseMarkdown(result);
+
+      expect(parsed.frontmatter["coverImageId"]).toBeUndefined();
+      expect(parsed.frontmatter["title"]).toBe("Test");
+    });
+
+    it("should remove field when value is undefined", () => {
+      const markdown = `---
+title: Test
+coverImageId: some-image
+---
+
+Content here`;
+
+      const result = updateFrontmatterField(
+        markdown,
+        "coverImageId",
+        undefined,
+      );
+      const parsed = parseMarkdown(result);
+
+      expect(parsed.frontmatter["coverImageId"]).toBeUndefined();
+    });
+
+    it("should handle markdown without frontmatter", () => {
+      const markdown = "Just content, no frontmatter";
+
+      const result = updateFrontmatterField(
+        markdown,
+        "coverImageId",
+        "my-image",
+      );
+      const parsed = parseMarkdown(result);
+
+      expect(parsed.frontmatter["coverImageId"]).toBe("my-image");
+      expect(parsed.content).toBe("Just content, no frontmatter");
+    });
+  });
+
+  describe("getCoverImageId", () => {
+    it("should get cover image ID from frontmatter", () => {
+      const entity = {
+        content: `---
+title: Test Post
+coverImageId: hero-image-123
+---
+
+Content here`,
+      };
+
+      const result = getCoverImageId(entity);
+      expect(result).toBe("hero-image-123");
+    });
+
+    it("should return null when no cover image", () => {
+      const entity = {
+        content: `---
+title: Test Post
+---
+
+Content here`,
+      };
+
+      const result = getCoverImageId(entity);
+      expect(result).toBeNull();
+    });
+
+    it("should return null for empty content", () => {
+      const entity = { content: "" };
+
+      const result = getCoverImageId(entity);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("setCoverImageId", () => {
+    it("should set cover image ID on entity", () => {
+      const entity = {
+        id: "test-123",
+        content: `---
+title: Test Post
+---
+
+Content here`,
+      };
+
+      const result = setCoverImageId(entity, "new-cover-image");
+
+      expect(result.id).toBe("test-123");
+      expect(getCoverImageId(result)).toBe("new-cover-image");
+    });
+
+    it("should remove cover image when null", () => {
+      const entity = {
+        id: "test-123",
+        content: `---
+title: Test Post
+coverImageId: old-image
+---
+
+Content here`,
+      };
+
+      const result = setCoverImageId(entity, null);
+
+      expect(getCoverImageId(result)).toBeNull();
+    });
+
+    it("should preserve other entity properties", () => {
+      const entity = {
+        id: "test-123",
+        entityType: "blog",
+        content: `---
+title: Test
+---
+
+Content`,
+        metadata: { slug: "test-post" },
+      };
+
+      const result = setCoverImageId(entity, "cover-img");
+
+      expect(result.id).toBe("test-123");
+      expect(result.entityType).toBe("blog");
+      expect(result.metadata).toEqual({ slug: "test-post" });
     });
   });
 });
