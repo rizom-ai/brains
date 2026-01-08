@@ -392,7 +392,26 @@ const setCoverInputSchema = z.object({
   imageId: z
     .string()
     .nullable()
+    .optional()
     .describe("Image ID to set as cover, or null to remove"),
+  generate: z
+    .boolean()
+    .optional()
+    .describe("Generate a new cover image based on entity title"),
+  prompt: z
+    .string()
+    .optional()
+    .describe("Custom prompt for image generation (used with generate: true)"),
+  size: z
+    .enum(["1024x1024", "1792x1024", "1024x1792"])
+    .optional()
+    .describe(
+      "Image size when generating: square, landscape (default), or portrait",
+    ),
+  style: z
+    .enum(["vivid", "natural"])
+    .optional()
+    .describe("Style when generating: vivid (dramatic, default) or natural"),
 });
 
 /**
@@ -405,7 +424,7 @@ function createSetCoverTool(
   return {
     name: `${pluginId}_set-cover`,
     description:
-      "Set or remove cover image on an entity that supports it (blog posts, projects)",
+      "Set or remove cover image on an entity. Use imageId to set existing image, generate:true to create new image, or imageId:null to remove.",
     inputSchema: setCoverInputSchema.shape,
     visibility: "anchor",
     handler: async (
@@ -413,7 +432,7 @@ function createSetCoverTool(
       _toolContext: ToolContext,
     ): Promise<ToolResponse> => {
       try {
-        const { entityType, entityId, imageId } =
+        const { entityType, entityId, imageId, generate, prompt, size, style } =
           setCoverInputSchema.parse(input);
 
         // Get adapter and check capability
@@ -436,31 +455,95 @@ function createSetCoverTool(
           };
         }
 
-        // Validate image exists (if setting, not removing)
-        if (imageId) {
-          const image = await plugin.getEntity("image", imageId);
+        let finalImageId: string | null = imageId ?? null;
+
+        // Generate new image if requested
+        if (generate) {
+          if (!plugin.canGenerateImages()) {
+            return {
+              status: "error",
+              message:
+                "Image generation not available: OPENAI_API_KEY not configured",
+              formatted:
+                "_Image generation not available: OPENAI_API_KEY not configured_",
+            };
+          }
+
+          // Extract title from entity metadata
+          const metadata = entity.metadata as Record<string, unknown>;
+          const entityTitle = metadata?.["title"] ?? entity.id;
+          const imageTitle = `${entityTitle} Cover`;
+
+          // Build generation prompt
+          const basePrompt = buildImageBasePrompt(plugin);
+          const subjectPrompt = prompt ?? `Cover image for: ${entityTitle}`;
+          const fullPrompt = basePrompt + subjectPrompt;
+
+          // Build options
+          const options: ImageGenerationOptions = {};
+          if (size) options.size = size;
+          if (style) options.style = style;
+
+          // Generate the image
+          const result = await plugin.generateImage(fullPrompt, options);
+
+          // Create image entity
+          const entityData = imageAdapter.createImageEntity({
+            dataUrl: result.dataUrl,
+            title: imageTitle,
+          });
+
+          const imageSlug = slugify(imageTitle);
+          await plugin.createEntity({
+            ...entityData,
+            id: imageSlug,
+          });
+
+          finalImageId = imageSlug;
+        } else if (finalImageId) {
+          // Validate existing image exists (if setting, not removing)
+          const image = await plugin.getEntity("image", finalImageId);
           if (!image) {
             return {
               status: "error",
-              message: `Image not found: ${imageId}`,
-              formatted: `_Image not found: ${imageId}_`,
+              message: `Image not found: ${finalImageId}`,
+              formatted: `_Image not found: ${finalImageId}_`,
             };
           }
         }
 
         // Update entity using shared utility
-        const updated = setCoverImageId(entity, imageId);
+        const updated = setCoverImageId(entity, finalImageId);
         await plugin.updateEntity(updated);
 
-        const message = imageId
-          ? `Cover image set to '${imageId}' on ${entityType}/${entityId}`
+        const message = finalImageId
+          ? generate
+            ? `Generated and set cover image '${finalImageId}' on ${entityType}/${entityId}`
+            : `Cover image set to '${finalImageId}' on ${entityType}/${entityId}`
           : `Cover image removed from ${entityType}/${entityId}`;
+
+        const formatted = generate
+          ? formatAsEntity(
+              {
+                entityType,
+                entityId,
+                imageId: finalImageId,
+                action: "generated",
+              },
+              { title: "Cover Image Set" },
+            )
+          : message;
 
         return {
           status: "success",
-          data: { entityType, entityId, imageId },
+          data: {
+            entityType,
+            entityId,
+            imageId: finalImageId,
+            generated: generate ?? false,
+          },
           message,
-          formatted: message,
+          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

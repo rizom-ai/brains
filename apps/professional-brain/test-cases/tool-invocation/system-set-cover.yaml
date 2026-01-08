@@ -1,0 +1,29 @@
+id: tool-invocation-set-cover
+name: System Set Cover with Existing Image
+description: Verifies that the agent correctly uses system_set-cover with an existing image ID
+type: tool_invocation
+tags:
+  - core
+  - image
+  - cover
+
+turns:
+  - userMessage: "Set the image 'hero-banner' as the cover for blog post 'my-first-post'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_set-cover
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+        entityId: "my-first-post"
+        imageId: "hero-banner"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minHelpfulnessScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000
