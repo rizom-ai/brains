@@ -299,16 +299,13 @@ export class GitSync {
 
     // Check if we have conflicted files
     if (status.conflicted.length > 0) {
-      this.logger.warn(
-        "Found conflicted files, resolving with remote version",
-        {
-          files: status.conflicted,
-        },
-      );
+      this.logger.warn("Found conflicted files, resolving with local version", {
+        files: status.conflicted,
+      });
 
-      // Resolve conflicts by taking remote version
+      // Resolve conflicts by taking local version (preserves our changes)
       for (const file of status.conflicted) {
-        await this.git.raw(["checkout", "--theirs", file]);
+        await this.git.raw(["checkout", "--ours", file]);
       }
     }
 
@@ -420,12 +417,14 @@ export class GitSync {
         await this.commit("Pre-pull commit: preserving local changes");
       }
 
-      // Pull with merge strategy, auto-resolving conflicts using remote version
+      // Pull with merge strategy, auto-resolving conflicts using local version
+      // We use -Xours because local changes were already committed, so we want
+      // to preserve them in case of conflicts (local is source of truth for changes)
       await this.git.pull("origin", this.branch, {
         "--no-rebase": null,
         "--allow-unrelated-histories": null,
         "--strategy=recursive": null,
-        "-Xtheirs": null, // Automatically resolve conflicts using remote version
+        "-Xours": null, // Automatically resolve conflicts using local version
       });
       this.logger.info("Pulled changes from remote");
 

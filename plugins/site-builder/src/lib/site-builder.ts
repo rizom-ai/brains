@@ -24,6 +24,7 @@ import type { ProfileService } from "@brains/profile-service";
 import type { EntityRouteConfig } from "../config";
 import { baseEntitySchema } from "@brains/entity-service";
 import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
+import { resolveEntityCoverImage } from "@brains/image";
 
 // Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = baseEntitySchema.extend({
@@ -372,9 +373,9 @@ export class SiteBuilder implements ISiteBuilder {
 
       const content = await this.context.resolveContent(templateName, options);
 
-      // Auto-enrich data with URLs and typeLabels
+      // Auto-enrich data with URLs, typeLabels, and coverImageUrls
       if (content) {
-        return this.enrichWithUrls(content, generateEntityUrl);
+        return await this.enrichWithUrls(content, generateEntityUrl);
       }
 
       return null;
@@ -393,40 +394,51 @@ export class SiteBuilder implements ISiteBuilder {
       generateEntityUrl,
     });
 
-    // Auto-enrich data with URLs and typeLabels
+    // Auto-enrich data with URLs, typeLabels, and coverImageUrls
     if (content) {
-      return this.enrichWithUrls(content, generateEntityUrl);
+      return await this.enrichWithUrls(content, generateEntityUrl);
     }
 
     return null;
   }
 
   /**
-   * Auto-enrich data with URL and typeLabel fields
-   * Recursively traverses data and adds url/typeLabel to any entity objects
+   * Auto-enrich data with URL, typeLabel, and coverImageUrl fields
+   * Recursively traverses data and adds url/typeLabel/coverImageUrl to any entity objects
    */
-  private enrichWithUrls(
+  private async enrichWithUrls(
     data: unknown,
     generateEntityUrl: (entityType: string, slug: string) => string,
-  ): unknown {
+  ): Promise<unknown> {
     // Handle null/undefined
     if (data === null || data === undefined) {
       return data;
     }
 
-    // Handle arrays - recursively enrich each item
+    // Handle arrays - recursively enrich each item in parallel
     if (Array.isArray(data)) {
-      return data.map((item) => this.enrichWithUrls(item, generateEntityUrl));
+      return Promise.all(
+        data.map((item) => this.enrichWithUrls(item, generateEntityUrl)),
+      );
     }
 
     // Handle objects
     if (typeof data === "object") {
       const obj = data as Record<string, unknown>;
 
-      // Recursively enrich all nested objects first
+      // Recursively enrich all nested objects first (in parallel)
       const enriched: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(obj)) {
-        enriched[key] = this.enrichWithUrls(value, generateEntityUrl);
+      const entries = Object.entries(obj);
+      const enrichedValues = await Promise.all(
+        entries.map(([, value]) =>
+          this.enrichWithUrls(value, generateEntityUrl),
+        ),
+      );
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        if (entry) {
+          enriched[entry[0]] = enrichedValues[i];
+        }
       }
 
       // Check if this object is an entity with slug metadata
@@ -453,13 +465,20 @@ export class SiteBuilder implements ISiteBuilder {
         const listLabel =
           pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
 
-        const enrichedEntity: EnrichedEntity = {
+        // Resolve cover image URL if entity has coverImageId in frontmatter
+        const coverImageUrl = await resolveEntityCoverImage(
+          entity,
+          this.context.entityService,
+        );
+
+        const enrichedEntity: EnrichedEntity & { coverImageUrl?: string } = {
           ...enriched,
           ...entity,
           url: generateEntityUrl(entityType, slug),
           typeLabel,
           listUrl,
           listLabel,
+          ...(coverImageUrl && { coverImageUrl }),
         };
 
         return enrichedEntity;

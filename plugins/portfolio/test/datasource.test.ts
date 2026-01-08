@@ -282,4 +282,109 @@ Outcome for ${title}`;
       expect(datasource.description).toContain("project entities");
     });
   });
+
+  describe("coverImageId in frontmatter (for site-builder enrichment)", () => {
+    // Note: coverImageUrl is resolved centrally by site-builder's enrichWithUrls,
+    // not by the datasource. The datasource passes through entity data including
+    // content field with coverImageId in frontmatter.
+    const listSchema = z.object({
+      projects: z.array(z.any()),
+      pagination: z.any().nullable(),
+    });
+
+    // Helper to create mock project with coverImageId
+    const createMockProjectWithCover = (
+      id: string,
+      title: string,
+      slug: string,
+      coverImageId: string,
+    ): Project => {
+      const content = `---
+title: ${title}
+slug: ${slug}
+status: published
+description: Description for ${title}
+year: 2024
+coverImageId: ${coverImageId}
+---
+
+## Context
+Context for ${title}
+
+## Problem
+Problem for ${title}
+
+## Solution
+Solution for ${title}
+
+## Outcome
+Outcome for ${title}`;
+      return {
+        id,
+        entityType: "project",
+        content,
+        contentHash: computeContentHash(content),
+        created: "2025-01-01T10:00:00.000Z",
+        updated: "2025-01-01T10:00:00.000Z",
+        metadata: {
+          title,
+          slug,
+          status: "published",
+          year: 2024,
+        },
+      };
+    };
+
+    it("should include coverImageId in frontmatter for site-builder enrichment", async () => {
+      const projectWithCover = createMockProjectWithCover(
+        "proj-1",
+        "Project with Cover",
+        "project-with-cover",
+        "project-cover-image",
+      );
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([
+        projectWithCover,
+      ]);
+
+      const result = await datasource.fetch(
+        { entityType: "project" },
+        listSchema,
+        mockContext,
+      );
+
+      expect(result.projects).toHaveLength(1);
+      // Frontmatter should include coverImageId for site-builder to resolve
+      expect(result.projects[0].frontmatter.coverImageId).toBe(
+        "project-cover-image",
+      );
+      // Entity content is preserved for site-builder enrichment
+      expect(result.projects[0].content).toContain(
+        "coverImageId: project-cover-image",
+      );
+    });
+
+    it("should not include coverImageId when not in frontmatter", async () => {
+      const projectWithoutCover = createMockProject(
+        "proj-1",
+        "Project without Cover",
+        "project-without-cover",
+        "published",
+        2024,
+      );
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([
+        projectWithoutCover,
+      ]);
+
+      const result = await datasource.fetch(
+        { entityType: "project" },
+        listSchema,
+        mockContext,
+      );
+
+      expect(result.projects).toHaveLength(1);
+      expect(result.projects[0].frontmatter.coverImageId).toBeUndefined();
+    });
+  });
 });

@@ -160,29 +160,35 @@ export class DirectorySync {
   }
 
   /**
-   * Sync all entities with directory
+   * Sync entities from directory to database.
+   *
+   * NOTE: This method only imports (files → DB). Export (DB → files) is handled
+   * by entity:created/entity:updated subscribers when autoSync is enabled.
+   * This design eliminates the race condition where export would write stale
+   * content before import jobs complete.
    */
   async sync(): Promise<SyncResult> {
     const startTime = Date.now();
-    this.logger.debug("Starting full sync");
+    this.logger.debug("Starting sync (import only)");
 
-    // Import from directory first
+    // Import from directory
     const importResult = await this.importEntities();
 
-    // Export all entities
-    const exportResult = await this.exportEntities();
+    // NOTE: Export is NOT called here. When autoSync is enabled, the
+    // entity:created/entity:updated subscribers handle export after each
+    // entity is saved to DB. This ensures files are written with the
+    // correct content after jobs complete.
 
     const duration = Date.now() - startTime;
     this.lastSync = new Date();
 
-    this.logger.debug("Full sync completed", {
+    this.logger.debug("Sync completed", {
       duration,
       imported: importResult.imported,
-      exported: exportResult.exported,
     });
 
     return {
-      export: exportResult,
+      export: { exported: 0, failed: 0, errors: [] },
       import: importResult,
       duration,
     };

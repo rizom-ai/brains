@@ -51,11 +51,15 @@ export class SeriesManager {
       const seriesId = `series-${slugify(seriesName)}`;
       processedIds.add(seriesId);
 
-      const content = `# ${seriesName}`;
+      // Check if series already exists
+      const existing = existingSeriesMap.get(seriesId);
+
+      // Preserve existing content (which may have frontmatter with coverImageId, description, etc.)
+      // Only create new minimal content for truly new series
+      const content = existing?.content ?? `# ${seriesName}`;
       const contentHash = computeContentHash(content);
 
-      // Check if series already exists with same content
-      const existing = existingSeriesMap.get(seriesId);
+      // Skip if series exists and content hasn't changed
       if (existing && existing.contentHash === contentHash) {
         this.logger.debug(`Series already exists unchanged: ${seriesName}`);
         continue;
@@ -69,6 +73,8 @@ export class SeriesManager {
         created: existing?.created ?? new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {
+          // Preserve existing metadata fields (like description)
+          ...existing?.metadata,
           name: seriesName,
           slug: slugify(seriesName),
         },

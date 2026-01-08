@@ -84,25 +84,24 @@ export const ProjectDetailTemplate = ({
   prevProject,
   nextProject,
 }: ProjectDetailProps): JSX.Element => {
-  const { frontmatter, structuredContent, metadata } = project;
+  const { frontmatter, structuredContent, metadata, coverImageUrl } = project;
 
   return (
     <>
       <Head
         title={frontmatter.title}
         description={frontmatter.description}
-        {...(frontmatter.coverImageId && {
-          ogImage: frontmatter.coverImageId,
+        {...(coverImageUrl && {
+          ogImage: coverImageUrl,
         })}
         ogType="article"
       />
       <article className="project-detail">
         <div className="container mx-auto px-6 md:px-8 py-12 md:py-20">
           <div className="max-w-3xl mx-auto">
-            {/* Cover Image - TODO: resolve coverImageId to data URL */}
-            {frontmatter.coverImageId && (
+            {coverImageUrl && (
               <img
-                src={frontmatter.coverImageId}
+                src={coverImageUrl}
                 alt={frontmatter.title}
                 className="w-full h-80 md:h-96 object-cover rounded-lg mb-8 shadow-lg"
               />

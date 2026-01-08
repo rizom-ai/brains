@@ -4,6 +4,7 @@ import type {
   ProgressReporter,
   ServicePluginContext,
 } from "@brains/plugins";
+import { computeContentHash } from "@brains/utils";
 import {
   directoryImportJobSchema,
   type ImportResult,
@@ -154,10 +155,13 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
           );
 
           if (existing) {
-            // Update if modified
+            // Update if file is newer OR content has changed
             const existingTime = new Date(existing.updated).getTime();
             const newTime = rawEntity.updated.getTime();
-            if (existingTime < newTime) {
+            const fileContentHash = computeContentHash(rawEntity.content);
+            const contentDiffers = existing.contentHash !== fileContentHash;
+
+            if (existingTime < newTime || contentDiffers) {
               const entityUpdate = {
                 ...existing,
                 content: rawEntity.content,

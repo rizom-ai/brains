@@ -14,8 +14,12 @@ export {
 export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
 export type { CreateImageInput } from "./adapters/image-adapter";
 
-// Image resolver utility
-export { resolveImage } from "./lib/image-resolver";
+// Image resolver utilities
+export {
+  resolveImage,
+  resolveEntityCoverImage,
+  extractCoverImageId,
+} from "./lib/image-resolver";
 
 // Image utilities
 export {

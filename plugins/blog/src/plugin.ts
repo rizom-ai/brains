@@ -150,6 +150,13 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       baseUrl: z.string().optional(),
     });
 
+    // Define schema for series detail template
+    const seriesDetailSchema = z.object({
+      seriesName: z.string(),
+      posts: z.array(enrichedBlogPostSchema),
+      coverImageUrl: z.string().optional(),
+    });
+
     context.registerTemplates({
       "post-list": createTemplate<
         z.infer<typeof postListSchema>,
@@ -208,18 +215,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         },
       }),
       "series-detail": createTemplate<
-        {
-          seriesName: string;
-          posts: z.infer<typeof enrichedBlogPostSchema>[];
-        },
+        z.infer<typeof seriesDetailSchema>,
         SeriesDetailProps
       >({
         name: "series-detail",
         description: "Posts in a specific series",
-        schema: z.object({
-          seriesName: z.string(),
-          posts: z.array(enrichedBlogPostSchema),
-        }),
+        schema: seriesDetailSchema,
         dataSourceId: "blog:series",
         requiredPermission: "public",
         layout: {

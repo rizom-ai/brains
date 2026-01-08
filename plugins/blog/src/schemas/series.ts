@@ -2,13 +2,26 @@ import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**
- * Series metadata schema
+ * Series frontmatter schema (stored in content as YAML frontmatter)
+ * Contains all series data including coverImageId
+ */
+export const seriesFrontmatterSchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  description: z.string().optional(),
+  coverImageId: z.string().optional(),
+});
+
+export type SeriesFrontmatter = z.infer<typeof seriesFrontmatterSchema>;
+
+/**
+ * Series metadata schema (searchable fields only)
+ * Does NOT include coverImageId - that's read from frontmatter at runtime
  */
 export const seriesMetadataSchema = z.object({
   name: z.string(),
   slug: z.string(),
   description: z.string().optional(),
-  coverImageId: z.string().optional(),
 });
 
 /**
@@ -17,6 +30,15 @@ export const seriesMetadataSchema = z.object({
 export const seriesSchema = baseEntitySchema.extend({
   metadata: seriesMetadataSchema,
 });
+
+/**
+ * Series with parsed frontmatter (returned by datasource)
+ */
+export const seriesWithDataSchema = seriesSchema.extend({
+  frontmatter: seriesFrontmatterSchema,
+});
+
+export type SeriesWithData = z.infer<typeof seriesWithDataSchema>;
 
 /**
  * Series list item schema (for templates)

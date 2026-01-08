@@ -17,6 +17,7 @@ import { PostMetadata } from "./PostMetadata";
 export interface SeriesDetailProps {
   seriesName: string;
   posts: EnrichedBlogPost[];
+  coverImageUrl?: string;
 }
 
 /**
@@ -25,6 +26,7 @@ export interface SeriesDetailProps {
 export const SeriesDetailTemplate = ({
   seriesName,
   posts,
+  coverImageUrl,
 }: SeriesDetailProps): JSX.Element => {
   const title = `Series: ${seriesName}`;
   const description = `${posts.length} ${posts.length === 1 ? "post" : "posts"} in the ${seriesName} series`;
@@ -56,6 +58,16 @@ export const SeriesDetailTemplate = ({
       <section className="series-list-section flex-grow min-h-screen">
         <div className="container mx-auto px-6 md:px-8 max-w-4xl py-20">
           <Breadcrumb items={breadcrumbItems} />
+
+          {coverImageUrl && (
+            <div className="mb-8 rounded-lg overflow-hidden">
+              <img
+                src={coverImageUrl}
+                alt={`Cover image for ${seriesName} series`}
+                className="w-full h-48 md:h-64 object-cover"
+              />
+            </div>
+          )}
 
           <ListPageHeader
             title={`Series: ${seriesName}`}

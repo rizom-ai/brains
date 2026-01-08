@@ -6,7 +6,7 @@ import {
 } from "@brains/entity-service";
 import {
   seriesSchema,
-  seriesMetadataSchema,
+  seriesFrontmatterSchema,
   type Series,
   type SeriesMetadata,
 } from "../schemas/series";
@@ -22,8 +22,24 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
 
   /**
    * Convert series entity to markdown with frontmatter
+   * Preserves coverImageId from existing frontmatter if present
    */
   public toMarkdown(entity: Series): string {
+    // Extract body without frontmatter
+    let contentBody = entity.content;
+    let existingCoverImageId: string | undefined;
+
+    try {
+      const parsed = parseMarkdownWithFrontmatter(
+        entity.content,
+        seriesFrontmatterSchema,
+      );
+      contentBody = parsed.content;
+      existingCoverImageId = parsed.metadata.coverImageId;
+    } catch {
+      // Content doesn't have valid frontmatter, use as-is
+    }
+
     const frontmatter: Record<string, unknown> = {
       name: entity.metadata.name,
       slug: entity.metadata.slug,
@@ -31,19 +47,33 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
     if (entity.metadata.description) {
       frontmatter["description"] = entity.metadata.description;
     }
-    return generateMarkdownWithFrontmatter(entity.content, frontmatter);
+    if (existingCoverImageId) {
+      frontmatter["coverImageId"] = existingCoverImageId;
+    }
+
+    return generateMarkdownWithFrontmatter(contentBody, frontmatter);
   }
 
   /**
    * Parse markdown to partial series entity
+   * Frontmatter includes coverImageId, metadata does not
+   * Store full markdown (with frontmatter) in content to preserve coverImageId
    */
   public fromMarkdown(markdown: string): Partial<Series> {
-    const { content, metadata } = parseMarkdownWithFrontmatter(
+    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
       markdown,
-      seriesMetadataSchema,
+      seriesFrontmatterSchema,
     );
+
+    // Extract metadata (without coverImageId) from frontmatter
+    const metadata: SeriesMetadata = {
+      name: frontmatter.name,
+      slug: frontmatter.slug,
+      description: frontmatter.description,
+    };
+
     return {
-      content,
+      content: markdown, // Store full markdown including frontmatter
       entityType: "series",
       metadata,
     };

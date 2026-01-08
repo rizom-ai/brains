@@ -24,14 +24,13 @@ const ProjectCard = ({
 }: {
   project: EnrichedProject;
 }): JSX.Element => {
-  const { frontmatter, url } = project;
+  const { frontmatter, url, coverImageUrl } = project;
 
   return (
     <Card href={url}>
-      {/* TODO: resolve coverImageId to data URL */}
-      {frontmatter.coverImageId && (
+      {coverImageUrl && (
         <img
-          src={frontmatter.coverImageId}
+          src={coverImageUrl}
           alt={frontmatter.title}
           className="w-full h-56 object-cover rounded-md mb-4"
         />

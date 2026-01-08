@@ -7,9 +7,10 @@ describe("Git-Sync Implementation Verification", () => {
   const gitSyncSource = readFileSync(gitSyncSourcePath, "utf-8");
 
   describe("Automatic Conflict Resolution", () => {
-    it("should configure pull with 'theirs' merge strategy", () => {
-      // Verify the pull method uses the correct flags
-      expect(gitSyncSource).toContain('"-Xtheirs": null');
+    it("should configure pull with 'ours' merge strategy to preserve local changes", () => {
+      // Verify the pull method uses -Xours so local changes win conflicts
+      // This prevents coverImageId and other local edits from being lost
+      expect(gitSyncSource).toContain('"-Xours": null');
       expect(gitSyncSource).toContain('"--strategy=recursive": null');
     });
 
@@ -28,9 +29,9 @@ describe("Git-Sync Implementation Verification", () => {
       expect(gitSyncSource).toContain(">>>>>>>");
     });
 
-    it("should handle conflicted files by using remote version", () => {
-      // Verify conflicted files are resolved with --theirs
-      expect(gitSyncSource).toContain('checkout", "--theirs"');
+    it("should handle conflicted files by using local version", () => {
+      // Verify conflicted files are resolved with --ours (preserves local changes)
+      expect(gitSyncSource).toContain('checkout", "--ours"');
     });
 
     it("should throw error if conflict markers found in staged files", () => {
@@ -43,7 +44,7 @@ describe("Git-Sync Implementation Verification", () => {
     it("should process conflict resolution before staging", () => {
       // The order should be:
       // 1. Check for conflicted files
-      // 2. Resolve them with --theirs
+      // 2. Resolve them with --ours (local wins)
       // 3. Stage all changes
       // 4. Final safety check
       // 5. Commit
@@ -59,7 +60,7 @@ describe("Git-Sync Implementation Verification", () => {
 
         // Check order of operations
         const conflictedPos = commitMethod.indexOf("conflicted");
-        const checkoutPos = commitMethod.indexOf('checkout", "--theirs"');
+        const checkoutPos = commitMethod.indexOf('checkout", "--ours"');
         const addPos = commitMethod.indexOf('add(["-A"])');
         const finalCheckPos = commitMethod.indexOf("Conflict markers found");
 

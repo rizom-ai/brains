@@ -115,7 +115,7 @@ description: An awesome series
       expect(result.metadata?.description).toBe("An awesome series");
     });
 
-    it("should extract body content without frontmatter", () => {
+    it("should store full markdown including frontmatter in content", () => {
       const markdown = `---
 name: Test Series
 slug: test-series
@@ -127,7 +127,8 @@ Some content here.`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.content).toBe("# Test Series\n\nSome content here.");
+      // Content includes frontmatter so it can be parsed later (e.g., for coverImageId)
+      expect(result.content).toBe(markdown);
     });
   });
 
@@ -168,7 +169,8 @@ Some content here.`;
       expect(parsed.metadata?.description).toBe(
         "A series about digital credentials",
       );
-      expect(parsed.content).toBe("# Public Badges");
+      // Content now stores full markdown including frontmatter
+      expect(parsed.content).toBe(markdown);
     });
 
     it("should preserve content through fromMarkdown -> toMarkdown", () => {
@@ -195,6 +197,30 @@ This is the content.`;
       expect(output).toContain("slug: new-institutions");
       expect(output).toContain("# New Institutions");
       expect(output).toContain("This is the content.");
+    });
+
+    it("should preserve coverImageId through fromMarkdown -> toMarkdown", () => {
+      const original = `---
+coverImageId: series-ecosystem-cover
+name: Ecosystem Architecture
+slug: ecosystem-architecture
+---
+
+# Ecosystem Architecture`;
+
+      const parsed = adapter.fromMarkdown(original);
+      const entity = createMockSeries({
+        content: parsed.content ?? "",
+        metadata: parsed.metadata ?? {
+          name: "Ecosystem Architecture",
+          slug: "ecosystem-architecture",
+        },
+      });
+      const output = adapter.toMarkdown(entity);
+
+      expect(output).toContain("coverImageId: series-ecosystem-cover");
+      expect(output).toContain("name: Ecosystem Architecture");
+      expect(output).toContain("slug: ecosystem-architecture");
     });
   });
 });

@@ -105,6 +105,9 @@ export interface EntityAdapter<
 
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
+
+  /** Optional: Extract coverImageId from entity content/frontmatter */
+  getCoverImageId?(entity: TEntity): string | undefined;
 }
 
 /**

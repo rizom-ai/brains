@@ -2,7 +2,7 @@ import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { resolveImage } from "@brains/image";
+import { resolveEntityCoverImage } from "@brains/image";
 import type { BlogPost } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";
 import {
@@ -159,19 +159,19 @@ export class SeriesDataSource implements DataSource {
       }
     }
 
-    // Build series list with resolved cover images
+    // Build series list with resolved cover images using shared utility
     const series = await Promise.all(
       seriesEntities.map(async (entity) => {
-        const coverImageId = entity.metadata.coverImageId;
-        const resolved = coverImageId
-          ? await resolveImage(coverImageId, this.entityService)
-          : null;
+        const coverImageUrl = await resolveEntityCoverImage(
+          entity,
+          this.entityService,
+        );
 
         return {
           name: entity.metadata.name,
           slug: entity.metadata.slug,
           postCount: postCounts.get(entity.metadata.name) ?? 0,
-          coverImageUrl: resolved?.url,
+          coverImageUrl,
         };
       }),
     );
@@ -188,6 +188,7 @@ export class SeriesDataSource implements DataSource {
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
+    coverImageUrl?: string,
   ): Promise<T> {
     const posts = await this.entityService.listEntities<BlogPost>("post", {
       filter: { metadata: { seriesName } },
@@ -204,12 +205,13 @@ export class SeriesDataSource implements DataSource {
     return outputSchema.parse({
       seriesName,
       posts: postsWithData,
+      coverImageUrl,
     });
   }
 
   /**
    * Fetch posts for a series by slug
-   * Looks up the series entity to get the name, then fetches posts
+   * Looks up the series entity to get the name and cover image, then fetches posts
    */
   private async fetchSeriesDetailBySlug<T>(
     seriesSlug: string,
@@ -235,6 +237,17 @@ export class SeriesDataSource implements DataSource {
 
     const seriesName = seriesEntity.metadata.name;
 
-    return this.fetchSeriesDetail(seriesName, outputSchema, context);
+    // Resolve cover image using shared utility
+    const coverImageUrl = await resolveEntityCoverImage(
+      seriesEntity,
+      this.entityService,
+    );
+
+    return this.fetchSeriesDetail(
+      seriesName,
+      outputSchema,
+      context,
+      coverImageUrl,
+    );
   }
 }
