@@ -4,37 +4,37 @@
 
 Enable setting cover images on any entity type that supports it, without hardcoding entity types. Use adapter-based capability discovery.
 
-## Approach: Option B - Extend EntityAdapter with Optional Methods
+## Approach: Capability Flag + Generic Utility
 
-Adapters declare AND implement cover image support via optional methods. The system plugin checks if an adapter has these methods before calling them.
+Adapters declare cover image support via a simple boolean flag. A shared utility handles the actual get/set logic since all entity types store `coverImageId` the same way (in frontmatter).
 
 ## Implementation Steps
 
-### Phase 1: Extend EntityAdapter Interface
+### Phase 1: Add Capability Flag to EntityAdapter
 
 **File:** `shell/entity-service/src/types.ts`
 
-Add optional cover image methods to `EntityAdapter`:
+Add optional capability flag to `EntityAdapter`:
 
 ```typescript
 export interface EntityAdapter<TEntity, TMetadata> {
   // ... existing methods
 
-  /** Optional: Get cover image ID from entity (if supported) */
-  getCoverImageId?(entity: TEntity): string | null;
-
-  /** Optional: Set cover image ID on entity, returns updated entity (if supported) */
-  setCoverImageId?(entity: TEntity, imageId: string | null): TEntity;
+  /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
+  supportsCoverImage?: boolean;
 }
 ```
 
-### Phase 2: Add Shared Frontmatter Utility
+### Phase 2: Add Shared Utilities
 
 **File:** `shared/utils/src/markdown.ts`
 
-Add helper for updating frontmatter fields:
+Add helpers for frontmatter field updates and cover image operations:
 
 ```typescript
+/**
+ * Update a single field in frontmatter, preserving all other fields
+ */
 export function updateFrontmatterField(
   markdown: string,
   field: string,
@@ -48,28 +48,53 @@ export function updateFrontmatterField(
   }
   return generateMarkdown(frontmatter, content);
 }
-```
 
-### Phase 3: Implement in Blog Adapter
-
-**File:** `plugins/blog/src/adapters/blog-post-adapter.ts`
-
-Add cover image methods:
-
-```typescript
-getCoverImageId(entity: BlogPost): string | null {
+/**
+ * Get cover image ID from any entity that stores it in frontmatter
+ */
+export function getCoverImageId(entity: { content: string }): string | null {
   const { frontmatter } = parseMarkdown(entity.content);
   return (frontmatter.coverImageId as string) ?? null;
 }
 
-setCoverImageId(entity: BlogPost, imageId: string | null): BlogPost {
+/**
+ * Set cover image ID on any entity, returns new entity with updated content
+ */
+export function setCoverImageId<T extends { content: string }>(
+  entity: T,
+  imageId: string | null,
+): T {
   const updatedContent = updateFrontmatterField(
     entity.content,
-    'coverImageId',
+    "coverImageId",
     imageId,
   );
   return { ...entity, content: updatedContent };
 }
+```
+
+### Phase 3: Enable in Adapters
+
+Both blog posts and portfolio projects already have `coverImageId` in their schemas. Just set the capability flag.
+
+**File:** `plugins/blog/src/adapters/blog-post-adapter.ts`
+
+```typescript
+export const blogPostAdapter: EntityAdapter<BlogPost, BlogPostMetadata> = {
+  entityType: "blog",
+  supportsCoverImage: true, // Add this line
+  // ... rest unchanged
+};
+```
+
+**File:** `plugins/portfolio/src/adapters/project-adapter.ts`
+
+```typescript
+export const projectAdapter: EntityAdapter<Project, ProjectMetadata> = {
+  entityType: "project",
+  supportsCoverImage: true, // Add this line
+  // ... rest unchanged
+};
 ```
 
 ### Phase 4: Expose updateEntity in System Plugin
@@ -93,8 +118,10 @@ Implement by delegating to context.entityService.updateEntity()
 Add new tool:
 
 ```typescript
+import { setCoverImageId } from "@brains/utils";
+
 const setCoverInputSchema = z.object({
-  entityType: z.string().describe("Entity type (e.g., 'blog', 'deck')"),
+  entityType: z.string().describe("Entity type (e.g., 'blog', 'project')"),
   entityId: z.string().describe("Entity ID or slug"),
   imageId: z
     .string()
@@ -116,7 +143,7 @@ function createSetCoverTool(
 
       // Get adapter and check capability
       const adapter = plugin.getAdapter(entityType);
-      if (!adapter?.setCoverImageId) {
+      if (!adapter?.supportsCoverImage) {
         return {
           status: "error",
           message: `Entity type '${entityType}' doesn't support cover images`,
@@ -137,8 +164,8 @@ function createSetCoverTool(
         }
       }
 
-      // Update entity
-      const updated = adapter.setCoverImageId(entity, imageId);
+      // Update entity using shared utility
+      const updated = setCoverImageId(entity, imageId);
       await plugin.updateEntity(updated);
 
       return {
@@ -162,31 +189,31 @@ Need to expose adapter access so the tool can check capabilities.
 
 ## Files to Modify
 
-| File                                             | Change                                      |
-| ------------------------------------------------ | ------------------------------------------- |
-| `shell/entity-service/src/types.ts`              | Add optional cover methods to EntityAdapter |
-| `shared/utils/src/markdown.ts`                   | Add updateFrontmatterField helper           |
-| `shared/utils/src/index.ts`                      | Export new function                         |
-| `plugins/blog/src/adapters/blog-post-adapter.ts` | Implement cover methods                     |
-| `shell/plugins/src/interfaces.ts`                | Add getAdapter, updateEntity to IShell      |
-| `shell/plugins/src/service/context.ts`           | Add to ServicePluginContext                 |
-| `shell/plugins/src/test/mock-shell.ts`           | Add mock methods                            |
-| `shell/core/src/shell.ts`                        | Implement getAdapter, updateEntity          |
-| `plugins/system/src/types.ts`                    | Add to ISystemPlugin                        |
-| `plugins/system/src/plugin.ts`                   | Implement methods                           |
-| `plugins/system/src/tools/image-tools.ts`        | Add system_set-cover tool                   |
-| `plugins/system/test/plugin.test.ts`             | Update expected tool count                  |
+| File                                                | Change                                         |
+| --------------------------------------------------- | ---------------------------------------------- |
+| `shell/entity-service/src/types.ts`                 | Add `supportsCoverImage` flag to EntityAdapter |
+| `shared/utils/src/markdown.ts`                      | Add utility functions                          |
+| `shared/utils/src/index.ts`                         | Export new functions                           |
+| `plugins/blog/src/adapters/blog-post-adapter.ts`    | Set `supportsCoverImage: true`                 |
+| `plugins/portfolio/src/adapters/project-adapter.ts` | Set `supportsCoverImage: true`                 |
+| `shell/plugins/src/interfaces.ts`                   | Add getAdapter, updateEntity to IShell         |
+| `shell/plugins/src/service/context.ts`              | Add to ServicePluginContext                    |
+| `shell/plugins/src/test/mock-shell.ts`              | Add mock methods                               |
+| `shell/core/src/shell.ts`                           | Implement getAdapter, updateEntity             |
+| `plugins/system/src/types.ts`                       | Add to ISystemPlugin                           |
+| `plugins/system/src/plugin.ts`                      | Implement methods                              |
+| `plugins/system/src/tools/image-tools.ts`           | Add system_set-cover tool                      |
+| `plugins/system/test/plugin.test.ts`                | Update expected tool count                     |
 
 ## Future: Add to Other Entity Types
 
-Once blog works, same pattern for:
+Just set `supportsCoverImage: true` on any adapter - no code duplication needed:
 
-- `plugins/decks/src/formatters/deck-formatter.ts` (or adapter)
-- `plugins/blog/src/services/series-manager.ts` (for series)
+- `plugins/decks/src/formatters/deck-formatter.ts` - for deck covers
+- `plugins/blog/src/services/series-manager.ts` - for series covers
 
 ## Testing
 
-1. Unit test for updateFrontmatterField
-2. Unit test for blog adapter cover methods
-3. Integration test for system_set-cover tool
-4. Test error cases: unsupported entity type, missing entity, missing image
+1. Unit tests for shared utilities (`updateFrontmatterField`, `getCoverImageId`, `setCoverImageId`)
+2. Integration test for system_set-cover tool
+3. Test error cases: unsupported entity type, missing entity, missing image
