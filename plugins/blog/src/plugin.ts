@@ -9,7 +9,7 @@ import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { blogPostSchema, enrichedBlogPostSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
-import { seriesSchema } from "./schemas/series";
+import { seriesSchema, seriesListItemSchema } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
 import { createGenerateTool } from "./tools/generate";
@@ -191,20 +191,14 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       }),
       "series-list": createTemplate<
         {
-          series: Array<{ name: string; slug: string; postCount: number }>;
+          series: z.infer<typeof seriesListItemSchema>[];
         },
         SeriesListProps
       >({
         name: "series-list",
         description: "List of all series",
         schema: z.object({
-          series: z.array(
-            z.object({
-              name: z.string(),
-              slug: z.string(),
-              postCount: z.number(),
-            }),
-          ),
+          series: z.array(seriesListItemSchema),
         }),
         dataSourceId: "blog:series",
         requiredPermission: "public",

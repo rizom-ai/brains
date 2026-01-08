@@ -26,6 +26,7 @@ const deckFrontmatterSchema = z.object({
 export class DeckFormatter implements EntityAdapter<DeckEntity> {
   public readonly entityType = "deck" as const;
   public readonly schema = deckSchema;
+  public readonly supportsCoverImage = true;
 
   /**
    * Validate that content has proper slide structure

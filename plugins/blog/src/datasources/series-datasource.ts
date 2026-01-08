@@ -2,6 +2,7 @@ import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService, Logger } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
+import { resolveImage } from "@brains/image";
 import type { BlogPost } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";
 import {
@@ -130,6 +131,7 @@ export class SeriesDataSource implements DataSource {
   /**
    * Fetch list of all series from series entities
    * Computes postCount dynamically by counting posts per series
+   * Resolves cover images using shared utility
    */
   private async fetchSeriesList<T>(
     outputSchema: z.ZodSchema<T>,
@@ -157,11 +159,22 @@ export class SeriesDataSource implements DataSource {
       }
     }
 
-    const series = seriesEntities.map((entity) => ({
-      name: entity.metadata.name,
-      slug: entity.metadata.slug,
-      postCount: postCounts.get(entity.metadata.name) ?? 0,
-    }));
+    // Build series list with resolved cover images
+    const series = await Promise.all(
+      seriesEntities.map(async (entity) => {
+        const coverImageId = entity.metadata.coverImageId;
+        const resolved = coverImageId
+          ? await resolveImage(coverImageId, this.entityService)
+          : null;
+
+        return {
+          name: entity.metadata.name,
+          slug: entity.metadata.slug,
+          postCount: postCounts.get(entity.metadata.name) ?? 0,
+          coverImageUrl: resolved?.url,
+        };
+      }),
+    );
 
     this.logger.debug(`Found ${series.length} series entities`);
 

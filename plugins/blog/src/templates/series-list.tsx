@@ -1,6 +1,7 @@
 import type { JSX } from "preact";
 import {
   Card,
+  CardImage,
   CardTitle,
   CardMetadata,
   ListPageHeader,
@@ -9,15 +10,10 @@ import {
   Breadcrumb,
   type BreadcrumbItem,
 } from "@brains/ui-library";
-
-export interface SeriesItem {
-  name: string;
-  slug: string;
-  postCount: number;
-}
+import type { SeriesListItem } from "../schemas/series";
 
 export interface SeriesListProps {
-  series: SeriesItem[];
+  series: SeriesListItem[];
 }
 
 /**
@@ -65,6 +61,13 @@ export const SeriesListTemplate = ({
           <div className="space-y-4">
             {series.map((item) => (
               <Card key={item.slug} variant="horizontal">
+                {item.coverImageUrl && (
+                  <CardImage
+                    src={item.coverImageUrl}
+                    alt={item.name}
+                    size="small"
+                  />
+                )}
                 <div className="flex-grow">
                   <CardTitle href={`/series/${item.slug}`}>
                     {item.name}
