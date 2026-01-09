@@ -27,8 +27,33 @@ import { createTopicsTools } from "./tools";
 export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   declare protected config: TopicsPluginConfig;
 
+  /**
+   * Auto-extraction starts disabled and is enabled after initial sync completes.
+   * This prevents flooding the job queue during startup when directory-sync imports entities.
+   */
+  private autoExtractionEnabled = false;
+
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super("topics", packageJson, config, topicsPluginConfigSchema);
+  }
+
+  /**
+   * Check if auto-extraction is currently enabled.
+   * Returns false during startup, true after sync:initial:completed.
+   */
+  public isAutoExtractionEnabled(): boolean {
+    return this.autoExtractionEnabled;
+  }
+
+  /**
+   * Enable auto-extraction. Called after sync:initial:completed.
+   * Only enables if config.enableAutoExtraction is true.
+   */
+  public enableAutoExtraction(): void {
+    if (this.config.enableAutoExtraction) {
+      this.autoExtractionEnabled = true;
+      this.logger.info("Auto-extraction enabled after initial sync");
+    }
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
@@ -65,11 +90,31 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Register eval handler for plugin testing
     this.registerEvalHandler(context);
 
-    // Subscribe to entity events for auto-extraction
+    // Subscribe to sync:initial:completed to enable auto-extraction after startup
     if (this.config.enableAutoExtraction) {
+      context.subscribe(
+        "sync:initial:completed",
+        async (): Promise<{ success: boolean }> => {
+          this.enableAutoExtraction();
+          return { success: true };
+        },
+      );
+
+      // Subscribe to entity events for auto-extraction
       const handleEntityEvent = async (message: {
         payload: { entityType: string; entityId: string; entity?: BaseEntity };
       }): Promise<{ success: boolean }> => {
+        // Skip if auto-extraction not yet enabled (during startup)
+        if (!this.autoExtractionEnabled) {
+          this.logger.debug(
+            "Skipping extraction - auto-extraction not yet enabled",
+            {
+              entityId: message.payload.entityId,
+            },
+          );
+          return { success: true };
+        }
+
         const { entityType, entity } = message.payload;
 
         if (!this.shouldProcessEntityType(entityType)) {
