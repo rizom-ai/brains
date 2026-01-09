@@ -142,7 +142,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     if (!this.context) {
       return [];
     }
-    return createTopicsTools();
+    return createTopicsTools(this.context);
   }
 
   protected override async getResources(): Promise<PluginResource[]> {

@@ -7,18 +7,21 @@ import { z } from "../zod";
 /**
  * Source reference schema
  * type can be any entity type (post, link, summary, conversation, etc.)
+ * entityId and contentHash enable tracking which entities have been processed
  */
 export const sourceReferenceSchema = z.object({
   slug: z.string(),
   title: z.string(),
   type: z.string(),
+  entityId: z.string(),
+  contentHash: z.string(),
 });
 
 export type SourceReference = z.infer<typeof sourceReferenceSchema>;
 
 /**
  * Formatter for source lists in entity markdown
- * Formats sources as "- Title (slug) [type]" for human readability
+ * Formats sources as "- Title (slug) [type] <entityId|contentHash>" for roundtrip capability
  */
 export const SourceListFormatter = {
   /**
@@ -29,7 +32,10 @@ export const SourceListFormatter = {
       return "";
     }
     return sources
-      .map((s) => `- ${s.title} (${s.slug}) [${s.type}]`)
+      .map(
+        (s) =>
+          `- ${s.title} (${s.slug}) [${s.type}] <${s.entityId}|${s.contentHash}>`,
+      )
       .join("\n");
   },
 
@@ -48,13 +54,17 @@ export const SourceListFormatter = {
 
     return lines
       .map((line) => {
-        // Parse "- Title (slug) [type]" format
-        const match = line.match(/^- (.+) \(([^)]+)\) \[([^\]]+)\]$/);
-        if (match?.[1] && match[2] && match[3]) {
+        // Parse "- Title (slug) [type] <entityId|contentHash>" format
+        const match = line.match(
+          /^- (.+) \(([^)]+)\) \[([^\]]+)\] <([^|]+)\|([^>]+)>$/,
+        );
+        if (match?.[1] && match[2] && match[3] && match[4] && match[5]) {
           const parsed = sourceReferenceSchema.safeParse({
             slug: match[2].trim(),
             title: match[1].trim(),
             type: match[3].trim(),
+            entityId: match[4].trim(),
+            contentHash: match[5].trim(),
           });
           return parsed.success ? parsed.data : null;
         }

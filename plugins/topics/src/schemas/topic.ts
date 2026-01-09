@@ -3,9 +3,22 @@ import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Topic metadata schema
- * Topics store all information in the content body, no metadata needed
+ * Sources are stored in metadata for efficient querying (contentHash lookups)
+ * The markdown body also contains human-readable source info
  */
-export const topicMetadataSchema = z.object({});
+export const topicMetadataSchema = z.object({
+  sources: z
+    .array(
+      z.object({
+        slug: z.string(),
+        title: z.string(),
+        type: z.string(),
+        entityId: z.string(),
+        contentHash: z.string(),
+      }),
+    )
+    .optional(),
+});
 
 export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
 
@@ -27,6 +40,8 @@ export const topicSourceSchema = z.object({
   slug: z.string(),
   title: z.string(),
   type: z.string(),
+  entityId: z.string(), // Back-reference to source entity
+  contentHash: z.string(), // Track which version was extracted
 });
 
 export type TopicSource = z.infer<typeof topicSourceSchema>;

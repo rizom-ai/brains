@@ -13,8 +13,20 @@ describe("TopicAdapter", () => {
   describe("createTopicBody", () => {
     it("should create structured content body", () => {
       const sources: TopicSource[] = [
-        { slug: "conv-123", title: "Team Standup", type: "conversation" },
-        { slug: "note-456", title: "Project Notes", type: "conversation" },
+        {
+          slug: "conv-123",
+          title: "Team Standup",
+          type: "conversation",
+          entityId: "entity-1",
+          contentHash: "hash-1",
+        },
+        {
+          slug: "note-456",
+          title: "Project Notes",
+          type: "conversation",
+          entityId: "entity-2",
+          contentHash: "hash-2",
+        },
       ];
 
       const body = adapter.createTopicBody({
@@ -33,6 +45,8 @@ describe("TopicAdapter", () => {
       expect(body).toContain("## Sources");
       expect(body).toContain("Team Standup (conv-123)");
       expect(body).toContain("Project Notes (note-456)");
+      expect(body).toContain("<entity-1|hash-1>");
+      expect(body).toContain("<entity-2|hash-2>");
     });
   });
 
@@ -48,8 +62,8 @@ This is the main content
 - example
 
 ## Sources
-- Team Standup (conv-123) [conversation]
-- Project Notes (note-456) [conversation]`;
+- Team Standup (conv-123) [conversation] <entity-1|hash-1>
+- Project Notes (note-456) [conversation] <entity-2|hash-2>`;
 
       const parsed = adapter.parseTopicBody(body);
 
@@ -57,8 +71,20 @@ This is the main content
       expect(parsed.content).toBe("This is the main content");
       expect(parsed.keywords).toEqual(["test", "example"]);
       expect(parsed.sources).toEqual([
-        { slug: "conv-123", title: "Team Standup", type: "conversation" },
-        { slug: "note-456", title: "Project Notes", type: "conversation" },
+        {
+          slug: "conv-123",
+          title: "Team Standup",
+          type: "conversation",
+          entityId: "entity-1",
+          contentHash: "hash-1",
+        },
+        {
+          slug: "note-456",
+          title: "Project Notes",
+          type: "conversation",
+          entityId: "entity-2",
+          contentHash: "hash-2",
+        },
       ]);
     });
   });

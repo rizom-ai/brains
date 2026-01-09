@@ -420,6 +420,8 @@ not-a-number
           slug: z.string(),
           title: z.string(),
           type: z.literal("conversation"),
+          entityId: z.string(),
+          contentHash: z.string(),
         }),
       ),
     });
@@ -449,11 +451,15 @@ not-a-number
             slug: "conv-123",
             title: "Team Standup",
             type: "conversation" as const,
+            entityId: "entity-1",
+            contentHash: "hash-1",
           },
           {
             slug: "conv-456",
             title: "Project Planning",
             type: "conversation" as const,
+            entityId: "entity-2",
+            contentHash: "hash-2",
           },
         ],
       };
@@ -462,9 +468,11 @@ not-a-number
 
       // Check that custom formatter was used
       expect(formatted).toContain("## Sources");
-      expect(formatted).toContain("- Team Standup (conv-123) [conversation]");
       expect(formatted).toContain(
-        "- Project Planning (conv-456) [conversation]",
+        "- Team Standup (conv-123) [conversation] <entity-1|hash-1>",
+      );
+      expect(formatted).toContain(
+        "- Project Planning (conv-456) [conversation] <entity-2|hash-2>",
       );
       expect(formatted).not.toContain("### Source 1"); // Should NOT use object array format
 
@@ -476,6 +484,8 @@ not-a-number
         slug: "conv-123",
         title: "Team Standup",
         type: "conversation",
+        entityId: "entity-1",
+        contentHash: "hash-1",
       });
     });
   });

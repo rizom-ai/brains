@@ -57,6 +57,8 @@ export class TopicExtractor {
         slug: entitySlug,
         title: entityTitle,
         type: entity.entityType,
+        entityId: entity.id,
+        contentHash: entity.contentHash,
       };
 
       // Use AI service to extract topics from entity content

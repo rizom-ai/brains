@@ -45,7 +45,10 @@ export class TopicService {
       });
     }
 
-    const metadata: TopicMetadata = {};
+    // Store full sources in metadata for efficient querying (contentHash lookups)
+    const metadata: TopicMetadata = {
+      sources: params.sources,
+    };
 
     // Create the structured content body with the actual title
     const body = this.adapter.createTopicBody({
@@ -117,15 +120,23 @@ export class TopicService {
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
 
-    // Deduplicate sources by slug using a Map
-    const sourcesMap = new Map(parsed.sources.map((s) => [s.slug, s]));
+    // Deduplicate sources by entityId
+    const existingMetadataSources =
+      (existing.metadata as TopicMetadata).sources ?? [];
+    const sourcesMap = new Map(
+      existingMetadataSources.map((s) => [s.entityId, s]),
+    );
     if (updates.sources) {
-      updates.sources.forEach((source) => sourcesMap.set(source.slug, source));
+      updates.sources.forEach((source) =>
+        sourcesMap.set(source.entityId, source),
+      );
     }
     const sources = Array.from(sourcesMap.values());
 
-    // Metadata stays empty
-    const metadata: TopicMetadata = {};
+    // Store full sources in metadata for efficient querying
+    const metadata: TopicMetadata = {
+      sources,
+    };
 
     // Re-create the topic body using the adapter
     const newBody = this.adapter.createTopicBody({

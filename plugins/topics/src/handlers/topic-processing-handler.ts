@@ -17,6 +17,8 @@ const topicProcessingJobDataSchema = z.object({
         slug: z.string(),
         title: z.string(),
         type: z.string(),
+        entityId: z.string(),
+        contentHash: z.string(),
       }),
     ),
     keywords: z.array(z.string()),
