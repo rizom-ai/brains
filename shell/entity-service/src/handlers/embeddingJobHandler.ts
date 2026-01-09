@@ -170,10 +170,14 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         embedding,
       });
 
-      // Emit entity event after successful save
+      // Emit appropriate event after successful save
+      // - entity:created for new entities (triggers site rebuilds, etc.)
+      // - entity:embedding:ready for embedding updates (doesn't trigger rebuilds)
       if (this.messageBus) {
         const eventType =
-          data.operation === "create" ? "entity:created" : "entity:updated";
+          data.operation === "create"
+            ? "entity:created"
+            : "entity:embedding:ready";
         this.logger.debug(
           `Emitting ${eventType} event for ${data.entityType}:${data.id} after entity saved`,
         );

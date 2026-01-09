@@ -68,13 +68,21 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
 
   /**
    * Extract topic-specific fields from markdown
-   * Topics don't use metadata - all information is in the content body
+   * Parses sources from the body to restore metadata for batch-extract tracking
    */
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
+    // Parse sources from body content using SourceListFormatter
+    const sourcesSection = SourceListFormatter.extractSection(markdown);
+    const sources = sourcesSection
+      ? SourceListFormatter.parse(sourcesSection)
+      : [];
+
     return {
       content: markdown, // Keep full markdown including frontmatter
       entityType: "topic",
-      metadata: {}, // Topics don't use metadata for filtering
+      metadata: {
+        sources: sources.length > 0 ? sources : undefined,
+      },
     };
   }
 

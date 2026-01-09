@@ -139,6 +139,57 @@ This is the main content
       expect(result.content).toBe(markdown);
       expect(result.entityType).toBe("topic");
     });
+
+    it("should parse sources from body and return in metadata", () => {
+      const markdown = `# Test Topic
+
+## Content
+Some content here.
+
+## Keywords
+- keyword1
+
+## Sources
+- Title One (slug-one) [post] <entity-1|hash-1>
+- Title Two (slug-two) [link] <entity-2|hash-2>
+`;
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.metadata?.sources).toHaveLength(2);
+      expect(result.metadata?.sources?.[0]).toEqual({
+        title: "Title One",
+        slug: "slug-one",
+        type: "post",
+        entityId: "entity-1",
+        contentHash: "hash-1",
+      });
+      expect(result.metadata?.sources?.[1]).toEqual({
+        title: "Title Two",
+        slug: "slug-two",
+        type: "link",
+        entityId: "entity-2",
+        contentHash: "hash-2",
+      });
+    });
+
+    it("should return undefined sources when no Sources section", () => {
+      const markdown = "# Topic\n\nSome content without sources section";
+      const result = adapter.fromMarkdown(markdown);
+      expect(result.metadata?.sources).toBeUndefined();
+    });
+
+    it("should return undefined sources when Sources section is empty", () => {
+      const markdown = `# Topic
+
+## Content
+Some content
+
+## Sources
+_No sources_
+`;
+      const result = adapter.fromMarkdown(markdown);
+      expect(result.metadata?.sources).toBeUndefined();
+    });
   });
 
   describe("extractMetadata", () => {
