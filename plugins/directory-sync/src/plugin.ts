@@ -7,6 +7,7 @@ import type {
 import { ServicePlugin, createId } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { existsSync, readdirSync, mkdirSync, copyFileSync } from "fs";
+import { execSync } from "child_process";
 import { join, resolve } from "path";
 import {
   directorySyncConfigSchema,
@@ -88,17 +89,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       logger,
     });
 
-    // Initialize directory structure and handle seed content
+    // Initialize directory structure only (seed content is handled after plugins:ready)
     try {
       await this.directorySync.initializeDirectory();
       this.debug("Directory structure initialized", {
         path: syncPath,
       });
-
-      // Copy seed content if configured and directory is empty
-      if (this.config.seedContent) {
-        await this.copySeedContentIfNeeded(syncPath);
-      }
     } catch (error) {
       this.error("Failed to initialize directory", error);
       throw error; // Fail plugin registration if init fails
@@ -119,6 +115,13 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Queue initial sync after all plugins are initialized
     if (this.config.initialSync) {
       context.subscribe("system:plugins:ready", async () => {
+        // Copy seed content AFTER all plugins are ready
+        // This ensures git-sync has already cloned the repo, so we can
+        // reliably detect if git data exists and skip seed content
+        if (this.config.seedContent) {
+          await this.copySeedContentIfNeeded(syncPath);
+        }
+
         await this.queueSyncJob(context, "initial");
 
         // Always do initial sync (bidirectional) even if queueSyncJob says empty
@@ -200,15 +203,62 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
   /**
    * Check if the brain-data directory is empty
+   *
+   * Returns false (not empty) if:
+   * - Directory has content files (excluding .git and .gitkeep)
+   * - Directory has .git with a configured remote (git-sync will pull data)
+   *
+   * This prevents seed content from overwriting git-synced data when
+   * git-sync hasn't pulled yet during initialization.
    */
   private isBrainDataEmpty(brainDataPath: string): boolean {
     if (!existsSync(brainDataPath)) {
       return true;
     }
+
     const files = readdirSync(brainDataPath);
-    // Ignore .git directory when checking if empty
+    // Check for content files (excluding .git and .gitkeep)
     const nonGitFiles = files.filter((f) => f !== ".git" && f !== ".gitkeep");
-    return nonGitFiles.length === 0;
+
+    if (nonGitFiles.length > 0) {
+      return false; // Has content files
+    }
+
+    // Check if .git exists with a remote configured
+    // If so, git-sync will pull real data - don't use seed content
+    if (this.hasGitRemote(brainDataPath)) {
+      this.debug(
+        "Git repository with remote detected - skipping seed content",
+        { path: brainDataPath },
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Check if a directory has a git repository with a remote configured
+   */
+  private hasGitRemote(dirPath: string): boolean {
+    const gitDir = join(dirPath, ".git");
+    if (!existsSync(gitDir)) {
+      return false;
+    }
+
+    try {
+      // Check git config for remotes
+      const result = execSync("git remote", {
+        cwd: dirPath,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      // If there's any remote configured, return true
+      return result.trim().length > 0;
+    } catch {
+      // Git command failed - assume no remote
+      return false;
+    }
   }
 
   /**
