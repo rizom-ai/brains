@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z, computeContentHash } from "@brains/utils";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,
@@ -111,6 +111,40 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         total: 2,
         message: `Generating embedding for ${data.entityType} ${data.id}`,
       });
+
+      // For UPDATE operations only: check if entity still exists and content matches
+      // For CREATE operations, the entity doesn't exist yet - that's expected
+      // This prevents stale UPDATE jobs from overwriting current entity data
+      if (data.operation === "update") {
+        const currentEntity = await this.entityService.getEntity(
+          data.entityType,
+          data.id,
+        );
+
+        if (!currentEntity) {
+          this.logger.warn("Entity no longer exists, skipping update job", {
+            jobId,
+            entityId: data.id,
+            entityType: data.entityType,
+          });
+          return;
+        }
+
+        const jobContentHash = computeContentHash(data.content);
+        if (currentEntity.contentHash !== jobContentHash) {
+          this.logger.info(
+            "Entity content changed since job created, skipping stale embedding",
+            {
+              jobId,
+              entityId: data.id,
+              entityType: data.entityType,
+              jobContentHash,
+              currentContentHash: currentEntity.contentHash,
+            },
+          );
+          return;
+        }
+      }
 
       // Generate embedding for the entity content
       const embedding = await this.embeddingService.generateEmbedding(

@@ -177,9 +177,44 @@ export class FileOperations {
 
   /**
    * Write entity to file
+   * Skips write if serialized content matches current file content
    */
   async writeEntity(entity: BaseEntity): Promise<void> {
     const filePath = this.getEntityFilePath(entity);
+    const isImage = entity.entityType === "image";
+
+    // Prepare content to write
+    let contentToWrite: Buffer | string;
+    if (isImage) {
+      const match = entity.content.match(/^data:image\/[a-z+]+;base64,(.+)$/i);
+      contentToWrite = match?.[1]
+        ? Buffer.from(match[1], "base64")
+        : Buffer.from(entity.content, "base64");
+    } else {
+      contentToWrite = this.entityService.serializeEntity(entity);
+    }
+
+    // Skip write if file exists and content matches
+    if (existsSync(filePath)) {
+      const currentContent = isImage
+        ? readFileSync(filePath)
+        : readFileSync(filePath, "utf-8");
+
+      const currentHash = computeContentHash(
+        isImage
+          ? (currentContent as Buffer).toString("base64")
+          : (currentContent as string),
+      );
+      const newHash = computeContentHash(
+        isImage
+          ? (contentToWrite as Buffer).toString("base64")
+          : (contentToWrite as string),
+      );
+
+      if (currentHash === newHash) {
+        return; // Content matches, skip write
+      }
+    }
 
     // Ensure directory exists (only for non-base entities)
     if (entity.entityType !== "base") {
@@ -189,22 +224,11 @@ export class FileOperations {
       }
     }
 
-    // Handle image entities: convert base64 data URL to binary
-    if (entity.entityType === "image") {
-      // Extract base64 from data URL
-      const match = entity.content.match(/^data:image\/[a-z+]+;base64,(.+)$/i);
-      if (match?.[1]) {
-        const buffer = Buffer.from(match[1], "base64");
-        writeFileSync(filePath, buffer);
-      } else {
-        // Assume raw base64 if not a data URL
-        const buffer = Buffer.from(entity.content, "base64");
-        writeFileSync(filePath, buffer);
-      }
+    // Write the content
+    if (isImage) {
+      writeFileSync(filePath, contentToWrite as Buffer);
     } else {
-      // Serialize entity to markdown
-      const markdown = this.entityService.serializeEntity(entity);
-      writeFileSync(filePath, markdown, "utf-8");
+      writeFileSync(filePath, contentToWrite as string, "utf-8");
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs

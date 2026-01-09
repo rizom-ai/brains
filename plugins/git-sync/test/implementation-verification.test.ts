@@ -7,10 +7,11 @@ describe("Git-Sync Implementation Verification", () => {
   const gitSyncSource = readFileSync(gitSyncSourcePath, "utf-8");
 
   describe("Automatic Conflict Resolution", () => {
-    it("should configure pull with 'ours' merge strategy to preserve local changes", () => {
-      // Verify the pull method uses -Xours so local changes win conflicts
-      // This prevents coverImageId and other local edits from being lost
-      expect(gitSyncSource).toContain('"-Xours": null');
+    it("should configure pull with 'theirs' merge strategy to preserve remote changes", () => {
+      // Verify the pull method uses -Xtheirs so remote changes win conflicts
+      // This ensures coverImageId and other remote content is preserved
+      // (remote is the source of truth)
+      expect(gitSyncSource).toContain('"-Xtheirs": null');
       expect(gitSyncSource).toContain('"--strategy=recursive": null');
     });
 

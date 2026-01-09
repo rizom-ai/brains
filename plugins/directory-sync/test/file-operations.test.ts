@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
+import {
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  existsSync,
+  readFileSync,
+  statSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
@@ -491,6 +498,156 @@ describe("FileOperations", () => {
       // and not have colons in filename
       expect(path).not.toContain("path:to:file.md");
       expect(path).toContain(join("note", "path", "to", "file.md"));
+    });
+  });
+
+  describe("Stale Content Protection", () => {
+    it("should skip write when serialized content matches file content", async () => {
+      // Setup: Create a file with specific content
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const filePath = join(testDir, "note", "test-note.md");
+
+      // The mock serializeEntity returns "# {id}\n\n{content}"
+      // So for id="test-note" and content="Same content", it produces:
+      const expectedSerializedContent = "# test-note\n\nSame content";
+      writeFileSync(filePath, expectedSerializedContent);
+
+      // Create entity that will serialize to the SAME content
+      const entity = {
+        id: "test-note",
+        entityType: "note",
+        content: "Same content",
+        contentHash: computeContentHash("Same content"),
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      // Get file mtime before write attempt
+      const mtimeBefore = statSync(filePath).mtime.getTime();
+
+      // Small delay to ensure mtime would change if file is written
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Try to write
+      await fileOps.writeEntity(entity);
+
+      // Verify file was NOT modified (mtime unchanged)
+      const mtimeAfter = statSync(filePath).mtime.getTime();
+      expect(mtimeAfter).toBe(mtimeBefore);
+
+      // Content should remain the same
+      const actualContent = readFileSync(filePath, "utf-8");
+      expect(actualContent).toBe(expectedSerializedContent);
+    });
+
+    it("should write when serialized content differs from file content", async () => {
+      // Setup: Create a file with OLD content
+      mkdirSync(join(testDir, "note"), { recursive: true });
+      const filePath = join(testDir, "note", "test-note.md");
+      writeFileSync(filePath, "# test-note\n\nOld content");
+
+      // Create entity with DIFFERENT content
+      const entity = {
+        id: "test-note",
+        entityType: "note",
+        content: "New content",
+        contentHash: computeContentHash("New content"),
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      await fileOps.writeEntity(entity);
+
+      // Verify file WAS updated
+      const actualContent = readFileSync(filePath, "utf-8");
+      expect(actualContent).toBe("# test-note\n\nNew content");
+    });
+
+    it("should write when file does not exist", async () => {
+      const filePath = join(testDir, "note", "new-note.md");
+      expect(existsSync(filePath)).toBe(false);
+
+      const entity = {
+        id: "new-note",
+        entityType: "note",
+        content: "Brand new content",
+        contentHash: computeContentHash("Brand new content"),
+        metadata: {},
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      await fileOps.writeEntity(entity);
+
+      // Verify file was created
+      expect(existsSync(filePath)).toBe(true);
+      const content = readFileSync(filePath, "utf-8");
+      expect(content).toBe("# new-note\n\nBrand new content");
+    });
+
+    it("should skip write for image when content matches", async () => {
+      const imageBytes = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const filePath = join(testDir, "image", "test-image.png");
+      writeFileSync(filePath, imageBytes);
+
+      const mtimeBefore = statSync(filePath).mtime.getTime();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Entity with SAME image data
+      const entity = {
+        id: "test-image",
+        entityType: "image",
+        content: `data:image/png;base64,${imageBytes.toString("base64")}`,
+        contentHash: computeContentHash(imageBytes.toString("base64")),
+        metadata: { format: "png" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      await fileOps.writeEntity(entity);
+
+      // Verify file was NOT modified
+      const mtimeAfter = statSync(filePath).mtime.getTime();
+      expect(mtimeAfter).toBe(mtimeBefore);
+    });
+
+    it("should write image when content differs", async () => {
+      const oldImageBytes = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+        "base64",
+      );
+      const newImageBytes = Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      );
+
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      const filePath = join(testDir, "image", "test-image.png");
+      writeFileSync(filePath, oldImageBytes);
+
+      // Entity with DIFFERENT image data
+      const entity = {
+        id: "test-image",
+        entityType: "image",
+        content: `data:image/png;base64,${newImageBytes.toString("base64")}`,
+        contentHash: computeContentHash(newImageBytes.toString("base64")),
+        metadata: { format: "png" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
+
+      await fileOps.writeEntity(entity);
+
+      // Verify file WAS updated
+      const actualBytes = readFileSync(filePath);
+      expect(actualBytes.equals(newImageBytes)).toBe(true);
     });
   });
 });

@@ -112,12 +112,18 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       // File watching is started automatically in DirectorySync.initialize()
     }
 
-    // Queue initial sync after all plugins are initialized
+    // Queue initial sync after git-sync pulls (or immediately if git-sync not enabled)
     if (this.config.initialSync) {
-      context.subscribe("system:plugins:ready", async () => {
-        // Copy seed content AFTER all plugins are ready
-        // This ensures git-sync has already cloned the repo, so we can
-        // reliably detect if git data exists and skip seed content
+      let initialSyncStarted = false;
+      let gitSyncEnabled = false;
+
+      // Helper to run initial sync (only once)
+      const runInitialSync = async () => {
+        if (initialSyncStarted) return;
+        initialSyncStarted = true;
+
+        // Copy seed content AFTER git-sync has pulled (if enabled)
+        // This ensures we can reliably detect if git data exists and skip seed content
         if (this.config.seedContent) {
           await this.copySeedContentIfNeeded(syncPath);
         }
@@ -169,7 +175,37 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             { broadcast: true },
           );
         }
+      };
 
+      // Listen for git-sync registration - if received, we know to wait for pull
+      context.subscribe("git:sync:registered", async () => {
+        this.debug(
+          "git:sync:registered received, will wait for git:pull:completed",
+        );
+        gitSyncEnabled = true;
+        return { success: true };
+      });
+
+      // Listen for git:pull:completed - this means git-sync has pulled remote data
+      // and we can safely import files to DB
+      context.subscribe("git:pull:completed", async () => {
+        this.debug("git:pull:completed received, starting initial sync");
+        await runInitialSync();
+        return { success: true };
+      });
+
+      // If git-sync is NOT enabled, proceed immediately on system:plugins:ready
+      context.subscribe("system:plugins:ready", async () => {
+        if (gitSyncEnabled) {
+          this.debug(
+            "system:plugins:ready received, but git-sync is enabled - waiting for git:pull:completed",
+          );
+        } else {
+          this.debug(
+            "system:plugins:ready received, no git-sync - starting initial sync immediately",
+          );
+          await runInitialSync();
+        }
         return { success: true };
       });
     }
@@ -457,7 +493,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
    * Setup auto-sync for entity events (Database → Files)
    */
   private setupAutoSync(context: ServicePluginContext): void {
-    const { subscribe } = context;
+    const { subscribe, entityService } = context;
     const directorySync = this.requireDirectorySync();
 
     // Subscribe to entity:created
@@ -476,15 +512,30 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
 
     // Subscribe to entity:updated
+    // IMPORTANT: We fetch the current entity from DB instead of using the event payload.
+    // This prevents stale data from old jobs overwriting current content.
     subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
       "entity:updated",
       async (message) => {
-        const { entity } = message.payload;
+        const { entityType, entityId } = message.payload;
 
-        await directorySync.fileOps.writeEntity(entity);
+        // Fetch current entity from DB to avoid stale payload from old jobs
+        const currentEntity = await entityService.getEntity(
+          entityType,
+          entityId,
+        );
+        if (!currentEntity) {
+          this.debug("Entity not found in DB, skipping export", {
+            entityType,
+            entityId,
+          });
+          return { success: false };
+        }
+
+        await directorySync.fileOps.writeEntity(currentEntity);
         this.debug("Auto-exported updated entity", {
-          id: entity.id,
-          entityType: entity.entityType,
+          id: currentEntity.id,
+          entityType: currentEntity.entityType,
         });
         return { success: true };
       },

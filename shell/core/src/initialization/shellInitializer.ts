@@ -497,6 +497,22 @@ export class ShellInitializer {
       },
     );
 
+    // Initialize identity and profile services AFTER sync:initial:completed
+    // This ensures remote data is pulled before defaults are created.
+    // Without this, empty DB would get defaults before git-sync pulls remote data.
+    messageBus.subscribe<{ success: boolean }, void>(
+      "sync:initial:completed",
+      async () => {
+        logger.debug(
+          "sync:initial:completed received, initializing identity and profile services",
+        );
+        await identityService.initialize();
+        await profileService.initialize();
+        logger.debug("Identity and profile services initialized");
+        return { success: true };
+      },
+    );
+
     // Register job handlers
     this.registerJobHandlers(jobQueueService, contentService, entityService);
 

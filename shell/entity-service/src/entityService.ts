@@ -572,12 +572,11 @@ export class EntityService implements IEntityService {
       .onConflictDoUpdate({
         target: [entities.id, entities.entityType],
         set: {
-          content: data.content,
-          contentHash,
-          metadata: data.metadata,
-          updated: data.updated,
-          contentWeight: data.contentWeight,
+          // ONLY update embedding-related fields
+          // Never overwrite content, metadata, or timestamps to prevent stale job data
+          // from corrupting current entity state
           embedding: data.embedding,
+          contentWeight: data.contentWeight,
         },
       });
   }

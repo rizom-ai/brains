@@ -6,18 +6,13 @@ import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 
 /**
- * Tests for git-sync race condition where pull with -Xtheirs loses local changes.
+ * Tests demonstrating git merge conflict behavior with frontmatter changes.
  *
- * The Bug:
- * - Local commits coverImageId change
- * - Remote has different change to same file
- * - Pull with -Xtheirs: remote wins, coverImageId LOST
+ * NOTE: These tests document merge behavior, not the recommended strategy.
+ * The actual strategy used by git-sync is -Xtheirs (remote wins) because
+ * remote is the source of truth.
  *
- * The Fix:
- * - Commit local changes
- * - Try push first
- * - If push fails (remote diverged), pull with -Xours (local wins)
- * - Push merged result
+ * See remote-wins-merge-strategy.test.ts for the authoritative tests.
  */
 describe("Git-Sync Order Race Condition", () => {
   let localDir: string;

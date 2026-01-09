@@ -136,6 +136,10 @@ slug: test-series
         metadata: { name: "Test Series", slug: "test-series" },
       };
 
+      // Save entity to DB first (subscriber fetches from DB)
+      const entityService = harness.getShell().getEntityService();
+      await entityService.upsertEntity(entity);
+
       // Create series directory
       const seriesDir = join(syncPath, "series");
       if (!existsSync(seriesDir)) {
@@ -194,6 +198,10 @@ Some content here.`;
         },
       };
 
+      // Save entity to DB first (subscriber fetches from DB)
+      const entityService = harness.getShell().getEntityService();
+      await entityService.upsertEntity(entity);
+
       // Create series directory
       const seriesDir = join(syncPath, "series");
       mkdirSync(seriesDir, { recursive: true });
@@ -221,6 +229,76 @@ Some content here.`;
       } else {
         expect(existsSync(filePath)).toBe(true);
       }
+    });
+  });
+
+  describe("stale event payload (regression)", () => {
+    it("should fetch current entity from DB instead of using stale event payload", async () => {
+      // This tests the bug where old embedding jobs emit entity:updated with stale data.
+      // The subscriber should fetch current entity from DB, not trust the payload.
+
+      const staleContent = `---
+name: Test Series
+slug: test-series
+---
+# Test Series`;
+
+      const currentContent = `---
+coverImageId: series-test-cover
+name: Test Series
+slug: test-series
+---
+# Test Series`;
+
+      // First, save the CURRENT entity to the database (with coverImageId)
+      const currentEntity: BaseEntity = {
+        id: "series-stale-test",
+        entityType: "series",
+        content: currentContent,
+        contentHash: computeContentHash(currentContent),
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        metadata: {
+          name: "Test Series",
+          slug: "test-series",
+          coverImageId: "series-test-cover",
+        },
+      };
+
+      const entityService = harness.getShell().getEntityService();
+      await entityService.upsertEntity(currentEntity);
+
+      // Create series directory
+      const seriesDir = join(syncPath, "series");
+      mkdirSync(seriesDir, { recursive: true });
+
+      // Simulate a STALE entity:updated event (from old job with outdated data)
+      const staleEntity: BaseEntity = {
+        id: "series-stale-test",
+        entityType: "series",
+        content: staleContent, // Missing coverImageId!
+        contentHash: computeContentHash(staleContent),
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        metadata: { name: "Test Series", slug: "test-series" },
+      };
+
+      await harness.sendMessage("entity:updated", {
+        entity: staleEntity, // Stale payload
+        entityType: "series",
+        entityId: staleEntity.id,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Check that file was written with CURRENT content (from DB), not stale payload
+      const filePath = join(seriesDir, "series-stale-test.md");
+
+      expect(existsSync(filePath)).toBe(true);
+      const fileContent = readFileSync(filePath, "utf-8");
+
+      // Should have coverImageId from current DB entity, not stale payload
+      expect(fileContent).toContain("coverImageId: series-test-cover");
     });
   });
 });

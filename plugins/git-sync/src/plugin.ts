@@ -61,45 +61,67 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
     // Initialize repository
     await this.gitSync.initialize();
 
-    // Sync after all plugins are initialized
-    // This ensures any seed content created by plugins (like site-info, profile)
-    // gets committed to git, even if created after the sync:initial:completed handler
+    // Signal that git-sync is installed - directory-sync uses this to know
+    // it should wait for git:pull:completed before starting its sync
+    await context.sendMessage(
+      "git:sync:registered",
+      { pluginId: this.id },
+      { broadcast: true },
+    );
+
+    // Pull from remote when plugins are ready, BEFORE directory-sync runs
+    // This ensures remote data is available before directory-sync imports to DB
     context.subscribe("system:plugins:ready", async () => {
       this.logger.debug(
-        "All plugins initialized, performing final sync to commit any seed content",
+        "Plugins ready, pulling from remote before directory-sync",
       );
 
       const git = this.getGitSync();
       const status = await git.getStatus();
 
-      // Only sync if we have a remote
+      // Only pull if we have a remote
       if (status.remote) {
         try {
-          await git.sync();
-          this.logger.info(
-            "Successfully synced after plugin initialization (seed content committed)",
-          );
+          await git.pull();
+          this.logger.info("Pulled from remote, ready for directory-sync");
         } catch (error) {
-          this.logger.warn("Failed to sync during post-init", { error });
+          this.logger.warn("Failed to pull during startup", { error });
         }
       }
+
+      // Emit event so directory-sync knows it can proceed
+      // This event is emitted even if there's no remote, so directory-sync
+      // can proceed in standalone mode
+      await context.sendMessage(
+        "git:pull:completed",
+        { success: true, hasRemote: !!status.remote },
+        { broadcast: true },
+      );
 
       return { success: true };
     });
 
-    // Listen for directory-sync initial sync completion
-    // When directory-sync exports entities on startup, commit and push them
+    // Commit and push after directory-sync completes its initial import
+    // This ensures any imported entities are committed to git
     context.subscribe("sync:initial:completed", async () => {
       this.logger.debug(
-        "Initial sync completed by directory-sync, syncing git",
+        "Initial sync completed by directory-sync, committing and pushing",
       );
 
       const git = this.getGitSync();
       try {
-        await git.sync();
-        this.logger.info("Synced git after initial directory sync");
+        // Just commit and push - don't pull again (already done above)
+        const status = await git.getStatus();
+        if (status.hasChanges) {
+          await git.commit();
+          this.logger.info("Committed changes after initial sync");
+        }
+        if (status.remote && status.ahead > 0) {
+          await git.push();
+          this.logger.info("Pushed changes after initial sync");
+        }
       } catch (error) {
-        this.logger.warn("Failed to sync git after initial sync", { error });
+        this.logger.warn("Failed to commit/push after initial sync", { error });
       }
 
       return { success: true };

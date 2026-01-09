@@ -195,9 +195,9 @@ export class Shell implements IShell {
       // Core DataSources registration
       this.registerCoreDataSources();
 
-      // Initialize identity and profile services
-      await this.identityService.initialize();
-      await this.profileService.initialize();
+      // NOTE: Identity and profile services are initialized via sync:initial:completed
+      // subscription in shellInitializer. This ensures remote data is pulled by
+      // git-sync before defaults are created for empty DB.
 
       // Mark shell as initialized BEFORE emitting ready event
       // This ensures shell methods are available to plugins:ready handlers
