@@ -1,7 +1,6 @@
-import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import { BaseJobHandler, type ServicePluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**

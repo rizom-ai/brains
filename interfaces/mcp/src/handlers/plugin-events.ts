@@ -2,8 +2,8 @@ import type {
   InterfacePluginContext,
   PluginTool,
   PluginResource,
-  Logger,
 } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 /**

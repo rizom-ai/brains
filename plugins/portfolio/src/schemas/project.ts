@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Project frontmatter schema (stored in content as YAML frontmatter)

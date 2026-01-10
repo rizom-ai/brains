@@ -871,8 +871,11 @@
       "version": "1.0.0",
       "dependencies": {
         "@brains/datasource": "workspace:*",
+        "@brains/image": "workspace:*",
+        "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/permission-service": "workspace:*",
+        "@brains/profile-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {

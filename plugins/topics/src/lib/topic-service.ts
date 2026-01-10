@@ -1,4 +1,5 @@
-import type { Logger, IEntityService, SearchResult } from "@brains/plugins";
+import type { IEntityService, SearchResult } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata, TopicSource } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";

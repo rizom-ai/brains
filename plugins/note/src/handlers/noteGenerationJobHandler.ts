@@ -1,4 +1,4 @@
-import { BaseJobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";

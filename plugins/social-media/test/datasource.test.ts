@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { SocialPostDataSource } from "../src/datasources/social-post-datasource";
 import type { SocialPost } from "../src/schemas/social-post";
-import type { IEntityService, Logger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { z, computeContentHash } from "@brains/utils";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 

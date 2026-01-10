@@ -1,4 +1,4 @@
-import type { EntityAdapter } from "@brains/entity-service";
+import type { EntityAdapter } from "@brains/plugins";
 import { StructuredContentFormatter, type z } from "@brains/utils";
 import {
   siteInfoSchema,

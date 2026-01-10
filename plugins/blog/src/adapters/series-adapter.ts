@@ -1,9 +1,9 @@
 import type { EntityAdapter } from "@brains/plugins";
-import type { z } from "@brains/utils";
 import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
-} from "@brains/entity-service";
+} from "@brains/plugins";
+import type { z } from "@brains/utils";
 import {
   seriesSchema,
   seriesFrontmatterSchema,

@@ -1,4 +1,5 @@
-import type { IEntityService, Logger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { slugify, computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";

@@ -127,6 +127,7 @@ export { conversationDigestPayloadSchema } from "@brains/conversation-service";
 export type {
   IContentService,
   GenerationContext,
+  ResolutionOptions,
 } from "@brains/content-service";
 
 // From @brains/templates (unified template type)
@@ -153,7 +154,7 @@ export type {
   JobProgressEvent,
   IJobQueueService,
 } from "@brains/job-queue";
-export { JobProgressEventSchema } from "@brains/job-queue";
+export { JobProgressEventSchema, BaseJobHandler } from "@brains/job-queue";
 
 // From @brains/render-service
 export type { ViewTemplate, OutputFormat } from "@brains/render-service";
@@ -180,14 +181,6 @@ export type {
 
 // From @brains/permission-service
 export type { UserPermissionLevel } from "@brains/permission-service";
-export {
-  Logger,
-  LogLevel,
-  ProgressReporter,
-  ResponseFormatter,
-  markdownToHtml,
-  StructuredContentFormatter,
-} from "@brains/utils";
 
 // From @brains/identity-service
 export type { IdentityBody } from "@brains/identity-service";
@@ -195,6 +188,27 @@ export { identityBodySchema } from "@brains/identity-service";
 
 // From @brains/profile-service
 export type { ProfileBody } from "@brains/profile-service";
+export {
+  ProfileService,
+  ProfileAdapter,
+  profileBodySchema,
+} from "@brains/profile-service";
+
+// From @brains/datasource
+export type {
+  DataSource,
+  DataSourceCapabilities,
+  BaseDataSourceContext,
+  PaginationInfo,
+  PaginateOptions,
+  PaginateResult,
+} from "@brains/datasource";
+export {
+  DataSourceRegistry,
+  paginationInfoSchema,
+  paginateItems,
+  buildPaginationInfo,
+} from "@brains/datasource";
 
 // Utility functions
 export { createId } from "./utils/id";

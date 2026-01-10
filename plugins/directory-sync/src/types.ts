@@ -1,5 +1,6 @@
 import { z } from "@brains/utils";
-import type { ProgressReporter, BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import type { ProgressReporter } from "@brains/utils";
 
 /**
  * Configuration schema for directory sync plugin

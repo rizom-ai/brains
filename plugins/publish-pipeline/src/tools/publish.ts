@@ -2,10 +2,10 @@ import type {
   PluginTool,
   ToolContext,
   ServicePluginContext,
+  BaseEntity,
 } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
-import type { BaseEntity } from "@brains/entity-service";
 import type { PublishableMetadata } from "../schemas/publishable";
 
 /**

@@ -1,5 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
-import type { IEntityService, Logger } from "@brains/plugins";
+import type {
+  DataSource,
+  BaseDataSourceContext,
+  IEntityService,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { SummaryAdapter } from "../adapters/summary-adapter";

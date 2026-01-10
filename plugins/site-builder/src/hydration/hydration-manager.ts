@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
 import type { RouteDefinition, SectionDefinition } from "../types/routes";
 import { join } from "path";

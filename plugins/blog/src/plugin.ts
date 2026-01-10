@@ -4,7 +4,7 @@ import type {
   PluginResource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, paginationInfoSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { blogPostSchema, enrichedBlogPostSchema } from "./schemas/blog-post";
@@ -34,7 +34,6 @@ import {
   type BlogPostWithData,
 } from "./datasources/blog-datasource";
 import { SeriesDataSource } from "./datasources/series-datasource";
-import { paginationInfoSchema } from "@brains/datasource";
 import { generateRSSFeed } from "./rss/feed-generator";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { BlogPost } from "./schemas/blog-post";

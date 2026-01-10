@@ -4,7 +4,7 @@ import { createServicePluginHarness } from "@brains/plugins/test";
 import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
 import { h } from "preact";
-import type { DataSource } from "@brains/datasource";
+import type { DataSource } from "@brains/plugins";
 import { createTestConfig } from "../test-helpers";
 
 // Test schemas

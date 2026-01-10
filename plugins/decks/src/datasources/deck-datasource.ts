@@ -1,5 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
-import type { IEntityService, Logger } from "@brains/plugins";
+import type {
+  DataSource,
+  BaseDataSourceContext,
+  IEntityService,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { z, sortByPublicationDate } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
 import type { DeckListData } from "../templates/deck-list/schema";

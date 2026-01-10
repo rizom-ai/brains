@@ -1,4 +1,5 @@
-import type { IEntityService, Logger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 
 /**
  * Map of image ID to URL (static path or data URL)

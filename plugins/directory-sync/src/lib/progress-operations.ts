@@ -1,4 +1,5 @@
-import type { IEntityService, ProgressReporter, Logger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import type { ExportResult, ImportResult } from "../types";
 import type { FileOperations } from "./file-operations";
 

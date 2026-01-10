@@ -1,10 +1,13 @@
+import type {
+  IEntityService,
+  DataSource,
+  BaseDataSourceContext,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import {
-  type DataSource,
-  type BaseDataSourceContext,
+  parseMarkdownWithFrontmatter,
   buildPaginationInfo,
-} from "@brains/datasource";
-import type { IEntityService, Logger } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+} from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { SocialPost } from "../schemas/social-post";
 import {

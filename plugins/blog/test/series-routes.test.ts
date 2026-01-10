@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { BlogPost } from "../src/schemas/blog-post";
-import type { IEntityService, Logger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils";
 import { SeriesRouteGenerator } from "../src/routes/series-route-generator";

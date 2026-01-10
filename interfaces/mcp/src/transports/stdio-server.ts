@@ -2,7 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { TransportLogger } from "./types";
 import { createStderrLogger, adaptLogger } from "./types";
-import type { Logger } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 
 export interface StdioMCPServerConfig {
   logger?: Logger | TransportLogger;

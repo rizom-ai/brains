@@ -1,10 +1,6 @@
-import type {
-  ServicePluginContext,
-  ProgressReporter,
-  Logger,
-  BaseEntity,
-} from "@brains/plugins";
-import { BaseJobHandler } from "@brains/job-queue";
+import type { ServicePluginContext, BaseEntity } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/plugins";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, createId, computeContentHash } from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 

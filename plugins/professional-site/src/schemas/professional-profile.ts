@@ -1,5 +1,5 @@
 import { z, StructuredContentFormatter } from "@brains/utils";
-import { profileBodySchema } from "@brains/profile-service";
+import { profileBodySchema } from "@brains/plugins";
 
 /**
  * Professional profile schema - extends base profile with professional fields

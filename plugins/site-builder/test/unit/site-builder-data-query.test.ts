@@ -8,7 +8,7 @@ import {
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "../../src/types/routes";
 import type { SiteInfoService } from "../../src/services/site-info-service";
-import type { ProfileService } from "@brains/profile-service";
+import type { ProfileService } from "@brains/plugins";
 import { TestLayout } from "../test-helpers";
 import { z } from "@brains/utils";
 

@@ -18,8 +18,10 @@
   },
   "dependencies": {
     "@brains/datasource": "workspace:*",
+    "@brains/job-queue": "workspace:*",
     "@brains/messaging-service": "workspace:*",
     "@brains/permission-service": "workspace:*",
+    "@brains/profile-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

@@ -1,8 +1,8 @@
 import type {
-  Logger,
   ServicePluginContext,
   ConversationDigestPayload,
 } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { SummaryLogEntry } from "../schemas/summary";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import { z } from "@brains/utils";

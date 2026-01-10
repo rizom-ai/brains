@@ -1,5 +1,9 @@
-import type { Logger, ServicePluginContext, BaseEntity } from "@brains/plugins";
-import type { IEntityService, ProgressReporter } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  BaseEntity,
+  IEntityService,
+} from "@brains/plugins";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import { resolve, isAbsolute, join } from "path";
 import {
   existsSync,

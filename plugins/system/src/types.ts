@@ -5,15 +5,17 @@ import type {
   AppInfo,
   EntityInput,
   EntityAdapter,
+  BatchJobStatus,
+  Batch,
+  JobInfo,
+  IdentityBody,
+  ProfileBody,
 } from "@brains/plugins";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type { Conversation, Message } from "@brains/conversation-service";
-import type { IdentityBody } from "@brains/identity-service";
-import type { ProfileBody } from "@brains/profile-service";
 import type { SearchOptions } from "./schemas";
 
 /**

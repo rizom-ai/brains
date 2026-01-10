@@ -15,7 +15,8 @@
  */
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SeriesManager } from "../src/services/series-manager";
-import type { IEntityService, Logger } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { Series } from "../src/schemas/series";
 import { computeContentHash } from "@brains/utils";

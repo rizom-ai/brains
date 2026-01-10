@@ -20,11 +20,12 @@ export type {
   CorePluginContext,
   InterfacePluginContext,
   ToolContext,
-  Logger,
   IEntityService,
   ConversationDigestPayload,
   BatchOperation,
 } from "./src/index";
+// Logger comes from @brains/utils
+export type { Logger } from "@brains/utils";
 export {
   baseEntitySchema,
   createServicePluginContext,

@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Site info metadata schema - empty as site-info doesn't use metadata for filtering

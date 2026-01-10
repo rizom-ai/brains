@@ -1,8 +1,8 @@
 import type {
-  Logger,
   ServicePluginContext,
   ConversationDigestPayload,
 } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,

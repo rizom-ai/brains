@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { SiteInfoService } from "../../src/services/site-info-service";
-import type { IEntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,

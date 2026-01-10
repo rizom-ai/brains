@@ -16,7 +16,8 @@ import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
-import type { ServicePluginContext, Logger } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
 
 // Valid 1x1 PNG image as base64 data URL

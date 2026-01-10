@@ -5,7 +5,8 @@ import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
-import type { IEntityService, ProgressReporter } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
+import type { ProgressReporter } from "@brains/utils";
 import { computeContentHash } from "@brains/utils";
 
 describe("DirectoryImportJobHandler", () => {

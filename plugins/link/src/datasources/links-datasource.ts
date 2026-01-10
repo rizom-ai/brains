@@ -1,5 +1,9 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
-import type { IEntityService, Logger } from "@brains/plugins";
+import type {
+  DataSource,
+  BaseDataSourceContext,
+  IEntityService,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
 import type { LinkListData, LinkSummary } from "../templates/link-list/schema";

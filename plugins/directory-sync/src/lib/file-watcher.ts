@@ -1,6 +1,6 @@
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
-import type { Logger } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 
 export interface FileWatcherOptions {
   syncPath: string;

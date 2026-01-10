@@ -4,9 +4,8 @@ import {
   createSilentLogger,
   createMockEntityService as createBaseMockEntityService,
 } from "@brains/test-utils";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
-import type { BaseDataSourceContext } from "@brains/datasource";
 import { z } from "zod";
 import { computeContentHash } from "@brains/utils";
 

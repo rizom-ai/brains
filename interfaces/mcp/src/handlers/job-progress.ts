@@ -1,4 +1,5 @@
-import type { InterfacePluginContext, Logger } from "@brains/plugins";
+import type { InterfacePluginContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { JobProgressEventSchema } from "@brains/plugins";
 
 /**

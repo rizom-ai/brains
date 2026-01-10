@@ -1,8 +1,7 @@
-import { BaseJobHandler } from "@brains/job-queue";
+import { BaseJobHandler, ProfileAdapter } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import { ProfileAdapter } from "@brains/profile-service";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
 /**

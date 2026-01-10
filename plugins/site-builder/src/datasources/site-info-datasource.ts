@@ -1,9 +1,12 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
-import type { Logger } from "@brains/plugins";
+import type {
+  DataSource,
+  BaseDataSourceContext,
+  ProfileService,
+} from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { type z as zType } from "@brains/utils";
 import type { RouteRegistry } from "../lib/route-registry";
 import type { SiteInfoService } from "../services/site-info-service";
-import type { ProfileService } from "@brains/profile-service";
 
 /**
  * DataSource that provides comprehensive site-wide information

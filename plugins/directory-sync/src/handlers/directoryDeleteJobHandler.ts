@@ -1,9 +1,7 @@
-import { BaseJobHandler } from "@brains/job-queue";
-import type {
-  Logger,
-  ProgressReporter,
-  ServicePluginContext,
-} from "@brains/plugins";
+import { BaseJobHandler } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
+import type { ProgressReporter } from "@brains/utils";
 import type { IDirectorySync } from "../types";
 import {
   directoryDeleteJobSchema,

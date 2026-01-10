@@ -1,9 +1,6 @@
-import type {
-  ServicePluginContext,
-  ProgressReporter,
-  Logger,
-} from "@brains/plugins";
-import { BaseJobHandler } from "@brains/job-queue";
+import type { ServicePluginContext } from "@brains/plugins";
+import { BaseJobHandler } from "@brains/plugins";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 

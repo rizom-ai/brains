@@ -8,7 +8,7 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { SiteInfoService } from "../../src/services/site-info-service";
-import type { ProfileService } from "@brains/profile-service";
+import type { ProfileService } from "@brains/plugins";
 import { computeContentHash, z } from "@brains/utils";
 
 // Type for accessing private methods in tests

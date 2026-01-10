@@ -12,7 +12,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
-import type { Logger } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { IAgentService } from "@brains/agent-service";
 
 export interface AuthConfig {

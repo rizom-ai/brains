@@ -1,7 +1,8 @@
-import { BaseJobHandler } from "@brains/job-queue";
-import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify, computeContentHash } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
+import { BaseJobHandler } from "@brains/plugins";
+import type { ProgressReporter } from "@brains/utils";
+import { z, slugify, computeContentHash } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
 import { DeckFormatter } from "../formatters/deck-formatter";
 

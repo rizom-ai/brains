@@ -2,9 +2,9 @@ import { mock } from "bun:test";
 import type {
   ServicePluginContext,
   IEntityService,
-  Logger,
   BaseEntity,
 } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import {
   createMockEntityService,
   type MockEntityServiceReturns,

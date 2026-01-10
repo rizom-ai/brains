@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { ProjectDataSource } from "../src/datasources/project-datasource";
 import type { Project } from "../src/schemas/project";
-import type { IEntityService, Logger } from "@brains/plugins";
-import type { BaseDataSourceContext } from "@brains/datasource";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { z, computeContentHash } from "@brains/utils";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { baseEntitySchema } from "@brains/entity-service";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Note frontmatter schema (optional in markdown)

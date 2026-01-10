@@ -1,10 +1,10 @@
 import {
   type ServicePluginContext,
-  type Logger,
   type PluginTool,
   type ToolResponse,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { z, formatAsList } from "@brains/utils";
 import { SummaryService } from "../lib/summary-service";
 import { SummaryAdapter } from "../adapters/summary-adapter";

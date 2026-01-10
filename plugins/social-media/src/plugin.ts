@@ -4,10 +4,9 @@ import type {
   PluginResource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, paginationInfoSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { paginationInfoSchema } from "@brains/datasource";
 import {
   socialPostSchema,
   enrichedSocialPostSchema,

@@ -1,10 +1,8 @@
 import { readFileSync, writeFileSync } from "fs";
-import type {
-  ServicePluginContext,
-  ProgressReporter,
-  Logger,
-} from "@brains/plugins";
-import { BaseJobHandler } from "@brains/job-queue";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
+import { BaseJobHandler } from "@brains/plugins";
+import type { ProgressReporter } from "@brains/utils";
 import { fetchImageAsBase64 } from "@brains/utils";
 import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";

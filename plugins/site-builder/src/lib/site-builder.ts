@@ -1,7 +1,14 @@
-import type { ProgressCallback, Logger } from "@brains/plugins";
-import { ProgressReporter } from "@brains/plugins";
-import type { ServicePluginContext, Template } from "@brains/plugins";
-import type { ResolutionOptions } from "@brains/content-service";
+import type {
+  ProgressCallback,
+  ServicePluginContext,
+  Template,
+  ProfileService,
+  ResolutionOptions,
+} from "@brains/plugins";
+import { baseEntitySchema } from "@brains/plugins";
+import { resolveEntityCoverImage } from "@brains/image";
+import type { Logger } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils";
 import type { SectionDefinition, RouteDefinition } from "../types/routes";
 import type {
   ISiteBuilder,
@@ -20,11 +27,8 @@ import type { RouteRegistry } from "./route-registry";
 import { DynamicRouteGenerator } from "./dynamic-route-generator";
 import type { SiteInfo } from "../types/site-info";
 import type { SiteInfoService } from "../services/site-info-service";
-import type { ProfileService } from "@brains/profile-service";
 import type { EntityRouteConfig } from "../config";
-import { baseEntitySchema } from "@brains/entity-service";
 import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
-import { resolveEntityCoverImage } from "@brains/image";
 
 // Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = baseEntitySchema.extend({

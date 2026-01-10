@@ -1,4 +1,5 @@
-import type { Logger, ServicePluginContext, BaseEntity } from "@brains/plugins";
+import type { ServicePluginContext, BaseEntity } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { TopicSource } from "../schemas/topic";
 import type { ExtractedTopicData } from "../schemas/extraction";
 

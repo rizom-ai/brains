@@ -1,10 +1,7 @@
 import type { EntityAdapter } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  StructuredContentFormatter,
-} from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { z } from "@brains/utils";
-import { SourceListFormatter } from "@brains/utils";
+import { SourceListFormatter, StructuredContentFormatter } from "@brains/utils";
 import {
   topicEntitySchema,
   topicBodySchema,

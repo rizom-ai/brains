@@ -1,4 +1,4 @@
-import type { Logger } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import type { JobRequest, IFileOperations } from "../types";
 
 /**

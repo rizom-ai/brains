@@ -9,8 +9,10 @@ import type {
   AppInfo,
   EntityInput,
   EntityAdapter,
+  BatchJobStatus,
+  Batch,
+  JobInfo,
 } from "@brains/plugins";
-import type { BatchJobStatus, Batch, JobInfo } from "@brains/job-queue";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,

@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger, ProgressReporter } from "@brains/plugins";
-import { BaseJobHandler } from "@brains/job-queue";
+import { BaseJobHandler } from "@brains/plugins";
+import type { Logger, ProgressReporter } from "@brains/utils";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type { LayoutComponent, SiteBuilderConfig } from "../config";
 import {

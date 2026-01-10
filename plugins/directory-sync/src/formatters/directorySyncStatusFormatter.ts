@@ -1,4 +1,4 @@
-import { ResponseFormatter } from "@brains/plugins";
+import { ResponseFormatter } from "@brains/utils";
 import type { DirectorySyncStatus } from "../types";
 import { directorySyncStatusSchema } from "../schemas";
 

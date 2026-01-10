@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { PaginationInfo } from "@brains/datasource";
+import type { PaginationInfo } from "@brains/plugins";
 import { Head, Pagination } from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
 

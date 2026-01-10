@@ -4,7 +4,7 @@ import type {
   PluginResource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, ProfileService } from "@brains/plugins";
 import { siteContentSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
@@ -27,7 +27,6 @@ import { siteBuilderConfigSchema } from "./config";
 import { SiteInfoService } from "./services/site-info-service";
 import { siteInfoSchema } from "./services/site-info-schema";
 import { SiteInfoAdapter } from "./services/site-info-adapter";
-import { ProfileService } from "@brains/profile-service";
 import {
   templates as defaultTemplates,
   routes as defaultRoutes,

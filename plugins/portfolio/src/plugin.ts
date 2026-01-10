@@ -4,7 +4,7 @@ import type {
   PluginResource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, paginationInfoSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { projectSchema, enrichedProjectSchema } from "./schemas/project";
@@ -23,7 +23,6 @@ import {
 import { projectGenerationTemplate } from "./templates/generation-template";
 import { ProjectGenerationJobHandler } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
-import { paginationInfoSchema } from "@brains/datasource";
 import packageJson from "../package.json";
 
 /**

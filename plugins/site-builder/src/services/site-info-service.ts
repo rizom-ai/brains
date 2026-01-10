@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { SiteInfoEntity, SiteInfoBody } from "./site-info-schema";
 import { SiteInfoAdapter } from "./site-info-adapter";
