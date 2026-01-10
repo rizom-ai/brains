@@ -201,4 +201,19 @@ describe("listEntities sortFields", () => {
     expect(result.map((r) => r.id)).toEqual(["post-1", "post-2"]); // Jan 3, Jan 1
     // post-3 (draft) should be excluded
   });
+
+  test("should return all entities when no limit is specified", async () => {
+    // When no limit option is provided, listEntities should return all matching entities
+    const result = await entityService.listEntities<BaseEntity>("post");
+
+    expect(result).toHaveLength(3);
+  });
+
+  test("should respect explicit limit when provided", async () => {
+    const result = await entityService.listEntities<BaseEntity>("post", {
+      limit: 2,
+    });
+
+    expect(result).toHaveLength(2);
+  });
 });

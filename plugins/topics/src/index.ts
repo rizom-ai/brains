@@ -142,7 +142,80 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     if (!this.context) {
       return [];
     }
-    return createTopicsTools(this.context);
+    return createTopicsTools(this.context, (options) =>
+      this.getEntitiesToExtract(options),
+    );
+  }
+
+  /**
+   * Get entity types that should be processed for topic extraction
+   */
+  public getExtractableEntityTypes(): string[] {
+    if (!this.context) {
+      return [];
+    }
+    const allTypes = this.context.entityService.getEntityTypes();
+    return allTypes.filter((type) => this.shouldProcessEntityType(type));
+  }
+
+  /**
+   * Get entities that need topic extraction.
+   * Filters by extractable types, skips drafts, and optionally skips already-processed entities.
+   */
+  public async getEntitiesToExtract(options?: {
+    entityTypes?: string[] | undefined;
+    limit?: number | undefined;
+    force?: boolean | undefined;
+  }): Promise<BaseEntity[]> {
+    if (!this.context) {
+      return [];
+    }
+
+    const { entityTypes, limit, force = false } = options ?? {};
+
+    // Determine which types to process
+    const typesToProcess =
+      entityTypes && entityTypes.length > 0
+        ? entityTypes.filter((t) => this.shouldProcessEntityType(t))
+        : this.getExtractableEntityTypes();
+
+    // Get processed content hashes from existing topics (unless force=true)
+    const processedHashes = new Set<string>();
+    if (!force) {
+      const topics = await this.context.entityService.listEntities("topic");
+      for (const topic of topics) {
+        const metadata = topic.metadata as {
+          sources?: Array<{ contentHash?: string }>;
+        };
+        if (metadata.sources) {
+          for (const source of metadata.sources) {
+            if (source.contentHash) {
+              processedHashes.add(source.contentHash);
+            }
+          }
+        }
+      }
+    }
+
+    // Collect entities to extract
+    const toExtract: BaseEntity[] = [];
+    for (const type of typesToProcess) {
+      const entities = await this.context.entityService.listEntities(type);
+      for (const entity of entities) {
+        // Skip drafts
+        if (!this.isEntityPublished(entity)) {
+          continue;
+        }
+        // Skip already processed (unless force)
+        if (!force && processedHashes.has(entity.contentHash)) {
+          continue;
+        }
+        toExtract.push(entity);
+      }
+    }
+
+    // Apply limit if specified
+    return limit !== undefined ? toExtract.slice(0, limit) : toExtract;
   }
 
   protected override async getResources(): Promise<PluginResource[]> {

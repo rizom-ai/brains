@@ -584,6 +584,24 @@ export class MockShell implements IShell {
   }): MockShell {
     return new MockShell(options);
   }
+
+  /**
+   * Add test entities to the mock entity store
+   * Useful for setting up test data before running plugin methods
+   */
+  addEntities(entities: BaseEntity[]): void {
+    for (const entity of entities) {
+      this.entities.set(entity.id, entity);
+      this.entityTypes.add(entity.entityType);
+    }
+  }
+
+  /**
+   * Clear all test entities
+   */
+  clearEntities(): void {
+    this.entities.clear();
+  }
 }
 
 /**

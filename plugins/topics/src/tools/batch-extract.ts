@@ -3,6 +3,7 @@ import type {
   ToolResponse,
   ToolContext,
   ServicePluginContext,
+  BaseEntity,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 
@@ -11,22 +12,21 @@ const inputSchema = z.object({
     .array(z.string())
     .optional()
     .describe("Filter to specific entity types (e.g., ['post', 'link'])"),
-  limit: z.number().default(50).describe("Maximum entities to process"),
+  limit: z.number().optional().describe("Maximum entities to process"),
   dryRun: z
     .boolean()
     .default(false)
     .describe("Preview entities without queueing jobs"),
+  force: z
+    .boolean()
+    .default(false)
+    .describe("Force extraction on all entities, even if already processed"),
 });
 
-// Input type is inferred inside handler via inputSchema.parse()
-
-/**
- * Get entity types that should be processed for topic extraction
- */
-function getExtractableEntityTypes(context: ServicePluginContext): string[] {
-  const allTypes = context.entityService.getEntityTypes();
-  // Exclude topic itself to prevent recursion
-  return allTypes.filter((type) => type !== "topic");
+export interface ExtractOptions {
+  entityTypes?: string[] | undefined;
+  limit?: number | undefined;
+  force?: boolean | undefined;
 }
 
 /**
@@ -34,9 +34,10 @@ function getExtractableEntityTypes(context: ServicePluginContext): string[] {
  */
 export function createBatchExtractTool(
   context: ServicePluginContext,
+  getEntitiesToExtract: (options?: ExtractOptions) => Promise<BaseEntity[]>,
 ): PluginTool {
   return {
-    name: "batch-extract",
+    name: "topics_batch-extract",
     description:
       "Extract topics from entities that need processing (new or changed content)",
     inputSchema: inputSchema.shape,
@@ -46,85 +47,39 @@ export function createBatchExtractTool(
     ): Promise<ToolResponse> => {
       const parsed = inputSchema.parse(input);
 
-      // 1. Get all topics and extract processed contentHashes
-      const topics = await context.entityService.listEntities("topic");
-      const processedHashes = new Set<string>();
+      // Get entities to extract using plugin method
+      const toExtract = await getEntitiesToExtract({
+        entityTypes:
+          parsed.entityTypes && parsed.entityTypes.length > 0
+            ? parsed.entityTypes
+            : undefined,
+        limit: parsed.limit,
+        force: parsed.force,
+      });
 
-      for (const topic of topics) {
-        // Topics store body data including sources
-        // The TopicAdapter stores sources in the markdown body
-        const metadata = topic.metadata as {
-          sources?: Array<{ contentHash?: string }>;
-        };
-        if (metadata.sources) {
-          for (const source of metadata.sources) {
-            if (source.contentHash) {
-              processedHashes.add(source.contentHash);
-            }
-          }
-        }
-      }
-
-      // 2. Get entities and filter to unprocessed
-      const entityTypes =
-        parsed.entityTypes ?? getExtractableEntityTypes(context);
-      const unprocessed: Array<{
-        id: string;
-        type: string;
-        contentHash: string;
-      }> = [];
-
-      for (const type of entityTypes) {
-        if (type === "topic") continue; // Skip topics
-
-        const entities = await context.entityService.listEntities(type);
-        for (const entity of entities) {
-          // Skip drafts
-          const status = (entity.metadata as Record<string, unknown>)["status"];
-          if (status === "draft") continue;
-
-          if (!processedHashes.has(entity.contentHash)) {
-            unprocessed.push({
-              id: entity.id,
-              type: entity.entityType,
-              contentHash: entity.contentHash,
-            });
-          }
-        }
-      }
-
-      // 3. Apply limit
-      const toProcess = unprocessed.slice(0, parsed.limit);
-
-      // 4. dryRun mode - just return preview
+      // dryRun mode - just return preview
       if (parsed.dryRun) {
         return {
           status: "success",
-          message: `Found ${unprocessed.length} entities needing extraction`,
+          message: `Found ${toExtract.length} entities for extraction`,
           data: {
-            total: unprocessed.length,
-            preview: toProcess.map((e) => ({ id: e.id, type: e.type })),
+            total: toExtract.length,
+            preview: toExtract.map((e) => ({ id: e.id, type: e.entityType })),
           },
         };
       }
 
-      // 5. Queue extraction jobs
-      for (const entity of toProcess) {
-        const fullEntity = await context.entityService.getEntity(
-          entity.type,
-          entity.id,
-        );
-        if (!fullEntity) continue;
-
+      // Queue extraction jobs
+      for (const entity of toExtract) {
         await context.enqueueJob(
           "extract",
           {
-            entityId: fullEntity.id,
-            entityType: fullEntity.entityType,
-            entityContent: fullEntity.content,
-            entityMetadata: fullEntity.metadata,
-            entityCreated: fullEntity.created,
-            entityUpdated: fullEntity.updated,
+            entityId: entity.id,
+            entityType: entity.entityType,
+            entityContent: entity.content,
+            entityMetadata: entity.metadata,
+            entityCreated: entity.created,
+            entityUpdated: entity.updated,
             minRelevanceScore: 0.6,
             autoMerge: true,
             mergeSimilarityThreshold: 0.85,
@@ -135,7 +90,7 @@ export function createBatchExtractTool(
             source: "topics-plugin",
             metadata: {
               operationType: "data_processing" as const,
-              operationTarget: `topic-extraction:${fullEntity.entityType}:${fullEntity.id}`,
+              operationTarget: `topic-extraction:${entity.entityType}:${entity.id}`,
               pluginId: "topics",
             },
           },
@@ -144,10 +99,10 @@ export function createBatchExtractTool(
 
       return {
         status: "success",
-        message: `Queued ${toProcess.length} extraction jobs`,
+        message: `Queued ${toExtract.length} extraction jobs`,
         data: {
-          total: unprocessed.length,
-          queued: toProcess.length,
+          total: toExtract.length,
+          queued: toExtract.length,
         },
       };
     },

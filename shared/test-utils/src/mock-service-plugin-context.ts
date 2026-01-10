@@ -135,6 +135,7 @@ export function createMockServicePluginContext(
     // Core context methods
     sendMessage: mock(() => Promise.resolve()),
     onMessage: mock(() => () => {}),
+    subscribe: mock(() => () => {}),
     registerTool: mock(() => {}),
     registerTemplate: mock(() => {}),
     getTemplate: mock(() => undefined),

@@ -19,7 +19,7 @@ const sortFieldSchema = z.object({
  * Schema for list entities options
  */
 const listOptionsSchema = z.object({
-  limit: z.number().int().positive().optional().default(20),
+  limit: z.number().int().positive().optional(),
   offset: z.number().int().min(0).optional().default(0),
   sortFields: z.array(sortFieldSchema).optional(),
   filter: z
@@ -135,16 +135,16 @@ export class EntityQueries {
     // Build order by clauses
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
-    // Query database
+    // Query database - conditionally apply limit
     const query = this.db
       .select()
       .from(entities)
       .where(and(...whereConditions))
-      .limit(limit)
-      .offset(offset)
-      .orderBy(...orderByClauses);
+      .orderBy(...orderByClauses)
+      .offset(offset);
 
-    const result = await query;
+    // Only apply limit if specified
+    const result = limit !== undefined ? await query.limit(limit) : await query;
 
     // Convert from database format to entities
     const entityList = await this.serializer.convertToEntities<T>(
