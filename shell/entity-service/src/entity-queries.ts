@@ -1,6 +1,7 @@
 import type { EntityDB } from "./db";
 import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
+import { embeddings } from "./schema/embeddings";
 import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
 import { z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
@@ -288,7 +289,14 @@ export class EntityQueries {
       return false;
     }
 
-    // Delete from database (cascades to chunks and embeddings)
+    // Delete embedding first (no foreign key constraint, so manual cascade)
+    await this.db
+      .delete(embeddings)
+      .where(
+        and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),
+      );
+
+    // Delete entity
     await this.db
       .delete(entities)
       .where(and(eq(entities.entityType, entityType), eq(entities.id, id)));

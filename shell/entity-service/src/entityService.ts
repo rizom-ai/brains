@@ -7,12 +7,7 @@ import {
 } from "./db";
 import type { EntityDbConfig } from "./types";
 import { EntityRegistry } from "./entityRegistry";
-import {
-  Logger,
-  extractIndexedFields,
-  createId,
-  computeContentHash,
-} from "@brains/utils";
+import { Logger, createId, computeContentHash } from "@brains/utils";
 import type {
   BaseEntity,
   SearchResult,
@@ -28,6 +23,8 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
+import { entities } from "./schema/entities";
+import { and, eq } from "drizzle-orm";
 
 /**
  * Options for creating an EntityService instance
@@ -193,13 +190,44 @@ export class EntityService implements IEntityService {
         validatedEntity.entityType,
       );
 
-    // Extract content weight from markdown
-    const { contentWeight } = extractIndexedFields(
-      markdown,
-      validatedEntity.id,
+    // Compute contentHash from the serialized markdown
+    const contentHash = computeContentHash(markdown);
+
+    // Write entity to database immediately (without embedding)
+    await this.db.insert(entities).values({
+      id: validatedEntity.id,
+      entityType: validatedEntity.entityType,
+      content: markdown,
+      contentHash,
+      metadata,
+      created: new Date(validatedEntity.created).getTime(),
+      updated: new Date(validatedEntity.updated).getTime(),
+    });
+
+    this.logger.debug(
+      `Persisted entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
     );
 
-    // Prepare entity data for queue (without embedding)
+    // Emit entity:created event immediately (entity is now readable)
+    if (this.messageBus) {
+      this.logger.debug(
+        `Emitting entity:created event for ${validatedEntity.entityType}:${validatedEntity.id}`,
+      );
+      await this.messageBus.send(
+        "entity:created",
+        {
+          entityType: validatedEntity.entityType,
+          entityId: validatedEntity.id,
+          entity: validatedEntity,
+        },
+        "entity-service",
+        undefined,
+        undefined,
+        true, // broadcast
+      );
+    }
+
+    // Prepare entity data for queue (for embedding generation)
     const entityForQueue: EmbeddingJobData = {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
@@ -207,7 +235,6 @@ export class EntityService implements IEntityService {
       metadata,
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
-      contentWeight,
       operation: "create",
     };
 
@@ -231,10 +258,8 @@ export class EntityService implements IEntityService {
     );
 
     this.logger.debug(
-      `Created entity asynchronously of type ${entity["entityType"]} with ID ${validatedEntity.id}, job ID ${jobId}`,
+      `Queued embedding job for ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
     );
-
-    // Note: entity:created event will be emitted by EmbeddingJobHandler after entity is saved
 
     return {
       entityId: validatedEntity.id,
@@ -313,21 +338,51 @@ export class EntityService implements IEntityService {
         validatedEntity.entityType,
       );
 
-    // Extract content weight from markdown
-    const { contentWeight } = extractIndexedFields(
-      markdown,
-      validatedEntity.id,
+    // Compute contentHash from the serialized markdown
+    const contentHash = computeContentHash(markdown);
+
+    // Update entity in database immediately
+    await this.db
+      .update(entities)
+      .set({
+        content: markdown,
+        contentHash,
+        metadata,
+        updated: new Date(validatedEntity.updated).getTime(),
+      })
+      .where(
+        and(
+          eq(entities.id, validatedEntity.id),
+          eq(entities.entityType, validatedEntity.entityType),
+        ),
+      );
+
+    this.logger.debug(
+      `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
     );
 
-    // Note: Entity will be updated with embedding by the background worker
+    // Emit entity:updated event immediately
+    if (this.messageBus) {
+      await this.messageBus.send(
+        "entity:updated",
+        {
+          entityType: validatedEntity.entityType,
+          entityId: validatedEntity.id,
+          entity: validatedEntity,
+        },
+        "entity-service",
+        undefined,
+        undefined,
+        true,
+      );
+    }
 
     // Queue embedding generation for the updated entity
-    const rootJobId = createId(); // Generate unique ID for system job
+    const rootJobId = createId();
     const entityForQueue: EmbeddingJobData = {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
       content: markdown,
-      contentWeight,
       created: new Date(validatedEntity.created).getTime(),
       updated: new Date(validatedEntity.updated).getTime(),
       metadata,
@@ -351,10 +406,8 @@ export class EntityService implements IEntityService {
     );
 
     this.logger.debug(
-      `Queued embedding update for entity ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
+      `Queued embedding job for ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
     );
-
-    // Note: entity:updated event will be emitted by EmbeddingJobHandler after entity is saved
 
     return {
       entityId: validatedEntity.id,
@@ -538,45 +591,31 @@ export class EntityService implements IEntityService {
   }
 
   /**
-   * Store entity with pre-generated embedding
-   * Used by embedding job handler to directly store entity with embedding
+   * Store embedding for an entity
+   * Used by embedding job handler to store embedding in the embeddings table
+   * Entity must already exist in entities table
    */
-  public async storeEntityWithEmbedding(data: {
-    id: string;
+  public async storeEmbedding(data: {
+    entityId: string;
     entityType: string;
-    content: string;
-    metadata: Record<string, unknown>;
-    created: number;
-    updated: number;
-    contentWeight: number;
     embedding: Float32Array;
+    contentHash: string;
   }): Promise<void> {
-    const { entities } = await import("./schema/entities");
-
-    // Compute content hash for change detection
-    const contentHash = computeContentHash(data.content);
+    const { embeddings } = await import("./schema/embeddings");
 
     await this.db
-      .insert(entities)
+      .insert(embeddings)
       .values({
-        id: data.id,
+        entityId: data.entityId,
         entityType: data.entityType,
-        content: data.content,
-        contentHash,
-        metadata: data.metadata,
-        created: data.created,
-        updated: data.updated,
-        contentWeight: data.contentWeight,
         embedding: data.embedding,
+        contentHash: data.contentHash,
       })
       .onConflictDoUpdate({
-        target: [entities.id, entities.entityType],
+        target: [embeddings.entityId, embeddings.entityType],
         set: {
-          // ONLY update embedding-related fields
-          // Never overwrite content, metadata, or timestamps to prevent stale job data
-          // from corrupting current entity state
           embedding: data.embedding,
-          contentWeight: data.contentWeight,
+          contentHash: data.contentHash,
         },
       });
   }

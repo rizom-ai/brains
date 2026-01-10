@@ -19,10 +19,6 @@ const embeddingJobDataSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).default({}),
   created: z.number().int().positive("Created timestamp must be positive"),
   updated: z.number().int().positive("Updated timestamp must be positive"),
-  contentWeight: z
-    .number()
-    .min(0)
-    .max(1, "Content weight must be between 0 and 1"),
   operation: z.enum(["create", "update"]),
 });
 
@@ -90,7 +86,8 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
   /**
    * Process an embedding job
-   * Generates embedding for entity content and upserts the complete entity
+   * Generates embedding for entity content and stores it in the embeddings table
+   * Entity must already exist in entities table (stored immediately by createEntity/updateEntity)
    */
   public async process(
     data: EmbeddingJobData,
@@ -112,38 +109,37 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         message: `Generating embedding for ${data.entityType} ${data.id}`,
       });
 
-      // For UPDATE operations only: check if entity still exists and content matches
-      // For CREATE operations, the entity doesn't exist yet - that's expected
-      // This prevents stale UPDATE jobs from overwriting current entity data
-      if (data.operation === "update") {
-        const currentEntity = await this.entityService.getEntity(
-          data.entityType,
-          data.id,
-        );
+      // Check if entity still exists and content matches
+      // With immediate persistence, entity should exist for both CREATE and UPDATE
+      // This prevents stale jobs from generating embeddings for outdated content
+      const currentEntity = await this.entityService.getEntity(
+        data.entityType,
+        data.id,
+      );
 
-        if (!currentEntity) {
-          this.logger.warn("Entity no longer exists, skipping update job", {
+      if (!currentEntity) {
+        this.logger.warn("Entity no longer exists, skipping embedding job", {
+          jobId,
+          entityId: data.id,
+          entityType: data.entityType,
+          operation: data.operation,
+        });
+        return;
+      }
+
+      const jobContentHash = computeContentHash(data.content);
+      if (currentEntity.contentHash !== jobContentHash) {
+        this.logger.info(
+          "Entity content changed since job created, skipping stale embedding",
+          {
             jobId,
             entityId: data.id,
             entityType: data.entityType,
-          });
-          return;
-        }
-
-        const jobContentHash = computeContentHash(data.content);
-        if (currentEntity.contentHash !== jobContentHash) {
-          this.logger.info(
-            "Entity content changed since job created, skipping stale embedding",
-            {
-              jobId,
-              entityId: data.id,
-              entityType: data.entityType,
-              jobContentHash,
-              currentContentHash: currentEntity.contentHash,
-            },
-          );
-          return;
-        }
+            jobContentHash,
+            currentContentHash: currentEntity.contentHash,
+          },
+        );
+        return;
       }
 
       // Generate embedding for the entity content
@@ -158,68 +154,33 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         message: `Storing embedding for ${data.entityType} ${data.id}`,
       });
 
-      // Store the entity with embedding through the entity service
-      await this.entityService.storeEntityWithEmbedding({
-        id: data.id,
+      // Store the embedding in the embeddings table
+      await this.entityService.storeEmbedding({
+        entityId: data.id,
         entityType: data.entityType,
-        content: data.content,
-        metadata: data.metadata,
-        created: data.created,
-        updated: data.updated,
-        contentWeight: data.contentWeight,
         embedding,
+        contentHash: jobContentHash,
       });
 
-      // Emit appropriate event after successful save
-      // - entity:created for new entities (triggers site rebuilds, etc.)
-      // - entity:embedding:ready for embedding updates (doesn't trigger rebuilds)
+      // Emit entity:embedding:ready event after successful save
+      // Note: entity:created is now emitted by createEntity() when entity is first persisted
       if (this.messageBus) {
-        const eventType =
-          data.operation === "create"
-            ? "entity:created"
-            : "entity:embedding:ready";
         this.logger.debug(
-          `Emitting ${eventType} event for ${data.entityType}:${data.id} after entity saved`,
+          `Emitting entity:embedding:ready event for ${data.entityType}:${data.id}`,
         );
 
-        // Fetch the full entity from the database to get the properly structured entity
-        const entity = await this.entityService.getEntity(
-          data.entityType,
-          data.id,
-        );
-
-        if (!entity) {
-          this.logger.error("Failed to fetch entity after save", {
+        await this.messageBus.send(
+          "entity:embedding:ready",
+          {
             entityType: data.entityType,
             entityId: data.id,
-          });
-          // Still send the event with minimal data
-          await this.messageBus.send(
-            eventType,
-            {
-              entityType: data.entityType,
-              entityId: data.id,
-              metadata: data.metadata,
-            },
-            "entity-service",
-            undefined,
-            undefined,
-            true, // broadcast
-          );
-        } else {
-          await this.messageBus.send(
-            eventType,
-            {
-              entityType: data.entityType,
-              entityId: data.id,
-              entity, // Full, properly structured entity
-            },
-            "entity-service",
-            undefined,
-            undefined,
-            true, // broadcast
-          );
-        }
+            entity: currentEntity,
+          },
+          "entity-service",
+          undefined,
+          undefined,
+          true, // broadcast
+        );
       }
 
       // Report completion

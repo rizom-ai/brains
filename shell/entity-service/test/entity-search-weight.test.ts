@@ -83,11 +83,12 @@ describe("EntitySearch weight behavior", () => {
       generateEmbeddings: mock(() => Promise.resolve([])),
     } as unknown as IEmbeddingService;
 
-    // Create chainable mock for db.select().from().where().orderBy().limit().offset()
+    // Create chainable mock for db.select().from().innerJoin().where().orderBy().limit().offset()
     mockSelectFn = mock(() => Promise.resolve([]));
 
     const chainableMock = {
       from: mock(() => chainableMock),
+      innerJoin: mock(() => chainableMock),
       where: mock(() => chainableMock),
       orderBy: mock(() => chainableMock),
       limit: mock(() => chainableMock),

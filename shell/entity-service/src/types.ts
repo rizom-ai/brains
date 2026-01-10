@@ -8,7 +8,6 @@ export interface EntityWithoutEmbedding {
   entityType: string;
   content: string;
   metadata: Record<string, unknown>;
-  contentWeight: number;
   created: number;
   updated: number;
 }
@@ -253,16 +252,13 @@ export interface EntityService extends ICoreEntityService {
     error?: string;
   } | null>;
 
-  // Store entity with pre-generated embedding (used by embedding job handler)
-  storeEntityWithEmbedding(data: {
-    id: string;
+  // Store embedding for an entity (used by embedding job handler)
+  // Entity must already exist in entities table
+  storeEmbedding(data: {
+    entityId: string;
     entityType: string;
-    content: string;
-    metadata: Record<string, unknown>;
-    created: number;
-    updated: number;
-    contentWeight: number;
     embedding: Float32Array;
+    contentHash: string;
   }): Promise<void>;
 }
 

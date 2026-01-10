@@ -1,7 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
-import { createTestEntityDatabase } from "./helpers/test-entity-db";
+import {
+  createTestEntityDatabase,
+  insertTestEntity,
+} from "./helpers/test-entity-db";
 import type { BaseEntity, EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import {
@@ -46,6 +49,7 @@ const postAdapter: EntityAdapter<Post, PostMetadata> = {
 describe("listEntities sortFields", () => {
   let entityService: EntityService;
   let cleanup: () => Promise<void>;
+  let dbConfig: { url: string };
 
   beforeEach(async () => {
     EntityService.resetInstance();
@@ -54,6 +58,7 @@ describe("listEntities sortFields", () => {
     // Create test database with migrations
     const testDb = await createTestEntityDatabase();
     cleanup = testDb.cleanup;
+    dbConfig = testDb.config;
 
     const logger = createSilentLogger();
     const entityRegistry = EntityRegistry.createFresh(logger);
@@ -73,10 +78,9 @@ describe("listEntities sortFields", () => {
     });
 
     // Create test entities with different metadata values
-    // Using storeEntityWithEmbedding to insert directly (bypassing job queue)
     const mockEmbedding = new Float32Array(384).fill(0.1);
 
-    await entityService.storeEntityWithEmbedding({
+    await insertTestEntity(dbConfig, {
       id: "post-1",
       entityType: "post",
       content: "Post 1 content",
@@ -86,11 +90,10 @@ describe("listEntities sortFields", () => {
       },
       created: new Date("2025-01-01T10:00:00.000Z").getTime(),
       updated: new Date("2025-01-01T10:00:00.000Z").getTime(),
-      contentWeight: 1,
       embedding: mockEmbedding,
     });
 
-    await entityService.storeEntityWithEmbedding({
+    await insertTestEntity(dbConfig, {
       id: "post-2",
       entityType: "post",
       content: "Post 2 content",
@@ -100,11 +103,10 @@ describe("listEntities sortFields", () => {
       },
       created: new Date("2025-01-02T10:00:00.000Z").getTime(),
       updated: new Date("2025-01-02T10:00:00.000Z").getTime(),
-      contentWeight: 1,
       embedding: mockEmbedding,
     });
 
-    await entityService.storeEntityWithEmbedding({
+    await insertTestEntity(dbConfig, {
       id: "post-3",
       entityType: "post",
       content: "Post 3 content",
@@ -114,7 +116,6 @@ describe("listEntities sortFields", () => {
       },
       created: new Date("2025-01-03T10:00:00.000Z").getTime(),
       updated: new Date("2025-01-03T10:00:00.000Z").getTime(),
-      contentWeight: 1,
       embedding: mockEmbedding,
     });
   });

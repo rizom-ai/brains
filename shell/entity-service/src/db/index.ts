@@ -2,6 +2,7 @@ import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { entities } from "../schema/entities";
+import { embeddings } from "../schema/embeddings";
 import type { EntityDbConfig } from "../types";
 
 export type EntityDB = LibSQLDatabase<Record<string, unknown>>;
@@ -22,7 +23,7 @@ export function createEntityDatabase(config: EntityDbConfig): {
     ? createClient({ url, authToken })
     : createClient({ url });
 
-  const db = drizzle(client, { schema: { entities } });
+  const db = drizzle(client, { schema: { entities, embeddings } });
 
   return { db, client, url };
 }
@@ -44,14 +45,14 @@ export async function enableWALModeForEntities(
 }
 
 /**
- * Ensure critical indexes exist for entities
+ * Ensure critical indexes exist for entities and embeddings
  * This includes vector indexes for similarity search
  */
 export async function ensureEntityIndexes(client: Client): Promise<void> {
-  // Create vector index for efficient similarity search
+  // Create vector index for efficient similarity search on embeddings table
   await client.execute(`
-    CREATE INDEX IF NOT EXISTS entities_embedding_idx 
-    ON entities(libsql_vector_idx(embedding))
+    CREATE INDEX IF NOT EXISTS embeddings_embedding_idx
+    ON embeddings(libsql_vector_idx(embedding))
   `);
 }
 

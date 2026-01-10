@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f5c8acef-7612-413c-9158-8d40a23cb6ad",
+  "id": "99d7ed2f-bc45-4bec-ab00-657cc53cd21c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "entities": {
@@ -28,6 +28,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "contentHash": {
+          "name": "contentHash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "metadata": {
           "name": "metadata",
           "type": "text",
@@ -35,21 +42,6 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'{}'"
-        },
-        "contentWeight": {
-          "name": "contentWeight",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 1
-        },
-        "embedding": {
-          "name": "embedding",
-          "type": "F32_BLOB(384)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         },
         "created": {
           "name": "created",
@@ -70,11 +62,51 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {
         "entities_id_entityType_pk": {
-          "columns": [
-            "id",
-            "entityType"
-          ],
+          "columns": ["id", "entityType"],
           "name": "entities_id_entityType_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "embeddings": {
+      "name": "embeddings",
+      "columns": {
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "embedding": {
+          "name": "embedding",
+          "type": "F32_BLOB(384)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content_hash": {
+          "name": "content_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "embeddings_entity_id_entity_type_pk": {
+          "columns": ["entity_id", "entity_type"],
+          "name": "embeddings_entity_id_entity_type_pk"
         }
       },
       "uniqueConstraints": {},

@@ -27,13 +27,13 @@ describe("EmbeddingJobHandler", () => {
   });
 
   describe("CREATE operation handling", () => {
-    test("should process CREATE job even when entity does not exist yet", async () => {
-      let storeEntityCalled = false;
+    test("should skip when entity does not exist (with immediate persistence, entity should exist)", async () => {
+      let storeEmbeddingCalled = false;
 
       const mockEntityService = {
-        getEntity: async () => null, // Entity doesn't exist yet - expected for CREATE
-        storeEntityWithEmbedding: async () => {
-          storeEntityCalled = true;
+        getEntity: async () => null, // Entity doesn't exist - something went wrong
+        storeEmbedding: async () => {
+          storeEmbeddingCalled = true;
         },
       } as unknown as IEntityService;
 
@@ -49,25 +49,34 @@ describe("EmbeddingJobHandler", () => {
         metadata: { coverImageId: "my-cover" },
         created: Date.now(),
         updated: Date.now(),
-        contentWeight: 1.0,
-        operation: "create", // CREATE operation
+        operation: "create",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEntityWithEmbedding SHOULD be called for CREATE
-      expect(storeEntityCalled).toBe(true);
+      // With immediate persistence, entity should exist. If not, we skip.
+      expect(storeEmbeddingCalled).toBe(false);
     });
 
-    test("should process CREATE job and store all data including metadata", async () => {
-      let storedMetadata: Record<string, unknown> | undefined;
+    test("should process CREATE job when entity exists and content matches", async () => {
+      let storeEmbeddingCalled = false;
+      const content = "new entity content";
+      const contentHash = computeContentHash(content);
+
+      const currentEntity: BaseEntity = {
+        id: "new-entity",
+        entityType: "note",
+        content,
+        contentHash,
+        metadata: { coverImageId: "my-cover" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      };
 
       const mockEntityService = {
-        getEntity: async () => null,
-        storeEntityWithEmbedding: async (data: {
-          metadata: Record<string, unknown>;
-        }) => {
-          storedMetadata = data.metadata;
+        getEntity: async () => currentEntity,
+        storeEmbedding: async () => {
+          storeEmbeddingCalled = true;
         },
       } as unknown as IEntityService;
 
@@ -78,22 +87,18 @@ describe("EmbeddingJobHandler", () => {
 
       const jobData: EmbeddingJobData = {
         id: "new-entity",
-        entityType: "post",
-        content: "---\ntitle: Test\ncoverImageId: my-cover\n---\nBody",
-        metadata: { title: "Test", coverImageId: "my-cover" },
+        entityType: "note",
+        content,
+        metadata: { coverImageId: "my-cover" },
         created: Date.now(),
         updated: Date.now(),
-        contentWeight: 1.0,
         operation: "create",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // Verify metadata was stored
-      expect(storedMetadata).toEqual({
-        title: "Test",
-        coverImageId: "my-cover",
-      });
+      // storeEmbedding SHOULD be called when entity exists and content matches
+      expect(storeEmbeddingCalled).toBe(true);
     });
   });
 
@@ -106,7 +111,7 @@ describe("EmbeddingJobHandler", () => {
       const currentContent = "new content";
       const currentContentHash = computeContentHash(currentContent);
 
-      let storeEntityCalled = false;
+      let storeEmbeddingCalled = false;
 
       const currentEntity: BaseEntity = {
         id: "test-entity",
@@ -120,8 +125,8 @@ describe("EmbeddingJobHandler", () => {
 
       const mockEntityService = {
         getEntity: async () => currentEntity,
-        storeEntityWithEmbedding: async () => {
-          storeEntityCalled = true;
+        storeEmbedding: async () => {
+          storeEmbeddingCalled = true;
         },
       } as unknown as IEntityService;
 
@@ -137,21 +142,20 @@ describe("EmbeddingJobHandler", () => {
         metadata: {}, // Missing coverImageId
         created: Date.now(),
         updated: Date.now(),
-        contentWeight: 1.0,
         operation: "update",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEntityWithEmbedding should NOT have been called because content changed
-      expect(storeEntityCalled).toBe(false);
+      // storeEmbedding should NOT have been called because content changed
+      expect(storeEmbeddingCalled).toBe(false);
     });
 
     test("should process job when entity content matches", async () => {
       const content = "same content";
       const contentHash = computeContentHash(content);
 
-      let storeEntityCalled = false;
+      let storeEmbeddingCalled = false;
 
       const currentEntity: BaseEntity = {
         id: "test-entity",
@@ -165,8 +169,8 @@ describe("EmbeddingJobHandler", () => {
 
       const mockEntityService = {
         getEntity: async () => currentEntity,
-        storeEntityWithEmbedding: async () => {
-          storeEntityCalled = true;
+        storeEmbedding: async () => {
+          storeEmbeddingCalled = true;
         },
       } as unknown as IEntityService;
 
@@ -182,23 +186,22 @@ describe("EmbeddingJobHandler", () => {
         metadata: {},
         created: Date.now(),
         updated: Date.now(),
-        contentWeight: 1.0,
         operation: "update",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEntityWithEmbedding SHOULD have been called
-      expect(storeEntityCalled).toBe(true);
+      // storeEmbedding SHOULD have been called
+      expect(storeEmbeddingCalled).toBe(true);
     });
 
     test("should skip job when entity no longer exists", async () => {
-      let storeEntityCalled = false;
+      let storeEmbeddingCalled = false;
 
       const mockEntityService = {
         getEntity: async () => null, // Entity doesn't exist
-        storeEntityWithEmbedding: async () => {
-          storeEntityCalled = true;
+        storeEmbedding: async () => {
+          storeEmbeddingCalled = true;
         },
       } as unknown as IEntityService;
 
@@ -214,14 +217,13 @@ describe("EmbeddingJobHandler", () => {
         metadata: {},
         created: Date.now(),
         updated: Date.now(),
-        contentWeight: 1.0,
         operation: "update",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEntityWithEmbedding should NOT have been called
-      expect(storeEntityCalled).toBe(false);
+      // storeEmbedding should NOT have been called
+      expect(storeEmbeddingCalled).toBe(false);
     });
   });
 });

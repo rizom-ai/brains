@@ -1,7 +1,7 @@
 import type { Config } from "drizzle-kit";
 
 export default {
-  schema: "./src/schema/entities.ts",
+  schema: ["./src/schema/entities.ts", "./src/schema/embeddings.ts"],
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {

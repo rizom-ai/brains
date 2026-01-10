@@ -173,7 +173,7 @@ slug: test-series
         ),
         countEntities: mock(() => Promise.resolve(0)),
         getEntityCounts: mock(() => Promise.resolve([])),
-        storeEntityWithEmbedding: mock(() => Promise.resolve()),
+        storeEmbedding: mock(() => Promise.resolve()),
         getWeightMap: mock(() => ({})),
       };
 

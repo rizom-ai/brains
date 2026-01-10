@@ -1,7 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
-import { createTestEntityDatabase } from "./helpers/test-entity-db";
+import {
+  createTestEntityDatabase,
+  insertTestEntity,
+} from "./helpers/test-entity-db";
 import type { EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import {
@@ -44,6 +47,7 @@ const postAdapter: EntityAdapter<Post, PostMetadata> = {
 describe("countEntities", () => {
   let entityService: EntityService;
   let cleanup: () => Promise<void>;
+  let dbConfig: { url: string };
 
   beforeEach(async () => {
     EntityService.resetInstance();
@@ -51,6 +55,7 @@ describe("countEntities", () => {
 
     const testDb = await createTestEntityDatabase();
     cleanup = testDb.cleanup;
+    dbConfig = testDb.config;
 
     const logger = createSilentLogger();
     const entityRegistry = EntityRegistry.createFresh(logger);
@@ -68,41 +73,38 @@ describe("countEntities", () => {
       dbConfig: testDb.config,
     });
 
-    // Create test entities
+    // Create test entities using the helper
     const mockEmbedding = new Float32Array(384).fill(0.1);
 
     // 2 published posts
-    await entityService.storeEntityWithEmbedding({
+    await insertTestEntity(dbConfig, {
       id: "post-1",
       entityType: "post",
       content: "Post 1",
       metadata: { status: "published", category: "tech" },
       created: Date.now(),
       updated: Date.now(),
-      contentWeight: 1,
       embedding: mockEmbedding,
     });
 
-    await entityService.storeEntityWithEmbedding({
+    await insertTestEntity(dbConfig, {
       id: "post-2",
       entityType: "post",
       content: "Post 2",
       metadata: { status: "published", category: "life" },
       created: Date.now(),
       updated: Date.now(),
-      contentWeight: 1,
       embedding: mockEmbedding,
     });
 
     // 1 draft post
-    await entityService.storeEntityWithEmbedding({
+    await insertTestEntity(dbConfig, {
       id: "post-3",
       entityType: "post",
       content: "Post 3",
       metadata: { status: "draft", category: "tech" },
       created: Date.now(),
       updated: Date.now(),
-      contentWeight: 1,
       embedding: mockEmbedding,
     });
   });

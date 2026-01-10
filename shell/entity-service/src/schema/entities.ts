@@ -3,14 +3,13 @@ import {
   sqliteTable,
   text,
   integer,
-  real,
   primaryKey,
 } from "drizzle-orm/sqlite-core";
-import { vector } from "./vector";
 
 /**
- * Main entities table with embedded vectors
- * This schema combines the entity data with embeddings for efficient queries
+ * Main entities table for entity data
+ * Embeddings are stored separately in the embeddings table
+ * to allow immediate entity persistence while embeddings are generated async
  */
 export const entities = sqliteTable(
   "entities",
@@ -32,15 +31,6 @@ export const entities = sqliteTable(
       .notNull()
       .default(sql`'{}'`),
 
-    // Content metadata
-    contentWeight: real("contentWeight").notNull().default(1.0),
-
-    // Vector embedding for semantic search
-    // NOTE: This column has a vector index created via migration:
-    // CREATE INDEX entities_embedding_idx ON entities(libsql_vector_idx(embedding))
-    // Drizzle doesn't support libSQL vector functions in schema definitions yet
-    embedding: vector("embedding").notNull(),
-
     // Timestamps (stored as Unix milliseconds for consistency)
     created: integer("created")
       .notNull()
@@ -48,6 +38,10 @@ export const entities = sqliteTable(
     updated: integer("updated")
       .notNull()
       .$defaultFn(() => Date.now()),
+
+    // NOTE: embedding column has been moved to separate 'embeddings' table
+    // This allows entities to be persisted immediately while embeddings
+    // are generated asynchronously in background jobs
   },
   (table) => {
     return {

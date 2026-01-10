@@ -80,14 +80,23 @@ describe("EntityService Database", () => {
     test("creates vector index without error", async () => {
       const { client } = createEntityDatabase({ url: "file::memory:" });
 
-      // Create the entities table first with proper vector column
-      // Note: vector columns require special syntax in libSQL
+      // Create the entities table first
       await client.execute(`
         CREATE TABLE IF NOT EXISTS entities (
           id TEXT NOT NULL,
           entityType TEXT NOT NULL,
-          embedding F32_BLOB(1536),
           PRIMARY KEY (id, entityType)
+        )
+      `);
+
+      // Create the embeddings table with proper vector column
+      await client.execute(`
+        CREATE TABLE IF NOT EXISTS embeddings (
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL,
+          embedding F32_BLOB(384),
+          content_hash TEXT NOT NULL,
+          PRIMARY KEY (entity_id, entity_type)
         )
       `);
 
@@ -117,8 +126,18 @@ describe("EntityService Database", () => {
         CREATE TABLE IF NOT EXISTS entities (
           id TEXT NOT NULL,
           entityType TEXT NOT NULL,
-          embedding F32_BLOB(1536),
           PRIMARY KEY (id, entityType)
+        )
+      `);
+
+      // Create the embeddings table with proper vector column
+      await client.execute(`
+        CREATE TABLE IF NOT EXISTS embeddings (
+          entity_id TEXT NOT NULL,
+          entity_type TEXT NOT NULL,
+          embedding F32_BLOB(384),
+          content_hash TEXT NOT NULL,
+          PRIMARY KEY (entity_id, entity_type)
         )
       `);
 

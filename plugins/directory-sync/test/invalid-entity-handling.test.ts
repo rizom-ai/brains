@@ -100,16 +100,12 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    spyOn(mockEntityService, "storeEntityWithEmbedding").mockImplementation(
+    spyOn(mockEntityService, "storeEmbedding").mockImplementation(
       async (_data: {
-        id: string;
+        entityId: string;
         entityType: string;
-        content: string;
-        metadata: Record<string, unknown>;
-        created: number;
-        updated: number;
-        contentWeight: number;
         embedding: Float32Array;
+        contentHash: string;
       }): Promise<void> => {
         // Mock implementation - does nothing
       },

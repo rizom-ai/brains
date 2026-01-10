@@ -3,9 +3,10 @@ import type { BaseEntity, SearchResult, SearchOptions } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { EntityRegistry } from "./entityRegistry";
 import type { Logger } from "@brains/utils";
-import { entities } from "./schema/entities";
-import { and, inArray, sql } from "drizzle-orm";
 import { z } from "@brains/utils";
+import { sql, eq, and, desc } from "drizzle-orm";
+import { entities } from "./schema/entities";
+import { embeddings } from "./schema/embeddings";
 
 /**
  * Schema for search options (excluding tags)
@@ -59,58 +60,29 @@ export class EntitySearch {
     const queryEmbedding = await this.embeddingService.generateEmbedding(query);
 
     // Convert Float32Array to JSON array for SQL
-    const embeddingArray = Array.from(queryEmbedding);
+    const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
-    // Build weighted score expression
-    // Base score: (1 - distance/2) converts distance to 0-1 similarity
-    // With weights: multiply by entity type weight
-    const distanceExpr = sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)}))`;
-    const baseScoreExpr = sql`(1.0 - ${distanceExpr} / 2.0)`;
-
-    let weightedScoreExpr;
+    // Build weight CASE expression if weights provided
+    let weightCase = "1.0";
     if (hasWeights) {
-      // Build dynamic CASE expression from weight map
-      const cases = Object.entries(weight).map(
-        ([entityType, w]) =>
-          sql`WHEN ${entities.entityType} = ${entityType} THEN ${w}`,
-      );
-      weightedScoreExpr =
-        sql<number>`(${baseScoreExpr} * (CASE ${sql.join(cases, sql` `)} ELSE 1.0 END))`.as(
-          "weighted_score",
-        );
-    } else {
-      // No weights - just use base score
-      weightedScoreExpr = sql<number>`${baseScoreExpr}`.as("weighted_score");
+      const cases = Object.entries(weight)
+        .map(([entityType, w]) => `WHEN entityType = '${entityType}' THEN ${w}`)
+        .join(" ");
+      weightCase = `CASE ${cases} ELSE 1.0 END`;
     }
 
-    // Build the base select
-    const baseSelect = {
-      id: entities.id,
-      entityType: entities.entityType,
-      content: entities.content,
-      contentHash: entities.contentHash,
-      created: entities.created,
-      updated: entities.updated,
-      metadata: entities.metadata,
-      // Calculate cosine distance (0 = identical, 1 = orthogonal, 2 = opposite)
-      distance: sql<number>`${distanceExpr}`.as("distance"),
-      // Weighted score for ordering and return value
-      weighted_score: weightedScoreExpr,
-    };
-
-    // Build where conditions
-    const whereConditions = [
-      sql`vector_distance_cos(${entities.embedding}, vector32(${JSON.stringify(embeddingArray)})) < 1.0`,
-    ];
-
-    // Add type filter if specified
+    // Build type filter conditions for drizzle
+    const typeConditions = [];
     if (types.length > 0) {
-      whereConditions.push(inArray(entities.entityType, types));
+      typeConditions.push(
+        sql`${entities.entityType} IN (${sql.join(
+          types.map((t) => sql`${t}`),
+          sql`, `,
+        )})`,
+      );
     }
-
-    // Add exclude types filter if specified
     if (excludeTypes.length > 0) {
-      whereConditions.push(
+      typeConditions.push(
         sql`${entities.entityType} NOT IN (${sql.join(
           excludeTypes.map((t) => sql`${t}`),
           sql`, `,
@@ -118,11 +90,33 @@ export class EntitySearch {
       );
     }
 
+    // Build the vector distance and weighted score SQL expressions
+    const distanceExpr = sql<number>`vector_distance_cos(${embeddings.embedding}, vector32(${embeddingArray}))`;
+    const weightedScoreExpr = sql<number>`(1.0 - vector_distance_cos(${embeddings.embedding}, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
+
+    // Execute query with INNER JOIN using drizzle query builder
     const results = await this.db
-      .select(baseSelect)
+      .select({
+        id: entities.id,
+        entityType: entities.entityType,
+        content: entities.content,
+        contentHash: entities.contentHash,
+        created: entities.created,
+        updated: entities.updated,
+        metadata: entities.metadata,
+        distance: distanceExpr,
+        weighted_score: weightedScoreExpr,
+      })
       .from(entities)
-      .where(and(...whereConditions))
-      .orderBy(sql`weighted_score DESC`)
+      .innerJoin(
+        embeddings,
+        and(
+          eq(entities.id, embeddings.entityId),
+          eq(entities.entityType, embeddings.entityType),
+        ),
+      )
+      .where(and(sql`${distanceExpr} < 1.0`, ...typeConditions))
+      .orderBy(desc(weightedScoreExpr))
       .limit(limit)
       .offset(offset);
 
@@ -134,7 +128,10 @@ export class EntitySearch {
         const adapter = this.entityRegistry.getAdapter(row.entityType);
         const parsedContent = adapter.fromMarkdown(row.content);
 
-        const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
+        const metadata: Record<string, unknown> =
+          typeof row.metadata === "string"
+            ? JSON.parse(row.metadata)
+            : row.metadata;
         const entity = this.entityRegistry.validateEntity<T>(row.entityType, {
           id: row.id,
           entityType: row.entityType,
