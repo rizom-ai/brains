@@ -1,4 +1,4 @@
-# Design Doc: Immediate Entity Persistence with Async Embeddings
+# Design Doc: Immediate Entity Persistence with Separate Embeddings Table
 
 ## Problem Statement
 
@@ -59,7 +59,28 @@ Result: Source A is lost!
 
 ## Proposed Solution
 
-Write entities to DB immediately with empty embedding placeholder, queue embedding job separately.
+Separate entity data from embeddings into two tables:
+
+1. **`entities` table**: Core entity data (content, metadata, timestamps) - written immediately
+2. **`embeddings` table**: Vector embeddings - written asynchronously by embedding job
+
+### New Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         entities table                          │
+├─────────────────────────────────────────────────────────────────┤
+│ id | entityType | content | contentHash | metadata | timestamps │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ 1:1 (optional)
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        embeddings table                         │
+├─────────────────────────────────────────────────────────────────┤
+│ entity_id | entity_type | embedding | content_hash              │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### New Flow
 
@@ -70,7 +91,10 @@ createEntity(data)
 Validate & prepare entity
     │
     ▼
-INSERT entity with embedding=[] ◄──── Immediate DB write
+INSERT into entities table ◄──── Immediate DB write
+    │
+    ▼
+Emit entity:created event
     │
     ▼
 Enqueue embedding job
@@ -79,6 +103,8 @@ Enqueue embedding job
 Return { entityId, jobId }
 
     [Entity IS in DB immediately]
+    [Can be read, updated, listed]
+    [Just won't appear in vector search yet]
 
                               Embedding job runs
                                          │
@@ -86,41 +112,82 @@ Return { entityId, jobId }
                               Generate embedding
                                          │
                                          ▼
-                              UPDATE embedding field only
+                              INSERT/UPDATE embeddings table
+                                         │
+                                         ▼
+                              Emit entity:embedding:ready event
 ```
 
 ### Benefits
 
 1. **Immediate consistency**: `getEntity()` works right after `createEntity()`
 2. **No race conditions**: Concurrent writers can read each other's state
-3. **Simpler mental model**: Create means create, not "will create eventually"
-4. **Embedding failures don't lose data**: Entity exists even if embedding fails
+3. **Clean separation**: Entity data vs. vector data clearly separated
+4. **Simpler entity table**: No large binary embedding column
+5. **Embedding failures don't lose data**: Entity exists even if embedding fails
+6. **Future-proof**: Easy to swap embedding models or use specialized vector DBs
+7. **Easier embedding regeneration**: Just truncate/rebuild embeddings table
 
 ## Implementation Plan
 
 ### File Changes
 
-| File                                                       | Change                                                            |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- |
-| `shell/entity-service/src/entityService.ts`                | Modify `createEntity()` and `updateEntity()` to write immediately |
-| `shell/entity-service/src/handlers/embeddingJobHandler.ts` | Update to only set embedding field (already mostly done)          |
+| File                                                       | Change                                                                         |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `shell/entity-service/src/schema/entities.ts`              | Remove embedding column                                                        |
+| `shell/entity-service/src/schema/embeddings.ts`            | NEW: embeddings table schema                                                   |
+| `shell/entity-service/src/entityService.ts`                | Modify `createEntity()` and `updateEntity()` to write immediately, emit events |
+| `shell/entity-service/src/handlers/embeddingJobHandler.ts` | Update to insert into embeddings table                                         |
+| `shell/entity-service/src/entity-search.ts`                | Join with embeddings table for vector search                                   |
+| `shell/entity-service/src/db.ts`                           | Add embeddings table to schema                                                 |
 
-### Step 1: Use empty Float32Array as placeholder
+### Step 1: Create embeddings table schema
 
-**Approach**: Use `new Float32Array(0)` as placeholder to avoid schema migration:
+**New file: `shell/entity-service/src/schema/embeddings.ts`**
 
 ```typescript
-embedding: new Float32Array(0),  // Empty placeholder, won't match any search
+import { sqliteTable, text, blob, primaryKey } from "drizzle-orm/sqlite-core";
+import { entities } from "./entities";
+
+export const embeddings = sqliteTable(
+  "embeddings",
+  {
+    entityId: text("entity_id").notNull(),
+    entityType: text("entity_type").notNull(),
+    embedding: blob("embedding", { mode: "buffer" })
+      .notNull()
+      .$type<Float32Array>(),
+    contentHash: text("content_hash").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.entityId, table.entityType] })],
+);
 ```
 
-This is simpler because:
+### Step 2: Remove embedding from entities table
 
-- No schema change needed
-- No migration needed
-- Empty embedding won't match any vector search (different dimensions)
-- Easy to detect: `embedding.length === 0` means "pending"
+**File: `shell/entity-service/src/schema/entities.ts`**
 
-### Step 2: Modify createEntity() to write immediately
+Remove the `embedding` column. The entities table becomes:
+
+```typescript
+export const entities = sqliteTable(
+  "entities",
+  {
+    id: text("id").notNull(),
+    entityType: text("entity_type").notNull(),
+    content: text("content").notNull(),
+    contentHash: text("content_hash").notNull(),
+    metadata: text("metadata", { mode: "json" }),
+    created: integer("created").notNull(),
+    updated: integer("updated").notNull(),
+    contentWeight: real("content_weight").notNull().default(1.0),
+    // embedding column REMOVED
+  },
+  (table) => [primaryKey({ columns: [table.id, table.entityType] })],
+);
+```
+
+### Step 3: Modify createEntity() to write immediately
 
 **File: `shell/entity-service/src/entityService.ts`**
 
@@ -131,83 +198,137 @@ public async createEntity<T extends BaseEntity>(
 ): Promise<{ entityId: string; jobId: string }> {
   // ... validation code stays the same ...
 
-  // NEW: Write entity to DB immediately (without embedding)
-  const { entities } = await import("./schema/entities");
+  // Write entity to DB immediately (no embedding)
   await this.db.insert(entities).values({
     id: validatedEntity.id,
     entityType: validatedEntity.entityType,
     content: markdown,
-    contentHash: computeContentHash(markdown),
+    contentHash,
     metadata,
-    created: new Date(validatedEntity.created).getTime(),
-    updated: new Date(validatedEntity.updated).getTime(),
+    created: createdTs,
+    updated: updatedTs,
     contentWeight,
-    embedding: new Float32Array(0), // Empty placeholder, filled by embedding job
   });
 
-  // Queue embedding job (same as before)
-  const jobId = await this.jobQueueService.enqueue(
-    "shell:embedding",
-    entityForQueue,
-    { ... }
-  );
+  // Emit entity:created event immediately
+  if (this.messageBus) {
+    await this.messageBus.send("entity:created", { ... }, ...);
+  }
+
+  // Queue embedding job
+  const jobId = await this.jobQueueService.enqueue("shell:embedding", ...);
 
   return { entityId: validatedEntity.id, jobId };
 }
 ```
 
-### Step 3: Modify updateEntity() similarly
+### Step 4: Modify updateEntity() similarly
 
-Same pattern - write immediately, queue embedding update.
+Same pattern - write entity immediately, queue embedding job separately.
 
-### Step 4: Update embeddingJobHandler to only update embedding
+### Step 5: Update embeddingJobHandler
 
 **File: `shell/entity-service/src/handlers/embeddingJobHandler.ts`**
 
-The handler should UPDATE only the embedding field, not INSERT:
-
 ```typescript
-// Instead of storeEntityWithEmbedding (which does INSERT ... ON CONFLICT)
-// Use a pure UPDATE
+// Instead of storeEntityWithEmbedding (which writes to entities table)
+// Insert/update embeddings table only
 await this.db
-  .update(entities)
-  .set({ embedding: embedding })
-  .where(
-    and(eq(entities.id, data.id), eq(entities.entityType, data.entityType)),
-  );
+  .insert(embeddings)
+  .values({
+    entityId: data.id,
+    entityType: data.entityType,
+    embedding: embedding,
+    contentHash: data.contentHash,
+  })
+  .onConflictDoUpdate({
+    target: [embeddings.entityId, embeddings.entityType],
+    set: { embedding, contentHash: data.contentHash },
+  });
+
+// Emit entity:embedding:ready (not entity:updated)
 ```
 
-### Step 5: Handle the contentHash check
+### Step 6: Update EntitySearch to join
 
-The current stale-content check compares job contentHash with DB contentHash.
-This still works - if content changed, we skip the embedding (it would be wrong anyway).
+**File: `shell/entity-service/src/entity-search.ts`**
+
+```typescript
+const results = await this.db
+  .select({
+    id: entities.id,
+    entityType: entities.entityType,
+    content: entities.content,
+    // ... other entity fields
+    distance: sql`vector_distance_cos(${embeddings.embedding}, ...)`,
+  })
+  .from(entities)
+  .innerJoin(
+    embeddings,
+    and(
+      eq(entities.id, embeddings.entityId),
+      eq(entities.entityType, embeddings.entityType),
+    ),
+  )
+  .where(...)
+  .orderBy(...)
+  .limit(limit);
+```
+
+### Step 7: Handle cascade delete
+
+When an entity is deleted, also delete its embedding:
+
+```typescript
+public async deleteEntity(entityType: string, id: string): Promise<boolean> {
+  // Delete embedding first
+  await this.db
+    .delete(embeddings)
+    .where(
+      and(eq(embeddings.entityId, id), eq(embeddings.entityType, entityType)),
+    );
+
+  // Delete entity
+  const result = await this.entityQueries.deleteEntity(entityType, id);
+  // ... emit event ...
+}
+```
 
 ## Edge Cases
 
 ### 1. Entity deleted before embedding job runs
 
-- Embedding job checks if entity exists
-- If not found, skip (already handled)
+- Embedding job should check if entity still exists
+- If not found, skip silently (entity was deleted)
 
 ### 2. Entity updated multiple times before embedding completes
 
-- Each update writes new content immediately
-- Old embedding jobs detect content changed → skip
-- Latest embedding job succeeds (already handled)
+- Each update writes new content/contentHash immediately
+- Old embedding jobs detect contentHash mismatch → skip
+- Latest embedding job succeeds
 
 ### 3. Search before embedding exists
 
-- Entities with empty embedding (length 0) won't match vector searches
-- They WILL appear in `listEntities()` and `getEntity()`
-- This is acceptable - search requires real embeddings
-- Could optionally filter these out explicitly in search if needed
+- `INNER JOIN` means entities without embeddings don't appear in search
+- They DO appear in `listEntities()` and `getEntity()`
+- This is correct behavior - vector search requires embeddings
+
+### 4. Listing entities that have embeddings
+
+If needed, can add a `listEntitiesWithEmbeddings()` method that does a LEFT JOIN and filters.
 
 ## Migration
 
-No data migration needed:
+### Schema Migration
 
-- Existing entities already have embeddings
-- New entities get written immediately with empty placeholder, then embedding added
+1. Create new `embeddings` table
+2. Copy existing embeddings: `INSERT INTO embeddings SELECT id, entity_type, embedding, content_hash FROM entities`
+3. Drop `embedding` column from entities (or leave it and ignore)
+
+### For Fresh Databases
+
+- Just use new schema with both tables
+- No migration needed
 
 ## Testing
 
@@ -215,15 +336,16 @@ No data migration needed:
 
 1. `createEntity()` should make entity immediately readable
 2. `updateEntity()` should make changes immediately visible
-3. Embedding job should only update embedding field
-4. Concurrent topic updates should accumulate sources correctly
+3. Embedding job should insert into embeddings table
+4. Search should only return entities with embeddings
+5. Delete should cascade to embeddings table
 
 ### Integration Tests
 
 1. Create entity → immediately getEntity() → should return entity
 2. Create topic from entity A → create topic from entity B → topic has both sources
-3. Search should not return entities without embeddings
-4. Search should return entities after embedding completes
+3. Search should not return newly created entities (no embedding yet)
+4. After embedding job completes → search should return entity
 
 ## Verification
 
@@ -238,5 +360,6 @@ No data migration needed:
 
 If issues arise:
 
-1. Revert to async-only writes
-2. Add `immediate: boolean` option to `createEntity()` for gradual migration
+1. Re-add embedding column to entities table
+2. Copy embeddings back: `UPDATE entities SET embedding = (SELECT embedding FROM embeddings WHERE ...)`
+3. Revert code changes
