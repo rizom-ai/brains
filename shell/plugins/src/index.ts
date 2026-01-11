@@ -211,5 +211,11 @@ export {
   buildPaginationInfo,
 } from "@brains/datasource";
 
+// From @brains/ai-service
+export type {
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/ai-service";
+
 // Utility functions
 export { createId } from "./utils/id";

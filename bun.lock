@@ -250,6 +250,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/image": {
+      "name": "@brains/image-plugin",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/image": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/link": {
       "name": "@brains/link",
       "version": "0.1.0",
@@ -871,7 +887,6 @@
       "version": "1.0.0",
       "dependencies": {
         "@brains/datasource": "workspace:*",
-        "@brains/image": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",
         "@brains/permission-service": "workspace:*",
@@ -1024,6 +1039,8 @@
     "@brains/identity-service": ["@brains/identity-service@workspace:shell/identity-service"],
 
     "@brains/image": ["@brains/image@workspace:shared/image"],
+
+    "@brains/image-plugin": ["@brains/image-plugin@workspace:plugins/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
 

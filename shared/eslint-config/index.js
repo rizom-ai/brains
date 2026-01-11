@@ -72,6 +72,11 @@ module.exports = {
                 message:
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
               },
+              {
+                name: "@brains/ai-service",
+                message:
+                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
+              },
             ],
           },
         ],

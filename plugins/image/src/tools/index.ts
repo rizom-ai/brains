@@ -1,10 +1,17 @@
-import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
+import type {
+  PluginTool,
+  ToolContext,
+  ToolResponse,
+  ImageGenerationOptions,
+} from "@brains/plugins";
 import { z, slugify, formatAsEntity, setCoverImageId } from "@brains/utils";
-import type { Image } from "@brains/image";
-import { imageAdapter } from "@brains/image";
-import { isValidDataUrl, isHttpUrl, fetchImageAsBase64 } from "@brains/image";
-import type { ISystemPlugin } from "../types";
-import type { ImageGenerationOptions } from "@brains/ai-service";
+import {
+  imageAdapter,
+  isValidDataUrl,
+  isHttpUrl,
+  fetchImageAsBase64,
+} from "@brains/image";
+import type { IImagePlugin, EntityWithCoverImage } from "../types";
 
 /**
  * Input schema for image_upload tool
@@ -22,11 +29,11 @@ const uploadInputSchema = z.object({
  * Create the image_upload tool
  */
 function createImageUploadTool(
-  plugin: ISystemPlugin,
+  plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
   return {
-    name: `${pluginId}_image-upload`,
+    name: `${pluginId}_upload`,
     description:
       "Upload an image from a base64 data URL or fetch from HTTP URL",
     inputSchema: uploadInputSchema.shape,
@@ -98,149 +105,10 @@ function createImageUploadTool(
 }
 
 /**
- * Input schema for image_get tool
- */
-const getInputSchema = z.object({
-  id: z.string().describe("Image ID to retrieve"),
-});
-
-/**
- * Create the image_get tool
- */
-function createImageGetTool(
-  plugin: ISystemPlugin,
-  pluginId: string,
-): PluginTool {
-  return {
-    name: `${pluginId}_image-get`,
-    description: "Retrieve an image entity by ID",
-    inputSchema: getInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      _toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
-      try {
-        const { id } = getInputSchema.parse(input);
-
-        const image = (await plugin.getEntity("image", id)) as Image | null;
-
-        if (!image) {
-          return {
-            status: "error",
-            message: `Image not found: ${id}`,
-            formatted: `_Image not found: ${id}_`,
-          };
-        }
-
-        const formatted = formatAsEntity(
-          {
-            id: image.id,
-            title: image.metadata.title,
-            alt: image.metadata.alt,
-            format: image.metadata.format,
-            width: image.metadata.width,
-            height: image.metadata.height,
-          },
-          { title: image.metadata.title },
-        );
-
-        return {
-          status: "success",
-          data: {
-            id: image.id,
-            title: image.metadata.title,
-            alt: image.metadata.alt,
-            format: image.metadata.format,
-            width: image.metadata.width,
-            height: image.metadata.height,
-            // Omit content (base64) from response - too large
-          },
-          formatted,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          status: "error",
-          message: msg,
-          formatted: `_Error: ${msg}_`,
-        };
-      }
-    },
-  };
-}
-
-/**
- * Input schema for image_list tool
- */
-const listInputSchema = z.object({
-  limit: z.number().optional().describe("Maximum number of images to return"),
-});
-
-/**
- * Create the image_list tool
- */
-function createImageListTool(
-  plugin: ISystemPlugin,
-  pluginId: string,
-): PluginTool {
-  return {
-    name: `${pluginId}_image-list`,
-    description: "List all images",
-    inputSchema: listInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      _toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
-      try {
-        const { limit } = listInputSchema.parse(input);
-
-        const images = (await plugin.listEntities("image", {
-          limit: limit ?? 50,
-        })) as Image[];
-
-        const imageList = images.map((img) => ({
-          id: img.id,
-          title: img.metadata.title,
-          format: img.metadata.format,
-          width: img.metadata.width,
-          height: img.metadata.height,
-        }));
-
-        const formatted =
-          imageList.length > 0
-            ? imageList
-                .map(
-                  (img) =>
-                    `- **${img.title}** (${img.id}) - ${img.width}x${img.height}`,
-                )
-                .join("\n")
-            : "_No images found_";
-
-        return {
-          status: "success",
-          data: { images: imageList, count: imageList.length },
-          message: `Found ${imageList.length} images`,
-          formatted,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          status: "error",
-          message: msg,
-          formatted: `_Error: ${msg}_`,
-        };
-      }
-    },
-  };
-}
-
-/**
  * Build a contextual base prompt for image generation
  * Incorporates identity and profile for brand consistency
  */
-function buildImageBasePrompt(plugin: ISystemPlugin): string {
+function buildImageBasePrompt(plugin: IImagePlugin): string {
   const identity = plugin.getIdentityData();
   const profile = plugin.getProfileData();
 
@@ -253,7 +121,7 @@ function buildImageBasePrompt(plugin: ISystemPlugin): string {
   if (identity.role) {
     contextParts.push(`Focus: ${identity.role}`);
   }
-  if (identity.values?.length) {
+  if (identity.values.length > 0) {
     contextParts.push(`Values: ${identity.values.join(", ")}`);
   }
   if (profile.description) {
@@ -299,11 +167,11 @@ const generateInputSchema = z.object({
  * Create the image_generate tool
  */
 function createImageGenerateTool(
-  plugin: ISystemPlugin,
+  plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
   return {
-    name: `${pluginId}_image-generate`,
+    name: `${pluginId}_generate`,
     description:
       "Generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
     inputSchema: generateInputSchema.shape,
@@ -418,7 +286,7 @@ const setCoverInputSchema = z.object({
  * Create the set-cover tool
  */
 function createSetCoverTool(
-  plugin: ISystemPlugin,
+  plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
   return {
@@ -445,15 +313,16 @@ function createSetCoverTool(
           };
         }
 
-        // Get entity
-        const entity = await plugin.findEntity(entityType, entityId);
-        if (!entity) {
+        // Get entity - cast to EntityWithCoverImage since adapter.supportsCoverImage is true
+        const baseEntity = await plugin.findEntity(entityType, entityId);
+        if (!baseEntity) {
           return {
             status: "error",
             message: `Entity not found: ${entityId}`,
             formatted: `_Entity not found: ${entityId}_`,
           };
         }
+        const entity = baseEntity as EntityWithCoverImage;
 
         let finalImageId: string | null = imageId ?? null;
 
@@ -469,9 +338,8 @@ function createSetCoverTool(
             };
           }
 
-          // Extract title from entity metadata
-          const metadata = entity.metadata as Record<string, unknown>;
-          const entityTitle = metadata?.["title"] ?? entity.id;
+          // Extract title from entity metadata (properly typed via EntityWithCoverImage)
+          const entityTitle = entity.metadata.title;
           const imageTitle = `${entityTitle} Cover`;
 
           // Build generation prompt
@@ -561,13 +429,11 @@ function createSetCoverTool(
  * Create all image tools
  */
 export function createImageTools(
-  plugin: ISystemPlugin,
+  plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool[] {
   return [
     createImageUploadTool(plugin, pluginId),
-    createImageGetTool(plugin, pluginId),
-    createImageListTool(plugin, pluginId),
     createImageGenerateTool(plugin, pluginId),
     createSetCoverTool(plugin, pluginId),
   ];

@@ -29,7 +29,7 @@ describe("SystemPlugin", () => {
 
     it("should provide all expected tools", () => {
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools.length).toBe(15);
+      expect(capabilities.tools.length).toBe(10);
 
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("system_search");
@@ -42,12 +42,7 @@ describe("SystemPlugin", () => {
       expect(toolNames).toContain("system_get-profile");
       expect(toolNames).toContain("system_get-messages");
       expect(toolNames).toContain("system_get-status");
-      // Image tools
-      expect(toolNames).toContain("system_image-upload");
-      expect(toolNames).toContain("system_image-get");
-      expect(toolNames).toContain("system_image-list");
-      expect(toolNames).toContain("system_image-generate");
-      expect(toolNames).toContain("system_set-cover");
+      // Note: Image tools moved to @brains/image-plugin
     });
   });
 

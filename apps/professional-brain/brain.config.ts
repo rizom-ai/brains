@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { defineConfig, handleCLI } from "@brains/app";
 import { SystemPlugin } from "@brains/system";
+import { ImagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { WebserverInterface } from "@brains/webserver";
@@ -84,6 +85,7 @@ const config = defineConfig({
 
   plugins: [
     new SystemPlugin({}),
+    new ImagePlugin(),
     new MCPInterface({}),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",

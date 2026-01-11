@@ -7,7 +7,6 @@ import {
   formatAsList,
   parseMarkdown,
 } from "@brains/utils";
-import { createImageTools } from "./image-tools";
 
 export function createSystemTools(
   plugin: ISystemPlugin,
@@ -619,7 +618,5 @@ export function createSystemTools(
         }
       },
     },
-    // Image tools
-    ...createImageTools(plugin, pluginId),
   ];
 }

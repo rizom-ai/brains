@@ -1,0 +1,101 @@
+import type {
+  BaseEntity,
+  EntityAdapter,
+  EntityInput,
+  IdentityBody,
+  ProfileBody,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+} from "@brains/plugins";
+
+/**
+ * Metadata interface for entities that support cover images.
+ * Entities with supportsCoverImage=true on their adapter have this shape.
+ */
+export interface CoverImageMetadata extends Record<string, unknown> {
+  title: string;
+  coverImageId?: string | null;
+}
+
+/**
+ * Entity that supports cover images
+ */
+export type EntityWithCoverImage = BaseEntity<CoverImageMetadata>;
+
+/**
+ * Image plugin interface for tools
+ * Provides the minimal interface needed by image tools
+ */
+export interface IImagePlugin {
+  /**
+   * Get entity by type and ID
+   */
+  getEntity(entityType: string, id: string): Promise<BaseEntity | null>;
+
+  /**
+   * Find entity by ID, slug, or title
+   */
+  findEntity(
+    entityType: string,
+    identifier: string,
+  ): Promise<BaseEntity | null>;
+
+  /**
+   * Create a new entity
+   */
+  createEntity<T extends BaseEntity>(
+    entity: EntityInput<T>,
+  ): Promise<{ entityId: string; jobId: string }>;
+
+  /**
+   * Update an existing entity
+   */
+  updateEntity<T extends BaseEntity>(
+    entity: T,
+  ): Promise<{ entityId: string; jobId: string }>;
+
+  /**
+   * Get adapter for an entity type (to check capabilities)
+   */
+  getAdapter<T extends BaseEntity>(
+    entityType: string,
+  ): EntityAdapter<T> | undefined;
+
+  /**
+   * Generate an image from a text prompt using DALL-E 3
+   */
+  generateImage(
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ): Promise<ImageGenerationResult>;
+
+  /**
+   * Check if image generation is available
+   */
+  canGenerateImages(): boolean;
+
+  /**
+   * Get the brain's identity data
+   */
+  getIdentityData(): IdentityBody;
+
+  /**
+   * Get the owner's profile data
+   */
+  getProfileData(): ProfileBody;
+}
+
+/**
+ * Image plugin configuration
+ */
+export interface ImageConfig {
+  /**
+   * Default style for generated images
+   */
+  defaultStyle: "vivid" | "natural";
+
+  /**
+   * Default size for generated images
+   */
+  defaultSize: "1024x1024" | "1792x1024" | "1024x1792";
+}

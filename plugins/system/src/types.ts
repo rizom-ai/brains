@@ -3,8 +3,6 @@ import type {
   SearchResult,
   BaseEntity,
   AppInfo,
-  EntityInput,
-  EntityAdapter,
   BatchJobStatus,
   Batch,
   JobInfo,
@@ -13,10 +11,6 @@ import type {
   Conversation,
   Message,
 } from "@brains/plugins";
-import type {
-  ImageGenerationOptions,
-  ImageGenerationResult,
-} from "@brains/ai-service";
 import type { SearchOptions } from "./schemas";
 
 /**
@@ -72,33 +66,4 @@ export interface ISystemPlugin {
   getIdentityData(): IdentityBody;
   getProfileData(): ProfileBody;
   getAppInfo(): Promise<AppInfo>;
-  /**
-   * Create a new entity
-   */
-  createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-  ): Promise<{ entityId: string; jobId: string }>;
-  /**
-   * Generate an image from a text prompt using DALL-E 3
-   */
-  generateImage(
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult>;
-  /**
-   * Check if image generation is available (OpenAI API key configured)
-   */
-  canGenerateImages(): boolean;
-  /**
-   * Get adapter for an entity type (to check capabilities like supportsCoverImage)
-   */
-  getAdapter<T extends BaseEntity>(
-    entityType: string,
-  ): EntityAdapter<T> | undefined;
-  /**
-   * Update an existing entity
-   */
-  updateEntity<T extends BaseEntity>(
-    entity: T,
-  ): Promise<{ entityId: string; jobId: string }>;
 }

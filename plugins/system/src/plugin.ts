@@ -7,18 +7,12 @@ import type {
   IdentityBody,
   ProfileBody,
   AppInfo,
-  EntityInput,
-  EntityAdapter,
   BatchJobStatus,
   Batch,
   JobInfo,
   Conversation,
   Message,
 } from "@brains/plugins";
-import type {
-  ImageGenerationOptions,
-  ImageGenerationResult,
-} from "@brains/ai-service";
 import {
   systemConfigSchema,
   type SystemConfig,
@@ -323,64 +317,5 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
       throw new Error("Plugin not registered");
     }
     return this.context.getAppInfo();
-  }
-
-  /**
-   * Create a new entity
-   */
-  public async createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-  ): Promise<{ entityId: string; jobId: string }> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.entityService.createEntity(entity);
-  }
-
-  /**
-   * Generate an image from a text prompt using DALL-E 3
-   */
-  public async generateImage(
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.generateImage(prompt, options);
-  }
-
-  /**
-   * Check if image generation is available
-   */
-  public canGenerateImages(): boolean {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.canGenerateImages();
-  }
-
-  /**
-   * Get adapter for an entity type (to check capabilities)
-   */
-  public getAdapter<T extends BaseEntity>(
-    entityType: string,
-  ): EntityAdapter<T> | undefined {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.getAdapter<T>(entityType);
-  }
-
-  /**
-   * Update an existing entity
-   */
-  public async updateEntity<T extends BaseEntity>(
-    entity: T,
-  ): Promise<{ entityId: string; jobId: string }> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.updateEntity(entity);
   }
 }
