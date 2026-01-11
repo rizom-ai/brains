@@ -7,6 +7,10 @@ import type { UserPermissionLevel } from "@brains/permission-service";
 import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { IAgentService } from "@brains/agent-service";
+import type {
+  MessageRole,
+  ConversationMetadata,
+} from "@brains/conversation-service";
 
 /**
  * Context interface for interface plugins
@@ -40,6 +44,20 @@ export interface InterfacePluginContext extends CorePluginContext {
 
   // Agent service for AI-powered interaction
   readonly agentService: IAgentService;
+
+  // Conversation management (write operations - interfaces manage conversations)
+  startConversation: (
+    conversationId: string,
+    interfaceType: string,
+    channelId: string,
+    metadata: ConversationMetadata,
+  ) => Promise<string>;
+  addMessage: (
+    conversationId: string,
+    role: MessageRole,
+    content: string,
+    metadata?: Record<string, unknown>,
+  ) => Promise<void>;
 }
 
 /**
@@ -113,6 +131,36 @@ export function createInterfacePluginContext(
       const daemonName = `${pluginId}:${name}`;
       shell.registerDaemon(daemonName, daemon, pluginId);
       coreContext.logger.debug(`Registered daemon: ${daemonName}`);
+    },
+
+    // Conversation management (write operations)
+    startConversation: async (
+      conversationId: string,
+      interfaceType: string,
+      channelId: string,
+      metadata: ConversationMetadata,
+    ): Promise<string> => {
+      const conversationService = shell.getConversationService();
+      return conversationService.startConversation(
+        conversationId,
+        interfaceType,
+        channelId,
+        metadata,
+      );
+    },
+    addMessage: async (
+      conversationId: string,
+      role: MessageRole,
+      content: string,
+      metadata?: Record<string, unknown>,
+    ): Promise<void> => {
+      const conversationService = shell.getConversationService();
+      await conversationService.addMessage(
+        conversationId,
+        role,
+        content,
+        metadata,
+      );
     },
   };
 }

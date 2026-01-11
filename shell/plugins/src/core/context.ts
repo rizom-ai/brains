@@ -8,9 +8,7 @@ import type { Batch, BatchJobStatus, JobInfo } from "@brains/job-queue";
 import type {
   Conversation,
   Message,
-  MessageRole,
   GetMessagesOptions,
-  ConversationMetadata,
 } from "@brains/conversation-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
@@ -69,18 +67,6 @@ export interface CorePluginContext {
     conversationId: string,
     options?: GetMessagesOptions,
   ) => Promise<Message[]>;
-  startConversation: (
-    conversationId: string,
-    interfaceType: string,
-    channelId: string,
-    metadata: ConversationMetadata,
-  ) => Promise<string>;
-  addMessage: (
-    conversationId: string,
-    role: MessageRole,
-    content: string,
-    metadata?: Record<string, unknown>,
-  ) => Promise<void>;
 
   // Data directory - where plugins should store entity files
   readonly dataDir: string;
@@ -171,7 +157,7 @@ export function createCorePluginContext(
       return shell.getJobStatus(jobId);
     },
 
-    // Conversation service
+    // Conversation service (read-only)
     getConversation: async (
       conversationId: string,
     ): Promise<Conversation | null> => {
@@ -188,34 +174,6 @@ export function createCorePluginContext(
     ): Promise<Message[]> => {
       const conversationService = shell.getConversationService();
       return conversationService.getMessages(conversationId, options);
-    },
-    startConversation: async (
-      conversationId: string,
-      interfaceType: string,
-      channelId: string,
-      metadata: ConversationMetadata,
-    ): Promise<string> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.startConversation(
-        conversationId,
-        interfaceType,
-        channelId,
-        metadata,
-      );
-    },
-    addMessage: async (
-      conversationId: string,
-      role: MessageRole,
-      content: string,
-      metadata?: Record<string, unknown>,
-    ): Promise<void> => {
-      const conversationService = shell.getConversationService();
-      await conversationService.addMessage(
-        conversationId,
-        role,
-        content,
-        metadata,
-      );
     },
 
     // Data directory

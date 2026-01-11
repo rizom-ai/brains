@@ -28,28 +28,22 @@ The `@brains/plugins` package has **good foundations** but has **code-level inco
 
 ## Code Issues
 
-### Issue 1: createTool/createResource Helpers Unusable
+### Issue 1: createTool/createResource Helpers Unusable ✅ RESOLVED
 
-**File:** `shell/plugins/src/base-plugin.ts:292-350`
+**File:** `shell/plugins/src/utils/tool-helpers.ts` (NEW)
+
+**Solution:** Created standalone utility functions exported from `@brains/plugins`:
 
 ```typescript
-// Helper is a class method:
-protected createTool(name, ...) { ... }
+import { createTool, createResource } from "@brains/plugins";
 
-// But tools are created in standalone factory functions:
+// Now usable in any factory function:
 export function createLinkTools(pluginId, context) {
-  return [{ name: `${pluginId}_capture`, ... }];  // Can't use this.createTool()
+  return [createTool(pluginId, "capture", "...", inputSchema, handler)];
 }
 ```
 
-**Problem:** Helpers require `this` (class instance) but tools are built in factory functions outside the class.
-
-**Fix:** Convert to standalone utility functions exported from `@brains/plugins`:
-
-```typescript
-export function createTool(pluginId: string, name: string, ...): PluginTool
-export function createResource(pluginId: string, uri: string, ...): PluginResource
-```
+All 29 tools migrated to use the new `createTool` helper.
 
 ---
 
@@ -67,17 +61,14 @@ protected async registerJobHandlers(_context): Promise<void> {}
 
 ---
 
-### Issue 3: CorePluginContext Has Write Operations
+### Issue 3: CorePluginContext Has Write Operations ✅ RESOLVED
 
-**File:** `shell/plugins/src/core/context.ts:72-83`
+**File:** `shell/plugins/src/core/context.ts` and `shell/plugins/src/interface/context.ts`
 
-```typescript
-// Called "read-only" but includes:
-startConversation: (...) => Promise<string>;  // WRITE
-addMessage: (...) => Promise<void>;           // WRITE
-```
+**Solution:** Moved `startConversation` and `addMessage` from CorePluginContext to InterfacePluginContext.
 
-**Fix:** Move to InterfacePluginContext (interfaces manage conversations).
+- CorePluginContext now only has read-only conversation methods (`getConversation`, `searchConversations`, `getMessages`)
+- InterfacePluginContext (for interface plugins) now has the write operations since interfaces manage conversations
 
 ---
 
@@ -146,14 +137,17 @@ formatContent(...): string;        // verb method (should be get?)
 
 ## Documentation Gaps
 
-### Gap 1: README is Outdated
+### Gap 1: README is Outdated ✅ RESOLVED
 
 **File:** `shell/plugins/README.md`
 
-- Tool names use `:` (should be `_`)
-- Context interfaces don't match actual code
-- Missing `ServicePlugin` from exports list
-- Test harness function names wrong
+**Solution:** Complete rewrite with:
+
+- Correct tool naming (`_` separator)
+- `createTool` helper examples (new recommended pattern)
+- Accurate context interfaces
+- Correct test harness function names
+- All plugin types documented
 
 ---
 
