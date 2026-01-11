@@ -28,35 +28,42 @@ The `@brains/plugins` package has **good foundations** but has **code-level inco
 
 ## Code Issues
 
-### Issue 1: Inconsistent Tool Name Separator (Bug)
+### Issue 1: createTool/createResource Helpers Unusable
 
-**File:** `shell/plugins/src/base-plugin.ts:300`
+**File:** `shell/plugins/src/base-plugin.ts:292-350`
 
 ```typescript
-// BasePlugin.createTool() uses colon:
-name: `${this.id}:${name}`,
+// Helper is a class method:
+protected createTool(name, ...) { ... }
 
-// But ALL actual plugins use underscore:
-name: `${pluginId}_capture`,  // link, blog, etc.
+// But tools are created in standalone factory functions:
+export function createLinkTools(pluginId, context) {
+  return [{ name: `${pluginId}_capture`, ... }];  // Can't use this.createTool()
+}
 ```
 
-**Impact:** The `createTool()` helper is unusable.
-**Fix:** Change to `${this.id}_${name}`
+**Problem:** Helpers require `this` (class instance) but tools are built in factory functions outside the class.
+
+**Fix:** Convert to standalone utility functions exported from `@brains/plugins`:
+
+```typescript
+export function createTool(pluginId: string, name: string, ...): PluginTool
+export function createResource(pluginId: string, uri: string, ...): PluginResource
+```
 
 ---
 
-### Issue 2: Unused Lifecycle Hooks
+### Issue 2: Lifecycle Hooks - KEEP
 
 **File:** `shell/plugins/src/service/service-plugin.ts:106-121`
 
 ```typescript
-// These hooks exist but nobody uses them:
 protected async registerEntityTypes(_context): Promise<void> {}
 protected async registerJobHandlers(_context): Promise<void> {}
 ```
 
-**Problem:** Plugins override `onRegister()` directly instead.
-**Fix:** Remove hooks OR make them the primary pattern.
+**Finding:** `directory-sync` plugin uses `registerJobHandlers`. Hooks ARE used.
+**Decision:** Keep hooks as-is. Document as optional pattern for complex plugins.
 
 ---
 
@@ -171,31 +178,32 @@ No single entry point.
 
 ## Recommended Priority
 
-| Priority | Issue                               | Effort | Impact          |
-| -------- | ----------------------------------- | ------ | --------------- |
-| **P0**   | Fix tool name separator (#1)        | 15 min | Bug fix         |
-| **P1**   | Fix README                          | 2 hrs  | OSS blocker     |
-| **P1**   | Remove unused hooks (#2)            | 30 min | API cleanup     |
-| **P1**   | Move conversation writes (#3)       | 1 hr   | API correctness |
-| **P2**   | Make progress handler optional (#6) | 30 min | DX improvement  |
-| **P2**   | Add job tracking cleanup (#7)       | 1 hr   | Memory safety   |
-| **P2**   | Create quick-start guide            | 2 hrs  | OSS enabler     |
-| **P3**   | Fix naming conventions (#8)         | 2 hrs  | API polish      |
-| **P3**   | Fix parameter types (#5)            | 1 hr   | Readability     |
-| **P3**   | Namespace context methods (#4)      | 4 hrs  | Breaking change |
+| Priority | Issue                                 | Effort | Impact          |
+| -------- | ------------------------------------- | ------ | --------------- |
+| **P1**   | Convert createTool to standalone (#1) | 1 hr   | API usability   |
+| **P1**   | Fix README                            | 2 hrs  | OSS blocker     |
+| **P1**   | Move conversation writes (#3)         | 1 hr   | API correctness |
+| **P2**   | Make progress handler optional (#6)   | 30 min | DX improvement  |
+| **P2**   | Add job tracking cleanup (#7)         | 1 hr   | Memory safety   |
+| **P2**   | Create quick-start guide              | 2 hrs  | OSS enabler     |
+| **P3**   | Fix naming conventions (#8)           | 2 hrs  | API polish      |
+| **P3**   | Fix parameter types (#5)              | 1 hr   | Readability     |
+| **P3**   | Namespace context methods (#4)        | 4 hrs  | Breaking change |
 
 ---
 
 ## Files to Modify
 
-| File                                              | Changes                              |
-| ------------------------------------------------- | ------------------------------------ |
-| `shell/plugins/src/base-plugin.ts`                | Fix tool/resource name separator     |
-| `shell/plugins/src/service/service-plugin.ts`     | Remove unused hooks, fix param types |
-| `shell/plugins/src/interface/interface-plugin.ts` | Optional progress handler, cleanup   |
-| `shell/plugins/src/core/context.ts`               | Move conversation writes             |
-| `shell/plugins/README.md`                         | Complete rewrite                     |
-| `docs/plugin-quickstart.md`                       | New file                             |
+| File                                              | Changes                                   |
+| ------------------------------------------------- | ----------------------------------------- |
+| `shell/plugins/src/base-plugin.ts`                | Remove class method helpers               |
+| `shell/plugins/src/utils/tool-helpers.ts`         | New: standalone createTool/createResource |
+| `shell/plugins/src/index.ts`                      | Export new utilities                      |
+| `shell/plugins/src/service/service-plugin.ts`     | Fix param types                           |
+| `shell/plugins/src/interface/interface-plugin.ts` | Optional progress handler, cleanup        |
+| `shell/plugins/src/core/context.ts`               | Move conversation writes                  |
+| `shell/plugins/README.md`                         | Complete rewrite                          |
+| `docs/plugin-quickstart.md`                       | New file                                  |
 
 ---
 

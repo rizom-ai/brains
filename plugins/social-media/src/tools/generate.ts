@@ -1,9 +1,9 @@
 import type {
   PluginTool,
-  ToolResponse,
   ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { SocialMediaConfig } from "../config";
 
@@ -47,16 +47,12 @@ export function createGenerateTool(
   _config: SocialMediaConfig,
   pluginId: string,
 ): PluginTool {
-  return {
-    name: `${pluginId}_generate`,
-    description:
-      "Generate a new social media post from a prompt, source content, or direct text",
-    inputSchema: generateInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
+  return createTool(
+    pluginId,
+    "generate",
+    "Generate a new social media post from a prompt, source content, or direct text",
+    generateInputSchema.shape,
+    async (input: unknown, toolContext: ToolContext) => {
       try {
         const parsed = generateInputSchema.parse(input);
 
@@ -121,5 +117,5 @@ export function createGenerateTool(
         };
       }
     },
-  };
+  );
 }

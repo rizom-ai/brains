@@ -4,6 +4,7 @@ import type {
   ServicePluginContext,
   BaseEntity,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishableMetadata } from "../schemas/publishable";
@@ -56,14 +57,14 @@ export function createPublishTool(
   pluginId: string,
   providerRegistry: ProviderRegistry,
 ): PluginTool<PublishOutput> {
-  return {
-    name: `${pluginId}_publish`,
-    description:
-      "Publish an entity directly to its platform. Works with any registered entity type (social-post, post, deck, etc.)",
-    inputSchema: publishInputSchema.shape,
-    outputSchema: publishOutputSchema,
-    visibility: "anchor",
-    handler: async (
+  // Note: Using type assertion because createTool returns PluginTool but we need PluginTool<PublishOutput>
+  // The outputSchema is added separately since createTool doesn't support it yet
+  const tool = createTool(
+    pluginId,
+    "publish",
+    "Publish an entity directly to its platform. Works with any registered entity type (social-post, post, deck, etc.)",
+    publishInputSchema.shape,
+    async (
       input: unknown,
       _toolContext: ToolContext,
     ): Promise<PublishOutput> => {
@@ -178,5 +179,10 @@ export function createPublishTool(
         };
       }
     },
-  };
+  );
+
+  return {
+    ...tool,
+    outputSchema: publishOutputSchema,
+  } as PluginTool<PublishOutput>;
 }

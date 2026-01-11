@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { createSyncTool, createStatusTool } from "../src/tools";
 import { createCorePluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync, mkdirSync } from "fs";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { GitSync } from "../src/lib/git-sync";
 
 describe("GitSyncPlugin with CorePluginTestHarness", () => {
   let harness: ReturnType<typeof createCorePluginHarness<GitSyncPlugin>>;
@@ -82,19 +80,20 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     });
 
     it("should provide tool metadata", () => {
-      // Test tool creators directly (like topics plugin)
-      const mockGitSync = {} as GitSync;
-      const pluginId = "git-sync";
+      // Test tools from capabilities
+      const syncTool = capabilities.tools.find(
+        (t) => t.name === "git-sync_sync",
+      );
+      expect(syncTool).toBeDefined();
+      expect(syncTool?.description).toContain("Sync brain data with git");
+      expect(syncTool?.visibility).toBe("anchor");
 
-      const syncTool = createSyncTool(mockGitSync, pluginId);
-      expect(syncTool.name).toBe("git-sync_sync");
-      expect(syncTool.description).toContain("Sync brain data with git");
-      expect(syncTool.visibility).toBe("anchor");
-
-      const statusTool = createStatusTool(mockGitSync, pluginId);
-      expect(statusTool.name).toBe("git-sync_status");
-      expect(statusTool.description).toContain("git repository status");
-      expect(statusTool.visibility).toBe("public");
+      const statusTool = capabilities.tools.find(
+        (t) => t.name === "git-sync_status",
+      );
+      expect(statusTool).toBeDefined();
+      expect(statusTool?.description).toContain("git repository status");
+      expect(statusTool?.visibility).toBe("public");
     });
   });
 

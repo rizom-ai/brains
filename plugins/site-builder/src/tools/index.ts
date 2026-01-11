@@ -1,10 +1,10 @@
 import type {
   PluginTool,
   ToolContext,
-  ToolResponse,
   ServicePluginContext,
   JobContext,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
@@ -21,11 +21,11 @@ export function createSiteBuilderTools(
   routeRegistry: RouteRegistry,
 ): PluginTool[] {
   return [
-    {
-      name: `${pluginId}_generate`,
-      description:
-        "Generate content for all routes, a specific route, or a specific section",
-      inputSchema: {
+    createTool(
+      pluginId,
+      "generate",
+      "Generate content for all routes, a specific route, or a specific section",
+      {
         routeId: z
           .string()
           .optional()
@@ -45,11 +45,7 @@ export function createSiteBuilderTools(
           .default(false)
           .describe("Optional: preview changes without executing"),
       },
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        context: ToolContext,
-      ): Promise<ToolResponse> => {
+      async (input: unknown, context: ToolContext) => {
         try {
           const siteContentService = getSiteContentService();
           if (!siteContentService) {
@@ -121,11 +117,12 @@ export function createSiteBuilderTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_build-site`,
-      description: "Build a static site from registered routes",
-      inputSchema: {
+    ),
+    createTool(
+      pluginId,
+      "build-site",
+      "Build a static site from registered routes",
+      {
         environment: z
           .enum(["preview", "production"])
           .optional()
@@ -141,11 +138,7 @@ export function createSiteBuilderTools(
           .default(true)
           .describe("Include static assets in build"),
       },
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        context: ToolContext,
-      ): Promise<ToolResponse> => {
+      async (input: unknown, context: ToolContext) => {
         const buildSchema = z.object({
           environment: z.enum(["preview", "production"]).optional(),
           clean: z.boolean().default(true),
@@ -205,16 +198,13 @@ export function createSiteBuilderTools(
           },
         };
       },
-    },
-    {
-      name: `${pluginId}_list_routes`,
-      description: "List all registered routes",
-      inputSchema: {},
-      visibility: "public",
-      handler: async (
-        _input: unknown,
-        _context: ToolContext,
-      ): Promise<ToolResponse> => {
+    ),
+    createTool(
+      pluginId,
+      "list_routes",
+      "List all registered routes",
+      {},
+      async () => {
         const routes = routeRegistry.list();
 
         const formatted = formatAsList(routes, {
@@ -242,16 +232,14 @@ export function createSiteBuilderTools(
           formatted,
         };
       },
-    },
-    {
-      name: `${pluginId}_list_templates`,
-      description: "List all registered view templates",
-      inputSchema: {},
-      visibility: "public",
-      handler: async (
-        _input: unknown,
-        _context: ToolContext,
-      ): Promise<ToolResponse> => {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "list_templates",
+      "List all registered view templates",
+      {},
+      async () => {
         const templates = pluginContext.listViewTemplates();
 
         const formatted = formatAsList(templates, {
@@ -274,6 +262,7 @@ export function createSiteBuilderTools(
           formatted,
         };
       },
-    },
+      { visibility: "public" },
+    ),
   ];
 }

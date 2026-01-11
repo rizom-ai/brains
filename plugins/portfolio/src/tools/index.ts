@@ -1,9 +1,9 @@
 import type {
   PluginTool,
-  ToolResponse,
   ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 
 /**
@@ -33,16 +33,12 @@ export function createPortfolioTools(
 ): PluginTool[] {
   return [
     // portfolio_create - Create project case study from existing knowledge
-    {
-      name: `${pluginId}_create`,
-      description:
-        "Create a portfolio project case study by searching for related content in the brain. Searches notes, links, and posts about the topic, then generates a structured case study with context, problem, solution, and outcome. IMPORTANT: If the search finds insufficient content, ask the user for a project URL and use link_capture to capture it first before creating the project.",
-      inputSchema: createInputSchema.shape,
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        toolContext: ToolContext,
-      ): Promise<ToolResponse> => {
+    createTool(
+      pluginId,
+      "create",
+      "Create a portfolio project case study by searching for related content in the brain. Searches notes, links, and posts about the topic, then generates a structured case study with context, problem, solution, and outcome. IMPORTANT: If the search finds insufficient content, ask the user for a project URL and use link_capture to capture it first before creating the project.",
+      createInputSchema.shape,
+      async (input: unknown, toolContext: ToolContext) => {
         try {
           const parsed = createInputSchema.parse(input);
 
@@ -116,7 +112,7 @@ export function createPortfolioTools(
           };
         }
       },
-    },
+    ),
     // Publish tool removed - use publish-pipeline_publish instead
   ];
 }

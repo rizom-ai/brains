@@ -1,4 +1,5 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsList } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
@@ -69,14 +70,12 @@ export function createQueueTool(
   pluginId: string,
   queueManager: QueueManager,
 ): PluginTool<QueueOutput> {
-  return {
-    name: `${pluginId}_queue`,
-    description:
-      "Manage the publish queue for all entity types (list, add, remove, reorder)",
-    inputSchema: queueInputSchema.shape,
-    outputSchema: queueOutputSchema,
-    visibility: "anchor",
-    handler: async (input: unknown): Promise<QueueOutput> => {
+  const tool = createTool(
+    pluginId,
+    "queue",
+    "Manage the publish queue for all entity types (list, add, remove, reorder)",
+    queueInputSchema.shape,
+    async (input: unknown): Promise<QueueOutput> => {
       try {
         const { action, entityType, entityId, position } =
           queueInputSchema.parse(input);
@@ -111,7 +110,12 @@ export function createQueueTool(
         };
       }
     },
-  };
+  );
+
+  return {
+    ...tool,
+    outputSchema: queueOutputSchema,
+  } as PluginTool<QueueOutput>;
 }
 
 /**

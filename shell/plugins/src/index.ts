@@ -219,3 +219,4 @@ export type {
 
 // Utility functions
 export { createId } from "./utils/id";
+export { createTool, createResource } from "./utils/tool-helpers";

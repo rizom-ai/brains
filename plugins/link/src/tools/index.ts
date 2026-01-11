@@ -1,6 +1,10 @@
-import type { PluginTool, ToolResponse, ToolContext } from "@brains/plugins";
+import type {
+  PluginTool,
+  ToolContext,
+  ServicePluginContext,
+} from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
 import { validateDomain } from "./dns-validation";
 
 // Schema for tool parameters
@@ -17,16 +21,12 @@ export function createLinkTools(
   context: ServicePluginContext,
 ): PluginTool[] {
   return [
-    {
-      name: `${pluginId}_capture`,
-      description:
-        "Save a web link/URL with AI-powered content extraction. Use when users want to bookmark, save, or capture a webpage. The extraction happens asynchronously - the job is queued and processed in the background.",
-      inputSchema: captureParamsSchema.shape,
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        toolContext: ToolContext,
-      ): Promise<ToolResponse> => {
+    createTool(
+      pluginId,
+      "capture",
+      "Save a web link/URL with AI-powered content extraction. Use when users want to bookmark, save, or capture a webpage. The extraction happens asynchronously - the job is queued and processed in the background.",
+      captureParamsSchema.shape,
+      async (input: unknown, toolContext: ToolContext) => {
         const { url } = captureParamsSchema.parse(input);
 
         try {
@@ -91,6 +91,6 @@ export function createLinkTools(
           };
         }
       },
-    },
+    ),
   ];
 }

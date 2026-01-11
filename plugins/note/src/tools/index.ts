@@ -1,9 +1,9 @@
 import type {
   PluginTool,
-  ToolResponse,
   ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import { noteAdapter } from "../adapters/note-adapter";
 
@@ -39,13 +39,12 @@ export function createNoteTools(
 ): PluginTool[] {
   return [
     // note_create - Quick capture tool
-    {
-      name: `${pluginId}_create`,
-      description:
-        "Create a new note for personal knowledge capture. Use when users want to save ideas, research, or reference material.",
-      inputSchema: createInputSchema.shape,
-      visibility: "anchor",
-      handler: async (input: unknown): Promise<ToolResponse> => {
+    createTool(
+      pluginId,
+      "create",
+      "Create a new note for personal knowledge capture. Use when users want to save ideas, research, or reference material.",
+      createInputSchema.shape,
+      async (input: unknown) => {
         try {
           const parsed = createInputSchema.parse(input);
 
@@ -92,19 +91,15 @@ export function createNoteTools(
           };
         }
       },
-    },
+    ),
 
     // note_generate - AI-powered generation tool
-    {
-      name: `${pluginId}_generate`,
-      description:
-        "Queue a job to create a note using AI generation. Use for research notes, summaries, or expanding rough ideas.",
-      inputSchema: generateInputSchema.shape,
-      visibility: "anchor",
-      handler: async (
-        input: unknown,
-        toolContext: ToolContext,
-      ): Promise<ToolResponse> => {
+    createTool(
+      pluginId,
+      "generate",
+      "Queue a job to create a note using AI generation. Use for research notes, summaries, or expanding rough ideas.",
+      generateInputSchema.shape,
+      async (input: unknown, toolContext: ToolContext) => {
         try {
           const parsed = generateInputSchema.parse(input);
 
@@ -146,6 +141,6 @@ export function createNoteTools(
           };
         }
       },
-    },
+    ),
   ];
 }

@@ -1,9 +1,9 @@
 import type {
   PluginTool,
   ToolContext,
-  ToolResponse,
   ImageGenerationOptions,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, slugify, formatAsEntity, setCoverImageId } from "@brains/utils";
 import {
   imageAdapter,
@@ -32,16 +32,12 @@ function createImageUploadTool(
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
-  return {
-    name: `${pluginId}_upload`,
-    description:
-      "Upload an image from a base64 data URL or fetch from HTTP URL",
-    inputSchema: uploadInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      _toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
+  return createTool(
+    pluginId,
+    "upload",
+    "Upload an image from a base64 data URL or fetch from HTTP URL",
+    uploadInputSchema.shape,
+    async (input: unknown, _toolContext: ToolContext) => {
       try {
         const { title, source } = uploadInputSchema.parse(input);
 
@@ -101,7 +97,7 @@ function createImageUploadTool(
         };
       }
     },
-  };
+  );
 }
 
 /**
@@ -170,16 +166,12 @@ function createImageGenerateTool(
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
-  return {
-    name: `${pluginId}_generate`,
-    description:
-      "Generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
-    inputSchema: generateInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      _toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
+  return createTool(
+    pluginId,
+    "generate",
+    "Generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
+    generateInputSchema.shape,
+    async (input: unknown, _toolContext: ToolContext) => {
       try {
         // Check if image generation is available
         if (!plugin.canGenerateImages()) {
@@ -248,7 +240,7 @@ function createImageGenerateTool(
         };
       }
     },
-  };
+  );
 }
 
 /**
@@ -289,16 +281,12 @@ function createSetCoverTool(
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
-  return {
-    name: `${pluginId}_set-cover`,
-    description:
-      "Set or remove cover image on an entity. Use imageId to set existing image, generate:true to create new image, or imageId:null to remove.",
-    inputSchema: setCoverInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      _toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
+  return createTool(
+    pluginId,
+    "set-cover",
+    "Set or remove cover image on an entity. Use imageId to set existing image, generate:true to create new image, or imageId:null to remove.",
+    setCoverInputSchema.shape,
+    async (input: unknown, _toolContext: ToolContext) => {
       try {
         const { entityType, entityId, imageId, generate, prompt, size, style } =
           setCoverInputSchema.parse(input);
@@ -422,7 +410,7 @@ function createSetCoverTool(
         };
       }
     },
-  };
+  );
 }
 
 /**

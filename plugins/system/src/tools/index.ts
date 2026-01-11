@@ -1,4 +1,5 @@
-import type { PluginTool, ToolResponse } from "@brains/plugins";
+import type { PluginTool } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
 import {
   z,
@@ -13,17 +14,16 @@ export function createSystemTools(
   pluginId: string,
 ): PluginTool[] {
   return [
-    {
-      name: `${pluginId}_search`,
-      description:
-        "Search entities using semantic search. Optionally filter by entity type.",
-      inputSchema: {
+    createTool(
+      pluginId,
+      "search",
+      "Search entities using semantic search. Optionally filter by entity type.",
+      {
         query: z.string().describe("Search term"),
         entityType: z.string().optional().describe("Entity type to filter by"),
         limit: z.number().optional().describe("Maximum number of results"),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             query: z.string(),
@@ -53,17 +53,17 @@ export function createSystemTools(
           formatted,
         };
       },
-    },
-    {
-      name: `${pluginId}_get`,
-      description:
-        "Retrieve a specific entity by type and identifier (ID, slug, or title).",
-      inputSchema: {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "get",
+      "Retrieve a specific entity by type and identifier (ID, slug, or title).",
+      {
         entityType: z.string().describe("Entity type"),
         id: z.string().describe("Entity ID, slug, or title"),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             entityType: z.string(),
@@ -116,11 +116,13 @@ export function createSystemTools(
           formatted: `_Entity not found: ${parsed.entityType}/${parsed.id}_`,
         };
       },
-    },
-    {
-      name: `${pluginId}_list`,
-      description: "List entities by type with optional filters.",
-      inputSchema: {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "list",
+      "List entities by type with optional filters.",
+      {
         entityType: z.string().describe("Entity type to list"),
         status: z
           .string()
@@ -131,8 +133,7 @@ export function createSystemTools(
           .optional()
           .describe("Maximum number of results (default: 20)"),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             entityType: z.string(),
@@ -180,11 +181,13 @@ export function createSystemTools(
           formatted,
         };
       },
-    },
-    {
-      name: `${pluginId}_check-job-status`,
-      description: "Check the status of background operations",
-      inputSchema: {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "check-job-status",
+      "Check the status of background operations",
+      {
         batchId: z
           .string()
           .optional()
@@ -198,8 +201,7 @@ export function createSystemTools(
             "Filter by specific job types (only when batchId is not provided)",
           ),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             batchId: z.string().optional(),
@@ -313,15 +315,16 @@ export function createSystemTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_get-conversation`,
-      description: "Get conversation details",
-      inputSchema: {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "get-conversation",
+      "Get conversation details",
+      {
         conversationId: z.string().describe("Conversation ID"),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             conversationId: z.string(),
@@ -369,11 +372,13 @@ export function createSystemTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_list-conversations`,
-      description: "List conversations, optionally filtered by search query",
-      inputSchema: {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "list-conversations",
+      "List conversations, optionally filtered by search query",
+      {
         searchQuery: z
           .string()
           .optional()
@@ -383,8 +388,7 @@ export function createSystemTools(
           .optional()
           .describe("Maximum number of conversations to return (default: 20)"),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             searchQuery: z.string().optional(),
@@ -430,19 +434,20 @@ export function createSystemTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_get-messages`,
-      description: "Get messages from a specific conversation",
-      inputSchema: {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "get-messages",
+      "Get messages from a specific conversation",
+      {
         conversationId: z.string().describe("Conversation ID"),
         limit: z
           .number()
           .optional()
           .describe("Maximum number of messages to return (default: 20)"),
       },
-      visibility: "public",
-      handler: async (input): Promise<ToolResponse> => {
+      async (input) => {
         const parsed = z
           .object({
             conversationId: z.string(),
@@ -487,14 +492,14 @@ export function createSystemTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_get-identity`,
-      description:
-        "Get the brain's identity - its name, role, purpose, and values. Use for 'who are you?' or 'what is this brain?' questions.",
-      inputSchema: {},
-      visibility: "public",
-      handler: async (): Promise<ToolResponse> => {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "get-identity",
+      "Get the brain's identity - its name, role, purpose, and values. Use for 'who are you?' or 'what is this brain?' questions.",
+      {},
+      async () => {
         try {
           const identity = plugin.getIdentityData();
 
@@ -523,14 +528,14 @@ export function createSystemTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_get-profile`,
-      description:
-        "Get the anchor's (owner's) profile - their name, bio, social links. Use to answer questions about who owns/created this brain, or to recognize when you're speaking with the anchor themselves.",
-      inputSchema: {},
-      visibility: "public",
-      handler: async (): Promise<ToolResponse> => {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "get-profile",
+      "Get the anchor's (owner's) profile - their name, bio, social links. Use to answer questions about who owns/created this brain, or to recognize when you're speaking with the anchor themselves.",
+      {},
+      async () => {
         try {
           const profile = plugin.getProfileData();
 
@@ -563,14 +568,14 @@ export function createSystemTools(
           };
         }
       },
-    },
-    {
-      name: `${pluginId}_get-status`,
-      description:
-        "Get system status including model, version, running interfaces, and available tools",
-      inputSchema: {},
-      visibility: "public",
-      handler: async (): Promise<ToolResponse> => {
+      { visibility: "public" },
+    ),
+    createTool(
+      pluginId,
+      "get-status",
+      "Get system status including model, version, running interfaces, and available tools",
+      {},
+      async () => {
         try {
           const appInfo = await plugin.getAppInfo();
 
@@ -617,6 +622,7 @@ export function createSystemTools(
           };
         }
       },
-    },
+      { visibility: "public" },
+    ),
   ];
 }

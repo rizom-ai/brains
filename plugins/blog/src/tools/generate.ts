@@ -1,9 +1,9 @@
 import type {
   PluginTool,
-  ToolResponse,
   ToolContext,
   ServicePluginContext,
 } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z, formatAsEntity } from "@brains/utils";
 import type { BlogConfig } from "../config";
 
@@ -55,16 +55,12 @@ export function createGenerateTool(
   _config: BlogConfig,
   pluginId: string,
 ): PluginTool {
-  return {
-    name: `${pluginId}_generate`,
-    description:
-      "Queue a job to create a new blog post draft (provide title and content, or just a prompt for AI generation)",
-    inputSchema: generateInputSchema.shape,
-    visibility: "anchor",
-    handler: async (
-      input: unknown,
-      toolContext: ToolContext,
-    ): Promise<ToolResponse> => {
+  return createTool(
+    pluginId,
+    "generate",
+    "Queue a job to create a new blog post draft (provide title and content, or just a prompt for AI generation)",
+    generateInputSchema.shape,
+    async (input: unknown, toolContext: ToolContext) => {
       try {
         const parsed = generateInputSchema.parse(input);
 
@@ -108,5 +104,5 @@ export function createGenerateTool(
         };
       }
     },
-  };
+  );
 }

@@ -1,6 +1,10 @@
-import type { PluginTool, ToolContext, ToolResponse } from "@brains/plugins";
+import type {
+  PluginTool,
+  ToolContext,
+  ServicePluginContext,
+} from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import type { DirectorySync } from "../lib/directory-sync";
-import type { ServicePluginContext } from "@brains/plugins";
 
 export function createDirectorySyncTools(
   directorySync: DirectorySync,
@@ -8,16 +12,12 @@ export function createDirectorySyncTools(
   pluginId: string,
 ): PluginTool[] {
   return [
-    {
-      name: `${pluginId}_sync`,
-      description:
-        "Sync brain entities with the filesystem. Use when users want to refresh content from files or save changes to disk.",
-      inputSchema: {},
-      visibility: "anchor",
-      handler: async (
-        _input: unknown,
-        context: ToolContext,
-      ): Promise<ToolResponse> => {
+    createTool(
+      pluginId,
+      "sync",
+      "Sync brain entities with the filesystem. Use when users want to refresh content from files or save changes to disk.",
+      {},
+      async (_input: unknown, context: ToolContext) => {
         const source = context.channelId
           ? `${context.interfaceType}:${context.channelId}`
           : `plugin:${pluginId}`;
@@ -72,6 +72,6 @@ export function createDirectorySyncTools(
           },
         };
       },
-    },
+    ),
   ];
 }

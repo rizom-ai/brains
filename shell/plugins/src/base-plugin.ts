@@ -5,7 +5,6 @@ import type {
   PluginTool,
   PluginResource,
   ToolContext,
-  ToolResponse,
 } from "./interfaces";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
@@ -284,70 +283,6 @@ export abstract class BasePlugin<
       return Boolean(configObj.debug);
     }
     return false;
-  }
-
-  /**
-   * Helper to create a tool with consistent structure
-   */
-  protected createTool(
-    name: string,
-    description: string,
-    inputSchema: z.ZodRawShape,
-    handler: PluginTool["handler"],
-    visibility: PluginTool["visibility"] = "anchor",
-  ): PluginTool {
-    return {
-      name: `${this.id}:${name}`,
-      description,
-      inputSchema,
-      handler: async (input, context): Promise<ToolResponse> => {
-        this.debug(`Tool ${name} started`);
-        try {
-          const result = await handler(input, context);
-          this.debug(`Tool ${name} completed`, { result });
-          return result;
-        } catch (error) {
-          this.error(`Tool ${name} failed`, error);
-          throw error;
-        }
-      },
-      visibility,
-    };
-  }
-
-  /**
-   * Helper to create a resource with consistent structure
-   */
-  protected createResource(
-    uri: string,
-    name: string,
-    description: string,
-    handler: PluginResource["handler"],
-    mimeType = "text/plain",
-  ): PluginResource {
-    return {
-      uri: `${this.id}:${uri}`,
-      name,
-      description,
-      mimeType,
-      handler: async (): Promise<{
-        contents: Array<{
-          text: string;
-          uri: string;
-          mimeType?: string;
-        }>;
-      }> => {
-        this.debug(`Resource ${uri} started`);
-        try {
-          const result = await handler();
-          this.debug(`Resource ${uri} completed`, { result });
-          return result;
-        } catch (error) {
-          this.error(`Resource ${uri} failed`, error);
-          throw error;
-        }
-      },
-    };
   }
 
   /**
