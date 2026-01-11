@@ -32,4 +32,5 @@ export {
   createCorePluginContext,
   createInterfacePluginContext,
   PluginError,
+  PermissionService,
 } from "./src/index";

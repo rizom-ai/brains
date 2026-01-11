@@ -3,8 +3,8 @@ import {
   conversationDigestPayloadSchema,
   type ServicePluginContext,
   type ConversationDigestPayload,
+  type MessageWithPayload,
 } from "@brains/plugins";
-import type { MessageWithPayload } from "@brains/messaging-service";
 import { DigestHandler } from "./handlers/digest-handler";
 import type { SummaryEntity } from "./schemas/summary";
 import {

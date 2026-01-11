@@ -1,4 +1,4 @@
-import type { MessageContext } from "@brains/messaging-service";
+import type { MessageContext } from "@brains/plugins";
 
 /**
  * Message handlers for CLI interface

@@ -181,6 +181,7 @@ export type {
 
 // From @brains/permission-service
 export type { UserPermissionLevel } from "@brains/permission-service";
+export { PermissionService } from "@brains/permission-service";
 
 // From @brains/identity-service
 export type { IdentityBody } from "@brains/identity-service";

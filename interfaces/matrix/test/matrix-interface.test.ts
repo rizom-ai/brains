@@ -9,9 +9,11 @@ import {
   spyOn,
 } from "bun:test";
 import { MatrixInterface } from "../src";
-import { createInterfacePluginHarness } from "@brains/plugins/test";
+import {
+  createInterfacePluginHarness,
+  PermissionService,
+} from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import { PermissionService } from "@brains/permission-service";
 import type { IAgentService, AgentResponse } from "@brains/agent-service";
 
 // Type for mock.on calls - [eventName, handler]

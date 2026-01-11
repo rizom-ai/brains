@@ -4,7 +4,7 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import type { IMessageBus } from "@brains/messaging-service";
+import type { IMessageBus } from "@brains/plugins";
 
 // Mock message bus
 function createMockMessageBus(): IMessageBus & {

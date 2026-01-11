@@ -10,7 +10,7 @@
  */
 
 import { Cron } from "croner";
-import type { IMessageBus } from "@brains/messaging-service";
+import type { IMessageBus } from "@brains/plugins";
 import type { PublishResult } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";

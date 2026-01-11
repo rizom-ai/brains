@@ -4,15 +4,83 @@ This document outlines the standardized patterns for developing plugins in the P
 
 ## Table of Contents
 
-1. [Base Plugin Classes](#base-plugin-classes)
-2. [Plugin Configuration](#plugin-configuration)
-3. [Plugin Lifecycle](#plugin-lifecycle)
-4. [Direct Service Access](#direct-service-access)
-5. [Testing Patterns](#testing-patterns)
-6. [Common Plugin Patterns](#common-plugin-patterns)
+1. [Import Pattern](#import-pattern)
+2. [Base Plugin Classes](#base-plugin-classes)
+3. [Plugin Configuration](#plugin-configuration)
+4. [Plugin Lifecycle](#plugin-lifecycle)
+5. [Direct Service Access](#direct-service-access)
+6. [Testing Patterns](#testing-patterns)
+7. [Common Plugin Patterns](#common-plugin-patterns)
    - [Commands and Tools Organization](#commands-and-tools-organization)
    - [Feature Plugin Pattern](#feature-plugin-pattern)
-7. [Migration Guide](#migration-guide)
+8. [Migration Guide](#migration-guide)
+
+## Import Pattern
+
+Plugins and interfaces must follow a specific import pattern to maintain clean architecture boundaries.
+
+### The Rule
+
+**Shell packages** must be imported through `@brains/plugins`:
+
+- `@brains/datasource`
+- `@brains/job-queue`
+- `@brains/profile-service`
+- `@brains/entity-service`
+- `@brains/content-service`
+- `@brains/conversation-service`
+- `@brains/messaging-service`
+- `@brains/permission-service`
+- `@brains/render-service`
+- `@brains/identity-service`
+
+**Shared packages** can be imported directly:
+
+- `@brains/utils` - Utilities, Logger, ProgressReporter, Zod schemas
+- `@brains/image` - Image utilities and adapters
+- `@brains/templates` - Template utilities
+- `@brains/ui-library` - UI components (for site-building plugins)
+
+### Examples
+
+```typescript
+// ✅ CORRECT - Shell packages through @brains/plugins
+import type {
+  ServicePluginContext,
+  IEntityService,
+  BaseEntity,
+  DataSource,
+  BaseDataSourceContext,
+} from "@brains/plugins";
+import { ServicePlugin, BaseJobHandler } from "@brains/plugins";
+
+// ✅ CORRECT - Shared packages imported directly
+import { z, computeContentHash } from "@brains/utils";
+import type { Logger, ProgressReporter } from "@brains/utils";
+import { resolveEntityCoverImage } from "@brains/image";
+
+// ❌ WRONG - Direct shell package imports
+import type { DataSource } from "@brains/datasource"; // Use @brains/plugins
+import { BaseJobHandler } from "@brains/job-queue"; // Use @brains/plugins
+import type { IEntityService } from "@brains/entity-service"; // Use @brains/plugins
+```
+
+### ESLint Enforcement
+
+This pattern is enforced by ESLint's `no-restricted-imports` rule. If you try to import directly from a shell package in `plugins/` or `interfaces/`, you'll get an error:
+
+```
+error  '@brains/datasource' import is restricted from being used.
+       Import from @brains/plugins instead. Shell packages should be
+       accessed through the plugins package.
+```
+
+### Why This Pattern?
+
+1. **Clean Architecture**: Plugins depend only on the `@brains/plugins` API, not internal shell packages
+2. **Stable API Surface**: Changes to shell package internals don't affect plugins
+3. **Easier Testing**: Mock `@brains/plugins` rather than multiple shell packages
+4. **Clear Boundaries**: Easy to see what's part of the plugin API vs internal implementation
 
 ## Base Plugin Classes
 

@@ -12,12 +12,13 @@ import type {
   BatchJobStatus,
   Batch,
   JobInfo,
+  Conversation,
+  Message,
 } from "@brains/plugins";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import type { Conversation, Message } from "@brains/conversation-service";
 import {
   systemConfigSchema,
   type SystemConfig,

@@ -10,12 +10,13 @@ import type {
   JobInfo,
   IdentityBody,
   ProfileBody,
+  Conversation,
+  Message,
 } from "@brains/plugins";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import type { Conversation, Message } from "@brains/conversation-service";
 import type { SearchOptions } from "./schemas";
 
 /**
