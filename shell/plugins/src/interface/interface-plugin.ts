@@ -110,7 +110,7 @@ export abstract class InterfacePlugin<
   ): Promise<void> {
     if (!this.daemon) return;
 
-    context.registerDaemon(this.id, this.daemon);
+    context.daemons.register(this.id, this.daemon);
     context.logger.debug(`Registered daemon for interface: ${this.id}`);
   }
 

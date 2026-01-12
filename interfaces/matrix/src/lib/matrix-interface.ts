@@ -182,7 +182,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       : roomId;
 
     // Look up user's permission level
-    const userPermissionLevel = context.getUserPermissionLevel(
+    const userPermissionLevel = context.permissions.getUserLevel(
       "matrix",
       senderId,
     );
@@ -314,7 +314,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     const inviter = inviteEvent.sender ?? "unknown";
 
     // Check permissions using centralized permission service
-    const userPermissionLevel = context.getUserPermissionLevel(
+    const userPermissionLevel = context.permissions.getUserLevel(
       "matrix",
       inviter,
     );

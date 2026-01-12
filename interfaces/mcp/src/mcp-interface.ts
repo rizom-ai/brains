@@ -162,7 +162,10 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     const transportUserId =
       this.config.transport === "stdio" ? "stdio" : "http";
 
-    let userLevel = this.context.getUserPermissionLevel("mcp", transportUserId);
+    let userLevel = this.context.permissions.getUserLevel(
+      "mcp",
+      transportUserId,
+    );
 
     // For HTTP with auth token, authenticated users get anchor permission
     // For HTTP without auth token, use the configured permission level

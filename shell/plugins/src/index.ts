@@ -30,6 +30,8 @@ export { InterfacePlugin } from "./interface/interface-plugin";
 export type {
   InterfacePluginContext,
   IInterfaceConversationsNamespace,
+  IPermissionsNamespace,
+  IDaemonsNamespace,
 } from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
 

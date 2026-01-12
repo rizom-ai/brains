@@ -21,6 +21,24 @@ import type {
 } from "@brains/conversation-service";
 
 /**
+ * Permissions namespace for InterfacePluginContext
+ * Provides permission checking for users
+ */
+export interface IPermissionsNamespace {
+  /** Get permission level for a user on an interface */
+  getUserLevel: (interfaceType: string, userId: string) => UserPermissionLevel;
+}
+
+/**
+ * Daemons namespace for InterfacePluginContext
+ * Provides daemon registration
+ */
+export interface IDaemonsNamespace {
+  /** Register a daemon for this interface */
+  register: (name: string, daemon: Daemon) => void;
+}
+
+/**
  * Extended conversations namespace for InterfacePluginContext
  * Adds write operations to the read-only base
  */
@@ -68,18 +86,21 @@ export interface InterfacePluginContext extends CorePluginContext {
   // Permissions
   // ============================================================================
 
-  /** Get permission level for a user on an interface */
-  getUserPermissionLevel: (
-    interfaceType: string,
-    userId: string,
-  ) => UserPermissionLevel;
+  /**
+   * Permissions namespace for user permission checking
+   * - `permissions.getUserLevel()` - Get permission level for a user on an interface
+   */
+  readonly permissions: IPermissionsNamespace;
 
   // ============================================================================
   // Daemon Management
   // ============================================================================
 
-  /** Register a daemon for this interface */
-  registerDaemon: (name: string, daemon: Daemon) => void;
+  /**
+   * Daemons namespace for daemon registration
+   * - `daemons.register()` - Register a daemon for this interface
+   */
+  readonly daemons: IDaemonsNamespace;
 
   // ============================================================================
   // Job Queue (extends base IJobsNamespace with plugin-scoped operations)
@@ -145,12 +166,14 @@ export function createInterfacePluginContext(
     // Agent service
     agentService,
 
-    // Permission checking
-    getUserPermissionLevel: (
-      interfaceType: string,
-      userId: string,
-    ): UserPermissionLevel => {
-      return permissionService.determineUserLevel(interfaceType, userId);
+    // Permissions namespace
+    permissions: {
+      getUserLevel: (
+        interfaceType: string,
+        userId: string,
+      ): UserPermissionLevel => {
+        return permissionService.determineUserLevel(interfaceType, userId);
+      },
     },
 
     // Job operations namespace - extends shell.jobs with plugin-scoped operations
@@ -202,12 +225,14 @@ export function createInterfacePluginContext(
       },
     },
 
-    // Daemon support
-    registerDaemon: (name: string, daemon: Daemon): void => {
-      // Ensure daemon name is unique by prefixing with plugin ID
-      const daemonName = `${pluginId}:${name}`;
-      shell.registerDaemon(daemonName, daemon, pluginId);
-      coreContext.logger.debug(`Registered daemon: ${daemonName}`);
+    // Daemons namespace
+    daemons: {
+      register: (name: string, daemon: Daemon): void => {
+        // Ensure daemon name is unique by prefixing with plugin ID
+        const daemonName = `${pluginId}:${name}`;
+        shell.registerDaemon(daemonName, daemon, pluginId);
+        coreContext.logger.debug(`Registered daemon: ${daemonName}`);
+      },
     },
 
     // Extended conversations namespace (read + write operations)
