@@ -238,7 +238,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getConversation(conversationId);
+    return this.context.conversations.get(conversationId);
   }
 
   /**
@@ -251,7 +251,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getMessages(
+    return this.context.conversations.getMessages(
       conversationId,
       limit ? { limit } : undefined,
     );
@@ -264,7 +264,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.searchConversations(query);
+    return this.context.conversations.search(query);
   }
 
   /**

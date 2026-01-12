@@ -87,7 +87,7 @@ describe("DigestHandler", () => {
       spyOn(context.entityService, "getEntity").mockResolvedValue(null);
 
       // Mock getConversation to return conversation with channel name
-      spyOn(context, "getConversation").mockResolvedValue({
+      spyOn(context.conversations, "get").mockResolvedValue({
         id: "conv-123",
         sessionId: "session-123",
         interfaceType: "cli",
@@ -196,7 +196,7 @@ User asked about project setup
       );
 
       // Mock getConversation to return conversation with channel name
-      spyOn(context, "getConversation").mockResolvedValue({
+      spyOn(context.conversations, "get").mockResolvedValue({
         id: "conv-123",
         sessionId: "session-123",
         interfaceType: "cli",
@@ -309,7 +309,7 @@ Window End: 50
       );
 
       // Mock getConversation to return conversation with channel name
-      spyOn(context, "getConversation").mockResolvedValue({
+      spyOn(context.conversations, "get").mockResolvedValue({
         id: "conv-123",
         sessionId: "session-123",
         interfaceType: "cli",
@@ -377,7 +377,7 @@ Window End: 50
       );
 
       // Mock getConversation to return conversation with channel name
-      spyOn(context, "getConversation").mockResolvedValue({
+      spyOn(context.conversations, "get").mockResolvedValue({
         id: "conv-123",
         sessionId: "session-123",
         interfaceType: "cli",
@@ -408,7 +408,7 @@ Window End: 50
       spyOn(context.entityService, "getEntity").mockResolvedValue(null);
 
       // Mock getConversation to return conversation with channel name
-      spyOn(context, "getConversation").mockResolvedValue({
+      spyOn(context.conversations, "get").mockResolvedValue({
         id: "conv-123",
         sessionId: "session-123",
         interfaceType: "cli",
@@ -478,7 +478,7 @@ Window End: 50
       );
 
       // Mock getConversation to return conversation with channel name
-      spyOn(context, "getConversation").mockResolvedValue({
+      spyOn(context.conversations, "get").mockResolvedValue({
         id: "conv-123",
         sessionId: "session-123",
         interfaceType: "cli",

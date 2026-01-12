@@ -132,9 +132,12 @@ export function createMockServicePluginContext(
       ),
     },
 
-    // Conversation
-    searchConversations: mock(() => Promise.resolve([])),
-    getMessages: mock(() => Promise.resolve([])),
+    // Conversations namespace (read-only)
+    conversations: {
+      get: mock(() => Promise.resolve(null)),
+      search: mock(() => Promise.resolve([])),
+      getMessages: mock(() => Promise.resolve([])),
+    },
 
     // Job queue namespace
     jobs: {

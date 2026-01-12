@@ -9,6 +9,7 @@ export type {
   IMessagingNamespace,
   IAINamespace,
   IIdentityNamespace,
+  IConversationsNamespace,
 } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 
@@ -24,7 +25,10 @@ export { createServicePluginContext } from "./service/context";
 
 // Interface plugin
 export { InterfacePlugin } from "./interface/interface-plugin";
-export type { InterfacePluginContext } from "./interface/context";
+export type {
+  InterfacePluginContext,
+  IInterfaceConversationsNamespace,
+} from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
 
 // Message interface plugin (for CLI, Matrix, etc.)

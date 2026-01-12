@@ -57,7 +57,8 @@ export class LinkService {
       // Link captured from a conversation (Matrix, etc.)
       let label = conversationId;
       try {
-        const conversation = await this.context.getConversation(conversationId);
+        const conversation =
+          await this.context.conversations.get(conversationId);
         if (conversation?.metadata) {
           const metadata = JSON.parse(conversation.metadata);
           label = metadata.channelName ?? conversationId;

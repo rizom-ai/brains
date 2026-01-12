@@ -1,4 +1,7 @@
-import type { CorePluginContext } from "../core/context";
+import type {
+  CorePluginContext,
+  IConversationsNamespace,
+} from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type { IShell, IMCPTransport } from "../interfaces";
 import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
@@ -16,6 +19,29 @@ import type {
   MessageRole,
   ConversationMetadata,
 } from "@brains/conversation-service";
+
+/**
+ * Extended conversations namespace for InterfacePluginContext
+ * Adds write operations to the read-only base
+ */
+export interface IInterfaceConversationsNamespace
+  extends IConversationsNamespace {
+  /** Start a new conversation */
+  start: (
+    conversationId: string,
+    interfaceType: string,
+    channelId: string,
+    metadata: ConversationMetadata,
+  ) => Promise<string>;
+
+  /** Add a message to a conversation */
+  addMessage: (
+    conversationId: string,
+    role: MessageRole,
+    content: string,
+    metadata?: Record<string, unknown>,
+  ) => Promise<void>;
+}
 
 /**
  * Context interface for interface plugins
@@ -81,24 +107,18 @@ export interface InterfacePluginContext extends CorePluginContext {
   };
 
   // ============================================================================
-  // Conversation Management (Write Operations)
+  // Conversation Management (Read + Write Operations)
   // ============================================================================
 
-  /** Start a new conversation */
-  startConversation: (
-    conversationId: string,
-    interfaceType: string,
-    channelId: string,
-    metadata: ConversationMetadata,
-  ) => Promise<string>;
-
-  /** Add a message to a conversation */
-  addMessage: (
-    conversationId: string,
-    role: MessageRole,
-    content: string,
-    metadata?: Record<string, unknown>,
-  ) => Promise<void>;
+  /**
+   * Extended conversations namespace with write operations
+   * - `conversations.get()` - Get a conversation by ID (from Core)
+   * - `conversations.search()` - Search conversations by query (from Core)
+   * - `conversations.getMessages()` - Get messages from a conversation (from Core)
+   * - `conversations.start()` - Start a new conversation
+   * - `conversations.addMessage()` - Add a message to a conversation
+   */
+  readonly conversations: IInterfaceConversationsNamespace;
 }
 
 /**
@@ -190,34 +210,40 @@ export function createInterfacePluginContext(
       coreContext.logger.debug(`Registered daemon: ${daemonName}`);
     },
 
-    // Conversation management (write operations)
-    startConversation: async (
-      conversationId: string,
-      interfaceType: string,
-      channelId: string,
-      metadata: ConversationMetadata,
-    ): Promise<string> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.startConversation(
-        conversationId,
-        interfaceType,
-        channelId,
-        metadata,
-      );
-    },
-    addMessage: async (
-      conversationId: string,
-      role: MessageRole,
-      content: string,
-      metadata?: Record<string, unknown>,
-    ): Promise<void> => {
-      const conversationService = shell.getConversationService();
-      await conversationService.addMessage(
-        conversationId,
-        role,
-        content,
-        metadata,
-      );
+    // Extended conversations namespace (read + write operations)
+    conversations: {
+      // Include read operations from core
+      ...coreContext.conversations,
+
+      // Add write operations
+      start: async (
+        conversationId: string,
+        interfaceType: string,
+        channelId: string,
+        metadata: ConversationMetadata,
+      ): Promise<string> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.startConversation(
+          conversationId,
+          interfaceType,
+          channelId,
+          metadata,
+        );
+      },
+      addMessage: async (
+        conversationId: string,
+        role: MessageRole,
+        content: string,
+        metadata?: Record<string, unknown>,
+      ): Promise<void> => {
+        const conversationService = shell.getConversationService();
+        await conversationService.addMessage(
+          conversationId,
+          role,
+          content,
+          metadata,
+        );
+      },
     },
   };
 }

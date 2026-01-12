@@ -125,7 +125,7 @@ export class DigestHandler {
       const contentBody = this.adapter.createContentBody(updatedEntries);
 
       // Fetch conversation to get channel name
-      const conversation = await this.context.getConversation(
+      const conversation = await this.context.conversations.get(
         digest.conversationId,
       );
       if (!conversation?.metadata) {

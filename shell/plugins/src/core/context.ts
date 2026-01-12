@@ -76,6 +76,24 @@ export interface IIdentityNamespace {
 }
 
 /**
+ * Conversations namespace for CorePluginContext
+ * Provides read-only access to conversations
+ */
+export interface IConversationsNamespace {
+  /** Get a conversation by ID */
+  get: (conversationId: string) => Promise<Conversation | null>;
+
+  /** Search conversations by query */
+  search: (query: string) => Promise<Conversation[]>;
+
+  /** Get messages from a conversation */
+  getMessages: (
+    conversationId: string,
+    options?: GetMessagesOptions,
+  ) => Promise<Message[]>;
+}
+
+/**
  * Core plugin context - provides basic services to core plugins
  *
  * ## Method Naming Conventions
@@ -161,17 +179,13 @@ export interface CorePluginContext {
   // Conversations (Read-Only)
   // ============================================================================
 
-  /** Get a conversation by ID */
-  getConversation: (conversationId: string) => Promise<Conversation | null>;
-
-  /** Search conversations by query */
-  searchConversations: (query: string) => Promise<Conversation[]>;
-
-  /** Get messages from a conversation */
-  getMessages: (
-    conversationId: string,
-    options?: GetMessagesOptions,
-  ) => Promise<Message[]>;
+  /**
+   * Conversations namespace for read-only conversation access
+   * - `conversations.get()` - Get a conversation by ID
+   * - `conversations.search()` - Search conversations by query
+   * - `conversations.getMessages()` - Get messages from a conversation
+   */
+  readonly conversations: IConversationsNamespace;
 }
 
 /**
@@ -252,23 +266,23 @@ export function createCorePluginContext(
     // Job operations - pass through shell.jobs namespace
     jobs: shell.jobs,
 
-    // Conversation service (read-only)
-    getConversation: async (
-      conversationId: string,
-    ): Promise<Conversation | null> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.getConversation(conversationId);
-    },
-    searchConversations: async (query: string): Promise<Conversation[]> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.searchConversations(query);
-    },
-    getMessages: async (
-      conversationId: string,
-      options?: GetMessagesOptions,
-    ): Promise<Message[]> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.getMessages(conversationId, options);
+    // Conversations namespace (read-only)
+    conversations: {
+      get: async (conversationId: string): Promise<Conversation | null> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.getConversation(conversationId);
+      },
+      search: async (query: string): Promise<Conversation[]> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.searchConversations(query);
+      },
+      getMessages: async (
+        conversationId: string,
+        options?: GetMessagesOptions,
+      ): Promise<Message[]> => {
+        const conversationService = shell.getConversationService();
+        return conversationService.getMessages(conversationId, options);
+      },
     },
 
     // Data directory
