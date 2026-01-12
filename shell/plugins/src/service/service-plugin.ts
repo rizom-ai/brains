@@ -3,6 +3,7 @@ import type {
   PluginCapabilities,
   IShell,
   ContentGenerationConfig,
+  ToolContext,
 } from "../interfaces";
 import type {
   IEntityService,
@@ -10,6 +11,7 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
+import type { BatchOperation, JobOptions } from "@brains/job-queue";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
 import type { z } from "@brains/utils";
@@ -82,8 +84,8 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
   protected async enqueueJob(
     type: string,
     data: unknown,
-    toolContext: Parameters<ServicePluginContext["enqueueJob"]>[2],
-    options?: Parameters<ServicePluginContext["enqueueJob"]>[3],
+    toolContext: ToolContext | null,
+    options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
     return context.enqueueJob(type, data, toolContext, options);
@@ -93,8 +95,8 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
    * Helper method to enqueue a batch of operations
    */
   protected async enqueueBatch(
-    operations: Parameters<ServicePluginContext["enqueueBatch"]>[0],
-    options: Parameters<ServicePluginContext["enqueueBatch"]>[1],
+    operations: BatchOperation[],
+    options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
     return context.enqueueBatch(operations, options);

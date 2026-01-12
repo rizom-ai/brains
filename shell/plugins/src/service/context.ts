@@ -37,73 +37,80 @@ import { createCorePluginContext } from "../core/context";
 /**
  * Context interface for service plugins
  * Extends CorePluginContext with entity management, job queuing, and AI generation
+ *
+ * ## Method Naming Conventions
+ * - Properties: Direct access to services/values (e.g., `entityService`, `dataDir`)
+ * - `get*`: Retrieve existing data (e.g., `getAdapter`, `getJobStatus`)
+ * - `list*`: Retrieve collections (e.g., `listViewTemplates`)
+ * - `register*`: Register handlers/types (e.g., `registerEntityType`, `registerJobHandler`)
+ * - Action verbs: Mutations and operations (e.g., `enqueueJob`, `generateContent`)
  */
 export interface ServicePluginContext extends CorePluginContext {
-  // Entity service access
-  entityService: IEntityService;
+  // ============================================================================
+  // Entity Management
+  // ============================================================================
+
+  /** Full entity service with write operations */
+  readonly entityService: IEntityService;
+
+  /** Register a new entity type with schema and adapter */
   registerEntityType: <T extends BaseEntity>(
     entityType: string,
     schema: z.ZodSchema<T>,
     adapter: EntityAdapter<T>,
     config?: EntityTypeConfig,
   ) => void;
+
+  /** Get the adapter for an entity type */
   getAdapter: <T extends BaseEntity>(
     entityType: string,
   ) => EntityAdapter<T> | undefined;
+
+  /** Update an existing entity */
   updateEntity: <T extends BaseEntity>(
     entity: T,
   ) => Promise<{ entityId: string; jobId: string }>;
 
-  // DataSource registration
+  // ============================================================================
+  // Data Sources
+  // ============================================================================
+
+  /** Register a data source for dynamic content */
   registerDataSource: (dataSource: DataSource) => void;
 
-  // AI content generation
+  // ============================================================================
+  // AI Generation
+  // ============================================================================
+
+  /** Generate content using AI with template */
   generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
 
-  // AI image generation (requires OPENAI_API_KEY)
+  /** Generate an image using AI (requires OPENAI_API_KEY) */
   generateImage: (
     prompt: string,
     options?: ImageGenerationOptions,
   ) => Promise<ImageGenerationResult>;
+
+  /** Check if image generation is available */
   canGenerateImages: () => boolean;
 
-  // Content formatting and parsing using template formatter
+  // ============================================================================
+  // Content Formatting
+  // ============================================================================
+
+  /** Format data using a template formatter */
   formatContent: <T = unknown>(templateName: string, data: T) => string;
+
+  /** Parse content using a template parser */
   parseContent: <T = unknown>(templateName: string, content: string) => T;
 
-  // Conversation service helpers
-  searchConversations: (query: string) => Promise<Conversation[]>;
-  getMessages: (
-    conversationId: string,
-    options?: GetMessagesOptions,
-  ) => Promise<Message[]>;
-
-  // Job queue functionality (write operations)
-  // toolContext is required to enforce routing context for progress messages
-  // Pass null for background jobs that don't need user-facing progress updates
-  enqueueJob: EnqueueJobFn;
-  enqueueBatch: (
-    operations: BatchOperation[],
-    options?: JobOptions,
-  ) => Promise<string>;
-  registerJobHandler: <T = unknown, R = unknown>(
-    type: string,
-    handler: JobHandler<string, T, R>,
-  ) => void;
-  getJobStatus: (jobId: string) => Promise<JobInfo | null>;
-
-  // View template access
-  getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
-  listViewTemplates: () => ViewTemplate<unknown>[];
-  getRenderService: () => RenderService;
-
-  // Content resolution helper
+  /** Resolve content from a template (may fetch or generate) */
   resolveContent: <T = unknown>(
     templateName: string,
     options?: ResolutionOptions,
   ) => Promise<T | null>;
 
-  // Template capability checking
+  /** Get capabilities of a template */
   getTemplateCapabilities: (templateName: string) => {
     canGenerate: boolean;
     canFetch: boolean;
@@ -111,14 +118,72 @@ export interface ServicePluginContext extends CorePluginContext {
     isStaticOnly: boolean;
   } | null;
 
-  // Plugin metadata
+  // ============================================================================
+  // Conversations (Read-Only)
+  // ============================================================================
+
+  /** Search conversations by query */
+  searchConversations: (query: string) => Promise<Conversation[]>;
+
+  /** Get messages from a conversation */
+  getMessages: (
+    conversationId: string,
+    options?: GetMessagesOptions,
+  ) => Promise<Message[]>;
+
+  // ============================================================================
+  // Job Queue
+  // ============================================================================
+
+  /**
+   * Enqueue a job for background processing
+   * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
+   */
+  enqueueJob: EnqueueJobFn;
+
+  /** Enqueue multiple operations as a batch */
+  enqueueBatch: (
+    operations: BatchOperation[],
+    options?: JobOptions,
+  ) => Promise<string>;
+
+  /** Register a handler for a job type */
+  registerJobHandler: <T = unknown, R = unknown>(
+    type: string,
+    handler: JobHandler<string, T, R>,
+  ) => void;
+
+  /** Get status of a specific job */
+  getJobStatus: (jobId: string) => Promise<JobInfo | null>;
+
+  // ============================================================================
+  // View Templates
+  // ============================================================================
+
+  /** Get a view template by name */
+  getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
+
+  /** List all registered view templates */
+  listViewTemplates: () => ViewTemplate<unknown>[];
+
+  /** Get the render service for advanced rendering */
+  getRenderService: () => RenderService;
+
+  // ============================================================================
+  // Plugin Metadata
+  // ============================================================================
+
+  /** Get package name for a plugin */
   getPluginPackageName: (pluginId: string) => string | undefined;
 
-  // Data directory - where plugins should store entity files
-  dataDir: string;
+  /** Data directory for storing entity files */
+  readonly dataDir: string;
 
-  // Register an eval handler for this plugin
-  // Handler will be called during plugin evaluations with the given handlerId
+  // ============================================================================
+  // Evaluation
+  // ============================================================================
+
+  /** Register an eval handler for plugin testing */
   registerEvalHandler: (handlerId: string, handler: EvalHandler) => void;
 }
 

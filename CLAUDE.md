@@ -243,7 +243,7 @@ See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
 
 ### 🚧 Next Priorities
 
-1. **Roadmap plugin** - Outcome-based goal tracking with milestones and evidence linking (see `docs/plans/roadmap-plugin.md`)
+_No specific priorities set - ask the user what to work on._
 
 ## Code Quality Checklist
 

@@ -85,15 +85,15 @@ Methods span: entities, jobs, AI, templates, conversations, views, content resol
 
 ---
 
-### Issue 5: Cryptic Parameter Types
+### Issue 5: Cryptic Parameter Types ✅ RESOLVED
 
-**File:** `shell/plugins/src/service/service-plugin.ts:85-97`
+**File:** `shell/plugins/src/service/service-plugin.ts`
 
-```typescript
-toolContext: Parameters<ServicePluginContext["enqueueJob"]>[2],  // ???
-```
+**Solution:** Replaced cryptic `Parameters<...>[N]` with explicit types:
 
-**Fix:** Export explicit type aliases.
+- `toolContext: ToolContext | null` instead of `Parameters<ServicePluginContext["enqueueJob"]>[2]`
+- `options?: JobOptions` instead of `Parameters<ServicePluginContext["enqueueJob"]>[3]`
+- `operations: BatchOperation[]` instead of `Parameters<ServicePluginContext["enqueueBatch"]>[0]`
 
 ---
 
@@ -124,16 +124,21 @@ protected async handleProgressEvent(_event, _context): Promise<void> {
 
 ---
 
-### Issue 8: Mixed Naming Conventions
+### Issue 8: Mixed Naming Conventions ✅ RESOLVED
 
-```typescript
-entityService: IEntityService;     // property
-getAdapter(type): EntityAdapter;   // get* method
-registerEntityType(...): void;     // verb method
-formatContent(...): string;        // verb method (should be get?)
-```
+**Solution:** Added JSDoc documentation with naming convention guidelines and section headers:
 
-**Fix:** Standardize: properties for access, `get*` for computed, verbs for mutations.
+- Properties: Direct access to services/values (`entityService`, `logger`, `dataDir`)
+- `get*`: Retrieve existing data (`getAdapter`, `getIdentity`, `getConversation`)
+- `list*`: Retrieve collections (`listViewTemplates`)
+- `register*`: Register handlers/types (`registerEntityType`, `registerJobHandler`)
+- Action verbs: Mutations and operations (`enqueueJob`, `generateContent`, `formatContent`)
+
+All three context interfaces now have:
+
+- Clear section headers with `// ===` separators
+- JSDoc comments for each method
+- Naming convention documentation in the interface JSDoc
 
 ---
 

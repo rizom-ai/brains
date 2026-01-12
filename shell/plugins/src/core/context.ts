@@ -16,60 +16,118 @@ import type { AppInfo } from "../interfaces";
 
 /**
  * Core plugin context - provides basic services to core plugins
+ *
+ * ## Method Naming Conventions
+ * - Properties: Direct access to services/values (e.g., `logger`, `entityService`)
+ * - `get*`: Retrieve existing data (e.g., `getIdentity`, `getConversation`)
+ * - `register*`: Register handlers/templates (e.g., `registerTemplates`)
+ * - Action verbs: Operations with side effects (e.g., `sendMessage`, `query`)
  */
 export interface CorePluginContext {
-  // Identity
+  // ============================================================================
+  // Plugin Identity
+  // ============================================================================
+
+  /** Unique plugin identifier */
   readonly pluginId: string;
+
+  /** Logger instance for this plugin */
   readonly logger: Logger;
 
-  // Core entity service (read-only operations)
+  /** Data directory for storing entity files */
+  readonly dataDir: string;
+
+  // ============================================================================
+  // Entity Service (Read-Only)
+  // ============================================================================
+
+  /** Core entity service with read-only operations */
   readonly entityService: ICoreEntityService;
 
-  // Brain identity and owner profile
+  // ============================================================================
+  // Brain Identity & Profile
+  // ============================================================================
+
+  /** Get the brain's identity configuration */
   getIdentity: () => IdentityBody;
+
+  /** Get the owner's profile */
   getProfile: () => ProfileBody;
 
-  // App metadata
+  /** Get app metadata (version, model, plugins) */
   getAppInfo: () => Promise<AppInfo>;
 
-  // Inter-plugin messaging
+  // ============================================================================
+  // Inter-Plugin Messaging
+  // ============================================================================
+
+  /** Send a message to other plugins */
   sendMessage: MessageSender;
+
+  /** Subscribe to messages on a channel */
   subscribe: <T = unknown, R = unknown>(
     channel: string,
     handler: MessageHandler<T, R>,
   ) => () => void;
 
-  // Template operations (lightweight, no AI generation)
+  // ============================================================================
+  // Template Operations
+  // ============================================================================
+
+  /** Format data using a template formatter */
   formatContent: <T = unknown>(
     templateName: string,
     data: T,
     options?: { truncate?: number },
   ) => string;
+
+  /** Parse content using a template parser */
   parseContent: <T = unknown>(templateName: string, content: string) => T;
+
+  /** Register templates for this plugin */
   registerTemplates: (templates: Record<string, Template>) => void;
 
-  // Query functionality (core shell operation)
+  // ============================================================================
+  // AI Query
+  // ============================================================================
+
+  /** Query the AI with optional context */
   query: (
     prompt: string,
     context?: Record<string, unknown>,
   ) => Promise<DefaultQueryResponse>;
 
-  // Job monitoring (read-only)
+  // ============================================================================
+  // Job Monitoring (Read-Only)
+  // ============================================================================
+
+  /** Get active jobs, optionally filtered by type */
   getActiveJobs: (types?: string[]) => Promise<JobInfo[]>;
+
+  /** Get all active batches */
   getActiveBatches: () => Promise<Batch[]>;
+
+  /** Get status of a specific batch */
   getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
+
+  /** Get status of a specific job */
   getJobStatus: (jobId: string) => Promise<JobInfo | null>;
 
-  // Conversation service (read-only)
+  // ============================================================================
+  // Conversations (Read-Only)
+  // ============================================================================
+
+  /** Get a conversation by ID */
   getConversation: (conversationId: string) => Promise<Conversation | null>;
+
+  /** Search conversations by query */
   searchConversations: (query: string) => Promise<Conversation[]>;
+
+  /** Get messages from a conversation */
   getMessages: (
     conversationId: string,
     options?: GetMessagesOptions,
   ) => Promise<Message[]>;
-
-  // Data directory - where plugins should store entity files
-  readonly dataDir: string;
 }
 
 /**

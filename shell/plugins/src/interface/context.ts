@@ -14,44 +14,77 @@ import type {
 
 /**
  * Context interface for interface plugins
- * Extends CorePluginContext with daemon support and job creation
+ * Extends CorePluginContext with daemon support, job creation, and conversation management
+ *
+ * ## Method Naming Conventions
+ * - Properties: Direct access to services (e.g., `mcpTransport`, `agentService`)
+ * - `get*`: Retrieve data (e.g., `getUserPermissionLevel`)
+ * - `register*`: Register handlers/daemons (e.g., `registerDaemon`, `registerJobHandler`)
+ * - Action verbs: Operations with side effects (e.g., `enqueueJob`, `addMessage`)
  */
 export interface InterfacePluginContext extends CorePluginContext {
-  // Permission checking
+  // ============================================================================
+  // Services
+  // ============================================================================
+
+  /** MCP transport for tool execution */
+  readonly mcpTransport: IMCPTransport;
+
+  /** Agent service for AI-powered interaction */
+  readonly agentService: IAgentService;
+
+  // ============================================================================
+  // Permissions
+  // ============================================================================
+
+  /** Get permission level for a user on an interface */
   getUserPermissionLevel: (
     interfaceType: string,
     userId: string,
   ) => UserPermissionLevel;
 
-  // Daemon management
+  // ============================================================================
+  // Daemon Management
+  // ============================================================================
+
+  /** Register a daemon for this interface */
   registerDaemon: (name: string, daemon: Daemon) => void;
 
-  // Job queue functionality (for automatic job tracking)
-  // toolContext is required to enforce routing context for progress messages
-  // Interface plugins should pass null since they don't have tool context
+  // ============================================================================
+  // Job Queue
+  // ============================================================================
+
+  /**
+   * Enqueue a job for background processing
+   * Interface plugins should pass null for toolContext
+   */
   enqueueJob: EnqueueJobFn;
+
+  /** Enqueue multiple operations as a batch */
   enqueueBatch: (
     operations: BatchOperation[],
     options?: JobOptions,
   ) => Promise<string>;
+
+  /** Register a handler for a job type */
   registerJobHandler: <T = unknown, R = unknown>(
     type: string,
     handler: JobHandler<string, T, R>,
   ) => void;
 
-  // MCP transport for interface plugins
-  readonly mcpTransport: IMCPTransport;
+  // ============================================================================
+  // Conversation Management (Write Operations)
+  // ============================================================================
 
-  // Agent service for AI-powered interaction
-  readonly agentService: IAgentService;
-
-  // Conversation management (write operations - interfaces manage conversations)
+  /** Start a new conversation */
   startConversation: (
     conversationId: string,
     interfaceType: string,
     channelId: string,
     metadata: ConversationMetadata,
   ) => Promise<string>;
+
+  /** Add a message to a conversation */
   addMessage: (
     conversationId: string,
     role: MessageRole,
