@@ -131,7 +131,7 @@ export class MyPlugin extends ServicePlugin<MyPluginConfig> {
     });
 
     // Register entity types if needed
-    context.registerEntityType("my-entity", myEntitySchema, myEntityAdapter);
+    context.entities.register("my-entity", myEntitySchema, myEntityAdapter);
 
     this.logger.info("Plugin initialized successfully");
   }
@@ -202,26 +202,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     context: ServicePluginContext,
   ): Promise<void> {
     // Register templates for rendering
-    context.registerTemplates({
+    context.templates.register({
       blog: blogTemplate,
       "blog-list": blogListTemplate,
     });
-
-    // Register routes if needed
-    context.registerRoutes([
-      {
-        id: "blog",
-        path: "/blog",
-        title: "Blog",
-        description: "Blog posts",
-        sections: [
-          {
-            id: "main",
-            template: "blog-list",
-          },
-        ],
-      },
-    ]);
 
     this.logger.info("Blog plugin initialized");
   }
@@ -347,15 +331,15 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   });
 
   // Register entity types
-  context.registerEntityType("my-entity", myEntitySchema, myEntityAdapter);
+  context.entities.register("my-entity", myEntitySchema, myEntityAdapter);
 
   // Register templates
-  context.registerTemplates({
+  context.templates.register({
     "my-template": myTemplate,
   });
 
   // Register job handlers
-  context.registerJobHandler("my-job", new MyJobHandler());
+  context.jobs.registerHandler("my-job", new MyJobHandler());
 }
 ```
 
@@ -389,65 +373,99 @@ protected override async onShutdown(): Promise<void> {
 
 ### Accessing Services Through Context
 
-Services are provided through context types specific to each plugin type:
+Services are provided through context types specific to each plugin type. All methods are organized into logical namespaces:
 
 ```typescript
 // ServicePlugin context
 protected override async onRegister(context: ServicePluginContext): Promise<void> {
-  // Available methods and services:
-  context.registerEntityType(type, schema, adapter);
-  context.registerTemplates(templates);
-  context.registerRoutes(routes);
-  context.registerJobHandler(type, handler);
-  context.listRoutes();
-  context.listViewTemplates();
-  context.getViewTemplate(name);
-  context.enqueueJob(type, data, options);
+  // Entity namespace
+  context.entities.register(type, schema, adapter);
+  context.entities.getAdapter(type);
+  context.entities.update(entity);
+  context.entities.registerDataSource(dataSource);
 
-  // Access to services
+  // Templates namespace
+  context.templates.register(templates);
+  context.templates.format(templateName, data);
+  context.templates.parse(templateName, content);
+  context.templates.resolve(templateName, options);
+
+  // Jobs namespace
+  context.jobs.registerHandler(type, handler);
+  context.jobs.enqueue(type, data, toolContext, options);
+  context.jobs.getStatus(jobId);
+  context.jobs.getActive();
+
+  // Views namespace
+  context.views.get(name);
+  context.views.list();
+
+  // AI namespace
+  context.ai.generate(config);
+  context.ai.query(prompt, additionalContext);
+
+  // Direct service access
   context.entityService;
   context.logger; // Also available as this.logger
 }
 
-// InterfacePlugin context includes query method
+// InterfacePlugin context
 protected override async onRegister(context: InterfacePluginContext): Promise<void> {
-  // All ServicePlugin context methods plus:
-  const response = await context.query(prompt, additionalContext);
+  // Permissions namespace
+  const level = context.permissions.getUserLevel(interfaceType, userId);
+
+  // Daemons namespace
+  context.daemons.register(name, daemon);
+
+  // Conversations namespace (write operations)
+  await context.conversations.start(id, interfaceType, channelId, metadata);
+  await context.conversations.addMessage(conversationId, role, content);
 }
 
-// CorePlugin context is minimal
+// CorePlugin context
 protected override async onRegister(context: CorePluginContext): Promise<void> {
-  // Basic context only
-  context.logger;
+  // Identity namespace
+  const identity = context.identity.get();
+  const profile = context.identity.getProfile();
+
+  // AI namespace (read-only)
+  const response = await context.ai.query(prompt);
+
+  // Conversations namespace (read-only)
+  const conversation = await context.conversations.get(id);
+  const messages = await context.conversations.getMessages(id);
 }
 ```
 
-### Available Services by Plugin Type
+### Available Namespaces by Plugin Type
 
 **CorePlugin Context**:
 
 - `logger`: Logger instance
+- `identity.*`: Brain identity and profile access
+- `ai.query()`: AI query operations
+- `conversations.*`: Read-only conversation access
+- `templates.*`: Template format/parse operations
+- `messaging.*`: Inter-plugin messaging
+- `jobs.*`: Job status monitoring (read-only)
 
-**ServicePlugin Context**:
+**ServicePlugin Context** (extends Core):
 
-- `logger`: Logger instance (also available as `this.logger`)
-- `entityService`: Entity CRUD operations
-- `registerEntityType()`: Register new entity types
-- `registerTemplates()`: Register view templates
-- `registerRoutes()`: Register routes
-- `registerJobHandler()`: Register job handlers
-- `enqueueJob()`: Queue jobs for processing
-- `listRoutes()`: List all registered routes
-- `listViewTemplates()`: List all templates
-- `getViewTemplate()`: Get a specific template
-- `parseContent()`: Parse content using template schema
+- `entityService`: Full entity CRUD service
+- `entities.*`: Entity type registration and management
+- `templates.*`: Extended with resolve and capabilities
+- `ai.*`: Extended with generate and image generation
+- `jobs.*`: Extended with enqueue and registerHandler
+- `views.*`: View template access
+- `plugins.*`: Plugin metadata
+- `eval.*`: Evaluation handler registration
 
-**InterfacePlugin Context**:
+**InterfacePlugin Context** (extends Core):
 
-- All ServicePlugin context methods
-- `query()`: Execute queries (core shell operation)
-- `getJobStatus()`: Get job status
-- `getActiveJobs()`: List active jobs
+- `permissions.*`: User permission checking
+- `daemons.*`: Daemon registration
+- `jobs.*`: Extended with enqueue and registerHandler
+- `conversations.*`: Extended with write operations
 
 ### Service Usage Examples
 
@@ -467,8 +485,8 @@ await context.entityService.createEntity({
   metadata: { tags: ["important"] },
 });
 
-// Template registration
-context.registerTemplates({
+// Template registration via namespace
+context.templates.register({
   "my-template": {
     name: "my-template",
     schema: myContentSchema,
@@ -481,10 +499,11 @@ context.registerTemplates({
   },
 });
 
-// Job enqueueing
-const jobId = await context.enqueueJob(
+// Job enqueueing via namespace
+const jobId = await context.jobs.enqueue(
   "process-data",
   { entityId: "123" },
+  toolContext, // or null for background jobs
   { priority: 5 },
 );
 ```
@@ -759,29 +778,30 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
   private siteContentService?: SiteContentService;
 
-  protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     // Register entity types for content
-    context.registerEntityType(
+    context.entities.register(
       "site-content",
       siteContentSchema,
-      siteContentAdapter
+      siteContentAdapter,
     );
 
-    // Register templates and routes
-    context.registerTemplates({ dashboard: dashboardTemplate });
-    context.registerRoutes([...]);
+    // Register templates
+    context.templates.register({ dashboard: dashboardTemplate });
 
     // Initialize services
     this.siteBuilder = SiteBuilder.getInstance(
       this.logger.child("SiteBuilder"),
-      context
+      context,
     );
 
     this.siteContentService = new SiteContentService(
       this.logger.child("SiteContentService"),
       context,
       this.id,
-      this.config.siteConfig
+      this.config.siteConfig,
     );
   }
 }
@@ -962,19 +982,20 @@ Tools can report progress for long-running operations:
 For long-running operations, consider using the job queue:
 
 ```typescript
-// In your tool handler
-const jobId = await context.enqueueJob(
+// In your tool handler (context here is ServicePluginContext)
+const jobId = await context.jobs.enqueue(
   "site-build",
   {
     environment: "production",
     clean: true,
   },
+  toolContext, // Pass ToolContext from tool handler, or null for background jobs
   {
     priority: 5,
     source: `plugin:${pluginId}`,
     metadata: {
-      interfaceId: context?.interfaceId ?? "plugin",
-      userId: context?.userId ?? "system",
+      interfaceId: toolContext?.interfaceId ?? "plugin",
+      userId: toolContext?.userId ?? "system",
       operationType: "site_building",
       pluginId,
     },

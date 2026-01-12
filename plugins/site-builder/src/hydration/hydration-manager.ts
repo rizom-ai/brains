@@ -163,7 +163,7 @@ export class HydrationManager {
             hydrationScripts += `\n<script src="/${templateName}-hydration.js"></script>`;
 
             // Get the plugin package name for hydration script resolution
-            const packageName = this.pluginContext.getPluginPackageName(
+            const packageName = this.pluginContext.plugins.getPackageName(
               template.pluginId,
             );
             if (!packageName) {

@@ -61,13 +61,13 @@ export class MyServicePlugin extends ServicePlugin {
 
   protected async onRegister(context: ServicePluginContext) {
     // Register entity types
-    context.registerEntityType("mytype", schema, adapter);
+    context.entities.register("mytype", schema, adapter);
 
     // Register templates for content generation
-    context.registerTemplates({ "my-template": template });
+    context.templates.register({ "my-template": template });
 
     // Register job handlers
-    context.registerJobHandler("process", async (job) => {
+    context.jobs.registerHandler("process", async (job) => {
       // Handle background job
     });
   }
@@ -85,7 +85,7 @@ import type { InterfacePluginContext } from "@brains/plugins";
 export class MyInterface extends InterfacePlugin {
   protected async onRegister(context: InterfacePluginContext) {
     // Register daemon for the interface
-    context.registerDaemon("server", {
+    context.daemons.register("server", {
       start: async () => {
         /* Start server */
       },
@@ -140,26 +140,44 @@ interface CorePluginContext {
   entityService: ICoreEntityService; // Read-only entity access
 
   // Brain identity and owner profile
-  getIdentity(): IdentityBody;
-  getProfile(): ProfileBody;
+  identity: {
+    get(): IdentityBody;
+    getProfile(): ProfileBody;
+    getAppInfo(): Promise<AppInfo>;
+  };
 
   // Inter-plugin messaging
-  sendMessage(channel, payload): Promise<Response>;
-  subscribe(channel, handler): () => void;
+  messaging: {
+    send(channel, payload): Promise<Response>;
+    subscribe(channel, handler): () => void;
+  };
 
   // Template operations
-  formatContent(template, data): string;
-  parseContent(template, content): T;
-  registerTemplates(templates): void;
+  templates: {
+    register(templates): void;
+    format(template, data): string;
+    parse(template, content): T;
+  };
 
   // Conversations (read-only)
-  getConversation(id): Promise<Conversation | null>;
-  searchConversations(query): Promise<Conversation[]>;
-  getMessages(conversationId, options?): Promise<Message[]>;
+  conversations: {
+    get(id): Promise<Conversation | null>;
+    search(query): Promise<Conversation[]>;
+    getMessages(conversationId, options?): Promise<Message[]>;
+  };
+
+  // AI operations
+  ai: {
+    query(prompt, context?): Promise<DefaultQueryResponse>;
+  };
 
   // Job monitoring (read-only)
-  getActiveJobs(types?): Promise<JobInfo[]>;
-  getBatchStatus(batchId): Promise<BatchJobStatus | null>;
+  jobs: {
+    getActive(types?): Promise<JobInfo[]>;
+    getActiveBatches(): Promise<Batch[]>;
+    getBatchStatus(batchId): Promise<BatchJobStatus | null>;
+    getStatus(jobId): Promise<JobInfo | null>;
+  };
 }
 ```
 
@@ -169,20 +187,52 @@ Extends CorePluginContext with write operations:
 
 ```typescript
 interface ServicePluginContext extends CorePluginContext {
+  entityService: IEntityService; // Full entity service
+
   // Entity management
-  registerEntityType(type, schema, adapter): void;
-  createEntity(entity): Promise<{ entityId; jobId }>;
-  updateEntity(entity): Promise<{ entityId; jobId }>;
+  entities: {
+    register(type, schema, adapter, config?): void;
+    getAdapter(type): EntityAdapter | undefined;
+    update(entity): Promise<{ entityId; jobId }>;
+    registerDataSource(dataSource): void;
+  };
 
-  // Job queue
-  enqueueJob(type, data, toolContext, options?): Promise<string>;
-  registerJobHandler(type, handler): void;
+  // Job queue (extends core jobs)
+  jobs: CorePluginContext["jobs"] & {
+    enqueue(type, data, toolContext, options?): Promise<string>;
+    enqueueBatch(operations, options?): Promise<string>;
+    registerHandler(type, handler): void;
+  };
 
-  // AI content generation
-  generateContent<T>(config): Promise<T>;
+  // AI operations (extends core ai)
+  ai: CorePluginContext["ai"] & {
+    generate<T>(config): Promise<T>;
+    generateImage(prompt, options?): Promise<ImageGenerationResult>;
+    canGenerateImages(): boolean;
+  };
 
-  // DataSource registration
-  registerDataSource(id, dataSource): void;
+  // Templates (extends core templates)
+  templates: CorePluginContext["templates"] & {
+    resolve<T>(templateName, options?): Promise<T | null>;
+    getCapabilities(templateName): TemplateCapabilities | null;
+  };
+
+  // View templates
+  views: {
+    get(name): ViewTemplate | undefined;
+    list(): ViewTemplate[];
+    getRenderService(): RenderService;
+  };
+
+  // Plugin metadata
+  plugins: {
+    getPackageName(pluginId): string | undefined;
+  };
+
+  // Evaluation
+  eval: {
+    registerHandler(handlerId, handler): void;
+  };
 }
 ```
 
@@ -192,21 +242,31 @@ Extends CorePluginContext with interface-specific operations:
 
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
+  mcpTransport: IMCPTransport;
+  agentService: IAgentService;
+
   // Permission checking
-  getUserPermissionLevel(interfaceType, userId): UserPermissionLevel;
+  permissions: {
+    getUserLevel(interfaceType, userId): UserPermissionLevel;
+  };
 
   // Daemon management
-  registerDaemon(name, daemon): void;
+  daemons: {
+    register(name, daemon): void;
+  };
 
-  // Job queue (for spawning background work)
-  enqueueJob(type, data, toolContext, options?): Promise<string>;
+  // Job queue (extends core jobs)
+  jobs: CorePluginContext["jobs"] & {
+    enqueue(type, data, toolContext, options?): Promise<string>;
+    enqueueBatch(operations, options?): Promise<string>;
+    registerHandler(type, handler): void;
+  };
 
-  // Conversation management (write operations)
-  startConversation(id, interfaceType, channelId, metadata): Promise<string>;
-  addMessage(conversationId, role, content, metadata?): Promise<void>;
-
-  // Agent service for AI interaction
-  agentService: IAgentService;
+  // Conversations (extends core with write operations)
+  conversations: CorePluginContext["conversations"] & {
+    start(id, interfaceType, channelId, metadata): Promise<string>;
+    addMessage(conversationId, role, content, metadata?): Promise<void>;
+  };
 }
 ```
 

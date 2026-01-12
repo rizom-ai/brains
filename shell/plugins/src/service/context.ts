@@ -123,6 +123,15 @@ export interface IEvalNamespace {
 }
 
 /**
+ * Plugins namespace for ServicePluginContext
+ * Provides plugin metadata access
+ */
+export interface IPluginsNamespace {
+  /** Get package name for a plugin */
+  getPackageName: (pluginId: string) => string | undefined;
+}
+
+/**
  * Context interface for service plugins
  * Extends CorePluginContext with entity management, job queuing, and AI generation
  *
@@ -219,8 +228,11 @@ export interface ServicePluginContext extends CorePluginContext {
   // Plugin Metadata
   // ============================================================================
 
-  /** Get package name for a plugin */
-  getPluginPackageName: (pluginId: string) => string | undefined;
+  /**
+   * Plugins namespace for plugin metadata access
+   * - `plugins.getPackageName()` - Get package name for a plugin
+   */
+  readonly plugins: IPluginsNamespace;
 
   /** Data directory for storing entity files */
   readonly dataDir: string;
@@ -425,9 +437,11 @@ export function createServicePluginContext(
       },
     },
 
-    // Plugin metadata
-    getPluginPackageName: (targetPluginId: string): string | undefined => {
-      return shell.getPluginPackageName(targetPluginId);
+    // Plugins namespace
+    plugins: {
+      getPackageName: (targetPluginId: string): string | undefined => {
+        return shell.getPluginPackageName(targetPluginId);
+      },
     },
 
     // Data directory

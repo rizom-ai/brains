@@ -84,44 +84,148 @@ This eliminates timing issues that would occur with event-based registration.
 
 ## Plugin Context
 
-Plugins receive a typed context object based on their plugin type:
+Plugins receive a typed context object based on their plugin type. Context objects are organized into namespaces for better discoverability and maintainability.
 
 ### CorePluginContext
 
+Base context available to all plugins with read-only operations:
+
 ```typescript
 interface CorePluginContext {
-  shell: Shell;
-  entityService: IEntityService;
-  aiService: IAIService;
-  messageBus: IMessageBus;
-  commandRegistry: ICommandRegistry;
-  mcpService: IMCPService;
-  jobQueue: IJobQueueService;
-  contentService: IContentService;
-  conversationService: IConversationService;
-  identityService: IIdentityService;
-  permissionService: IPermissionService;
-  embeddingService: IEmbeddingService;
-  datasourceRegistry: IDatasourceRegistry;
-  templateRegistry: ITemplateRegistry;
+  // Direct properties
+  pluginId: string;
   logger: Logger;
+  entityService: ICoreEntityService; // Read-only entity access
+
+  // Brain identity and owner profile
+  identity: {
+    get(): IdentityBody;
+    getProfile(): ProfileBody;
+    getAppInfo(): Promise<AppInfo>;
+  };
+
+  // Inter-plugin messaging
+  messaging: {
+    send(channel, payload): Promise<Response>;
+    subscribe(channel, handler): () => void;
+  };
+
+  // Template operations
+  templates: {
+    register(templates): void;
+    format(template, data): string;
+    parse(template, content): T;
+  };
+
+  // Conversations (read-only)
+  conversations: {
+    get(id): Promise<Conversation | null>;
+    search(query): Promise<Conversation[]>;
+    getMessages(conversationId, options?): Promise<Message[]>;
+  };
+
+  // AI operations
+  ai: {
+    query(prompt, context?): Promise<DefaultQueryResponse>;
+  };
+
+  // Job monitoring (read-only)
+  jobs: {
+    getActive(types?): Promise<JobInfo[]>;
+    getActiveBatches(): Promise<Batch[]>;
+    getBatchStatus(batchId): Promise<BatchJobStatus | null>;
+    getStatus(jobId): Promise<JobInfo | null>;
+  };
 }
 ```
 
 ### ServicePluginContext
 
+Extended context for plugins that manage entities and background jobs:
+
 ```typescript
 interface ServicePluginContext extends CorePluginContext {
-  serviceRegistry: IServiceRegistry;
+  entityService: IEntityService; // Full entity service
+  dataDir: string;
+
+  // Entity management
+  entities: {
+    register(type, schema, adapter, config?): void;
+    getAdapter(type): EntityAdapter | undefined;
+    update(entity): Promise<{ entityId; jobId }>;
+    registerDataSource(dataSource): void;
+  };
+
+  // Job queue (extends core jobs)
+  jobs: CorePluginContext["jobs"] & {
+    enqueue(type, data, toolContext, options?): Promise<string>;
+    enqueueBatch(operations, options?): Promise<string>;
+    registerHandler(type, handler): void;
+  };
+
+  // AI operations (extends core ai)
+  ai: CorePluginContext["ai"] & {
+    generate<T>(config): Promise<T>;
+    generateImage(prompt, options?): Promise<ImageGenerationResult>;
+    canGenerateImages(): boolean;
+  };
+
+  // Templates (extends core templates)
+  templates: CorePluginContext["templates"] & {
+    resolve<T>(templateName, options?): Promise<T | null>;
+    getCapabilities(templateName): TemplateCapabilities | null;
+  };
+
+  // View templates
+  views: {
+    get(name): ViewTemplate | undefined;
+    list(): ViewTemplate[];
+    getRenderService(): RenderService;
+  };
+
+  // Plugin metadata
+  plugins: {
+    getPackageName(pluginId): string | undefined;
+  };
+
+  // Evaluation
+  eval: {
+    registerHandler(handlerId, handler): void;
+  };
 }
 ```
 
 ### InterfacePluginContext
 
+Context for plugins providing user interfaces:
+
 ```typescript
 interface InterfacePluginContext extends CorePluginContext {
-  daemonRegistry: IDaemonRegistry;
-  renderService: IRenderService;
+  mcpTransport: IMCPTransport;
+  agentService: IAgentService;
+
+  // Permission checking
+  permissions: {
+    getUserLevel(interfaceType, userId): UserPermissionLevel;
+  };
+
+  // Daemon management
+  daemons: {
+    register(name, daemon): void;
+  };
+
+  // Job queue (extends core jobs)
+  jobs: CorePluginContext["jobs"] & {
+    enqueue(type, data, toolContext, options?): Promise<string>;
+    enqueueBatch(operations, options?): Promise<string>;
+    registerHandler(type, handler): void;
+  };
+
+  // Conversations (extends core with write operations)
+  conversations: CorePluginContext["conversations"] & {
+    start(id, interfaceType, channelId, metadata): Promise<string>;
+    addMessage(conversationId, role, content, metadata?): Promise<void>;
+  };
 }
 ```
 

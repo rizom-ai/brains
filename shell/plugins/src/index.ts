@@ -22,6 +22,7 @@ export type {
   IServiceAINamespace,
   IViewsNamespace,
   IEvalNamespace,
+  IPluginsNamespace,
 } from "./service/context";
 export { createServicePluginContext } from "./service/context";
 

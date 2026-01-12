@@ -86,43 +86,33 @@ const myToolSchema = z.object({
 });
 
 // 3. Implement plugin class
-export class MyPlugin extends CorePlugin {
-  public readonly name = "my-plugin";
-  public readonly version = "1.0.0";
-
-  private config: PluginConfig;
-  private context!: CorePluginContext;
-
+export class MyPlugin extends ServicePlugin<PluginConfig> {
   constructor(config?: Partial<PluginConfig>) {
-    super();
-    this.config = configSchema.parse(config ?? {});
+    super("my-plugin", packageJson, config, configSchema);
   }
 
-  async register(context: CorePluginContext): Promise<PluginCapabilities> {
-    this.context = context;
-    const { logger, entityService, messageBus } = context;
-
-    // Register entity adapter if plugin manages entities
-    if (this.hasEntities()) {
-      entityService.registerEntityAdapter(new MyEntityAdapter());
-    }
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    // Register entity type if plugin manages entities
+    context.entities.register("my-type", myEntitySchema, new MyEntityAdapter());
 
     // Subscribe to relevant events
-    messageBus.subscribe("entity:created", this.handleEntityCreated.bind(this));
+    context.messaging.subscribe(
+      "entity:created",
+      this.handleEntityCreated.bind(this),
+    );
+  }
 
-    // Return capabilities
-    return {
-      tools: [
-        {
-          name: "my_tool",
-          description: "Clear, concise description of what this tool does",
-          inputSchema: myToolSchema,
-          handler: this.handleMyTool.bind(this),
-        },
-      ],
-      resources: [],
-      handlers: [],
-    };
+  protected override async getTools(): Promise<PluginTool[]> {
+    return [
+      {
+        name: `${this.id}:my_tool`,
+        description: "Clear, concise description of what this tool does",
+        inputSchema: myToolSchema,
+        handler: this.handleMyTool.bind(this),
+      },
+    ];
   }
 
   private async handleMyTool(
@@ -135,11 +125,6 @@ export class MyPlugin extends CorePlugin {
 
   private async handleEntityCreated(payload: unknown): Promise<void> {
     // Event handler implementation
-  }
-
-  private hasEntities(): boolean {
-    // Check if this plugin manages entities
-    return false;
   }
 }
 ```
@@ -194,24 +179,30 @@ export class MyEntityAdapter implements EntityAdapter<MyEntity> {
 }
 ```
 
-### Message Bus Integration
+### Messaging Namespace
 
-**Use events for cross-plugin communication:**
+**Use messaging for cross-plugin communication:**
 
 ```typescript
 // Define event constants
 export const MY_EVENT = "my-plugin:event";
 
-// Publish events
-await this.context.messageBus.publish(MY_EVENT, {
+// Send messages to other plugins
+await context.messaging.send(MY_EVENT, {
   entityId: entity.id,
   action: "processed",
 });
 
-// Subscribe to events
-this.context.messageBus.subscribe(OTHER_EVENT, async (payload) => {
-  await this.processEvent(payload);
-});
+// Subscribe to events from other plugins
+const unsubscribe = context.messaging.subscribe(
+  OTHER_EVENT,
+  async (payload) => {
+    await this.processEvent(payload);
+    return { success: true };
+  },
+);
+
+// Remember to unsubscribe in shutdown
 ```
 
 ### Error Handling Requirements
@@ -260,88 +251,82 @@ export class ChatInterface extends MessageInterfacePlugin {
 **Standard implementation structure:**
 
 ```typescript
-export class MyInterface extends MessageInterfacePlugin {
-  public readonly name = "my-interface";
-  public readonly version = "1.0.0";
+export class MyInterface extends MessageInterfacePlugin<MyConfig> {
+  constructor(config?: MyConfig) {
+    super("my-interface", packageJson, config, myConfigSchema);
+  }
 
-  private conversationId?: string;
+  protected override async onRegister(
+    context: InterfacePluginContext,
+  ): Promise<void> {
+    // Register daemon for long-running process via createDaemon()
+    // The base class handles registration automatically
+  }
 
-  async register(context: InterfacePluginContext): Promise<PluginCapabilities> {
-    const { conversationService, commandRegistry } = context;
-
-    // Register daemon for long-running process
-    const daemon = {
-      name: `${this.name}-daemon`,
+  protected override createDaemon(): Daemon | undefined {
+    return {
       start: this.startDaemon.bind(this),
       stop: this.stopDaemon.bind(this),
-    };
-
-    context.daemonRegistry.registerDaemon(daemon);
-
-    return {
-      daemons: [daemon],
+      healthCheck: async () => ({ status: "healthy", ... }),
     };
   }
 
   async processInput(input: string): Promise<void> {
-    // Start conversation if needed
-    if (!this.conversationId) {
-      this.conversationId = await this.startConversation();
-    }
+    // Start conversation if needed using namespace
+    const conversationId = await this.context.conversations.start(
+      createId(),
+      "my-interface",
+      this.getChannelId(),
+      { userId: this.getUserId() },
+    );
 
-    // Execute through shell
-    const result = await this.context.shell.processQuery(
+    // Execute through agent service
+    const result = await this.context.agentService.processQuery(
       input,
-      this.conversationId,
+      conversationId,
       {
-        interfaceType: this.name,
+        interfaceType: "my-interface",
         userId: this.getUserId(),
       },
     );
 
+    // Add assistant response to conversation
+    await this.context.conversations.addMessage(
+      conversationId,
+      "assistant",
+      result.content,
+    );
+
     // Display result
     await this.displayResult(result);
-  }
-
-  private async startConversation(): Promise<string> {
-    return this.context.conversationService.startConversation(
-      this.name,
-      this.getUserId(),
-      "interface",
-      { channelName: this.getChannelName() },
-    );
   }
 }
 ```
 
 ### Conversation Management
 
-**ALWAYS track conversations properly:**
+**ALWAYS track conversations properly using the conversations namespace:**
 
 ```typescript
 // Start conversation with proper metadata
-const conversationId = await conversationService.startConversation(
-  interfaceId, // Your interface ID
-  userId, // User identifier
-  "interface", // Fixed string
+const conversationId = await context.conversations.start(
+  createId(), // Unique conversation ID
+  interfaceType, // Your interface type (e.g., "cli", "matrix")
+  channelId, // Channel identifier
   {
+    userId: userId,
     channelName: channelName, // Human-readable channel name
-    metadata: additionalData, // Optional extra data
   },
 );
 
 // Add messages to conversation
-await conversationService.addMessage({
-  conversationId,
-  role: "user",
-  content: userInput,
-});
+await context.conversations.addMessage(conversationId, "user", userInput);
 
-await conversationService.addMessage({
-  conversationId,
-  role: "assistant",
-  content: response,
-});
+await context.conversations.addMessage(conversationId, "assistant", response);
+
+// Read conversation history (available in all plugin types)
+const conversation = await context.conversations.get(conversationId);
+const messages = await context.conversations.getMessages(conversationId);
 ```
 
 ## Testing Requirements
@@ -551,51 +536,90 @@ plugins/my-plugin/
 ```typescript
 // For plugins
 import {
+  ServicePlugin,
   CorePlugin,
+  type ServicePluginContext,
   type CorePluginContext,
-  type PluginCapabilities,
+  type PluginTool,
+  createTool,
 } from "@brains/plugins";
-import { z } from "zod";
-import { nanoid } from "nanoid";
-import matter from "gray-matter";
+import { z, createId } from "@brains/utils";
 
 // For interfaces
 import {
+  InterfacePlugin,
   MessageInterfacePlugin,
   type InterfacePluginContext,
 } from "@brains/plugins";
-import { InterfacePlugin } from "@brains/plugins";
 
 // For testing
 import { createCorePluginHarness } from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { createInterfacePluginHarness } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 ```
 
-### Context Services Available
+### Context Namespaces Available
+
+All context methods are organized into logical namespaces for better discoverability.
 
 **CorePluginContext:**
 
-- `shell` - Shell instance
-- `entityService` - Entity CRUD operations
-- `aiService` - AI text/object generation
-- `messageBus` - Event publishing/subscribing
-- `commandRegistry` - Command registration
-- `mcpService` - MCP tool/resource registration
-- `jobQueue` - Background job processing
-- `contentService` - Template-based content
-- `conversationService` - Conversation management
-- `identityService` - User identity
-- `permissionService` - Access control
-- `embeddingService` - Text embeddings
-- `datasourceRegistry` - Data source registration
-- `templateRegistry` - Template management
 - `logger` - Logging service
+- `entityService` - Read-only entity service
+- `identity.*` - Brain identity and profile access
+  - `get()` - Get brain identity
+  - `getProfile()` - Get owner profile
+  - `getAppInfo()` - Get app version info
+- `ai.query()` - AI query operations
+- `conversations.*` - Read-only conversation access
+  - `get(id)` - Get conversation
+  - `search(query)` - Search conversations
+  - `getMessages(id)` - Get messages
+- `templates.*` - Template operations
+  - `register(templates)` - Register templates
+  - `format(name, data)` - Format content
+  - `parse(name, content)` - Parse content
+- `messaging.*` - Inter-plugin communication
+  - `send(channel, payload)` - Send message
+  - `subscribe(channel, handler)` - Subscribe to messages
+- `jobs.*` - Job monitoring (read-only)
+  - `getActive()` - Get active jobs
+  - `getStatus(id)` - Get job status
+
+**ServicePluginContext (extends CorePluginContext):**
+
+- `entityService` - Full entity CRUD service
+- `entities.*` - Entity management
+  - `register(type, schema, adapter)` - Register entity type
+  - `getAdapter(type)` - Get adapter
+  - `update(entity)` - Update entity
+  - `registerDataSource(ds)` - Register data source
+- `ai.*` - Extended AI operations
+  - `generate(config)` - Generate content
+  - `generateImage(prompt)` - Generate images
+- `templates.*` - Extended template operations
+  - `resolve(name, options)` - Resolve content
+  - `getCapabilities(name)` - Get capabilities
+- `jobs.*` - Extended job operations
+  - `enqueue(type, data, ctx, opts)` - Enqueue job
+  - `registerHandler(type, handler)` - Register handler
+- `views.*` - View template access
+- `plugins.*` - Plugin metadata
+- `eval.*` - Evaluation handlers
 
 **InterfacePluginContext (extends CorePluginContext):**
 
-- `daemonRegistry` - Long-running process management
-- `renderService` - View rendering
+- `mcpTransport` - MCP transport access
+- `agentService` - Agent service for queries
+- `permissions.*` - Permission checking
+  - `getUserLevel(interface, userId)` - Get user level
+- `daemons.*` - Daemon management
+  - `register(name, daemon)` - Register daemon
+- `jobs.*` - Extended job operations (same as Service)
+- `conversations.*` - Extended with write operations
+  - `start(id, type, channelId, meta)` - Start conversation
+  - `addMessage(convId, role, content)` - Add message
 
 ## Getting Help
 

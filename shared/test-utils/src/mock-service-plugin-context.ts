@@ -168,8 +168,10 @@ export function createMockServicePluginContext(
       getRenderService: mock(() => ({})),
     },
 
-    // Plugin metadata
-    getPluginPackageName: mock(() => undefined),
+    // Plugins namespace
+    plugins: {
+      getPackageName: mock(() => undefined),
+    },
 
     // Eval namespace
     eval: {
