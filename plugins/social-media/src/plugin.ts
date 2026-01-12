@@ -148,7 +148,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       platform: z.enum(["linkedin"]).default("linkedin"),
     });
 
-    context.registerEvalHandler("generation", async (input: unknown) => {
+    context.eval.registerHandler("generation", async (input: unknown) => {
       const parsed = generationInputSchema.parse(input);
 
       const generationPrompt = parsed.content

@@ -131,7 +131,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
       year: z.number(),
     });
 
-    context.registerEvalHandler("generateProject", async (input: unknown) => {
+    context.eval.registerHandler("generateProject", async (input: unknown) => {
       const parsed = generateProjectInputSchema.parse(input);
 
       return context.ai.generate<{

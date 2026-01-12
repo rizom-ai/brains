@@ -114,6 +114,15 @@ export interface IServiceAINamespace extends IAINamespace {
 }
 
 /**
+ * Eval namespace for ServicePluginContext
+ * Provides methods for registering evaluation handlers for plugin testing
+ */
+export interface IEvalNamespace {
+  /** Register an eval handler for plugin testing */
+  registerHandler: (handlerId: string, handler: EvalHandler) => void;
+}
+
+/**
  * Context interface for service plugins
  * Extends CorePluginContext with entity management, job queuing, and AI generation
  *
@@ -220,8 +229,11 @@ export interface ServicePluginContext extends CorePluginContext {
   // Evaluation
   // ============================================================================
 
-  /** Register an eval handler for plugin testing */
-  registerEvalHandler: (handlerId: string, handler: EvalHandler) => void;
+  /**
+   * Eval namespace for plugin testing
+   * - `eval.registerHandler()` - Register an eval handler for plugin testing
+   */
+  readonly eval: IEvalNamespace;
 }
 
 /**
@@ -421,9 +433,11 @@ export function createServicePluginContext(
     // Data directory
     dataDir: shell.getDataDir(),
 
-    // Eval handler registration - automatically scopes to this plugin
-    registerEvalHandler: (handlerId: string, handler: EvalHandler): void => {
-      shell.registerEvalHandler(pluginId, handlerId, handler);
+    // Eval namespace - automatically scopes to this plugin
+    eval: {
+      registerHandler: (handlerId: string, handler: EvalHandler): void => {
+        shell.registerEvalHandler(pluginId, handlerId, handler);
+      },
     },
   };
 }

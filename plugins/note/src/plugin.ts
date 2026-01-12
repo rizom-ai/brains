@@ -64,7 +64,7 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
       prompt: z.string(),
     });
 
-    context.registerEvalHandler("generateNote", async (input: unknown) => {
+    context.eval.registerHandler("generateNote", async (input: unknown) => {
       const parsed = generateNoteInputSchema.parse(input);
 
       return context.ai.generate<{

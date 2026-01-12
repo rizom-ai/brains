@@ -282,7 +282,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       seriesName: z.string().optional(),
     });
 
-    context.registerEvalHandler("generatePost", async (input: unknown) => {
+    context.eval.registerHandler("generatePost", async (input: unknown) => {
       const parsed = generatePostInputSchema.parse(input);
       const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
 
@@ -302,7 +302,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       content: z.string(),
     });
 
-    context.registerEvalHandler("generateExcerpt", async (input: unknown) => {
+    context.eval.registerHandler("generateExcerpt", async (input: unknown) => {
       const parsed = generateExcerptInputSchema.parse(input);
 
       return context.ai.generate<{

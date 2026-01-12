@@ -358,12 +358,15 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       minRelevanceScore: z.number().optional(),
     });
 
-    context.registerEvalHandler("extractFromEntity", async (input: unknown) => {
-      const parsed = extractInputSchema.parse(input);
-      const minScore =
-        parsed.minRelevanceScore ?? this.config.minRelevanceScore;
-      return extractTopics(parsed, minScore);
-    });
+    context.eval.registerHandler(
+      "extractFromEntity",
+      async (input: unknown) => {
+        const parsed = extractInputSchema.parse(input);
+        const minScore =
+          parsed.minRelevanceScore ?? this.config.minRelevanceScore;
+        return extractTopics(parsed, minScore);
+      },
+    );
 
     // Merge similarity check - tests if two pieces of content produce matching topics
     const mergeTestInputSchema = z.object({
@@ -372,7 +375,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       minRelevanceScore: z.number().optional(),
     });
 
-    context.registerEvalHandler(
+    context.eval.registerHandler(
       "checkMergeSimilarity",
       async (input: unknown) => {
         const parsed = mergeTestInputSchema.parse(input);

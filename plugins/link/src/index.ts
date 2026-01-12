@@ -67,7 +67,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     context.jobs.registerHandler("capture", linkCaptureHandler);
 
     // Register eval handler for testing extraction quality
-    context.registerEvalHandler("extractContent", async (input: unknown) => {
+    context.eval.registerHandler("extractContent", async (input: unknown) => {
       const { url } = extractContentInputSchema.parse(input);
 
       // Fetch URL content

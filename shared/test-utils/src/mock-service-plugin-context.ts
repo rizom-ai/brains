@@ -170,7 +170,11 @@ export function createMockServicePluginContext(
 
     // Plugin metadata
     getPluginPackageName: mock(() => undefined),
-    registerEvalHandler: mock(() => {}),
+
+    // Eval namespace
+    eval: {
+      registerHandler: mock(() => {}),
+    },
 
     // Messaging namespace
     messaging: {

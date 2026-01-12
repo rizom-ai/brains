@@ -181,7 +181,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       event: z.string().optional(),
     });
 
-    context.registerEvalHandler("generateDeck", async (input: unknown) => {
+    context.eval.registerHandler("generateDeck", async (input: unknown) => {
       const parsed = generateDeckInputSchema.parse(input);
       const generationPrompt = `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`;
 
@@ -201,7 +201,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       content: z.string(),
     });
 
-    context.registerEvalHandler(
+    context.eval.registerHandler(
       "generateDescription",
       async (input: unknown) => {
         const parsed = generateDescriptionInputSchema.parse(input);
