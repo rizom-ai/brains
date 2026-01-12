@@ -138,7 +138,7 @@ export class LinkService {
     }
 
     // Extract content with AI
-    const extractionResult = await this.context.generateContent({
+    const extractionResult = await this.context.ai.generate({
       templateName: "link:extraction",
       prompt: fetchResult.success
         ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`

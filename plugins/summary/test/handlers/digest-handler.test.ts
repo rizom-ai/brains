@@ -114,17 +114,17 @@ describe("DigestHandler", () => {
       });
 
       // Mock content generation for AI decision and summary
-      const generateContentSpy = spyOn(context, "generateContent");
+      const generateSpy = spyOn(context.ai, "generate");
 
       // First call returns the decision
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Project assistance discussion",
         reasoning: "First conversation about project help",
       });
 
       // Second call returns the summary content
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         content:
           "User requested help with their project. Assistant offered to provide assistance.",
         keyPoints: ["User needs project help", "Assistant ready to assist"],
@@ -213,7 +213,7 @@ User asked about project setup
       });
 
       // Mock content generation - single AI call returns both decision and content
-      spyOn(context, "generateContent").mockResolvedValue({
+      spyOn(context.ai, "generate").mockResolvedValue({
         action: "update",
         index: 0,
         title: "Initial discussion",
@@ -326,17 +326,17 @@ Window End: 50
       });
 
       // Mock content generation for AI decision and summary
-      const generateContentSpy = spyOn(context, "generateContent");
+      const generateSpy = spyOn(context.ai, "generate");
 
       // First call returns the decision for new entry
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Testing discussion",
         reasoning: "New topic introduced",
       });
 
       // Second call returns the summary content
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         content:
           "User wants to learn about testing. Assistant is ready to help.",
         keyPoints: ["Testing discussion"],
@@ -425,15 +425,15 @@ Window End: 50
       });
 
       // Mock content generation for empty messages
-      const generateContentSpy = spyOn(context, "generateContent");
+      const generateSpy = spyOn(context.ai, "generate");
 
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Empty conversation",
         reasoning: "No messages to summarize",
       });
 
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         content: "No conversation content available.",
         keyPoints: [],
         decisions: [],
@@ -494,15 +494,15 @@ Window End: 50
         updated: "2025-01-01T00:00:00Z",
       });
 
-      const generateContentSpy = spyOn(context, "generateContent");
+      const generateSpy = spyOn(context.ai, "generate");
 
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         decision: "new",
         title: "Continuation",
         reasoning: "New content",
       });
 
-      generateContentSpy.mockResolvedValueOnce({
+      generateSpy.mockResolvedValueOnce({
         content: "More discussion content.",
         keyPoints: [],
         decisions: [],

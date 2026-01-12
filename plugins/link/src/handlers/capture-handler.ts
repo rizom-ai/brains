@@ -151,7 +151,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
       });
 
       const extractionResult =
-        await this.context.generateContent<LinkExtractionResult>({
+        await this.context.ai.generate<LinkExtractionResult>({
           templateName: "link:extraction",
           prompt: fetchResult.success
             ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`

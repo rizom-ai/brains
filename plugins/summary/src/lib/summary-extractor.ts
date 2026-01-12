@@ -136,7 +136,7 @@ Respond with a JSON object with these fields:
 - summary: Natural paragraph summarizing the conversation`;
 
     try {
-      const response = await this.context.generateContent<AiResponse>({
+      const response = await this.context.ai.generate<AiResponse>({
         prompt,
         templateName: "summary:ai-response",
         data: {

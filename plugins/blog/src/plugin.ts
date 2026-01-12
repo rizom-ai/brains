@@ -286,7 +286,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       const parsed = generatePostInputSchema.parse(input);
       const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;
 
-      return context.generateContent<{
+      return context.ai.generate<{
         title: string;
         content: string;
         excerpt: string;
@@ -305,7 +305,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     context.registerEvalHandler("generateExcerpt", async (input: unknown) => {
       const parsed = generateExcerptInputSchema.parse(input);
 
-      return context.generateContent<{
+      return context.ai.generate<{
         excerpt: string;
       }>({
         prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,

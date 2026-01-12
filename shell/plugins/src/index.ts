@@ -7,6 +7,7 @@ export type {
   CorePluginContext,
   ITemplatesNamespace,
   IMessagingNamespace,
+  IAINamespace,
 } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 
@@ -16,6 +17,7 @@ export type {
   ServicePluginContext,
   IEntitiesNamespace,
   IServiceTemplatesNamespace,
+  IServiceAINamespace,
 } from "./service/context";
 export { createServicePluginContext } from "./service/context";
 

@@ -134,7 +134,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
     context.registerEvalHandler("generateProject", async (input: unknown) => {
       const parsed = generateProjectInputSchema.parse(input);
 
-      return context.generateContent<{
+      return context.ai.generate<{
         title: string;
         description: string;
         context: string;

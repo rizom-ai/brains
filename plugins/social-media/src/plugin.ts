@@ -155,7 +155,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
         ? `Create an engaging LinkedIn post to share this content:\n\n${parsed.content}`
         : (parsed.prompt ?? "Write an engaging LinkedIn post");
 
-      return context.generateContent<{
+      return context.ai.generate<{
         content: string;
       }>({
         prompt: generationPrompt,

@@ -14,7 +14,7 @@ describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
   let mockContext: ServicePluginContext;
   let mockProgressReporter: ProgressReporter;
-  let generateContentSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let generateSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
@@ -100,10 +100,10 @@ Content`;
     });
 
     // Set up spies for mock methods
-    generateContentSpy = spyOn(
-      mockContext,
-      "generateContent",
-    ) as unknown as typeof generateContentSpy;
+    generateSpy = spyOn(
+      mockContext.ai,
+      "generate",
+    ) as unknown as typeof generateSpy;
     getEntitySpy = spyOn(
       mockContext.entityService,
       "getEntity",
@@ -161,7 +161,7 @@ Content`;
 
   describe("process - AI generates everything", () => {
     it("should generate title, content, and excerpt with AI", async () => {
-      generateContentSpy.mockResolvedValue({
+      generateSpy.mockResolvedValue({
         title: "AI Generated Title",
         content: "AI generated content here",
         excerpt: "AI generated excerpt",
@@ -178,7 +178,7 @@ Content`;
       expect(result.slug).toBe("ai-generated-title");
 
       // Verify AI generation was called
-      const generateCall = generateContentSpy.mock.calls[0];
+      const generateCall = generateSpy.mock.calls[0];
       expect(generateCall).toBeDefined();
       expect(
         (generateCall?.[0] as Record<string, unknown>)["prompt"],
@@ -191,7 +191,7 @@ Content`;
     it("should use default prompt when none provided", async () => {
       await handler.process({}, "job-123", mockProgressReporter);
 
-      const generateCall = generateContentSpy.mock.calls[0];
+      const generateCall = generateSpy.mock.calls[0];
       expect(
         (generateCall?.[0] as Record<string, unknown>)["prompt"],
       ).toContain("knowledge base");
@@ -207,7 +207,7 @@ Content`;
         mockProgressReporter,
       );
 
-      const generateCall = generateContentSpy.mock.calls[0];
+      const generateCall = generateSpy.mock.calls[0];
       expect(
         (generateCall?.[0] as Record<string, unknown>)["prompt"],
       ).toContain("AI Series");
@@ -235,7 +235,7 @@ Content`;
 
   describe("process - AI generates excerpt only", () => {
     it("should generate excerpt when title and content provided", async () => {
-      generateContentSpy.mockResolvedValue({
+      generateSpy.mockResolvedValue({
         excerpt: "AI generated excerpt",
       });
 
@@ -251,7 +251,7 @@ Content`;
       expect(result.success).toBe(true);
 
       // Verify excerpt generation was called
-      const generateCall = generateContentSpy.mock.calls[0];
+      const generateCall = generateSpy.mock.calls[0];
       expect(
         (generateCall?.[0] as Record<string, unknown>)["templateName"],
       ).toBe("blog:excerpt");
@@ -264,7 +264,7 @@ Content`;
     });
 
     it("should use generated excerpt in entity creation", async () => {
-      generateContentSpy.mockResolvedValue({
+      generateSpy.mockResolvedValue({
         excerpt: "Generated excerpt text",
       });
 
@@ -299,7 +299,7 @@ Content`;
       expect(result.title).toBe("My Title");
 
       // Verify no AI generation calls
-      expect(generateContentSpy.mock.calls.length).toBe(0);
+      expect(generateSpy.mock.calls.length).toBe(0);
     });
 
     it("should create entity with provided content", async () => {
@@ -590,7 +590,7 @@ Content`;
 
   describe("error handling", () => {
     it("should handle AI generation errors", async () => {
-      generateContentSpy.mockRejectedValue(new Error("AI service unavailable"));
+      generateSpy.mockRejectedValue(new Error("AI service unavailable"));
 
       const result = await handler.process(
         { prompt: "Test" },

@@ -111,7 +111,7 @@ export class GenerationJobHandler extends BaseJobHandler<
         const slug = parsed.success ? parsed.data.slug : sourceEntityId;
 
         // Generate post from source content using platform-specific template
-        const generated = await this.context.generateContent<{
+        const generated = await this.context.ai.generate<{
           content: string;
         }>({
           prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
@@ -139,7 +139,7 @@ ${sourceEntity.content}`,
         });
 
         // Generate post from prompt using platform-specific template
-        const generated = await this.context.generateContent<{
+        const generated = await this.context.ai.generate<{
           content: string;
         }>({
           prompt: prompt,

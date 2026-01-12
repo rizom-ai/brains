@@ -69,7 +69,7 @@ Content Type: ${entity.entityType}
 Content:
 ${entity.content}`;
 
-      const result = await this.context.generateContent<{
+      const result = await this.context.ai.generate<{
         topics: ExtractedTopicData[];
       }>({
         prompt,

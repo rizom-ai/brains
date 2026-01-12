@@ -109,8 +109,15 @@ export function createMockServicePluginContext(
       registerDataSource: mock(() => {}),
     },
 
-    // Content generation
-    generateContent: mock(() => Promise.resolve(returns.generateContent ?? {})),
+    // AI operations namespace
+    ai: {
+      query: mock(() => Promise.resolve({ message: "mock response" })),
+      generate: mock(() => Promise.resolve(returns.generateContent ?? {})),
+      generateImage: mock(() =>
+        Promise.resolve({ url: "mock-url", revisedPrompt: "mock prompt" }),
+      ),
+      canGenerateImages: mock(() => false),
+    },
 
     // Conversation
     searchConversations: mock(() => Promise.resolve([])),

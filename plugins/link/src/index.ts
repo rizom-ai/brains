@@ -87,7 +87,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
       }
 
       // Extract structured content using AI
-      return context.generateContent<LinkExtractionResult>({
+      return context.ai.generate<LinkExtractionResult>({
         templateName: "link:extraction",
         prompt: `Extract structured information from this webpage content:\n\n${fetchResult.content}`,
         data: { url, hasContent: true },

@@ -170,7 +170,7 @@ export class ImagePlugin
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.generateImage(prompt, options);
+    return this.context.ai.generateImage(prompt, options);
   }
 
   /**
@@ -180,7 +180,7 @@ export class ImagePlugin
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.canGenerateImages();
+    return this.context.ai.canGenerateImages();
   }
 
   /**

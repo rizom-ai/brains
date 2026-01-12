@@ -1,4 +1,8 @@
-import type { CorePluginContext, ITemplatesNamespace } from "../core/context";
+import type {
+  CorePluginContext,
+  ITemplatesNamespace,
+  IAINamespace,
+} from "../core/context";
 import type {
   IShell,
   ContentGenerationConfig,
@@ -82,6 +86,24 @@ export interface IServiceTemplatesNamespace extends ITemplatesNamespace {
 }
 
 /**
+ * Extended AI namespace for ServicePluginContext
+ * Includes base AI operations plus content and image generation
+ */
+export interface IServiceAINamespace extends IAINamespace {
+  /** Generate content using AI with template */
+  generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
+
+  /** Generate an image using AI (requires OPENAI_API_KEY) */
+  generateImage: (
+    prompt: string,
+    options?: ImageGenerationOptions,
+  ) => Promise<ImageGenerationResult>;
+
+  /** Check if image generation is available */
+  canGenerateImages: () => boolean;
+}
+
+/**
  * Context interface for service plugins
  * Extends CorePluginContext with entity management, job queuing, and AI generation
  *
@@ -110,20 +132,17 @@ export interface ServicePluginContext extends CorePluginContext {
   readonly entities: IEntitiesNamespace;
 
   // ============================================================================
-  // AI Generation
+  // AI Operations (extends CorePluginContext.ai)
   // ============================================================================
 
-  /** Generate content using AI with template */
-  generateContent: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
-
-  /** Generate an image using AI (requires OPENAI_API_KEY) */
-  generateImage: (
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ) => Promise<ImageGenerationResult>;
-
-  /** Check if image generation is available */
-  canGenerateImages: () => boolean;
+  /**
+   * Extended AI operations namespace
+   * Includes base operations plus:
+   * - `ai.generate()` - Generate content using AI with template
+   * - `ai.generateImage()` - Generate an image using AI
+   * - `ai.canGenerateImages()` - Check if image generation is available
+   */
+  readonly ai: IServiceAINamespace;
 
   // ============================================================================
   // Template Operations (extends CorePluginContext.templates)
@@ -257,22 +276,28 @@ export function createServicePluginContext(
       },
     },
 
-    // AI content generation
-    generateContent: async <T = unknown>(
-      config: ContentGenerationConfig,
-    ): Promise<T> => {
-      return shell.generateContent(config);
-    },
+    // AI operations namespace - extends coreContext.ai with generation capabilities
+    ai: {
+      // Base AI operation from core context
+      query: coreContext.ai.query,
 
-    // AI image generation
-    generateImage: async (
-      prompt: string,
-      options?: ImageGenerationOptions,
-    ): Promise<ImageGenerationResult> => {
-      return shell.generateImage(prompt, options);
-    },
-    canGenerateImages: (): boolean => {
-      return shell.canGenerateImages();
+      // Content generation
+      generate: async <T = unknown>(
+        config: ContentGenerationConfig,
+      ): Promise<T> => {
+        return shell.generateContent(config);
+      },
+
+      // Image generation
+      generateImage: async (
+        prompt: string,
+        options?: ImageGenerationOptions,
+      ): Promise<ImageGenerationResult> => {
+        return shell.generateImage(prompt, options);
+      },
+      canGenerateImages: (): boolean => {
+        return shell.canGenerateImages();
+      },
     },
 
     // Template operations namespace - extends coreContext.templates with resolve and getCapabilities

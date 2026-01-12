@@ -93,7 +93,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
       throw new Error("Plugin not registered");
     }
 
-    return this.context.query(prompt, context);
+    return this.context.ai.query(prompt, context);
   }
 
   /**

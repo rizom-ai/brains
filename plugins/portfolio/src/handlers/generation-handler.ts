@@ -83,11 +83,12 @@ export class ProjectGenerationJobHandler extends BaseJobHandler<
       });
 
       // Generate project content with AI
-      const generated =
-        await this.context.generateContent<GeneratedProjectContent>({
+      const generated = await this.context.ai.generate<GeneratedProjectContent>(
+        {
           prompt,
           templateName: "portfolio:generation",
-        });
+        },
+      );
 
       title = title ?? generated.title;
 

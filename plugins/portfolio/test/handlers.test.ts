@@ -106,7 +106,7 @@ describe("ProjectGenerationJobHandler", () => {
       const data = { prompt: "Build something cool", year: 2023 };
       await handler.process(data, "job-123", progressReporter);
 
-      expect(context.generateContent).toHaveBeenCalledWith({
+      expect(context.ai.generate).toHaveBeenCalledWith({
         prompt: "Build something cool",
         templateName: "portfolio:generation",
       });
@@ -167,7 +167,7 @@ describe("ProjectGenerationJobHandler", () => {
           },
         },
       });
-      spyOn(failingContext, "generateContent").mockRejectedValue(
+      spyOn(failingContext.ai, "generate").mockRejectedValue(
         new Error("AI unavailable"),
       );
 

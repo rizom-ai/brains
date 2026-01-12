@@ -222,7 +222,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
     // 2. Query for the appropriate content
     // 3. Format it using templates
 
-    const response = await context.query(`Content for path: ${path}`, {
+    const response = await context.ai.query(`Content for path: ${path}`, {
       interfaceId: this.id,
       source: "webserver",
     });

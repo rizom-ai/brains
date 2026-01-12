@@ -67,7 +67,7 @@ export class NoteGenerationJobHandler extends BaseJobHandler<
       });
 
       // Generate note content with AI
-      const generated = await this.context.generateContent<{
+      const generated = await this.context.ai.generate<{
         title: string;
         body: string;
       }>({

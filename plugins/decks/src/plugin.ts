@@ -185,7 +185,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       const parsed = generateDeckInputSchema.parse(input);
       const generationPrompt = `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`;
 
-      return context.generateContent<{
+      return context.ai.generate<{
         title: string;
         content: string;
         description: string;
@@ -206,7 +206,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       async (input: unknown) => {
         const parsed = generateDescriptionInputSchema.parse(input);
 
-        return context.generateContent<{
+        return context.ai.generate<{
           description: string;
         }>({
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,

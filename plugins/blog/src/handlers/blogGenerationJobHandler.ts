@@ -113,7 +113,7 @@ Add your conclusion here.`;
 
         const generationPrompt = `${finalPrompt}${seriesName ? `\n\nNote: This is part of a series called "${seriesName}".` : ""}`;
 
-        const generated = await this.context.generateContent<{
+        const generated = await this.context.ai.generate<{
           title: string;
           content: string;
           excerpt: string;
@@ -140,7 +140,7 @@ Add your conclusion here.`;
           message: "Generating excerpt with AI",
         });
 
-        const excerptGenerated = await this.context.generateContent<{
+        const excerptGenerated = await this.context.ai.generate<{
           excerpt: string;
         }>({
           prompt: `Title: ${title}\n\nContent:\n${content}`,

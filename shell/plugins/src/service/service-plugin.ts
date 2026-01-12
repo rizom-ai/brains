@@ -61,7 +61,7 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
     config: ContentGenerationConfig,
   ): Promise<T> {
     const context = this.getContext();
-    return context.generateContent<T>(config);
+    return context.ai.generate<T>(config);
   }
 
   /**

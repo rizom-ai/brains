@@ -124,7 +124,7 @@ Add your conclusion here`;
 
         const generationPrompt = `${finalPrompt}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`;
 
-        const generated = await this.context.generateContent<{
+        const generated = await this.context.ai.generate<{
           title: string;
           content: string;
           description: string;
@@ -151,7 +151,7 @@ Add your conclusion here`;
           message: "Generating description with AI",
         });
 
-        const descGenerated = await this.context.generateContent<{
+        const descGenerated = await this.context.ai.generate<{
           description: string;
         }>({
           prompt: `Title: ${title}\n\nContent:\n${content}`,

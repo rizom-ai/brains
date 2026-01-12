@@ -49,6 +49,18 @@ export interface IMessagingNamespace {
 }
 
 /**
+ * AI namespace for CorePluginContext
+ * Provides AI query capabilities
+ */
+export interface IAINamespace {
+  /** Query the AI with optional context */
+  query: (
+    prompt: string,
+    context?: Record<string, unknown>,
+  ) => Promise<DefaultQueryResponse>;
+}
+
+/**
  * Core plugin context - provides basic services to core plugins
  *
  * ## Method Naming Conventions
@@ -115,14 +127,14 @@ export interface CorePluginContext {
   readonly templates: ITemplatesNamespace;
 
   // ============================================================================
-  // AI Query
+  // AI Operations
   // ============================================================================
 
-  /** Query the AI with optional context */
-  query: (
-    prompt: string,
-    context?: Record<string, unknown>,
-  ) => Promise<DefaultQueryResponse>;
+  /**
+   * AI operations namespace
+   * - `ai.query()` - Query the AI with optional context
+   */
+  readonly ai: IAINamespace;
 
   // ============================================================================
   // Job Monitoring (Read-Only)
@@ -213,12 +225,14 @@ export function createCorePluginContext(
       },
     },
 
-    // Query functionality
-    query: (
-      prompt: string,
-      context?: Record<string, unknown>,
-    ): Promise<DefaultQueryResponse> => {
-      return shell.query(prompt, context);
+    // AI operations namespace
+    ai: {
+      query: (
+        prompt: string,
+        context?: Record<string, unknown>,
+      ): Promise<DefaultQueryResponse> => {
+        return shell.query(prompt, context);
+      },
     },
 
     // Job operations - pass through shell.jobs namespace

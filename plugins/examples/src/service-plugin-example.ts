@@ -170,7 +170,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     );
 
     // Test AI content generation
-    const explanation = await context.generateContent({
+    const explanation = await context.ai.generate({
       templateName: "math-explanation",
       prompt: "Explain the mathematical concept of addition",
       data: {
