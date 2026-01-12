@@ -47,7 +47,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     await super.onRegister(context);
 
     // Register the summary entity type with its adapter
-    context.registerEntityType("summary", summarySchema, new SummaryAdapter());
+    context.entities.register("summary", summarySchema, new SummaryAdapter());
 
     // Register templates
     context.registerTemplates({
@@ -61,7 +61,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       context.entityService,
       this.logger,
     );
-    context.registerDataSource(summaryDataSource);
+    context.entities.registerDataSource(summaryDataSource);
 
     // Initialize digest handler using singleton pattern
     this.digestHandler = DigestHandler.getInstance(context, this.logger);

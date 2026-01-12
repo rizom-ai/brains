@@ -63,12 +63,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     this.pluginContext = context;
 
     // Register post entity type with high weight for search prioritization
-    context.registerEntityType("post", blogPostSchema, blogPostAdapter, {
+    context.entities.register("post", blogPostSchema, blogPostAdapter, {
       weight: 2.0,
     });
 
     // Register series entity type (auto-derived from posts)
-    context.registerEntityType("series", seriesSchema, seriesAdapter);
+    context.entities.register("series", seriesSchema, seriesAdapter);
 
     // Create series manager for auto-deriving series from posts
     const seriesManager = new SeriesManager(
@@ -121,14 +121,14 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       context.entityService,
       this.logger.child("BlogDataSource"),
     );
-    context.registerDataSource(blogDataSource);
+    context.entities.registerDataSource(blogDataSource);
 
     // Register series datasource
     const seriesDataSource = new SeriesDataSource(
       context.entityService,
       this.logger.child("SeriesDataSource"),
     );
-    context.registerDataSource(seriesDataSource);
+    context.entities.registerDataSource(seriesDataSource);
 
     // Register RSS datasource
     const { RSSDataSource } = await import("./datasources/rss-datasource");
@@ -136,7 +136,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       context.entityService,
       this.logger.child("RSSDataSource"),
     );
-    context.registerDataSource(rssDataSource);
+    context.entities.registerDataSource(rssDataSource);
 
     // Register blog templates
     // Datasource transforms BlogPost → BlogPostWithData (adds parsed frontmatter)

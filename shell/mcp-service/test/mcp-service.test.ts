@@ -61,7 +61,7 @@ describe("MCPService", () => {
   describe("tool registration", () => {
     it("should register a tool with anchor permission", () => {
       const tool: PluginTool = {
-        name: "test:tool",
+        name: "test_tool",
         description: "Test tool",
         inputSchema: {
           input: z.string(),
@@ -83,7 +83,7 @@ describe("MCPService", () => {
 
     it("should skip tool registration with insufficient permissions", () => {
       const tool: PluginTool = {
-        name: "admin:tool",
+        name: "admin_tool",
         description: "Admin tool",
         inputSchema: {},
         visibility: "trusted",
@@ -99,14 +99,14 @@ describe("MCPService", () => {
 
     it("should register multiple tools from different plugins", () => {
       const tool1: PluginTool = {
-        name: "plugin1:tool",
+        name: "plugin1_tool",
         description: "Plugin 1 tool",
         inputSchema: {},
         handler: async () => ({ success: true, formatted: "Plugin 1 success" }),
       };
 
       const tool2: PluginTool = {
-        name: "plugin2:tool",
+        name: "plugin2_tool",
         description: "Plugin 2 tool",
         inputSchema: {},
         handler: async () => ({ success: true, formatted: "Plugin 2 success" }),
@@ -119,8 +119,8 @@ describe("MCPService", () => {
       const tools = mcpService.listTools();
       expect(tools).toHaveLength(2);
       expect(tools.map((t) => t.tool.name)).toEqual([
-        "plugin1:tool",
-        "plugin2:tool",
+        "plugin1_tool",
+        "plugin2_tool",
       ]);
     });
   });
@@ -188,7 +188,7 @@ describe("MCPService", () => {
 
     it("should filter tools based on permission level", () => {
       const publicTool: PluginTool = {
-        name: "public:tool",
+        name: "public_tool",
         description: "Public tool",
         inputSchema: {},
         visibility: "public",
@@ -196,7 +196,7 @@ describe("MCPService", () => {
       };
 
       const trustedTool: PluginTool = {
-        name: "trusted:tool",
+        name: "trusted_tool",
         description: "Trusted tool",
         inputSchema: {},
         visibility: "trusted",
@@ -204,7 +204,7 @@ describe("MCPService", () => {
       };
 
       const anchorTool: PluginTool = {
-        name: "anchor:tool",
+        name: "anchor_tool",
         description: "Anchor tool",
         inputSchema: {},
         visibility: "anchor",
@@ -218,7 +218,7 @@ describe("MCPService", () => {
       mcpService.registerTool("plugin", anchorTool);
 
       let tools = mcpService.listTools();
-      expect(tools.map((t) => t.tool.name)).toEqual(["public:tool"]);
+      expect(tools.map((t) => t.tool.name)).toEqual(["public_tool"]);
 
       // Reset and register with trusted permission
       MCPService.resetInstance();
@@ -230,8 +230,8 @@ describe("MCPService", () => {
 
       tools = mcpService.listTools();
       expect(tools.map((t) => t.tool.name)).toEqual([
-        "public:tool",
-        "trusted:tool",
+        "public_tool",
+        "trusted_tool",
       ]);
 
       // Reset and register with anchor permission
@@ -244,9 +244,9 @@ describe("MCPService", () => {
 
       tools = mcpService.listTools();
       expect(tools.map((t) => t.tool.name)).toEqual([
-        "public:tool",
-        "trusted:tool",
-        "anchor:tool",
+        "public_tool",
+        "trusted_tool",
+        "anchor_tool",
       ]);
     });
   });
@@ -259,7 +259,7 @@ describe("MCPService", () => {
       mcpService.setPermissionLevel("anchor");
 
       const publicTool: PluginTool = {
-        name: "public:tool",
+        name: "public_tool",
         description: "Public tool",
         inputSchema: {},
         visibility: "public",
@@ -267,7 +267,7 @@ describe("MCPService", () => {
       };
 
       const trustedTool: PluginTool = {
-        name: "trusted:tool",
+        name: "trusted_tool",
         description: "Trusted tool",
         inputSchema: {},
         visibility: "trusted",
@@ -275,7 +275,7 @@ describe("MCPService", () => {
       };
 
       const anchorTool: PluginTool = {
-        name: "anchor:tool",
+        name: "anchor_tool",
         description: "Anchor tool",
         inputSchema: {},
         visibility: "anchor",
@@ -284,7 +284,7 @@ describe("MCPService", () => {
 
       // Tool with default visibility (should be anchor)
       const defaultTool: PluginTool = {
-        name: "default:tool",
+        name: "default_tool",
         description: "Tool with default visibility",
         inputSchema: {},
         handler: async () => ({ success: true, formatted: "Default success" }),
@@ -298,24 +298,24 @@ describe("MCPService", () => {
 
     it("should return only public tools for public users", () => {
       const tools = mcpService.listToolsForPermissionLevel("public");
-      expect(tools.map((t) => t.tool.name)).toEqual(["public:tool"]);
+      expect(tools.map((t) => t.tool.name)).toEqual(["public_tool"]);
     });
 
     it("should return public and trusted tools for trusted users", () => {
       const tools = mcpService.listToolsForPermissionLevel("trusted");
       expect(tools.map((t) => t.tool.name)).toEqual([
-        "public:tool",
-        "trusted:tool",
+        "public_tool",
+        "trusted_tool",
       ]);
     });
 
     it("should return all tools for anchor users", () => {
       const tools = mcpService.listToolsForPermissionLevel("anchor");
       expect(tools.map((t) => t.tool.name)).toEqual([
-        "public:tool",
-        "trusted:tool",
-        "anchor:tool",
-        "default:tool", // Default visibility is anchor
+        "public_tool",
+        "trusted_tool",
+        "anchor_tool",
+        "default_tool", // Default visibility is anchor
       ]);
     });
 

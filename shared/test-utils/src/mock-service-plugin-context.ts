@@ -99,9 +99,15 @@ export function createMockServicePluginContext(
     entityService,
     logger,
 
-    // Entity registration
-    registerEntityType: mock(() => {}),
-    registerDataSource: mock(() => {}),
+    // Entity management namespace
+    entities: {
+      register: mock(() => {}),
+      getAdapter: mock(() => undefined),
+      update: mock(() =>
+        Promise.resolve({ entityId: "mock-id", jobId: "mock-job" }),
+      ),
+      registerDataSource: mock(() => {}),
+    },
 
     // Content generation
     generateContent: mock(() => Promise.resolve(returns.generateContent ?? {})),

@@ -107,10 +107,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this._routeRegistry,
       context.logger.child("NavigationDataSource"),
     );
-    context.registerDataSource(navigationDataSource);
+    context.entities.registerDataSource(navigationDataSource);
 
     // Register site-info entity type BEFORE initializing service
-    context.registerEntityType(
+    context.entities.register(
       "site-info",
       siteInfoSchema,
       new SiteInfoAdapter(),
@@ -148,13 +148,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.profileService,
       context.logger.child("SiteInfoDataSource"),
     );
-    context.registerDataSource(siteInfoDataSource);
+    context.entities.registerDataSource(siteInfoDataSource);
 
     // Setup route message handlers
     this.setupRouteHandlers(context);
 
     // Register site content entity type
-    context.registerEntityType(
+    context.entities.register(
       "site-content",
       siteContentSchema,
       siteContentAdapter,

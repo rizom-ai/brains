@@ -74,7 +74,7 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
     config?: EntityTypeConfig,
   ): void {
     const context = this.getContext();
-    context.registerEntityType(entityType, schema, adapter, config);
+    context.entities.register(entityType, schema, adapter, config);
   }
 
   /**

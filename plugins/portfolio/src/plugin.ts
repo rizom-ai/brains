@@ -45,14 +45,14 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
     this.pluginContext = context;
 
     // Register project entity type
-    context.registerEntityType("project", projectSchema, projectAdapter);
+    context.entities.register("project", projectSchema, projectAdapter);
 
     // Register project datasource
     const projectDataSource = new ProjectDataSource(
       context.entityService,
       this.logger.child("ProjectDataSource"),
     );
-    context.registerDataSource(projectDataSource);
+    context.entities.registerDataSource(projectDataSource);
 
     // Register portfolio templates
     // Datasource transforms Project → ProjectWithData (adds parsed frontmatter)

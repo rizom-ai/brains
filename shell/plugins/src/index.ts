@@ -8,7 +8,10 @@ export { createCorePluginContext } from "./core/context";
 
 // Service plugin
 export { ServicePlugin } from "./service/service-plugin";
-export type { ServicePluginContext } from "./service/context";
+export type {
+  ServicePluginContext,
+  IEntitiesNamespace,
+} from "./service/context";
 export { createServicePluginContext } from "./service/context";
 
 // Interface plugin

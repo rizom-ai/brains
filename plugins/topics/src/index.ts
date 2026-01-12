@@ -62,7 +62,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Register topic entity type with lower weight (metadata entity)
     const adapter = new TopicAdapter();
-    context.registerEntityType("topic", adapter.schema, adapter, {
+    context.entities.register("topic", adapter.schema, adapter, {
       weight: 0.5,
     });
 
@@ -78,7 +78,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       context.entityService,
       this.logger.child("TopicsDataSource"),
     );
-    context.registerDataSource(topicsDataSource);
+    context.entities.registerDataSource(topicsDataSource);
 
     // Register job handlers
     const processingHandler = new TopicProcessingHandler(context, this.logger);

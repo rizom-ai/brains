@@ -23,14 +23,14 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
   protected override async getTools(): Promise<PluginTool[]> {
     return [
       {
-        name: "test:tool1",
+        name: "test_tool1",
         description: "Test tool 1",
         inputSchema: {},
         visibility: "anchor",
         handler: async () => ({ success: true, formatted: "Success" }),
       },
       {
-        name: "test:tool2",
+        name: "test_tool2",
         description: "Test tool 2",
         inputSchema: {},
         visibility: "public",
@@ -143,14 +143,14 @@ describe("PluginManager - Direct Registration", () => {
       expect(mockMCPService.registerTool).toHaveBeenCalledWith(
         "test-plugin",
         expect.objectContaining({
-          name: "test:tool1",
+          name: "test_tool1",
           description: "Test tool 1",
         }),
       );
       expect(mockMCPService.registerTool).toHaveBeenCalledWith(
         "test-plugin",
         expect.objectContaining({
-          name: "test:tool2",
+          name: "test_tool2",
           description: "Test tool 2",
         }),
       );
@@ -207,7 +207,7 @@ describe("PluginManager - Direct Registration", () => {
         protected override async getTools(): Promise<PluginTool[]> {
           return [
             {
-              name: "second:tool",
+              name: "second_tool",
               description: "Second plugin tool",
               inputSchema: {},
               handler: async () => ({ success: true, formatted: "Success" }),
@@ -226,7 +226,7 @@ describe("PluginManager - Direct Registration", () => {
       // Check that all tools were registered
       expect(mockMCPService.registerTool).toHaveBeenCalledTimes(3); // 2 from TestPlugin, 1 from SecondPlugin
       expect(registeredTools).toHaveLength(3);
-      expect(registeredTools.map((t) => t.tool.name)).toContain("second:tool");
+      expect(registeredTools.map((t) => t.tool.name)).toContain("second_tool");
     });
 
     it("should use direct registration instead of MessageBus", async () => {
@@ -292,7 +292,7 @@ describe("PluginManager - Direct Registration", () => {
 
       // Second tool should still be registered
       expect(registeredTools).toHaveLength(1);
-      expect(registeredTools[0]?.tool.name).toBe("test:tool2");
+      expect(registeredTools[0]?.tool.name).toBe("test_tool2");
 
       // Resource should still be registered
       expect(mockMCPService.registerResource).toHaveBeenCalled();

@@ -55,7 +55,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.pluginContext = context;
 
     // Register social-post entity type
-    context.registerEntityType(
+    context.entities.register(
       "social-post",
       socialPostSchema,
       socialPostAdapter,
@@ -66,7 +66,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       context.entityService,
       this.logger.child("SocialPostDataSource"),
     );
-    context.registerDataSource(socialPostDataSource);
+    context.entities.registerDataSource(socialPostDataSource);
 
     // Register AI templates
     context.registerTemplates({

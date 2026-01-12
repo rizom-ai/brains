@@ -40,7 +40,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
   ): Promise<void> {
     // Register the link entity type with its adapter
     const linkAdapter = new LinkAdapter();
-    context.registerEntityType("link", linkSchema, linkAdapter);
+    context.entities.register("link", linkSchema, linkAdapter);
 
     // Register templates
     context.registerTemplates({
@@ -54,7 +54,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
       context.entityService,
       this.logger.child("LinksDataSource"),
     );
-    context.registerDataSource(linksDataSource);
+    context.entities.registerDataSource(linksDataSource);
 
     // Register job handler for async link capture
     const linkCaptureHandler = new LinkCaptureJobHandler(

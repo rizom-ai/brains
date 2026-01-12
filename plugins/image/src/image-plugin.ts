@@ -145,7 +145,7 @@ export class ImagePlugin
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.updateEntity(entity);
+    return this.context.entities.update(entity);
   }
 
   /**
@@ -157,7 +157,7 @@ export class ImagePlugin
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getAdapter<T>(entityType);
+    return this.context.entities.getAdapter<T>(entityType);
   }
 
   /**

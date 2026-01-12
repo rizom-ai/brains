@@ -35,6 +35,33 @@ import type { z } from "@brains/utils";
 import { createCorePluginContext } from "../core/context";
 
 /**
+ * Entity management namespace for ServicePluginContext
+ * Provides methods for registering entity types, accessing adapters, and managing data sources
+ */
+export interface IEntitiesNamespace {
+  /** Register a new entity type with schema and adapter */
+  register: <T extends BaseEntity>(
+    entityType: string,
+    schema: z.ZodSchema<T>,
+    adapter: EntityAdapter<T>,
+    config?: EntityTypeConfig,
+  ) => void;
+
+  /** Get the adapter for an entity type */
+  getAdapter: <T extends BaseEntity>(
+    entityType: string,
+  ) => EntityAdapter<T> | undefined;
+
+  /** Update an existing entity */
+  update: <T extends BaseEntity>(
+    entity: T,
+  ) => Promise<{ entityId: string; jobId: string }>;
+
+  /** Register a data source for dynamic content */
+  registerDataSource: (dataSource: DataSource) => void;
+}
+
+/**
  * Context interface for service plugins
  * Extends CorePluginContext with entity management, job queuing, and AI generation
  *
@@ -53,30 +80,14 @@ export interface ServicePluginContext extends CorePluginContext {
   /** Full entity service with write operations */
   readonly entityService: IEntityService;
 
-  /** Register a new entity type with schema and adapter */
-  registerEntityType: <T extends BaseEntity>(
-    entityType: string,
-    schema: z.ZodSchema<T>,
-    adapter: EntityAdapter<T>,
-    config?: EntityTypeConfig,
-  ) => void;
-
-  /** Get the adapter for an entity type */
-  getAdapter: <T extends BaseEntity>(
-    entityType: string,
-  ) => EntityAdapter<T> | undefined;
-
-  /** Update an existing entity */
-  updateEntity: <T extends BaseEntity>(
-    entity: T,
-  ) => Promise<{ entityId: string; jobId: string }>;
-
-  // ============================================================================
-  // Data Sources
-  // ============================================================================
-
-  /** Register a data source for dynamic content */
-  registerDataSource: (dataSource: DataSource) => void;
+  /**
+   * Entity management namespace
+   * - `entities.register()` - Register a new entity type with schema and adapter
+   * - `entities.getAdapter()` - Get the adapter for an entity type
+   * - `entities.update()` - Update an existing entity
+   * - `entities.registerDataSource()` - Register a data source for dynamic content
+   */
+  readonly entities: IEntitiesNamespace;
 
   // ============================================================================
   // AI Generation
@@ -212,28 +223,30 @@ export function createServicePluginContext(
 
     // Entity service access
     entityService,
-    registerEntityType: (entityType, schema, adapter, config): void => {
-      entityRegistry.registerEntityType(entityType, schema, adapter, config);
-    },
-    getAdapter: <T extends BaseEntity>(
-      entityType: string,
-    ): EntityAdapter<T> | undefined => {
-      try {
-        return entityRegistry.getAdapter<T>(entityType);
-      } catch {
-        return undefined;
-      }
-    },
-    updateEntity: async <T extends BaseEntity>(
-      entity: T,
-    ): Promise<{ entityId: string; jobId: string }> => {
-      return entityService.updateEntity(entity);
-    },
 
-    // DataSource registration
-    registerDataSource: (dataSource: DataSource): void => {
-      // Just register the DataSource directly - the register method handles prefixing
-      dataSourceRegistry.register(dataSource);
+    // Entity management namespace
+    entities: {
+      register: (entityType, schema, adapter, config): void => {
+        entityRegistry.registerEntityType(entityType, schema, adapter, config);
+      },
+      getAdapter: <T extends BaseEntity>(
+        entityType: string,
+      ): EntityAdapter<T> | undefined => {
+        try {
+          return entityRegistry.getAdapter<T>(entityType);
+        } catch {
+          return undefined;
+        }
+      },
+      update: async <T extends BaseEntity>(
+        entity: T,
+      ): Promise<{ entityId: string; jobId: string }> => {
+        return entityService.updateEntity(entity);
+      },
+      registerDataSource: (dataSource: DataSource): void => {
+        // Just register the DataSource directly - the register method handles prefixing
+        dataSourceRegistry.register(dataSource);
+      },
     },
 
     // AI content generation

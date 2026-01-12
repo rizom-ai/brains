@@ -59,11 +59,11 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
       postsListUrl,
       decksListUrl,
     );
-    context.registerDataSource(homepageDataSource);
+    context.entities.registerDataSource(homepageDataSource);
 
     // Register about page datasource
     const aboutDataSource = new AboutDataSource(context.entityService);
-    context.registerDataSource(aboutDataSource);
+    context.entities.registerDataSource(aboutDataSource);
 
     // Register homepage template
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering

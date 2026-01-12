@@ -36,13 +36,13 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
 
     // Register deck entity type with formatter and elevated weight for search
     const formatter = new DeckFormatter();
-    context.registerEntityType("deck", formatter.schema, formatter, {
+    context.entities.register("deck", formatter.schema, formatter, {
       weight: 1.5,
     });
 
     // Register deck datasource
     const datasource = new DeckDataSource(context.entityService, this.logger);
-    context.registerDataSource(datasource);
+    context.entities.registerDataSource(datasource);
 
     // Register deck templates
     context.registerTemplates({
