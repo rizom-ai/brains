@@ -1,11 +1,5 @@
 import { mock } from "bun:test";
 
-// Mock fs module
-void mock.module("fs", () => ({
-  existsSync: mock(() => true),
-  mkdirSync: mock(() => {}),
-}));
-
 // Create global mocks for matrix-bot-sdk
 globalThis.mockMatrixClient = {
   start: mock(() => Promise.resolve()),

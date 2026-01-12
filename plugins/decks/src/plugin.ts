@@ -57,7 +57,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       this.logger.child("DeckGenerationJobHandler"),
       context,
     );
-    context.registerJobHandler("generation", deckGenerationHandler);
+    context.jobs.registerHandler("generation", deckGenerationHandler);
 
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);

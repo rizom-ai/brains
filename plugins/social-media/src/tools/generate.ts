@@ -79,7 +79,7 @@ export function createGenerateTool(
         }
 
         // Enqueue the generation job
-        const jobId = await context.enqueueJob(
+        const jobId = await context.jobs.enqueue(
           "generation",
           parsed,
           toolContext,

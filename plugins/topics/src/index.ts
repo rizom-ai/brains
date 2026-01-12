@@ -82,10 +82,10 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Register job handlers
     const processingHandler = new TopicProcessingHandler(context, this.logger);
-    context.registerJobHandler("process-single", processingHandler);
+    context.jobs.registerHandler("process-single", processingHandler);
 
     const extractionHandler = new TopicExtractionHandler(context, this.logger);
-    context.registerJobHandler("extract", extractionHandler);
+    context.jobs.registerHandler("extract", extractionHandler);
 
     // Register eval handler for plugin testing
     this.registerEvalHandler(context);
@@ -281,7 +281,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
       // Queue extraction job - the AI extraction runs asynchronously
       // This prevents blocking entity creation/updates
-      await context.enqueueJob(
+      await context.jobs.enqueue(
         "extract",
         {
           entityId: entity.id,

@@ -111,7 +111,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
       this.logger.child("ProjectGenerationJobHandler"),
       context,
     );
-    context.registerJobHandler("generation", projectGenerationHandler);
+    context.jobs.registerHandler("generation", projectGenerationHandler);
 
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);

@@ -4,7 +4,6 @@ import type { Logger } from "@brains/utils";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { Template } from "@brains/templates";
 import type { ICoreEntityService } from "@brains/entity-service";
-import type { Batch, BatchJobStatus, JobInfo } from "@brains/job-queue";
 import type {
   Conversation,
   Message,
@@ -13,6 +12,7 @@ import type {
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import type { AppInfo } from "../interfaces";
+import type { IJobsNamespace } from "@brains/job-queue";
 
 /**
  * Core plugin context - provides basic services to core plugins
@@ -101,17 +101,8 @@ export interface CorePluginContext {
   // Job Monitoring (Read-Only)
   // ============================================================================
 
-  /** Get active jobs, optionally filtered by type */
-  getActiveJobs: (types?: string[]) => Promise<JobInfo[]>;
-
-  /** Get all active batches */
-  getActiveBatches: () => Promise<Batch[]>;
-
-  /** Get status of a specific batch */
-  getBatchStatus: (batchId: string) => Promise<BatchJobStatus | null>;
-
-  /** Get status of a specific job */
-  getJobStatus: (jobId: string) => Promise<JobInfo | null>;
+  /** Namespaced job operations */
+  readonly jobs: IJobsNamespace;
 
   // ============================================================================
   // Conversations (Read-Only)
@@ -201,19 +192,8 @@ export function createCorePluginContext(
       return shell.query(prompt, context);
     },
 
-    // Job monitoring
-    getActiveJobs: (types?: string[]): Promise<JobInfo[]> => {
-      return shell.getActiveJobs(types);
-    },
-    getActiveBatches: (): Promise<Batch[]> => {
-      return shell.getActiveBatches();
-    },
-    getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> => {
-      return shell.getBatchStatus(batchId);
-    },
-    getJobStatus: (jobId: string): Promise<JobInfo | null> => {
-      return shell.getJobStatus(jobId);
-    },
+    // Job operations - pass through shell.jobs namespace
+    jobs: shell.jobs,
 
     // Conversation service (read-only)
     getConversation: async (

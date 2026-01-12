@@ -88,7 +88,7 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
     options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
-    return context.enqueueJob(type, data, toolContext, options);
+    return context.jobs.enqueue(type, data, toolContext, options);
   }
 
   /**
@@ -99,7 +99,7 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
     options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
-    return context.enqueueBatch(operations, options);
+    return context.jobs.enqueueBatch(operations, options);
   }
 
   /**

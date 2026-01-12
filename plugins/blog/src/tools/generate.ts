@@ -67,7 +67,7 @@ export function createGenerateTool(
         // Enqueue the blog generation job
         // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
         // Setting a different rootJobId would cause progress events to be skipped
-        const jobId = await context.enqueueJob(
+        const jobId = await context.jobs.enqueue(
           "generation",
           parsed,
           toolContext,

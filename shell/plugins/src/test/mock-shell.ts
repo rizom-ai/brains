@@ -31,8 +31,10 @@ import type {
   BatchOperation,
   Batch,
   BatchJobStatus,
+  JobOptions,
+  JobInfo,
+  IJobsNamespace,
 } from "@brains/job-queue";
-import type { JobOptions, JobInfo } from "@brains/job-queue";
 import type { RenderService } from "@brains/render-service";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { Template } from "@brains/templates";
@@ -68,6 +70,9 @@ export class MockShell implements IShell {
   private mockAgentService: IAgentService;
   private _dataDir: string | undefined;
 
+  /** Jobs namespace - unified access to job queue and batch operations */
+  public readonly jobs: IJobsNamespace;
+
   constructor(options?: {
     logger?: Logger;
     agentService?: IAgentService;
@@ -79,6 +84,34 @@ export class MockShell implements IShell {
     // Create default mock AgentService
     this.mockAgentService =
       options?.agentService ?? this.createDefaultMockAgentService();
+
+    // Initialize jobs namespace
+    this.jobs = {
+      enqueueBatch: async (
+        operations: BatchOperation[],
+        _options: JobOptions,
+        _batchId: string,
+        pluginId: string,
+      ): Promise<string> => {
+        this.logger.debug(
+          `Mock: Enqueued batch with ${operations.length} operations for plugin ${pluginId}`,
+        );
+        return `batch-${Date.now()}`;
+      },
+      getActiveBatches: async (): Promise<Batch[]> => [],
+      getBatchStatus: async (
+        batchId: string,
+      ): Promise<BatchJobStatus | null> => ({
+        batchId,
+        totalOperations: 0,
+        completedOperations: 0,
+        failedOperations: 0,
+        errors: [],
+        status: "completed" as const,
+      }),
+      getActiveJobs: async (_types?: string[]): Promise<JobInfo[]> => [],
+      getStatus: async (_jobId: string): Promise<JobInfo | null> => null,
+    };
 
     // Pre-register BatchJobManager service that some tests expect
     this.services.set("batchJobManager", {
@@ -435,16 +468,6 @@ export class MockShell implements IShell {
     return false;
   }
 
-  async getActiveJobs(_types?: string[]): Promise<JobInfo[]> {
-    // Mock implementation - return empty array
-    return [];
-  }
-
-  async getJobStatus(_jobId: string): Promise<JobInfo | null> {
-    // Mock implementation - return null
-    return null;
-  }
-
   getTemplate(name: string): Template | undefined {
     // Mock implementation - return from templates map
     return this.templates.get(name);
@@ -494,36 +517,6 @@ export class MockShell implements IShell {
 
   getTemplates(): Map<string, Template> {
     return new Map(this.templates);
-  }
-
-  // Batch job operations - simple mock implementations
-  async enqueueBatch(
-    operations: BatchOperation[],
-    _options: JobOptions,
-    pluginId: string,
-  ): Promise<string> {
-    // Return a mock batch ID for testing
-    this.logger.debug(
-      `Mock: Enqueued batch with ${operations.length} operations for plugin ${pluginId}`,
-    );
-    return `batch-${Date.now()}`;
-  }
-
-  async getActiveBatches(): Promise<Batch[]> {
-    // Return empty array for testing
-    return [];
-  }
-
-  async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
-    // Return a mock batch status for testing
-    return {
-      batchId,
-      totalOperations: 0,
-      completedOperations: 0,
-      failedOperations: 0,
-      errors: [],
-      status: "completed" as const,
-    };
   }
 
   // Identity and Profile

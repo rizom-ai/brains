@@ -215,12 +215,12 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     try {
       if (batchId) {
         // Get specific batch status
-        const batch = await this.context.getBatchStatus(batchId);
+        const batch = await this.context.jobs.getBatchStatus(batchId);
         return { batch };
       } else {
         // Get all active operations
-        const activeJobs = await this.context.getActiveJobs(jobTypes);
-        const activeBatches = await this.context.getActiveBatches();
+        const activeJobs = await this.context.jobs.getActiveJobs(jobTypes);
+        const activeBatches = await this.context.jobs.getActiveBatches();
         return { activeJobs, activeBatches };
       }
     } catch (error) {

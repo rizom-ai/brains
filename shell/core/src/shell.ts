@@ -10,13 +10,16 @@ import type {
 import type { IShell } from "@brains/plugins";
 import type { ServiceRegistry } from "@brains/service-registry";
 import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
-import type { BatchJobStatus, Batch, BatchOperation } from "@brains/job-queue";
 import type {
+  BatchJobStatus,
+  Batch,
+  BatchOperation,
   JobOptions,
   JobInfo,
   IJobQueueService,
   IJobQueueWorker,
   IBatchJobManager,
+  IJobsNamespace,
 } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 import type { PluginManager } from "@brains/plugins";
@@ -85,6 +88,9 @@ export class Shell implements IShell {
   private readonly profileService: ProfileService;
   private readonly agentService: IAgentService;
   private initialized = false;
+
+  /** Jobs namespace - unified access to job queue and batch operations */
+  public readonly jobs: IJobsNamespace;
 
   /**
    * Get the singleton instance of Shell
@@ -156,6 +162,30 @@ export class Shell implements IShell {
     this.identityService = services.identityService;
     this.profileService = services.profileService;
     this.agentService = services.agentService;
+
+    // Initialize jobs namespace
+    this.jobs = {
+      enqueueBatch: (
+        operations: BatchOperation[],
+        options: JobOptions,
+        batchId: string,
+        pluginId: string,
+      ): Promise<string> =>
+        this.batchJobManager.enqueueBatch(
+          operations,
+          options,
+          batchId,
+          pluginId,
+        ),
+      getActiveBatches: (): Promise<Batch[]> =>
+        this.batchJobManager.getActiveBatches(),
+      getBatchStatus: (batchId: string): Promise<BatchJobStatus | null> =>
+        this.batchJobManager.getBatchStatus(batchId),
+      getActiveJobs: (types?: string[]): Promise<JobInfo[]> =>
+        this.jobQueueService.getActiveJobs(types),
+      getStatus: (jobId: string): Promise<JobInfo | null> =>
+        this.jobQueueService.getStatus(jobId),
+    };
 
     // Register services that plugins need to resolve
     shellInitializer.registerServices(services, this);
@@ -475,51 +505,6 @@ export class Shell implements IShell {
    */
   public getPluginPackageName(pluginId: string): string | undefined {
     return this.pluginManager.getPluginPackageName(pluginId);
-  }
-
-  /**
-   * Enqueue a batch of operations
-   */
-  public async enqueueBatch(
-    operations: BatchOperation[],
-    options: JobOptions,
-    batchId: string,
-    pluginId: string,
-  ): Promise<string> {
-    return this.batchJobManager.enqueueBatch(
-      operations,
-      options,
-      batchId,
-      pluginId,
-    );
-  }
-
-  /**
-   * Get active batches
-   */
-  public async getActiveBatches(): Promise<Batch[]> {
-    return this.batchJobManager.getActiveBatches();
-  }
-
-  /**
-   * Get batch status by ID
-   */
-  public async getBatchStatus(batchId: string): Promise<BatchJobStatus | null> {
-    return this.batchJobManager.getBatchStatus(batchId);
-  }
-
-  /**
-   * Get active jobs
-   */
-  public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
-    return this.jobQueueService.getActiveJobs(types);
-  }
-
-  /**
-   * Get job status by ID
-   */
-  public async getJobStatus(jobId: string): Promise<JobInfo | null> {
-    return this.jobQueueService.getStatus(jobId);
   }
 
   /**

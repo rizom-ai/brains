@@ -12,7 +12,7 @@ import { createMockServicePluginContext } from "@brains/test-utils";
 function createMockContext(): ServicePluginContext {
   const mockContext = createMockServicePluginContext({
     returns: {
-      enqueueJob: "job-456",
+      jobsEnqueue: "job-456",
       generateContent: {
         title: "AI Project",
         description: "AI generated description",
@@ -153,7 +153,7 @@ describe("Portfolio Tools", () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.jobId).toBe("job-456");
-      expect(context.enqueueJob).toHaveBeenCalled();
+      expect(context.jobs.enqueue).toHaveBeenCalled();
       expect(context.entityService.search).toHaveBeenCalled();
     });
 
@@ -184,7 +184,7 @@ describe("Portfolio Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(context.enqueueJob).toHaveBeenCalledWith(
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
         "generation",
         expect.objectContaining({ title: "My API Project" }),
         expect.anything(),

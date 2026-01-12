@@ -49,8 +49,10 @@ export class App {
   }
 
   public async initialize(): Promise<void> {
-    // Run migrations before creating shell
-    await this.runMigrations();
+    // Only run migrations when we're creating a shell (not when using mock shell for tests)
+    if (!this.shell) {
+      await this.runMigrations();
+    }
 
     // Create shell if not provided in constructor
     if (!this.shell) {

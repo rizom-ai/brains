@@ -94,19 +94,22 @@ export class BatchOperationsManager {
       return null;
     }
 
-    const batchId = await pluginContext.enqueueBatch(batchData.operations, {
-      source,
-      rootJobId: metadata?.rootJobId ?? createId(),
-      metadata: {
-        progressToken: metadata?.progressToken,
-        operationType: "file_operations",
-        operationTarget: this.syncPath,
-        pluginId: metadata?.pluginId ?? "directory-sync",
-        // Routing context for progress messages
-        interfaceType: metadata?.interfaceType,
-        channelId: metadata?.channelId,
+    const batchId = await pluginContext.jobs.enqueueBatch(
+      batchData.operations,
+      {
+        source,
+        rootJobId: metadata?.rootJobId ?? createId(),
+        metadata: {
+          progressToken: metadata?.progressToken,
+          operationType: "file_operations",
+          operationTarget: this.syncPath,
+          pluginId: metadata?.pluginId ?? "directory-sync",
+          // Routing context for progress messages
+          interfaceType: metadata?.interfaceType,
+          channelId: metadata?.channelId,
+        },
       },
-    });
+    );
 
     return {
       batchId,

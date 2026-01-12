@@ -253,3 +253,33 @@ export interface IBatchJobManager {
   /** Get all active batches */
   getActiveBatches(): Promise<Batch[]>;
 }
+
+/**
+ * Unified jobs namespace interface
+ * Combines job queue and batch operations for shell/context usage
+ */
+export interface IJobsNamespace {
+  // === Job Monitoring ===
+
+  /** Get active jobs, optionally filtered by type */
+  getActiveJobs(types?: string[]): Promise<JobInfo[]>;
+
+  /** Get status of a specific job */
+  getStatus(jobId: string): Promise<JobInfo | null>;
+
+  // === Batch Operations ===
+
+  /** Enqueue multiple operations as a batch */
+  enqueueBatch(
+    operations: BatchOperation[],
+    options: JobOptions,
+    batchId: string,
+    pluginId: string,
+  ): Promise<string>;
+
+  /** Get all active batches */
+  getActiveBatches(): Promise<Batch[]>;
+
+  /** Get status of a specific batch */
+  getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
+}

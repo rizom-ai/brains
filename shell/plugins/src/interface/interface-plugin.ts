@@ -227,7 +227,7 @@ export abstract class InterfacePlugin<
 
   /**
    * Create a job with automatic tracking - interface plugins should use this
-   * instead of calling context.enqueueJob directly
+   * instead of calling context.jobs.enqueue directly
    */
   protected async createJobWithTracking(
     type: string,
@@ -237,14 +237,14 @@ export abstract class InterfacePlugin<
   ): Promise<string> {
     const context = this.getContext();
     // Interface-initiated jobs don't have ToolContext - pass null
-    const jobId = await context.enqueueJob(type, data, null, options);
+    const jobId = await context.jobs.enqueue(type, data, null, options);
     this.setJobTracking(jobId, trackingInfo);
     return jobId;
   }
 
   /**
    * Create a batch with automatic tracking - interface plugins should use this
-   * instead of calling context.enqueueBatch directly
+   * instead of calling context.jobs.enqueueBatch directly
    */
   protected async createBatchWithTracking(
     operations: BatchOperation[],
@@ -252,7 +252,7 @@ export abstract class InterfacePlugin<
     options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
-    const batchId = await context.enqueueBatch(operations, options);
+    const batchId = await context.jobs.enqueueBatch(operations, options);
     this.setJobTracking(batchId, trackingInfo);
     return batchId;
   }

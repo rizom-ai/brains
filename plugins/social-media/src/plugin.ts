@@ -125,7 +125,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       context,
       this.config,
     );
-    context.registerJobHandler("generation", generationHandler);
+    context.jobs.registerHandler("generation", generationHandler);
 
     // Register with publish-pipeline and subscribe to execute messages
     await this.registerWithPublishPipeline(context);

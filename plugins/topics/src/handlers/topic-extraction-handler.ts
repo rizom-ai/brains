@@ -135,7 +135,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
       }));
 
       const rootJobId = createId();
-      const batchId = await this.context.enqueueBatch(operations, {
+      const batchId = await this.context.jobs.enqueueBatch(operations, {
         priority: 5, // Low priority - background processing
         source: "topics-plugin",
         rootJobId,

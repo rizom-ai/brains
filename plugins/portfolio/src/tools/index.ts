@@ -68,7 +68,7 @@ export function createPortfolioTools(
           const enrichedPrompt = `Create a case study for: ${parsed.topic}${contextSection}`;
 
           // Enqueue the project generation job with enriched context
-          const jobId = await context.enqueueJob(
+          const jobId = await context.jobs.enqueue(
             "generation",
             {
               prompt: enrichedPrompt,

@@ -167,7 +167,7 @@ export function createSiteBuilderTools(
             : (config.previewOutputDir ?? config.productionOutputDir); // Fallback to production (guard above ensures this exists for preview)
 
         // Enqueue the build job - pass toolContext for progress routing
-        const jobId = await pluginContext.enqueueJob(
+        const jobId = await pluginContext.jobs.enqueue(
           "site-build",
           {
             environment,

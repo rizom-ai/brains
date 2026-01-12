@@ -5,9 +5,17 @@ import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Plugin } from "@brains/plugins";
+import { PluginManager } from "@brains/plugins";
 import { EntityRegistry } from "@brains/entity-service";
-import { JobQueueWorker } from "@brains/job-queue";
+import {
+  JobQueueWorker,
+  JobQueueService,
+  BatchJobManager,
+  JobProgressMonitor,
+} from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/datasource";
+import { ServiceRegistry } from "@brains/service-registry";
+import { MessageBus } from "@brains/messaging-service";
 
 // Mock fastembed to avoid loading actual model in tests
 const mockEmbed = mock(() => Promise.resolve([[0.1, 0.2, 0.3]]));
@@ -45,10 +53,17 @@ describe("Shell initialization order", () => {
     testDir = await createTestDirectory();
     initOrder.length = 0; // Clear the order tracking
     // Reset all singletons to ensure test isolation
+    // Order matters: reset dependents before dependencies
     await Shell.resetInstance();
     ShellInitializer.resetInstance();
+    PluginManager.resetInstance();
+    ServiceRegistry.resetInstance();
+    MessageBus.resetInstance();
     EntityRegistry.resetInstance();
     JobQueueWorker.resetInstance();
+    JobQueueService.resetInstance();
+    BatchJobManager.resetInstance();
+    JobProgressMonitor.resetInstance();
     DataSourceRegistry.resetInstance();
   });
 
@@ -56,8 +71,14 @@ describe("Shell initialization order", () => {
     await shell?.shutdown();
     await Shell.resetInstance();
     ShellInitializer.resetInstance();
+    PluginManager.resetInstance();
+    ServiceRegistry.resetInstance();
+    MessageBus.resetInstance();
     EntityRegistry.resetInstance();
     JobQueueWorker.resetInstance();
+    JobQueueService.resetInstance();
+    BatchJobManager.resetInstance();
+    JobProgressMonitor.resetInstance();
     DataSourceRegistry.resetInstance();
     await testDir.cleanup();
   });

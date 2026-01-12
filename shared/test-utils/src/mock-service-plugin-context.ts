@@ -19,8 +19,8 @@ export interface MockServicePluginContextReturns {
   entityService?: MockEntityServiceReturns;
   /** Return value for generateContent */
   generateContent?: Record<string, unknown>;
-  /** Return value for enqueueJob */
-  enqueueJob?: string;
+  /** Return value for jobs.enqueue */
+  jobsEnqueue?: string;
 }
 
 /**
@@ -63,7 +63,7 @@ export interface MockServicePluginContextOptions {
  *       deleteEntity: true,
  *     },
  *     generateContent: { title: "Generated Title" },
- *     enqueueJob: "job-123",
+ *     jobsEnqueue: "job-123",
  *   }
  * });
  *
@@ -71,7 +71,7 @@ export interface MockServicePluginContextOptions {
  * const result = await myTool.execute(input, mockContext);
  *
  * // Verify interactions
- * expect(mockContext.enqueueJob).toHaveBeenCalledWith("my-job", expect.any(Object));
+ * expect(mockContext.jobs.enqueue).toHaveBeenCalledWith("my-job", expect.any(Object), null);
  * ```
  */
 export function createMockServicePluginContext(
@@ -112,13 +112,18 @@ export function createMockServicePluginContext(
     searchConversations: mock(() => Promise.resolve([])),
     getMessages: mock(() => Promise.resolve([])),
 
-    // Job queue
-    enqueueJob: mock(() =>
-      Promise.resolve(returns.enqueueJob ?? "mock-job-id"),
-    ),
-    enqueueBatch: mock(() => Promise.resolve("mock-batch-id")),
-    registerJobHandler: mock(() => {}),
-    getJobStatus: mock(() => Promise.resolve(null)),
+    // Job queue namespace
+    jobs: {
+      enqueue: mock(() =>
+        Promise.resolve(returns.jobsEnqueue ?? "mock-job-id"),
+      ),
+      enqueueBatch: mock(() => Promise.resolve("mock-batch-id")),
+      registerHandler: mock(() => {}),
+      getStatus: mock(() => Promise.resolve(null)),
+      getActiveJobs: mock(() => Promise.resolve([])),
+      getActiveBatches: mock(() => Promise.resolve([])),
+      getBatchStatus: mock(() => Promise.resolve(null)),
+    },
 
     // Render/templates
     getViewTemplate: mock(() => undefined),

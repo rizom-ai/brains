@@ -41,7 +41,7 @@ export function createLinkTools(
           }
 
           // Enqueue the link capture job for async processing
-          const jobId = await context.enqueueJob(
+          const jobId = await context.jobs.enqueue(
             "capture",
             {
               url,

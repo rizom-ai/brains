@@ -237,7 +237,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       this.logger.child("BlogGenerationJobHandler"),
       context,
     );
-    context.registerJobHandler("generation", blogGenerationHandler);
+    context.jobs.registerHandler("generation", blogGenerationHandler);
 
     // Register with publish-pipeline
     await this.registerWithPublishPipeline(context);

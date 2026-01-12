@@ -104,7 +104,7 @@ export function createNoteTools(
           const parsed = generateInputSchema.parse(input);
 
           // Enqueue the note generation job
-          const jobId = await context.enqueueJob(
+          const jobId = await context.jobs.enqueue(
             "generation",
             parsed,
             toolContext,

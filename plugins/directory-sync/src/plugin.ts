@@ -585,7 +585,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         },
       ];
 
-      return context.enqueueBatch(operations, {
+      return context.jobs.enqueueBatch(operations, {
         priority: 5,
         source: "directory-sync-watcher",
         rootJobId: createId(),
@@ -613,7 +613,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     while (Date.now() - startTime < maxWaitTime) {
       // Check status of all jobs
       const statuses = await Promise.all(
-        jobIds.map((id) => context.getJobStatus(id)),
+        jobIds.map((id) => context.jobs.getStatus(id)),
       );
 
       // Count job states
@@ -667,7 +667,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       context,
       directorySync,
     );
-    context.registerJobHandler("directory-sync", syncHandler);
+    context.jobs.registerHandler("directory-sync", syncHandler);
 
     // Register export job handler
     const exportHandler = new DirectoryExportJobHandler(
@@ -675,7 +675,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       context,
       directorySync,
     );
-    context.registerJobHandler("directory-export", exportHandler);
+    context.jobs.registerHandler("directory-export", exportHandler);
 
     // Register import job handler
     const importHandler = new DirectoryImportJobHandler(
@@ -683,7 +683,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       context,
       directorySync,
     );
-    context.registerJobHandler("directory-import", importHandler);
+    context.jobs.registerHandler("directory-import", importHandler);
 
     // Register delete job handler
     const deleteHandler = new DirectoryDeleteJobHandler(
@@ -691,14 +691,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       context,
       directorySync,
     );
-    context.registerJobHandler("directory-delete", deleteHandler);
+    context.jobs.registerHandler("directory-delete", deleteHandler);
 
     // Register cover image conversion job handler (non-blocking image URL fetch)
     const coverImageConversionHandler = new CoverImageConversionJobHandler(
       context,
       this.logger.child("CoverImageConversionJobHandler"),
     );
-    context.registerJobHandler(
+    context.jobs.registerHandler(
       "cover-image-convert",
       coverImageConversionHandler,
     );
@@ -708,7 +708,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       context,
       this.logger.child("InlineImageConversionJobHandler"),
     );
-    context.registerJobHandler(
+    context.jobs.registerHandler(
       "inline-image-convert",
       inlineImageConversionHandler,
     );

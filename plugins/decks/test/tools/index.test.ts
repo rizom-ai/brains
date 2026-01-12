@@ -18,7 +18,7 @@ describe("Deck Tools", () => {
     beforeEach(() => {
       mockContext = createMockServicePluginContext({
         returns: {
-          enqueueJob: "job-123",
+          jobsEnqueue: "job-123",
           entityService: {
             getEntity: null,
             listEntities: [],
@@ -28,8 +28,8 @@ describe("Deck Tools", () => {
       });
 
       enqueueJobSpy = spyOn(
-        mockContext,
-        "enqueueJob",
+        mockContext.jobs,
+        "enqueue",
       ) as unknown as typeof enqueueJobSpy;
 
       generateTool = createGenerateTool(mockContext, "decks");
@@ -126,9 +126,9 @@ describe("Deck Tools", () => {
       it("should include correct job metadata", async () => {
         await generateTool.handler({ prompt: "Test" }, mockToolContext);
 
-        // Verify enqueueJob was called with correct params:
+        // Verify jobs.enqueue was called with correct params:
         // (type, data, toolContext, options)
-        expect(mockContext.enqueueJob).toHaveBeenCalledWith(
+        expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",
           expect.any(Object),
           mockToolContext, // Should pass toolContext for progress routing

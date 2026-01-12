@@ -15,7 +15,7 @@ import {
 function createMockContext(): ServicePluginContext {
   return createMockServicePluginContext({
     returns: {
-      enqueueJob: "job-456",
+      jobsEnqueue: "job-456",
       generateContent: {
         title: "AI Project Title",
         description: "AI generated description",

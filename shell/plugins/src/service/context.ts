@@ -20,8 +20,8 @@ import { TemplateCapabilities } from "@brains/templates";
 import type {
   JobHandler,
   BatchOperation,
-  JobInfo,
   JobOptions,
+  IJobsNamespace,
 } from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { ViewTemplate, RenderService } from "@brains/render-service";
@@ -132,29 +132,32 @@ export interface ServicePluginContext extends CorePluginContext {
   ) => Promise<Message[]>;
 
   // ============================================================================
-  // Job Queue
+  // Job Queue (extends base IJobsNamespace with plugin-scoped operations)
   // ============================================================================
 
-  /**
-   * Enqueue a job for background processing
-   * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
-   */
-  enqueueJob: EnqueueJobFn;
+  /** Extended jobs namespace with plugin-scoped write operations */
+  readonly jobs: Omit<IJobsNamespace, "enqueueBatch"> & {
+    /**
+     * Enqueue a job for background processing
+     * @param type - Job type (will be auto-scoped with plugin ID)
+     * @param data - Job payload
+     * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
+     * @param options - Optional job options
+     */
+    enqueue: EnqueueJobFn;
 
-  /** Enqueue multiple operations as a batch */
-  enqueueBatch: (
-    operations: BatchOperation[],
-    options?: JobOptions,
-  ) => Promise<string>;
+    /** Enqueue multiple operations as a batch (simplified - batchId generated internally) */
+    enqueueBatch: (
+      operations: BatchOperation[],
+      options?: JobOptions,
+    ) => Promise<string>;
 
-  /** Register a handler for a job type */
-  registerJobHandler: <T = unknown, R = unknown>(
-    type: string,
-    handler: JobHandler<string, T, R>,
-  ) => void;
-
-  /** Get status of a specific job */
-  getJobStatus: (jobId: string) => Promise<JobInfo | null>;
+    /** Register a handler for a job type (auto-scoped with plugin ID) */
+    registerHandler: <T = unknown, R = unknown>(
+      type: string,
+      handler: JobHandler<string, T, R>,
+    ) => void;
+  };
 
   // ============================================================================
   // View Templates
@@ -274,41 +277,52 @@ export function createServicePluginContext(
       return conversationService.getMessages(conversationId, options);
     },
 
-    // Job queue functionality - use shared helper with auto-scoping enabled
-    enqueueJob: createEnqueueJobFn(jobQueueService, pluginId, true),
-    enqueueBatch: async (operations, options): Promise<string> => {
-      // Generate batch ID first to use as rootJobId for consistent tracking
-      const batchId = createId();
-      // Add plugin scope to operation types unless already scoped
-      const scopedOperations = operations.map((op) => ({
-        ...op,
-        type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
-      }));
-      await shell.enqueueBatch(
-        scopedOperations,
-        {
+    // Job operations namespace - extends shell.jobs with plugin-scoped operations
+    jobs: {
+      // Pass through base operations from shell
+      ...shell.jobs,
+
+      // Plugin-scoped enqueue with auto-scoping enabled
+      enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
+
+      // Plugin-scoped batch enqueue (generates batchId internally)
+      enqueueBatch: async (
+        operations: BatchOperation[],
+        options?: JobOptions,
+      ): Promise<string> => {
+        const batchId = createId();
+        // Add plugin scope to operation types unless already scoped
+        const scopedOperations = operations.map((op) => ({
+          ...op,
+          type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
+        }));
+        const jobOptions: JobOptions = {
+          ...options,
           source: pluginId,
-          rootJobId: batchId, // Use generated batch ID as rootJobId
+          rootJobId: batchId,
           metadata: {
+            ...options?.metadata,
             operationType: "batch_processing" as const,
             pluginId,
-            ...options?.metadata,
           },
-          ...options,
-        },
-        batchId,
-        pluginId,
-      );
+        };
+        await shell.jobs.enqueueBatch(
+          scopedOperations,
+          jobOptions,
+          batchId,
+          pluginId,
+        );
+        return batchId;
+      },
 
-      return batchId;
-    },
-    registerJobHandler: (type, handler): void => {
-      // Add plugin scope to the type for explicit registration
-      const scopedType = `${pluginId}:${type}`;
-      jobQueueService.registerHandler(scopedType, handler, pluginId);
-    },
-    getJobStatus: async (jobId: string): Promise<JobInfo | null> => {
-      return jobQueueService.getStatus(jobId);
+      // Plugin-scoped handler registration
+      registerHandler: <T = unknown, R = unknown>(
+        type: string,
+        handler: JobHandler<string, T, R>,
+      ): void => {
+        const scopedType = `${pluginId}:${type}`;
+        jobQueueService.registerHandler(scopedType, handler, pluginId);
+      },
     },
 
     // View template access

@@ -16,6 +16,7 @@ export type {
   JobQueueWorkerStats,
   IJobQueueWorker,
   IBatchJobManager,
+  IJobsNamespace,
 } from "./types";
 export { JobInfoSchema } from "./types";
 export {

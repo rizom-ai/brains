@@ -236,7 +236,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.config.previewUrl,
       this.config.productionUrl,
     );
-    context.registerJobHandler("site-build", siteBuildHandler);
+    context.jobs.registerHandler("site-build", siteBuildHandler);
 
     // Note: content-generation and content-derivation handlers are registered
     // by the shell as they are core content operations owned by ContentService
@@ -438,7 +438,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
       try {
         // Background auto-trigger - pass null for toolContext
-        await context.enqueueJob(
+        await context.jobs.enqueue(
           "site-build",
           {
             environment,

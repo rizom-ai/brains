@@ -11,7 +11,7 @@ import { createMockServicePluginContext } from "@brains/test-utils";
 function createMockContext(): ServicePluginContext {
   return createMockServicePluginContext({
     returns: {
-      enqueueJob: "job-456",
+      jobsEnqueue: "job-456",
       generateContent: { title: "AI Title", body: "AI Body" },
       entityService: {
         createEntity: { entityId: "note-123" },
@@ -119,7 +119,7 @@ describe("Note Tools", () => {
 
       expect(result.success).toBe(true);
       expect(result.data?.jobId).toBe("job-456");
-      expect(context.enqueueJob).toHaveBeenCalled();
+      expect(context.jobs.enqueue).toHaveBeenCalled();
     });
 
     it("should accept optional title", async () => {
@@ -129,7 +129,7 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(context.enqueueJob).toHaveBeenCalledWith(
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
         "generation",
         expect.objectContaining({ title: "My Title" }),
         expect.anything(),

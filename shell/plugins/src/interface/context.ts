@@ -4,7 +4,12 @@ import type { IShell, IMCPTransport } from "../interfaces";
 import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
 import type { Daemon } from "@brains/daemon-registry";
 import type { UserPermissionLevel } from "@brains/permission-service";
-import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
+import type {
+  JobHandler,
+  BatchOperation,
+  JobOptions,
+  IJobsNamespace,
+} from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { IAgentService } from "@brains/agent-service";
 import type {
@@ -51,26 +56,29 @@ export interface InterfacePluginContext extends CorePluginContext {
   registerDaemon: (name: string, daemon: Daemon) => void;
 
   // ============================================================================
-  // Job Queue
+  // Job Queue (extends base IJobsNamespace with plugin-scoped operations)
   // ============================================================================
 
-  /**
-   * Enqueue a job for background processing
-   * Interface plugins should pass null for toolContext
-   */
-  enqueueJob: EnqueueJobFn;
+  /** Extended jobs namespace with plugin-scoped write operations */
+  readonly jobs: Omit<IJobsNamespace, "enqueueBatch"> & {
+    /**
+     * Enqueue a job for background processing
+     * Interface plugins should pass null for toolContext
+     */
+    enqueue: EnqueueJobFn;
 
-  /** Enqueue multiple operations as a batch */
-  enqueueBatch: (
-    operations: BatchOperation[],
-    options?: JobOptions,
-  ) => Promise<string>;
+    /** Enqueue multiple operations as a batch (simplified - batchId generated internally) */
+    enqueueBatch: (
+      operations: BatchOperation[],
+      options?: JobOptions,
+    ) => Promise<string>;
 
-  /** Register a handler for a job type */
-  registerJobHandler: <T = unknown, R = unknown>(
-    type: string,
-    handler: JobHandler<string, T, R>,
-  ) => void;
+    /** Register a handler for a job type (auto-scoped with plugin ID) */
+    registerHandler: <T = unknown, R = unknown>(
+      type: string,
+      handler: JobHandler<string, T, R>,
+    ) => void;
+  };
 
   // ============================================================================
   // Conversation Management (Write Operations)
@@ -125,37 +133,53 @@ export function createInterfacePluginContext(
       return permissionService.determineUserLevel(interfaceType, userId);
     },
 
-    // Job queue functionality - use shared helper without auto-scoping (callers must be explicit)
-    enqueueJob: createEnqueueJobFn(shell.getJobQueueService(), pluginId, false),
-    enqueueBatch: async (operations, options): Promise<string> => {
-      const batchId = createId();
-      // Add plugin scope to operation types unless already scoped
-      const scopedOperations = operations.map((op) => ({
-        ...op,
-        type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
-      }));
-      const defaultOptions: JobOptions = {
-        source: pluginId,
-        rootJobId: batchId, // Use generated batch ID as rootJobId
-        metadata: {
-          operationType: "batch_processing" as const,
+    // Job operations namespace - extends shell.jobs with plugin-scoped operations
+    jobs: {
+      // Pass through base operations from shell
+      ...shell.jobs,
+
+      // Plugin-scoped enqueue without auto-scoping (callers must be explicit)
+      enqueue: createEnqueueJobFn(shell.getJobQueueService(), pluginId, false),
+
+      // Plugin-scoped batch enqueue (generates batchId internally)
+      enqueueBatch: async (
+        operations: BatchOperation[],
+        options?: JobOptions,
+      ): Promise<string> => {
+        const batchId = createId();
+        // Add plugin scope to operation types unless already scoped
+        const scopedOperations = operations.map((op) => ({
+          ...op,
+          type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
+        }));
+        const jobOptions: JobOptions = {
+          ...options,
+          source: pluginId,
+          rootJobId: batchId,
+          metadata: {
+            ...options?.metadata,
+            operationType: "batch_processing" as const,
+            pluginId,
+          },
+        };
+        await shell.jobs.enqueueBatch(
+          scopedOperations,
+          jobOptions,
+          batchId,
           pluginId,
-          ...options?.metadata,
-        },
-        ...options,
-      };
-      return shell.enqueueBatch(
-        scopedOperations,
-        defaultOptions,
-        batchId,
-        pluginId,
-      );
-    },
-    registerJobHandler: (type, handler): void => {
-      const jobQueueService = shell.getJobQueueService();
-      // Add plugin scope to the type for explicit registration
-      const scopedType = `${pluginId}:${type}`;
-      jobQueueService.registerHandler(scopedType, handler, pluginId);
+        );
+        return batchId;
+      },
+
+      // Plugin-scoped handler registration
+      registerHandler: <T = unknown, R = unknown>(
+        type: string,
+        handler: JobHandler<string, T, R>,
+      ): void => {
+        const jobQueueService = shell.getJobQueueService();
+        const scopedType = `${pluginId}:${type}`;
+        jobQueueService.registerHandler(scopedType, handler, pluginId);
+      },
     },
 
     // Daemon support

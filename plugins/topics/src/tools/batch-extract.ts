@@ -71,7 +71,7 @@ export function createBatchExtractTool(
 
       // Queue extraction jobs
       for (const entity of toExtract) {
-        await context.enqueueJob(
+        await context.jobs.enqueue(
           "extract",
           {
             entityId: entity.id,

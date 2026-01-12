@@ -28,13 +28,7 @@ export {
   toolResponseSchema,
   ToolContextRoutingSchema,
 } from "@brains/mcp-service";
-import type {
-  IJobQueueService,
-  Batch,
-  BatchJobStatus,
-  BatchOperation,
-} from "@brains/job-queue";
-import type { JobOptions, JobInfo } from "@brains/job-queue";
+import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
 import type { RenderService } from "@brains/render-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
@@ -166,17 +160,8 @@ export interface IShell {
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;
 
-  // Batch job operations
-  enqueueBatch(
-    operations: BatchOperation[],
-    options: JobOptions,
-    batchId: string,
-    pluginId: string,
-  ): Promise<string>;
-  getActiveBatches(): Promise<Batch[]>;
-  getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
-  getActiveJobs(types?: string[]): Promise<JobInfo[]>;
-  getJobStatus(jobId: string): Promise<JobInfo | null>;
+  // Job operations namespace
+  readonly jobs: IJobsNamespace;
 
   // Daemon registration
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;

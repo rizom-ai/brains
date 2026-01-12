@@ -181,7 +181,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     context.logger.info("Generated explanation:", explanation);
 
     // Register job handler for complex calculations
-    context.registerJobHandler("complex-calculation", {
+    context.jobs.registerHandler("complex-calculation", {
       async process(data: unknown, jobId: string) {
         context.logger.info("Processing complex calculation", { jobId });
         const { expression } = data as { expression: string };

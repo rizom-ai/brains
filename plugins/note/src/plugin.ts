@@ -47,7 +47,7 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
       this.logger.child("NoteGenerationJobHandler"),
       context,
     );
-    context.registerJobHandler("generation", noteGenerationHandler);
+    context.jobs.registerHandler("generation", noteGenerationHandler);
 
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);

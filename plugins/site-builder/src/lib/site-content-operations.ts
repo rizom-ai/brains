@@ -196,8 +196,8 @@ export class SiteContentOperations {
         "site:content-generation",
       );
       const batchId = jobOptions
-        ? await this.context.enqueueBatch(batchJobs, jobOptions)
-        : await this.context.enqueueBatch(batchJobs);
+        ? await this.context.jobs.enqueueBatch(batchJobs, jobOptions)
+        : await this.context.jobs.enqueueBatch(batchJobs);
 
       // Create job entries for tracking
       for (let i = 0; i < sectionsToGenerate.length; i++) {

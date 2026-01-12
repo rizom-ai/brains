@@ -7,6 +7,9 @@ import type { Image } from "mdast";
 
 /**
  * Parse frontmatter and content from markdown
+ * Note: We spread the data object to create a shallow copy because gray-matter
+ * caches parsed results and returns the same object reference for identical inputs.
+ * Without this copy, mutations to frontmatter would pollute the cache.
  */
 export function parseMarkdown(markdown: string): {
   frontmatter: Record<string, unknown>;
@@ -14,7 +17,7 @@ export function parseMarkdown(markdown: string): {
 } {
   const { data, content } = matter(markdown);
   return {
-    frontmatter: data as Record<string, unknown>,
+    frontmatter: { ...data },
     content: content.trim(),
   };
 }

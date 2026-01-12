@@ -86,7 +86,7 @@ describe("SiteContentOperations", () => {
       getEntitySpy.mockResolvedValue(null);
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-123");
 
       const result = await operations.generate({});
@@ -134,7 +134,7 @@ describe("SiteContentOperations", () => {
       getEntitySpy.mockResolvedValue(null);
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-456");
 
       const result = await operations.generate({ routeId: "landing" });
@@ -180,7 +180,7 @@ describe("SiteContentOperations", () => {
       getEntitySpy.mockResolvedValue(null);
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-789");
 
       const result = await operations.generate({
@@ -240,7 +240,7 @@ describe("SiteContentOperations", () => {
       getEntitySpy.mockResolvedValueOnce(null); // For features section
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-abc");
 
       const result = await operations.generate({ routeId: "landing" });
@@ -278,7 +278,7 @@ describe("SiteContentOperations", () => {
       const getEntitySpy = spyOn(context.entityService, "getEntity");
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-def");
 
       const result = await operations.generate({
@@ -310,7 +310,7 @@ describe("SiteContentOperations", () => {
       });
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
 
       const result = await operations.generate({ dryRun: true });
 
@@ -362,7 +362,7 @@ describe("SiteContentOperations", () => {
       getEntitySpy.mockResolvedValue(null);
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-ghi");
 
       const result = await operations.generate({});
@@ -411,7 +411,7 @@ describe("SiteContentOperations", () => {
       getEntitySpy.mockResolvedValue(null);
 
       // Spy on enqueueBatch
-      const enqueueBatchSpy = spyOn(context, "enqueueBatch");
+      const enqueueBatchSpy = spyOn(context.jobs, "enqueueBatch");
       enqueueBatchSpy.mockResolvedValue("batch-jkl");
 
       const result = await operations.generate({});

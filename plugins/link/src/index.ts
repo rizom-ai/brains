@@ -64,7 +64,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
         ? { jinaApiKey: this.config.jinaApiKey }
         : undefined,
     );
-    context.registerJobHandler("capture", linkCaptureHandler);
+    context.jobs.registerHandler("capture", linkCaptureHandler);
 
     // Register eval handler for testing extraction quality
     context.registerEvalHandler("extractContent", async (input: unknown) => {
