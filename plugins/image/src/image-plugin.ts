@@ -190,7 +190,7 @@ export class ImagePlugin
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getIdentity();
+    return this.context.identity.get();
   }
 
   /**
@@ -200,6 +200,6 @@ export class ImagePlugin
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getProfile();
+    return this.context.identity.getProfile();
   }
 }

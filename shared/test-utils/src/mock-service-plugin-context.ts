@@ -119,6 +119,19 @@ export function createMockServicePluginContext(
       canGenerateImages: mock(() => false),
     },
 
+    // Identity namespace
+    identity: {
+      get: mock(() => ({ name: "Test Brain", values: [] })),
+      getProfile: mock(() => ({ name: "Test Profile", role: "", purpose: "" })),
+      getAppInfo: mock(() =>
+        Promise.resolve({
+          version: "0.0.0",
+          model: "test-model",
+          plugins: [],
+        }),
+      ),
+    },
+
     // Conversation
     searchConversations: mock(() => Promise.resolve([])),
     getMessages: mock(() => Promise.resolve([])),

@@ -274,7 +274,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getIdentity();
+    return this.context.identity.get();
   }
 
   /**
@@ -284,7 +284,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getProfile();
+    return this.context.identity.getProfile();
   }
 
   /**
@@ -316,6 +316,6 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
-    return this.context.getAppInfo();
+    return this.context.identity.getAppInfo();
   }
 }

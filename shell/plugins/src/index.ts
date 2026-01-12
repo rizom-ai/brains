@@ -8,6 +8,7 @@ export type {
   ITemplatesNamespace,
   IMessagingNamespace,
   IAINamespace,
+  IIdentityNamespace,
 } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 

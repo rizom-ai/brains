@@ -61,6 +61,21 @@ export interface IAINamespace {
 }
 
 /**
+ * Identity namespace for CorePluginContext
+ * Provides access to brain identity and profile information
+ */
+export interface IIdentityNamespace {
+  /** Get the brain's identity configuration */
+  get: () => IdentityBody;
+
+  /** Get the owner's profile */
+  getProfile: () => ProfileBody;
+
+  /** Get app metadata (version, model, plugins) */
+  getAppInfo: () => Promise<AppInfo>;
+}
+
+/**
  * Core plugin context - provides basic services to core plugins
  *
  * ## Method Naming Conventions
@@ -94,14 +109,13 @@ export interface CorePluginContext {
   // Brain Identity & Profile
   // ============================================================================
 
-  /** Get the brain's identity configuration */
-  getIdentity: () => IdentityBody;
-
-  /** Get the owner's profile */
-  getProfile: () => ProfileBody;
-
-  /** Get app metadata (version, model, plugins) */
-  getAppInfo: () => Promise<AppInfo>;
+  /**
+   * Identity namespace for brain identity and profile
+   * - `identity.get()` - Get the brain's identity configuration
+   * - `identity.getProfile()` - Get the owner's profile
+   * - `identity.getAppInfo()` - Get app metadata (version, model, plugins)
+   */
+  readonly identity: IIdentityNamespace;
 
   // ============================================================================
   // Inter-Plugin Messaging
@@ -189,12 +203,12 @@ export function createCorePluginContext(
     logger,
     entityService,
 
-    // Identity and Profile
-    getIdentity: () => shell.getIdentity(),
-    getProfile: () => shell.getProfile(),
-
-    // App metadata
-    getAppInfo: () => shell.getAppInfo(),
+    // Identity namespace
+    identity: {
+      get: () => shell.getIdentity(),
+      getProfile: () => shell.getProfile(),
+      getAppInfo: () => shell.getAppInfo(),
+    },
 
     // Messaging namespace
     messaging: {
