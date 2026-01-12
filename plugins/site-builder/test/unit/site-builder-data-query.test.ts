@@ -29,7 +29,7 @@ describe("SiteBuilder dataQuery handling", () => {
     // Create mock context using factory
     mockContext = createMockServicePluginContext({ logger });
     // Override specific methods for this test
-    spyOn(mockContext, "getViewTemplate").mockReturnValue({
+    spyOn(mockContext.views, "get").mockReturnValue({
       name: "test-template",
       pluginId: "test",
       schema: z.object({}),

@@ -258,7 +258,7 @@ export class SiteBuilder implements ISiteBuilder {
           return this.getContentForSection(section, route, publishedOnly);
         },
         getViewTemplate: (name: string) => {
-          return this.context.getViewTemplate(name);
+          return this.context.views.get(name);
         },
         layouts: parsedOptions.layouts,
         getSiteInfo: async () => {

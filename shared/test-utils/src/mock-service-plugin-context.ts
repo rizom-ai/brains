@@ -161,10 +161,12 @@ export function createMockServicePluginContext(
       getCapabilities: mock(() => null),
     },
 
-    // Render/views
-    getViewTemplate: mock(() => undefined),
-    listViewTemplates: mock(() => []),
-    getRenderService: mock(() => ({})),
+    // Views namespace
+    views: {
+      get: mock(() => undefined),
+      list: mock(() => []),
+      getRenderService: mock(() => ({})),
+    },
 
     // Plugin metadata
     getPluginPackageName: mock(() => undefined),

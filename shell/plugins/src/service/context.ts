@@ -29,11 +29,6 @@ import type {
 } from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { ViewTemplate, RenderService } from "@brains/render-service";
-import type {
-  Conversation,
-  Message,
-  GetMessagesOptions,
-} from "@brains/conversation-service";
 import type { DataSource } from "@brains/datasource";
 import type { z } from "@brains/utils";
 import { createCorePluginContext } from "../core/context";
@@ -83,6 +78,21 @@ export interface IServiceTemplatesNamespace extends ITemplatesNamespace {
     canRender: boolean;
     isStaticOnly: boolean;
   } | null;
+}
+
+/**
+ * Views namespace for ServicePluginContext
+ * Provides access to view templates and rendering
+ */
+export interface IViewsNamespace {
+  /** Get a view template by name */
+  get: (name: string) => ViewTemplate<unknown> | undefined;
+
+  /** List all registered view templates */
+  list: () => ViewTemplate<unknown>[];
+
+  /** Get the render service for advanced rendering */
+  getRenderService: () => RenderService;
 }
 
 /**
@@ -157,19 +167,6 @@ export interface ServicePluginContext extends CorePluginContext {
   readonly templates: IServiceTemplatesNamespace;
 
   // ============================================================================
-  // Conversations (Read-Only)
-  // ============================================================================
-
-  /** Search conversations by query */
-  searchConversations: (query: string) => Promise<Conversation[]>;
-
-  /** Get messages from a conversation */
-  getMessages: (
-    conversationId: string,
-    options?: GetMessagesOptions,
-  ) => Promise<Message[]>;
-
-  // ============================================================================
   // Job Queue (extends base IJobsNamespace with plugin-scoped operations)
   // ============================================================================
 
@@ -201,14 +198,13 @@ export interface ServicePluginContext extends CorePluginContext {
   // View Templates
   // ============================================================================
 
-  /** Get a view template by name */
-  getViewTemplate: (name: string) => ViewTemplate<unknown> | undefined;
-
-  /** List all registered view templates */
-  listViewTemplates: () => ViewTemplate<unknown>[];
-
-  /** Get the render service for advanced rendering */
-  getRenderService: () => RenderService;
+  /**
+   * Views namespace for view template access and rendering
+   * - `views.get()` - Get a view template by name
+   * - `views.list()` - List all registered view templates
+   * - `views.getRenderService()` - Get the render service for advanced rendering
+   */
+  readonly views: IViewsNamespace;
 
   // ============================================================================
   // Plugin Metadata
@@ -356,19 +352,6 @@ export function createServicePluginContext(
       },
     },
 
-    // Conversation service helpers
-    searchConversations: async (query: string): Promise<Conversation[]> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.searchConversations(query);
-    },
-    getMessages: async (
-      conversationId: string,
-      options?: GetMessagesOptions,
-    ): Promise<Message[]> => {
-      const conversationService = shell.getConversationService();
-      return conversationService.getMessages(conversationId, options);
-    },
-
     // Job operations namespace - extends shell.jobs with plugin-scoped operations
     jobs: {
       // Pass through base operations from shell
@@ -417,15 +400,17 @@ export function createServicePluginContext(
       },
     },
 
-    // View template access
-    getViewTemplate: (name: string): ViewTemplate<unknown> | undefined => {
-      return renderService.get(name) ?? undefined;
-    },
-    listViewTemplates: (): ViewTemplate[] => {
-      return renderService.list();
-    },
-    getRenderService: (): RenderService => {
-      return renderService;
+    // Views namespace
+    views: {
+      get: (name: string): ViewTemplate<unknown> | undefined => {
+        return renderService.get(name) ?? undefined;
+      },
+      list: (): ViewTemplate[] => {
+        return renderService.list();
+      },
+      getRenderService: (): RenderService => {
+        return renderService;
+      },
     },
 
     // Plugin metadata

@@ -50,8 +50,8 @@ describe("DynamicRouteGenerator", () => {
     spyOn(mockContext.entityService, "getEntityTypes").mockImplementation(
       () => entityTypes,
     );
-    // Override listViewTemplates to use test data
-    spyOn(mockContext, "listViewTemplates").mockImplementation(() => templates);
+    // Override views.list to use test data
+    spyOn(mockContext.views, "list").mockImplementation(() => templates);
 
     generator = new DynamicRouteGenerator(mockContext, routeRegistry);
   });
@@ -247,7 +247,7 @@ describe("DynamicRouteGenerator", () => {
         spyOn(testContext.entityService, "listEntities").mockImplementation(
           async () => [],
         );
-        spyOn(testContext, "listViewTemplates").mockImplementation(() => [
+        spyOn(testContext.views, "list").mockImplementation(() => [
           {
             name: `test:${entity}-list`,
             pluginId: "test",

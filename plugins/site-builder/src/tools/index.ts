@@ -240,7 +240,7 @@ export function createSiteBuilderTools(
       "List all registered view templates",
       {},
       async () => {
-        const templates = pluginContext.listViewTemplates();
+        const templates = pluginContext.views.list();
 
         const formatted = formatAsList(templates, {
           title: (t) => t.name,

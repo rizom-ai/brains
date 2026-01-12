@@ -41,7 +41,7 @@ describe("SiteBuilder - URL Enrichment", () => {
   beforeEach(() => {
     mockContext = createMockServicePluginContext({ logger });
     // Override specific methods for this test
-    spyOn(mockContext, "getViewTemplate").mockReturnValue({
+    spyOn(mockContext.views, "get").mockReturnValue({
       name: "test-template",
       pluginId: "test",
       schema: z.object({}),

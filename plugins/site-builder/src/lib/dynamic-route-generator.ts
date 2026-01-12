@@ -141,7 +141,7 @@ export class DynamicRouteGenerator {
         const { pluralName } = this.getEntityDisplayConfig(entityType);
 
         // Get template to check for route layout preference
-        const templates = this.context.listViewTemplates();
+        const templates = this.context.views.list();
         const detailTemplate = templates.find(
           (t) => t.name === detailTemplateName,
         );
@@ -285,7 +285,7 @@ export class DynamicRouteGenerator {
     detailTemplateName?: string;
   } {
     // Get list of all templates to search through
-    const allTemplates = this.context.listViewTemplates();
+    const allTemplates = this.context.views.list();
 
     // Look for templates matching the pattern [entityType]-list/detail
     // Must match exactly after namespace separator (":") to avoid
