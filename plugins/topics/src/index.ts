@@ -92,7 +92,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Subscribe to sync:initial:completed to enable auto-extraction after startup
     if (this.config.enableAutoExtraction) {
-      context.subscribe(
+      context.messaging.subscribe(
         "sync:initial:completed",
         async (): Promise<{ success: boolean }> => {
           this.enableAutoExtraction();
@@ -133,8 +133,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         return { success: true };
       };
 
-      context.subscribe("entity:created", handleEntityEvent);
-      context.subscribe("entity:updated", handleEntityEvent);
+      context.messaging.subscribe("entity:created", handleEntityEvent);
+      context.messaging.subscribe("entity:updated", handleEntityEvent);
     }
   }
 

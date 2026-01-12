@@ -159,14 +159,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
           // Emit message when initial sync AND embedding jobs complete
           // Use broadcast to ensure ALL handlers are called (not just the first one)
-          await context.sendMessage(
+          await context.messaging.send(
             "sync:initial:completed",
             { success: true },
             { broadcast: true },
           );
         } catch (error) {
           this.error("Initial sync failed", error);
-          await context.sendMessage(
+          await context.messaging.send(
             "sync:initial:completed",
             {
               success: false,
@@ -178,7 +178,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       };
 
       // Listen for git-sync registration - if received, we know to wait for pull
-      context.subscribe("git:sync:registered", async () => {
+      context.messaging.subscribe("git:sync:registered", async () => {
         this.debug(
           "git:sync:registered received, will wait for git:pull:completed",
         );
@@ -188,14 +188,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
       // Listen for git:pull:completed - this means git-sync has pulled remote data
       // and we can safely import files to DB
-      context.subscribe("git:pull:completed", async () => {
+      context.messaging.subscribe("git:pull:completed", async () => {
         this.debug("git:pull:completed received, starting initial sync");
         await runInitialSync();
         return { success: true };
       });
 
       // If git-sync is NOT enabled, proceed immediately on system:plugins:ready
-      context.subscribe("system:plugins:ready", async () => {
+      context.messaging.subscribe("system:plugins:ready", async () => {
         if (gitSyncEnabled) {
           this.debug(
             "system:plugins:ready received, but git-sync is enabled - waiting for git:pull:completed",
@@ -364,7 +364,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
    * Register message handlers for inter-plugin communication
    */
   private registerMessageHandlers(context: ServicePluginContext): void {
-    const { subscribe } = context;
+    const { subscribe } = context.messaging;
 
     // Handler for export requests
     subscribe<{ entityTypes?: string[] }>(
@@ -493,7 +493,8 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
    * Setup auto-sync for entity events (Database → Files)
    */
   private setupAutoSync(context: ServicePluginContext): void {
-    const { subscribe, entityService } = context;
+    const { subscribe } = context.messaging;
+    const { entityService } = context;
     const directorySync = this.requireDirectorySync();
 
     // Subscribe to entity:created

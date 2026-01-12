@@ -57,7 +57,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       mockProgressReporter,
     );
 
-    expect(mockContext.sendMessage).toHaveBeenCalledWith(
+    expect(mockContext.messaging.send).toHaveBeenCalledWith(
       "site:build:completed",
       expect.objectContaining({
         environment: "production",
@@ -92,7 +92,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       mockProgressReporter,
     );
 
-    expect(mockContext.sendMessage).toHaveBeenCalledWith(
+    expect(mockContext.messaging.send).toHaveBeenCalledWith(
       "site:build:completed",
       expect.objectContaining({
         environment: "preview",
@@ -127,7 +127,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       mockProgressReporter,
     );
 
-    expect(mockContext.sendMessage).toHaveBeenCalledWith(
+    expect(mockContext.messaging.send).toHaveBeenCalledWith(
       "site:build:completed",
       expect.objectContaining({
         siteConfig: expect.objectContaining({
@@ -161,7 +161,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       mockProgressReporter,
     );
 
-    expect(mockContext.sendMessage).toHaveBeenCalledWith(
+    expect(mockContext.messaging.send).toHaveBeenCalledWith(
       "site:build:completed",
       expect.objectContaining({
         siteConfig: expect.objectContaining({
@@ -195,7 +195,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       mockProgressReporter,
     );
 
-    expect(mockContext.sendMessage).toHaveBeenCalledWith(
+    expect(mockContext.messaging.send).toHaveBeenCalledWith(
       "site:build:completed",
       expect.objectContaining({
         siteConfig: expect.objectContaining({
@@ -229,7 +229,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       mockProgressReporter,
     );
 
-    expect(mockContext.sendMessage).toHaveBeenCalledWith(
+    expect(mockContext.messaging.send).toHaveBeenCalledWith(
       "site:build:completed",
       expect.objectContaining({
         siteConfig: expect.objectContaining({

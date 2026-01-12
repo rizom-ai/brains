@@ -34,6 +34,21 @@ export interface ITemplatesNamespace {
 }
 
 /**
+ * Messaging namespace for CorePluginContext
+ * Provides inter-plugin messaging capabilities
+ */
+export interface IMessagingNamespace {
+  /** Send a message to other plugins */
+  send: MessageSender;
+
+  /** Subscribe to messages on a channel */
+  subscribe: <T = unknown, R = unknown>(
+    channel: string,
+    handler: MessageHandler<T, R>,
+  ) => () => void;
+}
+
+/**
  * Core plugin context - provides basic services to core plugins
  *
  * ## Method Naming Conventions
@@ -80,14 +95,12 @@ export interface CorePluginContext {
   // Inter-Plugin Messaging
   // ============================================================================
 
-  /** Send a message to other plugins */
-  sendMessage: MessageSender;
-
-  /** Subscribe to messages on a channel */
-  subscribe: <T = unknown, R = unknown>(
-    channel: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
+  /**
+   * Messaging namespace for inter-plugin communication
+   * - `messaging.send()` - Send a message to other plugins
+   * - `messaging.subscribe()` - Subscribe to messages on a channel
+   */
+  readonly messaging: IMessagingNamespace;
 
   // ============================================================================
   // Template Operations
@@ -171,12 +184,14 @@ export function createCorePluginContext(
     // App metadata
     getAppInfo: () => shell.getAppInfo(),
 
-    // Messaging
-    sendMessage,
-    subscribe: <T = unknown, R = unknown>(
-      channel: string,
-      handler: MessageHandler<T, R>,
-    ) => messageBus.subscribe(channel, handler),
+    // Messaging namespace
+    messaging: {
+      send: sendMessage,
+      subscribe: <T = unknown, R = unknown>(
+        channel: string,
+        handler: MessageHandler<T, R>,
+      ) => messageBus.subscribe(channel, handler),
+    },
 
     // Template operations namespace
     templates: {

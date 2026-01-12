@@ -131,7 +131,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             : `https://${configUrl}`
           : undefined;
 
-        await this.context.sendMessage("site:build:completed", {
+        await this.context.messaging.send("site:build:completed", {
           outputDir: data.outputDir,
           environment,
           routesBuilt: result.routesBuilt,

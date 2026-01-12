@@ -196,7 +196,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     // Get the first provider (typically linkedin)
     const provider = this.providers.values().next().value;
 
-    await context.sendMessage("publish:register", {
+    await context.messaging.send("publish:register", {
       entityType: "social-post",
       provider: provider,
     });
@@ -209,14 +209,14 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
    */
   private subscribeToPublishExecute(context: ServicePluginContext): void {
     const executeHandler = new PublishExecuteHandler({
-      sendMessage: context.sendMessage,
+      sendMessage: context.messaging.send,
       logger: this.logger.child("PublishExecuteHandler"),
       entityService: context.entityService,
       providers: this.providers,
       maxRetries: this.config.maxRetries,
     });
 
-    context.subscribe<PublishExecutePayload, { success: boolean }>(
+    context.messaging.subscribe<PublishExecutePayload, { success: boolean }>(
       "publish:execute",
       async (msg) => {
         await executeHandler.handle(msg.payload);

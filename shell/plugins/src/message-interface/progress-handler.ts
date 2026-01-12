@@ -22,7 +22,7 @@ export function setupProgressHandler(
   context: InterfacePluginContext,
   handlers: ProgressHandlers,
 ): void {
-  context.subscribe("job-progress", async (message) => {
+  context.messaging.subscribe("job-progress", async (message) => {
     try {
       const validationResult = JobProgressEventSchema.safeParse(
         message.payload,

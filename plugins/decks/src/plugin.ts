@@ -82,7 +82,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       },
     };
 
-    await context.sendMessage("publish:register", {
+    await context.messaging.send("publish:register", {
       entityType: "deck",
       provider: internalProvider,
     });
@@ -96,7 +96,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   private subscribeToPublishExecute(context: ServicePluginContext): void {
     const formatter = new DeckFormatter();
 
-    context.subscribe<
+    context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
     >("publish:execute", async (msg) => {
@@ -114,7 +114,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
         );
 
         if (!deck) {
-          await context.sendMessage("publish:report:failure", {
+          await context.messaging.send("publish:report:failure", {
             entityType,
             entityId,
             error: `Deck not found: ${entityId}`,
@@ -147,7 +147,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
           content: updatedContent,
         });
 
-        await context.sendMessage("publish:report:success", {
+        await context.messaging.send("publish:report:success", {
           entityType,
           entityId,
           result: { id: entityId },
@@ -157,7 +157,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        await context.sendMessage("publish:report:failure", {
+        await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,
           error: errorMessage,

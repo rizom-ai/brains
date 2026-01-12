@@ -67,7 +67,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
     // Create a messageBus adapter for the scheduler
     const messageBusAdapter = {
       send: async (channel: string, message: unknown): Promise<unknown> => {
-        return context.sendMessage(channel, message);
+        return context.messaging.send(channel, message);
       },
       subscribe: (): (() => void) => () => {},
     };
@@ -94,44 +94,48 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
   }
 
   private subscribeToMessages(context: ServicePluginContext): void {
-    context.subscribe<PublishRegisterPayload, { success: boolean }>(
+    context.messaging.subscribe<PublishRegisterPayload, { success: boolean }>(
       PUBLISH_MESSAGES.REGISTER,
       async (msg) => this.handleRegister(msg.payload),
     );
 
-    context.subscribe<PublishQueuePayload, { success: boolean }>(
+    context.messaging.subscribe<PublishQueuePayload, { success: boolean }>(
       PUBLISH_MESSAGES.QUEUE,
       async (msg) => this.handleQueue(context, msg.payload),
     );
 
-    context.subscribe<PublishDirectPayload, { success: boolean }>(
+    context.messaging.subscribe<PublishDirectPayload, { success: boolean }>(
       PUBLISH_MESSAGES.DIRECT,
       async (msg) => this.handleDirect(context, msg.payload),
     );
 
-    context.subscribe<PublishRemovePayload, { success: boolean }>(
+    context.messaging.subscribe<PublishRemovePayload, { success: boolean }>(
       PUBLISH_MESSAGES.REMOVE,
       async (msg) => this.handleRemove(msg.payload),
     );
 
-    context.subscribe<PublishReorderPayload, { success: boolean }>(
+    context.messaging.subscribe<PublishReorderPayload, { success: boolean }>(
       PUBLISH_MESSAGES.REORDER,
       async (msg) => this.handleReorder(msg.payload),
     );
 
-    context.subscribe<PublishListPayload, { success: boolean }>(
+    context.messaging.subscribe<PublishListPayload, { success: boolean }>(
       PUBLISH_MESSAGES.LIST,
       async (msg) => this.handleList(context, msg.payload),
     );
 
-    context.subscribe<PublishReportSuccessPayload, { success: boolean }>(
-      PUBLISH_MESSAGES.REPORT_SUCCESS,
-      async (msg) => this.handleReportSuccess(context, msg.payload),
+    context.messaging.subscribe<
+      PublishReportSuccessPayload,
+      { success: boolean }
+    >(PUBLISH_MESSAGES.REPORT_SUCCESS, async (msg) =>
+      this.handleReportSuccess(context, msg.payload),
     );
 
-    context.subscribe<PublishReportFailurePayload, { success: boolean }>(
-      PUBLISH_MESSAGES.REPORT_FAILURE,
-      async (msg) => this.handleReportFailure(context, msg.payload),
+    context.messaging.subscribe<
+      PublishReportFailurePayload,
+      { success: boolean }
+    >(PUBLISH_MESSAGES.REPORT_FAILURE, async (msg) =>
+      this.handleReportFailure(context, msg.payload),
     );
 
     this.logger.debug("Subscribed to publish messages");
@@ -167,7 +171,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
     try {
       const result = await this.queueManager.add(entityType, entityId);
 
-      await context.sendMessage(PUBLISH_MESSAGES.QUEUED, {
+      await context.messaging.send(PUBLISH_MESSAGES.QUEUED, {
         entityType,
         entityId,
         position: result.position,
@@ -193,7 +197,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
   ): Promise<{ success: boolean }> {
     const { entityType, entityId } = payload;
 
-    await context.sendMessage(PUBLISH_MESSAGES.EXECUTE, {
+    await context.messaging.send(PUBLISH_MESSAGES.EXECUTE, {
       entityType,
       entityId,
     });
@@ -251,7 +255,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
     try {
       const queue = await this.queueManager.list(entityType);
 
-      await context.sendMessage(PUBLISH_MESSAGES.LIST_RESPONSE, {
+      await context.messaging.send(PUBLISH_MESSAGES.LIST_RESPONSE, {
         entityType,
         queue: queue.map((entry) => ({
           entityId: entry.entityId,
@@ -277,7 +281,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
       result: { id: string; url?: string };
     },
   ): void {
-    void context.sendMessage(PUBLISH_MESSAGES.COMPLETED, {
+    void context.messaging.send(PUBLISH_MESSAGES.COMPLETED, {
       entityType: event.entityType,
       entityId: event.entityId,
       result: event.result,
@@ -294,7 +298,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
       willRetry: boolean;
     },
   ): void {
-    void context.sendMessage(PUBLISH_MESSAGES.FAILED, {
+    void context.messaging.send(PUBLISH_MESSAGES.FAILED, {
       entityType: event.entityType,
       entityId: event.entityId,
       error: event.error,
@@ -311,7 +315,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
 
     this.retryTracker.clearRetries(entityId);
 
-    await context.sendMessage(PUBLISH_MESSAGES.COMPLETED, {
+    await context.messaging.send(PUBLISH_MESSAGES.COMPLETED, {
       entityType,
       entityId,
       result,
@@ -331,7 +335,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
     this.retryTracker.recordFailure(entityId, error);
     const retryInfo = this.retryTracker.getRetryInfo(entityId);
 
-    await context.sendMessage(PUBLISH_MESSAGES.FAILED, {
+    await context.messaging.send(PUBLISH_MESSAGES.FAILED, {
       entityType,
       entityId,
       error,

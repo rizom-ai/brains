@@ -35,11 +35,13 @@ const resourceGetRequestSchema = z.object({
 export interface CoreContext {
   pluginId: string;
   logger: Logger;
-  sendMessage: MessageSender;
-  subscribe: <T = unknown, R = unknown>(
-    channel: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
+  messaging: {
+    send: MessageSender;
+    subscribe: <T = unknown, R = unknown>(
+      channel: string,
+      handler: MessageHandler<T, R>,
+    ) => () => void;
+  };
   templates: {
     format: <T = unknown>(
       templateName: string,
@@ -99,106 +101,114 @@ export abstract class BasePlugin<
    */
   protected setupMessageHandlers(context: TContext): void {
     // Subscribe to tool execution requests for this specific plugin
-    context.subscribe(`plugin:${this.id}:tool:execute`, async (message) => {
-      try {
-        // Validate and parse the message payload
-        const {
-          toolName,
-          args,
-          progressToken,
-          hasProgress,
-          interfaceType,
-          userId,
-          channelId,
-        } = toolExecuteRequestSchema.parse(message.payload);
+    context.messaging.subscribe(
+      `plugin:${this.id}:tool:execute`,
+      async (message) => {
+        try {
+          // Validate and parse the message payload
+          const {
+            toolName,
+            args,
+            progressToken,
+            hasProgress,
+            interfaceType,
+            userId,
+            channelId,
+          } = toolExecuteRequestSchema.parse(message.payload);
 
-        const tools = await this.getTools();
-        const tool = tools.find((t) => t.name === toolName);
+          const tools = await this.getTools();
+          const tool = tools.find((t) => t.name === toolName);
 
-        if (!tool) {
+          if (!tool) {
+            return {
+              success: false,
+              error: `Tool not found: ${toolName}`,
+            };
+          }
+
+          // Create context with routing metadata and optional progress callback
+          const toolContext: ToolContext = {
+            interfaceType,
+            userId,
+            ...(channelId && { channelId }),
+            ...(hasProgress &&
+              progressToken !== undefined && {
+                progressToken,
+                sendProgress: async (
+                  notification: ProgressNotification,
+                ): Promise<void> => {
+                  // Send progress notification back through message bus
+                  await context.messaging.send(`plugin:${this.id}:progress`, {
+                    progressToken,
+                    notification,
+                  });
+                },
+              }),
+          };
+
+          // Execute the tool with optional context
+          const result = await tool.handler(args, toolContext);
+          return {
+            success: true,
+            data: result,
+          };
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return {
+              success: false,
+              error: "Invalid tool execution request format",
+            };
+          }
+          this.logger.error("Tool execution error", error);
           return {
             success: false,
-            error: `Tool not found: ${toolName}`,
+            error: error instanceof Error ? error.message : String(error),
           };
         }
-
-        // Create context with routing metadata and optional progress callback
-        const toolContext: ToolContext = {
-          interfaceType,
-          userId,
-          ...(channelId && { channelId }),
-          ...(hasProgress &&
-            progressToken !== undefined && {
-              progressToken,
-              sendProgress: async (
-                notification: ProgressNotification,
-              ): Promise<void> => {
-                // Send progress notification back through message bus
-                await context.sendMessage(`plugin:${this.id}:progress`, {
-                  progressToken,
-                  notification,
-                });
-              },
-            }),
-        };
-
-        // Execute the tool with optional context
-        const result = await tool.handler(args, toolContext);
-        return {
-          success: true,
-          data: result,
-        };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: "Invalid tool execution request format",
-          };
-        }
-        this.logger.error("Tool execution error", error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
+      },
+    );
 
     // Subscribe to resource get requests for this specific plugin
-    context.subscribe(`plugin:${this.id}:resource:get`, async (message) => {
-      try {
-        // Validate and parse the message payload
-        const { resourceUri } = resourceGetRequestSchema.parse(message.payload);
+    context.messaging.subscribe(
+      `plugin:${this.id}:resource:get`,
+      async (message) => {
+        try {
+          // Validate and parse the message payload
+          const { resourceUri } = resourceGetRequestSchema.parse(
+            message.payload,
+          );
 
-        const resources = await this.getResources();
-        const resource = resources.find((r) => r.uri === resourceUri);
+          const resources = await this.getResources();
+          const resource = resources.find((r) => r.uri === resourceUri);
 
-        if (!resource) {
+          if (!resource) {
+            return {
+              success: false,
+              error: `Resource not found: ${resourceUri}`,
+            };
+          }
+
+          // Get the resource
+          const result = await resource.handler();
+          return {
+            success: true,
+            data: result,
+          };
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            return {
+              success: false,
+              error: "Invalid resource get request format",
+            };
+          }
+          this.logger.error("Resource fetch error", error);
           return {
             success: false,
-            error: `Resource not found: ${resourceUri}`,
+            error: error instanceof Error ? error.message : String(error),
           };
         }
-
-        // Get the resource
-        const result = await resource.handler();
-        return {
-          success: true,
-          data: result,
-        };
-      } catch (error) {
-        if (error instanceof z.ZodError) {
-          return {
-            success: false,
-            error: "Invalid resource get request format",
-          };
-        }
-        this.logger.error("Resource fetch error", error);
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    });
+      },
+    );
   }
 
   /**
@@ -343,7 +353,7 @@ export abstract class BasePlugin<
 
     const pluginId = this.id;
     return ProgressReporter.from(async (notification: ProgressNotification) => {
-      await context.sendMessage(`plugin:${pluginId}:progress`, {
+      await context.messaging.send(`plugin:${pluginId}:progress`, {
         progressToken,
         notification: {
           progress: notification.progress,

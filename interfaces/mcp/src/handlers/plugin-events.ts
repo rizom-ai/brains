@@ -15,7 +15,7 @@ export function setupSystemEventListeners(
   logger: Logger,
 ): void {
   // Subscribe to tool registration events
-  context.subscribe("system:tool:register", (message) => {
+  context.messaging.subscribe("system:tool:register", (message) => {
     const { pluginId, tool } = message.payload as {
       pluginId: string;
       tool: PluginTool;
@@ -26,7 +26,7 @@ export function setupSystemEventListeners(
   });
 
   // Subscribe to resource registration events
-  context.subscribe("system:resource:register", (message) => {
+  context.messaging.subscribe("system:resource:register", (message) => {
     const { pluginId, resource } = message.payload as {
       pluginId: string;
       resource: PluginResource;
@@ -78,7 +78,7 @@ export function handleToolRegistration(
       try {
         // Execute tool through message bus using plugin-specific message type
         // This is handled by the plugin's base class which subscribes to this message
-        const response = await context.sendMessage(
+        const response = await context.messaging.send(
           `plugin:${pluginId}:tool:execute`,
           {
             toolName: tool.name,
@@ -139,7 +139,7 @@ export function handleResourceRegistration(
     async () => {
       try {
         // Get resource through message bus using plugin-specific message type
-        const response = await context.sendMessage(
+        const response = await context.messaging.send(
           `plugin:${pluginId}:resource:get`,
           {
             resourceUri: resource.uri,

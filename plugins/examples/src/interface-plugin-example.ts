@@ -89,7 +89,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
     context: InterfacePluginContext,
   ): Promise<void> {
     // Subscribe to system messages
-    context.subscribe("system:status:request", async () => {
+    context.messaging.subscribe("system:status:request", async () => {
       const status = await this.daemon?.healthCheck?.();
       return {
         success: true,

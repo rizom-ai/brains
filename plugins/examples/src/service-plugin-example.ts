@@ -128,7 +128,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     });
 
     // Subscribe to calculation requests
-    context.subscribe(
+    context.messaging.subscribe(
       "calc:request",
       async (
         message: MessageWithPayload<{
@@ -158,7 +158,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         }
 
         // Send result back via messaging
-        await context.sendMessage("calc:result", {
+        await context.messaging.send("calc:result", {
           requestId: message.id,
           result,
           operation,
@@ -219,7 +219,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     // Register routes for web UI (if site-builder plugin is available)
     // Routes are now managed through the site-builder plugin via message bus
     // To register routes, send a message to the site-builder plugin:
-    await context.sendMessage("plugin:site-builder:route:register", {
+    await context.messaging.send("plugin:site-builder:route:register", {
       routes: [
         {
           id: "calculator-home",

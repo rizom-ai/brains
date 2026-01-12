@@ -130,7 +130,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
 
     // Initialize both services after seed content is loaded
-    context.subscribe("sync:initial:completed", async () => {
+    context.messaging.subscribe("sync:initial:completed", async () => {
       this.logger.info(
         "sync:initial:completed received, initializing services",
       );
@@ -248,46 +248,46 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     }
 
     // Subscribe to site:build:completed to auto-generate SEO files
-    context.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
-      "site:build:completed",
-      async (message) => {
-        try {
-          const payload = message.payload;
+    context.messaging.subscribe<
+      SiteBuildCompletedPayload,
+      { success: boolean }
+    >("site:build:completed", async (message) => {
+      try {
+        const payload = message.payload;
 
-          this.logger.info(
-            `Received site:build:completed event for ${payload.environment} environment - generating SEO files`,
-          );
+        this.logger.info(
+          `Received site:build:completed event for ${payload.environment} environment - generating SEO files`,
+        );
 
-          const baseUrl = payload.siteConfig.url ?? "https://example.com";
-          const routes = this.routeRegistry.list();
+        const baseUrl = payload.siteConfig.url ?? "https://example.com";
+        const routes = this.routeRegistry.list();
 
-          // Generate robots.txt
-          const robotsTxt = generateRobotsTxt(baseUrl, payload.environment);
-          await fs.writeFile(
-            join(payload.outputDir, "robots.txt"),
-            robotsTxt,
-            "utf-8",
-          );
-          this.logger.info(
-            `Generated robots.txt for ${payload.environment} environment`,
-          );
+        // Generate robots.txt
+        const robotsTxt = generateRobotsTxt(baseUrl, payload.environment);
+        await fs.writeFile(
+          join(payload.outputDir, "robots.txt"),
+          robotsTxt,
+          "utf-8",
+        );
+        this.logger.info(
+          `Generated robots.txt for ${payload.environment} environment`,
+        );
 
-          // Generate sitemap.xml
-          const sitemap = generateSitemap(routes, baseUrl);
-          await fs.writeFile(
-            join(payload.outputDir, "sitemap.xml"),
-            sitemap,
-            "utf-8",
-          );
-          this.logger.info(`Generated sitemap.xml with ${routes.length} URLs`);
+        // Generate sitemap.xml
+        const sitemap = generateSitemap(routes, baseUrl);
+        await fs.writeFile(
+          join(payload.outputDir, "sitemap.xml"),
+          sitemap,
+          "utf-8",
+        );
+        this.logger.info(`Generated sitemap.xml with ${routes.length} URLs`);
 
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to generate SEO files", error);
-          return { success: false };
-        }
-      },
-    );
+        return { success: true };
+      } catch (error) {
+        this.logger.error("Failed to generate SEO files", error);
+        return { success: false };
+      }
+    });
 
     // Site builder is now encapsulated within the plugin
   }
@@ -336,35 +336,38 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    */
   private setupRouteHandlers(context: ServicePluginContext): void {
     // Register handler for route registration
-    context.subscribe("plugin:site-builder:route:register", async (message) => {
-      try {
-        const payload = RegisterRoutesPayloadSchema.parse(message.payload);
-        const { routes, pluginId } = payload;
+    context.messaging.subscribe(
+      "plugin:site-builder:route:register",
+      async (message) => {
+        try {
+          const payload = RegisterRoutesPayloadSchema.parse(message.payload);
+          const { routes, pluginId } = payload;
 
-        for (const route of routes) {
-          const processedRoute: RouteDefinition = {
-            ...route,
-            pluginId,
-            // Add plugin prefix to template names if not already prefixed
-            sections: route.sections.map((section) => ({
-              ...section,
-              template: section.template.includes(":")
-                ? section.template
-                : `${pluginId}:${section.template}`,
-            })),
-          };
-          this.routeRegistry.register(processedRoute);
+          for (const route of routes) {
+            const processedRoute: RouteDefinition = {
+              ...route,
+              pluginId,
+              // Add plugin prefix to template names if not already prefixed
+              sections: route.sections.map((section) => ({
+                ...section,
+                template: section.template.includes(":")
+                  ? section.template
+                  : `${pluginId}:${section.template}`,
+              })),
+            };
+            this.routeRegistry.register(processedRoute);
+          }
+
+          return { success: true };
+        } catch (error) {
+          this.logger.error("Failed to register routes", { error });
+          return { success: false, error: "Failed to register routes" };
         }
-
-        return { success: true };
-      } catch (error) {
-        this.logger.error("Failed to register routes", { error });
-        return { success: false, error: "Failed to register routes" };
-      }
-    });
+      },
+    );
 
     // Handler for unregistering routes
-    context.subscribe(
+    context.messaging.subscribe(
       "plugin:site-builder:route:unregister",
       async (message) => {
         try {
@@ -388,30 +391,36 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
 
     // Handler for listing routes
-    context.subscribe("plugin:site-builder:route:list", async (message) => {
-      try {
-        const payload = ListRoutesPayloadSchema.parse(message.payload);
-        const routes = this.routeRegistry.list(
-          payload.pluginId ? payload : undefined,
-        );
-        return { success: true, data: { routes } };
-      } catch (error) {
-        this.logger.error("Failed to list routes", { error });
-        return { success: false, error: "Failed to list routes" };
-      }
-    });
+    context.messaging.subscribe(
+      "plugin:site-builder:route:list",
+      async (message) => {
+        try {
+          const payload = ListRoutesPayloadSchema.parse(message.payload);
+          const routes = this.routeRegistry.list(
+            payload.pluginId ? payload : undefined,
+          );
+          return { success: true, data: { routes } };
+        } catch (error) {
+          this.logger.error("Failed to list routes", { error });
+          return { success: false, error: "Failed to list routes" };
+        }
+      },
+    );
 
     // Handler for getting specific route
-    context.subscribe("plugin:site-builder:route:get", async (message) => {
-      try {
-        const payload = GetRoutePayloadSchema.parse(message.payload);
-        const route = this.routeRegistry.get(payload.path);
-        return { success: true, data: { route } };
-      } catch (error) {
-        this.logger.error("Failed to get route", { error });
-        return { success: false, error: "Failed to get route" };
-      }
-    });
+    context.messaging.subscribe(
+      "plugin:site-builder:route:get",
+      async (message) => {
+        try {
+          const payload = GetRoutePayloadSchema.parse(message.payload);
+          const route = this.routeRegistry.get(payload.path);
+          return { success: true, data: { route } };
+        } catch (error) {
+          this.logger.error("Failed to get route", { error });
+          return { success: false, error: "Failed to get route" };
+        }
+      },
+    );
   }
 
   /**
@@ -467,7 +476,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     };
 
     // Subscribe to entity events and store unsubscribe functions
-    const unsubscribeCreated = context.subscribe<
+    const unsubscribeCreated = context.messaging.subscribe<
       { entityType: string },
       { success: boolean }
     >("entity:created", async (message) => {
@@ -482,7 +491,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       return { success: true };
     });
 
-    const unsubscribeUpdated = context.subscribe<
+    const unsubscribeUpdated = context.messaging.subscribe<
       { entityType: string },
       { success: boolean }
     >("entity:updated", async (message) => {
@@ -497,7 +506,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       return { success: true };
     });
 
-    const unsubscribeDeleted = context.subscribe<
+    const unsubscribeDeleted = context.messaging.subscribe<
       { entityType: string },
       { success: boolean }
     >("entity:deleted", async (message) => {

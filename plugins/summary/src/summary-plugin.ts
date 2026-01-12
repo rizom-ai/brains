@@ -68,7 +68,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
 
     // Subscribe to conversation digest events
     if (this.config.enableAutoSummary) {
-      context.subscribe("conversation:digest", async (message) => {
+      context.messaging.subscribe("conversation:digest", async (message) => {
         const payload = conversationDigestPayloadSchema.parse(message.payload);
         await this.handleDigestMessage({ ...message, payload });
         return { success: true };

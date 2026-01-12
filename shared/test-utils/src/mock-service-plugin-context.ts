@@ -147,10 +147,14 @@ export function createMockServicePluginContext(
     getPluginPackageName: mock(() => undefined),
     registerEvalHandler: mock(() => {}),
 
-    // Core context methods
-    sendMessage: mock(() => Promise.resolve()),
+    // Messaging namespace
+    messaging: {
+      send: mock(() => Promise.resolve()),
+      subscribe: mock(() => () => {}),
+    },
+
+    // Other core context methods
     onMessage: mock(() => () => {}),
-    subscribe: mock(() => () => {}),
     registerTool: mock(() => {}),
     registerTemplate: mock(() => {}),
     getTemplate: mock(() => undefined),

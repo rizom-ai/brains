@@ -11,7 +11,7 @@ export function setupJobProgressListener(
   logger: Logger,
 ): void {
   // Subscribe to job-progress events for debugging
-  context.subscribe("job-progress", async (message) => {
+  context.messaging.subscribe("job-progress", async (message) => {
     const validationResult = JobProgressEventSchema.safeParse(message.payload);
 
     if (!validationResult.success) {

@@ -45,7 +45,7 @@ export interface GitSyncStatus {
  */
 export class GitSync {
   private _git: SimpleGit | null = null;
-  private sendMessage: CorePluginContext["sendMessage"];
+  private sendMessage: CorePluginContext["messaging"]["send"];
   private logger: CorePluginContext["logger"];
   private gitUrl: string;
   private branch: string;
@@ -62,9 +62,9 @@ export class GitSync {
 
   constructor(options: GitSyncOptions) {
     // Extract what we need from the context
-    const { logger, sendMessage, dataDir } = options;
+    const { logger, messaging, dataDir } = options;
 
-    this.sendMessage = sendMessage;
+    this.sendMessage = messaging.send;
     this.logger = logger;
     this.gitUrl = options.gitUrl;
     this.branch = options.branch;

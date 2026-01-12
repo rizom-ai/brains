@@ -127,7 +127,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
     await this.registerTemplates(context);
 
     // Step 2: Subscribe to inter-plugin messages
-    context.subscribe(
+    context.messaging.subscribe(
       "calc:request",
       async (message: {
         payload: { operation: string; a: number; b: number };
@@ -154,7 +154,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
         }
 
         // Send result back via messaging
-        await context.sendMessage("calc:result", {
+        await context.messaging.send("calc:result", {
           result,
           operation,
           operands: [a, b],

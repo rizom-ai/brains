@@ -77,7 +77,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     );
 
     // Subscribe to post changes to sync series
-    context.subscribe<
+    context.messaging.subscribe<
       { entityType: string; entity: BlogPost },
       { success: boolean }
     >("entity:created", async (message) => {
@@ -87,7 +87,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       return { success: true };
     });
 
-    context.subscribe<
+    context.messaging.subscribe<
       { entityType: string; entity: BlogPost },
       { success: boolean }
     >("entity:updated", async (message) => {
@@ -97,7 +97,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       return { success: true };
     });
 
-    context.subscribe<
+    context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
     >("entity:deleted", async (message) => {
@@ -109,7 +109,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     });
 
     // Initial sync of series from existing posts
-    context.subscribe("sync:initial:completed", async () => {
+    context.messaging.subscribe("sync:initial:completed", async () => {
       this.logger.info("Initial sync completed, syncing series from posts");
       await seriesManager.syncSeriesFromPosts();
       return { success: true };
@@ -244,25 +244,25 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     this.subscribeToPublishExecute(context);
 
     // Subscribe to site:build:completed to auto-generate RSS feed
-    context.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
-      "site:build:completed",
-      async (message) => {
-        try {
-          const payload = message.payload;
+    context.messaging.subscribe<
+      SiteBuildCompletedPayload,
+      { success: boolean }
+    >("site:build:completed", async (message) => {
+      try {
+        const payload = message.payload;
 
-          this.logger.info(
-            `Received site:build:completed event for ${payload.environment} environment`,
-          );
+        this.logger.info(
+          `Received site:build:completed event for ${payload.environment} environment`,
+        );
 
-          // Generate RSS for all builds
-          // Preview: include all posts, Production: only published posts
-          await this.generateRSSFeed(context, payload);
-        } catch (error) {
-          this.logger.error("Failed to generate RSS feed", error);
-        }
-        return { success: true };
-      },
-    );
+        // Generate RSS for all builds
+        // Preview: include all posts, Production: only published posts
+        await this.generateRSSFeed(context, payload);
+      } catch (error) {
+        this.logger.error("Failed to generate RSS feed", error);
+      }
+      return { success: true };
+    });
 
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);
@@ -328,7 +328,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       },
     };
 
-    await context.sendMessage("publish:register", {
+    await context.messaging.send("publish:register", {
       entityType: "post",
       provider: internalProvider,
     });
@@ -340,7 +340,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
    * Subscribe to publish:execute messages from publish-pipeline
    */
   private subscribeToPublishExecute(context: ServicePluginContext): void {
-    context.subscribe<
+    context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
     >("publish:execute", async (msg) => {
@@ -359,7 +359,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
         );
 
         if (!post) {
-          await context.sendMessage("publish:report:failure", {
+          await context.messaging.send("publish:report:failure", {
             entityType,
             entityId,
             error: `Post not found: ${entityId}`,
@@ -401,7 +401,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
           },
         });
 
-        await context.sendMessage("publish:report:success", {
+        await context.messaging.send("publish:report:success", {
           entityType,
           entityId,
           result: { id: entityId },
@@ -411,7 +411,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        await context.sendMessage("publish:report:failure", {
+        await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,
           error: errorMessage,

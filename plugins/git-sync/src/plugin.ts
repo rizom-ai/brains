@@ -63,7 +63,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
     // Signal that git-sync is installed - directory-sync uses this to know
     // it should wait for git:pull:completed before starting its sync
-    await context.sendMessage(
+    await context.messaging.send(
       "git:sync:registered",
       { pluginId: this.id },
       { broadcast: true },
@@ -71,7 +71,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
     // Pull from remote when plugins are ready, BEFORE directory-sync runs
     // This ensures remote data is available before directory-sync imports to DB
-    context.subscribe("system:plugins:ready", async () => {
+    context.messaging.subscribe("system:plugins:ready", async () => {
       this.logger.debug(
         "Plugins ready, pulling from remote before directory-sync",
       );
@@ -92,7 +92,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
       // Emit event so directory-sync knows it can proceed
       // This event is emitted even if there's no remote, so directory-sync
       // can proceed in standalone mode
-      await context.sendMessage(
+      await context.messaging.send(
         "git:pull:completed",
         { success: true, hasRemote: !!status.remote },
         { broadcast: true },
@@ -103,7 +103,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
     // Commit and push after directory-sync completes its initial import
     // This ensures any imported entities are committed to git
-    context.subscribe("sync:initial:completed", async () => {
+    context.messaging.subscribe("sync:initial:completed", async () => {
       this.logger.debug(
         "Initial sync completed by directory-sync, committing and pushing",
       );
