@@ -43,7 +43,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
     context.entities.register("link", linkSchema, linkAdapter);
 
     // Register templates
-    context.registerTemplates({
+    context.templates.register({
       extraction: linkExtractionTemplate,
       "link-list": linkListTemplate,
       "link-detail": linkDetailTemplate,

@@ -111,8 +111,6 @@ export function createMockServicePluginContext(
 
     // Content generation
     generateContent: mock(() => Promise.resolve(returns.generateContent ?? {})),
-    formatContent: mock(() => ""),
-    parseContent: mock(() => ({})),
 
     // Conversation
     searchConversations: mock(() => Promise.resolve([])),
@@ -131,13 +129,19 @@ export function createMockServicePluginContext(
       getBatchStatus: mock(() => Promise.resolve(null)),
     },
 
-    // Render/templates
+    // Template operations namespace
+    templates: {
+      register: mock(() => {}),
+      format: mock(() => ""),
+      parse: mock(() => ({})),
+      resolve: mock(() => Promise.resolve(null)),
+      getCapabilities: mock(() => null),
+    },
+
+    // Render/views
     getViewTemplate: mock(() => undefined),
     listViewTemplates: mock(() => []),
     getRenderService: mock(() => ({})),
-    resolveContent: mock(() => Promise.resolve(null)),
-    getTemplateCapabilities: mock(() => null),
-    registerTemplates: mock(() => {}),
 
     // Plugin metadata
     getPluginPackageName: mock(() => undefined),

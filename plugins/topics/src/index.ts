@@ -67,7 +67,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     });
 
     // Register templates
-    context.registerTemplates({
+    context.templates.register({
       extraction: topicExtractionTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,

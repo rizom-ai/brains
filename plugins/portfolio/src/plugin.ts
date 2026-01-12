@@ -66,7 +66,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
       baseUrl: z.string().optional(),
     });
 
-    context.registerTemplates({
+    context.templates.register({
       "project-list": createTemplate<
         z.infer<typeof projectListSchema>,
         ProjectListProps

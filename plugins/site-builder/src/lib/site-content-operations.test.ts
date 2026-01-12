@@ -70,11 +70,8 @@ describe("SiteContentOperations", () => {
   describe("generate", () => {
     test("should queue generation jobs for all sections", async () => {
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -92,7 +89,7 @@ describe("SiteContentOperations", () => {
       const result = await operations.generate({});
 
       // Should check template capabilities for each section
-      expect(getTemplateCapabilitiesSpy).toHaveBeenCalledTimes(4);
+      expect(getCapabilitiesSpy).toHaveBeenCalledTimes(4);
 
       // Should check for existing content for each section
       expect(getEntitySpy).toHaveBeenCalledTimes(4);
@@ -118,11 +115,8 @@ describe("SiteContentOperations", () => {
 
     test("should filter by routeId when specified", async () => {
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -140,7 +134,7 @@ describe("SiteContentOperations", () => {
       const result = await operations.generate({ routeId: "landing" });
 
       // Should only check templates for landing sections
-      expect(getTemplateCapabilitiesSpy).toHaveBeenCalledTimes(2);
+      expect(getCapabilitiesSpy).toHaveBeenCalledTimes(2);
 
       // Should only check existing content for landing sections
       expect(getEntitySpy).toHaveBeenCalledTimes(2);
@@ -164,11 +158,8 @@ describe("SiteContentOperations", () => {
 
     test("should filter by sectionId when specified with routeId", async () => {
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -189,7 +180,7 @@ describe("SiteContentOperations", () => {
       });
 
       // Should only check template for hero section
-      expect(getTemplateCapabilitiesSpy).toHaveBeenCalledTimes(1);
+      expect(getCapabilitiesSpy).toHaveBeenCalledTimes(1);
 
       // Should only check existing content for hero section
       expect(getEntitySpy).toHaveBeenCalledTimes(1);
@@ -210,11 +201,8 @@ describe("SiteContentOperations", () => {
 
     test("should skip sections with existing content when force is false", async () => {
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -263,11 +251,8 @@ describe("SiteContentOperations", () => {
 
     test("should regenerate existing content when force is true", async () => {
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -298,11 +283,8 @@ describe("SiteContentOperations", () => {
 
     test("should handle dry run without enqueueing jobs", async () => {
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -346,11 +328,8 @@ describe("SiteContentOperations", () => {
       });
 
       // Set up template capabilities
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockReturnValue({
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockReturnValue({
         canRender: true,
         canGenerate: true,
         canFetch: false,
@@ -385,11 +364,8 @@ describe("SiteContentOperations", () => {
 
     test("should skip sections where template doesn't support generation", async () => {
       // Set up template capabilities - dashboard doesn't support generation
-      const getTemplateCapabilitiesSpy = spyOn(
-        context,
-        "getTemplateCapabilities",
-      );
-      getTemplateCapabilitiesSpy.mockImplementation((name: string) => {
+      const getCapabilitiesSpy = spyOn(context.templates, "getCapabilities");
+      getCapabilitiesSpy.mockImplementation((name: string) => {
         if (name === "site-builder:dashboard") {
           return {
             canRender: true,

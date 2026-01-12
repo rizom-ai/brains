@@ -3,7 +3,7 @@ export { BasePlugin, type CoreContext } from "./base-plugin";
 
 // Core plugin
 export { CorePlugin } from "./core/core-plugin";
-export type { CorePluginContext } from "./core/context";
+export type { CorePluginContext, ITemplatesNamespace } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 
 // Service plugin
@@ -11,6 +11,7 @@ export { ServicePlugin } from "./service/service-plugin";
 export type {
   ServicePluginContext,
   IEntitiesNamespace,
+  IServiceTemplatesNamespace,
 } from "./service/context";
 export { createServicePluginContext } from "./service/context";
 

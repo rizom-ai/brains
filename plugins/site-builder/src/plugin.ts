@@ -161,7 +161,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
 
     // Register built-in dashboard template using unified method
-    context.registerTemplates({ dashboard: dashboardTemplate });
+    context.templates.register({ dashboard: dashboardTemplate });
 
     // Register dashboard route via internal registry
     this.routeRegistry.register({
@@ -187,7 +187,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     // Register templates from configuration using unified registration
     if (this.config.templates) {
-      context.registerTemplates(this.config.templates);
+      context.templates.register(this.config.templates);
     }
 
     // Register routes if provided

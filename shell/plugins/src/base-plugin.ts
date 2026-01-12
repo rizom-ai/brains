@@ -40,12 +40,14 @@ export interface CoreContext {
     channel: string,
     handler: MessageHandler<T, R>,
   ) => () => void;
-  formatContent: <T = unknown>(
-    templateName: string,
-    data: T,
-    options?: { truncate?: number },
-  ) => string;
-  parseContent: <T = unknown>(templateName: string, content: string) => T;
+  templates: {
+    format: <T = unknown>(
+      templateName: string,
+      data: T,
+      options?: { truncate?: number },
+    ) => string;
+    parse: <T = unknown>(templateName: string, content: string) => T;
+  };
 }
 
 /**
@@ -304,7 +306,7 @@ export abstract class BasePlugin<
     options?: { truncate?: number },
   ): string {
     const context = this.getContext();
-    return context.formatContent(templateName, data, options);
+    return context.templates.format(templateName, data, options);
   }
 
   /**
@@ -315,7 +317,7 @@ export abstract class BasePlugin<
     content: string,
   ): T {
     const context = this.getContext();
-    return context.parseContent<T>(templateName, content);
+    return context.templates.parse<T>(templateName, content);
   }
 
   /**

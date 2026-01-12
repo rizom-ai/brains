@@ -64,7 +64,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     const { logger, entityService } = context;
 
     // Register our template for directory sync status
-    context.registerTemplates({
+    context.templates.register({
       status: {
         name: "status",
         description: "Directory synchronization status",

@@ -15,6 +15,25 @@ import type { AppInfo } from "../interfaces";
 import type { IJobsNamespace } from "@brains/job-queue";
 
 /**
+ * Template operations namespace for CorePluginContext
+ * Provides methods for registering and using templates
+ */
+export interface ITemplatesNamespace {
+  /** Register templates for this plugin */
+  register: (templates: Record<string, Template>) => void;
+
+  /** Format data using a template formatter */
+  format: <T = unknown>(
+    templateName: string,
+    data: T,
+    options?: { truncate?: number },
+  ) => string;
+
+  /** Parse content using a template parser */
+  parse: <T = unknown>(templateName: string, content: string) => T;
+}
+
+/**
  * Core plugin context - provides basic services to core plugins
  *
  * ## Method Naming Conventions
@@ -74,18 +93,13 @@ export interface CorePluginContext {
   // Template Operations
   // ============================================================================
 
-  /** Format data using a template formatter */
-  formatContent: <T = unknown>(
-    templateName: string,
-    data: T,
-    options?: { truncate?: number },
-  ) => string;
-
-  /** Parse content using a template parser */
-  parseContent: <T = unknown>(templateName: string, content: string) => T;
-
-  /** Register templates for this plugin */
-  registerTemplates: (templates: Record<string, Template>) => void;
+  /**
+   * Template operations namespace
+   * - `templates.register()` - Register templates for this plugin
+   * - `templates.format()` - Format data using a template formatter
+   * - `templates.parse()` - Parse content using a template parser
+   */
+  readonly templates: ITemplatesNamespace;
 
   // ============================================================================
   // AI Query
@@ -164,24 +178,24 @@ export function createCorePluginContext(
       handler: MessageHandler<T, R>,
     ) => messageBus.subscribe(channel, handler),
 
-    // Template operations using ContentGenerator
-    formatContent: <T = unknown>(
-      templateName: string,
-      data: T,
-      options?: { truncate?: number },
-    ): string => {
-      return contentService.formatContent(templateName, data, {
-        ...options,
-        pluginId,
-      });
-    },
-
-    parseContent: <T = unknown>(templateName: string, content: string): T => {
-      return contentService.parseContent(templateName, content, pluginId);
-    },
-
-    registerTemplates: (templates: Record<string, Template>): void => {
-      shell.registerTemplates(templates, pluginId);
+    // Template operations namespace
+    templates: {
+      register: (templates: Record<string, Template>): void => {
+        shell.registerTemplates(templates, pluginId);
+      },
+      format: <T = unknown>(
+        templateName: string,
+        data: T,
+        options?: { truncate?: number },
+      ): string => {
+        return contentService.formatContent(templateName, data, {
+          ...options,
+          pluginId,
+        });
+      },
+      parse: <T = unknown>(templateName: string, content: string): T => {
+        return contentService.parseContent(templateName, content, pluginId);
+      },
     },
 
     // Query functionality

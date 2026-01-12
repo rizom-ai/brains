@@ -69,7 +69,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     context.entities.registerDataSource(socialPostDataSource);
 
     // Register AI templates
-    context.registerTemplates({
+    context.templates.register({
       linkedin: linkedinTemplate,
     });
 
@@ -85,7 +85,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       post: enrichedSocialPostSchema,
     });
 
-    context.registerTemplates({
+    context.templates.register({
       "social-post-list": createTemplate<
         z.infer<typeof postListSchema>,
         SocialPostListProps

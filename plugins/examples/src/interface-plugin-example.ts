@@ -101,7 +101,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
     });
 
     // Register templates for web output
-    context.registerTemplates({
+    context.templates.register({
       "web-page": {
         name: "web-page",
         description: "Format web page content",

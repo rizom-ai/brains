@@ -81,7 +81,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
       profile: professionalProfileSchema,
     });
 
-    context.registerTemplates({
+    context.templates.register({
       "homepage-list": createTemplate<
         z.infer<typeof homepageListSchema>,
         HomepageListData

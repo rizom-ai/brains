@@ -1,4 +1,4 @@
-import type { CorePluginContext } from "../core/context";
+import type { CorePluginContext, ITemplatesNamespace } from "../core/context";
 import type {
   IShell,
   ContentGenerationConfig,
@@ -62,6 +62,26 @@ export interface IEntitiesNamespace {
 }
 
 /**
+ * Extended template operations namespace for ServicePluginContext
+ * Includes all base template operations plus resolution and capability checking
+ */
+export interface IServiceTemplatesNamespace extends ITemplatesNamespace {
+  /** Resolve content from a template (may fetch or generate) */
+  resolve: <T = unknown>(
+    templateName: string,
+    options?: ResolutionOptions,
+  ) => Promise<T | null>;
+
+  /** Get capabilities of a template */
+  getCapabilities: (templateName: string) => {
+    canGenerate: boolean;
+    canFetch: boolean;
+    canRender: boolean;
+    isStaticOnly: boolean;
+  } | null;
+}
+
+/**
  * Context interface for service plugins
  * Extends CorePluginContext with entity management, job queuing, and AI generation
  *
@@ -106,28 +126,16 @@ export interface ServicePluginContext extends CorePluginContext {
   canGenerateImages: () => boolean;
 
   // ============================================================================
-  // Content Formatting
+  // Template Operations (extends CorePluginContext.templates)
   // ============================================================================
 
-  /** Format data using a template formatter */
-  formatContent: <T = unknown>(templateName: string, data: T) => string;
-
-  /** Parse content using a template parser */
-  parseContent: <T = unknown>(templateName: string, content: string) => T;
-
-  /** Resolve content from a template (may fetch or generate) */
-  resolveContent: <T = unknown>(
-    templateName: string,
-    options?: ResolutionOptions,
-  ) => Promise<T | null>;
-
-  /** Get capabilities of a template */
-  getTemplateCapabilities: (templateName: string) => {
-    canGenerate: boolean;
-    canFetch: boolean;
-    canRender: boolean;
-    isStaticOnly: boolean;
-  } | null;
+  /**
+   * Extended template operations namespace
+   * Includes all base operations plus:
+   * - `templates.resolve()` - Resolve content from a template (may fetch or generate)
+   * - `templates.getCapabilities()` - Get capabilities of a template
+   */
+  readonly templates: IServiceTemplatesNamespace;
 
   // ============================================================================
   // Conversations (Read-Only)
@@ -267,14 +275,60 @@ export function createServicePluginContext(
       return shell.canGenerateImages();
     },
 
-    // Content formatting and parsing using template formatter
-    formatContent: (templateName, data): string => {
-      const contentService = shell.getContentService();
-      return contentService.formatContent(templateName, data, { pluginId });
-    },
-    parseContent: <T = unknown>(templateName: string, content: string): T => {
-      const contentService = shell.getContentService();
-      return contentService.parseContent(templateName, content, pluginId);
+    // Template operations namespace - extends coreContext.templates with resolve and getCapabilities
+    templates: {
+      // Base template operations (override from core context)
+      register: coreContext.templates.register,
+      format: <T = unknown>(templateName: string, data: T): string => {
+        const contentService = shell.getContentService();
+        return contentService.formatContent(templateName, data, { pluginId });
+      },
+      parse: <T = unknown>(templateName: string, content: string): T => {
+        const contentService = shell.getContentService();
+        return contentService.parseContent(templateName, content, pluginId);
+      },
+
+      // Extended operations for service plugins
+      resolve: async <T = unknown>(
+        templateName: string,
+        options?: ResolutionOptions,
+      ): Promise<T | null> => {
+        const contentService = shell.getContentService();
+        const result = await contentService.resolveContent(
+          templateName,
+          options,
+          pluginId,
+        );
+        return result as T;
+      },
+
+      getCapabilities: (
+        templateName: string,
+      ): {
+        canGenerate: boolean;
+        canFetch: boolean;
+        canRender: boolean;
+        isStaticOnly: boolean;
+      } | null => {
+        // Apply plugin scoping if not already scoped
+        const scopedTemplateName = templateName.includes(":")
+          ? templateName
+          : `${pluginId}:${templateName}`;
+
+        // Use the getTemplate method from shell which already handles registry access
+        const template = shell.getTemplate(scopedTemplateName);
+        if (!template) {
+          return null;
+        }
+
+        const capabilities = TemplateCapabilities.getCapabilities(template);
+        return {
+          canGenerate: capabilities.canGenerate,
+          canFetch: capabilities.canFetch,
+          canRender: capabilities.canRender,
+          isStaticOnly: capabilities.isStaticOnly,
+        };
+      },
     },
 
     // Conversation service helpers
@@ -347,49 +401,6 @@ export function createServicePluginContext(
     },
     getRenderService: (): RenderService => {
       return renderService;
-    },
-
-    // Content resolution helper
-    resolveContent: async <T = unknown>(
-      templateName: string,
-      options?: ResolutionOptions,
-    ): Promise<T | null> => {
-      const contentService = shell.getContentService();
-      const result = await contentService.resolveContent(
-        templateName,
-        options,
-        pluginId,
-      );
-      return result as T;
-    },
-
-    // Template capability checking
-    getTemplateCapabilities: (
-      templateName: string,
-    ): {
-      canGenerate: boolean;
-      canFetch: boolean;
-      canRender: boolean;
-      isStaticOnly: boolean;
-    } | null => {
-      // Apply plugin scoping if not already scoped
-      const scopedTemplateName = templateName.includes(":")
-        ? templateName
-        : `${pluginId}:${templateName}`;
-
-      // Use the getTemplate method from shell which already handles registry access
-      const template = shell.getTemplate(scopedTemplateName);
-      if (!template) {
-        return null;
-      }
-
-      const capabilities = TemplateCapabilities.getCapabilities(template);
-      return {
-        canGenerate: capabilities.canGenerate,
-        canFetch: capabilities.canFetch,
-        canRender: capabilities.canRender,
-        isStaticOnly: capabilities.isStaticOnly,
-      };
     },
 
     // Plugin metadata

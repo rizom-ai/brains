@@ -102,7 +102,7 @@ describe("SiteBuilder dataQuery handling", () => {
       };
 
       mockRouteRegistry.list = mock().mockReturnValue([route]);
-      mockContext.resolveContent = mock().mockResolvedValue({
+      mockContext.templates.resolve = mock().mockResolvedValue({
         topics: [
           { id: "topic-1", title: "Topic 1" },
           { id: "topic-2", title: "Topic 2" },
@@ -123,7 +123,7 @@ describe("SiteBuilder dataQuery handling", () => {
       });
 
       // Verify resolveContent was called with correct params (no transformFormat)
-      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
         "topics:topic-list",
         expect.objectContaining({
           dataParams: {
@@ -156,7 +156,7 @@ describe("SiteBuilder dataQuery handling", () => {
       };
 
       mockRouteRegistry.list = mock().mockReturnValue([route]);
-      mockContext.resolveContent = mock().mockResolvedValue({
+      mockContext.templates.resolve = mock().mockResolvedValue({
         id: "test-topic",
         title: "Test Topic",
         summary: "Test summary",
@@ -180,7 +180,7 @@ describe("SiteBuilder dataQuery handling", () => {
       }
 
       // Verify resolveContent was called without transformFormat
-      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
         "topics:topic-detail",
         expect.objectContaining({
           dataParams: {
@@ -219,7 +219,7 @@ describe("SiteBuilder dataQuery handling", () => {
       };
 
       mockRouteRegistry.list = mock().mockReturnValue([route]);
-      mockContext.resolveContent = mock().mockImplementation((template) => {
+      mockContext.templates.resolve = mock().mockImplementation((template) => {
         if (template === "hero") {
           return Promise.resolve({ title: "Static Hero" });
         }
@@ -246,7 +246,7 @@ describe("SiteBuilder dataQuery handling", () => {
       }
 
       // Verify static content was resolved normally
-      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
         "hero",
         expect.objectContaining({
           savedContent: {
@@ -258,7 +258,7 @@ describe("SiteBuilder dataQuery handling", () => {
       );
 
       // Verify dynamic content used dataQuery params
-      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
         "topics:topic-list",
         expect.objectContaining({
           dataParams: {
@@ -291,7 +291,7 @@ describe("SiteBuilder dataQuery handling", () => {
       };
 
       mockRouteRegistry.list = mock().mockReturnValue([route]);
-      mockContext.resolveContent = mock().mockResolvedValue({
+      mockContext.templates.resolve = mock().mockResolvedValue({
         topics: [],
         totalCount: 0,
       });
@@ -313,7 +313,7 @@ describe("SiteBuilder dataQuery handling", () => {
       }
 
       // Should use list format when no query is present
-      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
         "topics:topic-list",
         expect.objectContaining({
           dataParams: {
@@ -350,7 +350,7 @@ describe("SiteBuilder dataQuery handling", () => {
       };
 
       mockRouteRegistry.list = mock().mockReturnValue([route]);
-      mockContext.resolveContent = mock().mockResolvedValue({
+      mockContext.templates.resolve = mock().mockResolvedValue({
         topics: [],
         totalCount: 0,
       });
@@ -372,7 +372,7 @@ describe("SiteBuilder dataQuery handling", () => {
       }
 
       // Should pass all query params through
-      expect(mockContext.resolveContent).toHaveBeenCalledWith(
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
         "topics:topic-list",
         expect.objectContaining({
           dataParams: {

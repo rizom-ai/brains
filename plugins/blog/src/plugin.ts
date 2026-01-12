@@ -156,7 +156,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       coverImageUrl: z.string().optional(),
     });
 
-    context.registerTemplates({
+    context.templates.register({
       "post-list": createTemplate<
         z.infer<typeof postListSchema>,
         BlogListProps

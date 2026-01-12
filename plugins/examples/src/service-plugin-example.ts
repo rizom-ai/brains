@@ -56,7 +56,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     context: ServicePluginContext,
   ): Promise<void> {
     // Register templates
-    context.registerTemplates({
+    context.templates.register({
       "calculation-result": {
         name: "calculation-result",
         description: "Format calculation results",

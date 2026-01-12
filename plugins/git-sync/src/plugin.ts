@@ -33,7 +33,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
     context: CorePluginContext,
   ): Promise<void> {
     // Register our template for git sync status
-    context.registerTemplates({
+    context.templates.register({
       status: {
         name: "status",
         description: "Git synchronization status",

@@ -50,7 +50,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     context.entities.register("summary", summarySchema, new SummaryAdapter());
 
     // Register templates
-    context.registerTemplates({
+    context.templates.register({
       "summary-list": summaryListTemplate,
       "summary-detail": summaryDetailTemplate,
       "ai-response": summaryAiResponseTemplate,

@@ -87,7 +87,7 @@ export class SiteContentOperations {
 
         // Check template capabilities
         if (section.template) {
-          const capabilities = this.context.getTemplateCapabilities(
+          const capabilities = this.context.templates.getCapabilities(
             section.template,
           );
 

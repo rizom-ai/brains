@@ -45,7 +45,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     context.entities.registerDataSource(datasource);
 
     // Register deck templates
-    context.registerTemplates({
+    context.templates.register({
       "deck-detail": deckTemplate,
       "deck-list": deckListTemplate,
       generation: deckGenerationTemplate,

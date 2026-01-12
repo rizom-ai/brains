@@ -52,7 +52,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
   }
 
   private async registerTemplates(context: CorePluginContext): Promise<void> {
-    context.registerTemplates({
+    context.templates.register({
       "calculation-result": {
         name: "calculation-result",
         description: "Format calculation results",

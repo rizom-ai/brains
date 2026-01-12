@@ -178,7 +178,7 @@ export class SiteBuilder implements ISiteBuilder {
     );
 
     // Register built-in templates
-    this.context.registerTemplates(templatesObj);
+    this.context.templates.register(templatesObj);
   }
 
   async build(
@@ -375,7 +375,10 @@ export class SiteBuilder implements ISiteBuilder {
         publishedOnly,
       };
 
-      const content = await this.context.resolveContent(templateName, options);
+      const content = await this.context.templates.resolve(
+        templateName,
+        options,
+      );
 
       // Auto-enrich data with URLs, typeLabels, and coverImageUrls
       if (content) {
@@ -386,7 +389,7 @@ export class SiteBuilder implements ISiteBuilder {
     }
 
     // Use the context's resolveContent helper for static content
-    const content = await this.context.resolveContent(templateName, {
+    const content = await this.context.templates.resolve(templateName, {
       // Saved content from entity storage
       savedContent: {
         entityType: "site-content",
