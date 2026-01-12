@@ -15,6 +15,20 @@ import type {
 } from "@brains/job-queue";
 
 /**
+ * Default TTL for job tracking entries (1 hour in milliseconds)
+ * Jobs older than this will be cleaned up automatically
+ */
+const DEFAULT_JOB_TRACKING_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Internal tracking entry with timestamp for TTL-based cleanup
+ */
+interface TrackingEntry<T> {
+  info: T;
+  createdAt: number;
+}
+
+/**
  * Base class for interface plugins
  * Interface plugins provide user interaction capabilities and manage daemons
  * Provides generic job tracking and rootJobId inheritance for progress routing
@@ -31,10 +45,27 @@ export abstract class InterfacePlugin<
   protected daemon?: Daemon;
 
   /**
-   * Generic job tracking Map - interface-specific tracking info
-   * Each interface type can define its own TTrackingInfo structure
+   * Internal job tracking with timestamps for TTL-based cleanup
    */
-  protected jobMessages = new Map<string, TTrackingInfo>();
+  private jobTrackingEntries = new Map<string, TrackingEntry<TTrackingInfo>>();
+
+  /**
+   * TTL for job tracking entries in milliseconds (default: 1 hour)
+   * Override in subclasses if different TTL is needed
+   */
+  protected jobTrackingTtlMs = DEFAULT_JOB_TRACKING_TTL_MS;
+
+  /**
+   * Legacy accessor for backward compatibility
+   * Returns a view of current tracking info (without timestamps)
+   */
+  protected get jobMessages(): Map<string, TTrackingInfo> {
+    const result = new Map<string, TTrackingInfo>();
+    for (const [key, entry] of this.jobTrackingEntries) {
+      result.set(key, entry.info);
+    }
+    return result;
+  }
 
   /**
    * Register the plugin with shell - creates InterfacePluginContext internally
@@ -101,13 +132,35 @@ export abstract class InterfacePlugin<
   }
 
   /**
-   * Abstract method for handling progress events
-   * Interface implementations must define their specific progress handling
+   * Handle progress events for jobs owned by this interface
+   * Override this to provide custom progress handling (e.g., sending updates to users)
+   * Default implementation is a no-op
    */
-  protected abstract handleProgressEvent(
-    event: JobProgressEvent,
-    context: JobContext,
-  ): Promise<void>;
+  protected async handleProgressEvent(
+    _event: JobProgressEvent,
+    _context: JobContext,
+  ): Promise<void> {
+    // Default no-op - override in subclasses that need progress handling
+  }
+
+  /**
+   * Clean up expired job tracking entries based on TTL
+   * Called automatically when new entries are added
+   */
+  private cleanupExpiredEntries(): void {
+    const now = Date.now();
+    const expiredKeys: string[] = [];
+
+    for (const [key, entry] of this.jobTrackingEntries) {
+      if (now - entry.createdAt > this.jobTrackingTtlMs) {
+        expiredKeys.push(key);
+      }
+    }
+
+    for (const key of expiredKeys) {
+      this.jobTrackingEntries.delete(key);
+    }
+  }
 
   /**
    * Generic rootJobId inheritance logic for all interface types
@@ -115,12 +168,12 @@ export abstract class InterfacePlugin<
    */
   protected ownsJob(jobId: string, rootJobId?: string): boolean {
     // Check direct ownership
-    if (this.jobMessages.has(jobId)) {
+    if (this.jobTrackingEntries.has(jobId)) {
       return true;
     }
 
     // Check inherited ownership via rootJobId
-    if (rootJobId && this.jobMessages.has(rootJobId)) {
+    if (rootJobId && this.jobTrackingEntries.has(rootJobId)) {
       return true;
     }
 
@@ -136,16 +189,16 @@ export abstract class InterfacePlugin<
     rootJobId?: string,
   ): TTrackingInfo | undefined {
     // Try direct tracking first
-    const directTracking = this.jobMessages.get(jobId);
-    if (directTracking) {
-      return directTracking;
+    const directEntry = this.jobTrackingEntries.get(jobId);
+    if (directEntry) {
+      return directEntry.info;
     }
 
     // Try inherited tracking via rootJobId
     if (rootJobId) {
-      const inheritedTracking = this.jobMessages.get(rootJobId);
-      if (inheritedTracking) {
-        return inheritedTracking;
+      const inheritedEntry = this.jobTrackingEntries.get(rootJobId);
+      if (inheritedEntry) {
+        return inheritedEntry.info;
       }
     }
 
@@ -153,17 +206,23 @@ export abstract class InterfacePlugin<
   }
 
   /**
-   * Store job tracking information
+   * Store job tracking information with automatic TTL-based cleanup
    */
   protected setJobTracking(jobId: string, trackingInfo: TTrackingInfo): void {
-    this.jobMessages.set(jobId, trackingInfo);
+    // Clean up expired entries before adding new one
+    this.cleanupExpiredEntries();
+
+    this.jobTrackingEntries.set(jobId, {
+      info: trackingInfo,
+      createdAt: Date.now(),
+    });
   }
 
   /**
    * Remove job tracking information
    */
   protected removeJobTracking(jobId: string): void {
-    this.jobMessages.delete(jobId);
+    this.jobTrackingEntries.delete(jobId);
   }
 
   /**

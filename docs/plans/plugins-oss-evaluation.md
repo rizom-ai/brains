@@ -97,28 +97,30 @@ toolContext: Parameters<ServicePluginContext["enqueueJob"]>[2],  // ???
 
 ---
 
-### Issue 6: InterfacePlugin Forces Abstract Progress Handler
+### Issue 6: InterfacePlugin Forces Abstract Progress Handler ✅ RESOLVED
 
-**File:** `shell/plugins/src/interface/interface-plugin.ts:107`
+**File:** `shell/plugins/src/interface/interface-plugin.ts`
+
+**Solution:** Changed `handleProgressEvent` from abstract to a default no-op method:
 
 ```typescript
-protected abstract handleProgressEvent(...): Promise<void>;
+protected async handleProgressEvent(_event, _context): Promise<void> {
+  // Default no-op - override in subclasses that need progress handling
+}
 ```
-
-**Fix:** Make optional with default no-op.
 
 ---
 
-### Issue 7: No Job Tracking Cleanup
+### Issue 7: No Job Tracking Cleanup ✅ RESOLVED
 
-**File:** `shell/plugins/src/interface/interface-plugin.ts:37`
+**File:** `shell/plugins/src/interface/interface-plugin.ts`
 
-```typescript
-protected jobMessages = new Map<string, TTrackingInfo>();
-```
+**Solution:** Added TTL-based cleanup mechanism:
 
-**Problem:** No cleanup mechanism. Memory leak risk.
-**Fix:** Add TTL-based cleanup or job completion hooks.
+- Internal `jobTrackingEntries` Map stores entries with timestamps
+- `cleanupExpiredEntries()` removes entries older than TTL (default 1 hour)
+- Cleanup runs automatically when new entries are added via `setJobTracking()`
+- Subclasses can override `jobTrackingTtlMs` for custom TTL
 
 ---
 

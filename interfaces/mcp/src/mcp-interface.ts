@@ -245,7 +245,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
    * Handle progress events - MCP interface doesn't need to handle these directly
    * since progress is handled through the MCP transport layer
    */
-  protected async handleProgressEvent(
+  protected override async handleProgressEvent(
     _progressEvent: JobProgressEvent,
     _context: JobContext,
   ): Promise<void> {

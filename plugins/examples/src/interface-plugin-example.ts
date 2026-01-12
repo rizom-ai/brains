@@ -252,7 +252,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
    * Handle progress events for webserver interface
    * Uses generic job tracking and inheritance logic from InterfacePlugin
    */
-  protected async handleProgressEvent(
+  protected override async handleProgressEvent(
     event: JobProgressEvent,
     context: JobContext,
   ): Promise<void> {

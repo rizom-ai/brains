@@ -102,7 +102,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   /**
    * Handle progress events (no-op for webserver interface)
    */
-  protected async handleProgressEvent(
+  protected override async handleProgressEvent(
     _event: JobProgressEvent,
     _context: JobContext,
   ): Promise<void> {
