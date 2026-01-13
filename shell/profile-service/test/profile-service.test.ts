@@ -4,8 +4,8 @@ import type { IEntityService } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
+  createTestEntity,
 } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils";
 import type { ProfileEntity } from "../src/schema";
 
 describe("ProfileService", () => {
@@ -95,15 +95,10 @@ github
 
 #### URL
 https://github.com/rizom-ai`;
-      const mockEntity: ProfileEntity = {
+      const mockEntity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content: mockContent,
-        contentHash: computeContentHash(mockContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       // Control mock behavior to return the entity
       mockGetEntityImpl = async (): Promise<ProfileEntity> => mockEntity;
@@ -158,15 +153,10 @@ https://github.com/rizom-ai`;
 
 ## Name
 Existing Profile`;
-      const mockEntity: ProfileEntity = {
+      const mockEntity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content: existingContent,
-        contentHash: computeContentHash(existingContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       mockGetEntityImpl = async (): Promise<ProfileEntity> => mockEntity;
 
@@ -224,15 +214,10 @@ https://github.com/yourusername
 
 #### Label
 View my code on GitHub`;
-      const importedEntity: ProfileEntity = {
+      const importedEntity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content: importedContent,
-        contentHash: computeContentHash(importedContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       // Change mock to return imported entity
       mockGetEntityImpl = async (): Promise<ProfileEntity> => importedEntity;

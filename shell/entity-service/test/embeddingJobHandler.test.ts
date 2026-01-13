@@ -6,7 +6,7 @@ import type {
   BaseEntity,
 } from "../src/types";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 import type { ProgressReporter } from "@brains/utils";
 
 // Mock embedding service
@@ -61,17 +61,12 @@ describe("EmbeddingJobHandler", () => {
     test("should process CREATE job when entity exists and content matches", async () => {
       let storeEmbeddingCalled = false;
       const content = "new entity content";
-      const contentHash = computeContentHash(content);
 
-      const currentEntity: BaseEntity = {
+      const currentEntity = createTestEntity<BaseEntity>("note", {
         id: "new-entity",
-        entityType: "note",
         content,
-        contentHash,
         metadata: { coverImageId: "my-cover" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const mockEntityService = {
         getEntity: async () => currentEntity,
@@ -109,19 +104,14 @@ describe("EmbeddingJobHandler", () => {
 
       // But current entity in DB has "new content"
       const currentContent = "new content";
-      const currentContentHash = computeContentHash(currentContent);
 
       let storeEmbeddingCalled = false;
 
-      const currentEntity: BaseEntity = {
+      const currentEntity = createTestEntity<BaseEntity>("note", {
         id: "test-entity",
-        entityType: "note",
         content: currentContent,
-        contentHash: currentContentHash,
         metadata: { coverImageId: "should-be-preserved" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const mockEntityService = {
         getEntity: async () => currentEntity,
@@ -153,19 +143,14 @@ describe("EmbeddingJobHandler", () => {
 
     test("should process job when entity content matches", async () => {
       const content = "same content";
-      const contentHash = computeContentHash(content);
 
       let storeEmbeddingCalled = false;
 
-      const currentEntity: BaseEntity = {
+      const currentEntity = createTestEntity<BaseEntity>("note", {
         id: "test-entity",
-        entityType: "note",
         content,
-        contentHash,
         metadata: { coverImageId: "preserved" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const mockEntityService = {
         getEntity: async () => currentEntity,

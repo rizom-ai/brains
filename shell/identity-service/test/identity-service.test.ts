@@ -4,8 +4,8 @@ import type { IEntityService } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
+  createTestEntity,
 } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils";
 import type { IdentityEntity } from "../src/schema";
 
 describe("IdentityService", () => {
@@ -91,15 +91,10 @@ Help with academic research
 
 - rigor
 - accuracy`;
-      const mockEntity: IdentityEntity = {
+      const mockEntity = createTestEntity<IdentityEntity>("identity", {
         id: "identity",
-        entityType: "identity",
         content: mockContent,
-        contentHash: computeContentHash(mockContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       // Control mock behavior to return the entity
       mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
@@ -157,15 +152,10 @@ Existing purpose
 ## Values
 
 - existing value`;
-      const mockEntity: IdentityEntity = {
+      const mockEntity = createTestEntity<IdentityEntity>("identity", {
         id: "identity",
-        entityType: "identity",
         content: existingContent,
-        contentHash: computeContentHash(existingContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
 
@@ -193,15 +183,11 @@ Existing purpose
     it("should reload identity from database", async () => {
       // Mock behavior: return test entity
       const testContent = "test content";
-      mockGetEntityImpl = async (): Promise<IdentityEntity> => ({
-        id: "identity",
-        entityType: "identity",
-        content: testContent,
-        contentHash: computeContentHash(testContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      });
+      mockGetEntityImpl = async (): Promise<IdentityEntity> =>
+        createTestEntity<IdentityEntity>("identity", {
+          id: "identity",
+          content: testContent,
+        });
 
       await identityService.refreshCache();
 

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { IdentityAdapter } from "../src/adapter";
 import type { IdentityEntity } from "../src/schema";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("IdentityAdapter", () => {
   let adapter: IdentityAdapter;
@@ -13,36 +14,29 @@ describe("IdentityAdapter", () => {
   describe("schema", () => {
     it("should have valid identity schema", () => {
       const schema = adapter.schema;
-      const content = "";
 
-      const validIdentity = {
+      const validIdentity = createTestEntity<IdentityEntity>("identity", {
         id: "identity",
-        entityType: "identity",
-        content, // BaseEntity requires content field
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+        content: "",
+      });
 
       expect(() => schema.parse(validIdentity)).not.toThrow();
     });
 
     it("should reject invalid identity entity type", () => {
       const schema = adapter.schema;
-      const content = "";
 
-      const invalidIdentity = {
+      // Create base entity with wrong type - use spread to override
+      const base = createTestEntity("identity", {
         id: "identity",
+        content: "",
+      });
+      const invalidIdentity = {
+        ...base,
         entityType: "other", // Wrong type
-        content,
-        contentHash: computeContentHash(content),
         role: "Assistant",
         purpose: "Help",
         values: ["clarity"],
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
       };
 
       expect(() => schema.parse(invalidIdentity)).toThrow();
@@ -50,19 +44,17 @@ describe("IdentityAdapter", () => {
 
     it("should reject invalid identity ID", () => {
       const schema = adapter.schema;
-      const content = "";
 
-      const invalidIdentity = {
+      // Create base entity with wrong id - use spread to override
+      const base = createTestEntity("identity", {
         id: "wrong:id", // Must be "identity"
-        entityType: "identity",
-        content,
-        contentHash: computeContentHash(content),
+        content: "",
+      });
+      const invalidIdentity = {
+        ...base,
         role: "Assistant",
         purpose: "Help",
         values: ["clarity"],
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
       };
 
       expect(() => schema.parse(invalidIdentity)).toThrow();
@@ -80,15 +72,10 @@ describe("IdentityAdapter", () => {
         values: ["clarity", "accuracy", "helpfulness"],
       });
 
-      const entity: IdentityEntity = {
+      const entity = createTestEntity<IdentityEntity>("identity", {
         id: "identity",
-        entityType: "identity",
         content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -189,15 +176,10 @@ Help organize research papers and maintain literature review notes.
         values: ["collaboration", "transparency", "accessibility"],
       });
 
-      const entity: IdentityEntity = {
+      const entity = createTestEntity<IdentityEntity>("identity", {
         id: "identity",
-        entityType: "identity",
         content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
 
@@ -210,15 +192,10 @@ Help organize research papers and maintain literature review notes.
 
   describe("generateFrontMatter", () => {
     it("should return empty string (identity uses structured content, not frontmatter)", () => {
-      const entity: IdentityEntity = {
+      const entity = createTestEntity<IdentityEntity>("identity", {
         id: "identity",
-        entityType: "identity",
         content: "",
-        contentHash: computeContentHash(""),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const result = adapter.generateFrontMatter(entity);
 

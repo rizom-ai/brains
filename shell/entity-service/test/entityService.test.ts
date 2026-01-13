@@ -9,8 +9,9 @@ import type { IJobQueueService } from "@brains/job-queue";
 import {
   createSilentLogger,
   createMockJobQueueService,
+  createTestEntity,
 } from "@brains/test-utils";
-import { type Logger, createId, computeContentHash } from "@brains/utils";
+import { type Logger, createId } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
 
 // Create a mock embedding service
@@ -44,21 +45,14 @@ type Note = z.infer<typeof noteSchema>;
  * Factory function to create a Note entity (for testing)
  */
 function createNote(input: Partial<Note>): Note {
-  const content = input.content ?? "Test content";
-  const defaults = {
-    id: createId(),
-    entityType: "note" as const,
+  const base = createTestEntity<Note>("note", {
     title: "Test Note",
-    content,
-    contentHash: computeContentHash(content),
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
     tags: [],
     category: undefined,
-    metadata: {},
-  };
+    ...input,
+  });
 
-  return { ...defaults, ...input };
+  return base;
 }
 
 // ============================================================================
@@ -262,17 +256,14 @@ describe("EntityService", (): void => {
     // Register a test entity type
     entityRegistry.registerEntityType("note", noteSchema, testAdapter);
 
-    const testEntity: Note = {
+    const testEntity = createNote({
       id: "test-id",
-      entityType: "note",
       content: "Test content",
-      contentHash: computeContentHash("Test content"),
       created: "2023-01-01T00:00:00.000Z",
       updated: "2023-01-01T00:00:00.000Z",
       title: "Test Note",
       tags: ["test"],
-      metadata: {},
-    };
+    });
 
     const markdown = entityService.serializeEntity(testEntity);
     expect(markdown).toBe("# Test Note\n\nTest content");
@@ -325,15 +316,10 @@ describe("EntityService", (): void => {
   });
 
   test("upsertEntity creates new entity when it doesn't exist", async () => {
-    const testEntity: BaseEntity = {
+    const testEntity = createTestEntity<BaseEntity>("base", {
       id: "new-entity",
-      entityType: "base",
       content: "New content",
-      contentHash: computeContentHash("New content"),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-      metadata: {},
-    };
+    });
 
     // Mock getEntity to return null (entity doesn't exist)
     entityService.getEntity = mock((_entityType: string, _id: string) =>
@@ -362,22 +348,17 @@ describe("EntityService", (): void => {
   });
 
   test("upsertEntity updates existing entity", async () => {
-    const existingEntity: BaseEntity = {
+    const existingEntity = createTestEntity<BaseEntity>("base", {
       id: "existing-entity",
-      entityType: "base",
       content: "Initial content",
-      contentHash: computeContentHash("Initial content"),
       created: "2023-01-01T00:00:00.000Z",
       updated: "2023-01-01T00:00:00.000Z",
-      metadata: {},
-    };
+    });
 
-    const updatedEntity: BaseEntity = {
+    const updatedEntity = createTestEntity<BaseEntity>("base", {
       ...existingEntity,
       content: "Updated content",
-      contentHash: computeContentHash("Updated content"),
-      updated: new Date().toISOString(),
-    };
+    });
 
     // Mock getEntity to return existing entity
     entityService.getEntity = mock((_entityType: string, _id: string) =>
@@ -409,15 +390,10 @@ describe("EntityService", (): void => {
   });
 
   test("upsertEntity passes options to create/update", async () => {
-    const testEntity: BaseEntity = {
+    const testEntity = createTestEntity<BaseEntity>("base", {
       id: "test-entity",
-      entityType: "base",
       content: "Test content",
-      contentHash: computeContentHash("Test content"),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-      metadata: {},
-    };
+    });
 
     const options = { priority: 5, maxRetries: 10 };
 

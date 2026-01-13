@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { ProfileAdapter } from "../src/adapter";
 import type { ProfileEntity } from "../src/schema";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("ProfileAdapter", () => {
   let adapter: ProfileAdapter;
@@ -13,33 +14,26 @@ describe("ProfileAdapter", () => {
   describe("schema", () => {
     it("should have valid profile schema", () => {
       const schema = adapter.schema;
-      const content = "";
 
-      const validProfile = {
+      const validProfile = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
-        content, // BaseEntity requires content field
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+        content: "",
+      });
 
       expect(() => schema.parse(validProfile)).not.toThrow();
     });
 
     it("should reject invalid profile entity type", () => {
       const schema = adapter.schema;
-      const content = "";
 
-      const invalidProfile = {
+      // Create base entity with wrong type - use spread to override
+      const base = createTestEntity("profile", {
         id: "profile",
+        content: "",
+      });
+      const invalidProfile = {
+        ...base,
         entityType: "other", // Wrong type
-        content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
       };
 
       expect(() => schema.parse(invalidProfile)).toThrow();
@@ -47,16 +41,14 @@ describe("ProfileAdapter", () => {
 
     it("should reject invalid profile ID", () => {
       const schema = adapter.schema;
-      const content = "";
 
-      const invalidProfile = {
+      // Create base entity with wrong id - use spread to override
+      const base = createTestEntity("profile", {
         id: "wrong:id", // Must be "profile"
-        entityType: "profile",
-        content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
+        content: "",
+      });
+      const invalidProfile = {
+        ...base,
       };
 
       expect(() => schema.parse(invalidProfile)).toThrow();
@@ -80,15 +72,10 @@ describe("ProfileAdapter", () => {
         ],
       });
 
-      const entity: ProfileEntity = {
+      const entity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -113,15 +100,10 @@ describe("ProfileAdapter", () => {
         name: "John Doe",
       });
 
-      const entity: ProfileEntity = {
+      const entity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -254,15 +236,10 @@ Open-source collective building privacy-first tools`;
         ],
       });
 
-      const entity: ProfileEntity = {
+      const entity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
 
@@ -276,15 +253,10 @@ Open-source collective building privacy-first tools`;
 
   describe("generateFrontMatter", () => {
     it("should return empty string (profile uses structured content, not frontmatter)", () => {
-      const entity: ProfileEntity = {
+      const entity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        entityType: "profile",
         content: "",
-        contentHash: computeContentHash(""),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
-      };
+      });
 
       const result = adapter.generateFrontMatter(entity);
 

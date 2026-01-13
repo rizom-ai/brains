@@ -3,8 +3,8 @@ import { z } from "@brains/utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import { createSilentLogger } from "@brains/test-utils";
-import { type Logger, createId, computeContentHash } from "@brains/utils";
+import { createSilentLogger, createTestEntity } from "@brains/test-utils";
+import { type Logger, createId } from "@brains/utils";
 import matter from "gray-matter";
 
 // ============================================================================
@@ -44,17 +44,10 @@ type CreateNoteInput = Omit<
  * Factory function to create a Note entity (for testing)
  */
 function createNote(input: CreateNoteInput): Note {
-  const validated = noteSchema.parse({
-    id: input.id ?? createId(),
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-    entityType: "note",
+  return createTestEntity<Note>("note", {
     ...input,
-    contentHash: computeContentHash(input.content),
     metadata: input.metadata ?? {},
   });
-
-  return validated;
 }
 
 /**
@@ -222,19 +215,12 @@ describe("EntityRegistry", (): void => {
     expect(registry.getAllEntityTypes()).toContain("note");
 
     // Test data validation (without methods)
-    const content = "This is a test note content.";
-    const entityData = {
-      id: createId(),
-      entityType: "note" as const,
+    const entityData = createTestEntity<Note>("note", {
       title: "Test Note",
-      content,
-      contentHash: computeContentHash(content),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
+      content: "This is a test note content.",
       tags: ["test", "registry"],
       category: "testing",
-      metadata: {},
-    };
+    });
 
     // Test validation - registry validates data structure
     const validatedEntity = registry.validateEntity<Note>("note", entityData);

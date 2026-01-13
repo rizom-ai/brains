@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 import {
   extractMetadata,
   generateMarkdownWithFrontmatter,
@@ -19,19 +20,16 @@ interface TestNote extends BaseEntity {
 }
 
 describe("Frontmatter Utilities", () => {
-  const testEntity: TestNote = {
+  const testEntity: TestNote = createTestEntity<TestNote>("note", {
     id: "test-123",
-    entityType: "note",
     title: "Test Note",
     content: "This is the content",
-    contentHash: computeContentHash("This is the content"),
     tags: ["test", "important"],
     category: "work",
     priority: 1,
     created: "2024-01-01T00:00:00Z",
     updated: "2024-01-02T00:00:00Z",
-    metadata: {},
-  };
+  });
 
   describe("extractMetadata", () => {
     it("should exclude system fields by default", () => {
@@ -286,11 +284,9 @@ Content here`;
         };
       }
 
-      const complexEntity: ComplexEntity = {
+      const complexEntity = createTestEntity<ComplexEntity>("complex", {
         id: "complex",
-        entityType: "complex",
         content: "Complex content",
-        contentHash: computeContentHash("Complex content"),
         created: "2024-01-01",
         updated: "2024-01-01",
         metadata: {
@@ -301,7 +297,7 @@ Content here`;
             likes: 10,
           },
         },
-      };
+      });
 
       // Define schema for complex entity
       const complexSchema = z.object({
