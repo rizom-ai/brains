@@ -11,6 +11,7 @@ export type {
   IIdentityNamespace,
   IConversationsNamespace,
   IJobsWriteNamespace,
+  TypedMessageHandler,
 } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 
@@ -248,3 +249,6 @@ export {
   toolError,
   type ToolResult,
 } from "./utils/tool-helpers";
+
+// Typed message channels
+export { defineChannel, isChannel, type Channel } from "./utils/channels";

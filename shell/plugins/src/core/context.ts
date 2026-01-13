@@ -1,7 +1,14 @@
 import type { IShell } from "../interfaces";
 import type { DefaultQueryResponse } from "@brains/utils";
 import type { Logger } from "@brains/utils";
-import type { MessageHandler, MessageSender } from "@brains/messaging-service";
+import type {
+  MessageHandler,
+  MessageSender,
+  MessageResponse,
+  BaseMessage,
+} from "@brains/messaging-service";
+import type { Channel } from "../utils/channels";
+import { isChannel } from "../utils/channels";
 import type { Template } from "@brains/templates";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type {
@@ -68,6 +75,15 @@ export interface ITemplatesNamespace {
 }
 
 /**
+ * Handler for typed channel subscriptions
+ * Receives validated payload and base message metadata
+ */
+export type TypedMessageHandler<TPayload, TResponse = unknown> = (
+  payload: TPayload,
+  message: BaseMessage,
+) => Promise<MessageResponse<TResponse>> | MessageResponse<TResponse>;
+
+/**
  * Messaging namespace for CorePluginContext
  * Provides inter-plugin messaging capabilities
  */
@@ -75,11 +91,39 @@ export interface IMessagingNamespace {
   /** Send a message to other plugins */
   send: MessageSender;
 
-  /** Subscribe to messages on a channel */
-  subscribe: <T = unknown, R = unknown>(
-    channel: string,
-    handler: MessageHandler<T, R>,
-  ) => () => void;
+  /**
+   * Subscribe to messages on a channel
+   *
+   * @example String-based (untyped)
+   * ```typescript
+   * context.messaging.subscribe("my-channel", async (message) => {
+   *   const payload = mySchema.parse(message.payload);
+   *   return { success: true };
+   * });
+   * ```
+   *
+   * @example Channel-based (typed)
+   * ```typescript
+   * const MyChannel = defineChannel("my-channel", mySchema);
+   * context.messaging.subscribe(MyChannel, async (payload) => {
+   *   // payload is already validated and typed
+   *   return { success: true };
+   * });
+   * ```
+   */
+  subscribe: {
+    // String-based (existing behavior)
+    <T = unknown, R = unknown>(
+      channel: string,
+      handler: MessageHandler<T, R>,
+    ): () => void;
+
+    // Channel-based (typed, with auto-validation)
+    <TPayload, TResponse = unknown>(
+      channel: Channel<TPayload, TResponse>,
+      handler: TypedMessageHandler<TPayload, TResponse>,
+    ): () => void;
+  };
 }
 
 /**
@@ -262,9 +306,40 @@ export function createCorePluginContext(
     messaging: {
       send: sendMessage,
       subscribe: <T = unknown, R = unknown>(
-        channel: string,
-        handler: MessageHandler<T, R>,
-      ) => messageBus.subscribe(channel, handler),
+        channelOrName: string | Channel<T, R>,
+        handler: MessageHandler<T, R> | TypedMessageHandler<T, R>,
+      ): (() => void) => {
+        // Channel-based subscription (typed)
+        if (isChannel(channelOrName)) {
+          const channel = channelOrName;
+          const typedHandler = handler as TypedMessageHandler<T, R>;
+
+          // Wrap the typed handler to validate payload and extract it
+          const wrappedHandler: MessageHandler<unknown, R> = async (
+            message,
+          ) => {
+            const parseResult = channel.schema.safeParse(message.payload);
+            if (!parseResult.success) {
+              logger.warn(`Invalid payload for channel ${channel.name}`, {
+                error: parseResult.error.message,
+              });
+              return { noop: true };
+            }
+
+            // Call the typed handler with validated payload and base message
+            const { payload: _payload, ...baseMessage } = message;
+            return typedHandler(parseResult.data as T, baseMessage);
+          };
+
+          return messageBus.subscribe(channel.name, wrappedHandler);
+        }
+
+        // String-based subscription (existing behavior)
+        return messageBus.subscribe(
+          channelOrName,
+          handler as MessageHandler<T, R>,
+        );
+      },
     },
 
     // Template operations namespace
