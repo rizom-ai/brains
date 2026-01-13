@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { HomepageListDataSource } from "../src/datasources/homepage-datasource";
-import { createMockEntityService } from "@brains/test-utils";
+import { createMockEntityService, createTestEntity } from "@brains/test-utils";
 import type { IEntityService, ListOptions } from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
 import { blogPostWithDataSchema } from "@brains/blog";
 import { deckSchema } from "@brains/decks";
 import { professionalProfileSchema } from "../src/schemas";
@@ -28,15 +28,11 @@ Building tools for thought
 ## Intro
 Essays and presentations on technology`;
 
-  const mockProfile = {
+  const mockProfile = createTestEntity("profile", {
     id: "profile-1",
-    entityType: "profile" as const,
     content: profileContent,
-    contentHash: computeContentHash(profileContent),
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
     metadata: {},
-  };
+  });
 
   const postContent = `---
 title: Test Essay
@@ -50,41 +46,33 @@ author: Test Author
 
 Content here`;
 
-  const mockPost: BlogPost = {
+  const mockPost: BlogPost = createTestEntity<BlogPost>("post", {
     id: "post-1",
-    entityType: "post" as const,
     content: postContent,
-    contentHash: computeContentHash(postContent),
-    created: "2025-01-15T10:00:00.000Z",
-    updated: "2025-01-15T10:00:00.000Z",
     metadata: {
       title: "Test Essay",
       slug: "test-essay",
       status: "published",
       publishedAt: "2025-01-15T10:00:00.000Z",
     },
-  };
+  });
 
   const deckContent = "# Test Deck\n\n---\n\nSlide content";
 
-  const mockDeck: DeckEntity = {
+  const mockDeck: DeckEntity = createTestEntity<DeckEntity>("deck", {
     id: "deck-1",
-    entityType: "deck" as const,
     title: "Test Deck",
     description: "A test presentation",
     status: "published",
     publishedAt: "2025-01-10T10:00:00.000Z",
     content: deckContent,
-    contentHash: computeContentHash(deckContent),
-    created: "2025-01-10T10:00:00.000Z",
-    updated: "2025-01-10T10:00:00.000Z",
     metadata: {
       slug: "test-deck",
       title: "Test Deck",
       status: "published",
       publishedAt: "2025-01-10T10:00:00.000Z",
     },
-  };
+  });
 
   const siteInfoContent = `# Site Information
 
@@ -105,15 +93,11 @@ Get in Touch
 ### Button Link
 mailto:test@example.com`;
 
-  const mockSiteInfo = {
+  const mockSiteInfo = createTestEntity("site-info", {
     id: "site-info",
-    entityType: "site-info" as const,
     content: siteInfoContent,
-    contentHash: computeContentHash(siteInfoContent),
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
     metadata: {},
-  };
+  });
 
   beforeEach(() => {
     mockEntityService = createMockEntityService();

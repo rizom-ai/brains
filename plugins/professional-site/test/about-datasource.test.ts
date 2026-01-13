@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { AboutDataSource } from "../src/datasources/about-datasource";
-import { createMockEntityService } from "@brains/test-utils";
+import { createMockEntityService, createTestEntity } from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
 import { professionalProfileSchema } from "../src/schemas";
 
 describe("AboutDataSource", () => {
@@ -36,15 +36,11 @@ Building tools for thought
 ## Availability
 Open for consulting`;
 
-  const mockProfile = {
+  const mockProfile = createTestEntity("profile", {
     id: "profile-1",
-    entityType: "profile" as const,
     content: profileContent,
-    contentHash: computeContentHash(profileContent),
-    created: "2025-01-01T10:00:00.000Z",
-    updated: "2025-01-01T10:00:00.000Z",
     metadata: {},
-  };
+  });
 
   beforeEach(() => {
     mockEntityService = createMockEntityService();
@@ -105,15 +101,11 @@ Open for consulting`;
 ## Name
 Test User`;
 
-    const minimalProfile = {
+    const minimalProfile = createTestEntity("profile", {
       id: "profile-2",
-      entityType: "profile" as const,
       content: minimalContent,
-      contentHash: computeContentHash(minimalContent),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {},
-    };
+    });
 
     spyOn(mockEntityService, "listEntities").mockImplementation(
       (entityType: string) => {

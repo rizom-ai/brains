@@ -4,7 +4,7 @@ import { blogPlugin } from "../src/index";
 import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("BlogPlugin", () => {
   let plugin: BlogPlugin;
@@ -64,19 +64,15 @@ author: Test Author
 
 This is the content of my blog post.`;
 
-      const entity: BlogPost = {
+      const entity: BlogPost = createTestEntity<BlogPost>("post", {
         id: "test-post-1",
-        entityType: "post",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
         metadata: {
           title: "My First Blog Post",
           slug: "my-first-blog-post",
           status: "draft",
         },
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -134,13 +130,9 @@ seriesIndex: 1
 
 Content here`;
 
-      const entity: BlogPost = {
+      const entity: BlogPost = createTestEntity<BlogPost>("post", {
         id: "test-post-3",
-        entityType: "post",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
         metadata: {
           title: "Search Test Post",
           slug: "search-test-post",
@@ -149,7 +141,7 @@ Content here`;
           seriesName: "Test Series",
           seriesIndex: 1,
         },
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
 
@@ -175,19 +167,15 @@ author: Minimal Author
 
 Minimal content`;
 
-      const entity: BlogPost = {
+      const entity: BlogPost = createTestEntity<BlogPost>("post", {
         id: "test-post-4",
-        entityType: "post",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
         metadata: {
           title: "Minimal Post",
           slug: "minimal-post",
           status: "draft",
         },
-      };
+      });
 
       const metadata = adapter.extractMetadata(entity);
 
@@ -211,13 +199,9 @@ seriesIndex: 1
 
 Series post content`;
 
-      const entity: BlogPost = {
+      const entity: BlogPost = createTestEntity<BlogPost>("post", {
         id: "test-post-5",
-        entityType: "post",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
         metadata: {
           title: "Series Post Part 1",
           slug: "series-post-part-1",
@@ -226,7 +210,7 @@ Series post content`;
           seriesName: "My Blog Series",
           seriesIndex: 1,
         },
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
@@ -249,19 +233,15 @@ coverImageId: hero-image
 
 Post with cover image`;
 
-      const entity: BlogPost = {
+      const entity: BlogPost = createTestEntity<BlogPost>("post", {
         id: "test-post-6",
-        entityType: "post",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
         metadata: {
           title: "Post With Image",
           slug: "post-with-image",
           status: "draft",
         },
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
       expect(markdown).toContain("coverImageId: hero-image");
@@ -284,19 +264,15 @@ author: Test Author
 
 Content here`;
 
-      const entity: BlogPost = {
+      const entity: BlogPost = createTestEntity<BlogPost>("post", {
         id: "test-post-7",
-        entityType: "post",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-30T10:00:00.000Z",
-        updated: "2025-01-30T10:00:00.000Z",
         metadata: {
           title: "Post Without Slug",
           slug: "post-without-slug", // Auto-generated slug in metadata
           status: "draft",
         },
-      };
+      });
 
       const markdown = adapter.toMarkdown(entity);
 
