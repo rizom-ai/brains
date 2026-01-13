@@ -1,8 +1,7 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryService } from "../../src/lib/summary-service";
-import { createMockEntityService } from "@brains/test-utils";
+import { createMockEntityService, createTestEntity } from "@brains/test-utils";
 import type { SummaryEntity } from "../../src/schemas/summary";
-import { computeContentHash } from "@brains/utils";
 
 describe("SummaryService", () => {
   describe("getSummary", () => {
@@ -35,11 +34,9 @@ describe("SummaryService", () => {
     it("should return the summary entity when it exists", async () => {
       const mockEntityService = createMockEntityService();
       const summaryContent = "# Summary\n\nContent here";
-      const mockSummary: SummaryEntity = {
+      const mockSummary = createTestEntity<SummaryEntity>("summary", {
         id: "conv-123",
-        entityType: "summary",
         content: summaryContent,
-        contentHash: computeContentHash(summaryContent),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
         metadata: {
@@ -50,7 +47,7 @@ describe("SummaryService", () => {
           entryCount: 1,
           totalMessages: 10,
         },
-      };
+      });
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
 
       const service = new SummaryService(mockEntityService);
@@ -115,11 +112,9 @@ describe("SummaryService", () => {
     it("should return summaries when they exist", async () => {
       const mockEntityService = createMockEntityService();
       const mockSummaries: SummaryEntity[] = [
-        {
+        createTestEntity<SummaryEntity>("summary", {
           id: "1",
-          entityType: "summary",
           content: "content1",
-          contentHash: computeContentHash("content1"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -130,12 +125,10 @@ describe("SummaryService", () => {
             entryCount: 3,
             totalMessages: 30,
           },
-        },
-        {
+        }),
+        createTestEntity<SummaryEntity>("summary", {
           id: "2",
-          entityType: "summary",
           content: "content2",
-          contentHash: computeContentHash("content2"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -146,7 +139,7 @@ describe("SummaryService", () => {
             entryCount: 2,
             totalMessages: 20,
           },
-        },
+        }),
       ];
       spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
 
@@ -173,11 +166,9 @@ describe("SummaryService", () => {
     it("should return content for existing summary", async () => {
       const mockEntityService = createMockEntityService();
       const content = "# Test Summary\n\nExported content";
-      const mockSummary: SummaryEntity = {
+      const mockSummary = createTestEntity<SummaryEntity>("summary", {
         id: "conv-123",
-        entityType: "summary",
         content,
-        contentHash: computeContentHash(content),
         created: "2025-01-01T00:00:00Z",
         updated: "2025-01-01T00:00:00Z",
         metadata: {
@@ -188,7 +179,7 @@ describe("SummaryService", () => {
           entryCount: 5,
           totalMessages: 50,
         },
-      };
+      });
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockSummary);
 
       const service = new SummaryService(mockEntityService);
@@ -214,11 +205,9 @@ describe("SummaryService", () => {
     it("should calculate correct statistics from summaries", async () => {
       const mockEntityService = createMockEntityService();
       const mockSummaries: SummaryEntity[] = [
-        {
+        createTestEntity<SummaryEntity>("summary", {
           id: "1",
-          entityType: "summary",
           content: "content1",
-          contentHash: computeContentHash("content1"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -229,12 +218,10 @@ describe("SummaryService", () => {
             entryCount: 3,
             totalMessages: 30,
           },
-        },
-        {
+        }),
+        createTestEntity<SummaryEntity>("summary", {
           id: "2",
-          entityType: "summary",
           content: "content2",
-          contentHash: computeContentHash("content2"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -245,7 +232,7 @@ describe("SummaryService", () => {
             entryCount: 2,
             totalMessages: 20,
           },
-        },
+        }),
       ];
       spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
 
@@ -272,11 +259,9 @@ describe("SummaryService", () => {
     it("should handle missing entryCount metadata", async () => {
       const mockEntityService = createMockEntityService();
       const mockSummaries: SummaryEntity[] = [
-        {
+        createTestEntity<SummaryEntity>("summary", {
           id: "1",
-          entityType: "summary",
           content: "content1",
-          contentHash: computeContentHash("content1"),
           created: "2025-01-01T00:00:00Z",
           updated: "2025-01-01T00:00:00Z",
           metadata: {
@@ -287,7 +272,7 @@ describe("SummaryService", () => {
             entryCount: 0, // Set to 0 to test missing/zero entryCount handling
             totalMessages: 10,
           },
-        },
+        }),
       ];
       spyOn(mockEntityService, "listEntities").mockResolvedValue(mockSummaries);
 

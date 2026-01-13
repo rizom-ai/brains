@@ -7,7 +7,7 @@ import {
 } from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("DirectoryImportJobHandler", () => {
   let handler: DirectoryImportJobHandler;
@@ -123,15 +123,13 @@ slug: test-series
 ---
 # Test Series`;
 
-      const existingEntity = {
+      const existingEntity = createTestEntity("series", {
         id: "series-test-series",
-        entityType: "series",
         content: oldContent,
-        contentHash: computeContentHash(oldContent),
         created: "2025-01-01T10:00:00.000Z",
         updated: "2025-01-01T12:00:00.000Z", // Same or newer than file mtime
         metadata: { name: "Test Series", slug: "test-series" },
-      };
+      });
 
       // File has OLDER mtime but DIFFERENT content
       const fileEntity = {

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SiteInfoAdapter } from "../../src/services/site-info-adapter";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
 import { createMockSiteInfo } from "../fixtures/site-entities";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("SiteInfoAdapter", () => {
   let adapter: SiteInfoAdapter;
@@ -15,15 +16,13 @@ describe("SiteInfoAdapter", () => {
       const schema = adapter.schema;
       const content = "";
 
-      const validSiteInfo = {
+      const validSiteInfo = createTestEntity("site-info", {
         id: "site-info",
-        entityType: "site-info",
         content,
-        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
-      };
+      });
 
       expect(() => schema.parse(validSiteInfo)).not.toThrow();
     });
@@ -33,13 +32,13 @@ describe("SiteInfoAdapter", () => {
       const content = "";
 
       const invalidSiteInfo = {
-        id: "site-info",
-        entityType: "other",
-        content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        metadata: {},
+        ...createTestEntity("other", {
+          id: "site-info",
+          content,
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          metadata: {},
+        }),
       };
 
       expect(() => schema.parse(invalidSiteInfo)).toThrow();
@@ -49,15 +48,13 @@ describe("SiteInfoAdapter", () => {
       const schema = adapter.schema;
       const content = "";
 
-      const invalidSiteInfo = {
+      const invalidSiteInfo = createTestEntity("site-info", {
         id: "wrong-id",
-        entityType: "site-info",
         content,
-        contentHash: computeContentHash(content),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
-      };
+      });
 
       expect(() => schema.parse(invalidSiteInfo)).toThrow();
     });

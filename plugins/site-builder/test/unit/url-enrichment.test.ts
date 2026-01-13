@@ -9,7 +9,8 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { ProfileService } from "@brains/plugins";
-import { computeContentHash, z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 // Type for accessing private methods in tests
 interface SiteBuilderTestable {
@@ -89,13 +90,13 @@ describe("SiteBuilder - URL Enrichment", () => {
     it("should add url and typeLabel to entity with slug metadata", async () => {
       const content = "Test content";
       const entity = {
-        id: "post-1",
-        entityType: "post",
-        content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-01T00:00:00.000Z",
-        updated: "2025-01-01T00:00:00.000Z",
-        metadata: { slug: "test-post", title: "Test Post" },
+        ...createTestEntity("post", {
+          id: "post-1",
+          content,
+          created: "2025-01-01T00:00:00.000Z",
+          updated: "2025-01-01T00:00:00.000Z",
+          metadata: { slug: "test-post", title: "Test Post" },
+        }),
         url: "",
         typeLabel: "",
       };
@@ -114,24 +115,24 @@ describe("SiteBuilder - URL Enrichment", () => {
       const content2 = "Content 2";
       const entities = [
         {
-          id: "post-1",
-          entityType: "post",
-          content: content1,
-          contentHash: computeContentHash(content1),
-          created: "2025-01-01T00:00:00.000Z",
-          updated: "2025-01-01T00:00:00.000Z",
-          metadata: { slug: "post-1" },
+          ...createTestEntity("post", {
+            id: "post-1",
+            content: content1,
+            created: "2025-01-01T00:00:00.000Z",
+            updated: "2025-01-01T00:00:00.000Z",
+            metadata: { slug: "post-1" },
+          }),
           url: "",
           typeLabel: "",
         },
         {
-          id: "post-2",
-          entityType: "post",
-          content: content2,
-          contentHash: computeContentHash(content2),
-          created: "2025-01-02T00:00:00.000Z",
-          updated: "2025-01-02T00:00:00.000Z",
-          metadata: { slug: "post-2" },
+          ...createTestEntity("post", {
+            id: "post-2",
+            content: content2,
+            created: "2025-01-02T00:00:00.000Z",
+            updated: "2025-01-02T00:00:00.000Z",
+            metadata: { slug: "post-2" },
+          }),
           url: "",
           typeLabel: "",
         },
@@ -158,25 +159,25 @@ describe("SiteBuilder - URL Enrichment", () => {
       const deckContent = "Deck content";
       const data = {
         post: {
-          id: "post-1",
-          entityType: "post",
-          content: postContent,
-          contentHash: computeContentHash(postContent),
-          created: "2025-01-01T00:00:00.000Z",
-          updated: "2025-01-01T00:00:00.000Z",
-          metadata: { slug: "test-post" },
+          ...createTestEntity("post", {
+            id: "post-1",
+            content: postContent,
+            created: "2025-01-01T00:00:00.000Z",
+            updated: "2025-01-01T00:00:00.000Z",
+            metadata: { slug: "test-post" },
+          }),
           url: "",
           typeLabel: "",
         },
         relatedDecks: [
           {
-            id: "deck-1",
-            entityType: "deck",
-            content: deckContent,
-            contentHash: computeContentHash(deckContent),
-            created: "2025-01-01T00:00:00.000Z",
-            updated: "2025-01-01T00:00:00.000Z",
-            metadata: { slug: "test-deck" },
+            ...createTestEntity("deck", {
+              id: "deck-1",
+              content: deckContent,
+              created: "2025-01-01T00:00:00.000Z",
+              updated: "2025-01-01T00:00:00.000Z",
+              metadata: { slug: "test-deck" },
+            }),
             url: "",
             typeLabel: "",
           },
@@ -199,13 +200,13 @@ describe("SiteBuilder - URL Enrichment", () => {
     it("should use capitalized entityType as fallback label", async () => {
       const content = "Content";
       const entity = {
-        id: "note-1",
-        entityType: "note",
-        content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-01T00:00:00.000Z",
-        updated: "2025-01-01T00:00:00.000Z",
-        metadata: { slug: "test-note" },
+        ...createTestEntity("note", {
+          id: "note-1",
+          content,
+          created: "2025-01-01T00:00:00.000Z",
+          updated: "2025-01-01T00:00:00.000Z",
+          metadata: { slug: "test-note" },
+        }),
         url: "",
         typeLabel: "",
       };
@@ -257,18 +258,18 @@ describe("SiteBuilder - URL Enrichment", () => {
     it("should preserve other entity fields", async () => {
       const content = "Content";
       const entity = {
-        id: "post-1",
-        entityType: "post",
-        content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-01T00:00:00.000Z",
-        updated: "2025-01-01T00:00:00.000Z",
-        metadata: {
-          slug: "test",
-          title: "Test",
-          author: "John",
-          customField: "value",
-        },
+        ...createTestEntity("post", {
+          id: "post-1",
+          content,
+          created: "2025-01-01T00:00:00.000Z",
+          updated: "2025-01-01T00:00:00.000Z",
+          metadata: {
+            slug: "test",
+            title: "Test",
+            author: "John",
+            customField: "value",
+          },
+        }),
         frontmatter: { title: "Test" },
         body: "Body content",
         url: "",
@@ -283,7 +284,7 @@ describe("SiteBuilder - URL Enrichment", () => {
       expect(result.id).toBe("post-1");
       expect(result.entityType).toBe("post");
       expect(result.content).toBe("Content");
-      expect(result.metadata.customField).toBe("value");
+      expect(result.metadata["customField"]).toBe("value");
       expect(result.frontmatter).toEqual({ title: "Test" });
       expect(result.body).toBe("Body content");
       expect(result.url).toBe("/posts/test");
@@ -308,13 +309,13 @@ describe("SiteBuilder - URL Enrichment", () => {
 
       const content = "Content";
       const entity = {
-        id: "post-1",
-        entityType: "post",
-        content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-01T00:00:00.000Z",
-        updated: "2025-01-01T00:00:00.000Z",
-        metadata: { slug: "test" },
+        ...createTestEntity("post", {
+          id: "post-1",
+          content,
+          created: "2025-01-01T00:00:00.000Z",
+          updated: "2025-01-01T00:00:00.000Z",
+          metadata: { slug: "test" },
+        }),
         url: "",
         typeLabel: "",
       };
@@ -336,15 +337,13 @@ slug: test-project
 coverImageId: project-cover-image
 ---
 # Test Project`;
-      const entity = {
+      const entity = createTestEntity("project", {
         id: "project-1",
-        entityType: "project",
         content,
-        contentHash: computeContentHash(content),
         created: "2025-01-01T00:00:00.000Z",
         updated: "2025-01-01T00:00:00.000Z",
         metadata: { slug: "test-project", title: "Test Project" },
-      };
+      });
 
       // Mock entityService.getEntity to return the image
       spyOn(mockContext.entityService, "getEntity").mockResolvedValue({
@@ -380,15 +379,13 @@ title: Test Project
 slug: test-project
 ---
 # Test Project`;
-      const entity = {
+      const entity = createTestEntity("project", {
         id: "project-1",
-        entityType: "project",
         content,
-        contentHash: computeContentHash(content),
         created: "2025-01-01T00:00:00.000Z",
         updated: "2025-01-01T00:00:00.000Z",
         metadata: { slug: "test-project", title: "Test Project" },
-      };
+      });
 
       const result = await testableSiteBuilder.enrichWithUrls(
         entity,

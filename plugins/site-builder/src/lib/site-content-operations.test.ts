@@ -8,7 +8,7 @@ import {
   type ServicePluginContext,
   type BatchOperation,
 } from "@brains/plugins/test";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("SiteContentOperations", () => {
   let mockShell: MockShell;
@@ -213,18 +213,18 @@ describe("SiteContentOperations", () => {
       const getEntitySpy = spyOn(context.entityService, "getEntity");
 
       // First call returns existing entity, second returns null
-      getEntitySpy.mockResolvedValueOnce({
-        id: "landing:hero",
-        entityType: "site-content",
-        content: "Existing content",
-        contentHash: computeContentHash("Existing content"),
-        created: "2024-01-01",
-        updated: "2024-01-01",
-        metadata: {
-          routeId: "landing",
-          sectionId: "hero",
-        },
-      });
+      getEntitySpy.mockResolvedValueOnce(
+        createTestEntity("site-content", {
+          id: "landing:hero",
+          content: "Existing content",
+          created: "2024-01-01",
+          updated: "2024-01-01",
+          metadata: {
+            routeId: "landing",
+            sectionId: "hero",
+          },
+        }),
+      );
       getEntitySpy.mockResolvedValueOnce(null); // For features section
 
       // Spy on enqueueBatch

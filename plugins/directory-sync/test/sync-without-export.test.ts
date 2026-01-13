@@ -1,7 +1,7 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { ImportResult, ExportResult } from "../src/types";
 import type { BaseEntity } from "@brains/plugins";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Tests for sync() behavior when export is removed and subscribers handle file writes.
@@ -160,15 +160,13 @@ slug: ecosystem-architecture
       // When an entity is created (not imported from file),
       // entity:created subscriber should write it to disk
 
-      const entity: BaseEntity = {
+      const entity: BaseEntity = createTestEntity("series", {
         id: "new-entity",
-        entityType: "series",
         content: "# New Entity",
-        contentHash: computeContentHash("# New Entity"),
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {},
-      };
+      });
 
       let fileWritten = false;
       let writtenContent = "";

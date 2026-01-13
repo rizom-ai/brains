@@ -12,7 +12,8 @@ import {
   createMockJobQueueService,
 } from "@brains/test-utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 import { createEntityDatabase } from "../src/db";
 import { embeddings } from "../src/schema/embeddings";
 import { and, eq } from "drizzle-orm";
@@ -78,7 +79,8 @@ describe("storeEmbedding", () => {
   test("should store embedding for existing entity", async () => {
     // Create an entity first
     const content = "Test content for embedding";
-    const contentHash = computeContentHash(content);
+    const testEntity = createTestEntity("test", { content });
+    const contentHash = testEntity.contentHash;
     const mockEmbedding = new Float32Array(384).fill(0.1);
 
     // Insert entity without embedding (simulating immediate persistence before embedding job)
@@ -135,7 +137,10 @@ describe("storeEmbedding", () => {
 
     // Store new embedding (should update)
     const mockEmbedding2 = new Float32Array(384).fill(0.5);
-    const newContentHash = computeContentHash("updated content");
+    const updatedEntity = createTestEntity("test", {
+      content: "updated content",
+    });
+    const newContentHash = updatedEntity.contentHash;
 
     await entityService.storeEmbedding({
       entityId: "test-entity",
@@ -181,11 +186,12 @@ describe("storeEmbedding", () => {
     expect(savedEntity?.metadata["coverImageId"]).toBe("my-cover-image");
 
     // Store a new embedding (simulating embedding update)
+    const newEntity = createTestEntity("test", { content: "new content" });
     await entityService.storeEmbedding({
       entityId: "test-entity",
       entityType: "test",
       embedding: new Float32Array(384).fill(0.5),
-      contentHash: computeContentHash("new content"),
+      contentHash: newEntity.contentHash,
     });
 
     // Verify metadata was NOT affected

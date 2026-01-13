@@ -5,7 +5,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "fs";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Test that sync() should NOT call exportEntities().
@@ -49,15 +49,13 @@ slug: test-series
 ---
 # Test Series`;
 
-    const mockEntity: BaseEntity = {
+    const mockEntity: BaseEntity = createTestEntity("series", {
       id: "series-test-series",
-      entityType: "series",
       content: oldDbContent, // DB has OLD content without coverImageId
-      contentHash: computeContentHash(oldDbContent),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       metadata: { name: "Test Series", slug: "test-series" },
-    };
+    });
 
     // Create mock entity service
     const mockEntityService = {
