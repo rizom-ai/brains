@@ -38,3 +38,10 @@ export type { SerializableEntity, SerializableQueryResult } from "./types";
 // Export core datasources
 export { SystemStatsDataSource } from "./datasources";
 export type { DashboardData } from "./datasources";
+
+// Export constants for entity types, template names, etc.
+export {
+  SHELL_ENTITY_TYPES,
+  SHELL_TEMPLATE_NAMES,
+  SHELL_DATASOURCE_IDS,
+} from "./constants";

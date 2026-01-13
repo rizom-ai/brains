@@ -52,6 +52,7 @@ import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileService, ProfileBody } from "@brains/profile-service";
 import type { IAgentService } from "@brains/agent-service";
 import type { ShellDependencies } from "./types/shell-types";
+import { SHELL_TEMPLATE_NAMES } from "./constants";
 
 export type { ShellDependencies };
 
@@ -312,9 +313,7 @@ export class Shell implements IShell {
   public async generateContent<T = unknown>(
     config: ContentGenerationConfig,
   ): Promise<T> {
-    if (!this.initialized) {
-      throw new Error("Shell query attempted before initialization");
-    }
+    this.requireInitialized("Shell content generation");
 
     // Validate template exists
     const template = this.contentService.getTemplate(config.templateName);
@@ -355,9 +354,7 @@ export class Shell implements IShell {
     prompt: string,
     context?: QueryContext,
   ): Promise<DefaultQueryResponse> {
-    if (!this.initialized) {
-      throw new Error("Shell query attempted before initialization");
-    }
+    this.requireInitialized("Shell query");
 
     // Fetch app info to provide daemon URLs and infrastructure context
     const appInfo = await this.getAppInfo();
@@ -375,7 +372,7 @@ export class Shell implements IShell {
     // Use the knowledge-query template for AI-powered responses
     return this.generateContent<DefaultQueryResponse>({
       prompt,
-      templateName: "shell:knowledge-query",
+      templateName: SHELL_TEMPLATE_NAMES.KNOWLEDGE_QUERY,
       ...(conversationHistory && { conversationHistory }),
       data: contextData,
       interfacePermissionGrant: "public", // Default to public, callers can override via context
@@ -386,10 +383,7 @@ export class Shell implements IShell {
    * Register a plugin
    */
   public registerPlugin(plugin: Plugin): void {
-    if (!this.initialized) {
-      throw new Error("Plugin registration attempted before initialization");
-    }
-
+    this.requireInitialized("Plugin registration");
     this.pluginManager.registerPlugin(plugin);
   }
 
@@ -398,6 +392,15 @@ export class Shell implements IShell {
    */
   public isInitialized(): boolean {
     return this.initialized;
+  }
+
+  /**
+   * Throw if Shell is not initialized
+   */
+  private requireInitialized(operation: string): void {
+    if (!this.initialized) {
+      throw new Error(`${operation} attempted before initialization`);
+    }
   }
 
   // Keep only getters that are actually used by plugins and tests

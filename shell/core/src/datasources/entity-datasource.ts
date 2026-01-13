@@ -1,6 +1,17 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
 import type { IEntityService } from "@brains/entity-service";
-import type { z } from "@brains/utils";
+import { z } from "@brains/utils";
+import { SHELL_DATASOURCE_IDS } from "../constants";
+
+/**
+ * Schema for entity datasource query parameters
+ */
+const entityQuerySchema = z.object({
+  entityType: z.string(),
+  query: z.object({
+    id: z.string(),
+  }),
+});
 
 /**
  * Entity DataSource
@@ -9,7 +20,7 @@ import type { z } from "@brains/utils";
  * Used by templates to dynamically load entity data.
  */
 export class EntityDataSource implements DataSource {
-  readonly id = "shell:entities";
+  readonly id = SHELL_DATASOURCE_IDS.ENTITIES;
   readonly name = "Entity DataSource";
   readonly description = "Fetches entity content from the entity service";
 
@@ -26,19 +37,15 @@ export class EntityDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     _context?: BaseDataSourceContext,
   ): Promise<T> {
-    // Parse query to extract entityType and id
-    const params = query as {
-      entityType?: string;
-      query?: { id?: string };
-    };
-
-    if (!params.entityType) {
-      throw new Error("EntityDataSource: entityType is required");
+    // Parse and validate query parameters
+    const parseResult = entityQuerySchema.safeParse(query);
+    if (!parseResult.success) {
+      const issues = parseResult.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join(", ");
+      throw new Error(`EntityDataSource: Invalid query - ${issues}`);
     }
-
-    if (!params.query?.id) {
-      throw new Error("EntityDataSource: query.id is required");
-    }
+    const params = parseResult.data;
 
     // Fetch the entity
     const entity = await this.entityService.getEntity(

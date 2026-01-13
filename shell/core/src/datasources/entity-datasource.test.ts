@@ -78,7 +78,7 @@ describe("EntityDataSource", () => {
       );
 
       void expect(fetchPromise).rejects.toThrow(
-        "EntityDataSource: entityType is required",
+        "EntityDataSource: Invalid query - entityType: Required",
       );
     });
 
@@ -99,7 +99,7 @@ describe("EntityDataSource", () => {
       );
 
       void expect(fetchPromise).rejects.toThrow(
-        "EntityDataSource: query.id is required",
+        "EntityDataSource: Invalid query - query.id: Required",
       );
     });
 

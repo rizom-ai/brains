@@ -10,7 +10,7 @@ import type { ContentService } from "@brains/content-service";
 import { ContentGenerationJobHandler } from "@brains/content-service";
 import { PluginManager } from "@brains/plugins";
 import { ServiceRegistry } from "@brains/service-registry";
-import { MessageBus } from "@brains/messaging-service";
+import { MessageBus, type IMessageBus } from "@brains/messaging-service";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
 import { RenderService } from "@brains/render-service";
@@ -47,6 +47,7 @@ import {
   createBrainAgentFactory,
   type IAgentService,
 } from "@brains/agent-service";
+import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 
 /**
  * Services initialized by ShellInitializer
@@ -75,6 +76,41 @@ export interface ShellServices {
   identityService: IdentityService;
   profileService: ProfileService;
   agentService: IAgentService;
+}
+
+/**
+ * Subscribe to entity lifecycle events (created, updated, deleted) for cache invalidation.
+ * Calls the provided refresh callback when the specified entity type/id changes.
+ */
+function subscribeToEntityCacheInvalidation(
+  messageBus: IMessageBus,
+  entityType: string,
+  entityId: string,
+  refreshCache: () => Promise<void>,
+  logger: Logger,
+): (() => void)[] {
+  const events = [
+    "entity:created",
+    "entity:updated",
+    "entity:deleted",
+  ] as const;
+
+  return events.map((event) =>
+    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      event,
+      async (message) => {
+        if (
+          message.payload.entityType === entityType &&
+          message.payload.entityId === entityId
+        ) {
+          await refreshCache();
+          const action = event.replace("entity:", "");
+          logger.debug(`${entityType} entity ${action}, cache refreshed`);
+        }
+        return { success: true };
+      },
+    ),
+  );
 }
 
 /**
@@ -161,13 +197,13 @@ export class ShellInitializer {
 
       // Register with entity registry
       entityRegistry.registerEntityType(
-        "base",
+        SHELL_ENTITY_TYPES.BASE,
         baseEntityAdapter.schema,
         baseEntityAdapter,
       );
 
       // Register base entity display template
-      templateRegistry.register("shell:base-entity-display", {
+      templateRegistry.register(SHELL_TEMPLATE_NAMES.BASE_ENTITY_DISPLAY, {
         name: "base-entity-display",
         description: "Display template for base entities",
         schema: baseEntitySchema,
@@ -195,7 +231,7 @@ export class ShellInitializer {
 
       // Register with entity registry
       entityRegistry.registerEntityType(
-        "identity",
+        SHELL_ENTITY_TYPES.IDENTITY,
         identityAdapter.schema,
         identityAdapter,
       );
@@ -220,7 +256,7 @@ export class ShellInitializer {
 
       // Register with entity registry
       entityRegistry.registerEntityType(
-        "profile",
+        SHELL_ENTITY_TYPES.PROFILE,
         profileAdapter.schema,
         profileAdapter,
       );
@@ -241,7 +277,11 @@ export class ShellInitializer {
 
     try {
       // Register with entity registry
-      entityRegistry.registerEntityType("image", imageSchema, imageAdapter);
+      entityRegistry.registerEntityType(
+        SHELL_ENTITY_TYPES.IMAGE,
+        imageSchema,
+        imageAdapter,
+      );
 
       this.logger.debug("Image entity support registered successfully");
     } catch (error) {
@@ -387,46 +427,12 @@ export class ShellInitializer {
     );
 
     // Subscribe to identity entity changes for cache refresh
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      "entity:created",
-      async (message) => {
-        if (
-          message.payload.entityType === "identity" &&
-          message.payload.entityId === "identity"
-        ) {
-          await identityService.refreshCache();
-          logger.debug("Identity entity created, cache refreshed");
-        }
-        return { success: true };
-      },
-    );
-
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      "entity:updated",
-      async (message) => {
-        if (
-          message.payload.entityType === "identity" &&
-          message.payload.entityId === "identity"
-        ) {
-          await identityService.refreshCache();
-          logger.debug("Identity entity updated, cache refreshed");
-        }
-        return { success: true };
-      },
-    );
-
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      "entity:deleted",
-      async (message) => {
-        if (
-          message.payload.entityType === "identity" &&
-          message.payload.entityId === "identity"
-        ) {
-          await identityService.refreshCache();
-          logger.debug("Identity entity deleted, cache refreshed");
-        }
-        return { success: true };
-      },
+    subscribeToEntityCacheInvalidation(
+      messageBus,
+      SHELL_ENTITY_TYPES.IDENTITY,
+      SHELL_ENTITY_TYPES.IDENTITY,
+      () => identityService.refreshCache(),
+      logger,
     );
 
     // Profile service
@@ -455,46 +461,12 @@ export class ShellInitializer {
     );
 
     // Subscribe to profile entity changes for cache refresh
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      "entity:created",
-      async (message) => {
-        if (
-          message.payload.entityType === "profile" &&
-          message.payload.entityId === "profile"
-        ) {
-          await profileService.refreshCache();
-          logger.debug("Profile entity created, cache refreshed");
-        }
-        return { success: true };
-      },
-    );
-
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      "entity:updated",
-      async (message) => {
-        if (
-          message.payload.entityType === "profile" &&
-          message.payload.entityId === "profile"
-        ) {
-          await profileService.refreshCache();
-          logger.debug("Profile entity updated, cache refreshed");
-        }
-        return { success: true };
-      },
-    );
-
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      "entity:deleted",
-      async (message) => {
-        if (
-          message.payload.entityType === "profile" &&
-          message.payload.entityId === "profile"
-        ) {
-          await profileService.refreshCache();
-          logger.debug("Profile entity deleted, cache refreshed");
-        }
-        return { success: true };
-      },
+    subscribeToEntityCacheInvalidation(
+      messageBus,
+      SHELL_ENTITY_TYPES.PROFILE,
+      SHELL_ENTITY_TYPES.PROFILE,
+      () => profileService.refreshCache(),
+      logger,
     );
 
     // Initialize identity and profile services AFTER sync:initial:completed
