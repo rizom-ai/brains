@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SeriesAdapter } from "../src/adapters/series-adapter";
 import type { Series } from "../src/schemas/series";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 const SERIES_FILE_WITH_COVER = `---
 coverImageId: series-ecosystem-architecture-cover
@@ -41,15 +41,11 @@ describe("Series coverImageId round-trip", () => {
     const parsed = adapter.fromMarkdown(SERIES_FILE_WITH_COVER);
     if (!parsed.content || !parsed.metadata) throw new Error("Parse failed");
 
-    const entity: Series = {
+    const entity: Series = createTestEntity<Series>("series", {
       id: "series-ecosystem-architecture",
-      entityType: "series",
       content: parsed.content, // This should have frontmatter with coverImageId
-      contentHash: computeContentHash(parsed.content),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
       metadata: parsed.metadata,
-    };
+    });
 
     const output = adapter.toMarkdown(entity);
 
@@ -65,15 +61,11 @@ describe("Series coverImageId round-trip", () => {
     if (!parsed.content || !parsed.metadata) throw new Error("Parse failed");
 
     // Step 2: Create entity as it would be stored
-    const entity: Series = {
+    const entity: Series = createTestEntity<Series>("series", {
       id: "series-ecosystem-architecture",
-      entityType: "series",
       content: parsed.content,
-      contentHash: computeContentHash(parsed.content),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
       metadata: parsed.metadata,
-    };
+    });
 
     // Step 3: Export back to "file" (simulate directory sync export)
     const outputMarkdown = adapter.toMarkdown(entity);
@@ -97,15 +89,11 @@ describe("Series coverImageId round-trip", () => {
     if (!parsed.content || !parsed.metadata) throw new Error("Parse failed");
 
     // Step 3: Entity created/updated with parsed content
-    const entity: Series = {
+    const entity: Series = createTestEntity<Series>("series", {
       id: "series-ecosystem-architecture",
-      entityType: "series",
       content: parsed.content,
-      contentHash: computeContentHash(parsed.content),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
       metadata: parsed.metadata,
-    };
+    });
 
     // Step 4: prepareEntityForStorage calls toMarkdown
     // This markdown is what gets stored in DB as content
@@ -135,15 +123,11 @@ describe("Series coverImageId round-trip", () => {
     // Step 1: Content stored in DB (output of toMarkdown from previous import)
     const parsed = adapter.fromMarkdown(SERIES_FILE_WITH_COVER);
     if (!parsed.content || !parsed.metadata) throw new Error("Parse failed");
-    const entity: Series = {
+    const entity: Series = createTestEntity<Series>("series", {
       id: "series-ecosystem-architecture",
-      entityType: "series",
       content: parsed.content,
-      contentHash: computeContentHash(parsed.content),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
       metadata: parsed.metadata,
-    };
+    });
     const dbContent = adapter.toMarkdown(entity);
 
     console.log("DB content:", dbContent);
@@ -154,19 +138,15 @@ describe("Series coverImageId round-trip", () => {
     console.log("Parsed from DB content:", parsedFromDB.content);
 
     // Step 3: Entity is constructed with ...parsedFromDB overwriting content
-    const entityFromDB: Series = {
+    const entityFromDB: Series = createTestEntity<Series>("series", {
       id: "series-ecosystem-architecture",
-      entityType: "series",
       content: dbContent, // This gets overwritten by ...parsedFromDB
-      contentHash: computeContentHash(dbContent),
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
       metadata: {
         name: "Ecosystem Architecture",
         slug: "ecosystem-architecture",
       },
       ...parsedFromDB, // This overwrites content!
-    };
+    });
 
     console.log("Entity from DB content:", entityFromDB.content);
 

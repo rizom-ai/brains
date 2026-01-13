@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { generateRSSFeed } from "../src/rss/feed-generator";
 import type { BlogPostWithData } from "../src/datasources/blog-datasource";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("RSS Feed Generator", () => {
   const post1Content =
@@ -11,18 +11,16 @@ describe("RSS Feed Generator", () => {
 
   const samplePosts: BlogPostWithData[] = [
     {
-      id: "post-1",
-      entityType: "post",
-      content: post1Content,
-      contentHash: computeContentHash(post1Content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
-      metadata: {
-        title: "First Post",
-        slug: "first-post",
-        status: "published",
-        publishedAt: "2025-01-15T10:00:00.000Z",
-      },
+      ...createTestEntity("post", {
+        id: "post-1",
+        content: post1Content,
+        metadata: {
+          title: "First Post",
+          slug: "first-post",
+          status: "published",
+          publishedAt: "2025-01-15T10:00:00.000Z",
+        },
+      }),
       frontmatter: {
         title: "First Post",
         slug: "first-post",
@@ -34,18 +32,16 @@ describe("RSS Feed Generator", () => {
       body: "Content 1",
     },
     {
-      id: "post-2",
-      entityType: "post",
-      content: post2Content,
-      contentHash: computeContentHash(post2Content),
-      created: "2025-01-02T10:00:00.000Z",
-      updated: "2025-01-02T10:00:00.000Z",
-      metadata: {
-        title: "Second Post",
-        slug: "second-post",
-        status: "published",
-        publishedAt: "2025-01-10T10:00:00.000Z",
-      },
+      ...createTestEntity("post", {
+        id: "post-2",
+        content: post2Content,
+        metadata: {
+          title: "Second Post",
+          slug: "second-post",
+          status: "published",
+          publishedAt: "2025-01-10T10:00:00.000Z",
+        },
+      }),
       frontmatter: {
         title: "Second Post",
         slug: "second-post",
@@ -128,17 +124,15 @@ describe("RSS Feed Generator", () => {
       const postsWithDraft: BlogPostWithData[] = [
         ...samplePosts,
         {
-          id: "draft-post",
-          entityType: "post",
-          content: draftContent,
-          contentHash: computeContentHash(draftContent),
-          created: "2025-01-03T10:00:00.000Z",
-          updated: "2025-01-03T10:00:00.000Z",
-          metadata: {
-            title: "Draft Post",
-            slug: "draft-post",
-            status: "draft",
-          },
+          ...createTestEntity("post", {
+            id: "draft-post",
+            content: draftContent,
+            metadata: {
+              title: "Draft Post",
+              slug: "draft-post",
+              status: "draft",
+            },
+          }),
           frontmatter: {
             title: "Draft Post",
             slug: "draft-post",

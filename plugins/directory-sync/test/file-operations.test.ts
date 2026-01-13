@@ -11,7 +11,7 @@ import {
 import { join } from "path";
 import { tmpdir } from "os";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("FileOperations", () => {
   let fileOps: FileOperations;
@@ -85,15 +85,11 @@ describe("FileOperations", () => {
     it("should roundtrip entities with colon IDs correctly", async () => {
       // Write entity with colon ID
       const entityContent = "# Hero Section";
-      const entity = {
+      const entity = createTestEntity("site-content", {
         id: "landing:hero",
-        entityType: "site-content",
         content: entityContent,
-        contentHash: computeContentHash(entityContent),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 
@@ -114,15 +110,11 @@ describe("FileOperations", () => {
     describe("getEntityFilePath", () => {
       it("should map simple entity IDs to flat files", () => {
         const testContent = "test";
-        const entity = {
+        const entity = createTestEntity("note", {
           id: "simple-id",
-          entityType: "note",
           content: testContent,
-          contentHash: computeContentHash(testContent),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         const path = fileOps.getEntityFilePath(entity);
         expect(path).toBe(join(testDir, "note", "simple-id.md"));
@@ -130,15 +122,11 @@ describe("FileOperations", () => {
 
       it("should map entity IDs with colons to subdirectories", () => {
         const content = "test";
-        const entity = {
+        const entity = createTestEntity("summary", {
           id: "daily:2024-01-27",
-          entityType: "summary",
           content,
-          contentHash: computeContentHash(content),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         const path = fileOps.getEntityFilePath(entity);
         expect(path).toBe(join(testDir, "summary", "daily", "2024-01-27.md"));
@@ -146,15 +134,11 @@ describe("FileOperations", () => {
 
       it("should handle multiple colons creating nested directories", () => {
         const content = "test";
-        const entity = {
+        const entity = createTestEntity("topic", {
           id: "tech:ai:llms:gpt4",
-          entityType: "topic",
           content,
-          contentHash: computeContentHash(content),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         const path = fileOps.getEntityFilePath(entity);
         expect(path).toBe(
@@ -164,15 +148,11 @@ describe("FileOperations", () => {
 
       it("should handle base entities without subdirectories", () => {
         const content = "test";
-        const entity = {
+        const entity = createTestEntity("base", {
           id: "base:entity:test",
-          entityType: "base",
           content,
-          contentHash: computeContentHash(content),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         // Base entities go in root, "base:" prefix is stripped since it matches entity type
         const path = fileOps.getEntityFilePath(entity);
@@ -181,15 +161,11 @@ describe("FileOperations", () => {
 
       it("should handle empty ID parts gracefully", () => {
         const content = "test";
-        const entity = {
+        const entity = createTestEntity("summary", {
           id: "summary::2024", // Double colon
-          entityType: "summary",
           content,
-          contentHash: computeContentHash(content),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         const path = fileOps.getEntityFilePath(entity);
         // Should skip empty parts
@@ -200,15 +176,11 @@ describe("FileOperations", () => {
     describe("writeEntity with subdirectories", () => {
       it("should create necessary subdirectories when writing", async () => {
         const entityContent = "Daily summary content";
-        const entity = {
+        const entity = createTestEntity("summary", {
           id: "daily:2024:01:27",
-          entityType: "summary",
           content: entityContent,
-          contentHash: computeContentHash(entityContent),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         await fileOps.writeEntity(entity);
 
@@ -228,15 +200,11 @@ describe("FileOperations", () => {
 
       it("should create deeply nested directories", async () => {
         const entityContent = "Deeply nested";
-        const entity = {
+        const entity = createTestEntity("test", {
           id: "a:b:c:d:e:f",
-          entityType: "test",
           content: entityContent,
-          contentHash: computeContentHash(entityContent),
           metadata: {},
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
 
         await fileOps.writeEntity(entity);
 
@@ -351,15 +319,11 @@ describe("FileOperations", () => {
     });
 
     it("should write image entities as binary files in image/ directory", async () => {
-      const entity = {
+      const entity = createTestEntity("image", {
         id: "my-image",
-        entityType: "image",
         content: TINY_PNG_DATA_URL,
-        contentHash: computeContentHash(TINY_PNG_DATA_URL),
         metadata: { format: "png" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 
@@ -417,15 +381,11 @@ describe("FileOperations", () => {
     });
 
     it("should use correct extension when writing image entities", async () => {
-      const jpgEntity = {
+      const jpgEntity = createTestEntity("image", {
         id: "photo",
-        entityType: "image",
         content: "data:image/jpeg;base64," + TINY_PNG_BYTES.toString("base64"),
-        contentHash: "abc",
         metadata: { format: "jpg" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(jpgEntity);
 
@@ -434,15 +394,11 @@ describe("FileOperations", () => {
     });
 
     it("should roundtrip image entities correctly", async () => {
-      const entity = {
+      const entity = createTestEntity("image", {
         id: "roundtrip-test",
-        entityType: "image",
         content: TINY_PNG_DATA_URL,
-        contentHash: computeContentHash(TINY_PNG_DATA_URL),
         metadata: { format: "png" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       // Write
       await fileOps.writeEntity(entity);
@@ -459,15 +415,11 @@ describe("FileOperations", () => {
   describe("Windows Compatibility", () => {
     it("should not create files with colons in the filename", async () => {
       const entityContent = "test";
-      const entity = {
+      const entity = createTestEntity("summary", {
         id: "summary:daily:2024-01-27",
-        entityType: "summary",
         content: entityContent,
-        contentHash: computeContentHash(entityContent),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 
@@ -482,15 +434,11 @@ describe("FileOperations", () => {
 
     it("should handle Windows-style paths correctly", () => {
       const entityContent = "test";
-      const entity = {
+      const entity = createTestEntity("note", {
         id: "path:to:file",
-        entityType: "note",
         content: entityContent,
-        contentHash: computeContentHash(entityContent),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const path = fileOps.getEntityFilePath(entity);
 
@@ -513,15 +461,11 @@ describe("FileOperations", () => {
       writeFileSync(filePath, expectedSerializedContent);
 
       // Create entity that will serialize to the SAME content
-      const entity = {
+      const entity = createTestEntity("note", {
         id: "test-note",
-        entityType: "note",
         content: "Same content",
-        contentHash: computeContentHash("Same content"),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       // Get file mtime before write attempt
       const mtimeBefore = statSync(filePath).mtime.getTime();
@@ -548,15 +492,11 @@ describe("FileOperations", () => {
       writeFileSync(filePath, "# test-note\n\nOld content");
 
       // Create entity with DIFFERENT content
-      const entity = {
+      const entity = createTestEntity("note", {
         id: "test-note",
-        entityType: "note",
         content: "New content",
-        contentHash: computeContentHash("New content"),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 
@@ -569,15 +509,11 @@ describe("FileOperations", () => {
       const filePath = join(testDir, "note", "new-note.md");
       expect(existsSync(filePath)).toBe(false);
 
-      const entity = {
+      const entity = createTestEntity("note", {
         id: "new-note",
-        entityType: "note",
         content: "Brand new content",
-        contentHash: computeContentHash("Brand new content"),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 
@@ -601,15 +537,11 @@ describe("FileOperations", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Entity with SAME image data
-      const entity = {
+      const entity = createTestEntity("image", {
         id: "test-image",
-        entityType: "image",
         content: `data:image/png;base64,${imageBytes.toString("base64")}`,
-        contentHash: computeContentHash(imageBytes.toString("base64")),
         metadata: { format: "png" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 
@@ -633,15 +565,11 @@ describe("FileOperations", () => {
       writeFileSync(filePath, oldImageBytes);
 
       // Entity with DIFFERENT image data
-      const entity = {
+      const entity = createTestEntity("image", {
         id: "test-image",
-        entityType: "image",
         content: `data:image/png;base64,${newImageBytes.toString("base64")}`,
-        contentHash: computeContentHash(newImageBytes.toString("base64")),
         metadata: { format: "png" },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await fileOps.writeEntity(entity);
 

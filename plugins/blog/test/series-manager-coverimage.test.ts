@@ -19,7 +19,7 @@ import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { Series } from "../src/schemas/series";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 // Series content WITH coverImageId in frontmatter
 const SERIES_CONTENT_WITH_COVER = `---
@@ -53,20 +53,16 @@ describe("SeriesManager coverImageId preservation", () => {
       listEntities: mock(async (entityType: string) => {
         if (entityType === "post") {
           // Return a post that belongs to the series
-          const post: BlogPost = {
+          const post: BlogPost = createTestEntity<BlogPost>("post", {
             id: "post-1",
-            entityType: "post",
             content: "# Test Post",
-            contentHash: computeContentHash("# Test Post"),
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
             metadata: {
               title: "Test Post",
               slug: "test-post",
               status: "draft",
               seriesName: "Ecosystem Architecture",
             },
-          };
+          });
           return [post];
         }
         if (entityType === "series") {
@@ -90,18 +86,14 @@ describe("SeriesManager coverImageId preservation", () => {
       // when SeriesManager.syncSeriesFromPosts() regenerated the series
 
       // SETUP: Series exists with coverImageId in content frontmatter
-      const existingSeries: Series = {
+      const existingSeries: Series = createTestEntity<Series>("series", {
         id: "series-ecosystem-architecture",
-        entityType: "series",
         content: SERIES_CONTENT_WITH_COVER,
-        contentHash: computeContentHash(SERIES_CONTENT_WITH_COVER),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Ecosystem Architecture",
           slug: "ecosystem-architecture",
         },
-      };
+      });
       storedEntities.set(existingSeries.id, existingSeries);
 
       // Verify setup: series content has coverImageId
@@ -127,18 +119,14 @@ describe("SeriesManager coverImageId preservation", () => {
   describe("Fix: coverImageId should be preserved when series is regenerated", () => {
     it("should PRESERVE coverImageId in content when existing series has cover", async () => {
       // SETUP: Series exists with coverImageId in content frontmatter
-      const existingSeries: Series = {
+      const existingSeries: Series = createTestEntity<Series>("series", {
         id: "series-ecosystem-architecture",
-        entityType: "series",
         content: SERIES_CONTENT_WITH_COVER,
-        contentHash: computeContentHash(SERIES_CONTENT_WITH_COVER),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Ecosystem Architecture",
           slug: "ecosystem-architecture",
         },
-      };
+      });
       storedEntities.set(existingSeries.id, existingSeries);
 
       // ACTION: Sync series from posts
@@ -155,18 +143,14 @@ describe("SeriesManager coverImageId preservation", () => {
 
     it("should NOT add coverImageId when series has no cover", async () => {
       // SETUP: Series exists WITHOUT coverImageId
-      const existingSeries: Series = {
+      const existingSeries: Series = createTestEntity<Series>("series", {
         id: "series-ecosystem-architecture",
-        entityType: "series",
         content: SERIES_CONTENT_NO_COVER,
-        contentHash: computeContentHash(SERIES_CONTENT_NO_COVER),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Ecosystem Architecture",
           slug: "ecosystem-architecture",
         },
-      };
+      });
       storedEntities.set(existingSeries.id, existingSeries);
 
       // ACTION: Sync series from posts
@@ -188,19 +172,15 @@ description: A comprehensive guide to ecosystem architecture
 ---
 # Ecosystem Architecture
 `;
-      const existingSeries: Series = {
+      const existingSeries: Series = createTestEntity<Series>("series", {
         id: "series-ecosystem-architecture",
-        entityType: "series",
         content: contentWithDescription,
-        contentHash: computeContentHash(contentWithDescription),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Ecosystem Architecture",
           slug: "ecosystem-architecture",
           description: "A comprehensive guide to ecosystem architecture",
         },
-      };
+      });
       storedEntities.set(existingSeries.id, existingSeries);
 
       // ACTION: Sync series from posts
@@ -235,18 +215,14 @@ description: A comprehensive guide to ecosystem architecture
     it("should skip upsert when series content hash matches", async () => {
       // SETUP: Series exists with exact same content as would be generated
       const content = "# Ecosystem Architecture";
-      const existingSeries: Series = {
+      const existingSeries: Series = createTestEntity<Series>("series", {
         id: "series-ecosystem-architecture",
-        entityType: "series",
         content: content,
-        contentHash: computeContentHash(content),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Ecosystem Architecture",
           slug: "ecosystem-architecture",
         },
-      };
+      });
       storedEntities.set(existingSeries.id, existingSeries);
 
       // ACTION: Sync series from posts

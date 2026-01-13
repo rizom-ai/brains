@@ -4,7 +4,7 @@ import { createServicePluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 describe("DirectorySync AutoSync", () => {
   let harness: ReturnType<typeof createServicePluginHarness>;
@@ -78,15 +78,11 @@ describe("DirectorySync AutoSync", () => {
 
       // Create a test entity
       const entityContent = "# Test Entity\n\nTest content";
-      const entity = {
+      const entity = createTestEntity("base", {
         id: "test-entity",
-        entityType: "base",
         content: entityContent,
-        contentHash: computeContentHash(entityContent),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       // Write the entity directly (simulating what the handler does)
       await directorySync.fileOps.writeEntity(entity);
@@ -108,26 +104,20 @@ describe("DirectorySync AutoSync", () => {
 
       // Create initial entity
       const originalContent = "# Original\n\nOriginal content";
-      const entity = {
+      const entity = createTestEntity("base", {
         id: "test-entity",
-        entityType: "base",
         content: originalContent,
-        contentHash: computeContentHash(originalContent),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await directorySync.fileOps.writeEntity(entity);
 
       // Update entity
       const updatedContent = "# Updated\n\nUpdated content";
-      const updatedEntity = {
+      const updatedEntity = createTestEntity("base", {
         ...entity,
         content: updatedContent,
-        contentHash: computeContentHash(updatedContent),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await directorySync.fileOps.writeEntity(updatedEntity);
 
@@ -147,15 +137,11 @@ describe("DirectorySync AutoSync", () => {
 
       // Create initial entity
       const entityContent = "# Test\n\nContent";
-      const entity = {
+      const entity = createTestEntity("base", {
         id: "test-entity",
-        entityType: "base",
         content: entityContent,
-        contentHash: computeContentHash(entityContent),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await directorySync.fileOps.writeEntity(entity);
 
@@ -200,26 +186,18 @@ describe("DirectorySync AutoSync", () => {
 
       // Create two entities
       const content1 = "# Entity 1";
-      const entity1 = {
+      const entity1 = createTestEntity("base", {
         id: "entity-1",
-        entityType: "base",
         content: content1,
-        contentHash: computeContentHash(content1),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       const content2 = "# Entity 2";
-      const entity2 = {
+      const entity2 = createTestEntity("base", {
         id: "entity-2",
-        entityType: "base",
         content: content2,
-        contentHash: computeContentHash(content2),
         metadata: {},
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-      };
+      });
 
       await directorySync.fileOps.writeEntity(entity1);
       await directorySync.fileOps.writeEntity(entity2);

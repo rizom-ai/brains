@@ -6,8 +6,8 @@ import {
   createSilentLogger,
   createMockProgressReporter,
   createMockServicePluginContext,
+  createTestEntity,
 } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 
 describe("BlogGenerationJobHandler", () => {
@@ -20,17 +20,7 @@ describe("BlogGenerationJobHandler", () => {
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let reportSpy: Mock<(...args: unknown[]) => void>;
 
-  const createMockProfile = (
-    name: string,
-  ): {
-    id: string;
-    entityType: "profile";
-    content: string;
-    contentHash: string;
-    created: string;
-    updated: string;
-    metadata: Record<string, never>;
-  } => {
+  const createMockProfile = (name: string) => {
     const content = `# Profile
 
 ## Name
@@ -38,15 +28,11 @@ ${name}
 
 ## Description
 Test description`;
-    return {
+    return createTestEntity("profile", {
       id: "profile",
-      entityType: "profile" as const,
       content,
-      contentHash: computeContentHash(content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {},
-    };
+    });
   };
 
   const createMockPost = (
@@ -64,13 +50,9 @@ ${seriesName ? `seriesName: ${seriesName}` : ""}
 ---
 
 Content`;
-    return {
+    return createTestEntity<BlogPost>("post", {
       id,
-      entityType: "post",
       content,
-      contentHash: computeContentHash(content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title: "Test Post",
         slug,
@@ -78,7 +60,7 @@ Content`;
         publishedAt,
         seriesName,
       },
-    };
+    });
   };
 
   beforeEach(() => {

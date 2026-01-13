@@ -4,7 +4,7 @@ import { createServicePluginHarness } from "@brains/plugins/test";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import type { z } from "@brains/utils";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, readFileSync, mkdirSync } from "fs";
@@ -126,15 +126,11 @@ slug: test-series
 ---
 # Test Series`;
 
-      const entity: BaseEntity = {
+      const entity: BaseEntity = createTestEntity("series", {
         id: "series-test-series",
-        entityType: "series",
         content: contentWithCover,
-        contentHash: computeContentHash(contentWithCover),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: { name: "Test Series", slug: "test-series" },
-      };
+      });
 
       // Save entity to DB first (subscriber fetches from DB)
       const entityService = harness.getShell().getEntityService();
@@ -185,18 +181,14 @@ slug: ecosystem-architecture
 
 Some content here.`;
 
-      const entity: BaseEntity = {
+      const entity: BaseEntity = createTestEntity("series", {
         id: "series-ecosystem-architecture",
-        entityType: "series",
         content: contentWithCover,
-        contentHash: computeContentHash(contentWithCover),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Ecosystem Architecture",
           slug: "ecosystem-architecture",
         },
-      };
+      });
 
       // Save entity to DB first (subscriber fetches from DB)
       const entityService = harness.getShell().getEntityService();
@@ -251,19 +243,15 @@ slug: test-series
 # Test Series`;
 
       // First, save the CURRENT entity to the database (with coverImageId)
-      const currentEntity: BaseEntity = {
+      const currentEntity: BaseEntity = createTestEntity("series", {
         id: "series-stale-test",
-        entityType: "series",
         content: currentContent,
-        contentHash: computeContentHash(currentContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: {
           name: "Test Series",
           slug: "test-series",
           coverImageId: "series-test-cover",
         },
-      };
+      });
 
       const entityService = harness.getShell().getEntityService();
       await entityService.upsertEntity(currentEntity);
@@ -273,15 +261,11 @@ slug: test-series
       mkdirSync(seriesDir, { recursive: true });
 
       // Simulate a STALE entity:updated event (from old job with outdated data)
-      const staleEntity: BaseEntity = {
+      const staleEntity: BaseEntity = createTestEntity("series", {
         id: "series-stale-test",
-        entityType: "series",
         content: staleContent, // Missing coverImageId!
-        contentHash: computeContentHash(staleContent),
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
         metadata: { name: "Test Series", slug: "test-series" },
-      };
+      });
 
       await harness.sendMessage("entity:updated", {
         entity: staleEntity, // Stale payload

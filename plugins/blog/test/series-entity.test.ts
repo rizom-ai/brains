@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils";
+import {
+  createMockLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { SeriesManager } from "../src/services/series-manager";
 
@@ -32,13 +35,9 @@ ${seriesIndex !== undefined ? `seriesIndex: ${seriesIndex}` : ""}
 # ${title}
 
 Content for ${title}`;
-    return {
+    return createTestEntity<BlogPost>("post", {
       id,
-      entityType: "post",
       content,
-      contentHash: computeContentHash(content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title,
         slug,
@@ -47,7 +46,7 @@ Content for ${title}`;
         seriesName,
         seriesIndex,
       },
-    };
+    });
   };
 
   beforeEach(() => {
