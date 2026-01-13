@@ -3,7 +3,7 @@
  */
 
 import type { SummaryEntity, SummaryMetadata } from "../../src/schemas/summary";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Default metadata for test summaries
@@ -23,14 +23,11 @@ export const defaultSummaryMetadata: SummaryMetadata = {
 export function createMockSummaryEntity(
   overrides: Partial<Omit<SummaryEntity, "contentHash">> & { content: string },
 ): SummaryEntity {
-  const content = overrides.content;
-  return {
+  return createTestEntity<SummaryEntity>("summary", {
     id: overrides.id ?? "test-summary",
-    entityType: "summary",
-    content,
-    contentHash: computeContentHash(content),
+    content: overrides.content,
     created: overrides.created ?? "2025-01-01T00:00:00Z",
     updated: overrides.updated ?? "2025-01-01T00:00:00Z",
     metadata: overrides.metadata ?? defaultSummaryMetadata,
-  };
+  });
 }

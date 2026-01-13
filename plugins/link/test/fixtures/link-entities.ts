@@ -3,7 +3,7 @@
  */
 
 import type { LinkEntity } from "../../src";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 export const mockLinkContent = {
   simple: `---
@@ -91,15 +91,14 @@ Summary of first article`,
 
 export const mockLinkEntity = (
   content: string = mockLinkContent.simple,
-): LinkEntity => ({
-  id: "link-1",
-  entityType: "link" as const,
-  content,
-  contentHash: computeContentHash(content),
-  metadata: { status: "draft", title: "Test Article" },
-  created: "2025-01-30T10:00:00.000Z",
-  updated: "2025-01-30T10:00:00.000Z",
-});
+): LinkEntity =>
+  createTestEntity<LinkEntity>("link", {
+    id: "link-1",
+    content,
+    metadata: { status: "draft", title: "Test Article" },
+    created: "2025-01-30T10:00:00.000Z",
+    updated: "2025-01-30T10:00:00.000Z",
+  });
 
 /**
  * Create a mock LinkEntity with custom overrides
@@ -107,16 +106,13 @@ export const mockLinkEntity = (
 export function createMockLinkEntity(
   overrides: Partial<Omit<LinkEntity, "contentHash">> & { content: string },
 ): LinkEntity {
-  const content = overrides.content;
-  return {
+  return createTestEntity<LinkEntity>("link", {
     id: overrides.id ?? "test-link",
-    entityType: "link",
-    content,
-    contentHash: computeContentHash(content),
-    created: overrides.created ?? "2025-01-30T10:00:00.000Z",
-    updated: overrides.updated ?? "2025-01-30T10:00:00.000Z",
+    content: overrides.content,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? { status: "draft" },
-  };
+  });
 }
 
 export const mockAIResponse = {

@@ -1,6 +1,6 @@
 import type { TopicEntity } from "../../src/types";
 import type { BaseEntity } from "@brains/plugins";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Create a mock TopicEntity with computed contentHash
@@ -8,16 +8,13 @@ import { computeContentHash } from "@brains/utils";
 export function createMockTopicEntity(
   overrides: Partial<Omit<TopicEntity, "contentHash">> & { content: string },
 ): TopicEntity {
-  const content = overrides.content;
-  return {
+  return createTestEntity<TopicEntity>("topic", {
     id: overrides.id ?? "test-topic",
-    entityType: "topic",
-    content,
-    contentHash: computeContentHash(content),
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    content: overrides.content,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? {},
-  };
+  });
 }
 
 /**
@@ -30,14 +27,11 @@ export function createMockBaseEntity(
     entityType: string;
   },
 ): BaseEntity {
-  const content = overrides.content;
-  return {
+  return createTestEntity<BaseEntity>(overrides.entityType, {
     id: overrides.id ?? "test-entity",
-    entityType: overrides.entityType,
-    content,
-    contentHash: computeContentHash(content),
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    content: overrides.content,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? {},
-  };
+  });
 }

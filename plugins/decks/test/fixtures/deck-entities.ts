@@ -1,5 +1,5 @@
 import type { DeckEntity, DeckMetadata } from "../../src/schemas/deck";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Default deck metadata for tests
@@ -16,28 +16,25 @@ export const defaultDeckMetadata: DeckMetadata = {
 export function createMockDeckEntity(
   overrides: Partial<Omit<DeckEntity, "contentHash">> & { content: string },
 ): DeckEntity {
-  const content = overrides.content;
   const title = overrides.title ?? "Test Deck";
   const status = overrides.status ?? "draft";
-  return {
+  return createTestEntity<DeckEntity>("deck", {
     id: overrides.id ?? "test-deck",
-    entityType: "deck",
-    content,
-    contentHash: computeContentHash(content),
+    content: overrides.content,
     title,
     status,
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? {
       slug: overrides.id ?? "test-deck",
       title,
       status,
     },
-    description: overrides.description,
-    author: overrides.author,
-    publishedAt: overrides.publishedAt,
-    event: overrides.event,
-  };
+    ...(overrides.description && { description: overrides.description }),
+    ...(overrides.author && { author: overrides.author }),
+    ...(overrides.publishedAt && { publishedAt: overrides.publishedAt }),
+    ...(overrides.event && { event: overrides.event }),
+  });
 }
 
 /**
@@ -48,13 +45,10 @@ export function createMockDeckInput(
     Omit<DeckEntity, "contentHash" | "id" | "created" | "updated">
   > & { content: string },
 ): Omit<DeckEntity, "id" | "created" | "updated"> {
-  const content = overrides.content;
   const title = overrides.title ?? "Test Deck";
   const status = overrides.status ?? "draft";
-  return {
-    entityType: "deck",
-    content,
-    contentHash: computeContentHash(content),
+  const base = createTestEntity<DeckEntity>("deck", {
+    content: overrides.content,
     title,
     status,
     metadata: overrides.metadata ?? {
@@ -62,9 +56,12 @@ export function createMockDeckInput(
       title,
       status,
     },
-    description: overrides.description,
-    author: overrides.author,
-    publishedAt: overrides.publishedAt,
-    event: overrides.event,
-  };
+    ...(overrides.description && { description: overrides.description }),
+    ...(overrides.author && { author: overrides.author }),
+    ...(overrides.publishedAt && { publishedAt: overrides.publishedAt }),
+    ...(overrides.event && { event: overrides.event }),
+  });
+  // Remove id/created/updated for input type
+  const { id: _id, created: _created, updated: _updated, ...rest } = base;
+  return rest;
 }

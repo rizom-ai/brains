@@ -4,7 +4,7 @@ import type {
   BlogPostMetadata,
   BlogPostFrontmatter,
 } from "../../src/schemas/blog-post";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Default blog post metadata for tests
@@ -32,16 +32,13 @@ export const defaultBlogFrontmatter: BlogPostFrontmatter = {
 export function createMockBlogPost(
   overrides: Partial<Omit<BlogPost, "contentHash">> & { content: string },
 ): BlogPost {
-  const content = overrides.content;
-  return {
+  return createTestEntity<BlogPost>("post", {
     id: overrides.id ?? "test-post",
-    entityType: "post",
-    content,
-    contentHash: computeContentHash(content),
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    content: overrides.content,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? defaultBlogMetadata,
-  };
+  });
 }
 
 /**
@@ -53,16 +50,13 @@ export function createMockBlogPostWithData(
     body: string;
   },
 ): BlogPostWithData {
-  const content = overrides.content;
-  return {
+  return createTestEntity<BlogPostWithData>("post", {
     id: overrides.id ?? "test-post",
-    entityType: "post",
-    content,
-    contentHash: computeContentHash(content),
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    content: overrides.content,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? defaultBlogMetadata,
     frontmatter: overrides.frontmatter ?? defaultBlogFrontmatter,
     body: overrides.body,
-  };
+  });
 }

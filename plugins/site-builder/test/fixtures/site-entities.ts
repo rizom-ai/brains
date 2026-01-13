@@ -1,6 +1,6 @@
 import type { SiteContent } from "../../src/types";
 import type { SiteInfoEntity } from "../../src/services/site-info-schema";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Create a mock SiteContent entity with computed contentHash
@@ -8,19 +8,16 @@ import { computeContentHash } from "@brains/utils";
 export function createMockSiteContent(
   overrides: Partial<Omit<SiteContent, "contentHash">> & { content: string },
 ): SiteContent {
-  const content = overrides.content;
-  return {
+  return createTestEntity<SiteContent>("site-content", {
     id: overrides.id ?? "test-site-content",
-    entityType: "site-content",
-    content,
-    contentHash: computeContentHash(content),
+    content: overrides.content,
     routeId: overrides.routeId ?? "test-route",
     sectionId: overrides.sectionId ?? "test-section",
-    template: overrides.template,
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    ...(overrides.template && { template: overrides.template }),
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? {},
-  };
+  });
 }
 
 /**
@@ -31,14 +28,11 @@ export function createMockSiteInfo(
     Omit<SiteInfoEntity, "contentHash" | "id" | "entityType">
   > & { content: string },
 ): SiteInfoEntity {
-  const content = overrides.content;
-  return {
+  return createTestEntity<SiteInfoEntity>("site-info", {
     id: "site-info",
-    entityType: "site-info",
-    content,
-    contentHash: computeContentHash(content),
-    created: overrides.created ?? new Date().toISOString(),
-    updated: overrides.updated ?? new Date().toISOString(),
+    content: overrides.content,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
     metadata: overrides.metadata ?? {},
-  };
+  });
 }
