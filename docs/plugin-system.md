@@ -180,7 +180,9 @@ interface ServicePluginContext extends CorePluginContext {
   views: {
     get(name): ViewTemplate | undefined;
     list(): ViewTemplate[];
-    getRenderService(): RenderService;
+    hasRenderer(templateName): boolean;
+    getRenderer(templateName): WebRenderer | undefined;
+    validate(templateName, content): boolean;
   };
 
   // Plugin metadata

@@ -24,7 +24,7 @@ import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
 import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
-import type { ViewTemplate, RenderService } from "@brains/render-service";
+import type { ViewTemplate, WebRenderer } from "@brains/render-service";
 import type { DataSource } from "@brains/datasource";
 import type { z } from "@brains/utils";
 import { createCorePluginContext } from "../core/context";
@@ -78,7 +78,7 @@ export interface IServiceTemplatesNamespace extends ITemplatesNamespace {
 
 /**
  * Views namespace for ServicePluginContext
- * Provides access to view templates and rendering
+ * Provides access to view templates and rendering utilities
  */
 export interface IViewsNamespace {
   /** Get a view template by name */
@@ -87,8 +87,14 @@ export interface IViewsNamespace {
   /** List all registered view templates */
   list: () => ViewTemplate<unknown>[];
 
-  /** Get the render service for advanced rendering */
-  getRenderService: () => RenderService;
+  /** Check if a template has a web renderer */
+  hasRenderer: (templateName: string) => boolean;
+
+  /** Get the web renderer for a template */
+  getRenderer: (templateName: string) => WebRenderer | undefined;
+
+  /** Validate content against a template's schema */
+  validate: (templateName: string, content: unknown) => boolean;
 }
 
 /**
@@ -192,10 +198,12 @@ export interface ServicePluginContext extends CorePluginContext {
   // ============================================================================
 
   /**
-   * Views namespace for view template access and rendering
+   * Views namespace for view template access and rendering utilities
    * - `views.get()` - Get a view template by name
    * - `views.list()` - List all registered view templates
-   * - `views.getRenderService()` - Get the render service for advanced rendering
+   * - `views.hasRenderer()` - Check if a template has a web renderer
+   * - `views.getRenderer()` - Get the web renderer for a template
+   * - `views.validate()` - Validate content against a template's schema
    */
   readonly views: IViewsNamespace;
 
@@ -404,11 +412,17 @@ export function createServicePluginContext(
       get: (name: string): ViewTemplate<unknown> | undefined => {
         return renderService.get(name) ?? undefined;
       },
-      list: (): ViewTemplate[] => {
+      list: (): ViewTemplate<unknown>[] => {
         return renderService.list();
       },
-      getRenderService: (): RenderService => {
-        return renderService;
+      hasRenderer: (templateName: string): boolean => {
+        return renderService.hasRenderer(templateName, "web");
+      },
+      getRenderer: (templateName: string): WebRenderer | undefined => {
+        return renderService.getRenderer(templateName, "web");
+      },
+      validate: (templateName: string, content: unknown): boolean => {
+        return renderService.validate(templateName, content);
       },
     },
 

@@ -165,7 +165,9 @@ export function createMockServicePluginContext(
     views: {
       get: mock(() => undefined),
       list: mock(() => []),
-      getRenderService: mock(() => ({})),
+      hasRenderer: mock(() => false),
+      getRenderer: mock(() => undefined),
+      validate: mock(() => true),
     },
 
     // Plugins namespace
