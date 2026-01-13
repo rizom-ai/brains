@@ -2,6 +2,7 @@ import type {
   CorePluginContext,
   ITemplatesNamespace,
   IAINamespace,
+  IJobsWriteNamespace,
 } from "../core/context";
 import type {
   IShell,
@@ -12,7 +13,7 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
+import { createEnqueueJobFn } from "../shared/job-helpers";
 import type {
   IEntityService,
   BaseEntity,
@@ -21,12 +22,7 @@ import type {
 } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
-import type {
-  JobHandler,
-  BatchOperation,
-  JobOptions,
-  IJobsNamespace,
-} from "@brains/job-queue";
+import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { ViewTemplate, RenderService } from "@brains/render-service";
 import type { DataSource } from "@brains/datasource";
@@ -189,28 +185,7 @@ export interface ServicePluginContext extends CorePluginContext {
   // ============================================================================
 
   /** Extended jobs namespace with plugin-scoped write operations */
-  readonly jobs: Omit<IJobsNamespace, "enqueueBatch"> & {
-    /**
-     * Enqueue a job for background processing
-     * @param type - Job type (will be auto-scoped with plugin ID)
-     * @param data - Job payload
-     * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
-     * @param options - Optional job options
-     */
-    enqueue: EnqueueJobFn;
-
-    /** Enqueue multiple operations as a batch (simplified - batchId generated internally) */
-    enqueueBatch: (
-      operations: BatchOperation[],
-      options?: JobOptions,
-    ) => Promise<string>;
-
-    /** Register a handler for a job type (auto-scoped with plugin ID) */
-    registerHandler: <T = unknown, R = unknown>(
-      type: string,
-      handler: JobHandler<string, T, R>,
-    ) => void;
-  };
+  readonly jobs: IJobsWriteNamespace;
 
   // ============================================================================
   // View Templates

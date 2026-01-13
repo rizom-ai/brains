@@ -1,18 +1,14 @@
 import type {
   CorePluginContext,
   IConversationsNamespace,
+  IJobsWriteNamespace,
 } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type { IShell, IMCPTransport } from "../interfaces";
-import { createEnqueueJobFn, type EnqueueJobFn } from "../shared/job-helpers";
+import { createEnqueueJobFn } from "../shared/job-helpers";
 import type { Daemon } from "@brains/daemon-registry";
 import type { UserPermissionLevel } from "@brains/permission-service";
-import type {
-  JobHandler,
-  BatchOperation,
-  JobOptions,
-  IJobsNamespace,
-} from "@brains/job-queue";
+import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
 import { createId } from "@brains/utils";
 import type { IAgentService } from "@brains/agent-service";
 import type {
@@ -107,25 +103,7 @@ export interface InterfacePluginContext extends CorePluginContext {
   // ============================================================================
 
   /** Extended jobs namespace with plugin-scoped write operations */
-  readonly jobs: Omit<IJobsNamespace, "enqueueBatch"> & {
-    /**
-     * Enqueue a job for background processing
-     * Interface plugins should pass null for toolContext
-     */
-    enqueue: EnqueueJobFn;
-
-    /** Enqueue multiple operations as a batch (simplified - batchId generated internally) */
-    enqueueBatch: (
-      operations: BatchOperation[],
-      options?: JobOptions,
-    ) => Promise<string>;
-
-    /** Register a handler for a job type (auto-scoped with plugin ID) */
-    registerHandler: <T = unknown, R = unknown>(
-      type: string,
-      handler: JobHandler<string, T, R>,
-    ) => void;
-  };
+  readonly jobs: IJobsWriteNamespace;
 
   // ============================================================================
   // Conversation Management (Read + Write Operations)

@@ -10,6 +10,7 @@ export type {
   IAINamespace,
   IIdentityNamespace,
   IConversationsNamespace,
+  IJobsWriteNamespace,
 } from "./core/context";
 export { createCorePluginContext } from "./core/context";
 

@@ -12,7 +12,41 @@ import type {
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import type { AppInfo } from "../interfaces";
-import type { IJobsNamespace } from "@brains/job-queue";
+import type {
+  IJobsNamespace,
+  JobHandler,
+  BatchOperation,
+  JobOptions,
+} from "@brains/job-queue";
+import type { EnqueueJobFn } from "../shared/job-helpers";
+
+/**
+ * Extended jobs namespace with write operations
+ * Used by both ServicePluginContext and InterfacePluginContext
+ */
+export interface IJobsWriteNamespace
+  extends Omit<IJobsNamespace, "enqueueBatch"> {
+  /**
+   * Enqueue a job for background processing
+   * @param type - Job type (will be auto-scoped with plugin ID for service plugins)
+   * @param data - Job payload
+   * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
+   * @param options - Optional job options
+   */
+  enqueue: EnqueueJobFn;
+
+  /** Enqueue multiple operations as a batch (simplified - batchId generated internally) */
+  enqueueBatch: (
+    operations: BatchOperation[],
+    options?: JobOptions,
+  ) => Promise<string>;
+
+  /** Register a handler for a job type (auto-scoped with plugin ID) */
+  registerHandler: <T = unknown, R = unknown>(
+    type: string,
+    handler: JobHandler<string, T, R>,
+  ) => void;
+}
 
 /**
  * Template operations namespace for CorePluginContext
