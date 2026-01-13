@@ -1,6 +1,5 @@
 import type { PluginTool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { formatAsEntity } from "@brains/utils";
 import type { GitSync } from "../lib/git-sync";
 
 export function createGitSyncTools(
@@ -20,7 +19,6 @@ export function createGitSyncTools(
         return {
           success: true,
           message: "Git sync completed successfully",
-          formatted: "Git sync completed successfully",
         };
       },
     ),
@@ -32,20 +30,8 @@ export function createGitSyncTools(
       async () => {
         const status = await gitSync.getStatus();
 
-        const formatted = formatAsEntity(
-          {
-            branch: status.branch,
-            hasChanges: status.hasChanges ? "Yes" : "No",
-            ahead: status.ahead,
-            behind: status.behind,
-            lastCommit: status.lastCommit ?? "N/A",
-          },
-          { title: "Git Status" },
-        );
-
         return {
           success: true,
-          status: "ok",
           data: {
             isRepo: status.isRepo,
             hasChanges: status.hasChanges,
@@ -56,7 +42,6 @@ export function createGitSyncTools(
             remote: status.remote,
             files: status.files,
           },
-          formatted,
         };
       },
       { visibility: "public" },

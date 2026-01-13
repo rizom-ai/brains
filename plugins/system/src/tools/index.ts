@@ -1,13 +1,7 @@
 import type { PluginTool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
-import {
-  z,
-  formatAsSearchResults,
-  formatAsEntity,
-  formatAsList,
-  parseMarkdown,
-} from "@brains/utils";
+import { z } from "@brains/utils";
 
 export function createSystemTools(
   plugin: ISystemPlugin,
@@ -37,20 +31,9 @@ export function createSystemTools(
           limit: parsed.limit ?? 10,
         });
 
-        const formatted = formatAsSearchResults(
-          results.map((r) => ({
-            id: r.entity.id,
-            entityType: r.entity.entityType,
-            title: r.entity.id,
-            score: r.score,
-          })),
-          { query: parsed.query, showScores: true },
-        );
-
         return {
-          status: "success",
+          success: true,
           data: { results },
-          formatted,
         };
       },
       { visibility: "public" },
@@ -75,45 +58,21 @@ export function createSystemTools(
         const availableTypes = plugin.getEntityTypes();
         if (!availableTypes.includes(parsed.entityType)) {
           return {
-            status: "error",
-            message: `Unknown entity type: ${parsed.entityType}`,
-            formatted: `_Unknown entity type '${parsed.entityType}'. Available types: ${availableTypes.join(", ")}_`,
+            success: false,
+            error: `Unknown entity type: ${parsed.entityType}. Available types: ${availableTypes.join(", ")}`,
           };
         }
 
         const entity = await plugin.findEntity(parsed.entityType, parsed.id);
         if (entity) {
-          // Parse frontmatter and body from content
-          const { frontmatter, content: body } = parseMarkdown(entity.content);
-
-          // Build metadata object combining entity fields and frontmatter
-          const metadata: Record<string, unknown> = {
-            id: entity.id,
-            type: entity.entityType,
-            created: entity.created,
-            updated: entity.updated,
-            ...frontmatter,
-          };
-
-          // Format metadata header
-          const metadataFormatted = formatAsEntity(metadata, {
-            title: `${entity.entityType}: ${entity.id}`,
-            excludeFields: ["content"], // Don't show content in metadata section
-          });
-
-          // Combine metadata and body
-          const formatted = `${metadataFormatted}\n\n---\n\n${body}`;
-
           return {
-            status: "success",
+            success: true,
             data: { entity },
-            formatted,
           };
         }
         return {
-          status: "error",
-          message: "Entity not found",
-          formatted: `_Entity not found: ${parsed.entityType}/${parsed.id}_`,
+          success: false,
+          error: `Entity not found: ${parsed.entityType}/${parsed.id}`,
         };
       },
       { visibility: "public" },
@@ -146,9 +105,8 @@ export function createSystemTools(
         const availableTypes = plugin.getEntityTypes();
         if (!availableTypes.includes(parsed.entityType)) {
           return {
-            status: "error",
-            message: `Unknown entity type: ${parsed.entityType}`,
-            formatted: `_Unknown entity type '${parsed.entityType}'. Available types: ${availableTypes.join(", ")}_`,
+            success: false,
+            error: `Unknown entity type: ${parsed.entityType}. Available types: ${availableTypes.join(", ")}`,
           };
         }
 
@@ -161,24 +119,9 @@ export function createSystemTools(
 
         const entities = await plugin.listEntities(parsed.entityType, options);
 
-        const formatted = formatAsList(entities, {
-          title: (e) => e.id,
-          subtitle: (e) => {
-            const meta = e.metadata as Record<string, unknown> | undefined;
-            const title = meta?.["title"];
-            const status = meta?.["status"];
-            const parts: string[] = [];
-            if (title && typeof title === "string") parts.push(title);
-            if (status && typeof status === "string") parts.push(`(${status})`);
-            return parts.join(" ");
-          },
-          header: `## ${parsed.entityType}s (${entities.length})`,
-        });
-
         return {
-          status: "success",
+          success: true,
           data: { entities, count: entities.length },
-          formatted,
         };
       },
       { visibility: "public" },
@@ -217,9 +160,8 @@ export function createSystemTools(
         if (parsed.batchId) {
           if (!status.batch) {
             return {
-              error: "Batch not found",
-              message: `No batch found with ID: ${parsed.batchId}`,
-              formatted: `_No batch found with ID: ${parsed.batchId}_`,
+              success: false,
+              error: `No batch found with ID: ${parsed.batchId}`,
             };
           }
 
@@ -232,86 +174,54 @@ export function createSystemTools(
                 )
               : 0;
 
-          const formatted = formatAsEntity(
-            {
+          return {
+            success: true,
+            data: {
               batchId: parsed.batchId,
               status: status.batch.status,
-              progress: `${status.batch.completedOperations}/${status.batch.totalOperations} (${percentComplete}%)`,
-              failed: status.batch.failedOperations,
-              currentOperation: status.batch.currentOperation ?? "N/A",
+              progress: {
+                total: status.batch.totalOperations,
+                completed: status.batch.completedOperations,
+                failed: status.batch.failedOperations,
+                percentComplete,
+              },
+              currentOperation: status.batch.currentOperation,
+              errors: status.batch.errors,
             },
-            { title: "Batch Status" },
-          );
-
-          return {
-            batchId: parsed.batchId,
-            status: status.batch.status,
-            progress: {
-              total: status.batch.totalOperations,
-              completed: status.batch.completedOperations,
-              failed: status.batch.failedOperations,
-              percentComplete,
-            },
-            currentOperation: status.batch.currentOperation,
-            errors: status.batch.errors,
-            formatted,
           };
         } else {
           const activeJobs = status.activeJobs ?? [];
           const activeBatches = status.activeBatches ?? [];
 
-          const lines: string[] = ["## Active Operations", ""];
-
-          if (activeJobs.length === 0 && activeBatches.length === 0) {
-            lines.push("_No active operations_");
-          } else {
-            if (activeBatches.length > 0) {
-              lines.push(`**Batches:** ${activeBatches.length}`);
-              for (const batch of activeBatches) {
-                lines.push(
-                  `- ${batch.batchId}: ${batch.status.completedOperations}/${batch.status.totalOperations}`,
-                );
-              }
-              lines.push("");
-            }
-            if (activeJobs.length > 0) {
-              lines.push(`**Jobs:** ${activeJobs.length}`);
-              for (const job of activeJobs.slice(0, 5)) {
-                lines.push(`- ${job.type}: ${job.status}`);
-              }
-              if (activeJobs.length > 5) {
-                lines.push(`_...and ${activeJobs.length - 5} more_`);
-              }
-            }
-          }
-
           return {
-            summary: {
-              activeJobs: activeJobs.length,
-              activeBatches: activeBatches.length,
+            success: true,
+            data: {
+              summary: {
+                activeJobs: activeJobs.length,
+                activeBatches: activeBatches.length,
+              },
+              jobs: activeJobs.map((job) => ({
+                id: job.id,
+                type: job.type,
+                status: job.status,
+                priority: job.priority,
+                retryCount: job.retryCount,
+                createdAt: new Date(job.createdAt).toISOString(),
+                startedAt: job.startedAt
+                  ? new Date(job.startedAt).toISOString()
+                  : null,
+              })),
+              batches: activeBatches.map((batch) => ({
+                batchId: batch.batchId,
+                status: batch.status.status,
+                totalOperations: batch.status.totalOperations,
+                completedOperations: batch.status.completedOperations,
+                failedOperations: batch.status.failedOperations,
+                currentOperation: batch.status.currentOperation,
+                pluginId: batch.metadata.metadata.pluginId,
+                errors: batch.status.errors,
+              })),
             },
-            jobs: activeJobs.map((job) => ({
-              id: job.id,
-              type: job.type,
-              status: job.status,
-              priority: job.priority,
-              retryCount: job.retryCount,
-              createdAt: new Date(job.createdAt).toISOString(),
-              startedAt: job.startedAt
-                ? new Date(job.startedAt).toISOString()
-                : null,
-            })),
-            batches: activeBatches.map((batch) => ({
-              batchId: batch.batchId,
-              status: batch.status.status,
-              totalOperations: batch.status.totalOperations,
-              completedOperations: batch.status.completedOperations,
-              failedOperations: batch.status.failedOperations,
-              currentOperation: batch.status.currentOperation,
-              pluginId: batch.metadata.metadata.pluginId,
-              errors: batch.status.errors,
-            })),
-            formatted: lines.join("\n"),
           };
         }
       },
@@ -337,38 +247,27 @@ export function createSystemTools(
           );
           if (!conversation) {
             return {
-              error: "Conversation not found",
-              conversationId: parsed.conversationId,
-              formatted: `_Conversation not found: ${parsed.conversationId}_`,
+              success: false,
+              error: `Conversation not found: ${parsed.conversationId}`,
             };
           }
 
-          const formatted = formatAsEntity(
-            {
+          return {
+            success: true,
+            data: {
               id: conversation.id,
-              interface: conversation.interfaceType,
-              channel: conversation.channelId,
+              interfaceType: conversation.interfaceType,
+              channelId: conversation.channelId,
               created: conversation.created,
               lastActive: conversation.lastActive,
             },
-            { title: "Conversation" },
-          );
-
-          return {
-            id: conversation.id,
-            interfaceType: conversation.interfaceType,
-            channelId: conversation.channelId,
-            created: conversation.created,
-            lastActive: conversation.lastActive,
-            formatted,
           };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
           return {
-            error: "Failed to get conversation",
-            message,
-            formatted: `_Error: ${message}_`,
+            success: false,
+            error: message,
           };
         }
       },
@@ -405,32 +304,27 @@ export function createSystemTools(
             parsed.limit ?? 20,
           );
 
-          const formatted = formatAsList(limitedConversations, {
-            title: (c) => c.id,
-            subtitle: (c) => `${c.interfaceType} - ${c.channelId}`,
-            header: `## Conversations (${limitedConversations.length} of ${conversations.length})`,
-          });
-
           return {
-            conversations: limitedConversations.map((conv) => ({
-              id: conv.id,
-              interfaceType: conv.interfaceType,
-              channelId: conv.channelId,
-              created: conv.created,
-              lastActive: conv.lastActive,
-            })),
-            totalFound: conversations.length,
-            returned: limitedConversations.length,
-            searchQuery: parsed.searchQuery,
-            formatted,
+            success: true,
+            data: {
+              conversations: limitedConversations.map((conv) => ({
+                id: conv.id,
+                interfaceType: conv.interfaceType,
+                channelId: conv.channelId,
+                created: conv.created,
+                lastActive: conv.lastActive,
+              })),
+              totalFound: conversations.length,
+              returned: limitedConversations.length,
+              searchQuery: parsed.searchQuery,
+            },
           };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
           return {
-            error: "Failed to list conversations",
-            message,
-            formatted: `_Error: ${message}_`,
+            success: false,
+            error: message,
           };
         }
       },
@@ -461,34 +355,26 @@ export function createSystemTools(
             parsed.limit ?? 20,
           );
 
-          const formatted = formatAsList(messages, {
-            title: (m) => `[${m.role}]`,
-            subtitle: (m) =>
-              m.content.length > 100
-                ? m.content.substring(0, 100) + "..."
-                : m.content,
-            header: `## Messages (${messages.length})`,
-          });
-
           return {
-            conversationId: parsed.conversationId,
-            messages: messages.map((msg) => ({
-              id: msg.id,
-              role: msg.role,
-              content: msg.content,
-              timestamp: msg.timestamp,
-            })),
-            messageCount: messages.length,
-            requestedLimit: parsed.limit ?? 20,
-            formatted,
+            success: true,
+            data: {
+              conversationId: parsed.conversationId,
+              messages: messages.map((msg) => ({
+                id: msg.id,
+                role: msg.role,
+                content: msg.content,
+                timestamp: msg.timestamp,
+              })),
+              messageCount: messages.length,
+              requestedLimit: parsed.limit ?? 20,
+            },
           };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
           return {
-            error: "Failed to get messages",
-            message,
-            formatted: `_Error: ${message}_`,
+            success: false,
+            error: message,
           };
         }
       },
@@ -503,28 +389,16 @@ export function createSystemTools(
         try {
           const identity = plugin.getIdentityData();
 
-          const formatted = formatAsEntity(
-            {
-              name: identity.name,
-              role: identity.role,
-              purpose: identity.purpose,
-              values: identity.values.join(", "),
-            },
-            { title: "Brain Identity" },
-          );
-
           return {
-            status: "success",
+            success: true,
             data: identity,
-            formatted,
           };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
           return {
-            status: "error",
-            message,
-            formatted: `_Error: ${message}_`,
+            success: false,
+            error: message,
           };
         }
       },
@@ -539,32 +413,16 @@ export function createSystemTools(
         try {
           const profile = plugin.getProfileData();
 
-          const formatted = formatAsEntity(
-            {
-              name: profile.name,
-              description: profile.description ?? "N/A",
-              email: profile.email ?? "N/A",
-              socialLinks: profile.socialLinks
-                ? profile.socialLinks
-                    .map((link) => `${link.platform}: ${link.url}`)
-                    .join(", ")
-                : "N/A",
-            },
-            { title: "Anchor Profile" },
-          );
-
           return {
-            status: "success",
+            success: true,
             data: profile,
-            formatted,
           };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
           return {
-            status: "error",
-            message,
-            formatted: `_Error: ${message}_`,
+            success: false,
+            error: message,
           };
         }
       },
@@ -579,46 +437,16 @@ export function createSystemTools(
         try {
           const appInfo = await plugin.getAppInfo();
 
-          const lines = [
-            "## System Status",
-            "",
-            `**Model:** ${appInfo.model}`,
-            `**Version:** ${appInfo.version}`,
-            "",
-            `**Plugins:** ${appInfo.plugins.length}`,
-          ];
-
-          for (const p of appInfo.plugins) {
-            lines.push(`- ${p.id} (${p.type}) - ${p.status}`);
-          }
-
-          lines.push("");
-          lines.push(`**Interfaces:** ${appInfo.interfaces.length}`);
-
-          for (const iface of appInfo.interfaces) {
-            lines.push(`- ${iface.name}: ${iface.status}`);
-          }
-
-          if (appInfo.tools && appInfo.tools.length > 0) {
-            lines.push("");
-            lines.push(`**Tools:** ${appInfo.tools.length}`);
-            for (const tool of appInfo.tools) {
-              lines.push(`- ${tool.name}: ${tool.description}`);
-            }
-          }
-
           return {
-            status: "success",
+            success: true,
             data: appInfo,
-            formatted: lines.join("\n"),
           };
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
           return {
-            status: "error",
-            message,
-            formatted: `_Error: ${message}_`,
+            success: false,
+            error: message,
           };
         }
       },

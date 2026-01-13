@@ -1,6 +1,6 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsList } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
 /**
@@ -41,13 +41,11 @@ export const queueItemSchema = z.object({
 export type QueueItem = z.infer<typeof queueItemSchema>;
 
 /**
- * Output schema for publish-pipeline:queue tool
+ * Output schema for publish-pipeline:queue tool - discriminated union for success/error cases
  */
-export const queueOutputSchema = z.object({
-  success: z.boolean(),
+export const queueSuccessSchema = z.object({
+  success: z.literal(true),
   message: z.string().optional(),
-  error: z.string().optional(),
-  formatted: z.string().optional(),
   data: z
     .object({
       queue: z.array(queueItemSchema).optional(),
@@ -57,6 +55,17 @@ export const queueOutputSchema = z.object({
     })
     .optional(),
 });
+
+export const queueErrorSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
+});
+
+export const queueOutputSchema = z.union([
+  queueSuccessSchema,
+  queueErrorSchema,
+]);
 
 export type QueueOutput = z.infer<typeof queueOutputSchema>;
 
@@ -98,7 +107,6 @@ export function createQueueTool(
             return {
               success: false,
               error: `Unknown action: ${action}`,
-              formatted: `_Error: Unknown action: ${action}_`,
             };
         }
       } catch (error) {
@@ -106,7 +114,6 @@ export function createQueueTool(
         return {
           success: false,
           error: msg,
-          formatted: `_Error: ${msg}_`,
         };
       }
     },
@@ -148,7 +155,6 @@ async function handleList(
       success: true,
       data: { queue: [] },
       message: "No items in queue",
-      formatted: "_Queue is empty_",
     };
   }
 
@@ -159,18 +165,10 @@ async function handleList(
     queuedAt: entry.queuedAt,
   }));
 
-  const formatted = formatAsList(items, {
-    header: "**Publish Queue**",
-    title: (item: { position: number; entityType: string; entityId: string }) =>
-      `[${item.entityType}] ${item.entityId}`,
-    numbered: true,
-  });
-
   return {
     success: true,
     data: { queue: items },
     message: `${queue.length} items in queue`,
-    formatted,
   };
 }
 
@@ -186,7 +184,6 @@ async function handleAdd(
     return {
       success: false,
       error: "entityType is required for add action",
-      formatted: "_Error: entityType is required for add action_",
     };
   }
 
@@ -194,7 +191,6 @@ async function handleAdd(
     return {
       success: false,
       error: "entityId is required for add action",
-      formatted: "_Error: entityId is required for add action_",
     };
   }
 
@@ -204,7 +200,6 @@ async function handleAdd(
     success: true,
     data: { entityType, entityId, position: result.position },
     message: `Added to queue at position ${result.position}`,
-    formatted: `_Added ${entityType}:${entityId} to queue at position ${result.position}_`,
   };
 }
 
@@ -220,7 +215,6 @@ async function handleRemove(
     return {
       success: false,
       error: "entityType is required for remove action",
-      formatted: "_Error: entityType is required for remove action_",
     };
   }
 
@@ -228,7 +222,6 @@ async function handleRemove(
     return {
       success: false,
       error: "entityId is required for remove action",
-      formatted: "_Error: entityId is required for remove action_",
     };
   }
 
@@ -238,7 +231,6 @@ async function handleRemove(
     success: true,
     data: { entityType, entityId },
     message: "Removed from queue",
-    formatted: `_Removed ${entityType}:${entityId} from queue_`,
   };
 }
 
@@ -255,7 +247,6 @@ async function handleReorder(
     return {
       success: false,
       error: "entityType is required for reorder action",
-      formatted: "_Error: entityType is required for reorder action_",
     };
   }
 
@@ -263,7 +254,6 @@ async function handleReorder(
     return {
       success: false,
       error: "entityId is required for reorder action",
-      formatted: "_Error: entityId is required for reorder action_",
     };
   }
 
@@ -271,7 +261,6 @@ async function handleReorder(
     return {
       success: false,
       error: "position is required for reorder action",
-      formatted: "_Error: position is required for reorder action_",
     };
   }
 
@@ -279,7 +268,6 @@ async function handleReorder(
     return {
       success: false,
       error: "position must be a positive number",
-      formatted: "_Error: position must be a positive number_",
     };
   }
 
@@ -289,6 +277,5 @@ async function handleReorder(
     success: true,
     data: { entityType, entityId, position },
     message: `Moved to position ${position}`,
-    formatted: `_Moved ${entityType}:${entityId} to position ${position}_`,
   };
 }

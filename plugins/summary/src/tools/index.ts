@@ -5,7 +5,7 @@ import {
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, formatAsList } from "@brains/utils";
+import { z } from "@brains/utils";
 import { SummaryService } from "../lib/summary-service";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryConfig } from "../schemas/summary";
@@ -51,10 +51,7 @@ export function createGetTool(
           });
           return {
             success: false,
-            data: {
-              message: `No summary found for conversation ${parsed.data.conversationId}`,
-            },
-            formatted: `_No summary found for conversation ${parsed.data.conversationId}_`,
+            error: `No summary found for conversation ${parsed.data.conversationId}`,
           };
         }
 
@@ -75,13 +72,6 @@ export function createGetTool(
           entryCount: entries.length,
         });
 
-        const formatted = formatAsList(entries, {
-          title: (e) => e.title,
-          subtitle: (e) =>
-            e.content.slice(0, 100) + (e.content.length > 100 ? "..." : ""),
-          header: `## Summary (${entries.length} entries)`,
-        });
-
         return {
           success: true,
           data: {
@@ -92,7 +82,6 @@ export function createGetTool(
             entries,
             metadata: summary.metadata,
           },
-          formatted,
         };
       } catch (error) {
         logger.error("Failed to retrieve summary", {

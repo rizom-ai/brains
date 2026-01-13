@@ -197,8 +197,8 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
           this.info(`Adding ${args.a} + ${args.b}`);
           const result = `${args.a} + ${args.b} = ${args.a + args.b}`;
           return {
+            success: true,
             message: result,
-            formatted: result,
           };
         },
       },
@@ -214,7 +214,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
             result: args.result,
             timestamp: new Date().toISOString(),
           });
-          return { message: formatted, formatted };
+          return { success: true, message: formatted };
         },
       },
     ];

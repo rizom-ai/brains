@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { SocialMediaConfig } from "../config";
 
 /**
@@ -62,8 +62,6 @@ export function createGenerateTool(
             success: false,
             error:
               "At least one of 'prompt', 'sourceEntityId', or 'content' must be provided",
-            formatted:
-              "_Error: Provide a prompt, source entity, or direct content_",
           };
         }
 
@@ -73,8 +71,6 @@ export function createGenerateTool(
             success: false,
             error:
               "'sourceEntityType' is required when 'sourceEntityId' is provided",
-            formatted:
-              "_Error: Specify sourceEntityType (post or deck) with sourceEntityId_",
           };
         }
 
@@ -92,28 +88,16 @@ export function createGenerateTool(
           },
         );
 
-        const formatted = formatAsEntity(
-          {
-            jobId,
-            platform: parsed.platform,
-            status: "queued",
-            addToQueue: parsed.addToQueue,
-          },
-          { title: "Social Post Generation" },
-        );
-
         return {
           success: true,
           data: { jobId },
           message: `Social post generation job queued (jobId: ${jobId})`,
-          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
           success: false,
           error: msg,
-          formatted: `_Error: ${msg}_`,
         };
       }
     },

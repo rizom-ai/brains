@@ -294,7 +294,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
               result: result.toString(),
               calculationId: calculation.entityId,
             },
-            formatted: `${expression} = ${result}`,
+            message: `${expression} = ${result}`,
           };
         },
       },

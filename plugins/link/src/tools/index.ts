@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z } from "@brains/utils";
 import { validateDomain } from "./dns-validation";
 
 // Schema for tool parameters
@@ -35,8 +35,7 @@ export function createLinkTools(
           if (!dnsResult.valid) {
             return {
               success: false,
-              error: dnsResult.error,
-              formatted: `_Cannot capture link: ${dnsResult.error}_`,
+              error: dnsResult.error ?? "Invalid domain",
             };
           }
 
@@ -63,31 +62,20 @@ export function createLinkTools(
             },
           );
 
-          const formatted = formatAsEntity(
-            {
-              jobId,
-              url,
-              status: "queued",
-            },
-            { title: "Link Capture Queued" },
-          );
-
           return {
             success: true,
             data: {
               jobId,
               url,
               status: "queued",
-              message: `Link capture job queued. The URL will be fetched and content extracted in the background.`,
             },
-            formatted,
+            message: `Link capture job queued. The URL will be fetched and content extracted in the background.`,
           };
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           return {
             success: false,
             error: msg,
-            formatted: `_Error capturing link: ${msg}_`,
           };
         }
       },

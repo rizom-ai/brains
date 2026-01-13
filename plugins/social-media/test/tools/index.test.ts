@@ -54,7 +54,9 @@ describe("Social Media Tools", () => {
       const tool = createGenerateTool(context, config, pluginId);
       const result = await tool.handler({}, nullContext);
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("prompt");
+      if (!result.success) {
+        expect(result.error).toContain("prompt");
+      }
     });
   });
 });

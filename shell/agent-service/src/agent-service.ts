@@ -243,19 +243,19 @@ export class AgentService implements IAgentService {
         if (tr.output === null) continue;
 
         const parsed = toolResponseSchema.safeParse(tr.output);
+
+        // Capture args from the matching tool call
+        const args = tr.toolCallId
+          ? toolCallArgsMap.get(tr.toolCallId)
+          : undefined;
+
         if (!parsed.success) {
           this.logger.warn("Tool result failed validation", {
             toolName: tr.toolName,
             error: parsed.error.message,
           });
-          // Still capture args even for failed validations
-          const args = tr.toolCallId
-            ? toolCallArgsMap.get(tr.toolCallId)
-            : undefined;
-          const failedResult: ToolResultData = {
-            toolName: tr.toolName,
-            formatted: `_Tool ${tr.toolName} completed_`,
-          };
+          // Still capture result even for failed validations
+          const failedResult: ToolResultData = { toolName: tr.toolName };
           if (args !== undefined) {
             failedResult.args = args;
           }
@@ -263,29 +263,24 @@ export class AgentService implements IAgentService {
           continue;
         }
 
-        // Keep results that have either formatted output or a jobId
-        const formatted = parsed.data.formatted;
-        const jobId = parsed.data.data?.jobId;
-
-        if (formatted !== undefined || jobId !== undefined) {
-          // Build result object conditionally to satisfy exactOptionalPropertyTypes
-          const toolResult: ToolResultData = { toolName: tr.toolName };
-
-          // Capture args from the matching tool call
-          const args = tr.toolCallId
-            ? toolCallArgsMap.get(tr.toolCallId)
-            : undefined;
-          if (args !== undefined) {
-            toolResult.args = args;
-          }
-          if (formatted !== undefined) {
-            toolResult.formatted = formatted;
-          }
-          if (jobId !== undefined) {
-            toolResult.jobId = jobId;
-          }
-          toolResults.push(toolResult);
+        // Build result object
+        const toolResult: ToolResultData = { toolName: tr.toolName };
+        if (args !== undefined) {
+          toolResult.args = args;
         }
+
+        // Extract jobId from data if present (for async job tracking)
+        if (parsed.data.success && parsed.data.data != null) {
+          toolResult.data = parsed.data.data;
+          // Try to extract jobId if data is an object with jobId
+          const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
+          const jobIdParsed = jobIdSchema.safeParse(parsed.data.data);
+          if (jobIdParsed.success) {
+            toolResult.jobId = jobIdParsed.data.jobId;
+          }
+        }
+
+        toolResults.push(toolResult);
       }
     }
 

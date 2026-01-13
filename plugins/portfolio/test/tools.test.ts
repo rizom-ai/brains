@@ -7,6 +7,14 @@ import type {
 } from "@brains/plugins";
 import { createPortfolioTools } from "../src/tools";
 import { createMockServicePluginContext } from "@brains/test-utils";
+import { z } from "@brains/utils";
+
+// Schemas for parsing tool response data
+const jobIdData = z.object({ jobId: z.string() });
+const createResponseData = z.object({
+  jobId: z.string(),
+  relatedEntitiesFound: z.number().optional(),
+});
 
 // Mock context
 function createMockContext(): ServicePluginContext {
@@ -152,7 +160,10 @@ describe("Portfolio Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.jobId).toBe("job-456");
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-456");
+      }
       expect(context.jobs.enqueue).toHaveBeenCalled();
       expect(context.entityService.search).toHaveBeenCalled();
     });
@@ -164,7 +175,9 @@ describe("Portfolio Tools", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
     });
 
     it("should require year", async () => {
@@ -174,7 +187,9 @@ describe("Portfolio Tools", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
     });
 
     it("should accept optional title", async () => {
@@ -199,7 +214,10 @@ describe("Portfolio Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.["relatedEntitiesFound"]).toBeDefined();
+      if (result.success) {
+        const data = createResponseData.parse(result.data);
+        expect(data.relatedEntitiesFound).toBeDefined();
+      }
     });
   });
 

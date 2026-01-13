@@ -7,6 +7,9 @@ import { z } from "@brains/utils";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
 
+// Schema for parsing routes response data
+const routesData = z.object({ routes: z.array(z.unknown()) });
+
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
   let plugin: SiteBuilderPlugin;
@@ -123,8 +126,11 @@ describe("SiteBuilderPlugin", () => {
         },
       );
       expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty("routes");
-      expect(Array.isArray(result.data?.["routes"])).toBe(true);
+      if (result.success) {
+        const data = routesData.parse(result.data);
+        expect(data.routes).toBeDefined();
+        expect(Array.isArray(data.routes)).toBe(true);
+      }
     }
   });
 

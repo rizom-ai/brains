@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z } from "@brains/utils";
 
 /**
  * Input schema for portfolio_create tool
@@ -85,30 +85,16 @@ export function createPortfolioTools(
             },
           );
 
-          const formatted = formatAsEntity(
-            {
-              jobId,
-              topic: parsed.topic,
-              title: parsed.title ?? "(derived from topic)",
-              year: parsed.year,
-              relatedEntitiesFound: relatedContent.length,
-              status: "queued",
-            },
-            { title: "Project Creation" },
-          );
-
           return {
             success: true,
             data: { jobId, relatedEntitiesFound: relatedContent.length },
             message: `Project creation job queued. Found ${relatedContent.length} related entities.`,
-            formatted,
           };
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           return {
             success: false,
             error: msg,
-            formatted: `_Error: ${msg}_`,
           };
         }
       },

@@ -9,24 +9,14 @@ import type {
   ImageGenerationResult,
   ImageGenerationOptions,
 } from "@brains/plugins";
+import { z } from "@brains/utils";
 
-// Response data types for type-safe assertions
-interface ImageUploadResponse {
-  imageId: string;
-  jobId: string;
-}
-
-interface ImageGenerateResponse {
-  imageId: string;
-  jobId: string;
-}
-
-interface SetCoverResponse {
-  entityType: string;
-  entityId: string;
-  imageId: string | null;
-  generated: boolean;
-}
+// Shared schema for parsing tool result data in tests
+const withImageId = z.object({ imageId: z.string() });
+const setCoverData = z.object({
+  imageId: z.string().nullable(),
+  generated: z.boolean(),
+});
 
 const mockToolContext: ToolContext = {
   interfaceType: "test",
@@ -127,10 +117,11 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.status).toBe("success");
-      expect(result.data).toBeDefined();
-      const data = result.data as unknown as ImageUploadResponse;
-      expect(data.imageId).toBeDefined();
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = withImageId.parse(result.data);
+        expect(data.imageId).toBeDefined();
+      }
     });
 
     it("should fail for invalid source", async () => {
@@ -147,8 +138,10 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("Invalid source");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid source");
+      }
     });
   });
 
@@ -180,10 +173,11 @@ describe("Image Tools", () => {
         },
         mockToolContext,
       );
-      const data = result.data as unknown as ImageGenerateResponse;
-
-      expect(result.status).toBe("success");
-      expect(data.imageId).toBeDefined();
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = withImageId.parse(result.data);
+        expect(data.imageId).toBeDefined();
+      }
     });
 
     it("should fail when image generation not available", async () => {
@@ -202,8 +196,10 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("not available");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("not available");
+      }
     });
 
     it("should accept size and style options", async () => {
@@ -276,11 +272,12 @@ describe("Image Tools", () => {
         },
         mockToolContext,
       );
-      const data = result.data as unknown as SetCoverResponse;
-
-      expect(result.status).toBe("success");
-      expect(data.imageId).toBe("hero-image");
-      expect(data.generated).toBe(false);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = setCoverData.parse(result.data);
+        expect(data.imageId).toBe("hero-image");
+        expect(data.generated).toBe(false);
+      }
     });
 
     it("should remove cover image with null", async () => {
@@ -300,10 +297,11 @@ describe("Image Tools", () => {
         },
         mockToolContext,
       );
-      const data = result.data as unknown as SetCoverResponse;
-
-      expect(result.status).toBe("success");
-      expect(data.imageId).toBeNull();
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = setCoverData.parse(result.data);
+        expect(data.imageId).toBeNull();
+      }
     });
 
     it("should fail for unsupported entity type", async () => {
@@ -323,8 +321,10 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("doesn't support cover images");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("doesn't support cover images");
+      }
     });
 
     it("should fail when entity not found", async () => {
@@ -345,8 +345,10 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("Entity not found");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Entity not found");
+      }
     });
 
     it("should fail when image not found", async () => {
@@ -368,8 +370,10 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.status).toBe("error");
-      expect(result.message).toContain("Image not found");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Image not found");
+      }
     });
 
     describe("generate flag", () => {
@@ -396,11 +400,12 @@ describe("Image Tools", () => {
           },
           mockToolContext,
         );
-        const data = result.data as unknown as SetCoverResponse;
-
-        expect(result.status).toBe("success");
-        expect(data.generated).toBe(true);
-        expect(data.imageId).toBeDefined();
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const data = setCoverData.parse(result.data);
+          expect(data.generated).toBe(true);
+          expect(data.imageId).toBeDefined();
+        }
       });
 
       it("should use custom prompt when provided", async () => {
@@ -456,8 +461,10 @@ describe("Image Tools", () => {
           mockToolContext,
         );
 
-        expect(result.status).toBe("error");
-        expect(result.message).toContain("not available");
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.error).toContain("not available");
+        }
       });
 
       it("should accept size and style options for generation", async () => {

@@ -63,7 +63,7 @@ export class TestRunner implements ITestRunner {
         response.toolResults?.map((tr) => ({
           toolName: tr.toolName,
           args: tr.args ?? ({} as Record<string, unknown>),
-          result: tr.formatted,
+          result: tr.data,
         })) ?? [];
       const metrics = collector.endTurn({
         usage: response.usage,

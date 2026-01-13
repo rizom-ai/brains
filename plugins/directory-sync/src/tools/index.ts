@@ -51,17 +51,14 @@ export function createDirectorySyncTools(
 
         if (!result) {
           return {
-            status: "completed",
+            success: true,
             message: "No operations needed - no entity types or files to sync",
-            formatted:
-              "_No operations needed - no entity types or files to sync_",
           };
         }
 
-        // Note: Omit 'formatted' for async jobs - progress events will show actual status
         // Include batchId as jobId for agent response tracking
         return {
-          status: "queued",
+          success: true,
           message: `Sync batch operation queued: ${result.exportOperationsCount} export jobs, ${result.importOperationsCount} import jobs for ${result.totalFiles} files`,
           data: {
             jobId: result.batchId,

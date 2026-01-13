@@ -4,11 +4,15 @@ import { createServicePluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
-import type { z } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { ToolResponse } from "@brains/mcp-service";
+
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync } from "fs";
+
+// Schema for parsing sync tool response data
+const syncResponseData = z.object({ jobId: z.string() });
 
 // Mock entity adapter
 class MockEntityAdapter implements EntityAdapter<BaseEntity> {
@@ -137,12 +141,14 @@ describe("DirectorySyncPlugin", () => {
       );
 
       // Should either complete immediately if no operations needed
-      // or queue a batch job
+      // or queue a batch job (both return success: true with the new format)
       expect(syncResult).toBeDefined();
-      if (syncResult.status === "queued") {
-        expect(syncResult.data?.jobId).toBeDefined();
-      } else {
-        expect(syncResult.status).toBe("completed");
+      expect(syncResult.success).toBe(true);
+      if (syncResult.success) {
+        const parsed = syncResponseData.safeParse(syncResult.data);
+        if (parsed.success) {
+          expect(parsed.data.jobId).toBeDefined();
+        }
       }
     });
   });

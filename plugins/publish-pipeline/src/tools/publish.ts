@@ -5,7 +5,7 @@ import type {
   BaseEntity,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishableMetadata } from "../schemas/publishable";
 
@@ -23,13 +23,11 @@ export const publishInputSchema = z.object({
 export type PublishInput = z.infer<typeof publishInputSchema>;
 
 /**
- * Output schema for publish-pipeline:publish tool
+ * Output schema for publish-pipeline:publish tool - discriminated union for success/error cases
  */
-export const publishOutputSchema = z.object({
-  success: z.boolean(),
+export const publishSuccessSchema = z.object({
+  success: z.literal(true),
   message: z.string().optional(),
-  error: z.string().optional(),
-  formatted: z.string().optional(),
   data: z
     .object({
       entityType: z.string().optional(),
@@ -39,6 +37,17 @@ export const publishOutputSchema = z.object({
     })
     .optional(),
 });
+
+export const publishErrorSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
+});
+
+export const publishOutputSchema = z.union([
+  publishSuccessSchema,
+  publishErrorSchema,
+]);
 
 export type PublishOutput = z.infer<typeof publishOutputSchema>;
 
@@ -75,7 +84,6 @@ export function createPublishTool(
           return {
             success: false,
             error: "entityType is required",
-            formatted: "_Error: entityType is required_",
           };
         }
 
@@ -86,7 +94,6 @@ export function createPublishTool(
           return {
             success: false,
             error: "Either 'id' or 'slug' must be provided",
-            formatted: "_Error: Either 'id' or 'slug' must be provided_",
           };
         }
 
@@ -115,7 +122,6 @@ export function createPublishTool(
           return {
             success: false,
             error: `Entity not found: ${entityType}:${identifier}`,
-            formatted: `_Entity not found: ${entityType}:${identifier}_`,
           };
         }
 
@@ -124,7 +130,6 @@ export function createPublishTool(
           return {
             success: false,
             error: "Entity is already published",
-            formatted: "_Entity is already published_",
           };
         }
 
@@ -148,17 +153,6 @@ export function createPublishTool(
           },
         });
 
-        const formatted = formatAsEntity(
-          {
-            entityType,
-            entityId: entity.id,
-            platformId: result.id,
-            url: result.url,
-            status: "published",
-          },
-          { title: "Published" },
-        );
-
         return {
           success: true,
           data: {
@@ -168,14 +162,12 @@ export function createPublishTool(
             url: result.url,
           },
           message: `Published ${entityType}:${entity.id}`,
-          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
           success: false,
           error: msg,
-          formatted: `_Error: ${msg}_`,
         };
       }
     },

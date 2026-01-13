@@ -4,7 +4,7 @@ import type {
   ImageGenerationOptions,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, slugify, formatAsEntity, setCoverImageId } from "@brains/utils";
+import { z, slugify, setCoverImageId } from "@brains/utils";
 import {
   imageAdapter,
   isValidDataUrl,
@@ -49,10 +49,8 @@ function createImageUploadTool(
           dataUrl = await fetchImageAsBase64(source);
         } else {
           return {
-            status: "error",
-            message: "Invalid source: must be a base64 data URL or HTTP URL",
-            formatted:
-              "_Invalid source: must be a base64 data URL or HTTP URL_",
+            success: false,
+            error: "Invalid source: must be a base64 data URL or HTTP URL",
           };
         }
 
@@ -71,29 +69,16 @@ function createImageUploadTool(
           id: slug,
         });
 
-        const formatted = formatAsEntity(
-          {
-            id: slug,
-            title,
-            format: entityData.metadata.format,
-            width: entityData.metadata.width,
-            height: entityData.metadata.height,
-          },
-          { title: "Image Uploaded" },
-        );
-
         return {
-          status: "success",
+          success: true,
           data: { imageId: slug, jobId: result.jobId },
           message: `Image uploaded: ${title} (${entityData.metadata.width}x${entityData.metadata.height})`,
-          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
-          status: "error",
-          message: msg,
-          formatted: `_Error: ${msg}_`,
+          success: false,
+          error: msg,
         };
       }
     },
@@ -176,11 +161,9 @@ function createImageGenerateTool(
         // Check if image generation is available
         if (!plugin.canGenerateImages()) {
           return {
-            status: "error",
-            message:
+            success: false,
+            error:
               "Image generation not available: OPENAI_API_KEY not configured",
-            formatted:
-              "_Image generation not available: OPENAI_API_KEY not configured_",
           };
         }
 
@@ -213,30 +196,16 @@ function createImageGenerateTool(
           id: slug,
         });
 
-        const formatted = formatAsEntity(
-          {
-            id: slug,
-            title,
-            format: entityData.metadata.format,
-            width: entityData.metadata.width,
-            height: entityData.metadata.height,
-            prompt: prompt.slice(0, 100) + (prompt.length > 100 ? "..." : ""),
-          },
-          { title: "Image Generated" },
-        );
-
         return {
-          status: "success",
+          success: true,
           data: { imageId: slug, jobId: createResult.jobId },
           message: `Image generated: ${title} (${entityData.metadata.width}x${entityData.metadata.height})`,
-          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
-          status: "error",
-          message: msg,
-          formatted: `_Error: ${msg}_`,
+          success: false,
+          error: msg,
         };
       }
     },
@@ -295,9 +264,8 @@ function createSetCoverTool(
         const adapter = plugin.getAdapter(entityType);
         if (!adapter?.supportsCoverImage) {
           return {
-            status: "error",
-            message: `Entity type '${entityType}' doesn't support cover images`,
-            formatted: `_Entity type '${entityType}' doesn't support cover images_`,
+            success: false,
+            error: `Entity type '${entityType}' doesn't support cover images`,
           };
         }
 
@@ -305,9 +273,8 @@ function createSetCoverTool(
         const baseEntity = await plugin.findEntity(entityType, entityId);
         if (!baseEntity) {
           return {
-            status: "error",
-            message: `Entity not found: ${entityId}`,
-            formatted: `_Entity not found: ${entityId}_`,
+            success: false,
+            error: `Entity not found: ${entityId}`,
           };
         }
         const entity = baseEntity as EntityWithCoverImage;
@@ -318,11 +285,9 @@ function createSetCoverTool(
         if (generate) {
           if (!plugin.canGenerateImages()) {
             return {
-              status: "error",
-              message:
+              success: false,
+              error:
                 "Image generation not available: OPENAI_API_KEY not configured",
-              formatted:
-                "_Image generation not available: OPENAI_API_KEY not configured_",
             };
           }
 
@@ -361,9 +326,8 @@ function createSetCoverTool(
           const image = await plugin.getEntity("image", finalImageId);
           if (!image) {
             return {
-              status: "error",
-              message: `Image not found: ${finalImageId}`,
-              formatted: `_Image not found: ${finalImageId}_`,
+              success: false,
+              error: `Image not found: ${finalImageId}`,
             };
           }
         }
@@ -378,20 +342,8 @@ function createSetCoverTool(
             : `Cover image set to '${finalImageId}' on ${entityType}/${entityId}`
           : `Cover image removed from ${entityType}/${entityId}`;
 
-        const formatted = generate
-          ? formatAsEntity(
-              {
-                entityType,
-                entityId,
-                imageId: finalImageId,
-                action: "generated",
-              },
-              { title: "Cover Image Set" },
-            )
-          : message;
-
         return {
-          status: "success",
+          success: true,
           data: {
             entityType,
             entityId,
@@ -399,14 +351,12 @@ function createSetCoverTool(
             generated: generate ?? false,
           },
           message,
-          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
-          status: "error",
-          message: msg,
-          formatted: `_Error: ${msg}_`,
+          success: false,
+          error: msg,
         };
       }
     },

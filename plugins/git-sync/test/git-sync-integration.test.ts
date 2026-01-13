@@ -11,6 +11,17 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
+import { z } from "@brains/utils";
+
+// Schema for parsing git status response data
+const gitStatusData = z.object({
+  isRepo: z.boolean(),
+  hasChanges: z.boolean(),
+  branch: z.string(),
+  ahead: z.number(),
+  behind: z.number(),
+  files: z.array(z.object({ path: z.string() })).optional(),
+});
 
 describe("Git-Sync with Directory-Sync Integration", () => {
   let dirHarness: ReturnType<typeof createServicePluginHarness>;
@@ -157,8 +168,11 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       );
 
       // Should be clean after sync
-      if (!statusResult.data) throw new Error("No data in status result");
-      expect(statusResult.data["hasChanges"]).toBe(false);
+      expect(statusResult.success).toBe(true);
+      if (statusResult.success) {
+        const data = gitStatusData.parse(statusResult.data);
+        expect(data.hasChanges).toBe(false);
+      }
     });
   });
 
@@ -219,12 +233,15 @@ describe("Git-Sync with Directory-Sync Integration", () => {
         { interfaceType: "test", userId: "test-user" },
       );
 
-      if (!statusResult.data) throw new Error("No data in status result");
-      expect(statusResult.data["isRepo"]).toBe(true);
-      expect(statusResult.data["hasChanges"]).toBe(false);
-      expect(statusResult.data["branch"]).toBe("main");
-      expect(statusResult.data["ahead"]).toBe(0);
-      expect(statusResult.data["behind"]).toBe(0);
+      expect(statusResult.success).toBe(true);
+      if (statusResult.success) {
+        const data = gitStatusData.parse(statusResult.data);
+        expect(data.isRepo).toBe(true);
+        expect(data.hasChanges).toBe(false);
+        expect(data.branch).toBe("main");
+        expect(data.ahead).toBe(0);
+        expect(data.behind).toBe(0);
+      }
     });
 
     it("should detect uncommitted changes", async () => {
@@ -238,11 +255,13 @@ describe("Git-Sync with Directory-Sync Integration", () => {
         {},
         { interfaceType: "test", userId: "test-user" },
       );
-      if (!statusResult.data) throw new Error("No data in status result");
-      expect(statusResult.data["hasChanges"]).toBe(true);
-      const files = statusResult.data["files"];
-      expect(Array.isArray(files) && files.length).toBe(1);
-      expect(Array.isArray(files) && files[0].path).toBe("test.md");
+      expect(statusResult.success).toBe(true);
+      if (statusResult.success) {
+        const data = gitStatusData.parse(statusResult.data);
+        expect(data.hasChanges).toBe(true);
+        expect(data.files?.length).toBe(1);
+        expect(data.files?.[0]?.path).toBe("test.md");
+      }
     });
   });
 });

@@ -60,12 +60,12 @@ export function createBatchExtractTool(
       // dryRun mode - just return preview
       if (parsed.dryRun) {
         return {
-          status: "success",
-          message: `Found ${toExtract.length} entities for extraction`,
+          success: true,
           data: {
             total: toExtract.length,
             preview: toExtract.map((e) => ({ id: e.id, type: e.entityType })),
           },
+          message: `Found ${toExtract.length} entities for extraction`,
         };
       }
 
@@ -98,12 +98,12 @@ export function createBatchExtractTool(
       }
 
       return {
-        status: "success",
-        message: `Queued ${toExtract.length} extraction jobs`,
+        success: true,
         data: {
           total: toExtract.length,
           queued: toExtract.length,
         },
+        message: `Queued ${toExtract.length} extraction jobs`,
       };
     },
   };

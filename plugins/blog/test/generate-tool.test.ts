@@ -3,6 +3,10 @@ import { createGenerateTool } from "../src/tools/generate";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import type { BlogConfig } from "../src/config";
 import { createMockServicePluginContext } from "@brains/test-utils";
+import { z } from "@brains/utils";
+
+// Schema for parsing tool response data
+const jobIdData = z.object({ jobId: z.string() });
 
 // Mock ToolContext for handler calls
 const mockToolContext: ToolContext = {
@@ -66,9 +70,11 @@ describe("Generate Tool", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect((result.data as Record<string, unknown>)["jobId"]).toBe("job-123");
-      expect(result.message).toContain("queued");
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-123");
+        expect(result.message).toContain("queued");
+      }
 
       // Verify enqueueJob was called correctly
       const enqueueCall = enqueueJobSpy.mock.calls[0];
@@ -89,7 +95,10 @@ describe("Generate Tool", () => {
       );
 
       expect(result.success).toBe(true);
-      expect((result.data as Record<string, unknown>)["jobId"]).toBe("job-123");
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-123");
+      }
 
       const enqueueCall = enqueueJobSpy.mock.calls[0];
       const jobData = enqueueCall?.[1] as Record<string, unknown>;
@@ -143,7 +152,10 @@ describe("Generate Tool", () => {
       const result = await generateTool.handler({}, mockToolContext);
 
       expect(result.success).toBe(true);
-      expect((result.data as Record<string, unknown>)["jobId"]).toBe("job-123");
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-123");
+      }
     });
   });
 
@@ -157,7 +169,9 @@ describe("Generate Tool", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("Queue full");
+      if (!result.success) {
+        expect(result.error).toContain("Queue full");
+      }
     });
 
     it("should validate input schema", async () => {
@@ -167,7 +181,9 @@ describe("Generate Tool", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
     });
 
     it("should handle invalid input types", async () => {
@@ -177,7 +193,9 @@ describe("Generate Tool", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
     });
   });
 
@@ -230,10 +248,10 @@ describe("Generate Tool", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect((result.data as Record<string, unknown>)["jobId"]).toBe(
-        "custom-job-id",
-      );
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("custom-job-id");
+      }
     });
 
     it("should include success message with jobId", async () => {
@@ -242,8 +260,11 @@ describe("Generate Tool", () => {
         mockToolContext,
       );
 
-      expect(result.message).toContain("job-123");
-      expect(result.message).toContain("queued");
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.message).toContain("job-123");
+        expect(result.message).toContain("queued");
+      }
     });
   });
 

@@ -216,7 +216,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
         toolResultsCount: response.toolResults?.length ?? 0,
         toolResults: response.toolResults?.map((tr) => ({
           toolName: tr.toolName,
-          formattedLength: tr.formatted?.length ?? 0,
+          hasData: tr.data !== undefined,
         })),
       });
 

@@ -41,22 +41,28 @@ export const ToolContextRoutingSchema = z.object({
 });
 
 /**
- * Base tool response schema
+ * Success response schema
  */
-export const toolResponseSchema = z
-  .object({
-    status: z.string().optional(),
-    message: z.string().optional(),
-    success: z.boolean().optional(),
-    data: z
-      .object({
-        jobId: z.string().optional(), // Job ID for async tools that queue background jobs
-      })
-      .passthrough()
-      .optional(), // Generic data object with optional jobId
-    formatted: z.string().optional(), // Pre-formatted markdown for rich display (optional - omit for async jobs)
-  })
-  .passthrough(); // Allow additional fields
+export const toolSuccessSchema = z.object({
+  success: z.literal(true),
+  data: z.unknown(),
+  message: z.string().optional(),
+});
+
+/**
+ * Error response schema
+ */
+export const toolErrorSchema = z.object({
+  success: z.literal(false),
+  error: z.string(),
+  code: z.string().optional(),
+});
+
+/**
+ * Standardized tool response schema
+ * All tools should return either a success or error response
+ */
+export const toolResponseSchema = z.union([toolSuccessSchema, toolErrorSchema]);
 
 export type ToolResponse = z.infer<typeof toolResponseSchema>;
 

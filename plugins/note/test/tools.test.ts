@@ -6,6 +6,11 @@ import type {
 } from "@brains/plugins";
 import { createNoteTools } from "../src/tools";
 import { createMockServicePluginContext } from "@brains/test-utils";
+import { z } from "@brains/utils";
+
+// Schemas for parsing tool response data
+const entityIdData = z.object({ entityId: z.string() });
+const jobIdData = z.object({ jobId: z.string() });
 
 // Mock context
 function createMockContext(): ServicePluginContext {
@@ -75,7 +80,9 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      if (result.success) {
+        expect(result.data).toBeDefined();
+      }
       expect(context.entityService.createEntity).toHaveBeenCalled();
     });
 
@@ -86,7 +93,9 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
     });
 
     it("should require content", async () => {
@@ -96,7 +105,9 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toBeDefined();
+      if (!result.success) {
+        expect(result.error).toBeDefined();
+      }
     });
 
     it("should return entityId on success", async () => {
@@ -106,7 +117,10 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.["entityId"]).toBe("note-123");
+      if (result.success) {
+        const data = entityIdData.parse(result.data);
+        expect(data.entityId).toBe("note-123");
+      }
     });
   });
 
@@ -118,7 +132,10 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.jobId).toBe("job-456");
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-456");
+      }
       expect(context.jobs.enqueue).toHaveBeenCalled();
     });
 
@@ -144,7 +161,10 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.jobId).toBeDefined();
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBeDefined();
+      }
     });
 
     it("should return jobId on success", async () => {
@@ -154,7 +174,10 @@ describe("Note Tools", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.data?.jobId).toBe("job-456");
+      if (result.success) {
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-456");
+      }
     });
   });
 });

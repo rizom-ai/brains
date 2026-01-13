@@ -1,6 +1,43 @@
-import type { PluginTool, PluginResource, ToolResponse } from "../interfaces";
+import type {
+  PluginTool,
+  PluginResource,
+  ToolResponse,
+  ToolContext,
+} from "../interfaces";
 import type { z } from "@brains/utils";
 import { Logger } from "@brains/utils";
+
+/**
+ * Standardized tool result type
+ * All tools should return this format for consistent handling
+ *
+ * @template T - The type of data returned on success
+ */
+export type ToolResult<T = unknown> =
+  | {
+      success: true;
+      data: T;
+      message?: string; // Human-readable description
+    }
+  | {
+      success: false;
+      error: string;
+      code?: string; // Optional error code for programmatic handling
+    };
+
+/**
+ * Helper to create a success result
+ */
+export function toolSuccess<T>(data: T, message?: string): ToolResult<T> {
+  return message ? { success: true, data, message } : { success: true, data };
+}
+
+/**
+ * Helper to create an error result
+ */
+export function toolError(error: string, code?: string): ToolResult<never> {
+  return code ? { success: false, error, code } : { success: false, error };
+}
 
 /**
  * Create a tool with consistent structure and optional debug logging.
@@ -17,6 +54,8 @@ import { Logger } from "@brains/utils";
  *   ];
  * }
  * ```
+ *
+ * @deprecated Prefer `createTypedTool` for new tools - provides auto-validation and typed input
  */
 export function createTool(
   pluginId: string,
@@ -45,6 +84,93 @@ export function createTool(
       } catch (error) {
         logger?.error(`Tool ${name} failed`, error);
         throw error;
+      }
+    },
+    visibility,
+  };
+}
+
+/**
+ * Create a typed tool with auto-validation and consistent response format.
+ *
+ * Benefits over `createTool`:
+ * - Input is automatically validated against the schema
+ * - Handler receives typed input (no manual parsing needed)
+ * - Must return `ToolResult<T>` for consistent response format
+ * - Validation errors are automatically caught and formatted
+ *
+ * @example
+ * ```typescript
+ * const captureSchema = z.object({
+ *   url: z.string().url(),
+ *   title: z.string().optional(),
+ * });
+ *
+ * createTypedTool(
+ *   pluginId,
+ *   "capture",
+ *   "Capture a link",
+ *   captureSchema,
+ *   async (input, ctx) => {
+ *     // input is typed as { url: string; title?: string }
+ *     const link = await captureLink(input.url);
+ *     return toolSuccess({ linkId: link.id });
+ *   }
+ * );
+ * ```
+ */
+export function createTypedTool<
+  TSchema extends z.ZodObject<z.ZodRawShape>,
+  TOutput = unknown,
+>(
+  pluginId: string,
+  name: string,
+  description: string,
+  inputSchema: TSchema,
+  handler: (
+    input: z.infer<TSchema>,
+    context: ToolContext,
+  ) => Promise<ToolResult<TOutput>>,
+  options: {
+    visibility?: PluginTool["visibility"];
+    debug?: boolean;
+  } = {},
+): PluginTool {
+  const { visibility = "anchor", debug = false } = options;
+  const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
+
+  return {
+    name: `${pluginId}_${name}`,
+    description,
+    inputSchema: inputSchema.shape,
+    handler: async (input, context): Promise<ToolResponse> => {
+      logger?.debug(`Tool ${name} started`);
+      try {
+        // Auto-validate input
+        const parseResult = inputSchema.safeParse(input);
+        if (!parseResult.success) {
+          const errorMessage = parseResult.error.errors
+            .map((e) => `${e.path.join(".")}: ${e.message}`)
+            .join(", ");
+          logger?.debug(`Tool ${name} validation failed: ${errorMessage}`);
+          return {
+            success: false,
+            error: `Invalid input: ${errorMessage}`,
+          };
+        }
+
+        // Call handler with validated, typed input
+        const result = await handler(parseResult.data, context);
+        logger?.debug(`Tool ${name} completed`);
+        return result;
+      } catch (error) {
+        logger?.error(`Tool ${name} failed`, error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        return {
+          success: false,
+          error: errorMessage,
+        };
       }
     },
     visibility,

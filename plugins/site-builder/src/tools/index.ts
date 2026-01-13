@@ -9,7 +9,7 @@ import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
-import { z, formatAsList } from "@brains/utils";
+import { z } from "@brains/utils";
 import { GenerateOptionsSchema } from "../types/content-schemas";
 
 export function createSiteBuilderTools(
@@ -51,8 +51,7 @@ export function createSiteBuilderTools(
           if (!siteContentService) {
             return {
               success: false,
-              message: "Site content service not initialized",
-              formatted: "_Error: Site content service not initialized_",
+              error: "Site content service not initialized",
             };
           }
 
@@ -64,8 +63,7 @@ export function createSiteBuilderTools(
             const msg = `Invalid input parameters: ${error instanceof Error ? error.message : String(error)}`;
             return {
               success: false,
-              message: msg,
-              formatted: `_Error: ${msg}_`,
+              error: msg,
             };
           }
 
@@ -73,8 +71,7 @@ export function createSiteBuilderTools(
           if (options.sectionId && !options.routeId) {
             return {
               success: false,
-              message: "sectionId requires routeId to be specified",
-              formatted: "_Error: sectionId requires routeId to be specified_",
+              error: "sectionId requires routeId to be specified",
             };
           }
 
@@ -112,8 +109,7 @@ export function createSiteBuilderTools(
           const msg = `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`;
           return {
             success: false,
-            message: msg,
-            formatted: `_Error: ${msg}_`,
+            error: msg,
           };
         }
       },
@@ -207,12 +203,6 @@ export function createSiteBuilderTools(
       async () => {
         const routes = routeRegistry.list();
 
-        const formatted = formatAsList(routes, {
-          title: (r) => `${r.title} (${r.path})`,
-          subtitle: (r) => `${r.sections.length} sections`,
-          header: `## Routes (${routes.length})`,
-        });
-
         return {
           success: true,
           message: `Found ${routes.length} registered routes`,
@@ -229,7 +219,6 @@ export function createSiteBuilderTools(
             })),
             count: routes.length,
           },
-          formatted,
         };
       },
       { visibility: "public" },
@@ -242,12 +231,6 @@ export function createSiteBuilderTools(
       async () => {
         const templates = pluginContext.views.list();
 
-        const formatted = formatAsList(templates, {
-          title: (t) => t.name,
-          subtitle: (t) => t.description ?? "No description",
-          header: `## Templates (${templates.length})`,
-        });
-
         return {
           success: true,
           message: `Found ${templates.length} registered templates`,
@@ -259,7 +242,6 @@ export function createSiteBuilderTools(
             })),
             count: templates.length,
           },
-          formatted,
         };
       },
       { visibility: "public" },

@@ -106,7 +106,9 @@ describe("Publish Pipeline - Publish Tool", () => {
         createMockToolContext(),
       );
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("entityType");
+      if (!result.success) {
+        expect(result.error).toContain("entityType");
+      }
     });
 
     it("should require id or slug", async () => {
@@ -116,7 +118,9 @@ describe("Publish Pipeline - Publish Tool", () => {
         createMockToolContext(),
       );
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("id");
+      if (!result.success) {
+        expect(result.error).toContain("id");
+      }
     });
 
     it("should return error when entity not found", async () => {
@@ -126,7 +130,9 @@ describe("Publish Pipeline - Publish Tool", () => {
         createMockToolContext(),
       );
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("not found");
+      if (!result.success) {
+        expect(result.error).toContain("not found");
+      }
     });
   });
 
@@ -168,7 +174,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result["data"]).toHaveProperty("platformId", "linkedin-post-123");
+      if (result.success) {
+        expect(result.data).toHaveProperty("platformId", "linkedin-post-123");
+      }
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
@@ -181,7 +189,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result["data"]).toHaveProperty("platformId", "internal");
+      if (result.success) {
+        expect(result.data).toHaveProperty("platformId", "internal");
+      }
     });
 
     it("should reject already published entities", async () => {
@@ -192,7 +202,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("already published");
+      if (!result.success) {
+        expect(result.error).toContain("already published");
+      }
     });
 
     it("should find entity by slug", async () => {
@@ -252,7 +264,9 @@ describe("Publish Pipeline - Publish Tool", () => {
       );
 
       expect(result.success).toBe(false);
-      expect(result["error"]).toContain("API rate limit");
+      if (!result.success) {
+        expect(result.error).toContain("API rate limit");
+      }
     });
   });
 });

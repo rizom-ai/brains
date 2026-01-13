@@ -43,14 +43,14 @@ export interface PendingConfirmation {
 }
 
 /**
- * Tool result data for structured responses
- * Interfaces render these directly to ensure data is shown to users
+ * Tool result data for tracking
+ * Used for logging, evals, and job tracking
  */
 export interface ToolResultData {
   toolName: string;
   args?: Record<string, unknown>; // Input arguments passed to the tool
-  formatted?: string; // Pre-formatted markdown from tool response (optional for async jobs)
   jobId?: string; // Job ID for async tools that queue background jobs
+  data?: unknown; // Tool result data (for logging/debugging)
 }
 
 /**

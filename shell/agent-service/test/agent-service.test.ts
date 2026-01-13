@@ -258,9 +258,9 @@ describe("AgentService", () => {
         description: "Search for content",
         inputSchema: { query: z.string() },
         handler: mock(async () => ({
-          status: "ok",
+          success: true as const,
           data: { results: [] },
-          formatted: "No results",
+          message: "No results",
         })),
       };
 
@@ -297,7 +297,7 @@ describe("AgentService", () => {
         description: "Public search tool",
         inputSchema: { query: z.string() },
         visibility: "public",
-        handler: mock(async () => ({ status: "ok", formatted: "ok" })),
+        handler: mock(async () => ({ success: true as const, data: {} })),
       };
 
       const anchorTool: PluginTool = {
@@ -305,7 +305,7 @@ describe("AgentService", () => {
         description: "Admin delete tool",
         inputSchema: { id: z.string() },
         visibility: "anchor",
-        handler: mock(async () => ({ status: "ok", formatted: "ok" })),
+        handler: mock(async () => ({ success: true as const, data: {} })),
       };
 
       // Mock listToolsForPermissionLevel to return filtered tools
@@ -483,7 +483,7 @@ describe("AgentService", () => {
 
   describe("toolResults in response", () => {
     it("should include tool results in response when agent calls tools", async () => {
-      // Mock agent to return tool calls with formatted output
+      // Mock agent to return tool calls with data output
       mockAgentGenerateResult = {
         text: "I found some notes for you.",
         steps: [
@@ -500,9 +500,8 @@ describe("AgentService", () => {
                 toolName: "search",
                 toolCallId: "call1",
                 output: {
-                  status: "ok",
+                  success: true,
                   data: { results: ["note1", "note2"] },
-                  formatted: "- note1\n- note2",
                 },
               },
             ],
@@ -527,7 +526,9 @@ describe("AgentService", () => {
       expect(response.toolResults).toBeDefined();
       expect(response.toolResults?.length).toBe(1);
       expect(response.toolResults?.[0]?.toolName).toBe("search");
-      expect(response.toolResults?.[0]?.formatted).toBe("- note1\n- note2");
+      expect(response.toolResults?.[0]?.data).toEqual({
+        results: ["note1", "note2"],
+      });
     });
 
     it("should return empty toolResults array when no tools are called", async () => {
@@ -567,7 +568,7 @@ describe("AgentService", () => {
               {
                 toolName: "search",
                 toolCallId: "call1",
-                output: { formatted: "## Search Results\n- note1" },
+                output: { success: true, data: { results: ["note1"] } },
               },
             ],
           },
@@ -583,7 +584,13 @@ describe("AgentService", () => {
               {
                 toolName: "get_note",
                 toolCallId: "call2",
-                output: { formatted: "## TypeScript Guide\n\nContent here..." },
+                output: {
+                  success: true,
+                  data: {
+                    title: "TypeScript Guide",
+                    content: "Content here...",
+                  },
+                },
               },
             ],
           },
@@ -606,11 +613,9 @@ describe("AgentService", () => {
 
       expect(response.toolResults?.length).toBe(2);
       expect(response.toolResults?.[0]?.toolName).toBe("search");
-      expect(response.toolResults?.[0]?.formatted).toContain("Search Results");
+      expect(response.toolResults?.[0]?.data).toBeDefined();
       expect(response.toolResults?.[1]?.toolName).toBe("get_note");
-      expect(response.toolResults?.[1]?.formatted).toContain(
-        "TypeScript Guide",
-      );
+      expect(response.toolResults?.[1]?.data).toBeDefined();
     });
   });
 });

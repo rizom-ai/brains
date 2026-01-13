@@ -240,4 +240,11 @@ export type {
 
 // Utility functions
 export { createId } from "./utils/id";
-export { createTool, createResource } from "./utils/tool-helpers";
+export {
+  createTool,
+  createTypedTool,
+  createResource,
+  toolSuccess,
+  toolError,
+  type ToolResult,
+} from "./utils/tool-helpers";

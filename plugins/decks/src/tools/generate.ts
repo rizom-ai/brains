@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z } from "@brains/utils";
 
 /**
  * Input schema for deck:generate tool
@@ -77,27 +77,16 @@ export function createGenerateTool(
           },
         );
 
-        const formatted = formatAsEntity(
-          {
-            jobId,
-            title: parsed.title ?? "(AI generated)",
-            status: "queued",
-          },
-          { title: "Deck Generation" },
-        );
-
         return {
           success: true,
           data: { jobId },
           message: `Deck generation job queued (jobId: ${jobId})`,
-          formatted,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
           success: false,
           error: msg,
-          formatted: `_Error: ${msg}_`,
         };
       }
     },

@@ -89,8 +89,10 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.data?.queue).toEqual([]);
-      expect(result.message).toBe("No items in queue");
+      if (result.success) {
+        expect(result.data?.queue).toEqual([]);
+        expect(result.message).toBe("No items in queue");
+      }
     });
 
     it("should return all queued items when no entityType specified", async () => {
@@ -103,8 +105,10 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.data?.queue).toHaveLength(2);
-      expect(result.message).toBe("2 items in queue");
+      if (result.success) {
+        expect(result.data?.queue).toHaveLength(2);
+        expect(result.message).toBe("2 items in queue");
+      }
     });
 
     it("should filter by entityType when specified", async () => {
@@ -118,9 +122,11 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.data?.queue).toHaveLength(2);
-      expect(result.data?.queue?.[0]?.entityType).toBe("social-post");
-      expect(result.data?.queue?.[1]?.entityType).toBe("social-post");
+      if (result.success) {
+        expect(result.data?.queue).toHaveLength(2);
+        expect(result.data?.queue?.[0]?.entityType).toBe("social-post");
+        expect(result.data?.queue?.[1]?.entityType).toBe("social-post");
+      }
     });
   });
 
@@ -131,7 +137,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("entityType");
+      if (!result.success) {
+        expect(result.error).toContain("entityType");
+      }
     });
 
     it("should require entityId", async () => {
@@ -140,7 +148,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("entityId");
+      if (!result.success) {
+        expect(result.error).toContain("entityId");
+      }
     });
 
     it("should add entity to queue and return position", async () => {
@@ -153,8 +163,10 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.data?.position).toBe(1);
-      expect(result.message).toBe("Added to queue at position 1");
+      if (result.success) {
+        expect(result.data?.position).toBe(1);
+        expect(result.message).toBe("Added to queue at position 1");
+      }
     });
 
     it("should return existing position if already queued", async () => {
@@ -188,7 +200,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.data?.position).toBe(1);
+      if (result.success) {
+        expect(result.data?.position).toBe(1);
+      }
     });
   });
 
@@ -199,7 +213,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("entityType");
+      if (!result.success) {
+        expect(result.error).toContain("entityType");
+      }
     });
 
     it("should require entityId", async () => {
@@ -208,7 +224,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("entityId");
+      if (!result.success) {
+        expect(result.error).toContain("entityId");
+      }
     });
 
     it("should remove entity from queue", async () => {
@@ -225,7 +243,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.message).toBe("Removed from queue");
+      if (result.success) {
+        expect(result.message).toBe("Removed from queue");
+      }
 
       // Verify removed
       const queue = await queueManager.list("social-post");
@@ -240,7 +260,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("entityType");
+      if (!result.success) {
+        expect(result.error).toContain("entityType");
+      }
     });
 
     it("should require entityId", async () => {
@@ -249,7 +271,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("entityId");
+      if (!result.success) {
+        expect(result.error).toContain("entityId");
+      }
     });
 
     it("should require position", async () => {
@@ -262,7 +286,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("position");
+      if (!result.success) {
+        expect(result.error).toContain("position");
+      }
     });
 
     it("should reject position less than 1", async () => {
@@ -276,7 +302,9 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(false);
-      expect(result.error).toContain("positive");
+      if (!result.success) {
+        expect(result.error).toContain("positive");
+      }
     });
 
     it("should reorder entity in queue", async () => {
@@ -296,8 +324,10 @@ describe("publish_queue tool", () => {
         mockToolContext,
       )) as QueueOutput;
       expect(result.success).toBe(true);
-      expect(result.data?.position).toBe(1);
-      expect(result.message).toBe("Moved to position 1");
+      if (result.success) {
+        expect(result.data?.position).toBe(1);
+        expect(result.message).toBe("Moved to position 1");
+      }
 
       // Verify order
       const queue = await queueManager.list("social-post");

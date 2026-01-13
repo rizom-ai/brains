@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import { z, formatAsEntity } from "@brains/utils";
+import { z } from "@brains/utils";
 import { noteAdapter } from "../adapters/note-adapter";
 
 /**
@@ -64,30 +64,19 @@ export function createNoteTools(
             },
           });
 
-          const formatted = formatAsEntity(
-            {
-              id: result.entityId,
-              title: parsed.title,
-              status: "created",
-            },
-            { title: "Note Created" },
-          );
-
           return {
             success: true,
             data: {
               entityId: result.entityId,
               title: parsed.title,
-              message: `Note "${parsed.title}" created successfully`,
             },
-            formatted,
+            message: `Note "${parsed.title}" created successfully`,
           };
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           return {
             success: false,
             error: msg,
-            formatted: `_Error creating note: ${msg}_`,
           };
         }
       },
@@ -117,27 +106,16 @@ export function createNoteTools(
             },
           );
 
-          const formatted = formatAsEntity(
-            {
-              jobId,
-              title: parsed.title ?? "(AI generated)",
-              status: "queued",
-            },
-            { title: "Note Generation" },
-          );
-
           return {
             success: true,
             data: { jobId },
             message: `Note generation job queued (jobId: ${jobId})`,
-            formatted,
           };
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           return {
             success: false,
             error: msg,
-            formatted: `_Error: ${msg}_`,
           };
         }
       },

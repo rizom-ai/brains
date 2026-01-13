@@ -7,4 +7,9 @@ export type {
   PluginTool,
   PluginResource,
 } from "./types";
-export { toolResponseSchema, ToolContextRoutingSchema } from "./types";
+export {
+  toolResponseSchema,
+  toolSuccessSchema,
+  toolErrorSchema,
+  ToolContextRoutingSchema,
+} from "./types";
