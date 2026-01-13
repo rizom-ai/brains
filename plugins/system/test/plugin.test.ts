@@ -1,16 +1,16 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { SystemPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createCorePluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("SystemPlugin", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createCorePluginHarness>;
   let plugin: SystemPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
     // Create test harness with dataDir for context
-    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createCorePluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
     capabilities = await harness.installPlugin(plugin);
@@ -23,7 +23,7 @@ describe("SystemPlugin", () => {
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("system");
-      expect(plugin.type).toBe("service");
+      expect(plugin.type).toBe("core");
       expect(plugin.version).toBeDefined();
     });
 

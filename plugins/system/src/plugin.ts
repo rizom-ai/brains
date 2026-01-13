@@ -1,4 +1,4 @@
-import { ServicePlugin } from "@brains/plugins";
+import { CorePlugin } from "@brains/plugins";
 import type {
   PluginTool,
   BaseEntity,
@@ -30,7 +30,7 @@ import packageJson from "../package.json";
  * - Get: Retrieve specific entities by ID
  * - Job Status: Monitor background operations
  */
-export class SystemPlugin extends ServicePlugin<SystemConfig> {
+export class SystemPlugin extends CorePlugin<SystemConfig> {
   // After validation with defaults, config is complete
   declare protected config: SystemConfig;
 
