@@ -3,11 +3,11 @@ import { RSSDataSource } from "../src/datasources/rss-datasource";
 import {
   createSilentLogger,
   createMockEntityService as createBaseMockEntityService,
+  createTestEntity,
 } from "@brains/test-utils";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { z } from "zod";
-import { computeContentHash } from "@brains/utils";
 
 describe("RSSDataSource", () => {
   const createMockEntityService = (posts: BlogPost[]): IEntityService => {
@@ -26,47 +26,35 @@ describe("RSSDataSource", () => {
     "---\ntitle: Draft Post\nslug: draft-post\nexcerpt: Draft excerpt\nauthor: Author\nstatus: draft\n---\nDraft content";
 
   const samplePosts: BlogPost[] = [
-    {
+    createTestEntity<BlogPost>("post", {
       id: "post-1",
-      entityType: "post",
       content: post1Content,
-      contentHash: computeContentHash(post1Content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title: "First Post",
         slug: "first-post",
         status: "published",
         publishedAt: "2025-01-15T10:00:00.000Z",
       },
-    },
-    {
+    }),
+    createTestEntity<BlogPost>("post", {
       id: "post-2",
-      entityType: "post",
       content: post2Content,
-      contentHash: computeContentHash(post2Content),
-      created: "2025-01-02T10:00:00.000Z",
-      updated: "2025-01-02T10:00:00.000Z",
       metadata: {
         title: "Second Post",
         slug: "second-post",
         status: "published",
         publishedAt: "2025-01-10T10:00:00.000Z",
       },
-    },
-    {
+    }),
+    createTestEntity<BlogPost>("post", {
       id: "draft-post",
-      entityType: "post",
       content: draftContent,
-      contentHash: computeContentHash(draftContent),
-      created: "2025-01-03T10:00:00.000Z",
-      updated: "2025-01-03T10:00:00.000Z",
       metadata: {
         title: "Draft Post",
         slug: "draft-post",
         status: "draft",
       },
-    },
+    }),
   ];
 
   describe("metadata", () => {

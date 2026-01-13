@@ -74,3 +74,6 @@ export {
   type MockBatchJobManagerOptions,
   type MockBatchJobManagerReturns,
 } from "./mock-batch-job-manager";
+
+// Test entity fixtures
+export { createTestEntity, createTestEntities } from "./fixtures";

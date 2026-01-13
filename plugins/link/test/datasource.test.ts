@@ -2,9 +2,13 @@ import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { LinksDataSource } from "../src/datasources/links-datasource";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { LinkStatus, LinkEntity } from "../src/schemas/link";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import {
+  createMockLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 
 describe("LinksDataSource", () => {
   let datasource: LinksDataSource;
@@ -35,18 +39,16 @@ source:
 ---
 
 Summary for ${title}`;
-    return {
+    return createTestEntity<LinkEntity>("link", {
       id,
-      entityType: "link",
       content,
-      contentHash: computeContentHash(content),
       created: capturedAt,
       updated: capturedAt,
       metadata: {
         title,
         status,
       },
-    };
+    });
   };
 
   beforeEach(() => {

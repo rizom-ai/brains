@@ -3,8 +3,12 @@ import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, computeContentHash } from "@brains/utils";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { z } from "@brains/utils";
+import {
+  createMockLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 
 describe("DeckDataSource", () => {
   let datasource: DeckDataSource;
@@ -21,15 +25,11 @@ describe("DeckDataSource", () => {
     publishedAt?: string,
   ): DeckEntity => {
     const content = `# ${title}\n\n---\n\n# Slide 2`;
-    return {
+    return createTestEntity<DeckEntity>("deck", {
       id,
-      entityType: "deck",
       content,
-      contentHash: computeContentHash(content),
       title,
       status,
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       publishedAt,
       metadata: {
         title,
@@ -37,7 +37,7 @@ describe("DeckDataSource", () => {
         status,
         publishedAt,
       },
-    };
+    });
   };
 
   beforeEach(() => {

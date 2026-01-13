@@ -3,8 +3,12 @@ import { SocialPostDataSource } from "../src/datasources/social-post-datasource"
 import type { SocialPost } from "../src/schemas/social-post";
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, computeContentHash } from "@brains/utils";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { z } from "@brains/utils";
+import {
+  createMockLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 
 describe("SocialPostDataSource", () => {
   let datasource: SocialPostDataSource;
@@ -28,20 +32,16 @@ retryCount: 0
 ---
 
 ${body}`;
-    return {
+    return createTestEntity<SocialPost>("social-post", {
       id,
-      entityType: "social-post",
       content,
-      contentHash: computeContentHash(content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         slug,
         platform: "linkedin",
         status,
         queueOrder,
       },
-    };
+    });
   };
 
   beforeEach(() => {

@@ -1,12 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { ProjectAdapter } from "../src/adapters/project-adapter";
 import type { Project } from "../src/schemas/project";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
-function createMockProject(overrides: Partial<Project> = {}): Project {
-  const content =
-    overrides.content ??
-    `---
+const DEFAULT_PROJECT_CONTENT = `---
 title: Test Project
 status: draft
 description: A test project description
@@ -29,13 +26,9 @@ What we built.
 
 The results.`;
 
-  return {
-    id: "test-project",
-    entityType: "project",
-    content,
-    contentHash: computeContentHash(content),
-    created: "2025-01-30T10:00:00.000Z",
-    updated: "2025-01-30T10:00:00.000Z",
+function createMockProject(overrides: Partial<Project> = {}): Project {
+  return createTestEntity<Project>("project", {
+    content: DEFAULT_PROJECT_CONTENT,
     metadata: {
       title: "Test Project",
       slug: "test-project",
@@ -43,7 +36,7 @@ The results.`;
       year: 2024,
     },
     ...overrides,
-  };
+  });
 }
 
 describe("ProjectAdapter", () => {

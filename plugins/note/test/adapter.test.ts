@@ -1,22 +1,14 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { NoteAdapter } from "../src/adapters/note-adapter";
 import type { Note } from "../src/schemas/note";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 function createMockNote(overrides: Partial<Note> = {}): Note {
-  const content = overrides.content ?? "# Test Note\n\nContent here";
-  return {
-    id: "test-note-1",
-    entityType: "note",
-    content,
-    contentHash: computeContentHash(content),
-    created: "2025-01-30T10:00:00.000Z",
-    updated: "2025-01-30T10:00:00.000Z",
-    metadata: {
-      title: "Test Note",
-    },
+  return createTestEntity<Note>("note", {
+    content: "# Test Note\n\nContent here",
+    metadata: { title: "Test Note" },
     ...overrides,
-  };
+  });
 }
 
 describe("NoteAdapter", () => {

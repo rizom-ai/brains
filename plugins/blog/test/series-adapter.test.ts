@@ -1,23 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SeriesAdapter } from "../src/adapters/series-adapter";
 import type { Series } from "../src/schemas/series";
-import { computeContentHash } from "@brains/utils";
+import { createTestEntity } from "@brains/test-utils";
 
 function createMockSeries(overrides: Partial<Series> = {}): Series {
-  const content = overrides.content ?? "# Test Series";
-  return {
-    id: "series-test-series",
-    entityType: "series",
-    content,
-    contentHash: computeContentHash(content),
-    created: "2025-01-30T10:00:00.000Z",
-    updated: "2025-01-30T10:00:00.000Z",
+  return createTestEntity<Series>("series", {
+    content: "# Test Series",
     metadata: {
       name: "Test Series",
       slug: "test-series",
     },
     ...overrides,
-  };
+  });
 }
 
 describe("SeriesAdapter", () => {

@@ -3,8 +3,12 @@ import { ProjectDataSource } from "../src/datasources/project-datasource";
 import type { Project } from "../src/schemas/project";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, computeContentHash } from "@brains/utils";
-import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { z } from "@brains/utils";
+import {
+  createMockLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 
 describe("ProjectDataSource", () => {
   let datasource: ProjectDataSource;
@@ -39,20 +43,16 @@ Solution for ${title}
 
 ## Outcome
 Outcome for ${title}`;
-    return {
+    return createTestEntity<Project>("project", {
       id,
-      entityType: "project",
       content,
-      contentHash: computeContentHash(content),
-      created: "2025-01-01T10:00:00.000Z",
-      updated: "2025-01-01T10:00:00.000Z",
       metadata: {
         title,
         slug,
         status,
         year,
       },
-    };
+    });
   };
 
   beforeEach(() => {
@@ -319,20 +319,16 @@ Solution for ${title}
 
 ## Outcome
 Outcome for ${title}`;
-      return {
+      return createTestEntity<Project>("project", {
         id,
-        entityType: "project",
         content,
-        contentHash: computeContentHash(content),
-        created: "2025-01-01T10:00:00.000Z",
-        updated: "2025-01-01T10:00:00.000Z",
         metadata: {
           title,
           slug,
           status: "published",
           year: 2024,
         },
-      };
+      });
     };
 
     it("should include coverImageId in frontmatter for site-builder enrichment", async () => {

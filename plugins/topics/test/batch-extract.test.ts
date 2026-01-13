@@ -2,35 +2,29 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { topicSourceSchema, type TopicSource } from "../src/schemas/topic";
 import TopicsPlugin from "../src/index";
 import { createServicePluginHarness } from "@brains/plugins/test";
-import type { BaseEntity } from "@brains/plugins";
+import { createTestEntity } from "@brains/test-utils";
 
 function createMockEntity(
   id: string,
   type: string,
   status: string = "published",
   contentHash?: string,
-): BaseEntity {
-  return {
+) {
+  return createTestEntity(type, {
     id,
-    entityType: type,
     content: `Content for ${id}`,
     contentHash: contentHash ?? `hash-${id}`,
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
     metadata: { status },
-  };
+  });
 }
 
-function createMockTopic(id: string, sources: TopicSource[] = []): BaseEntity {
-  return {
+function createMockTopic(id: string, sources: TopicSource[] = []) {
+  return createTestEntity("topic", {
     id,
-    entityType: "topic",
     content: `# ${id}\n\nTopic content`,
     contentHash: `hash-${id}`,
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
     metadata: { sources },
-  };
+  });
 }
 
 describe("TopicSource schema", () => {
