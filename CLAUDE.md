@@ -1,6 +1,6 @@
 # CLAUDE.md - Guidelines for Personal Brain Rebuild Project
 
-> **Note**: For plugin and interface development, see [CLAUDE-PLUGINS-INTERFACES.md](./CLAUDE-PLUGINS-INTERFACES.md) for specialized guidelines.
+> **Note**: Plugin/interface guidelines are auto-loaded from `plugins/CLAUDE.md` and `interfaces/CLAUDE.md` when working in those directories.
 
 ## Your Role as an Elite Code Assistant
 
@@ -114,7 +114,7 @@ Refer to these documents for detailed architecture information:
 - **Messaging System**: `docs/messaging-system.md`
 - **Development Workflow**: `docs/development-workflow.md`
 - **Deployment Guide**: `docs/deployment.md`
-- **Plugin/Interface Development**: `CLAUDE-PLUGINS-INTERFACES.md` (specialized guidelines)
+- **Plugin Quick Reference**: `docs/plugin-quick-reference.md` (condensed cheat sheet)
 - **Theming System**: `docs/theming-guide.md` (comprehensive theming guide)
 
 ## Theming Guidelines

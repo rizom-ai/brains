@@ -1,6 +1,6 @@
 # Plugin Development Quick Reference
 
-A condensed guide for rapidly developing plugins. For detailed documentation, see [CLAUDE-PLUGINS-INTERFACES.md](../CLAUDE-PLUGINS-INTERFACES.md).
+A condensed guide for rapidly developing plugins. Detailed guidelines are auto-loaded from `plugins/CLAUDE.md` and `interfaces/CLAUDE.md` when working in those directories.
 
 ## Decision Tree: Which Plugin Type?
 
