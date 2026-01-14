@@ -21,13 +21,15 @@ function createMockContext(): ServicePluginContext {
   const mockContext = createMockServicePluginContext({
     returns: {
       jobsEnqueue: "job-456",
-      generateContent: {
-        title: "AI Project",
-        description: "AI generated description",
-        context: "AI context",
-        problem: "AI problem",
-        solution: "AI solution",
-        outcome: "AI outcome",
+      ai: {
+        generate: {
+          title: "AI Project",
+          description: "AI generated description",
+          context: "AI context",
+          problem: "AI problem",
+          solution: "AI solution",
+          outcome: "AI outcome",
+        },
       },
       entityService: {
         createEntity: { entityId: "project-123" },

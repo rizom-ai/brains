@@ -4,8 +4,6 @@ import type {
   EntityInput,
   IdentityBody,
   ProfileBody,
-  ImageGenerationOptions,
-  ImageGenerationResult,
 } from "@brains/plugins";
 
 /**
@@ -60,14 +58,6 @@ export interface IImagePlugin {
   getAdapter<T extends BaseEntity>(
     entityType: string,
   ): EntityAdapter<T> | undefined;
-
-  /**
-   * Generate an image from a text prompt using DALL-E 3
-   */
-  generateImage(
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult>;
 
   /**
    * Check if image generation is available

@@ -17,7 +17,9 @@ function createMockContext(): ServicePluginContext {
   return createMockServicePluginContext({
     returns: {
       jobsEnqueue: "job-456",
-      generateContent: { title: "AI Title", body: "AI Body" },
+      ai: {
+        generate: { title: "AI Title", body: "AI Body" },
+      },
       entityService: {
         createEntity: { entityId: "note-123" },
         getEntity: null,

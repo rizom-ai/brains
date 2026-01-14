@@ -1,7 +1,7 @@
 import type {
   PluginTool,
   ToolContext,
-  ImageGenerationOptions,
+  ServicePluginContext,
 } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import { z, slugify, setCoverImageId } from "@brains/utils";
@@ -148,15 +148,16 @@ const generateInputSchema = z.object({
  * Create the image_generate tool
  */
 function createImageGenerateTool(
+  context: ServicePluginContext,
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
   return createTool(
     pluginId,
     "generate",
-    "Generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
+    "Queue a job to generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
     generateInputSchema.shape,
-    async (input: unknown, _toolContext: ToolContext) => {
+    async (input: unknown, toolContext: ToolContext) => {
       try {
         // Check if image generation is available
         if (!plugin.canGenerateImages()) {
@@ -169,37 +170,33 @@ function createImageGenerateTool(
 
         const { prompt, title, size, style } = generateInputSchema.parse(input);
 
-        // Build options
-        const options: ImageGenerationOptions = {};
-        if (size) options.size = size;
-        if (style) options.style = style;
-
         // Build full prompt with base context
         const basePrompt = buildImageBasePrompt(plugin);
         const fullPrompt = basePrompt + prompt;
 
-        // Generate the image
-        const result = await plugin.generateImage(fullPrompt, options);
-
-        // Create image entity from the generated data URL
-        const entityData = imageAdapter.createImageEntity({
-          dataUrl: result.dataUrl,
-          title,
-        });
-
-        // Generate slug from title
-        const slug = slugify(title);
-
-        // Create entity in database
-        const createResult = await plugin.createEntity({
-          ...entityData,
-          id: slug,
-        });
+        // Queue the image generation job
+        const jobId = await context.jobs.enqueue(
+          "image-generate",
+          {
+            prompt: fullPrompt,
+            title,
+            ...(size && { size }),
+            ...(style && { style }),
+          },
+          toolContext,
+          {
+            source: `${pluginId}_generate`,
+            metadata: {
+              operationType: "content_operations",
+              operationTarget: "image",
+            },
+          },
+        );
 
         return {
           success: true,
-          data: { imageId: slug, jobId: createResult.jobId },
-          message: `Image generated: ${title} (${entityData.metadata.width}x${entityData.metadata.height})`,
+          data: { jobId },
+          message: `Image generation job queued (jobId: ${jobId})`,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -247,15 +244,16 @@ const setCoverInputSchema = z.object({
  * Create the set-cover tool
  */
 function createSetCoverTool(
+  context: ServicePluginContext,
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
   return createTool(
     pluginId,
     "set-cover",
-    "Set or remove cover image on an entity. Use imageId to set existing image, generate:true to create new image, or imageId:null to remove.",
+    "Set or remove cover image on an entity. Use imageId to set existing image, generate:true to queue image generation job, or imageId:null to remove.",
     setCoverInputSchema.shape,
-    async (input: unknown, _toolContext: ToolContext) => {
+    async (input: unknown, toolContext: ToolContext) => {
       try {
         const { entityType, entityId, imageId, generate, prompt, size, style } =
           setCoverInputSchema.parse(input);
@@ -279,9 +277,7 @@ function createSetCoverTool(
         }
         const entity = baseEntity as EntityWithCoverImage;
 
-        let finalImageId: string | null = imageId ?? null;
-
-        // Generate new image if requested
+        // Generate new image if requested (async via job queue)
         if (generate) {
           if (!plugin.canGenerateImages()) {
             return {
@@ -300,29 +296,43 @@ function createSetCoverTool(
           const subjectPrompt = prompt ?? `Cover image for: ${entityTitle}`;
           const fullPrompt = basePrompt + subjectPrompt;
 
-          // Build options
-          const options: ImageGenerationOptions = {};
-          if (size) options.size = size;
-          if (style) options.style = style;
+          // Queue the image generation job with target entity info
+          const jobId = await context.jobs.enqueue(
+            "image-generate",
+            {
+              prompt: fullPrompt,
+              title: imageTitle,
+              ...(size && { size }),
+              ...(style && { style }),
+              targetEntityType: entityType,
+              targetEntityId: entity.id,
+            },
+            toolContext,
+            {
+              source: `${pluginId}_set-cover`,
+              metadata: {
+                operationType: "content_operations",
+                operationTarget: "image",
+              },
+            },
+          );
 
-          // Generate the image
-          const result = await plugin.generateImage(fullPrompt, options);
+          return {
+            success: true,
+            data: {
+              jobId,
+              entityType,
+              entityId,
+            },
+            message: `Cover image generation job queued for ${entityType}/${entityId} (jobId: ${jobId})`,
+          };
+        }
 
-          // Create image entity
-          const entityData = imageAdapter.createImageEntity({
-            dataUrl: result.dataUrl,
-            title: imageTitle,
-          });
+        // Set existing image or remove
+        let finalImageId: string | null = imageId ?? null;
 
-          const imageSlug = slugify(imageTitle);
-          await plugin.createEntity({
-            ...entityData,
-            id: imageSlug,
-          });
-
-          finalImageId = imageSlug;
-        } else if (finalImageId) {
-          // Validate existing image exists (if setting, not removing)
+        if (finalImageId) {
+          // Validate existing image exists
           const image = await plugin.getEntity("image", finalImageId);
           if (!image) {
             return {
@@ -337,9 +347,7 @@ function createSetCoverTool(
         await plugin.updateEntity(updated);
 
         const message = finalImageId
-          ? generate
-            ? `Generated and set cover image '${finalImageId}' on ${entityType}/${entityId}`
-            : `Cover image set to '${finalImageId}' on ${entityType}/${entityId}`
+          ? `Cover image set to '${finalImageId}' on ${entityType}/${entityId}`
           : `Cover image removed from ${entityType}/${entityId}`;
 
         return {
@@ -348,7 +356,7 @@ function createSetCoverTool(
             entityType,
             entityId,
             imageId: finalImageId,
-            generated: generate ?? false,
+            generated: false,
           },
           message,
         };
@@ -367,12 +375,13 @@ function createSetCoverTool(
  * Create all image tools
  */
 export function createImageTools(
+  context: ServicePluginContext,
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool[] {
   return [
     createImageUploadTool(plugin, pluginId),
-    createImageGenerateTool(plugin, pluginId),
-    createSetCoverTool(plugin, pluginId),
+    createImageGenerateTool(context, plugin, pluginId),
+    createSetCoverTool(context, plugin, pluginId),
   ];
 }

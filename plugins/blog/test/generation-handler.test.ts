@@ -68,10 +68,12 @@ Content`;
 
     mockContext = createMockServicePluginContext({
       returns: {
-        generateContent: {
-          title: "Generated Title",
-          content: "Generated content",
-          excerpt: "Generated excerpt",
+        ai: {
+          generate: {
+            title: "Generated Title",
+            content: "Generated content",
+            excerpt: "Generated excerpt",
+          },
         },
         entityService: {
           getEntity: createMockProfile("Test Author"),

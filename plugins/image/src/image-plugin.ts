@@ -6,11 +6,11 @@ import type {
   EntityAdapter,
   IdentityBody,
   ProfileBody,
-  ImageGenerationOptions,
-  ImageGenerationResult,
+  ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createImageTools } from "./tools";
+import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
 import type { IImagePlugin, ImageConfig } from "./types";
 import packageJson from "../package.json";
 
@@ -58,7 +58,23 @@ export class ImagePlugin
    * Get plugin tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    return createImageTools(this, this.id);
+    if (!this.context) {
+      throw new Error("Plugin not registered");
+    }
+    return createImageTools(this.context, this, this.id);
+  }
+
+  /**
+   * Register job handlers on plugin registration
+   */
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+
+    // Register the image generation job handler
+    const handler = new ImageGenerationJobHandler(context, context.logger);
+    context.jobs.registerHandler("image-generate", handler);
   }
 
   // ============================================================================
@@ -158,19 +174,6 @@ export class ImagePlugin
       throw new Error("Plugin not registered");
     }
     return this.context.entities.getAdapter<T>(entityType);
-  }
-
-  /**
-   * Generate an image from a text prompt using DALL-E 3
-   */
-  public async generateImage(
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.ai.generateImage(prompt, options);
   }
 
   /**

@@ -12,13 +12,27 @@ import {
 import { createMockLogger } from "./mock-logger";
 
 /**
+ * Return value configuration for AI namespace methods
+ */
+export interface MockAIReturns {
+  /** Return value for canGenerateImages */
+  canGenerateImages?: boolean;
+  /** Return value for generateImage */
+  generateImage?: { base64: string; dataUrl: string };
+  /** Error to throw from generateImage */
+  generateImageError?: Error;
+  /** Return value for generate */
+  generate?: Record<string, unknown>;
+}
+
+/**
  * Return value configuration for mock service plugin context methods
  */
 export interface MockServicePluginContextReturns {
   /** Return values for entity service methods */
   entityService?: MockEntityServiceReturns;
-  /** Return value for generateContent */
-  generateContent?: Record<string, unknown>;
+  /** Return values for AI namespace methods */
+  ai?: MockAIReturns;
   /** Return value for jobs.enqueue */
   jobsEnqueue?: string;
 }
@@ -62,7 +76,10 @@ export interface MockServicePluginContextOptions {
  *       getEntity: mockEntity,
  *       deleteEntity: true,
  *     },
- *     generateContent: { title: "Generated Title" },
+ *     ai: {
+ *       canGenerateImages: true,
+ *       generateImage: { base64: "...", dataUrl: "data:image/png;base64,..." },
+ *     },
  *     jobsEnqueue: "job-123",
  *   }
  * });
@@ -112,11 +129,19 @@ export function createMockServicePluginContext(
     // AI operations namespace
     ai: {
       query: mock(() => Promise.resolve({ message: "mock response" })),
-      generate: mock(() => Promise.resolve(returns.generateContent ?? {})),
-      generateImage: mock(() =>
-        Promise.resolve({ url: "mock-url", revisedPrompt: "mock prompt" }),
-      ),
-      canGenerateImages: mock(() => false),
+      generate: mock(() => Promise.resolve(returns.ai?.generate ?? {})),
+      generateImage: mock(() => {
+        if (returns.ai?.generateImageError) {
+          return Promise.reject(returns.ai.generateImageError);
+        }
+        return Promise.resolve(
+          returns.ai?.generateImage ?? {
+            base64: "mock-base64",
+            dataUrl: "data:image/png;base64,mock-base64",
+          },
+        );
+      }),
+      canGenerateImages: mock(() => returns.ai?.canGenerateImages ?? false),
     },
 
     // Identity namespace

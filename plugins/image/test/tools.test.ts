@@ -2,20 +2,21 @@ import { describe, expect, it } from "bun:test";
 import { createImageTools } from "../src/tools";
 import type { IImagePlugin } from "../src/types";
 import type { Image } from "@brains/image";
-import type {
-  ToolContext,
-  BaseEntity,
-  EntityAdapter,
-  ImageGenerationResult,
-  ImageGenerationOptions,
-} from "@brains/plugins";
+import type { ToolContext, BaseEntity, EntityAdapter } from "@brains/plugins";
+import { createMockServicePluginContext } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
 // Shared schema for parsing tool result data in tests
 const withImageId = z.object({ imageId: z.string() });
+const withJobId = z.object({ jobId: z.string() });
 const setCoverData = z.object({
   imageId: z.string().nullable(),
   generated: z.boolean(),
+});
+const setCoverDataAsync = z.object({
+  jobId: z.string(),
+  entityType: z.string(),
+  entityId: z.string(),
 });
 
 const mockToolContext: ToolContext = {
@@ -62,7 +63,6 @@ function createMockImagePlugin(
     updateEntity?: { entityId: string; jobId: string };
     getAdapter?: EntityAdapter<BaseEntity> | undefined;
     canGenerateImages?: boolean;
-    generateImage?: { dataUrl: string; base64: string };
   } = {},
 ): IImagePlugin {
   return {
@@ -75,11 +75,6 @@ function createMockImagePlugin(
     getAdapter: <T extends BaseEntity>() =>
       overrides.getAdapter as EntityAdapter<T> | undefined,
     canGenerateImages: () => overrides.canGenerateImages ?? false,
-    generateImage: async () =>
-      overrides.generateImage ?? {
-        dataUrl: TINY_PNG_DATA_URL,
-        base64: TINY_PNG_BASE64,
-      },
     getIdentityData: () => ({
       name: "test",
       role: "test",
@@ -94,18 +89,20 @@ describe("Image Tools", () => {
   describe("image_upload tool", () => {
     it("should have correct metadata", () => {
       const plugin = createMockImagePlugin();
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_upload");
 
       expect(tool).toBeDefined();
       expect(tool?.description).toContain("Upload");
     });
 
-    it("should create image entity with title and data URL source", async () => {
+    it("should upload image from data URL", async () => {
       const plugin = createMockImagePlugin({
         createEntity: { entityId: "test-image", jobId: "job-123" },
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_upload");
       if (!tool) throw new Error("Tool not found");
 
@@ -120,20 +117,21 @@ describe("Image Tools", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         const data = withImageId.parse(result.data);
-        expect(data.imageId).toBeDefined();
+        expect(data.imageId).toBe("test-image");
       }
     });
 
-    it("should fail for invalid source", async () => {
+    it("should reject invalid source", async () => {
       const plugin = createMockImagePlugin();
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_upload");
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
         {
           title: "Test Image",
-          source: "not-a-valid-source",
+          source: "invalid-source",
         },
         mockToolContext,
       );
@@ -148,21 +146,25 @@ describe("Image Tools", () => {
   describe("image_generate tool", () => {
     it("should have correct metadata", () => {
       const plugin = createMockImagePlugin();
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_generate");
 
       expect(tool).toBeDefined();
-      expect(tool?.description).toContain("Generate");
+      expect(tool?.description).toContain("Queue");
       expect(tool?.description).toContain("DALL-E");
     });
 
-    it("should generate image when API is available", async () => {
+    it("should queue job when API is available", async () => {
       const plugin = createMockImagePlugin({
         canGenerateImages: true,
-        generateImage: { dataUrl: TINY_PNG_DATA_URL, base64: TINY_PNG_BASE64 },
-        createEntity: { entityId: "generated-image", jobId: "job-456" },
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "gen-job-123",
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_generate");
       if (!tool) throw new Error("Tool not found");
 
@@ -173,18 +175,31 @@ describe("Image Tools", () => {
         },
         mockToolContext,
       );
+
       expect(result.success).toBe(true);
       if (result.success) {
-        const data = withImageId.parse(result.data);
-        expect(data.imageId).toBeDefined();
+        const data = withJobId.parse(result.data);
+        expect(data.jobId).toBe("gen-job-123");
       }
+
+      // Verify job was enqueued with correct data
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.objectContaining({
+          prompt: expect.stringContaining("A beautiful sunset"),
+          title: "Sunset Image",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
 
     it("should fail when image generation not available", async () => {
       const plugin = createMockImagePlugin({
         canGenerateImages: false,
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_generate");
       if (!tool) throw new Error("Tool not found");
 
@@ -202,21 +217,16 @@ describe("Image Tools", () => {
       }
     });
 
-    it("should accept size and style options", async () => {
-      let capturedPrompt: string | undefined;
-      let capturedOptions: ImageGenerationOptions | undefined;
+    it("should pass size and style options to job", async () => {
       const plugin = createMockImagePlugin({
         canGenerateImages: true,
       });
-      plugin.generateImage = async (
-        prompt: string,
-        options?: ImageGenerationOptions,
-      ): Promise<ImageGenerationResult> => {
-        capturedPrompt = prompt;
-        capturedOptions = options;
-        return { dataUrl: TINY_PNG_DATA_URL, base64: TINY_PNG_BASE64 };
-      };
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "gen-job-456",
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_generate");
       if (!tool) throw new Error("Tool not found");
 
@@ -230,9 +240,15 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(capturedPrompt).toContain("A test image");
-      expect(capturedOptions?.size).toBe("1024x1024");
-      expect(capturedOptions?.style).toBe("natural");
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.objectContaining({
+          size: "1024x1024",
+          style: "natural",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
   });
 
@@ -247,20 +263,22 @@ describe("Image Tools", () => {
 
     it("should have correct metadata", () => {
       const plugin = createMockImagePlugin();
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_set-cover");
 
       expect(tool).toBeDefined();
       expect(tool?.description).toContain("cover image");
     });
 
-    it("should set existing image as cover", async () => {
+    it("should set existing cover image", async () => {
       const plugin = createMockImagePlugin({
         getAdapter: mockAdapterWithCover,
         findEntity: mockPostEntity,
         getEntity: mockImageEntity,
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_set-cover");
       if (!tool) throw new Error("Tool not found");
 
@@ -272,6 +290,7 @@ describe("Image Tools", () => {
         },
         mockToolContext,
       );
+
       expect(result.success).toBe(true);
       if (result.success) {
         const data = setCoverData.parse(result.data);
@@ -285,7 +304,8 @@ describe("Image Tools", () => {
         getAdapter: mockAdapterWithCover,
         findEntity: mockPostEntity,
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_set-cover");
       if (!tool) throw new Error("Tool not found");
 
@@ -297,6 +317,7 @@ describe("Image Tools", () => {
         },
         mockToolContext,
       );
+
       expect(result.success).toBe(true);
       if (result.success) {
         const data = setCoverData.parse(result.data);
@@ -304,18 +325,19 @@ describe("Image Tools", () => {
       }
     });
 
-    it("should fail for unsupported entity type", async () => {
+    it("should fail when entity type doesn't support cover images", async () => {
       const plugin = createMockImagePlugin({
         getAdapter: mockAdapterWithoutCover,
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_set-cover");
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
         {
-          entityType: "unsupported",
-          entityId: "test",
+          entityType: "note",
+          entityId: "test-note",
           imageId: "hero-image",
         },
         mockToolContext,
@@ -332,14 +354,15 @@ describe("Image Tools", () => {
         getAdapter: mockAdapterWithCover,
         findEntity: null,
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_set-cover");
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
         {
           entityType: "post",
-          entityId: "non-existent",
+          entityId: "nonexistent",
           imageId: "hero-image",
         },
         mockToolContext,
@@ -347,7 +370,7 @@ describe("Image Tools", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("Entity not found");
+        expect(result.error).toContain("not found");
       }
     });
 
@@ -357,7 +380,8 @@ describe("Image Tools", () => {
         findEntity: mockPostEntity,
         getEntity: null,
       });
-      const tools = createImageTools(plugin, "image");
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
       const tool = tools.find((t) => t.name === "image_set-cover");
       if (!tool) throw new Error("Tool not found");
 
@@ -365,7 +389,7 @@ describe("Image Tools", () => {
         {
           entityType: "post",
           entityId: "test-post",
-          imageId: "non-existent-image",
+          imageId: "nonexistent-image",
         },
         mockToolContext,
       );
@@ -376,132 +400,111 @@ describe("Image Tools", () => {
       }
     });
 
-    describe("generate flag", () => {
-      it("should generate and set cover image when generate:true", async () => {
-        const plugin = createMockImagePlugin({
-          getAdapter: mockAdapterWithCover,
-          findEntity: mockPostEntity,
-          canGenerateImages: true,
-          generateImage: {
-            dataUrl: TINY_PNG_DATA_URL,
-            base64: TINY_PNG_BASE64,
-          },
-          createEntity: { entityId: "test-post-cover", jobId: "job-1" },
-        });
-        const tools = createImageTools(plugin, "image");
-        const tool = tools.find((t) => t.name === "image_set-cover");
-        if (!tool) throw new Error("Tool not found");
-
-        const result = await tool.handler(
-          {
-            entityType: "post",
-            entityId: "test-post",
-            generate: true,
-          },
-          mockToolContext,
-        );
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const data = setCoverData.parse(result.data);
-          expect(data.generated).toBe(true);
-          expect(data.imageId).toBeDefined();
-        }
+    it("should queue job when generate:true", async () => {
+      const plugin = createMockImagePlugin({
+        canGenerateImages: true,
+        getAdapter: mockAdapterWithCover,
+        findEntity: mockPostEntity,
       });
-
-      it("should use custom prompt when provided", async () => {
-        let capturedPrompt = "";
-        const plugin = createMockImagePlugin({
-          getAdapter: mockAdapterWithCover,
-          findEntity: mockPostEntity,
-          canGenerateImages: true,
-          generateImage: {
-            dataUrl: TINY_PNG_DATA_URL,
-            base64: TINY_PNG_BASE64,
-          },
-        });
-        plugin.generateImage = async (
-          prompt: string,
-        ): Promise<ImageGenerationResult> => {
-          capturedPrompt = prompt;
-          return { dataUrl: TINY_PNG_DATA_URL, base64: TINY_PNG_BASE64 };
-        };
-        const tools = createImageTools(plugin, "image");
-        const tool = tools.find((t) => t.name === "image_set-cover");
-        if (!tool) throw new Error("Tool not found");
-
-        await tool.handler(
-          {
-            entityType: "post",
-            entityId: "test-post",
-            generate: true,
-            prompt: "A custom image prompt",
-          },
-          mockToolContext,
-        );
-
-        expect(capturedPrompt).toContain("A custom image prompt");
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "cover-job-789",
+        },
       });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_set-cover");
+      if (!tool) throw new Error("Tool not found");
 
-      it("should fail when image generation not available", async () => {
-        const plugin = createMockImagePlugin({
-          getAdapter: mockAdapterWithCover,
-          findEntity: mockPostEntity,
-          canGenerateImages: false,
-        });
-        const tools = createImageTools(plugin, "image");
-        const tool = tools.find((t) => t.name === "image_set-cover");
-        if (!tool) throw new Error("Tool not found");
+      const result = await tool.handler(
+        {
+          entityType: "post",
+          entityId: "test-post",
+          generate: true,
+        },
+        mockToolContext,
+      );
 
-        const result = await tool.handler(
-          {
-            entityType: "post",
-            entityId: "test-post",
-            generate: true,
-          },
-          mockToolContext,
-        );
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = setCoverDataAsync.parse(result.data);
+        expect(data.jobId).toBe("cover-job-789");
+        expect(data.entityType).toBe("post");
+        expect(data.entityId).toBe("test-post");
+      }
 
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error).toContain("not available");
-        }
+      // Verify job was enqueued with target entity info
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.objectContaining({
+          targetEntityType: "post",
+          targetEntityId: "test-post",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
+    });
+
+    it("should fail generation when API not available", async () => {
+      const plugin = createMockImagePlugin({
+        canGenerateImages: false,
+        getAdapter: mockAdapterWithCover,
+        findEntity: mockPostEntity,
       });
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_set-cover");
+      if (!tool) throw new Error("Tool not found");
 
-      it("should accept size and style options for generation", async () => {
-        let capturedPrompt: string | undefined;
-        let capturedOptions: ImageGenerationOptions | undefined;
-        const plugin = createMockImagePlugin({
-          getAdapter: mockAdapterWithCover,
-          findEntity: mockPostEntity,
-          canGenerateImages: true,
-        });
-        plugin.generateImage = async (
-          prompt: string,
-          options?: ImageGenerationOptions,
-        ): Promise<ImageGenerationResult> => {
-          capturedPrompt = prompt;
-          capturedOptions = options;
-          return { dataUrl: TINY_PNG_DATA_URL, base64: TINY_PNG_BASE64 };
-        };
-        const tools = createImageTools(plugin, "image");
-        const tool = tools.find((t) => t.name === "image_set-cover");
-        if (!tool) throw new Error("Tool not found");
+      const result = await tool.handler(
+        {
+          entityType: "post",
+          entityId: "test-post",
+          generate: true,
+        },
+        mockToolContext,
+      );
 
-        await tool.handler(
-          {
-            entityType: "post",
-            entityId: "test-post",
-            generate: true,
-            size: "1792x1024",
-            style: "natural",
-          },
-          mockToolContext,
-        );
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("not available");
+      }
+    });
 
-        expect(capturedPrompt).toContain("Test Post");
-        expect(capturedOptions?.size).toBe("1792x1024");
-        expect(capturedOptions?.style).toBe("natural");
+    it("should pass size and style options when generating", async () => {
+      const plugin = createMockImagePlugin({
+        canGenerateImages: true,
+        getAdapter: mockAdapterWithCover,
+        findEntity: mockPostEntity,
       });
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "cover-job-abc",
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_set-cover");
+      if (!tool) throw new Error("Tool not found");
+
+      await tool.handler(
+        {
+          entityType: "post",
+          entityId: "test-post",
+          generate: true,
+          size: "1024x1024",
+          style: "natural",
+        },
+        mockToolContext,
+      );
+
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.objectContaining({
+          size: "1024x1024",
+          style: "natural",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
   });
 });
