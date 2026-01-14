@@ -34,13 +34,13 @@ export const linkFrontmatterSchema = z.object({
 });
 
 /**
- * Link metadata schema for filtering and display
- * - title: for display in lists
- * - status: for filtering (draft/published)
+ * Link metadata schema - derived from frontmatter
+ * Only includes fields needed for fast DB queries/filtering
+ * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const linkMetadataSchema = z.object({
-  title: z.string().optional(),
-  status: linkStatusSchema,
+export const linkMetadataSchema = linkFrontmatterSchema.pick({
+  title: true,
+  status: true,
 });
 
 /**

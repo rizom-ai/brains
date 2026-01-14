@@ -111,7 +111,7 @@ export function createMockLinkEntity(
     content: overrides.content,
     ...(overrides.created && { created: overrides.created }),
     ...(overrides.updated && { updated: overrides.updated }),
-    metadata: overrides.metadata ?? { status: "draft" },
+    metadata: overrides.metadata ?? { status: "draft", title: "Test Link" },
   });
 }
 

@@ -31,17 +31,22 @@ export const blogPostFrontmatterSchema = z.object({
 export type BlogPostFrontmatter = z.infer<typeof blogPostFrontmatterSchema>;
 
 /**
- * Blog post metadata schema (duplicates key searchable fields from frontmatter)
- * Following summary plugin pattern - used for fast filtering without parsing
+ * Blog post metadata schema - derived from frontmatter
+ * Only includes fields needed for fast DB queries/filtering
+ * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const blogPostMetadataSchema = z.object({
-  title: z.string(),
-  slug: z.string(), // Required in metadata for fast slug-based queries
-  status: blogPostStatusSchema,
-  publishedAt: z.string().datetime().optional(),
-  seriesName: z.string().optional(),
-  seriesIndex: z.number().optional(),
-});
+export const blogPostMetadataSchema = blogPostFrontmatterSchema
+  .pick({
+    title: true,
+    status: true,
+    publishedAt: true,
+    seriesName: true,
+    seriesIndex: true,
+  })
+  .extend({
+    // slug is required in metadata (auto-generated from title if not in frontmatter)
+    slug: z.string(),
+  });
 
 export type BlogPostMetadata = z.infer<typeof blogPostMetadataSchema>;
 

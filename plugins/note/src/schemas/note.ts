@@ -12,12 +12,13 @@ export const noteFrontmatterSchema = z.object({
 export type NoteFrontmatter = z.infer<typeof noteFrontmatterSchema>;
 
 /**
- * Note metadata schema (in DB for fast queries)
- * Title is required - derived from frontmatter, H1, or filename
+ * Note metadata schema - derived from frontmatter
+ * Title is required in metadata (derived from frontmatter, H1, or filename)
+ * Using .required() ensures all picked fields are non-optional
  */
-export const noteMetadataSchema = z.object({
-  title: z.string(),
-});
+export const noteMetadataSchema = noteFrontmatterSchema
+  .pick({ title: true })
+  .required();
 
 export type NoteMetadata = z.infer<typeof noteMetadataSchema>;
 

@@ -20,16 +20,21 @@ export const projectFrontmatterSchema = z.object({
 export type ProjectFrontmatter = z.infer<typeof projectFrontmatterSchema>;
 
 /**
- * Project metadata schema (duplicates key searchable fields from frontmatter)
- * Used for fast filtering without parsing content
+ * Project metadata schema - derived from frontmatter
+ * Only includes fields needed for fast DB queries/filtering
+ * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const projectMetadataSchema = z.object({
-  title: z.string(),
-  slug: z.string(), // Required in metadata for fast slug-based queries
-  status: z.enum(["draft", "published"]),
-  publishedAt: z.string().datetime().optional(),
-  year: z.number(),
-});
+export const projectMetadataSchema = projectFrontmatterSchema
+  .pick({
+    title: true,
+    status: true,
+    publishedAt: true,
+    year: true,
+  })
+  .extend({
+    // slug is required in metadata (auto-generated from title if not in frontmatter)
+    slug: z.string(),
+  });
 
 export type ProjectMetadata = z.infer<typeof projectMetadataSchema>;
 

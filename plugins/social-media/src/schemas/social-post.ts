@@ -58,16 +58,21 @@ export const socialPostFrontmatterSchema = z.object({
 export type SocialPostFrontmatter = z.infer<typeof socialPostFrontmatterSchema>;
 
 /**
- * Social post metadata schema (duplicates key searchable fields from frontmatter)
- * Used for fast filtering without parsing markdown content
+ * Social post metadata schema - derived from frontmatter
+ * Only includes fields needed for fast DB queries/filtering
+ * Using .pick() ensures metadata stays in sync with frontmatter
  */
-export const socialPostMetadataSchema = z.object({
-  slug: z.string().describe("URL-friendly identifier"),
-  platform: platformSchema,
-  status: socialPostStatusSchema,
-  queueOrder: z.number().optional(),
-  publishedAt: z.string().datetime().optional(),
-});
+export const socialPostMetadataSchema = socialPostFrontmatterSchema
+  .pick({
+    platform: true,
+    status: true,
+    queueOrder: true,
+    publishedAt: true,
+  })
+  .extend({
+    // slug is required in metadata (auto-generated from content/id)
+    slug: z.string().describe("URL-friendly identifier"),
+  });
 
 export type SocialPostMetadata = z.infer<typeof socialPostMetadataSchema>;
 
