@@ -5,6 +5,11 @@ import { createTemplate } from "@brains/plugins";
  * Schema for AI-generated LinkedIn post
  */
 export const linkedinPostSchema = z.object({
+  title: z
+    .string()
+    .describe(
+      "A short descriptive title (3-6 words) summarizing the post topic. Used for file naming, not displayed on LinkedIn. Examples: 'Plugin System Launch', 'TypeScript Best Practices', 'Q4 Results Summary'",
+    ),
   content: z
     .string()
     .describe(

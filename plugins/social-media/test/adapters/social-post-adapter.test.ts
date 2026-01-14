@@ -5,10 +5,12 @@ import type { SocialPost } from "../../src/schemas/social-post";
 /**
  * Social post format:
  * - Post content goes in markdown BODY (not frontmatter)
- * - Metadata (platform, status, etc.) goes in frontmatter
+ * - Metadata (title, platform, status, etc.) goes in frontmatter
+ * - Slug is auto-generated from platform + title (e.g., "linkedin-product-launch")
  *
  * Example:
  * ---
+ * title: Product Launch Announcement
  * platform: linkedin
  * status: draft
  * ---
@@ -18,6 +20,7 @@ describe("SocialPostAdapter", () => {
   describe("fromMarkdown", () => {
     it("should parse markdown with post content in body", () => {
       const markdown = `---
+title: TypeScript Best Practices
 platform: linkedin
 status: draft
 ---
@@ -26,12 +29,14 @@ Check out my new article about TypeScript best practices!`;
       const result = socialPostAdapter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("social-post");
+      expect(result.metadata?.title).toBe("TypeScript Best Practices");
       expect(result.metadata?.platform).toBe("linkedin");
       expect(result.metadata?.status).toBe("draft");
     });
 
-    it("should auto-generate slug from body content preview", () => {
+    it("should auto-generate slug from platform + title + date", () => {
       const markdown = `---
+title: Product Launch Update
 platform: linkedin
 status: draft
 ---
@@ -39,11 +44,15 @@ This is a test post for LinkedIn`;
 
       const result = socialPostAdapter.fromMarkdown(markdown);
 
-      expect(result.metadata?.slug).toBe("this-is-a-test-post-for-linkedin");
+      // Slug format: {platform}-{title}-{YYYYMMDD}
+      expect(result.metadata?.slug).toMatch(
+        /^linkedin-product-launch-update-\d{8}$/,
+      );
     });
 
     it("should parse queued post with queueOrder", () => {
       const markdown = `---
+title: Weekly Newsletter
 platform: linkedin
 status: queued
 queueOrder: 5
@@ -58,6 +67,7 @@ Queued post ready to publish`;
 
     it("should parse published post with timestamps", () => {
       const markdown = `---
+title: Q4 Results Summary
 platform: linkedin
 status: published
 publishedAt: "2024-01-15T10:30:00Z"
@@ -73,6 +83,7 @@ Successfully published!`;
 
     it("should parse post with source entity reference", () => {
       const markdown = `---
+title: Blog Post Promotion
 platform: linkedin
 status: queued
 sourceEntityId: post-123
@@ -89,6 +100,7 @@ Check out my blog post`;
 
     it("should parse failed post with error info", () => {
       const markdown = `---
+title: Failed Announcement
 platform: linkedin
 status: failed
 retryCount: 3
@@ -108,12 +120,14 @@ This post failed`;
         id: "social-post-123",
         entityType: "social-post",
         content: `---
+title: Hello World Post
 platform: linkedin
 status: draft
 ---
 Hello world`,
         metadata: {
-          slug: "hello-world",
+          title: "Hello World Post",
+          slug: "linkedin-hello-world-post",
           platform: "linkedin",
           status: "draft",
         },
@@ -124,12 +138,14 @@ Hello world`,
 
       const markdown = socialPostAdapter.toMarkdown(entity);
 
+      expect(markdown).toContain("title: Hello World Post");
       expect(markdown).toContain("platform: linkedin");
       expect(markdown).toContain("Hello world");
     });
 
     it("should roundtrip markdown -> entity -> markdown", () => {
       const originalMarkdown = `---
+title: Roundtrip Test
 platform: linkedin
 status: queued
 queueOrder: 1
@@ -153,6 +169,7 @@ Test roundtrip content`;
       const resultMarkdown = socialPostAdapter.toMarkdown(entity);
 
       expect(resultMarkdown).toContain("Test roundtrip content");
+      expect(resultMarkdown).toContain("title: Roundtrip Test");
       expect(resultMarkdown).toContain("platform: linkedin");
       expect(resultMarkdown).toContain("queueOrder: 1");
     });
@@ -165,7 +182,8 @@ Test roundtrip content`;
         entityType: "social-post",
         content: "test",
         metadata: {
-          slug: "test-post",
+          title: "Test Post Title",
+          slug: "linkedin-test-post-title",
           platform: "linkedin",
           status: "queued",
           queueOrder: 3,
@@ -177,7 +195,8 @@ Test roundtrip content`;
 
       const metadata = socialPostAdapter.extractMetadata(entity);
 
-      expect(metadata.slug).toBe("test-post");
+      expect(metadata.title).toBe("Test Post Title");
+      expect(metadata.slug).toBe("linkedin-test-post-title");
       expect(metadata.platform).toBe("linkedin");
       expect(metadata.queueOrder).toBe(3);
     });
@@ -186,6 +205,7 @@ Test roundtrip content`;
   describe("createPostContent", () => {
     it("should create markdown with frontmatter and body", () => {
       const frontmatter = {
+        title: "New Social Post",
         platform: "linkedin" as const,
         status: "draft" as const,
         retryCount: 0,
@@ -195,12 +215,14 @@ Test roundtrip content`;
       const markdown = socialPostAdapter.createPostContent(frontmatter, body);
 
       expect(markdown).toContain("---");
+      expect(markdown).toContain("title: New Social Post");
       expect(markdown).toContain("platform: linkedin");
       expect(markdown).toContain("New social post content");
     });
 
     it("should include optional fields in frontmatter", () => {
       const frontmatter = {
+        title: "Queued Post Title",
         platform: "linkedin" as const,
         status: "queued" as const,
         queueOrder: 5,
@@ -212,6 +234,7 @@ Test roundtrip content`;
 
       const markdown = socialPostAdapter.createPostContent(frontmatter, body);
 
+      expect(markdown).toContain("title: Queued Post Title");
       expect(markdown).toContain("queueOrder: 5");
       expect(markdown).toContain("sourceEntityId: post-123");
     });
@@ -223,13 +246,15 @@ Test roundtrip content`;
         id: "test-123",
         entityType: "social-post",
         content: `---
+title: My Published Post
 platform: linkedin
 status: published
 publishedAt: "2024-01-15T10:30:00Z"
 ---
 My post content`,
         metadata: {
-          slug: "my-post",
+          title: "My Published Post",
+          slug: "linkedin-my-published-post",
           platform: "linkedin",
           status: "published",
           publishedAt: "2024-01-15T10:30:00Z",
@@ -246,46 +271,53 @@ My post content`,
   });
 
   describe("slug generation", () => {
-    it("should generate slug from first 50 chars of body content", () => {
+    it("should generate slug from platform + title + date", () => {
       const markdown = `---
+title: Amazing New Feature
 platform: linkedin
 status: draft
 ---
-This is a very long content that should be truncated for the slug generation process and more text here`;
+This is the full post content that describes the feature in detail`;
+
+      const result = socialPostAdapter.fromMarkdown(markdown);
+
+      // Slug format: {platform}-{title}-{YYYYMMDD}
+      expect(result.metadata?.slug).toMatch(
+        /^linkedin-amazing-new-feature-\d{8}$/,
+      );
+    });
+
+    it("should handle special characters in title for slug", () => {
+      const markdown = `---
+title: What's New in TypeScript 5.0?
+platform: linkedin
+status: draft
+---
+Check out the latest features`;
+
+      const result = socialPostAdapter.fromMarkdown(markdown);
+
+      expect(result.metadata?.slug).not.toContain("'");
+      expect(result.metadata?.slug).not.toContain("?");
+      // Slug format: {platform}-{title}-{YYYYMMDD}
+      expect(result.metadata?.slug).toMatch(
+        /^linkedin-whats-new-in-typescript-50-\d{8}$/,
+      );
+    });
+
+    it("should handle long titles", () => {
+      const markdown = `---
+title: This Is A Very Long Title That Should Be Handled Properly
+platform: linkedin
+status: draft
+---
+Post content`;
 
       const result = socialPostAdapter.fromMarkdown(markdown);
       const slug = result.metadata?.slug;
 
       expect(slug).toBeDefined();
-      expect(slug?.length).toBeLessThanOrEqual(60);
-    });
-
-    it("should handle special characters in content for slug", () => {
-      const markdown = `---
-platform: linkedin
-status: draft
----
-Check out @user's amazing post! #TypeScript #Dev`;
-
-      const result = socialPostAdapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.slug).not.toContain("@");
-      expect(result.metadata?.slug).not.toContain("#");
-      expect(result.metadata?.slug).not.toContain("!");
-    });
-
-    it("should handle emojis in content for slug", () => {
-      const markdown = `---
-platform: linkedin
-status: draft
----
-Great news! We launched our product`;
-
-      const result = socialPostAdapter.fromMarkdown(markdown);
-      const slug = result.metadata?.slug;
-
-      expect(slug).toBeDefined();
-      expect(slug?.length).toBeGreaterThan(0);
+      expect(slug).toMatch(/^linkedin-.*-\d{8}$/);
     });
   });
 });

@@ -55,6 +55,7 @@ describe("Social Post Schemas", () => {
   describe("socialPostFrontmatterSchema", () => {
     it("should validate complete frontmatter", () => {
       const validFrontmatter = {
+        title: "Plugin System Announcement",
         platform: "linkedin",
         status: "draft",
         queueOrder: 1,
@@ -66,6 +67,7 @@ describe("Social Post Schemas", () => {
 
     it("should validate minimal frontmatter (only required fields)", () => {
       const minimalFrontmatter = {
+        title: "Test Post",
         platform: "linkedin",
         status: "draft",
       };
@@ -73,8 +75,18 @@ describe("Social Post Schemas", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should reject frontmatter without title", () => {
+      const noTitle = {
+        platform: "linkedin",
+        status: "draft",
+      };
+      const result = socialPostFrontmatterSchema.safeParse(noTitle);
+      expect(result.success).toBe(false);
+    });
+
     it("should validate frontmatter with source entity reference", () => {
       const withSource = {
+        title: "Blog Post Promotion",
         platform: "linkedin",
         status: "queued",
         sourceEntityId: "post-123",
@@ -86,6 +98,7 @@ describe("Social Post Schemas", () => {
 
     it("should validate frontmatter with deck source", () => {
       const withDeckSource = {
+        title: "Deck Presentation Share",
         platform: "linkedin",
         status: "queued",
         sourceEntityId: "deck-456",
@@ -97,6 +110,7 @@ describe("Social Post Schemas", () => {
 
     it("should validate frontmatter with error state", () => {
       const failedPost = {
+        title: "Failed Post",
         platform: "linkedin",
         status: "failed",
         retryCount: 3,
@@ -108,6 +122,7 @@ describe("Social Post Schemas", () => {
 
     it("should validate published frontmatter", () => {
       const published = {
+        title: "Published Announcement",
         platform: "linkedin",
         status: "published",
         publishedAt: "2024-01-15T10:30:00Z",
@@ -119,6 +134,7 @@ describe("Social Post Schemas", () => {
 
     it("should reject invalid source entity type", () => {
       const invalidSource = {
+        title: "New Feature Launch",
         platform: "linkedin",
         status: "draft",
         sourceEntityType: "summary",
@@ -129,6 +145,7 @@ describe("Social Post Schemas", () => {
 
     it("should accept missing retryCount as optional", () => {
       const noRetryCount = {
+        title: "Weekly Team Update",
         platform: "linkedin",
         status: "draft",
       };
@@ -140,7 +157,8 @@ describe("Social Post Schemas", () => {
   describe("socialPostMetadataSchema", () => {
     it("should validate complete metadata", () => {
       const validMetadata = {
-        slug: "my-linkedin-post",
+        title: "Product Launch Update",
+        slug: "linkedin-product-launch-update",
         platform: "linkedin",
         status: "queued",
         queueOrder: 5,
@@ -151,7 +169,8 @@ describe("Social Post Schemas", () => {
 
     it("should validate published metadata with publishedAt", () => {
       const publishedMetadata = {
-        slug: "published-post",
+        title: "Q4 Results Summary",
+        slug: "linkedin-q4-results-summary",
         platform: "linkedin",
         status: "published",
         publishedAt: "2024-01-15T10:30:00Z",
@@ -162,7 +181,8 @@ describe("Social Post Schemas", () => {
 
     it("should validate minimal metadata", () => {
       const minimalMetadata = {
-        slug: "test-post",
+        title: "Quick Announcement",
+        slug: "linkedin-quick-announcement",
         platform: "linkedin",
         status: "draft",
       };
@@ -172,6 +192,7 @@ describe("Social Post Schemas", () => {
 
     it("should reject metadata without required slug", () => {
       const noSlug = {
+        title: "Missing Slug Post",
         platform: "linkedin",
         status: "draft",
       };
@@ -179,9 +200,20 @@ describe("Social Post Schemas", () => {
       expect(result.success).toBe(false);
     });
 
+    it("should reject metadata without required title", () => {
+      const noTitle = {
+        slug: "linkedin-no-title",
+        platform: "linkedin",
+        status: "draft",
+      };
+      const result = socialPostMetadataSchema.safeParse(noTitle);
+      expect(result.success).toBe(false);
+    });
+
     it("should reject invalid datetime format for publishedAt", () => {
       const invalidDate = {
-        slug: "test",
+        title: "Invalid Date Post",
+        slug: "linkedin-invalid-date-post",
         platform: "linkedin",
         status: "published",
         publishedAt: "not-a-date",
@@ -196,9 +228,11 @@ describe("Social Post Schemas", () => {
       const validEntity = {
         id: "social-post-123",
         entityType: "social-post",
-        content: "---\nplatform: linkedin\nstatus: draft\n---\nHello world!",
+        content:
+          "---\ntitle: Hello World Post\nplatform: linkedin\nstatus: draft\n---\nHello world!",
         metadata: {
-          slug: "hello-post",
+          title: "Hello World Post",
+          slug: "linkedin-hello-world-post",
           platform: "linkedin",
           status: "draft",
         },
@@ -216,7 +250,8 @@ describe("Social Post Schemas", () => {
         entityType: "post",
         content: "test",
         metadata: {
-          slug: "test",
+          title: "Test Post",
+          slug: "linkedin-test-post",
           platform: "linkedin",
           status: "draft",
         },

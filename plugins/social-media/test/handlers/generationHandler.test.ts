@@ -127,8 +127,9 @@ describe("GenerationJobHandler", () => {
       expect(result.error).toContain("No content source");
     });
 
-    it("should create post from direct content", async () => {
+    it("should create post from direct content with title", async () => {
       const jobData: GenerationJobData = {
+        title: "Direct Post Title",
         content: "My direct LinkedIn post content",
         platform: "linkedin",
         addToQueue: false,
@@ -144,8 +145,28 @@ describe("GenerationJobHandler", () => {
       expect(result.entityId).toBeDefined();
     });
 
+    it("should fail when content provided without title", async () => {
+      const jobData: GenerationJobData = {
+        content: "My direct LinkedIn post content",
+        platform: "linkedin",
+        addToQueue: false,
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
+        "Title is required when providing content directly",
+      );
+    });
+
     it("should report progress during generation", async () => {
       const jobData: GenerationJobData = {
+        title: "Test Title",
         content: "Test content",
         platform: "linkedin",
         addToQueue: true,

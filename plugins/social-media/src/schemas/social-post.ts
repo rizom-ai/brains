@@ -33,6 +33,9 @@ export type SourceEntityType = z.infer<typeof sourceEntityTypeSchema>;
  * Post text goes in markdown body, metadata in frontmatter
  */
 export const socialPostFrontmatterSchema = z.object({
+  title: z
+    .string()
+    .describe("Short descriptive title (3-6 words) for file naming"),
   platform: platformSchema.describe("Target platform"),
   status: socialPostStatusSchema,
   queueOrder: z
@@ -64,14 +67,15 @@ export type SocialPostFrontmatter = z.infer<typeof socialPostFrontmatterSchema>;
  */
 export const socialPostMetadataSchema = socialPostFrontmatterSchema
   .pick({
+    title: true,
     platform: true,
     status: true,
     queueOrder: true,
     publishedAt: true,
   })
   .extend({
-    // slug is required in metadata (auto-generated from content/id)
-    slug: z.string().describe("URL-friendly identifier"),
+    // slug is auto-generated from platform + title (e.g., "linkedin-product-launch")
+    slug: z.string().describe("URL-friendly identifier: {platform}-{title}"),
   });
 
 export type SocialPostMetadata = z.infer<typeof socialPostMetadataSchema>;

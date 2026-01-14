@@ -19,12 +19,14 @@ describe("SocialPostDataSource", () => {
 
   const createMockSocialPost = (
     id: string,
+    title: string,
     slug: string,
     status: "draft" | "queued" | "published" | "failed",
     body: string,
     queueOrder?: number,
   ): SocialPost => {
     const content = `---
+title: ${title}
 platform: linkedin
 status: ${status}
 ${queueOrder !== undefined ? `queueOrder: ${queueOrder}` : ""}
@@ -36,6 +38,7 @@ ${body}`;
       id,
       content,
       metadata: {
+        title,
         slug,
         platform: "linkedin",
         status,
@@ -65,7 +68,8 @@ ${body}`;
     it("should fetch a single post by slug", async () => {
       const mockPost = createMockSocialPost(
         "post-1",
-        "my-linkedin-post",
+        "My LinkedIn Post",
+        "linkedin-my-linkedin-post-20260114",
         "published",
         "This is my LinkedIn post content.",
       );
@@ -113,8 +117,20 @@ ${body}`;
   describe("fetch list", () => {
     it("should fetch all posts sorted by created date", async () => {
       const posts = [
-        createMockSocialPost("post-1", "slug-1", "published", "Post 1"),
-        createMockSocialPost("post-2", "slug-2", "queued", "Post 2"),
+        createMockSocialPost(
+          "post-1",
+          "Post One",
+          "linkedin-post-one-20260114",
+          "published",
+          "Post 1 content",
+        ),
+        createMockSocialPost(
+          "post-2",
+          "Post Two",
+          "linkedin-post-two-20260114",
+          "queued",
+          "Post 2 content",
+        ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);
 
@@ -139,7 +155,14 @@ ${body}`;
 
     it("should filter by status", async () => {
       const posts = [
-        createMockSocialPost("post-1", "slug-1", "queued", "Queued post", 1),
+        createMockSocialPost(
+          "post-1",
+          "Queued Post",
+          "linkedin-queued-post-20260114",
+          "queued",
+          "Queued post content",
+          1,
+        ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);
 
@@ -164,8 +187,22 @@ ${body}`;
 
     it("should sort by queue order when sortByQueue is true", async () => {
       const posts = [
-        createMockSocialPost("post-1", "slug-1", "queued", "Post 1", 1),
-        createMockSocialPost("post-2", "slug-2", "queued", "Post 2", 2),
+        createMockSocialPost(
+          "post-1",
+          "Post One",
+          "linkedin-post-one-20260114",
+          "queued",
+          "Post 1 content",
+          1,
+        ),
+        createMockSocialPost(
+          "post-2",
+          "Post Two",
+          "linkedin-post-two-20260114",
+          "queued",
+          "Post 2 content",
+          2,
+        ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);
 
@@ -190,7 +227,13 @@ ${body}`;
   describe("pagination", () => {
     it("should return pagination info when page is specified", async () => {
       listEntitiesSpy.mockResolvedValue([
-        createMockSocialPost("post-1", "slug-1", "published", "Post 1"),
+        createMockSocialPost(
+          "post-1",
+          "Post One",
+          "linkedin-post-one-20260114",
+          "published",
+          "Post 1 content",
+        ),
       ]);
       countEntitiesSpy.mockResolvedValue(25);
 
@@ -245,7 +288,14 @@ ${body}`;
   describe("nextInQueue", () => {
     it("should fetch the next queued post", async () => {
       const posts = [
-        createMockSocialPost("post-1", "slug-1", "queued", "Next post", 1),
+        createMockSocialPost(
+          "post-1",
+          "Next Post",
+          "linkedin-next-post-20260114",
+          "queued",
+          "Next post content",
+          1,
+        ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);
 

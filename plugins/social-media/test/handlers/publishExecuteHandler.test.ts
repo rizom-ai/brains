@@ -57,14 +57,16 @@ const samplePost: SocialPost = {
   id: "post-1",
   entityType: "social-post",
   content: `---
+title: Test LinkedIn Post
 platform: linkedin
 status: queued
 ---
 This is a test post for LinkedIn.`,
   metadata: {
+    title: "Test LinkedIn Post",
     platform: "linkedin",
     status: "queued",
-    slug: "test-post",
+    slug: "linkedin-test-linkedin-post-20260114",
   },
   contentHash: "abc123",
   created: "2024-01-01T00:00:00Z",

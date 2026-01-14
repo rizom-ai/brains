@@ -15,6 +15,10 @@ export const generationJobSchema = z.object({
   platform: z.enum(["linkedin"]).optional(),
   sourceEntityType: z.enum(["post", "deck"]).optional(),
   sourceEntityId: z.string().optional(),
+  title: z
+    .string()
+    .optional()
+    .describe("Required when content is provided directly"),
   content: z.string().optional(),
   addToQueue: z.boolean().optional(),
 });
@@ -62,7 +66,7 @@ export class GenerationJobHandler extends BaseJobHandler<
     const platform = data.platform ?? "linkedin";
     const addToQueue = data.addToQueue ?? true;
     const { prompt, sourceEntityType, sourceEntityId } = data;
-    let { content } = data;
+    let { content, title } = data;
 
     try {
       await progressReporter.report({
@@ -73,6 +77,12 @@ export class GenerationJobHandler extends BaseJobHandler<
 
       // Case 1: Direct content provided (no AI needed)
       if (content) {
+        if (!title) {
+          return {
+            success: false,
+            error: "Title is required when providing content directly",
+          };
+        }
         await progressReporter.report({
           progress: 50,
           total: 100,
@@ -112,6 +122,7 @@ export class GenerationJobHandler extends BaseJobHandler<
 
         // Generate post from source content using platform-specific template
         const generated = await this.context.ai.generate<{
+          title: string;
           content: string;
         }>({
           prompt: `Create an engaging ${platform} post to promote this ${sourceEntityType}:
@@ -122,6 +133,7 @@ ${sourceEntity.content}`,
           templateName: getTemplateName(platform),
         });
 
+        title = generated.title;
         content = generated.content;
 
         await progressReporter.report({
@@ -140,12 +152,14 @@ ${sourceEntity.content}`,
 
         // Generate post from prompt using platform-specific template
         const generated = await this.context.ai.generate<{
+          title: string;
           content: string;
         }>({
           prompt: prompt,
           templateName: getTemplateName(platform),
         });
 
+        title = generated.title;
         content = generated.content;
 
         await progressReporter.report({
@@ -184,16 +198,17 @@ ${sourceEntity.content}`,
         queueOrder = queuedPosts.length + 1;
       }
 
-      // At this point content is guaranteed to be set from one of the branches
-      if (!content) {
+      // At this point content and title are guaranteed to be set from one of the branches
+      if (!content || !title) {
         return {
           success: false,
-          error: "Content was not generated",
+          error: "Content or title was not generated",
         };
       }
 
       // Create frontmatter (metadata only, content goes in body)
       const frontmatter: SocialPostFrontmatter = {
+        title,
         platform,
         status,
         retryCount: 0,

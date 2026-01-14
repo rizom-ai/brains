@@ -14,13 +14,9 @@ import {
 } from "../schemas/social-post";
 
 /**
- * Maximum length of content to use for slug generation
- */
-const SLUG_CONTENT_MAX_LENGTH = 50;
-
-/**
  * Entity adapter for social post entities
  * Frontmatter stored in content, key fields duplicated in metadata for fast queries
+ * Slug is auto-generated from platform + title (e.g., "linkedin-product-launch")
  */
 export class SocialPostAdapter
   implements EntityAdapter<SocialPost, SocialPostMetadata>
@@ -59,21 +55,24 @@ export class SocialPostAdapter
   /**
    * Parse markdown with frontmatter to create partial social post entity
    * Post text is in markdown body, metadata in frontmatter
-   * Auto-generates slug from body content
+   * Auto-generates slug from platform + title
    */
   public fromMarkdown(markdown: string): Partial<SocialPost> {
     // Parse frontmatter and body
-    const { content: body, metadata: frontmatter } =
-      parseMarkdownWithFrontmatter(markdown, socialPostFrontmatterSchema);
+    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+      markdown,
+      socialPostFrontmatterSchema,
+    );
 
-    // Auto-generate slug from body content preview
-    const slug = this.generateSlugFromContent(body);
+    // Auto-generate slug from platform + title
+    const slug = this.generateSlug(frontmatter.platform, frontmatter.title);
 
     // Sync key fields from frontmatter to metadata for fast queries
     return {
       content: markdown, // Store full markdown including frontmatter
       entityType: "social-post",
       metadata: {
+        title: frontmatter.title,
         slug,
         platform: frontmatter.platform,
         status: frontmatter.status,
@@ -154,13 +153,13 @@ export class SocialPostAdapter
   }
 
   /**
-   * Generate a URL-safe slug from content
-   * Uses first SLUG_CONTENT_MAX_LENGTH characters of content
+   * Generate a URL-safe slug from platform + title + date
+   * Format: {platform}-{slugified-title}-{YYYYMMDD} (e.g., "linkedin-product-launch-20260114")
    */
-  private generateSlugFromContent(content: string): string {
-    // Take first N characters of content for slug
-    const preview = content.slice(0, SLUG_CONTENT_MAX_LENGTH);
-    return slugify(preview);
+  private generateSlug(platform: string, title: string): string {
+    const date = new Date();
+    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
+    return `${platform}-${slugify(title)}-${dateStr}`;
   }
 }
 
