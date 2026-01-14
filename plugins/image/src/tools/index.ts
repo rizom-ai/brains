@@ -329,7 +329,7 @@ function createSetCoverTool(
         }
 
         // Set existing image or remove
-        let finalImageId: string | null = imageId ?? null;
+        const finalImageId: string | null = imageId ?? null;
 
         if (finalImageId) {
           // Validate existing image exists

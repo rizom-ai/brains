@@ -55,8 +55,8 @@ export interface PublishFailedEvent {
   willRetry: boolean;
 }
 
-/** Default cron for immediate processing (every second) */
-const IMMEDIATE_CRON = "* * * * * *";
+/** Interval for immediate processing (1 second) */
+const IMMEDIATE_INTERVAL_MS = 1000;
 
 export class PublishScheduler {
   private static instance: PublishScheduler | null = null;
@@ -66,7 +66,7 @@ export class PublishScheduler {
   private retryTracker: RetryTracker;
   private entitySchedules: Record<string, string>;
   private cronJobs: Map<string, Cron> = new Map();
-  private immediateCron: Cron | null = null;
+  private immediateInterval: ReturnType<typeof setInterval> | null = null;
   private messageBus: IMessageBus | undefined;
   private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
   private onPublish: ((event: PublishSuccessEvent) => void) | undefined;
@@ -156,10 +156,10 @@ export class PublishScheduler {
       this.cronJobs.set(entityType, job);
     }
 
-    // Create a default cron for entity types without schedules (immediate mode)
-    this.immediateCron = new Cron(IMMEDIATE_CRON, () => {
+    // Create interval for entity types without schedules (immediate mode)
+    this.immediateInterval = setInterval(() => {
       void this.processUnscheduledTypes();
-    });
+    }, IMMEDIATE_INTERVAL_MS);
   }
 
   /**
@@ -174,10 +174,10 @@ export class PublishScheduler {
     }
     this.cronJobs.clear();
 
-    // Stop immediate cron
-    if (this.immediateCron) {
-      this.immediateCron.stop();
-      this.immediateCron = null;
+    // Stop immediate interval
+    if (this.immediateInterval) {
+      clearInterval(this.immediateInterval);
+      this.immediateInterval = null;
     }
   }
 
