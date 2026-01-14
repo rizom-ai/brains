@@ -4,6 +4,7 @@ import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
 import { UrlFetcher } from "./url-fetcher";
 import type { LinkSource, LinkStatus } from "../schemas/link";
+import type { LinkExtractionResult } from "../templates/extraction-template";
 
 /**
  * Schema for link capture options
@@ -139,50 +140,31 @@ export class LinkService {
     }
 
     // Extract content with AI
-    const extractionResult = await this.context.ai.generate({
-      templateName: "link:extraction",
-      prompt: fetchResult.success
-        ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
-        : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
-      data: { url, hasContent: fetchResult.success },
-      interfacePermissionGrant: "public",
-    });
+    const extractionResult =
+      await this.context.ai.generate<LinkExtractionResult>({
+        templateName: "link:extraction",
+        prompt: fetchResult.success
+          ? `Extract structured information from this webpage content:\n\n${fetchResult.content}`
+          : `The URL ${url} could not be fetched. Return success: false with error: "${fetchResult.error}"`,
+        data: { url, hasContent: fetchResult.success },
+        interfacePermissionGrant: "public",
+      });
 
     this.context.logger.debug("AI extraction result", {
-      type: typeof extractionResult,
       result: extractionResult,
     });
-
-    let extractedData;
-    try {
-      extractedData =
-        typeof extractionResult === "string"
-          ? JSON.parse(extractionResult)
-          : extractionResult;
-    } catch (parseError) {
-      this.context.logger.error("Failed to parse AI extraction", {
-        error:
-          parseError instanceof Error ? parseError.message : String(parseError),
-        rawResult: extractionResult,
-      });
-      throw new Error(
-        `Failed to parse AI extraction result: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
-      );
-    }
-
-    this.context.logger.debug("Parsed extraction data", { extractedData });
 
     const source = await this.resolveSource(options);
     const capturedAt = new Date().toISOString();
 
     // Handle extraction failure - save as pending
     if (
-      extractedData.success === false ||
-      !extractedData.title ||
-      !extractedData.description ||
-      !extractedData.summary
+      extractionResult.success === false ||
+      !extractionResult.title ||
+      !extractionResult.description ||
+      !extractionResult.summary
     ) {
-      const title = extractedData.title ?? new URL(url).hostname;
+      const title = extractionResult.title ?? new URL(url).hostname;
 
       this.context.logger.info("Incomplete extraction, saving as pending", {
         url,
@@ -192,9 +174,9 @@ export class LinkService {
         status: "pending",
         title,
         url,
-        description: extractedData.description,
-        summary: extractedData.summary,
-        keywords: extractedData.keywords ?? [],
+        description: extractionResult.description,
+        summary: extractionResult.summary,
+        keywords: extractionResult.keywords ?? [],
         domain: new URL(url).hostname,
         capturedAt,
         source,
@@ -217,16 +199,16 @@ export class LinkService {
 
     // Complete extraction - save as draft
     this.context.logger.info("Extracted keywords", {
-      keywords: extractedData.keywords,
+      keywords: extractionResult.keywords,
     });
 
     const content = this.linkAdapter.createLinkContent({
       status: "draft",
-      title: extractedData.title,
+      title: extractionResult.title,
       url,
-      description: extractedData.description,
-      summary: extractedData.summary,
-      keywords: extractedData.keywords ?? [],
+      description: extractionResult.description,
+      summary: extractionResult.summary,
+      keywords: extractionResult.keywords ?? [],
       domain: new URL(url).hostname,
       capturedAt,
       source,
@@ -236,12 +218,12 @@ export class LinkService {
       id: entityId,
       entityType: "link",
       content,
-      metadata: { status: "draft", title: extractedData.title },
+      metadata: { status: "draft", title: extractionResult.title },
     });
 
     return {
       entityId: entity.entityId,
-      title: extractedData.title,
+      title: extractionResult.title,
       url,
       status: "draft",
     };

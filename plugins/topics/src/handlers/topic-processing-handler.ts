@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z, PROGRESS_STEPS, JobResult } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 
 // Schema for processing single topic job data
@@ -73,7 +73,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
 
     try {
       await progressReporter.report({
-        progress: 10,
+        progress: PROGRESS_STEPS.INIT,
         message: `Checking for similar topics: ${topic.title}`,
       });
 
@@ -95,7 +95,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
       if (shouldMerge && searchResults[0]) {
         const topResult = searchResults[0];
         await progressReporter.report({
-          progress: 50,
+          progress: PROGRESS_STEPS.GENERATE,
           message: `Merging with existing topic (similarity: ${Math.round(
             topResult.score * 100,
           )}%)`,
@@ -117,7 +117,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
         topicId = topResult.entity.id;
       } else {
         await progressReporter.report({
-          progress: 50,
+          progress: PROGRESS_STEPS.GENERATE,
           message: `Creating new topic: ${topic.title}`,
         });
 
@@ -143,7 +143,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
       }
 
       await progressReporter.report({
-        progress: 100,
+        progress: PROGRESS_STEPS.COMPLETE,
         message: `Topic ${action}: ${topic.title}`,
       });
 
@@ -162,10 +162,9 @@ export class TopicProcessingHandler extends BaseJobHandler<
       });
 
       return {
-        success: false,
+        ...JobResult.failure(error),
         action: "failed",
         topicTitle: topic.title,
-        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

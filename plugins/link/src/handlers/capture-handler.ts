@@ -1,6 +1,6 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z, PROGRESS_STEPS, JobResult } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";
@@ -81,7 +81,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
     try {
       await progressReporter.report({
-        progress: 0,
+        progress: PROGRESS_STEPS.START,
         total: 100,
         message: "Starting link capture",
       });
@@ -90,7 +90,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
       // Check for existing entity
       await progressReporter.report({
-        progress: 10,
+        progress: PROGRESS_STEPS.INIT,
         total: 100,
         message: "Checking for existing link",
       });
@@ -119,7 +119,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
       // Fetch URL content
       await progressReporter.report({
-        progress: 20,
+        progress: PROGRESS_STEPS.FETCH,
         total: 100,
         message: "Fetching webpage content",
       });
@@ -145,7 +145,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
       // Extract content with AI
       await progressReporter.report({
-        progress: 40,
+        progress: PROGRESS_STEPS.PROCESS,
         total: 100,
         message: "Extracting content with AI",
       });
@@ -160,33 +160,10 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           interfacePermissionGrant: "public",
         });
 
-      this.logger.debug("AI extraction result", {
-        type: typeof extractionResult,
-        result: extractionResult,
-      });
-
-      let extractedData: LinkExtractionResult;
-      try {
-        extractedData =
-          typeof extractionResult === "string"
-            ? JSON.parse(extractionResult)
-            : extractionResult;
-      } catch (parseError) {
-        this.logger.error("Failed to parse AI extraction", {
-          error:
-            parseError instanceof Error
-              ? parseError.message
-              : String(parseError),
-          rawResult: extractionResult,
-        });
-        return {
-          success: false,
-          error: `Failed to parse AI extraction result: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
-        };
-      }
+      this.logger.debug("AI extraction result", { result: extractionResult });
 
       await progressReporter.report({
-        progress: 60,
+        progress: PROGRESS_STEPS.EXTRACT,
         total: 100,
         message: "Processing extraction results",
       });
@@ -196,19 +173,19 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
       // Handle extraction failure or incomplete extraction
       if (
-        extractedData.success === false ||
-        !extractedData.title ||
-        !extractedData.description ||
-        !extractedData.summary
+        extractionResult.success === false ||
+        !extractionResult.title ||
+        !extractionResult.description ||
+        !extractionResult.summary
       ) {
-        const title = extractedData.title || new URL(url).hostname;
+        const title = extractionResult.title || new URL(url).hostname;
 
         this.logger.info("Incomplete extraction, saving as pending", {
           url,
         });
 
         await progressReporter.report({
-          progress: 80,
+          progress: PROGRESS_STEPS.SAVE,
           total: 100,
           message: "Saving link as pending",
         });
@@ -217,9 +194,9 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
           status: "pending",
           title,
           url,
-          description: extractedData.description,
-          summary: extractedData.summary,
-          keywords: extractedData.keywords,
+          description: extractionResult.description,
+          summary: extractionResult.summary,
+          keywords: extractionResult.keywords,
           domain: new URL(url).hostname,
           capturedAt,
           source,
@@ -233,7 +210,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         });
 
         await progressReporter.report({
-          progress: 100,
+          progress: PROGRESS_STEPS.COMPLETE,
           total: 100,
           message: "Link saved (pending)",
         });
@@ -249,18 +226,18 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
 
       // Complete extraction - save as draft
       await progressReporter.report({
-        progress: 80,
+        progress: PROGRESS_STEPS.SAVE,
         total: 100,
-        message: `Saving link: "${extractedData.title}"`,
+        message: `Saving link: "${extractionResult.title}"`,
       });
 
       const content = this.linkAdapter.createLinkContent({
         status: "draft",
-        title: extractedData.title,
+        title: extractionResult.title,
         url,
-        description: extractedData.description,
-        summary: extractedData.summary,
-        keywords: extractedData.keywords,
+        description: extractionResult.description,
+        summary: extractionResult.summary,
+        keywords: extractionResult.keywords,
         domain: new URL(url).hostname,
         capturedAt,
         source,
@@ -270,19 +247,19 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         id: entityId,
         entityType: "link",
         content,
-        metadata: { status: "draft", title: extractedData.title },
+        metadata: { status: "draft", title: extractionResult.title },
       });
 
       await progressReporter.report({
-        progress: 100,
+        progress: PROGRESS_STEPS.COMPLETE,
         total: 100,
-        message: `Link captured: "${extractedData.title}"`,
+        message: `Link captured: "${extractionResult.title}"`,
       });
 
       return {
         success: true,
         entityId: entity.entityId,
-        title: extractedData.title,
+        title: extractionResult.title,
         url,
         status: "draft",
       };
@@ -293,10 +270,7 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         data,
       });
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return JobResult.failure(error);
     }
   }
 

@@ -1,7 +1,13 @@
 import type { ServicePluginContext, BaseEntity } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, createId, computeContentHash } from "@brains/utils";
+import {
+  z,
+  createId,
+  computeContentHash,
+  PROGRESS_STEPS,
+  JobResult,
+} from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 
 // Schema for extraction job data
@@ -75,7 +81,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
 
     try {
       await progressReporter.report({
-        progress: 10,
+        progress: PROGRESS_STEPS.INIT,
         message: `Extracting topics from ${entityType}: ${entityId}`,
       });
 
@@ -97,7 +103,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
       );
 
       await progressReporter.report({
-        progress: 60,
+        progress: PROGRESS_STEPS.EXTRACT,
         message: `Extracted ${extractedTopics.length} topics`,
       });
 
@@ -108,7 +114,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
         });
 
         await progressReporter.report({
-          progress: 100,
+          progress: PROGRESS_STEPS.COMPLETE,
           message: "No topics found",
         });
 
@@ -147,7 +153,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
       });
 
       await progressReporter.report({
-        progress: 100,
+        progress: PROGRESS_STEPS.COMPLETE,
         message: `Queued ${extractedTopics.length} topics for processing`,
       });
 
@@ -172,9 +178,8 @@ export class TopicExtractionHandler extends BaseJobHandler<
       });
 
       return {
-        success: false,
+        ...JobResult.failure(error),
         topicsExtracted: 0,
-        error: error instanceof Error ? error.message : String(error),
       };
     }
   }

@@ -8,6 +8,8 @@ import {
   fetchImageAsBase64,
   parseMarkdown,
   generateMarkdown,
+  PROGRESS_STEPS,
+  JobResult,
 } from "@brains/utils";
 import {
   parseDataUrl,
@@ -94,7 +96,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
 
     try {
       await this.reportProgress(progressReporter, {
-        progress: 10,
+        progress: PROGRESS_STEPS.INIT,
         message: `Reading file: ${filePath}`,
       });
 
@@ -103,9 +105,11 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       try {
         fileContent = readFileSync(filePath, "utf-8");
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error("Failed to read file", { filePath, error: message });
-        return { success: false, error: message };
+        this.logger.error("Failed to read file", {
+          filePath,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return JobResult.failure(error);
       }
 
       // Step 2: Parse and check if already converted
@@ -113,12 +117,11 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       try {
         parsed = parseMarkdown(fileContent);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
         this.logger.warn("Failed to parse markdown", {
           filePath,
-          error: message,
+          error: error instanceof Error ? error.message : String(error),
         });
-        return { success: false, error: message };
+        return JobResult.failure(error);
       }
 
       const frontmatter = parsed.frontmatter as Record<string, unknown>;
@@ -129,14 +132,14 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           filePath,
         });
         await this.reportProgress(progressReporter, {
-          progress: 100,
+          progress: PROGRESS_STEPS.COMPLETE,
           message: "Already converted",
         });
         return { success: true, skipped: true };
       }
 
       await this.reportProgress(progressReporter, {
-        progress: 20,
+        progress: PROGRESS_STEPS.FETCH,
         message: "Checking for existing image",
       });
 
@@ -156,13 +159,13 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           imageId,
         });
         await this.reportProgress(progressReporter, {
-          progress: 70,
+          progress: PROGRESS_STEPS.EXTRACT,
           message: `Reusing existing image: ${imageId}`,
         });
       } else {
         // Step 4: Fetch image from URL
         await this.reportProgress(progressReporter, {
-          progress: 30,
+          progress: PROGRESS_STEPS.PROCESS,
           message: `Fetching image from ${sourceUrl}`,
         });
 
@@ -170,17 +173,15 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         try {
           dataUrl = await this.fetcher(sourceUrl);
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : String(error);
           this.logger.error("Failed to fetch image", {
             sourceUrl,
-            error: message,
+            error: error instanceof Error ? error.message : String(error),
           });
-          return { success: false, error: message };
+          return JobResult.failure(error);
         }
 
         await this.reportProgress(progressReporter, {
-          progress: 50,
+          progress: PROGRESS_STEPS.GENERATE,
           message: "Creating image entity",
         });
 
@@ -190,9 +191,9 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         const dimensions = detectImageDimensions(base64);
 
         if (!format || !dimensions) {
-          const message = "Could not detect image format or dimensions";
-          this.logger.error(message, { sourceUrl });
-          return { success: false, error: message };
+          const errorMessage = "Could not detect image format or dimensions";
+          this.logger.error(errorMessage, { sourceUrl });
+          return JobResult.failure(new Error(errorMessage));
         }
 
         // Step 5: Create image entity
@@ -217,14 +218,14 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         this.logger.debug("Created image entity", { imageId, sourceUrl });
 
         await this.reportProgress(progressReporter, {
-          progress: 70,
+          progress: PROGRESS_STEPS.EXTRACT,
           message: `Created image: ${imageId}`,
         });
       }
 
       // Step 6: Update frontmatter
       await this.reportProgress(progressReporter, {
-        progress: 80,
+        progress: PROGRESS_STEPS.SAVE,
         message: "Updating file",
       });
 
@@ -238,13 +239,15 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       try {
         writeFileSync(filePath, updatedContent, "utf-8");
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error("Failed to write file", { filePath, error: message });
-        return { success: false, error: message };
+        this.logger.error("Failed to write file", {
+          filePath,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return JobResult.failure(error);
       }
 
       await this.reportProgress(progressReporter, {
-        progress: 100,
+        progress: PROGRESS_STEPS.COMPLETE,
         message: "Conversion complete",
       });
 
@@ -256,13 +259,12 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
 
       return { success: true, imageId };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
       this.logger.error("Image conversion job failed", {
         jobId,
         filePath,
-        error: message,
+        error: error instanceof Error ? error.message : String(error),
       });
-      return { success: false, error: message };
+      return JobResult.failure(error);
     }
   }
 

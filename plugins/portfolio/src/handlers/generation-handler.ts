@@ -1,5 +1,5 @@
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import { z, slugify, PROGRESS_STEPS, JobResult } from "@brains/utils";
 import { BaseJobHandler, type ServicePluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";
 
@@ -71,13 +71,13 @@ export class ProjectGenerationJobHandler extends BaseJobHandler<
 
     try {
       await progressReporter.report({
-        progress: 0,
+        progress: PROGRESS_STEPS.START,
         total: 100,
         message: "Starting project generation",
       });
 
       await progressReporter.report({
-        progress: 10,
+        progress: PROGRESS_STEPS.INIT,
         total: 100,
         message: "Generating project content with AI",
       });
@@ -93,13 +93,13 @@ export class ProjectGenerationJobHandler extends BaseJobHandler<
       title = title ?? generated.title;
 
       await progressReporter.report({
-        progress: 50,
+        progress: PROGRESS_STEPS.GENERATE,
         total: 100,
         message: `Generated project: "${title}"`,
       });
 
       await progressReporter.report({
-        progress: 60,
+        progress: PROGRESS_STEPS.EXTRACT,
         total: 100,
         message: "Creating project entity",
       });
@@ -128,7 +128,7 @@ export class ProjectGenerationJobHandler extends BaseJobHandler<
       );
 
       await progressReporter.report({
-        progress: 80,
+        progress: PROGRESS_STEPS.SAVE,
         total: 100,
         message: "Saving project to database",
       });
@@ -147,7 +147,7 @@ export class ProjectGenerationJobHandler extends BaseJobHandler<
       });
 
       await progressReporter.report({
-        progress: 100,
+        progress: PROGRESS_STEPS.COMPLETE,
         total: 100,
         message: `Project "${title}" created successfully`,
       });
@@ -164,10 +164,7 @@ export class ProjectGenerationJobHandler extends BaseJobHandler<
         data,
       });
 
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      return JobResult.failure(error);
     }
   }
 

@@ -94,3 +94,7 @@ export type {
 
 // Publish types - shared between publish-pipeline and content plugins
 export type { PublishResult, PublishProvider } from "./publish-types";
+
+// Job handler utilities
+export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
+export { JobResult } from "./job-result";
