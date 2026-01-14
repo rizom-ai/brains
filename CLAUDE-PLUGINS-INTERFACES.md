@@ -4,6 +4,10 @@
 
 As Claude, when developing plugins or interfaces for the Personal Brain project, you must follow these specialized guidelines to ensure consistent, high-quality, and maintainable extensions to the system.
 
+## Quick Start
+
+For a condensed reference of all patterns, see **[Plugin Quick Reference](./docs/plugin-quick-reference.md)**.
+
 ## Core Development Principles
 
 ### 1. Tool-First Architecture
@@ -176,6 +180,121 @@ export class MyEntityAdapter implements EntityAdapter<MyEntity> {
       metadata: (data.metadata as Record<string, unknown>) || {},
     };
   }
+}
+```
+
+### Schema Derivation Pattern
+
+**Keep metadata in sync with frontmatter using `.pick()`:**
+
+```typescript
+// Step 1: Define complete frontmatter schema (stored in markdown)
+export const myFrontmatterSchema = z.object({
+  title: z.string(),
+  slug: z.string().optional(), // Auto-generated if not provided
+  status: z.enum(["draft", "published"]),
+  description: z.string(),
+});
+
+// Step 2: Derive metadata using .pick() - only fields needed for DB queries
+export const myMetadataSchema = myFrontmatterSchema
+  .pick({ title: true, status: true })
+  .extend({
+    slug: z.string(), // Required in metadata (auto-generated)
+  });
+
+// Step 3: Entity schema extends BaseEntity
+export const myEntitySchema = baseEntitySchema.extend({
+  entityType: z.literal("my-type"),
+  metadata: myMetadataSchema,
+});
+```
+
+**Why**: Using `.pick()` prevents metadata from drifting out of sync with frontmatter. See `plugins/blog/src/schemas/blog-post.ts` for a complete example.
+
+### Job Handler Pattern
+
+**For async operations, extend BaseJobHandler:**
+
+```typescript
+import { BaseJobHandler } from "@brains/plugins";
+import { PROGRESS_STEPS, JobResult } from "@brains/utils";
+
+const myJobSchema = z.object({
+  topic: z.string(),
+  year: z.number(),
+});
+type MyJobData = z.infer<typeof myJobSchema>;
+
+export class MyJobHandler extends BaseJobHandler<
+  "my-job",
+  MyJobData,
+  MyJobResult
+> {
+  constructor(
+    logger: Logger,
+    private context: ServicePluginContext,
+  ) {
+    super(logger, { schema: myJobSchema, jobTypeName: "my-job" });
+  }
+
+  async process(
+    data: MyJobData,
+    jobId: string,
+    progressReporter: ProgressReporter,
+  ): Promise<MyJobResult> {
+    try {
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.START,
+        message: "Starting job",
+      });
+
+      // ... do work ...
+
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.COMPLETE,
+        message: "Job complete",
+      });
+
+      return { success: true, entityId: "new-id" };
+    } catch (error) {
+      return JobResult.failure(error);
+    }
+  }
+}
+```
+
+**Standard utilities:**
+
+- `PROGRESS_STEPS`: Constants for progress (START: 0, INIT: 10, FETCH: 20, PROCESS: 40, GENERATE: 50, EXTRACT: 60, SAVE: 80, COMPLETE: 100)
+- `JobResult.success(data)`: Returns `{ success: true, ...data }`
+- `JobResult.failure(error)`: Returns `{ success: false, error: string }`
+
+### Async Job Pattern (Tools Queue Jobs)
+
+**For operations >1 second, queue a job and return immediately:**
+
+```typescript
+// In tool handler:
+const jobId = await context.jobs.enqueue(
+  "my-job-type", // Job type (matches handler)
+  { topic, year }, // Job data
+  toolContext, // Tool context (for permissions)
+  { source: `${pluginId}_create` },
+);
+
+return {
+  success: true,
+  data: { jobId },
+  message: `Job queued (jobId: ${jobId})`,
+};
+```
+
+**Register handler in onInstall:**
+
+```typescript
+protected override async onInstall(context: ServicePluginContext): Promise<void> {
+  context.jobs.registerHandler("my-job-type", new MyJobHandler(context.logger, context));
 }
 ```
 

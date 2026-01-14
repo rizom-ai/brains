@@ -2,6 +2,8 @@
 
 This document outlines the standardized patterns for developing plugins in the Personal Brain system.
 
+> **Quick Start**: For a condensed reference, see [Plugin Quick Reference](./plugin-quick-reference.md).
+
 ## Table of Contents
 
 1. [Import Pattern](#import-pattern)

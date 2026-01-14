@@ -213,37 +213,15 @@ See [docs/theming-guide.md](./docs/theming-guide.md) for detailed examples of:
 - Component variants
 - Troubleshooting
 
-## Implementation Status & Next Priorities
+## Implementation Status
 
-### ✅ Completed
+The codebase is actively developed. To understand what's implemented:
 
-1. Shell app core - Full plugin system with 4 types
-2. Entity model infrastructure - Complete with adapters and Zod schemas
-3. Link plugin - Web content capture with AI extraction
-4. Summary plugin - AI summarization and daily digests
-5. Topics plugin - AI-powered topic extraction
-6. Directory sync & Git sync plugins - File system integration
-7. Site builder plugin - Static site generation with Preact/Tailwind
-8. CLI and Matrix interfaces - Fully functional
-9. MCP interface - Complete with stdio and HTTP transports
-10. Deployment - Docker + Hetzner with Terraform/Caddy + Bunny CDN/DNS
-11. **Blog plugin** - Long-form content with RSS feeds and series support
-12. **Decks plugin** - Slide deck and presentation management
-13. **Type-safe entity metadata** - Strongly-typed metadata with backward compatibility
-14. **Code quality improvements** - Zero ESLint warnings, no `as any` assertions
-15. **Theming system** - Tailwind v4 with CSS variables and multi-site support
-16. **UI component library** - 25+ reusable components (Card, Header, Pagination, etc.)
-17. **Professional brain** - Full setup with about page, rich profile, homepage redesign
-18. **Optional preview environment** - Deploy directly to production without preview
-19. **Deployment config consolidation** - Single brain.config.ts for all deployment settings
-20. **Interface Plugins v2** - Agent-based architecture replacing commands with AI tool use
-21. **AI evaluation infrastructure** - LLM-as-judge for plugin tests, proactive search behavior evals
-22. **Navigation improvements** - EntityRouteConfig nav settings, mobile hamburger menu
-23. **Plugin evals expansion** - Tool invocation evals for git-sync/site-builder/directory-sync, AI output evals for blog/decks
+- Run `ls plugins/` to see available plugins
+- Run `ls interfaces/` to see available interfaces
+- Check `git log --oneline -20` for recent changes
 
-### 🚧 Next Priorities
-
-_No specific priorities set - ask the user what to work on._
+For plugin development, see **[Plugin Quick Reference](./docs/plugin-quick-reference.md)**.
 
 ## Code Quality Checklist
 
