@@ -116,6 +116,7 @@ export const enrichedSocialPostSchema = socialPostWithDataSchema.extend({
   listUrl: z.string().optional(),
   listLabel: z.string().optional(),
   typeLabel: z.string().optional(),
+  coverImageUrl: z.string().optional(),
 });
 
 export type EnrichedSocialPost = z.infer<typeof enrichedSocialPostSchema>;

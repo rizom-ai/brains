@@ -67,6 +67,17 @@ export const SocialPostDetailTemplate = ({
               )}
             </div>
 
+            {/* Cover image */}
+            {post.coverImageUrl && (
+              <div className="mb-8">
+                <img
+                  src={post.coverImageUrl}
+                  alt={post.frontmatter.title}
+                  className="w-full rounded-lg object-cover"
+                />
+              </div>
+            )}
+
             {/* Post content */}
             <div className="bg-surface rounded-lg border border-theme p-8 mb-8">
               <p className="text-lg text-theme leading-relaxed whitespace-pre-wrap">
