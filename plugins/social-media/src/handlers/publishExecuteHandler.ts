@@ -1,5 +1,9 @@
-import type { Logger, PublishProvider } from "@brains/utils";
-import type { IEntityService, MessageSender } from "@brains/plugins";
+import type { Logger, PublishProvider, PublishImageData } from "@brains/utils";
+import type {
+  IEntityService,
+  MessageSender,
+  BaseEntity,
+} from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { SocialPost } from "../schemas/social-post";
 import { socialPostFrontmatterSchema } from "../schemas/social-post";
@@ -91,9 +95,19 @@ export class PublishExecuteHandler {
         socialPostFrontmatterSchema,
       );
 
+      // Fetch image data if coverImageId is present
+      let imageData: PublishImageData | undefined;
+      if (parsed.metadata.coverImageId) {
+        imageData = await this.fetchImageData(parsed.metadata.coverImageId);
+      }
+
       // Attempt to publish
       try {
-        const result = await provider.publish(parsed.content, post.metadata);
+        const result = await provider.publish(
+          parsed.content,
+          post.metadata,
+          imageData,
+        );
 
         // Update entity as published
         const publishedAt = new Date().toISOString();
@@ -210,5 +224,42 @@ export class PublishExecuteHandler {
       entityId,
       error,
     });
+  }
+
+  /**
+   * Fetch image entity and extract binary data for publishing
+   */
+  private async fetchImageData(
+    imageId: string,
+  ): Promise<PublishImageData | undefined> {
+    try {
+      const image = await this.entityService.getEntity<BaseEntity>(
+        "image",
+        imageId,
+      );
+
+      if (!image) {
+        this.logger.warn("Cover image not found", { imageId });
+        return undefined;
+      }
+
+      // Image content is stored as data URL: data:image/png;base64,...
+      const dataUrl = image.content;
+      const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+
+      if (!match || !match[1] || !match[2]) {
+        this.logger.warn("Invalid image data URL format", { imageId });
+        return undefined;
+      }
+
+      const mimeType = match[1];
+      const base64Data = match[2];
+      const data = Buffer.from(base64Data, "base64");
+
+      return { data, mimeType };
+    } catch (error) {
+      this.logger.warn("Failed to fetch cover image", { imageId, error });
+      return undefined;
+    }
   }
 }

@@ -1,4 +1,9 @@
-import type { Logger, PublishProvider, PublishResult } from "@brains/utils";
+import type {
+  Logger,
+  PublishProvider,
+  PublishResult,
+  PublishImageData,
+} from "@brains/utils";
 import type { LinkedinConfig } from "../config";
 
 /**
@@ -6,6 +11,20 @@ import type { LinkedinConfig } from "../config";
  */
 interface LinkedInUserInfo {
   sub: string; // User ID (URN format: urn:li:person:xxx)
+}
+
+/**
+ * LinkedIn API response for image upload registration
+ */
+interface LinkedInUploadResponse {
+  value: {
+    uploadMechanism: {
+      "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest": {
+        uploadUrl: string;
+      };
+    };
+    asset: string; // URN of the asset (e.g., urn:li:digitalmediaAsset:xxx)
+  };
 }
 
 /**
@@ -27,11 +46,12 @@ export class LinkedInClient implements PublishProvider {
   ) {}
 
   /**
-   * Publish a text post to LinkedIn
+   * Publish a post to LinkedIn, optionally with an image
    */
   async publish(
     content: string,
     _metadata: Record<string, unknown>,
+    imageData?: PublishImageData,
   ): Promise<PublishResult> {
     if (!this.config.accessToken) {
       throw new Error("LinkedIn access token not configured");
@@ -40,7 +60,28 @@ export class LinkedInClient implements PublishProvider {
     // Get user ID (author URN)
     const userId = await this.getUserId();
 
+    // Upload image if provided
+    let assetUrn: string | null = null;
+    if (imageData) {
+      assetUrn = await this.uploadImage(userId, imageData);
+    }
+
     // Create the post using UGC Posts API
+    const shareContent: Record<string, unknown> = {
+      shareCommentary: {
+        text: content,
+      },
+      shareMediaCategory: assetUrn ? "IMAGE" : "NONE",
+      ...(assetUrn && {
+        media: [
+          {
+            status: "READY",
+            media: assetUrn,
+          },
+        ],
+      }),
+    };
+
     const response = await fetch(`${this.apiBaseUrl}/ugcPosts`, {
       method: "POST",
       headers: {
@@ -52,12 +93,7 @@ export class LinkedInClient implements PublishProvider {
         author: userId,
         lifecycleState: "PUBLISHED",
         specificContent: {
-          "com.linkedin.ugc.ShareContent": {
-            shareCommentary: {
-              text: content,
-            },
-            shareMediaCategory: "NONE",
-          },
+          "com.linkedin.ugc.ShareContent": shareContent,
         },
         visibility: {
           "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
@@ -77,13 +113,90 @@ export class LinkedInClient implements PublishProvider {
     // Extract post ID from response headers or body
     const postId = response.headers.get("X-RestLi-Id") ?? "";
 
-    this.logger.info("LinkedIn post created", { postId });
+    this.logger.info("LinkedIn post created", { postId, hasImage: !!assetUrn });
 
     const result: PublishResult = { id: postId };
     if (postId) {
       result.url = `https://www.linkedin.com/feed/update/${postId}`;
     }
     return result;
+  }
+
+  /**
+   * Upload an image to LinkedIn and return the asset URN
+   * Returns null if upload fails (allows graceful fallback to text-only)
+   */
+  private async uploadImage(
+    userId: string,
+    imageData: PublishImageData,
+  ): Promise<string | null> {
+    try {
+      // Step 1: Register the upload
+      const registerResponse = await fetch(
+        `${this.apiBaseUrl}/assets?action=registerUpload`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.config.accessToken}`,
+            "Content-Type": "application/json",
+            "X-Restli-Protocol-Version": "2.0.0",
+          },
+          body: JSON.stringify({
+            registerUploadRequest: {
+              recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+              owner: userId,
+              serviceRelationships: [
+                {
+                  relationshipType: "OWNER",
+                  identifier: "urn:li:userGeneratedContent",
+                },
+              ],
+            },
+          }),
+        },
+      );
+
+      if (!registerResponse.ok) {
+        const errorText = await registerResponse.text();
+        this.logger.warn("LinkedIn image upload registration failed", {
+          status: registerResponse.status,
+          error: errorText,
+        });
+        return null;
+      }
+
+      const registerData =
+        (await registerResponse.json()) as LinkedInUploadResponse;
+      const uploadUrl =
+        registerData.value.uploadMechanism[
+          "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"
+        ].uploadUrl;
+      const assetUrn = registerData.value.asset;
+
+      // Step 2: Upload the binary image data
+      // Create Uint8Array view for fetch compatibility (works in Node, Bun, browser)
+      const uploadResponse = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${this.config.accessToken}`,
+          "Content-Type": imageData.mimeType,
+        },
+        body: new Uint8Array(imageData.data),
+      });
+
+      if (!uploadResponse.ok) {
+        this.logger.warn("LinkedIn image binary upload failed", {
+          status: uploadResponse.status,
+        });
+        return null;
+      }
+
+      this.logger.info("LinkedIn image uploaded", { assetUrn });
+      return assetUrn;
+    } catch (error) {
+      this.logger.warn("LinkedIn image upload error", { error });
+      return null;
+    }
   }
 
   /**

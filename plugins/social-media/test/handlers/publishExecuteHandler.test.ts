@@ -52,6 +52,10 @@ function createMockEntityService(): {
   };
 }
 
+// Minimal 1x1 PNG for testing
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 // Sample post for testing
 const samplePost: SocialPost = {
   id: "post-1",
@@ -69,6 +73,45 @@ This is a test post for LinkedIn.`,
     slug: "linkedin-test-linkedin-post-20260114",
   },
   contentHash: "abc123",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
+// Sample post with cover image
+const samplePostWithImage: SocialPost = {
+  id: "post-2",
+  entityType: "social-post",
+  content: `---
+title: Visual LinkedIn Post
+platform: linkedin
+status: queued
+coverImageId: image-123
+---
+This is a post with an image.`,
+  metadata: {
+    title: "Visual LinkedIn Post",
+    platform: "linkedin",
+    status: "queued",
+    slug: "linkedin-visual-linkedin-post-20260114",
+  },
+  contentHash: "def456",
+  created: "2024-01-01T00:00:00Z",
+  updated: "2024-01-01T00:00:00Z",
+};
+
+// Sample image entity
+const sampleImage = {
+  id: "image-123",
+  entityType: "image",
+  content: `data:image/png;base64,${TINY_PNG_BASE64}`,
+  metadata: {
+    title: "Test Image",
+    alt: "Test image",
+    format: "png",
+    width: 1,
+    height: 1,
+  },
+  contentHash: "img123",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
 };
@@ -254,6 +297,72 @@ describe("PublishExecuteHandler", () => {
 
       expect(linkedinProvider.publish).not.toHaveBeenCalled();
       expect(messageSender.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it("should fetch and pass image data when coverImageId is present", async () => {
+      entityService.getEntity = mock((entityType: string, entityId: string) => {
+        if (entityType === "social-post") {
+          return Promise.resolve(samplePostWithImage);
+        }
+        if (entityType === "image" && entityId === "image-123") {
+          return Promise.resolve(sampleImage);
+        }
+        return Promise.resolve(null);
+      });
+
+      await handler.handle({
+        entityType: "social-post",
+        entityId: "post-2",
+      });
+
+      // Verify provider was called with image data
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is a post with an image.",
+        expect.any(Object),
+        expect.objectContaining({
+          data: expect.any(Buffer),
+          mimeType: "image/png",
+        }),
+      );
+    });
+
+    it("should publish without image if image entity not found", async () => {
+      entityService.getEntity = mock((entityType: string) => {
+        if (entityType === "social-post") {
+          return Promise.resolve(samplePostWithImage);
+        }
+        // Image not found
+        return Promise.resolve(null);
+      });
+
+      await handler.handle({
+        entityType: "social-post",
+        entityId: "post-2",
+      });
+
+      // Should still publish, but without image data
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is a post with an image.",
+        expect.any(Object),
+        undefined,
+      );
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it("should publish without image if coverImageId not present", async () => {
+      entityService.getEntity = mock(() => Promise.resolve(samplePost));
+
+      await handler.handle({
+        entityType: "social-post",
+        entityId: "post-1",
+      });
+
+      // No image data passed
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is a test post for LinkedIn.",
+        expect.any(Object),
+        undefined,
+      );
     });
   });
 });

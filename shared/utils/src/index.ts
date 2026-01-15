@@ -93,7 +93,11 @@ export type {
 } from "./zod";
 
 // Publish types - shared between publish-pipeline and content plugins
-export type { PublishResult, PublishProvider } from "./publish-types";
+export type {
+  PublishResult,
+  PublishProvider,
+  PublishImageData,
+} from "./publish-types";
 
 // Job handler utilities
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
