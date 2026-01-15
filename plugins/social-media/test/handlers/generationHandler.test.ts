@@ -86,6 +86,25 @@ describe("GenerationJobHandler", () => {
       const result = generationJobSchema.parse(data);
       expect(result.addToQueue).toBeUndefined();
     });
+
+    it("should validate job data with generateImage flag", () => {
+      const data = {
+        prompt: "Create a post about AI",
+        platform: "linkedin",
+        generateImage: true,
+      };
+      const result = generationJobSchema.safeParse(data);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.generateImage).toBe(true);
+      }
+    });
+
+    it("should accept undefined generateImage (optional)", () => {
+      const data = { prompt: "Test" };
+      const result = generationJobSchema.parse(data);
+      expect(result.generateImage).toBeUndefined();
+    });
   });
 
   describe("validateAndParse", () => {
@@ -194,6 +213,68 @@ describe("GenerationJobHandler", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("not found");
+    });
+
+    it("should queue image generation when generateImage is true", async () => {
+      // Track enqueued jobs
+      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
+      context.jobs.enqueue = async (
+        jobType: string,
+        data: unknown,
+      ): Promise<string> => {
+        enqueuedJobs.push({ jobType, data });
+        return "image-job-456";
+      };
+
+      const jobData: GenerationJobData = {
+        title: "Visual Post Title",
+        content: "Post content with image",
+        platform: "linkedin",
+        addToQueue: false,
+        generateImage: true,
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      // Should have queued an image-generate job
+      const imageJob = enqueuedJobs.find((j) => j.jobType === "image-generate");
+      expect(imageJob).toBeDefined();
+      const imageJobData = imageJob?.data as Record<string, unknown>;
+      expect(imageJobData["targetEntityType"]).toBe("social-post");
+    });
+
+    it("should not queue image generation when generateImage is false", async () => {
+      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
+      context.jobs.enqueue = async (
+        jobType: string,
+        data: unknown,
+      ): Promise<string> => {
+        enqueuedJobs.push({ jobType, data });
+        return "job-id";
+      };
+
+      const jobData: GenerationJobData = {
+        title: "Text Only Post",
+        content: "Post content without image",
+        platform: "linkedin",
+        addToQueue: false,
+        generateImage: false,
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      const imageJob = enqueuedJobs.find((j) => j.jobType === "image-generate");
+      expect(imageJob).toBeUndefined();
     });
   });
 });

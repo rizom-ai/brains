@@ -152,6 +152,30 @@ describe("Social Post Schemas", () => {
       const result = socialPostFrontmatterSchema.parse(noRetryCount);
       expect(result.retryCount).toBeUndefined();
     });
+
+    it("should validate frontmatter with coverImageId", () => {
+      const withImage = {
+        title: "Visual Announcement",
+        platform: "linkedin",
+        status: "draft",
+        coverImageId: "image-abc123",
+      };
+      const result = socialPostFrontmatterSchema.safeParse(withImage);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.coverImageId).toBe("image-abc123");
+      }
+    });
+
+    it("should accept missing coverImageId as optional", () => {
+      const noImage = {
+        title: "Text Only Post",
+        platform: "linkedin",
+        status: "draft",
+      };
+      const result = socialPostFrontmatterSchema.parse(noImage);
+      expect(result.coverImageId).toBeUndefined();
+    });
   });
 
   describe("socialPostMetadataSchema", () => {

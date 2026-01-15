@@ -21,6 +21,10 @@ export const generationJobSchema = z.object({
     .describe("Required when content is provided directly"),
   content: z.string().optional(),
   addToQueue: z.boolean().optional(),
+  generateImage: z
+    .boolean()
+    .optional()
+    .describe("Auto-generate cover image for post"),
 });
 
 export type GenerationJobData = z.infer<typeof generationJobSchema>;
@@ -245,10 +249,31 @@ ${sourceEntity.content}`,
         metadata,
       });
 
+      // Queue image generation if requested
+      if (data.generateImage) {
+        await progressReporter.report({
+          progress: 90,
+          total: 100,
+          message: "Queueing image generation",
+        });
+
+        await this.context.jobs.enqueue(
+          "image-generate",
+          {
+            prompt: `Social media graphic for: ${title}`,
+            title: `${title} Image`,
+            size: "1792x1024", // Landscape for social
+            targetEntityType: "social-post",
+            targetEntityId: result.entityId,
+          },
+          { interfaceType: "job", userId: "system" },
+        );
+      }
+
       await progressReporter.report({
         progress: 100,
         total: 100,
-        message: `Social post created${addToQueue ? ` at queue position ${queueOrder}` : " as draft"}`,
+        message: `Social post created${addToQueue ? ` at queue position ${queueOrder}` : " as draft"}${data.generateImage ? " (image generation queued)" : ""}`,
       });
 
       return {
@@ -278,6 +303,7 @@ ${sourceEntity.content}`,
       hasPrompt: !!data.prompt,
       sourceEntityType: data.sourceEntityType,
       addToQueue: data.addToQueue ?? true,
+      generateImage: data.generateImage ?? false,
     };
   }
 }

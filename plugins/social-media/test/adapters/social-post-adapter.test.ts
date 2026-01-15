@@ -17,6 +17,16 @@ import type { SocialPost } from "../../src/schemas/social-post";
  * This is the actual post content that will be published.
  */
 describe("SocialPostAdapter", () => {
+  describe("adapter properties", () => {
+    it("should have entityType 'social-post'", () => {
+      expect(socialPostAdapter.entityType).toBe("social-post");
+    });
+
+    it("should support cover images", () => {
+      expect(socialPostAdapter.supportsCoverImage).toBe(true);
+    });
+  });
+
   describe("fromMarkdown", () => {
     it("should parse markdown with post content in body", () => {
       const markdown = `---
@@ -111,6 +121,20 @@ This post failed`;
       const result = socialPostAdapter.fromMarkdown(markdown);
 
       expect(result.metadata?.status).toBe("failed");
+    });
+
+    it("should parse post with coverImageId", () => {
+      const markdown = `---
+title: Visual Post
+platform: linkedin
+status: draft
+coverImageId: image-xyz789
+---
+Post with an image`;
+
+      const result = socialPostAdapter.fromMarkdown(markdown);
+
+      expect(result.content).toContain("coverImageId: image-xyz789");
     });
   });
 

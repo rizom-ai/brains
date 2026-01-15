@@ -38,6 +38,10 @@ export const socialPostFrontmatterSchema = z.object({
     .describe("Short descriptive title (3-6 words) for file naming"),
   platform: platformSchema.describe("Target platform"),
   status: socialPostStatusSchema,
+  coverImageId: z
+    .string()
+    .optional()
+    .describe("Image entity ID for post image"),
   queueOrder: z
     .number()
     .optional()
