@@ -164,6 +164,35 @@ describe("GenerationJobHandler", () => {
       expect(result.entityId).toBeDefined();
     });
 
+    it("should default to draft status when addToQueue not specified", async () => {
+      // Track created entities to verify status
+      let createdStatus: string | undefined;
+      const originalCreate = context.entityService.createEntity.bind(
+        context.entityService,
+      );
+      context.entityService.createEntity = async (input) => {
+        const entityInput = input as { metadata?: { status?: string } };
+        createdStatus = entityInput.metadata?.status;
+        return originalCreate(input);
+      };
+
+      const jobData: GenerationJobData = {
+        title: "Default Status Post",
+        content: "Content without addToQueue specified",
+        platform: "linkedin",
+        // addToQueue intentionally not specified - should default to false
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(createdStatus).toBe("draft");
+    });
+
     it("should fail when content provided without title", async () => {
       const jobData: GenerationJobData = {
         content: "My direct LinkedIn post content",

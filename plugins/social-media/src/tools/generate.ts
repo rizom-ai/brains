@@ -33,7 +33,7 @@ export const generateInputSchema = z.object({
     .describe("Direct content for the post (skips AI generation)"),
   addToQueue: z
     .boolean()
-    .default(true)
+    .default(false)
     .describe("Add post to publish queue after creation"),
   generateImage: z
     .boolean()

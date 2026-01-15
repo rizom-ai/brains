@@ -68,7 +68,7 @@ export class GenerationJobHandler extends BaseJobHandler<
   ): Promise<GenerationResult> {
     // Apply defaults
     const platform = data.platform ?? "linkedin";
-    const addToQueue = data.addToQueue ?? true;
+    const addToQueue = data.addToQueue ?? false;
     const { prompt, sourceEntityType, sourceEntityId } = data;
     let { content, title } = data;
 
@@ -305,7 +305,7 @@ ${sourceEntity.content}`,
       platform: data.platform ?? "linkedin",
       hasPrompt: !!data.prompt,
       sourceEntityType: data.sourceEntityType,
-      addToQueue: data.addToQueue ?? true,
+      addToQueue: data.addToQueue ?? false,
       generateImage: data.generateImage ?? false,
     };
   }
