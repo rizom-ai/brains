@@ -247,7 +247,7 @@ export class PublishExecuteHandler {
       const dataUrl = image.content;
       const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
 
-      if (!match || !match[1] || !match[2]) {
+      if (!match?.[1] || !match[2]) {
         this.logger.warn("Invalid image data URL format", { imageId });
         return undefined;
       }
