@@ -35,6 +35,10 @@ export const generateInputSchema = z.object({
     .boolean()
     .default(true)
     .describe("Add post to publish queue after creation"),
+  generateImage: z
+    .boolean()
+    .optional()
+    .describe("Auto-generate cover image for post"),
 });
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;

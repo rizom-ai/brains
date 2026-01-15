@@ -58,5 +58,44 @@ describe("Social Media Tools", () => {
         expect(result.error).toContain("prompt");
       }
     });
+
+    it("should accept generateImage in input schema", () => {
+      const result = generateInputSchema.safeParse({
+        prompt: "Test prompt",
+        platform: "linkedin",
+        generateImage: true,
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.generateImage).toBe(true);
+      }
+    });
+
+    it("should pass generateImage to job when set to true", async () => {
+      // Track enqueued jobs
+      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
+      context.jobs.enqueue = async (
+        jobType: string,
+        data: unknown,
+      ): Promise<string> => {
+        enqueuedJobs.push({ jobType, data });
+        return "job-123";
+      };
+
+      const tool = createGenerateTool(context, config, pluginId);
+      const result = await tool.handler(
+        {
+          prompt: "Test prompt",
+          platform: "linkedin",
+          generateImage: true,
+        },
+        nullContext,
+      );
+
+      expect(result.success).toBe(true);
+      expect(enqueuedJobs.length).toBe(1);
+      const jobData = enqueuedJobs[0]?.data as Record<string, unknown>;
+      expect(jobData["generateImage"]).toBe(true);
+    });
   });
 });

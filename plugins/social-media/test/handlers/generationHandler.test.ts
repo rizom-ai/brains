@@ -241,8 +241,10 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      // Should have queued an image-generate job
-      const imageJob = enqueuedJobs.find((j) => j.jobType === "image-generate");
+      // Should have queued an image-generate job (fully-qualified for cross-plugin)
+      const imageJob = enqueuedJobs.find(
+        (j) => j.jobType === "image:image-generate",
+      );
       expect(imageJob).toBeDefined();
       const imageJobData = imageJob?.data as Record<string, unknown>;
       expect(imageJobData["targetEntityType"]).toBe("social-post");
@@ -273,8 +275,30 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      const imageJob = enqueuedJobs.find((j) => j.jobType === "image-generate");
+      const imageJob = enqueuedJobs.find(
+        (j) => j.jobType === "image:image-generate",
+      );
       expect(imageJob).toBeUndefined();
+    });
+
+    it("should use slug as entity ID (platform-title-date format)", async () => {
+      const jobData: GenerationJobData = {
+        title: "My Awesome Post",
+        content: "Post content here",
+        platform: "linkedin",
+        addToQueue: false,
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      // Entity ID should match the slug format: linkedin-my-awesome-post-YYYYMMDD
+      expect(result.entityId).toMatch(/^linkedin-my-awesome-post-\d{8}$/);
+      expect(result.slug).toBe(result.entityId);
     });
   });
 });

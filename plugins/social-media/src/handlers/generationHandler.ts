@@ -243,7 +243,9 @@ ${sourceEntity.content}`,
         };
       }
 
+      // Use slug as entity ID for human-readable filenames
       const result = await this.context.entityService.createEntity({
+        id: metadata.slug,
         entityType: "social-post",
         content: postContent,
         metadata,
@@ -257,8 +259,9 @@ ${sourceEntity.content}`,
           message: "Queueing image generation",
         });
 
+        // Use fully-qualified job type for cross-plugin job
         await this.context.jobs.enqueue(
-          "image-generate",
+          "image:image-generate",
           {
             prompt: `Social media graphic for: ${title}`,
             title: `${title} Image`,
