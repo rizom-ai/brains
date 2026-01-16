@@ -23,7 +23,7 @@ export function createMockProgressReporter(): ProgressReporter {
   const mockReporter = {
     report: mock(() => Promise.resolve()),
     createSub: mock(() => mockReporter),
-    toCallback: mock(() => () => Promise.resolve()),
+    toCallback: mock((): (() => Promise<void>) => () => Promise.resolve()),
     startHeartbeat: mock(() => {}),
     stopHeartbeat: mock(() => {}),
   };

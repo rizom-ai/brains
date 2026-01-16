@@ -68,7 +68,7 @@ describe("Shell initialization order", () => {
   });
 
   afterEach(async () => {
-    await shell?.shutdown();
+    await shell.shutdown();
     await Shell.resetInstance();
     ShellInitializer.resetInstance();
     PluginManager.resetInstance();

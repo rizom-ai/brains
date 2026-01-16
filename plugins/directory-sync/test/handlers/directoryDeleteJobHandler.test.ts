@@ -109,7 +109,7 @@ describe("DirectoryDeleteJobHandler", () => {
       );
       // Configure mock to reject - requires minimal cast for mock method access
       const deleteEntityMock = mockContext.entityService
-        .deleteEntity as ReturnType<typeof import("bun:test").mock>;
+        .deleteEntity as ReturnType<typeof mock>;
       deleteEntityMock.mockRejectedValue(
         new Error("Database connection failed"),
       );

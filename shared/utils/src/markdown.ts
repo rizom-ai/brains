@@ -224,7 +224,8 @@ export function updateFrontmatterField(
  */
 export function getCoverImageId(entity: { content: string }): string | null {
   const { frontmatter } = parseMarkdown(entity.content);
-  return (frontmatter["coverImageId"] as string) ?? null;
+  const coverImageId = frontmatter["coverImageId"];
+  return typeof coverImageId === "string" ? coverImageId : null;
 }
 
 /**

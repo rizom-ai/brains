@@ -55,7 +55,7 @@ title: Test Post
 # Test Post WITHOUT Cover`;
 
       // CORRECT FLOW: Import file → DB (file wins)
-      const importFile = async () => {
+      const importFile = async (): Promise<string> => {
         return readFileSync(join(postDir, "test-post.md"), "utf-8");
       };
 
@@ -140,7 +140,7 @@ title: Test Post
       };
 
       // BUGGY FLOW: Export DB → file before git pull
-      const exportToFile = async (dbContent: string) => {
+      const exportToFile = async (dbContent: string): Promise<void> => {
         writeFileSync(join(postDir, "test-post.md"), dbContent);
       };
 
@@ -161,7 +161,7 @@ title: Test Post
       const events: string[] = [];
 
       // BUGGY SEQUENCE
-      const buggyStartupSequence = async () => {
+      const buggyStartupSequence = async (): Promise<void> => {
         // 1. Directory-sync starts and exports stale DB
         events.push("directory-sync:export-stale-db");
 
@@ -191,7 +191,7 @@ title: Test Post
       let fileContent = "";
 
       // CORRECT SEQUENCE
-      const correctStartupSequence = async () => {
+      const correctStartupSequence = async (): Promise<void> => {
         // 1. Git pull gets latest from remote
         events.push("git-sync:pull");
         fileContent = `---

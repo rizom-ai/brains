@@ -1,22 +1,34 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData } from "@brains/utils";
 
 // Mock logger
-function createMockLogger() {
-  return {
-    child: () => createMockLogger(),
+interface MockLogger {
+  child: () => MockLogger;
+  info: ReturnType<typeof mock>;
+  debug: ReturnType<typeof mock>;
+  error: ReturnType<typeof mock>;
+  warn: ReturnType<typeof mock>;
+}
+
+function createMockLogger(): MockLogger {
+  const logger: MockLogger = {
+    child: (): MockLogger => createMockLogger(),
     info: mock(() => {}),
     debug: mock(() => {}),
     error: mock(() => {}),
     warn: mock(() => {}),
   };
+  return logger;
 }
 
 // Minimal 1x1 PNG for testing
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+// Store original fetch to restore after tests
+const originalFetch = globalThis.fetch;
 
 describe("LinkedInClient", () => {
   let client: LinkedInClient;
@@ -39,6 +51,11 @@ describe("LinkedInClient", () => {
       }),
     );
     globalThis.fetch = fetchMock as never;
+  });
+
+  afterEach(() => {
+    // Restore original fetch
+    globalThis.fetch = originalFetch;
   });
 
   describe("publish without image", () => {

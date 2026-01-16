@@ -95,7 +95,6 @@ async function makeRequest(
 describe("StreamableHTTPServer", () => {
   let server: StreamableHTTPServer | undefined;
   let mockLogger: TransportLogger;
-  let testPort = 13337; // Use a different port for each test to avoid conflicts
 
   beforeEach(() => {
     // Create a mock logger with jest-style mock functions
@@ -105,7 +104,6 @@ describe("StreamableHTTPServer", () => {
       error: mock(() => {}),
       warn: mock(() => {}),
     };
-    testPort++; // Increment port for each test
     server = undefined; // Reset server for each test
   });
 
@@ -124,7 +122,7 @@ describe("StreamableHTTPServer", () => {
 
     test("should create server with custom config", () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         host: "127.0.0.1",
         logger: mockLogger,
       });
@@ -134,20 +132,21 @@ describe("StreamableHTTPServer", () => {
 
     test("should start server successfully", async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
 
       await server.start();
       expect(server.isRunning()).toBe(true);
+      const port = server.getPort();
       expect(mockLogger.info).toHaveBeenCalledWith(
-        `StreamableHTTP server listening on http://0.0.0.0:${testPort}/mcp`,
+        `StreamableHTTP server listening on http://0.0.0.0:${port}/mcp`,
       );
     });
 
     test("should stop server successfully", async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
 
@@ -163,7 +162,7 @@ describe("StreamableHTTPServer", () => {
 
     test("should throw when starting already running server", async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
 
@@ -173,23 +172,24 @@ describe("StreamableHTTPServer", () => {
     });
 
     test("should handle port already in use", async () => {
-      // Start first server
+      // Start first server on a specific port
       const server1 = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server1.start();
+      const boundPort = server1.getPort();
 
       // Try to start second server on same port
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: boundPort,
         logger: mockLogger,
       });
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
       await expect(server.start()).rejects.toThrow();
       expect(mockLogger.error).toHaveBeenCalledWith(
-        `Port ${testPort} is already in use`,
+        `Port ${boundPort} is already in use`,
       );
 
       // Cleanup
@@ -200,14 +200,16 @@ describe("StreamableHTTPServer", () => {
   describe("Health Endpoints", () => {
     beforeEach(async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server.start();
     });
 
     test("should respond to health check", async () => {
-      const response = await makeRequest("GET", "/health", { port: testPort });
+      if (!server) throw new Error("Server not initialized");
+      const port = server.getPort();
+      const response = await makeRequest("GET", "/health", { port });
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
@@ -218,14 +220,16 @@ describe("StreamableHTTPServer", () => {
     });
 
     test("should respond to status check", async () => {
-      const response = await makeRequest("GET", "/status", { port: testPort });
+      if (!server) throw new Error("Server not initialized");
+      const port = server.getPort();
+      const response = await makeRequest("GET", "/status", { port });
 
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         sessions: 0,
         uptime: expect.any(Number),
         memory: expect.any(Object),
-        port: testPort,
+        port,
       });
     });
   });
@@ -235,7 +239,7 @@ describe("StreamableHTTPServer", () => {
 
     beforeEach(async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server.start();
@@ -256,8 +260,10 @@ describe("StreamableHTTPServer", () => {
     });
 
     test("should return 503 when MCP server not connected", async () => {
+      if (!server) throw new Error("Server not initialized");
+      const port = server.getPort();
       const response = await makeRequest("POST", "/mcp", {
-        port: testPort,
+        port,
         body: { jsonrpc: "2.0", method: "initialize", params: {}, id: 1 },
       });
 
@@ -275,13 +281,15 @@ describe("StreamableHTTPServer", () => {
 
   describe("Session Management", () => {
     let mcpServer: McpServer;
+    let port: number;
 
     beforeEach(async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server.start();
+      port = server.getPort();
 
       // Create and connect MCP server
       mcpServer = new McpServer({
@@ -307,7 +315,7 @@ describe("StreamableHTTPServer", () => {
       };
 
       const response = await makeRequest("POST", "/mcp", {
-        port: testPort,
+        port,
         body: initRequest,
       });
 
@@ -336,7 +344,7 @@ describe("StreamableHTTPServer", () => {
 
     test("should return 400 for non-initialize request without session", async () => {
       const response = await makeRequest("POST", "/mcp", {
-        port: testPort,
+        port,
         body: { jsonrpc: "2.0", method: "tools/list", params: {}, id: 2 },
       });
 
@@ -368,7 +376,7 @@ describe("StreamableHTTPServer", () => {
       };
 
       await makeRequest("POST", "/mcp", {
-        port: testPort,
+        port,
         body: initRequest,
       });
 
@@ -379,13 +387,14 @@ describe("StreamableHTTPServer", () => {
   describe("Request Handling", () => {
     test("should handle GET request with invalid session", async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server.start();
+      const port = server.getPort();
 
       const response = await makeRequest("GET", "/mcp", {
-        port: testPort,
+        port,
         headers: { "mcp-session-id": "invalid-session" },
       });
 
@@ -395,13 +404,14 @@ describe("StreamableHTTPServer", () => {
 
     test("should handle DELETE request with invalid session", async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server.start();
+      const port = server.getPort();
 
       const response = await makeRequest("DELETE", "/mcp", {
-        port: testPort,
+        port,
         headers: { "mcp-session-id": "invalid-session" },
       });
 
@@ -424,10 +434,11 @@ describe("StreamableHTTPServer", () => {
   describe("Error Handling", () => {
     test("should handle transport close errors gracefully", async () => {
       server = new StreamableHTTPServer({
-        port: testPort,
+        port: 0,
         logger: mockLogger,
       });
       await server.start();
+      const port = server.getPort();
 
       // Create and connect MCP server
       const mcpServer = new McpServer({
@@ -449,7 +460,7 @@ describe("StreamableHTTPServer", () => {
       };
 
       await makeRequest("POST", "/mcp", {
-        port: testPort,
+        port,
         body: initRequest,
       });
 
@@ -466,9 +477,11 @@ describe("StreamableHTTPServer", () => {
     const testToken = "test-secret-token-minimum-32-characters-long";
 
     describe("with authentication disabled", () => {
+      let port: number;
+
       beforeEach(async () => {
         server = new StreamableHTTPServer({
-          port: testPort,
+          port: 0,
           logger: mockLogger,
           auth: {
             enabled: false,
@@ -476,6 +489,7 @@ describe("StreamableHTTPServer", () => {
           },
         });
         await server.start();
+        port = server.getPort();
 
         const mcpServer = new McpServer({
           name: "test-server",
@@ -486,7 +500,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should allow requests without auth header", async () => {
         const response = await makeRequest("GET", "/health", {
-          port: testPort,
+          port,
         });
 
         expect(response.status).toBe(200);
@@ -498,7 +512,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should allow MCP requests without auth header", async () => {
         const response = await makeRequest("POST", "/mcp", {
-          port: testPort,
+          port,
           body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
         });
 
@@ -508,9 +522,11 @@ describe("StreamableHTTPServer", () => {
     });
 
     describe("with authentication enabled", () => {
+      let port: number;
+
       beforeEach(async () => {
         server = new StreamableHTTPServer({
-          port: testPort,
+          port: 0,
           logger: mockLogger,
           auth: {
             enabled: true,
@@ -518,6 +534,7 @@ describe("StreamableHTTPServer", () => {
           },
         });
         await server.start();
+        port = server.getPort();
 
         const mcpServer = new McpServer({
           name: "test-server",
@@ -528,7 +545,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should allow health check without auth", async () => {
         const response = await makeRequest("GET", "/health", {
-          port: testPort,
+          port,
         });
 
         expect(response.status).toBe(200);
@@ -539,7 +556,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should allow status check without auth", async () => {
         const response = await makeRequest("GET", "/status", {
-          port: testPort,
+          port,
         });
 
         expect(response.status).toBe(200);
@@ -550,7 +567,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should reject MCP requests without auth header", async () => {
         const response = await makeRequest("POST", "/mcp", {
-          port: testPort,
+          port,
           body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
         });
 
@@ -571,7 +588,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should reject MCP requests with invalid token", async () => {
         const response = await makeRequest("POST", "/mcp", {
-          port: testPort,
+          port,
           headers: {
             Authorization: "Bearer invalid-token",
           },
@@ -593,7 +610,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should accept MCP requests with valid token", async () => {
         const response = await makeRequest("POST", "/mcp", {
-          port: testPort,
+          port,
           headers: {
             Authorization: `Bearer ${testToken}`,
           },
@@ -609,7 +626,7 @@ describe("StreamableHTTPServer", () => {
 
       test("should reject requests with malformed auth header", async () => {
         const response = await makeRequest("POST", "/mcp", {
-          port: testPort,
+          port,
           headers: {
             Authorization: "Basic dGVzdDp0ZXN0", // Basic auth instead of Bearer
           },
@@ -628,9 +645,11 @@ describe("StreamableHTTPServer", () => {
     });
 
     describe("with authentication enabled but no token configured", () => {
+      let port: number;
+
       beforeEach(async () => {
         server = new StreamableHTTPServer({
-          port: testPort,
+          port: 0,
           logger: mockLogger,
           auth: {
             enabled: true,
@@ -638,6 +657,7 @@ describe("StreamableHTTPServer", () => {
           },
         });
         await server.start();
+        port = server.getPort();
       });
 
       test("should log warning and allow all requests", async () => {
@@ -646,7 +666,7 @@ describe("StreamableHTTPServer", () => {
         );
 
         const response = await makeRequest("POST", "/mcp", {
-          port: testPort,
+          port,
           body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
         });
 

@@ -164,7 +164,7 @@ export class LinkService {
       !extractionResult.description ||
       !extractionResult.summary
     ) {
-      const title = extractionResult.title ?? new URL(url).hostname;
+      const title = extractionResult.title || new URL(url).hostname;
 
       this.context.logger.info("Incomplete extraction, saving as pending", {
         url,
@@ -176,7 +176,7 @@ export class LinkService {
         url,
         description: extractionResult.description,
         summary: extractionResult.summary,
-        keywords: extractionResult.keywords ?? [],
+        keywords: extractionResult.keywords,
         domain: new URL(url).hostname,
         capturedAt,
         source,
@@ -208,7 +208,7 @@ export class LinkService {
       url,
       description: extractionResult.description,
       summary: extractionResult.summary,
-      keywords: extractionResult.keywords ?? [],
+      keywords: extractionResult.keywords,
       domain: new URL(url).hostname,
       capturedAt,
       source,

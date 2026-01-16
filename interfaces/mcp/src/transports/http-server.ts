@@ -39,6 +39,7 @@ export class StreamableHTTPServer {
   private mcpServer: McpServer | null = null;
   private agentService: IAgentService | null = null;
   private server: ReturnType<Express["listen"]> | null = null;
+  private boundPort: number | null = null;
   private readonly config: StreamableHTTPServerConfig;
   private readonly logger: TransportLogger;
   private readonly authConfig: AuthConfig;
@@ -168,12 +169,11 @@ export class StreamableHTTPServer {
     });
 
     this.app.get("/status", (_req, res) => {
-      const port = this.config.port ?? 3333;
       res.json({
         sessions: Object.keys(this.transports).length,
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        port,
+        port: this.boundPort ?? this.config.port ?? 3333,
       });
     });
 
@@ -357,8 +357,14 @@ export class StreamableHTTPServer {
     return new Promise((resolve, reject) => {
       this.server = this.app
         .listen(Number(port), host, () => {
+          // Get the actual bound port (important when port 0 is used)
+          const address = this.server?.address();
+          this.boundPort =
+            typeof address === "object" && address
+              ? address.port
+              : Number(port);
           this.logger.info(
-            `StreamableHTTP server listening on http://${host}:${port}/mcp`,
+            `StreamableHTTP server listening on http://${host}:${this.boundPort}/mcp`,
           );
           resolve();
         })
@@ -398,10 +404,21 @@ export class StreamableHTTPServer {
         this.server?.close(() => {
           this.logger.info("StreamableHTTP server stopped");
           this.server = null;
+          this.boundPort = null;
           resolve();
         });
       });
     }
+  }
+
+  /**
+   * Get the actual bound port (useful when port 0 is used for dynamic allocation)
+   */
+  public getPort(): number {
+    if (this.boundPort === null) {
+      throw new Error("Server is not running");
+    }
+    return this.boundPort;
   }
 
   /**

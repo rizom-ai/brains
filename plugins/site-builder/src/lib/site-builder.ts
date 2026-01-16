@@ -382,7 +382,7 @@ export class SiteBuilder implements ISiteBuilder {
 
       // Auto-enrich data with URLs, typeLabels, and coverImageUrls
       if (content) {
-        return await this.enrichWithUrls(content, generateEntityUrl);
+        return this.enrichWithUrls(content, generateEntityUrl);
       }
 
       return null;
@@ -403,7 +403,7 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Auto-enrich data with URLs, typeLabels, and coverImageUrls
     if (content) {
-      return await this.enrichWithUrls(content, generateEntityUrl);
+      return this.enrichWithUrls(content, generateEntityUrl);
     }
 
     return null;

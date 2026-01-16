@@ -3,13 +3,14 @@ import { topicSourceSchema, type TopicSource } from "../src/schemas/topic";
 import TopicsPlugin from "../src/index";
 import { createServicePluginHarness } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
+import type { BaseEntity } from "@brains/plugins";
 
 function createMockEntity(
   id: string,
   type: string,
   status: string = "published",
   contentHash?: string,
-) {
+): BaseEntity {
   return createTestEntity(type, {
     id,
     content: `Content for ${id}`,
@@ -18,7 +19,7 @@ function createMockEntity(
   });
 }
 
-function createMockTopic(id: string, sources: TopicSource[] = []) {
+function createMockTopic(id: string, sources: TopicSource[] = []): BaseEntity {
   return createTestEntity("topic", {
     id,
     content: `# ${id}\n\nTopic content`,

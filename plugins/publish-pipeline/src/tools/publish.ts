@@ -137,10 +137,7 @@ export function createPublishTool(
         const provider = providerRegistry.get(entityType);
 
         // Publish using the provider
-        const result = await provider.publish(
-          entity.content,
-          entity.metadata ?? {},
-        );
+        const result = await provider.publish(entity.content, entity.metadata);
 
         // Update entity status
         await context.entityService.updateEntity({

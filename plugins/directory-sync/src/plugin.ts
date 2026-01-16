@@ -118,7 +118,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       let gitSyncEnabled = false;
 
       // Helper to run initial sync (only once)
-      const runInitialSync = async () => {
+      const runInitialSync = async (): Promise<void> => {
         if (initialSyncStarted) return;
         initialSyncStarted = true;
 

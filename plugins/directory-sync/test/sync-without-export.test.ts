@@ -134,7 +134,7 @@ slug: ecosystem-architecture
       let finalFileContent = "";
 
       // Simulate the fixed flow
-      const simulateFixedSync = async () => {
+      const simulateFixedSync = async (): Promise<void> => {
         // Step 1: Import reads file, queues job
         const fileContent = contentWithCover;
 
@@ -174,7 +174,7 @@ slug: ecosystem-architecture
       // Mock entity:created subscriber
       const entityCreatedSubscriber = async (payload: {
         entity: BaseEntity;
-      }) => {
+      }): Promise<void> => {
         fileWritten = true;
         writtenContent = payload.entity.content;
       };
@@ -199,7 +199,7 @@ slug: ecosystem-architecture
       const writtenFiles: Map<string, string> = new Map();
 
       // Simulate concurrent imports with staggered job completion
-      const simulateConcurrentImports = async () => {
+      const simulateConcurrentImports = async (): Promise<void> => {
         const jobs = files.map((file, index) => {
           return new Promise<void>((resolve) => {
             // Jobs complete at different times
@@ -237,7 +237,7 @@ slug: ecosystem-architecture
       let allFilesWritten = false;
 
       // Simulate the full flow
-      const simulateInitialSync = async () => {
+      const simulateInitialSync = async (): Promise<void> => {
         // Import queues jobs (would return jobIds: ["job-1", "job-2"])
         events.push("import:complete");
 
@@ -288,7 +288,7 @@ slug: test-series
       let gitSyncCommitContent: Map<string, string> | null = null;
 
       // Simulate the full flow as it happens in the plugin
-      const simulatePluginInitialSync = async () => {
+      const simulatePluginInitialSync = async (): Promise<void> => {
         // Step 1: Plugin calls directorySync.sync() which only does import
         // Import reads file with coverImageId, queues job
         // (importResult would contain jobIds for waitForJobs)
@@ -344,7 +344,7 @@ slug: test-series
       let gitSyncCommitContent: Map<string, string> | null = null;
 
       // BUGGY FLOW: sync() with export
-      const simulateBuggyPluginInitialSync = async () => {
+      const simulateBuggyPluginInitialSync = async (): Promise<void> => {
         // Step 1: sync() does import then export immediately
         // Import queues job
         // Export reads OLD db content and writes to file

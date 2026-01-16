@@ -9,6 +9,7 @@ import {
   createTestEntity,
 } from "@brains/test-utils";
 import type { BlogPost } from "../src/schemas/blog-post";
+import type { BaseEntity } from "@brains/plugins";
 
 describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
@@ -20,7 +21,7 @@ describe("BlogGenerationJobHandler", () => {
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let reportSpy: Mock<(...args: unknown[]) => void>;
 
-  const createMockProfile = (name: string) => {
+  const createMockProfile = (name: string): BaseEntity => {
     const content = `# Profile
 
 ## Name

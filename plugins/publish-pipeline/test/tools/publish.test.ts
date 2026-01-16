@@ -236,7 +236,7 @@ describe("Publish Pipeline - Publish Tool", () => {
         "social-post",
         "draft-post",
       );
-      expect(updated?.metadata?.["status"]).toBe("published");
+      expect(updated?.metadata["status"]).toBe("published");
     });
   });
 

@@ -170,7 +170,9 @@ describe("GenerationJobHandler", () => {
       const originalCreate = context.entityService.createEntity.bind(
         context.entityService,
       );
-      context.entityService.createEntity = async (input) => {
+      context.entityService.createEntity = async (
+        input,
+      ): Promise<{ entityId: string; jobId: string }> => {
         const entityInput = input as { metadata?: { status?: string } };
         createdStatus = entityInput.metadata?.status;
         return originalCreate(input);

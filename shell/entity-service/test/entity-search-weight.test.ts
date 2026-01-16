@@ -7,6 +7,7 @@ import type { IEmbeddingService } from "@brains/embedding-service";
 import type { EntityDB } from "../src/db";
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "../src/types";
+import type { EntityAdapter } from "../src/types";
 
 // Test entity schema
 const testEntitySchema = baseEntitySchema.extend({
@@ -14,15 +15,27 @@ const testEntitySchema = baseEntitySchema.extend({
   title: z.string().optional(),
 });
 
-// Mock adapter
-const mockAdapter = {
+type TestEntity = z.infer<typeof testEntitySchema>;
+
+// Mock adapter with proper return types
+const mockAdapter: EntityAdapter<TestEntity> = {
   entityType: "test",
   schema: testEntitySchema,
-  fromMarkdown: () => ({}),
-  toMarkdown: () => "",
-  extractMetadata: () => ({}),
-  parseFrontMatter: <T>() => ({}) as T,
-  generateFrontMatter: () => "---\n---",
+  fromMarkdown(_markdown: string): Partial<TestEntity> {
+    return {};
+  },
+  toMarkdown(_entity: TestEntity): string {
+    return "";
+  },
+  extractMetadata(_entity: TestEntity): Record<string, unknown> {
+    return {};
+  },
+  parseFrontMatter<T>(_markdown: string, _schema: z.ZodSchema<T>): T {
+    throw new Error("parseFrontMatter not implemented in mock");
+  },
+  generateFrontMatter(_entity: TestEntity): string {
+    return "---\n---";
+  },
 };
 
 describe("EntitySearch weight behavior", () => {
@@ -35,6 +48,18 @@ describe("EntitySearch weight behavior", () => {
 
   // Helper to create mock DB results with weighted_score
   // When weights are applied in SQL, DB returns results with weighted_score already calculated
+  interface MockDbResult {
+    id: string;
+    entityType: string;
+    content: string;
+    contentHash: string;
+    created: number;
+    updated: number;
+    metadata: Record<string, unknown>;
+    distance: number;
+    weighted_score: number;
+  }
+
   const createMockResults = (
     items: Array<{
       id: string;
@@ -42,7 +67,7 @@ describe("EntitySearch weight behavior", () => {
       distance: number;
       weighted_score?: number;
     }>,
-  ) =>
+  ): MockDbResult[] =>
     items.map((item) => ({
       id: item.id,
       entityType: item.entityType,

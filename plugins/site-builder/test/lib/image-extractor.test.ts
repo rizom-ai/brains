@@ -233,7 +233,11 @@ describe("ImageExtractor", () => {
       const entries = Object.entries(imageMap);
       expect(entries).toHaveLength(1);
 
-      const [hash, staticUrl] = entries[0]!;
+      const firstEntry = entries[0];
+      if (!firstEntry) {
+        throw new Error("Expected at least one entry");
+      }
+      const [hash, staticUrl] = firstEntry;
       expect(hash).toMatch(/^[a-f0-9]+$/); // Hash-based key
       expect(staticUrl).toMatch(/\/images\/[a-f0-9]+\.png$/);
 
