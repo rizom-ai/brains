@@ -13,16 +13,17 @@ Create a new `analytics` plugin to collect, store, and query metrics from:
 
 ## Key Decisions
 
-| Decision             | Choice                      | Rationale                                                                |
-| -------------------- | --------------------------- | ------------------------------------------------------------------------ |
-| Architecture         | New dedicated plugin        | Cross-cutting concern, own entity types, extensible for future platforms |
-| Website provider     | Umami Cloud (free tier)     | Privacy-focused, has API, no self-hosting needed, open source core       |
-| Storage              | Entities (markdown)         | Consistent with codebase, git-versioned, queryable                       |
-| Website granularity  | Daily snapshots             | Flexible for aggregation, matches Umami API                              |
-| Social granularity   | Per-post (updated in place) | Track engagement over time per post                                      |
-| Collection           | Scheduled + on-demand       | Consistent data collection + manual refresh                              |
-| LinkedIn credentials | Share with social-media     | No duplicate credential management                                       |
-| Dependencies         | Soft (runtime query)        | No package imports, queries entities if they exist                       |
+| Decision             | Choice                      | Rationale                                                                 |
+| -------------------- | --------------------------- | ------------------------------------------------------------------------- |
+| Architecture         | New dedicated plugin        | Cross-cutting concern, own entity types, extensible for future platforms  |
+| Website provider     | Umami Cloud (free tier)     | Privacy-focused, has API, no self-hosting needed, open source core        |
+| Storage              | Entities (markdown)         | Consistent with codebase, git-versioned, queryable                        |
+| Website granularity  | Daily snapshots             | Flexible for aggregation, matches Umami API                               |
+| Social granularity   | Per-post (updated in place) | Track engagement over time per post                                       |
+| Collection           | Scheduled + on-demand       | Consistent data collection + manual refresh                               |
+| LinkedIn credentials | Share with social-media     | No duplicate credential management                                        |
+| Dependencies         | Soft (runtime query)        | No package imports, queries entities if they exist                        |
+| Social metrics fetch | Messaging                   | Analytics sends message, social-media handles platform-specific API calls |
 
 ---
 
@@ -83,14 +84,33 @@ const socialMetricsMetadataSchema = z.object({
 
 ## Integration Points (Soft Dependencies)
 
-**No package.json dependencies on other plugins.** Uses runtime queries only.
+**No package.json dependencies on other plugins.** Uses messaging for cross-plugin communication.
 
-### With social-media plugin (optional)
+### With social-media plugin (via messaging)
 
-- Queries `entityService.listEntities("social-post")` to find published posts
-- If no social-post entities exist, social analytics is simply skipped
-- Reads `platformPostId` from entity metadata to fetch LinkedIn metrics
-- Subscribe to `publish:completed` to auto-fetch metrics for new posts
+**Analytics plugin sends:**
+
+- `social-media:get-post-metrics` - Request metrics for a specific post
+  - Input: `{ entityId: string }` (social-post entity ID)
+  - Response: `{ impressions, likes, comments, shares, platform }`
+
+**Social-media plugin handles:**
+
+- Owns all platform-specific API integrations (LinkedIn, future Twitter, etc.)
+- When new platform is added to social-media, analytics automatically gets metrics
+
+**Flow:**
+
+1. Analytics queries `entityService.listEntities("social-post")` to find published posts
+2. For each post, sends `social-media:get-post-metrics` message
+3. Social-media fetches from platform API and responds
+4. Analytics stores the metrics
+
+**Benefits:**
+
+- Social-media is single source of truth for platform integrations
+- Analytics remains platform-agnostic
+- No duplicate API clients
 
 ### With site-builder plugin (none)
 

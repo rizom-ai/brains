@@ -1,0 +1,28 @@
+{
+  "name": "@brains/analytics",
+  "version": "0.1.0",
+  "description": "Analytics plugin for collecting website and social media metrics",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
