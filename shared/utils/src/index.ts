@@ -59,6 +59,9 @@ export { computeContentHash } from "./hash";
 // Sort utilities
 export { sortByPublicationDate } from "./sort";
 
+// Date utilities
+export { toISODateString, getYesterday, getDaysAgo } from "./date";
+
 // HTTP utilities
 export {
   isHttpUrl,

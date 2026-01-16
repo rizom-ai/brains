@@ -1,10 +1,15 @@
 import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { Cron } from "croner";
+import { toISODateString, getYesterday } from "@brains/utils";
 import { analyticsConfigSchema, type AnalyticsConfig } from "./config";
 import { websiteMetricsSchema } from "./schemas/website-metrics";
 import { socialMetricsSchema } from "./schemas/social-metrics";
 import { WebsiteMetricsAdapter } from "./adapters/website-metrics-adapter";
 import { SocialMetricsAdapter } from "./adapters/social-metrics-adapter";
+import { createAnalyticsTools } from "./tools";
+import { PostHogClient } from "./lib/posthog-client";
+import { createWebsiteMetricsEntity } from "./schemas/website-metrics";
 import packageJson from "../package.json";
 
 /**
@@ -13,8 +18,14 @@ import packageJson from "../package.json";
  * Collects and stores:
  * - Website metrics from PostHog (pageviews, visitors, etc.)
  * - Social media engagement metrics (via messaging to social-media plugin)
+ *
+ * Scheduled collection:
+ * - Daily website metrics at 2 AM
  */
 export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
+  private websiteCron: Cron | null = null;
+  private posthogClient: PostHogClient | null = null;
+
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super("analytics", packageJson, config, analyticsConfigSchema);
   }
@@ -41,15 +52,77 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       socialMetricsAdapter,
     );
 
+    // Initialize PostHog client if configured
+    if (this.config.posthog?.enabled) {
+      this.posthogClient = new PostHogClient(this.config.posthog);
+
+      // Start daily website metrics cron (2 AM)
+      this.websiteCron = new Cron("0 2 * * *", () => {
+        void this.fetchDailyWebsiteMetrics();
+      });
+      this.logger.info("Website metrics cron started (daily at 2 AM)");
+    }
+
     this.logger.debug("Analytics plugin registered successfully");
+  }
+
+  /**
+   * Cleanup on shutdown
+   */
+  protected override async onShutdown(): Promise<void> {
+    if (this.websiteCron) {
+      this.websiteCron.stop();
+      this.websiteCron = null;
+      this.logger.debug("Website metrics cron stopped");
+    }
+  }
+
+  /**
+   * Fetch and store daily website metrics for yesterday
+   */
+  private async fetchDailyWebsiteMetrics(): Promise<void> {
+    if (!this.posthogClient || !this.context) return;
+
+    const yesterday = toISODateString(getYesterday());
+    this.logger.info("Fetching daily website metrics", { date: yesterday });
+
+    try {
+      const stats = await this.posthogClient.getWebsiteStats({
+        startDate: yesterday,
+        endDate: yesterday,
+      });
+
+      const entity = createWebsiteMetricsEntity({
+        period: "daily",
+        startDate: yesterday,
+        endDate: yesterday,
+        pageviews: stats.pageviews,
+        visitors: stats.visitors,
+        visits: stats.visits,
+        bounces: stats.bounces,
+        totalTime: stats.totalTime,
+      });
+
+      await this.context.entityService.upsertEntity(entity);
+
+      this.logger.info("Website metrics stored", {
+        date: yesterday,
+        pageviews: stats.pageviews,
+        visitors: stats.visitors,
+      });
+    } catch (error) {
+      this.logger.error("Failed to fetch website metrics", { error });
+    }
   }
 
   /**
    * Get plugin tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    // Tools will be implemented in Phase 2 (PostHog) and Phase 3 (Social)
-    return [];
+    if (!this.context) {
+      throw new Error("Plugin context not available");
+    }
+    return createAnalyticsTools(this.id, this.context, this.config.posthog);
   }
 }
 
