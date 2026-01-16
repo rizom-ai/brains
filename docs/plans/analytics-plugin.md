@@ -4,8 +4,8 @@
 
 Create a new `analytics` plugin to collect, store, and query metrics from:
 
-1. **Website**: Page views, visitors, traffic sources (via Umami Cloud API)
-2. **Social Media**: Post engagement - likes, comments, shares, impressions (via LinkedIn API)
+1. **Website**: Page views, visitors, traffic sources (via PostHog EU Cloud API)
+2. **Social Media**: Post engagement - likes, comments, shares, impressions (via messaging to social-media plugin)
 
 **Design principle**: Minimal dependencies - use existing integrations where possible.
 
@@ -13,17 +13,17 @@ Create a new `analytics` plugin to collect, store, and query metrics from:
 
 ## Key Decisions
 
-| Decision             | Choice                      | Rationale                                                                 |
-| -------------------- | --------------------------- | ------------------------------------------------------------------------- |
-| Architecture         | New dedicated plugin        | Cross-cutting concern, own entity types, extensible for future platforms  |
-| Website provider     | Umami Cloud (free tier)     | Privacy-focused, has API, no self-hosting needed, open source core        |
-| Storage              | Entities (markdown)         | Consistent with codebase, git-versioned, queryable                        |
-| Website granularity  | Daily snapshots             | Flexible for aggregation, matches Umami API                               |
-| Social granularity   | Per-post (updated in place) | Track engagement over time per post                                       |
-| Collection           | Scheduled + on-demand       | Consistent data collection + manual refresh                               |
-| LinkedIn credentials | Share with social-media     | No duplicate credential management                                        |
-| Dependencies         | Soft (runtime query)        | No package imports, queries entities if they exist                        |
-| Social metrics fetch | Messaging                   | Analytics sends message, social-media handles platform-specific API calls |
+| Decision             | Choice                      | Rationale                                                                   |
+| -------------------- | --------------------------- | --------------------------------------------------------------------------- |
+| Architecture         | New dedicated plugin        | Cross-cutting concern, own entity types, extensible for future platforms    |
+| Website provider     | PostHog EU Cloud            | Privacy-focused, GDPR jurisdiction, Terraform support, 1M events/month free |
+| Storage              | Entities (markdown)         | Consistent with codebase, git-versioned, queryable                          |
+| Website granularity  | Daily snapshots             | Flexible for aggregation, matches PostHog API                               |
+| Social granularity   | Per-post (updated in place) | Track engagement over time per post                                         |
+| Collection           | Scheduled + on-demand       | Consistent data collection + manual refresh                                 |
+| LinkedIn credentials | Share with social-media     | No duplicate credential management                                          |
+| Dependencies         | Soft (runtime query)        | No package imports, queries entities if they exist                          |
+| Social metrics fetch | Messaging                   | Analytics sends message, social-media handles platform-specific API calls   |
 
 ---
 
@@ -72,7 +72,7 @@ const socialMetricsMetadataSchema = z.object({
 
 ### Website Tools
 
-1. `analytics_fetch_website` - Fetch metrics from Umami API and store
+1. `analytics_fetch_website` - Fetch metrics from PostHog API and store
 2. `analytics_get_website_trends` - Query stored historical data
 
 ### Social Tools
@@ -115,8 +115,8 @@ const socialMetricsMetadataSchema = z.object({
 ### With site-builder plugin (none)
 
 - No integration needed
-- Site-builder injects tracking script (client-side)
-- Analytics plugin fetches data from Umami API (server-side)
+- Site-builder injects PostHog tracking script (client-side)
+- Analytics plugin fetches data from PostHog API (server-side)
 - Completely independent operations
 
 ---
@@ -141,18 +141,18 @@ Plus on-demand via MCP tools for manual refresh.
 
 ```typescript
 const analyticsConfigSchema = z.object({
-  umami: z
+  posthog: z
     .object({
       enabled: z.boolean().default(false),
-      websiteId: z.string(),
-      apiToken: z.string(), // From Umami Cloud dashboard
+      projectId: z.string(),
+      apiKey: z.string(), // Personal API key from PostHog settings
     })
     .optional(),
 
-  linkedin: z
+  social: z
     .object({
       enabled: z.boolean().default(false),
-      // Uses LINKEDIN_ACCESS_TOKEN env var (shared with social-media plugin)
+      // Uses messaging to social-media plugin - no direct credentials needed
     })
     .optional(),
 });
@@ -161,12 +161,12 @@ const analyticsConfigSchema = z.object({
 Environment variables:
 
 ```bash
-# Umami Cloud (free tier: 10k pageviews/month)
-UMAMI_WEBSITE_ID=abc123
-UMAMI_API_TOKEN=secret
+# PostHog EU Cloud (free tier: 1M events/month)
+POSTHOG_PROJECT_ID=12345
+POSTHOG_API_KEY=phx_xxx
 
-# LinkedIn (shared with social-media plugin)
-LINKEDIN_ACCESS_TOKEN=xxx  # Already exists
+# Note: Social metrics use messaging to social-media plugin
+# No additional env vars needed for social analytics
 ```
 
 ---
@@ -186,8 +186,7 @@ plugins/analytics/
 │   │   ├── website-metrics-adapter.ts
 │   │   └── social-metrics-adapter.ts
 │   ├── lib/
-│   │   ├── umami-client.ts
-│   │   └── linkedin-analytics.ts
+│   │   └── posthog-client.ts
 │   └── tools/
 │       ├── website-tools.ts
 │       └── social-tools.ts
@@ -195,31 +194,33 @@ plugins/analytics/
 └── package.json
 ```
 
+Note: No LinkedIn/social API client - uses messaging to social-media plugin.
+
 ---
 
 ## Implementation Phases
 
-### Phase 1: Plugin Scaffolding (1-2 hours)
+### Phase 1: Plugin Scaffolding
 
 - Create plugin structure with config schema
 - Define entity schemas and adapters
 - Register entity types
 
-### Phase 2: Umami Integration (2-3 hours)
+### Phase 2: PostHog Integration
 
-- Implement UmamiClient for API calls
+- Implement PostHogClient for API calls
 - Create `analytics_fetch_website` tool
 - Create `analytics_get_website_trends` tool
 - Add cron daemon for daily collection
 
-### Phase 3: LinkedIn Analytics (3-4 hours)
+### Phase 3: Social Analytics (via messaging)
 
-- Add `getPostAnalytics()` to LinkedIn client
-- Create `analytics_fetch_social` tool
+- Add message handler to social-media plugin: `social-media:get-post-metrics`
+- Create `analytics_fetch_social` tool (sends messages)
 - Create `analytics_get_social_summary` tool
 - Subscribe to `publish:completed` for auto-fetch
 
-### Phase 4: Testing & Polish (1-2 hours)
+### Phase 4: Testing & Polish
 
 - Unit tests with mocked API responses
 - Integration test with harness
@@ -243,19 +244,21 @@ plugins/analytics/
 
 ## External API Notes
 
-### Umami Cloud API
+### PostHog EU Cloud API
 
-- Base URL: `https://api.umami.is`
-- Auth: Bearer token (API token from dashboard)
-- Endpoints: `/api/websites/{websiteId}/stats`, `/api/websites/{websiteId}/pageviews`
-- Free tier: 10k pageviews/month, 6 months retention
+- Base URL: `https://eu.posthog.com`
+- Auth: Personal API key (header: `Authorization: Bearer phx_xxx`)
+- Endpoints:
+  - `GET /api/projects/{project_id}/insights/trend/` - Pageviews over time
+  - `GET /api/projects/{project_id}/events/` - Raw events
+- Free tier: 1M events/month
+- Terraform: `terraform-community-providers/posthog`
 
-### LinkedIn Analytics API
+### Social Metrics (via messaging)
 
-- OAuth scope: `r_member_social` (for personal posts)
-- Endpoint: `GET /rest/memberCreatorPostAnalytics`
-- Query: `q=entity&entity=(ugcPost:{encodedUrn})`
-- Current social-media plugin stores `platformPostId` as `urn:li:ugcPost:xxx`
+- Analytics sends `social-media:get-post-metrics` message
+- Social-media plugin handles platform-specific API calls (LinkedIn, etc.)
+- Response: `{ impressions, likes, comments, shares, platform }`
 
 ---
 
@@ -263,17 +266,17 @@ plugins/analytics/
 
 Before using this plugin:
 
-1. **Umami Cloud**: Sign up at umami.is, add tracking script to site, get API token
-2. **LinkedIn**: Existing social-media plugin setup (access token already configured)
+1. **PostHog EU**: Sign up at eu.posthog.com, create project, add tracking script to site, get API key
+2. **Social metrics**: Social-media plugin installed (handles platform API calls via messaging)
 
 ---
 
 ## Verification
 
-1. **Unit tests**: Mock Umami/LinkedIn API responses, verify entity creation
+1. **Unit tests**: Mock PostHog API and messaging responses, verify entity creation
 2. **Integration test**: Use plugin harness
 3. **Manual test**:
-   - Set `UMAMI_WEBSITE_ID` and `UMAMI_API_TOKEN` env vars
+   - Set `POSTHOG_PROJECT_ID` and `POSTHOG_API_KEY` env vars
    - Run `analytics_fetch_website` tool
    - Verify website-metrics entity created in data directory
    - Run `analytics_fetch_social` tool (requires published social posts)
