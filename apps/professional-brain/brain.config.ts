@@ -23,6 +23,7 @@ import {
 } from "@brains/professional-site";
 import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-yeehaa";
+import { analyticsPlugin } from "@brains/analytics";
 
 // Entity route configuration
 const entityRouteConfig = {
@@ -111,6 +112,13 @@ const config = defineConfig({
     portfolioPlugin({}),
     new TopicsPlugin({}),
     socialMediaPlugin({}),
+    analyticsPlugin({
+      cloudflare: {
+        accountId: process.env["CLOUDFLARE_ACCOUNT_ID"] || "",
+        apiToken: process.env["CLOUDFLARE_API_TOKEN"] || "",
+        siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"] || "",
+      },
+    }),
     professionalSitePlugin({
       entityRouteConfig,
     }),
@@ -122,6 +130,7 @@ const config = defineConfig({
         minimal: MinimalLayout,
       },
       themeCSS: yeehaaTheme,
+      analyticsScript: process.env["CLOUDFLARE_ANALYTICS_SCRIPT"],
       previewOutputDir: "./dist/site-preview",
       productionOutputDir: "./dist/site-production",
       previewUrl: process.env["PREVIEW_DOMAIN"],

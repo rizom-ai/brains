@@ -1,12 +1,15 @@
 import { z } from "@brains/utils";
 
 /**
- * PostHog EU Cloud configuration for website analytics
+ * Cloudflare Web Analytics configuration
+ * Privacy-focused, no cookies, GDPR compliant
  */
-export const posthogConfigSchema = z.object({
-  enabled: z.boolean().default(false),
-  projectId: z.string().describe("PostHog project ID"),
-  apiKey: z.string().describe("PostHog personal API key"),
+export const cloudflareConfigSchema = z.object({
+  accountId: z.string().describe("Cloudflare account ID"),
+  apiToken: z
+    .string()
+    .describe("Cloudflare API token with Analytics:Read permission"),
+  siteTag: z.string().describe("Cloudflare Web Analytics site tag"),
 });
 
 /**
@@ -21,10 +24,10 @@ export const socialAnalyticsConfigSchema = z.object({
  * Analytics plugin configuration schema
  */
 export const analyticsConfigSchema = z.object({
-  posthog: posthogConfigSchema.optional(),
+  cloudflare: cloudflareConfigSchema.optional(),
   social: socialAnalyticsConfigSchema.optional(),
 });
 
-export type PosthogConfig = z.infer<typeof posthogConfigSchema>;
+export type CloudflareConfig = z.infer<typeof cloudflareConfigSchema>;
 export type SocialAnalyticsConfig = z.infer<typeof socialAnalyticsConfigSchema>;
 export type AnalyticsConfig = z.infer<typeof analyticsConfigSchema>;

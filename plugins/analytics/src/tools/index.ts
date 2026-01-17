@@ -1,8 +1,8 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
 import { z, toISODateString, getYesterday } from "@brains/utils";
-import { PostHogClient } from "../lib/posthog-client";
-import type { PosthogConfig } from "../config";
+import { CloudflareClient } from "../lib/cloudflare-client";
+import type { CloudflareConfig } from "../config";
 import { createWebsiteMetricsEntity } from "../schemas/website-metrics";
 import type { WebsiteMetricsEntity } from "../schemas/website-metrics";
 
@@ -31,19 +31,19 @@ const getWebsiteTrendsParamsSchema = z.object({
 export function createAnalyticsTools(
   pluginId: string,
   context: ServicePluginContext,
-  posthogConfig?: PosthogConfig,
+  cloudflareConfig?: CloudflareConfig,
 ): PluginTool[] {
   const tools: PluginTool[] = [];
 
-  // Only add PostHog tools if configured
-  if (posthogConfig?.enabled) {
-    const posthogClient = new PostHogClient(posthogConfig);
+  // Only add Cloudflare tools if credentials are configured
+  if (cloudflareConfig?.apiToken && cloudflareConfig?.accountId) {
+    const cloudflareClient = new CloudflareClient(cloudflareConfig);
 
     tools.push(
       createTypedTool(
         pluginId,
         "fetch_website",
-        "Fetch website analytics from PostHog and store as metrics entity. Defaults to yesterday if no dates provided.",
+        "Fetch website analytics from Cloudflare and store as metrics entity. Defaults to yesterday if no dates provided.",
         fetchWebsiteParamsSchema,
         async (input) => {
           // Default to yesterday if no dates provided
@@ -52,8 +52,8 @@ export function createAnalyticsTools(
           const period = input.period;
 
           try {
-            // Fetch stats from PostHog
-            const stats = await posthogClient.getWebsiteStats({
+            // Fetch stats from Cloudflare
+            const stats = await cloudflareClient.getWebsiteStats({
               startDate,
               endDate,
             });

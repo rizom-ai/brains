@@ -170,7 +170,12 @@ export function createSiteBuilderTools(
             outputDir,
             workingDir: config.workingDir,
             enableContentGeneration: false,
-            siteConfig: config.siteInfo,
+            siteConfig: {
+              ...config.siteInfo,
+              ...(config.analyticsScript && {
+                analyticsScript: config.analyticsScript,
+              }),
+            },
           },
           context,
           {

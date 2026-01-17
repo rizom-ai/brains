@@ -13,6 +13,7 @@ export const siteBuildJobSchema = z.object({
       title: z.string(),
       description: z.string(),
       url: z.string().optional(),
+      analyticsScript: z.string().optional(),
     })
     .optional(),
 });

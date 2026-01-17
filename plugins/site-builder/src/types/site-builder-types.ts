@@ -17,6 +17,7 @@ export const SiteBuilderOptionsSchema = z.object({
     url: z.string().optional(),
     copyright: z.string().optional(),
     themeMode: z.enum(["light", "dark"]).optional(),
+    analyticsScript: z.string().optional(),
   }),
   layouts: z.record(z.any()),
   themeCSS: z.string().optional(),

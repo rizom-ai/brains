@@ -8,6 +8,10 @@ terraform {
       source  = "BunnyWay/bunnynet"
       version = "~> 0.8"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
   }
 }
 
@@ -18,6 +22,11 @@ provider "hcloud" {
 # Optional: Bunny.net CDN provider (only used if bunny_api_key is set)
 provider "bunnynet" {
   api_key = var.bunny_api_key
+}
+
+# Optional: Cloudflare provider (only used if cloudflare_api_token is set)
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }
 
 # Look up existing SSH key instead of creating one
@@ -89,9 +98,9 @@ resource "hcloud_server" "main" {
   }
 }
 
-# Optional: Bunny.net CDN
+# Optional: Bunny.net CDN + DNS
 # Only provisions CDN resources if bunny_api_key is provided
-# Uses DOMAIN env var for custom hostname and origin
+# If dns_enabled=true, also creates DNS zone, records, and auto-configures custom hostnames
 module "bunny_cdn" {
   source = "./modules/bunny-cdn"
 
@@ -100,8 +109,11 @@ module "bunny_cdn" {
   app_name      = var.app_name
   origin_ip     = hcloud_server.main.ipv4_address
 
-  # Optional: domain for custom hostname + origin hostname
+  # Optional: domain for DNS zone, custom hostname, and origin hostname
   domain = var.domain
+
+  # DNS management (creates zone, records, auto-configures custom hostnames)
+  dns_enabled = var.dns_enabled
 
   # Privacy & performance settings
   enable_logging = true  # With IP anonymization by default
@@ -112,6 +124,17 @@ module "bunny_cdn" {
   enable_geo_zone_asia = true
   enable_geo_zone_sa   = true
   enable_geo_zone_af   = true
+}
+
+# Optional: Cloudflare Web Analytics
+# Only provisions if cloudflare credentials are provided
+module "cloudflare_analytics" {
+  source = "./modules/cloudflare-analytics"
+  count  = var.cloudflare_api_token != "" && var.cloudflare_account_id != "" ? 1 : 0
+
+  cloudflare_account_id = var.cloudflare_account_id
+  cloudflare_api_token  = var.cloudflare_api_token
+  domain                = var.domain
 }
 
 # Outputs
@@ -158,6 +181,49 @@ output "site_endpoint" {
 output "cdn_status" {
   value       = module.bunny_cdn.cdn_enabled ? "Enabled (Bunny.net) - Privacy-friendly analytics available at bunny.net dashboard" : "Disabled (Direct to origin)"
   description = "CDN status and analytics info"
+  sensitive   = true
+}
+
+# DNS Outputs
+output "dns_enabled" {
+  value       = module.bunny_cdn.dns_enabled
+  description = "Whether Bunny DNS management is enabled"
+  sensitive   = true
+}
+
+output "dns_zone_id" {
+  value       = module.bunny_cdn.dns_zone_id
+  description = "Bunny DNS Zone ID (empty if DNS disabled)"
+  sensitive   = true
+}
+
+output "nameservers" {
+  value       = module.bunny_cdn.nameservers
+  description = "Bunny nameservers to configure at your registrar"
+  sensitive   = true
+}
+
+output "dns_instructions" {
+  value       = module.bunny_cdn.dns_instructions
+  description = "Instructions for completing DNS migration"
+  sensitive   = true
+}
+
+# Analytics Outputs
+output "analytics_enabled" {
+  value       = length(module.cloudflare_analytics) > 0
+  description = "Whether Cloudflare Web Analytics is enabled"
+}
+
+output "analytics_site_tag" {
+  value       = length(module.cloudflare_analytics) > 0 ? module.cloudflare_analytics[0].site_tag : ""
+  description = "Cloudflare Analytics site tag for API queries (empty if disabled)"
+  sensitive   = true
+}
+
+output "analytics_tracking_script" {
+  value       = length(module.cloudflare_analytics) > 0 ? module.cloudflare_analytics[0].tracking_script : ""
+  description = "Cloudflare Analytics tracking script for site injection (empty if disabled)"
   sensitive   = true
 }
 

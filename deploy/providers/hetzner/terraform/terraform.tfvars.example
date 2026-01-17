@@ -1,0 +1,27 @@
+# Example terraform.tfvars for professional-brain
+# Copy to terraform.tfvars and fill in your values
+
+# Required: Hetzner Cloud API token
+hcloud_token = "your-hetzner-api-token"
+
+# Required: Application name (used for server naming)
+app_name = "professional-brain"
+
+# Required: Domain for the application
+domain = "yeehaa.io"
+
+# Optional: Bunny.net CDN (leave empty to disable)
+bunny_api_key = "your-bunny-api-key"
+
+# Optional: Enable Bunny DNS management
+dns_enabled = true
+
+# Optional: Cloudflare Web Analytics (leave empty to disable)
+# cloudflare_api_token = "your-cloudflare-api-token"
+# cloudflare_account_id = "your-cloudflare-account-id"
+
+# Optional: Override server settings
+# server_type = "cx33"
+# location = "fsn1"
+# server_image = "ubuntu-22.04"
+# ssh_key_name = "personal-brain-deploy"

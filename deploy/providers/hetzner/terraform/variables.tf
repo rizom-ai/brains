@@ -46,3 +46,23 @@ variable "bunny_api_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "dns_enabled" {
+  description = "Whether to enable Bunny DNS management (creates zone, records, auto-configures custom hostnames)"
+  type        = bool
+  default     = false
+}
+
+# Optional: Cloudflare Web Analytics configuration
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with Analytics permissions (optional - analytics disabled if empty)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID (optional - analytics disabled if empty)"
+  type        = string
+  default     = ""
+}

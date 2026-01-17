@@ -1,0 +1,227 @@
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { CloudflareClient } from "../src/lib/cloudflare-client";
+import type { CloudflareConfig } from "../src/config";
+
+// Mock fetch
+const mockFetch = mock(() => Promise.resolve(new Response()));
+
+// Store original fetch
+const originalFetch = globalThis.fetch;
+
+describe("CloudflareClient", () => {
+  let client: CloudflareClient;
+  let config: CloudflareConfig;
+
+  beforeEach(() => {
+    config = {
+      accountId: "test_account_id",
+      apiToken: "cf_test_api_token",
+      siteTag: "test_site_tag",
+    };
+    client = new CloudflareClient(config);
+
+    // Reset and install mock
+    mockFetch.mockReset();
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    // Restore original fetch
+    globalThis.fetch = originalFetch;
+  });
+
+  describe("constructor", () => {
+    it("should create client with config", () => {
+      expect(client).toBeDefined();
+    });
+  });
+
+  describe("getWebsiteStats", () => {
+    it("should fetch website stats from Cloudflare GraphQL API", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    count: 100,
+                    sum: { visits: 80 },
+                    dimensions: { date: "2025-01-15" },
+                  },
+                  {
+                    count: 150,
+                    sum: { visits: 120 },
+                    dimensions: { date: "2025-01-16" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-16",
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [url, options] = mockFetch.mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      expect(url).toBe("https://api.cloudflare.com/client/v4/graphql");
+      expect(options.method).toBe("POST");
+      expect(options.headers).toEqual(
+        expect.objectContaining({
+          Authorization: "Bearer cf_test_api_token",
+          "Content-Type": "application/json",
+        }),
+      );
+
+      // Verify aggregation
+      expect(result.pageviews).toBe(250); // 100 + 150
+      expect(result.visits).toBe(200); // 80 + 120
+      expect(result.visitors).toBe(200); // Same as visits in Cloudflare
+    });
+
+    it("should handle empty results", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result.pageviews).toBe(0);
+      expect(result.visitors).toBe(0);
+      expect(result.visits).toBe(0);
+    });
+
+    it("should throw error on API failure", async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response("Unauthorized", { status: 401 }),
+      );
+
+      let error: Error | null = null;
+      try {
+        await client.getWebsiteStats({
+          startDate: "2025-01-01",
+          endDate: "2025-01-31",
+        });
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).not.toBeNull();
+      expect(error?.message).toContain("Cloudflare API error: 401");
+    });
+
+    it("should throw error on GraphQL errors", async () => {
+      const mockResponse = {
+        data: null,
+        errors: [{ message: "Invalid query" }],
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      let error: Error | null = null;
+      try {
+        await client.getWebsiteStats({
+          startDate: "2025-01-01",
+          endDate: "2025-01-31",
+        });
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).not.toBeNull();
+      expect(error?.message).toContain("Cloudflare GraphQL error");
+      expect(error?.message).toContain("Invalid query");
+    });
+  });
+
+  describe("validateCredentials", () => {
+    it("should return true for valid credentials", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [{ accountTag: "test_account_id" }],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const isValid = await client.validateCredentials();
+      expect(isValid).toBe(true);
+    });
+
+    it("should return false for invalid credentials", async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response("Unauthorized", { status: 401 }),
+      );
+
+      const isValid = await client.validateCredentials();
+      expect(isValid).toBe(false);
+    });
+
+    it("should return false on GraphQL errors", async () => {
+      const mockResponse = {
+        errors: [{ message: "Authentication failed" }],
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const isValid = await client.validateCredentials();
+      expect(isValid).toBe(false);
+    });
+
+    it("should return false on network errors", async () => {
+      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+
+      const isValid = await client.validateCredentials();
+      expect(isValid).toBe(false);
+    });
+  });
+});

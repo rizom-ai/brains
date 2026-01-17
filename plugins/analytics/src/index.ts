@@ -8,7 +8,7 @@ import { socialMetricsSchema } from "./schemas/social-metrics";
 import { WebsiteMetricsAdapter } from "./adapters/website-metrics-adapter";
 import { SocialMetricsAdapter } from "./adapters/social-metrics-adapter";
 import { createAnalyticsTools } from "./tools";
-import { PostHogClient } from "./lib/posthog-client";
+import { CloudflareClient } from "./lib/cloudflare-client";
 import { createWebsiteMetricsEntity } from "./schemas/website-metrics";
 import packageJson from "../package.json";
 
@@ -16,7 +16,7 @@ import packageJson from "../package.json";
  * Analytics plugin for collecting website and social media metrics
  *
  * Collects and stores:
- * - Website metrics from PostHog (pageviews, visitors, etc.)
+ * - Website metrics from Cloudflare Web Analytics (pageviews, visitors, etc.)
  * - Social media engagement metrics (via messaging to social-media plugin)
  *
  * Scheduled collection:
@@ -24,7 +24,7 @@ import packageJson from "../package.json";
  */
 export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
   private websiteCron: Cron | null = null;
-  private posthogClient: PostHogClient | null = null;
+  private cloudflareClient: CloudflareClient | null = null;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super("analytics", packageJson, config, analyticsConfigSchema);
@@ -52,9 +52,9 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       socialMetricsAdapter,
     );
 
-    // Initialize PostHog client if configured
-    if (this.config.posthog?.enabled) {
-      this.posthogClient = new PostHogClient(this.config.posthog);
+    // Initialize Cloudflare client if credentials are configured
+    if (this.config.cloudflare?.apiToken && this.config.cloudflare?.accountId) {
+      this.cloudflareClient = new CloudflareClient(this.config.cloudflare);
 
       // Start daily website metrics cron (2 AM)
       this.websiteCron = new Cron("0 2 * * *", () => {
@@ -81,13 +81,13 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
    * Fetch and store daily website metrics for yesterday
    */
   private async fetchDailyWebsiteMetrics(): Promise<void> {
-    if (!this.posthogClient || !this.context) return;
+    if (!this.cloudflareClient || !this.context) return;
 
     const yesterday = toISODateString(getYesterday());
     this.logger.info("Fetching daily website metrics", { date: yesterday });
 
     try {
-      const stats = await this.posthogClient.getWebsiteStats({
+      const stats = await this.cloudflareClient.getWebsiteStats({
         startDate: yesterday,
         endDate: yesterday,
       });
@@ -122,7 +122,7 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     if (!this.context) {
       throw new Error("Plugin context not available");
     }
-    return createAnalyticsTools(this.id, this.context, this.config.posthog);
+    return createAnalyticsTools(this.id, this.context, this.config.cloudflare);
   }
 }
 
@@ -143,12 +143,12 @@ export const analyticsPlugin = createAnalyticsPlugin;
 // Export types and schemas
 export type {
   AnalyticsConfig,
-  PosthogConfig,
+  CloudflareConfig,
   SocialAnalyticsConfig,
 } from "./config";
 export {
   analyticsConfigSchema,
-  posthogConfigSchema,
+  cloudflareConfigSchema,
   socialAnalyticsConfigSchema,
 } from "./config";
 

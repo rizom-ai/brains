@@ -9,13 +9,13 @@ describe("Analytics Config Schema", () => {
     });
   });
 
-  describe("posthog config", () => {
-    it("should validate complete posthog config", () => {
+  describe("cloudflare config", () => {
+    it("should validate complete cloudflare config", () => {
       const config = {
-        posthog: {
-          enabled: true,
-          projectId: "12345",
-          apiKey: "phx_secret",
+        cloudflare: {
+          accountId: "abc123",
+          apiToken: "cf_token_secret",
+          siteTag: "site123",
         },
       };
 
@@ -23,26 +23,11 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should default enabled to false", () => {
+    it("should require accountId when cloudflare is provided", () => {
       const config = {
-        posthog: {
-          projectId: "12345",
-          apiKey: "phx_secret",
-        },
-      };
-
-      const result = analyticsConfigSchema.safeParse(config);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.posthog?.enabled).toBe(false);
-      }
-    });
-
-    it("should require projectId when posthog is provided", () => {
-      const config = {
-        posthog: {
-          enabled: true,
-          apiKey: "phx_secret",
+        cloudflare: {
+          apiToken: "cf_token_secret",
+          siteTag: "site123",
         },
       };
 
@@ -50,11 +35,23 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(false);
     });
 
-    it("should require apiKey when posthog is provided", () => {
+    it("should require apiToken when cloudflare is provided", () => {
       const config = {
-        posthog: {
-          enabled: true,
-          projectId: "12345",
+        cloudflare: {
+          accountId: "abc123",
+          siteTag: "site123",
+        },
+      };
+
+      const result = analyticsConfigSchema.safeParse(config);
+      expect(result.success).toBe(false);
+    });
+
+    it("should require siteTag when cloudflare is provided", () => {
+      const config = {
+        cloudflare: {
+          accountId: "abc123",
+          apiToken: "cf_token_secret",
         },
       };
 
@@ -100,12 +97,12 @@ describe("Analytics Config Schema", () => {
   });
 
   describe("combined config", () => {
-    it("should validate config with both posthog and social", () => {
+    it("should validate config with both cloudflare and social", () => {
       const config = {
-        posthog: {
-          enabled: true,
-          projectId: "12345",
-          apiKey: "phx_secret",
+        cloudflare: {
+          accountId: "abc123",
+          apiToken: "cf_token_secret",
+          siteTag: "site123",
         },
         social: {
           enabled: true,
@@ -116,12 +113,12 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should validate config with only posthog", () => {
+    it("should validate config with only cloudflare", () => {
       const config = {
-        posthog: {
-          enabled: true,
-          projectId: "12345",
-          apiKey: "phx_secret",
+        cloudflare: {
+          accountId: "abc123",
+          apiToken: "cf_token_secret",
+          siteTag: "site123",
         },
       };
 

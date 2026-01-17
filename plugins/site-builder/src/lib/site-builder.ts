@@ -247,6 +247,9 @@ export class SiteBuilder implements ISiteBuilder {
           ...(siteConfig.url && { url: siteConfig.url }),
           ...(siteConfig.copyright && { copyright: siteConfig.copyright }),
           ...(siteConfig.themeMode && { themeMode: siteConfig.themeMode }),
+          ...(siteConfig.analyticsScript && {
+            analyticsScript: siteConfig.analyticsScript,
+          }),
         },
         getContent: async (
           route: RouteDefinition,

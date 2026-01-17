@@ -20,6 +20,7 @@ export interface BuildContext {
     url?: string;
     copyright?: string;
     themeMode?: "light" | "dark";
+    analyticsScript?: string;
   };
   getContent: (
     route: RouteDefinition,

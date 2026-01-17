@@ -75,6 +75,12 @@ export const siteBuilderConfigSchema = z.object({
     .string()
     .describe("Custom CSS theme overrides to inject into builds")
     .optional(),
+  analyticsScript: z
+    .string()
+    .describe(
+      "Analytics tracking script to inject into page head (e.g., Cloudflare Web Analytics)",
+    )
+    .optional(),
   templates: z.any().optional().describe("Template definitions to register"),
   routes: z
     .array(RouteDefinitionSchema)

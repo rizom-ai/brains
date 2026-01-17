@@ -9,10 +9,10 @@ describe("AnalyticsPlugin", () => {
 
   beforeEach(() => {
     plugin = createAnalyticsPlugin({
-      posthog: {
-        enabled: true,
-        projectId: "12345",
-        apiKey: "phx_test",
+      cloudflare: {
+        accountId: "abc123",
+        apiToken: "cf_test_token",
+        siteTag: "site123",
       },
       social: {
         enabled: true,
@@ -35,10 +35,10 @@ describe("AnalyticsPlugin", () => {
 
     it("should accept custom configuration", () => {
       const customPlugin = createAnalyticsPlugin({
-        posthog: {
-          enabled: false,
-          projectId: "custom",
-          apiKey: "phx_custom",
+        cloudflare: {
+          accountId: "custom",
+          apiToken: "cf_custom",
+          siteTag: "custom_site",
         },
       }) as AnalyticsPlugin;
 
