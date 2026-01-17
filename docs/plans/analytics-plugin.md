@@ -4,7 +4,7 @@
 
 Create a new `analytics` plugin to collect, store, and query metrics from:
 
-1. **Website**: Page views, visitors, traffic sources (via PostHog EU Cloud API)
+1. **Website**: Page views, visitors, traffic sources (via Cloudflare Web Analytics API)
 2. **Social Media**: Post engagement - likes, comments, shares, impressions (via messaging to social-media plugin)
 
 **Design principle**: Minimal dependencies - use existing integrations where possible.
@@ -13,17 +13,17 @@ Create a new `analytics` plugin to collect, store, and query metrics from:
 
 ## Key Decisions
 
-| Decision             | Choice                      | Rationale                                                                   |
-| -------------------- | --------------------------- | --------------------------------------------------------------------------- |
-| Architecture         | New dedicated plugin        | Cross-cutting concern, own entity types, extensible for future platforms    |
-| Website provider     | PostHog EU Cloud            | Privacy-focused, GDPR jurisdiction, Terraform support, 1M events/month free |
-| Storage              | Entities (markdown)         | Consistent with codebase, git-versioned, queryable                          |
-| Website granularity  | Daily snapshots             | Flexible for aggregation, matches PostHog API                               |
-| Social granularity   | Per-post (updated in place) | Track engagement over time per post                                         |
-| Collection           | Scheduled + on-demand       | Consistent data collection + manual refresh                                 |
-| LinkedIn credentials | Share with social-media     | No duplicate credential management                                          |
-| Dependencies         | Soft (runtime query)        | No package imports, queries entities if they exist                          |
-| Social metrics fetch | Messaging                   | Analytics sends message, social-media handles platform-specific API calls   |
+| Decision             | Choice                      | Rationale                                                                  |
+| -------------------- | --------------------------- | -------------------------------------------------------------------------- |
+| Architecture         | New dedicated plugin        | Cross-cutting concern, own entity types, extensible for future platforms   |
+| Website provider     | Cloudflare Web Analytics    | Full Terraform support, free, privacy-focused (no cookies), GDPR compliant |
+| Storage              | Entities (markdown)         | Consistent with codebase, git-versioned, queryable                         |
+| Website granularity  | Daily snapshots             | Flexible for aggregation, matches Cloudflare API                           |
+| Social granularity   | Per-post (updated in place) | Track engagement over time per post                                        |
+| Collection           | Scheduled + on-demand       | Consistent data collection + manual refresh                                |
+| LinkedIn credentials | Share with social-media     | No duplicate credential management                                         |
+| Dependencies         | Soft (runtime query)        | No package imports, queries entities if they exist                         |
+| Social metrics fetch | Messaging                   | Analytics sends message, social-media handles platform-specific API calls  |
 
 ---
 
@@ -72,7 +72,7 @@ const socialMetricsMetadataSchema = z.object({
 
 ### Website Tools
 
-1. `analytics_fetch_website` - Fetch metrics from PostHog API and store
+1. `analytics_fetch_website` - Fetch metrics from Cloudflare API and store
 2. `analytics_get_website_trends` - Query stored historical data
 
 ### Social Tools
@@ -112,12 +112,11 @@ const socialMetricsMetadataSchema = z.object({
 - Analytics remains platform-agnostic
 - No duplicate API clients
 
-### With site-builder plugin (none)
+### With site-builder plugin
 
-- No integration needed
-- Site-builder injects PostHog tracking script (client-side)
-- Analytics plugin fetches data from PostHog API (server-side)
-- Completely independent operations
+- Site-builder injects Cloudflare tracking script (client-side, via Terraform output)
+- Analytics plugin fetches data from Cloudflare GraphQL API (server-side)
+- Tracking script token provided via environment variable from Terraform
 
 ---
 
@@ -141,11 +140,12 @@ Plus on-demand via MCP tools for manual refresh.
 
 ```typescript
 const analyticsConfigSchema = z.object({
-  posthog: z
+  cloudflare: z
     .object({
       enabled: z.boolean().default(false),
-      projectId: z.string(),
-      apiKey: z.string(), // Personal API key from PostHog settings
+      accountId: z.string(),
+      apiToken: z.string(), // API token with Analytics:Read permission
+      siteTag: z.string(), // Site tag from Terraform
     })
     .optional(),
 
@@ -158,12 +158,13 @@ const analyticsConfigSchema = z.object({
 });
 ```
 
-Environment variables:
+Environment variables (from Terraform outputs):
 
 ```bash
-# PostHog EU Cloud (free tier: 1M events/month)
-POSTHOG_PROJECT_ID=12345
-POSTHOG_API_KEY=phx_xxx
+# Cloudflare Web Analytics (free, unlimited)
+CLOUDFLARE_ACCOUNT_ID=xxx
+CLOUDFLARE_API_TOKEN=xxx
+CLOUDFLARE_ANALYTICS_SITE_TAG=xxx
 
 # Note: Social metrics use messaging to social-media plugin
 # No additional env vars needed for social analytics
@@ -186,10 +187,9 @@ plugins/analytics/
 │   │   ├── website-metrics-adapter.ts
 │   │   └── social-metrics-adapter.ts
 │   ├── lib/
-│   │   └── posthog-client.ts
+│   │   └── cloudflare-client.ts
 │   └── tools/
-│       ├── website-tools.ts
-│       └── social-tools.ts
+│       └── index.ts
 ├── test/
 └── package.json
 ```
@@ -200,18 +200,28 @@ Note: No LinkedIn/social API client - uses messaging to social-media plugin.
 
 ## Implementation Phases
 
-### Phase 1: Plugin Scaffolding
+### Phase 1: Plugin Scaffolding ✅
 
 - Create plugin structure with config schema
 - Define entity schemas and adapters
 - Register entity types
 
-### Phase 2: PostHog Integration
+### Phase 2: Website Analytics Client ✅ (PostHog - to be replaced)
 
-- Implement PostHogClient for API calls
+- ~~Implement PostHogClient for API calls~~ → Replace with CloudflareClient
 - Create `analytics_fetch_website` tool
 - Create `analytics_get_website_trends` tool
 - Add cron daemon for daily collection
+
+### Phase 2.5: Cloudflare Terraform Infrastructure
+
+- Create `modules/cloudflare-analytics` Terraform module
+- Provision `cloudflare_web_analytics_site` resource
+- Output site_tag and tracking script
+- Add tracking script injection to site-builder (client-side)
+- Replace PostHogClient with CloudflareClient
+- Update brain.config.ts to use Terraform-provided credentials
+- Test end-to-end: tracking script → Cloudflare → analytics plugin
 
 ### Phase 3: Social Analytics (via messaging)
 
@@ -233,26 +243,51 @@ Note: No LinkedIn/social API client - uses messaging to social-media plugin.
 **New files:**
 
 - `plugins/analytics/` - New plugin directory
+- `apps/professional-brain/deploy/terraform-state/modules/cloudflare-analytics/` - Terraform module
+
+**Files to modify:**
+
+- `plugins/analytics/src/lib/cloudflare-client.ts` - Replace PostHog with Cloudflare
+- `plugins/site-builder/src/lib/head-collector.ts` - Add analytics script injection
 
 **Files to reference:**
 
 - `plugins/publish-pipeline/src/scheduler.ts` - Cron pattern with croner
-- `plugins/social-media/src/lib/linkedin-client.ts` - LinkedIn API pattern
-- `plugins/summary/src/schemas/summary.ts` - Time-series entity pattern
+- `apps/professional-brain/deploy/terraform-state/modules/bunny-cdn/` - Terraform module pattern
 
 ---
 
 ## External API Notes
 
-### PostHog EU Cloud API
+### Cloudflare Web Analytics API
 
-- Base URL: `https://eu.posthog.com`
-- Auth: Personal API key (header: `Authorization: Bearer phx_xxx`)
-- Endpoints:
-  - `GET /api/projects/{project_id}/insights/trend/` - Pageviews over time
-  - `GET /api/projects/{project_id}/events/` - Raw events
-- Free tier: 1M events/month
-- Terraform: `terraform-community-providers/posthog`
+- GraphQL API: `https://api.cloudflare.com/client/v4/graphql`
+- Auth: API Token with `Analytics:Read` permission
+- Query example:
+
+```graphql
+query {
+  viewer {
+    accounts(filter: { accountTag: $accountTag }) {
+      rumPageloadEventsAdaptiveGroups(
+        filter: { datetime_gt: $start, datetime_lt: $end, siteTag: $siteTag }
+        limit: 1000
+      ) {
+        count
+        dimensions {
+          date
+        }
+        sum {
+          visits
+        }
+      }
+    }
+  }
+}
+```
+
+- Free tier: Unlimited
+- Terraform: `cloudflare/cloudflare` provider, `cloudflare_web_analytics_site` resource
 
 ### Social Metrics (via messaging)
 
@@ -266,17 +301,128 @@ Note: No LinkedIn/social API client - uses messaging to social-media plugin.
 
 Before using this plugin:
 
-1. **PostHog EU**: Sign up at eu.posthog.com, create project, add tracking script to site, get API key
-2. **Social metrics**: Social-media plugin installed (handles platform API calls via messaging)
+1. **Cloudflare account**: Free account at cloudflare.com
+2. **Terraform**: Cloudflare provider configured with API token
+3. **Social metrics**: Social-media plugin installed (handles platform API calls via messaging)
+
+---
+
+## Terraform Infrastructure (Phase 2.5)
+
+### Module Structure
+
+```
+apps/professional-brain/deploy/terraform-state/
+├── modules/
+│   ├── bunny-cdn/              # Existing
+│   └── cloudflare-analytics/   # New
+│       ├── main.tf
+│       ├── variables.tf
+│       └── outputs.tf
+└── main.tf                     # Add cloudflare-analytics module call
+```
+
+### Cloudflare Analytics Module (`modules/cloudflare-analytics/main.tf`)
+
+```hcl
+terraform {
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
+  }
+}
+
+# Web Analytics site (for domains NOT on Cloudflare DNS)
+resource "cloudflare_web_analytics_site" "main" {
+  account_id   = var.cloudflare_account_id
+  host         = var.domain
+  auto_install = false  # We inject manually via site-builder
+}
+
+# Or for domains ON Cloudflare DNS, use zone_tag instead:
+# resource "cloudflare_web_analytics_site" "main" {
+#   account_id   = var.cloudflare_account_id
+#   zone_tag     = var.cloudflare_zone_id
+#   auto_install = true
+# }
+```
+
+### Variables (`modules/cloudflare-analytics/variables.tf`)
+
+```hcl
+variable "cloudflare_account_id" {
+  description = "Cloudflare account ID"
+  type        = string
+}
+
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with Analytics permissions"
+  type        = string
+  sensitive   = true
+}
+
+variable "domain" {
+  description = "Domain to track (e.g., yeehaa.io)"
+  type        = string
+}
+```
+
+### Outputs (`modules/cloudflare-analytics/outputs.tf`)
+
+```hcl
+output "site_tag" {
+  value       = cloudflare_web_analytics_site.main.site_tag
+  description = "Site tag for API queries"
+}
+
+output "site_token" {
+  value       = cloudflare_web_analytics_site.main.site_token
+  description = "Site token for tracking script"
+  sensitive   = true
+}
+
+output "tracking_script" {
+  value       = <<-EOT
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "${cloudflare_web_analytics_site.main.site_token}"}'></script>
+  EOT
+  description = "Cloudflare Web Analytics tracking script for site-builder injection"
+}
+
+output "ruleset_id" {
+  value       = cloudflare_web_analytics_site.main.ruleset_id
+  description = "Ruleset ID for the analytics site"
+}
+```
+
+### Site-Builder Integration
+
+After Terraform provisions Cloudflare Analytics, the tracking script is injected via environment variable:
+
+```typescript
+// brain.config.ts
+siteBuilderPlugin({
+  // ... existing config
+  analytics: {
+    trackingScript: process.env["CLOUDFLARE_TRACKING_SCRIPT"],
+  },
+}),
+```
+
+The HeadCollector injects this script into the `<head>` of all pages.
 
 ---
 
 ## Verification
 
-1. **Unit tests**: Mock PostHog API and messaging responses, verify entity creation
+1. **Unit tests**: Mock Cloudflare GraphQL API and messaging responses, verify entity creation
 2. **Integration test**: Use plugin harness
 3. **Manual test**:
-   - Set `POSTHOG_PROJECT_ID` and `POSTHOG_API_KEY` env vars
+   - Run `terraform apply` to provision Cloudflare Web Analytics
+   - Build site with tracking script injected
+   - Visit site, verify beacon loads in Network tab
+   - Wait for data in Cloudflare dashboard
    - Run `analytics_fetch_website` tool
    - Verify website-metrics entity created in data directory
    - Run `analytics_fetch_social` tool (requires published social posts)
