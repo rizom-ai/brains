@@ -12,6 +12,15 @@
 #     domain                = var.domain
 #   }
 
+terraform {
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
+  }
+}
+
 # Web Analytics site
 # For domains NOT on Cloudflare DNS, use host parameter
 resource "cloudflare_web_analytics_site" "main" {
