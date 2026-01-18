@@ -80,7 +80,7 @@ build_docker_image() {
     log_debug "Dockerfile: $dockerfile"
     log_debug "Context: $context"
     
-    local cmd=(env DOCKER_BUILDKIT=1 docker build -f "$dockerfile" -t "$image_name")
+    local cmd=(docker build -f "$dockerfile" -t "$image_name")
     
     # Add any build args
     for arg in "${build_args[@]}"; do
