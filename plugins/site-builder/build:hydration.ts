@@ -40,7 +40,12 @@ async function buildHydrationScripts() {
             format: "iife", // Immediately Invoked Function Expression
             platform: "browser",
             target: ["es2020"],
-            external: ["preact", "preact/hooks", "preact/jsx-runtime"], // Keep preact external
+            external: [
+              "preact",
+              "preact/hooks",
+              "preact/jsx-runtime",
+              "crypto", // Node built-in, not needed for browser hydration
+            ],
             jsx: "transform",
             jsxFactory: "window.preact.h",
             jsxFragment: "window.preact.Fragment",

@@ -73,7 +73,7 @@ export function createAnalyticsTools(
   const tools: PluginTool[] = [];
 
   // Only add Cloudflare tools if credentials are configured
-  if (cloudflareConfig?.apiToken && cloudflareConfig?.accountId) {
+  if (cloudflareConfig?.apiToken && cloudflareConfig.accountId) {
     const cloudflareClient = new CloudflareClient(cloudflareConfig);
 
     tools.push(

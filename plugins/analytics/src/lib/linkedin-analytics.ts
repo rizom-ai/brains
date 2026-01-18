@@ -66,7 +66,7 @@ export class LinkedInAnalyticsClient {
     const result = (await response.json()) as LinkedInShareStatisticsResponse;
 
     // Return zeros if no data found
-    const element = result.elements?.[0];
+    const element = result.elements[0];
     if (!element?.totalShareStatistics) {
       return {
         impressions: 0,
@@ -79,10 +79,10 @@ export class LinkedInAnalyticsClient {
     const stats = element.totalShareStatistics;
 
     return {
-      impressions: stats.impressionCount ?? 0,
-      likes: stats.likeCount ?? 0,
-      comments: stats.commentCount ?? 0,
-      shares: stats.shareCount ?? 0,
+      impressions: stats.impressionCount,
+      likes: stats.likeCount,
+      comments: stats.commentCount,
+      shares: stats.shareCount,
     };
   }
 

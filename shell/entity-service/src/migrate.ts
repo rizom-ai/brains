@@ -23,10 +23,12 @@ export async function migrateEntities(
     // Enable WAL mode before migrations
     await enableWALModeForEntities(client, url);
 
-    // Run migrations
-    await migrate(db, {
-      migrationsFolder: new URL("../drizzle", import.meta.url).pathname,
-    });
+    // Run migrations - detect if running from bundled dist
+    const isBundled = import.meta.url.includes("/dist/");
+    const migrationsFolder = isBundled
+      ? new URL("./migrations/entity-service", import.meta.url).pathname
+      : new URL("../drizzle", import.meta.url).pathname;
+    await migrate(db, { migrationsFolder });
 
     // Ensure indexes exist
     await ensureEntityIndexes(client);

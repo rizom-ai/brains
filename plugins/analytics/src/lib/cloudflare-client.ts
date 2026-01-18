@@ -121,14 +121,14 @@ export class CloudflareClient {
 
     // Aggregate the results
     const groups =
-      result.data?.viewer?.accounts?.[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
 
     let pageviews = 0;
     let visits = 0;
 
     for (const group of groups) {
       pageviews += group.count;
-      visits += group.sum?.visits ?? 0;
+      visits += group.sum.visits;
     }
 
     // Cloudflare Web Analytics doesn't provide these directly

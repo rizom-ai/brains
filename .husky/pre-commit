@@ -16,7 +16,7 @@ bunx lint-staged
 
 # Run linting on all packages (cached by turbo)
 echo "🔍 Running linter..."
-bun run lint:fix
+bun run lint
 
 # Run type checking on all packages (required for monorepo correctness)
 echo "🔍 Running type checks..."

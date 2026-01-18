@@ -30,6 +30,7 @@
     "scripts"
   ],
   "bin": {
+    "brain-build": "./scripts/build.ts",
     "brain-migrate": "./scripts/migrate.ts",
     "brain-migrate-entities": "./scripts/migrate-entities.ts",
     "brain-migrate-job-queue": "./scripts/migrate-job-queue.ts",

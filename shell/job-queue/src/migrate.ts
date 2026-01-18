@@ -19,9 +19,12 @@ export async function migrateJobQueue(
     // Enable WAL mode before migrations
     await enableWALMode(client, url);
 
-    await migrate(db, {
-      migrationsFolder: new URL("../drizzle", import.meta.url).pathname,
-    });
+    // Detect if running from bundled dist
+    const isBundled = import.meta.url.includes("/dist/");
+    const migrationsFolder = isBundled
+      ? new URL("./migrations/job-queue", import.meta.url).pathname
+      : new URL("../drizzle", import.meta.url).pathname;
+    await migrate(db, { migrationsFolder });
 
     log.debug("Job queue migrations completed successfully");
   } catch (error) {

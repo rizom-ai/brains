@@ -57,8 +57,7 @@ export default function EnhancedApp({
           // 1. Contains "enqueued with ID" (initial job message), OR
           // 2. Also looks like a progress message (progress update)
           const shouldReplace =
-            lastMessage &&
-            lastMessage.role === "assistant" &&
+            lastMessage?.role === "assistant" &&
             (lastMessage.content.includes("enqueued with ID") ||
               lastMessage.content.includes("🔄") ||
               lastMessage.content.includes("✅") ||

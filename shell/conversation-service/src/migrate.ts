@@ -21,10 +21,12 @@ export async function migrateConversations(
       await client.execute("PRAGMA journal_mode = WAL");
     }
 
-    // Run migrations
-    await migrate(db, {
-      migrationsFolder: new URL("../drizzle", import.meta.url).pathname,
-    });
+    // Run migrations - detect if running from bundled dist
+    const isBundled = import.meta.url.includes("/dist/");
+    const migrationsFolder = isBundled
+      ? new URL("./migrations/conversation-service", import.meta.url).pathname
+      : new URL("../drizzle", import.meta.url).pathname;
+    await migrate(db, { migrationsFolder });
 
     log.debug("Conversation database migrations completed successfully");
   } catch (error) {

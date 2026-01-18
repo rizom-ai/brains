@@ -35,7 +35,7 @@ async function executeTool(
 }
 
 describe("AnalyticsPlugin Integration", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createServicePluginHarness> | undefined;
   let plugin: AnalyticsPlugin;
   let capabilities: PluginCapabilities;
 
@@ -48,7 +48,7 @@ describe("AnalyticsPlugin Integration", () => {
   afterEach(() => {
     // Restore original fetch
     globalThis.fetch = originalFetch;
-    // Reset harness
+    // Reset harness if it was initialized
     harness?.reset();
   });
 
@@ -77,8 +77,9 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should register entity types", () => {
-      const shell = harness.getShell();
-      const entityService = shell.getEntityService();
+      expect(harness).toBeDefined();
+      const shell = harness?.getShell();
+      const entityService = shell?.getEntityService();
 
       // Entity types are registered through the context
       expect(entityService).toBeDefined();

@@ -58,7 +58,7 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     );
 
     // Initialize Cloudflare client if credentials are configured
-    if (this.config.cloudflare?.apiToken && this.config.cloudflare?.accountId) {
+    if (this.config.cloudflare?.apiToken && this.config.cloudflare.accountId) {
       this.cloudflareClient = new CloudflareClient(this.config.cloudflare);
 
       // Start website metrics cron (configurable, default: daily at 2 AM)

@@ -5,10 +5,12 @@
   "private": true,
   "main": "./brain.config.ts",
   "scripts": {
+    "build": "brain-build",
     "dev": "bun --watch brain.config.ts",
     "dev:cli": "bun --watch brain.config.ts --cli",
     "start": "bun brain.config.ts",
     "start:cli": "bun brain.config.ts --cli",
+    "start:prod": "bun dist/brain.config.js",
     "migrate": "brain-migrate",
     "migrate:entities": "brain-migrate-entities",
     "migrate:job-queue": "brain-migrate-job-queue",
