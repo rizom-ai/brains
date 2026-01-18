@@ -1,58 +1,39 @@
-# Docker Build Optimization Plan
+# Docker Deployment Fix Plan
 
 ## Problem
 
-Docker builds are slow and layers are never reused. The root cause is on **line 10** of the Dockerfile:
+The current Docker setup has issues:
 
-```dockerfile
-COPY . .  # <-- Invalidates ALL downstream layers on ANY file change
-```
+1. **Slow builds** - `COPY . .` copies entire monorepo, invalidating all cache on any change
+2. **Workspace linking issues** - Previous layer optimization attempt broke bun workspace linking (reverted in `6bc0bbc6`)
+3. **Large images** - Full monorepo + all dev dependencies included
 
-This means every code change triggers:
+## Solution: Use the New Build System
 
-- Full `bun install` (~15-30s)
-- Full `bun run build` (~30-60s)
-- Matrix binary download (~10s)
+Now that we have `brain-build` which bundles apps into a single distributable file, we can:
 
-## Solution
+1. **Build locally** (or in CI) - `bun run build` creates `dist/brain.config.js` + migrations
+2. **Simple Dockerfile** - Just copy the dist folder and install runtime native modules
+3. **Fast builds** - No more monorepo copying, `bun install`, or `bun run build` inside Docker
 
-Reorder the Dockerfile to separate dependency installation from source code:
+## Native Modules Required at Runtime
 
-1. Copy **only** `package.json` files first (dependency manifests)
-2. Run `bun install` (cached unless dependencies change)
-3. Download Matrix binary (cached unless @matrix-org version changes)
-4. **Then** copy source code
-5. Run `bun run build` with Turbo cache
+The build script marks these as external (not bundled):
 
-## Expected Improvement
-
-| Scenario            | Current | After Fix    |
-| ------------------- | ------- | ------------ |
-| Only source changed | ~60-90s | ~10-20s      |
-| Dependency added    | ~60-90s | ~30-40s      |
-| No changes          | ~60-90s | ~5s (cached) |
-
-## Files to Modify
-
-1. `deploy/docker/Dockerfile` - Rewrite with proper layer ordering
-2. `deploy/scripts/lib/docker.sh` - Enable BuildKit
-
----
+- `@matrix-org/matrix-sdk-crypto-nodejs` - Matrix E2E encryption
+- `@libsql/client` / `libsql` - Database driver
+- `better-sqlite3` - SQLite native bindings
+- `onnxruntime-node` / `fastembed` - Local embeddings (optional)
 
 ## Implementation
 
-### Step 1: Update `deploy/docker/Dockerfile`
+### Step 1: Create New Production Dockerfile
 
-Replace the entire file with:
+**File:** `deploy/docker/Dockerfile.prod`
 
 ```dockerfile
-# syntax=docker/dockerfile:1.6
-# Optimized Dockerfile for Bun monorepo
-# BuildKit required: DOCKER_BUILDKIT=1 docker build ...
-
+# Minimal production Dockerfile using pre-built bundle
 FROM oven/bun:1.2.13-debian
-
-ARG APP_NAME=team-brain
 
 WORKDIR /app
 
@@ -61,151 +42,139 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
-# Layer 2: Root dependency manifests
-COPY package.json bun.lock bunfig.toml turbo.json ./
+# Layer 2: Runtime native module package.json (changes rarely)
+COPY package.json ./package.json
 
-# Layer 3: Workspace package.json files (one per workspace)
-# Apps
-COPY apps/collective-brain/package.json ./apps/collective-brain/
-COPY apps/professional-brain/package.json ./apps/professional-brain/
-COPY apps/team-brain/package.json ./apps/team-brain/
+# Layer 3: Install runtime native modules (cached unless package.json changes)
+RUN bun install --ignore-scripts
 
-# Interfaces
-COPY interfaces/cli/package.json ./interfaces/cli/
-COPY interfaces/matrix/package.json ./interfaces/matrix/
-COPY interfaces/mcp/package.json ./interfaces/mcp/
-COPY interfaces/webserver/package.json ./interfaces/webserver/
-
-# Plugins
-COPY plugins/analytics/package.json ./plugins/analytics/
-COPY plugins/blog/package.json ./plugins/blog/
-COPY plugins/decks/package.json ./plugins/decks/
-COPY plugins/directory-sync/package.json ./plugins/directory-sync/
-COPY plugins/examples/package.json ./plugins/examples/
-COPY plugins/git-sync/package.json ./plugins/git-sync/
-COPY plugins/image/package.json ./plugins/image/
-COPY plugins/link/package.json ./plugins/link/
-COPY plugins/note/package.json ./plugins/note/
-COPY plugins/portfolio/package.json ./plugins/portfolio/
-COPY plugins/professional-site/package.json ./plugins/professional-site/
-COPY plugins/publish-pipeline/package.json ./plugins/publish-pipeline/
-COPY plugins/site-builder/package.json ./plugins/site-builder/
-COPY plugins/social-media/package.json ./plugins/social-media/
-COPY plugins/summary/package.json ./plugins/summary/
-COPY plugins/system/package.json ./plugins/system/
-COPY plugins/topics/package.json ./plugins/topics/
-
-# Shared
-COPY shared/default-site-content/package.json ./shared/default-site-content/
-COPY shared/eslint-config/package.json ./shared/eslint-config/
-COPY shared/image/package.json ./shared/image/
-COPY shared/product-site-content/package.json ./shared/product-site-content/
-COPY shared/test-utils/package.json ./shared/test-utils/
-COPY shared/theme-default/package.json ./shared/theme-default/
-COPY shared/theme-yeehaa/package.json ./shared/theme-yeehaa/
-COPY shared/typescript-config/package.json ./shared/typescript-config/
-COPY shared/ui-library/package.json ./shared/ui-library/
-COPY shared/utils/package.json ./shared/utils/
-
-# Shell
-COPY shell/agent-service/package.json ./shell/agent-service/
-COPY shell/ai-evaluation/package.json ./shell/ai-evaluation/
-COPY shell/ai-service/package.json ./shell/ai-service/
-COPY shell/app/package.json ./shell/app/
-COPY shell/content-service/package.json ./shell/content-service/
-COPY shell/conversation-service/package.json ./shell/conversation-service/
-COPY shell/core/package.json ./shell/core/
-COPY shell/daemon-registry/package.json ./shell/daemon-registry/
-COPY shell/datasource/package.json ./shell/datasource/
-COPY shell/embedding-service/package.json ./shell/embedding-service/
-COPY shell/entity-service/package.json ./shell/entity-service/
-COPY shell/identity-service/package.json ./shell/identity-service/
-COPY shell/job-queue/package.json ./shell/job-queue/
-COPY shell/mcp-service/package.json ./shell/mcp-service/
-COPY shell/messaging-service/package.json ./shell/messaging-service/
-COPY shell/permission-service/package.json ./shell/permission-service/
-COPY shell/plugins/package.json ./shell/plugins/
-COPY shell/profile-service/package.json ./shell/profile-service/
-COPY shell/render-service/package.json ./shell/render-service/
-COPY shell/service-registry/package.json ./shell/service-registry/
-COPY shell/templates/package.json ./shell/templates/
-
-# Layer 4: Install dependencies (cached unless package.json/bun.lock changes)
-RUN --mount=type=cache,target=/root/.bun/install/cache \
-    bun install --ignore-scripts --frozen-lockfile
-
-# Layer 5: Download Matrix binary (cached unless @matrix-org version changes)
+# Layer 4: Download Matrix native binary
 RUN cd /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && \
     PACKAGE_VERSION=$(grep '"version"' package.json | cut -d'"' -f4) && \
-    echo "Downloading Matrix SDK crypto binary v${PACKAGE_VERSION}..." && \
     curl -fsSL -o matrix-sdk-crypto.linux-x64-gnu.node \
         "https://github.com/matrix-org/matrix-rust-sdk/releases/download/matrix-sdk-crypto-nodejs-v${PACKAGE_VERSION}/matrix-sdk-crypto.linux-x64-gnu.node" && \
     chmod +x matrix-sdk-crypto.linux-x64-gnu.node
 
-# Verify binary
-RUN ls -la /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs/*.node || \
-    (echo "ERROR: Matrix native binary not found!" && exit 1)
+# Layer 5: Create directories
+RUN mkdir -p /app/data /app/cache /app/brain-data && \
+    chmod -R 777 /app/data /app/cache /app/brain-data
 
-# Layer 6: Copy source code (invalidates only build layer)
-COPY . .
-
-# Layer 7: Build with Turbo cache
-RUN --mount=type=cache,target=/app/.turbo/cache \
-    bun run build
-
-# Layer 8: Runtime setup
-RUN mkdir -p /app/data /app/cache /app/cache/embeddings /app/dist /app/brain-data && \
-    chmod -R 777 /app/data /app/cache /app/dist /app/brain-data
-
-RUN if [ -d "/app/apps/${APP_NAME}/seed-content" ]; then \
-        cp -r "/app/apps/${APP_NAME}/seed-content" /app/seed-content; \
-    fi
+# Layer 6: Copy pre-built bundle (changes frequently - last layer)
+COPY dist ./dist
+COPY seed-content ./seed-content
 
 EXPOSE 3333
 
-ENV APP_NAME=${APP_NAME}
-
-CMD ["sh", "-c", "bun run --jsx-import-source=preact apps/${APP_NAME}/brain.config.ts"]
+CMD ["bun", "dist/brain.config.js"]
 ```
 
-### Step 2: Enable BuildKit in `deploy/scripts/lib/docker.sh`
+### Step 2: Create Runtime Dependencies Package
 
-Find the `build_docker_image` function and add `DOCKER_BUILDKIT=1`:
+**File:** `deploy/docker/package.prod.json`
+
+```json
+{
+  "name": "brain-runtime",
+  "dependencies": {
+    "@matrix-org/matrix-sdk-crypto-nodejs": "^0.2.0-beta.2",
+    "@libsql/client": "^0.14.0",
+    "better-sqlite3": "^11.8.1"
+  }
+}
+```
+
+### Step 3: Update Build Script
+
+**File:** `shell/app/scripts/build.ts`
+
+Add copying of `seed-content` folder to dist if it exists.
+
+### Step 4: Create Docker Build Wrapper
+
+**File:** `deploy/scripts/build-docker-image.sh`
 
 ```bash
-# In build_docker_image function, change:
-local cmd=(docker build -f "$dockerfile" -t "$image_name")
+#!/usr/bin/env bash
+# Build production Docker image
+APP_NAME="${1:-team-brain}"
+TAG="${2:-latest}"
 
-# To:
-local cmd=(env DOCKER_BUILDKIT=1 docker build -f "$dockerfile" -t "$image_name")
+# 1. Build the app bundle
+echo "Building $APP_NAME..."
+cd "apps/$APP_NAME"
+bun run build
+
+# 2. Prepare build context
+BUILD_DIR=$(mktemp -d)
+cp -r dist "$BUILD_DIR/"
+[ -d seed-content ] && cp -r seed-content "$BUILD_DIR/"
+cp ../../deploy/docker/Dockerfile.prod "$BUILD_DIR/Dockerfile"
+cp ../../deploy/docker/package.prod.json "$BUILD_DIR/package.json"
+
+# 3. Build Docker image
+docker build -t "personal-brain-$APP_NAME:$TAG" "$BUILD_DIR"
+
+# 4. Cleanup
+rm -rf "$BUILD_DIR"
 ```
 
----
+### Step 5: Update deploy-docker.sh
+
+**File:** `deploy/scripts/deploy-docker.sh`
+
+Update `build_image()` to use the new wrapper script.
+
+### Step 6: Update Hetzner Deploy
+
+**File:** `deploy/providers/hetzner/deploy.sh`
+
+Update `build_and_push_docker_image()` to use the new build script.
+
+## Files to Create/Modify
+
+| File                                   | Action | Description                   |
+| -------------------------------------- | ------ | ----------------------------- |
+| `deploy/docker/Dockerfile.prod`        | CREATE | Minimal production Dockerfile |
+| `deploy/docker/package.prod.json`      | CREATE | Runtime native module deps    |
+| `deploy/scripts/build-docker-image.sh` | CREATE | Build wrapper script          |
+| `shell/app/scripts/build.ts`           | MODIFY | Copy seed-content to dist     |
+| `deploy/scripts/deploy-docker.sh`      | MODIFY | Use new build flow            |
+| `deploy/providers/hetzner/deploy.sh`   | MODIFY | Use new build flow            |
 
 ## Verification
 
-1. **Build with no changes** - Should use cached layers:
+1. **Build the app:**
 
    ```bash
-   DOCKER_BUILDKIT=1 docker build -f deploy/docker/Dockerfile --build-arg APP_NAME=team-brain -t test .
+   cd apps/team-brain && bun run build
+   ls -la dist/
    ```
 
-2. **Change a source file** - Should only rebuild layers 6-8:
+2. **Build Docker image:**
 
    ```bash
-   echo "// test" >> apps/team-brain/brain.config.ts
-   DOCKER_BUILDKIT=1 docker build -f deploy/docker/Dockerfile --build-arg APP_NAME=team-brain -t test .
+   ./deploy/scripts/build-docker-image.sh team-brain
    ```
 
-   Look for "CACHED" on layers 1-5.
-
-3. **Run the container**:
+3. **Test container locally:**
 
    ```bash
-   docker run --rm -it -p 3333:3333 test
+   docker run --rm -it -p 3333:3333 \
+     -v ~/.env.brain:/app/.env:ro \
+     personal-brain-team-brain:latest
    ```
 
-4. **Full deploy test**:
+4. **Deploy to Hetzner:**
    ```bash
-   ./deploy/scripts/deploy-docker.sh team-brain
+   bun run brain:deploy team-brain hetzner update
    ```
+
+## Benefits
+
+| Metric            | Before   | After                |
+| ----------------- | -------- | -------------------- |
+| Docker build time | ~60-90s  | ~10-15s              |
+| Image size        | ~2GB+    | ~300-500MB           |
+| Layer caching     | None     | Excellent            |
+| Workspace issues  | Frequent | None                 |
+| CI/CD ready       | No       | Yes (build artifact) |
