@@ -169,6 +169,105 @@ describe("CloudflareClient", () => {
       expect(error?.message).toContain("Cloudflare GraphQL error");
       expect(error?.message).toContain("Invalid query");
     });
+
+    it("should use date_geq/date_leq filters (not datetime_geq/datetime_leq)", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      await client.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-16",
+      });
+
+      const [, options] = mockFetch.mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      const body = JSON.parse(options.body as string);
+
+      // Verify the query uses date filters, not datetime filters
+      expect(body.query).toContain("date_geq");
+      expect(body.query).toContain("date_leq");
+      expect(body.query).not.toContain("datetime_geq");
+      expect(body.query).not.toContain("datetime_leq");
+    });
+
+    it("should pass dates in YYYY-MM-DD format to the API", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      await client.getWebsiteStats({
+        startDate: "2025-01-15",
+        endDate: "2025-01-16",
+      });
+
+      const [, options] = mockFetch.mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      const body = JSON.parse(options.body as string);
+
+      // Verify dates are in YYYY-MM-DD format
+      expect(body.variables.start).toBe("2025-01-15");
+      expect(body.variables.end).toBe("2025-01-16");
+    });
+
+    it("should truncate ISO datetime strings to date format", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      // Pass ISO datetime strings with time component
+      await client.getWebsiteStats({
+        startDate: "2025-01-15T10:30:00.000Z",
+        endDate: "2025-01-16T23:59:59.999Z",
+      });
+
+      const [, options] = mockFetch.mock.calls[0] as unknown as [
+        string,
+        RequestInit,
+      ];
+      const body = JSON.parse(options.body as string);
+
+      // Should be truncated to just the date part
+      expect(body.variables.start).toBe("2025-01-15");
+      expect(body.variables.end).toBe("2025-01-16");
+    });
   });
 
   describe("validateCredentials", () => {

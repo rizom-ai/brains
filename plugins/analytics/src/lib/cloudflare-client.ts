@@ -61,14 +61,14 @@ export class CloudflareClient {
     options: GetWebsiteStatsOptions,
   ): Promise<WebsiteStats> {
     const query = `
-      query GetWebAnalytics($accountTag: String!, $siteTag: String!, $start: Date!, $end: Date!) {
+      query GetWebAnalytics($accountTag: String!, $siteTag: String!, $start: String!, $end: String!) {
         viewer {
           accounts(filter: { accountTag: $accountTag }) {
             rumPageloadEventsAdaptiveGroups(
               filter: {
                 AND: [
-                  { datetime_geq: $start }
-                  { datetime_leq: $end }
+                  { date_geq: $start }
+                  { date_leq: $end }
                   { siteTag: $siteTag }
                 ]
               }
@@ -87,11 +87,12 @@ export class CloudflareClient {
       }
     `;
 
+    // Ensure dates are in YYYY-MM-DD format (truncate any time component)
     const variables = {
       accountTag: this.config.accountId,
       siteTag: this.config.siteTag,
-      start: options.startDate,
-      end: options.endDate,
+      start: options.startDate.split("T")[0],
+      end: options.endDate.split("T")[0],
     };
 
     const response = await fetch(this.graphqlUrl, {
