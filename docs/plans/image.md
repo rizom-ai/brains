@@ -1,21 +1,31 @@
-# Plan: Image Support - Consolidated Outstanding Work
+# Plan: Image Support - Outstanding Work
+
+> **Updated**: 2026-01-18
 
 ## Status Summary
 
-| Feature                                   | Status                      |
-| ----------------------------------------- | --------------------------- |
-| Image as shared package (was plugin)      | Complete                    |
-| Image registered as builtin entity type   | Complete                    |
-| image_upload, image_get, image_list tools | Complete (in system plugin) |
-| Binary image import (directory-sync)      | Complete                    |
-| coverImageUrl → coverImageId conversion   | Complete                    |
-| Non-blocking image extraction             | Complete                    |
-| Inline markdown images                    | Complete                    |
-| ImageReferenceResolver in entity-service  | Complete                    |
-| Site-builder image extraction             | Complete                    |
-| image_generate tool (AI image creation)   | TODO                        |
-| image_describe tool (AI alt text)         | TODO                        |
-| coverImageId for decks/series             | TODO                        |
+| Feature                                  | Status                        |
+| ---------------------------------------- | ----------------------------- |
+| Image as shared package (was plugin)     | ✅ Complete                   |
+| Image registered as builtin entity type  | ✅ Complete                   |
+| image_upload tool                        | ✅ Complete (in image plugin) |
+| image_generate tool (AI image creation)  | ✅ Complete (DALL-E 3 + job)  |
+| image_set-cover tool                     | ✅ Complete (with generation) |
+| Binary image import (directory-sync)     | ✅ Complete                   |
+| coverImageUrl → coverImageId conversion  | ✅ Complete                   |
+| Non-blocking image extraction            | ✅ Complete                   |
+| Inline markdown images                   | ✅ Complete                   |
+| ImageReferenceResolver in entity-service | ✅ Complete                   |
+| Site-builder image extraction            | ✅ Complete                   |
+| coverImageId for blog posts              | ✅ Complete                   |
+| coverImageId for series                  | ✅ Complete                   |
+| image_describe tool (AI alt text)        | ⏳ TODO                       |
+| coverImageId for decks                   | ⏳ TODO                       |
+
+## Remaining Work
+
+- **image_describe tool**: Generate alt text from image content using vision model
+- **coverImageId for decks**: Add field to deck schema + adapter support
 
 ---
 
