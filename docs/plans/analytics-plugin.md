@@ -206,31 +206,31 @@ Note: No LinkedIn/social API client - uses messaging to social-media plugin.
 - Define entity schemas and adapters
 - Register entity types
 
-### Phase 2: Website Analytics Client ✅ (PostHog - to be replaced)
+### Phase 2: Website Analytics Client ✅
 
-- ~~Implement PostHogClient for API calls~~ → Replace with CloudflareClient
+- Implemented CloudflareClient for Cloudflare Web Analytics GraphQL API
 - Create `analytics_fetch_website` tool
 - Create `analytics_get_website_trends` tool
 - Add cron daemon for daily collection
 
-### Phase 2.5: Cloudflare Terraform Infrastructure
+### Phase 2.5: Cloudflare Terraform Infrastructure ✅
 
 - Create `modules/cloudflare-analytics` Terraform module
 - Provision `cloudflare_web_analytics_site` resource
 - Output site_tag and tracking script
 - Add tracking script injection to site-builder (client-side)
-- Replace PostHogClient with CloudflareClient
+- CloudflareClient integrated with GraphQL API
 - Update brain.config.ts to use Terraform-provided credentials
-- Test end-to-end: tracking script → Cloudflare → analytics plugin
+- End-to-end working: tracking script → Cloudflare → analytics plugin
 
-### Phase 3: Social Analytics (via messaging)
+### Phase 3: Social Analytics (via messaging) ✅
 
 - Add message handler to social-media plugin: `social-media:get-post-metrics`
 - Create `analytics_fetch_social` tool (sends messages)
 - Create `analytics_get_social_summary` tool
-- Subscribe to `publish:completed` for auto-fetch
+- LinkedIn analytics integration complete
 
-### Phase 4: Testing & Polish
+### Phase 4: Testing & Polish ⏳
 
 - Unit tests with mocked API responses
 - Integration test with harness

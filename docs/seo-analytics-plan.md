@@ -1,12 +1,13 @@
 # SEO & Analytics Implementation Plan
 
-> **Status**: Planning
+> **Status**: Partially Implemented
 > **Created**: 2025-11-20
-> **Estimated Effort**: 6-8 hours
+> **Updated**: 2026-01-18
+> **Estimated Effort**: 6-8 hours (SEO features remaining)
 
 ## Executive Summary
 
-The Brains site-builder has **solid SEO fundamentals** (meta tags, RSS feeds) but is **missing critical features** like sitemap.xml and robots.txt. No analytics implementation exists. This document outlines what's implemented, what's missing, and the implementation approach.
+The Brains site-builder has **solid SEO fundamentals** (meta tags, RSS feeds) but is **missing critical features** like sitemap.xml and robots.txt. ~~No analytics implementation exists.~~ **Analytics has been implemented** via a dedicated `analytics` plugin using Cloudflare Web Analytics (see `docs/plans/analytics-plugin.md`). This document outlines what's implemented, what's missing, and the implementation approach for the remaining SEO features.
 
 ---
 
@@ -90,17 +91,18 @@ The Brains site-builder has **solid SEO fundamentals** (meta tags, RSS feeds) bu
 
 ## 2. Analytics - Current State
 
-### ❌ No Analytics Implementation
+### ✅ Analytics Implemented (via dedicated plugin)
 
-**What's Missing**:
+**What's Been Implemented**:
 
-- No analytics configuration in site-builder
-- No script injection mechanism
-- No environment variable support for analytics IDs
-- No documentation
+- Dedicated `analytics` plugin created (see `docs/plans/analytics-plugin.md`)
+- Cloudflare Web Analytics integration (privacy-focused, GDPR compliant, free)
+- Terraform module for provisioning (`modules/cloudflare-analytics`)
+- Tracking script injection via site-builder
+- LinkedIn social metrics via messaging to social-media plugin
+- MCP tools: `analytics_fetch_website`, `analytics_get_website_trends`, `analytics_fetch_social`, `analytics_get_social_summary`
 
-**Future Plans Reference**:
-Mentioned in `docs/plans/site-info-entity-refactor.md` as potential enhancement but not implemented.
+**Note**: The original Umami-based approach in this document was superseded by the Cloudflare Web Analytics implementation. See `docs/plans/analytics-plugin.md` for the current architecture.
 
 ---
 
@@ -272,174 +274,26 @@ export const HomepageListLayout = ({ profile, ... }) => {
 
 ---
 
-### Phase 3: Optional Analytics (Medium Priority)
+### Phase 3: Analytics ✅ COMPLETE
 
-#### 3.1 Add Analytics Config Schema
+> **Note**: This phase was implemented differently than originally planned. Instead of Umami integration in site-builder, a dedicated `analytics` plugin was created using Cloudflare Web Analytics.
 
-**Goal**: Support analytics configuration in site-builder
+**What was implemented**:
 
-**Implementation** (`plugins/site-builder/src/config.ts`):
+- Dedicated `analytics` plugin with entity storage
+- Cloudflare Web Analytics (free, privacy-focused, GDPR compliant)
+- Terraform module (`modules/cloudflare-analytics`) for provisioning
+- Tracking script injection via site-builder config
+- LinkedIn social metrics via messaging to social-media plugin
+- Scheduled data collection via cron daemon
 
-```typescript
-export const siteBuilderConfigSchema = z.object({
-  // ... existing fields
-  analytics: z
-    .object({
-      umami: z
-        .object({
-          websiteId: z.string(),
-          scriptUrl: z.string().url(),
-        })
-        .optional(),
-    })
-    .optional(),
-});
-```
-
-#### 3.2 Modify HeadCollector
-
-**Goal**: Inject analytics script if configured
-
-**Implementation**:
-
-```typescript
-interface HeadCollectorOptions {
-  defaultTitle: string;
-  analytics?: {
-    umami?: {
-      websiteId: string;
-      scriptUrl: string;
-    };
-  };
-}
-
-class HeadCollector {
-  generateHeadHTML(): string {
-    const tags: string[] = [];
-    // ... existing meta tags ...
-
-    // Add analytics script if configured
-    if (this.options.analytics?.umami) {
-      const { websiteId, scriptUrl } = this.options.analytics.umami;
-      tags.push(
-        `<script defer src="${this.escapeHtml(scriptUrl)}" ` +
-          `data-website-id="${this.escapeHtml(websiteId)}"></script>`,
-      );
-    }
-
-    return tags.join("\n    ");
-  }
-}
-```
-
-#### 3.3 Environment Variable Support
-
-**Goal**: Configure analytics per app via .env
-
-**Environment variables** (`.env.production`):
-
-```bash
-# Optional - Umami Analytics
-UMAMI_WEBSITE_ID=abc123-def456-ghi789
-UMAMI_SCRIPT_URL=https://analytics.example.com/script.js
-```
-
-**Usage in brain.config.ts**:
-
-```typescript
-siteBuilderPlugin({
-  // ... existing config
-  analytics: {
-    umami: process.env.UMAMI_WEBSITE_ID
-      ? {
-          websiteId: process.env.UMAMI_WEBSITE_ID,
-          scriptUrl:
-            process.env.UMAMI_SCRIPT_URL ?? "https://cloud.umami.is/script.js",
-        }
-      : undefined,
-  },
-});
-```
-
-**Benefits**:
-
-- No analytics by default
-- Each app opts in via environment variables
-- Works immediately (no site-info refactor needed)
-- Supports both self-hosted and cloud Umami
+**See**: `docs/plans/analytics-plugin.md` for full implementation details.
 
 ---
 
-### Phase 4: Self-Hosted Analytics (Optional, Low Priority)
+### Phase 4: Self-Hosted Analytics (Superseded)
 
-#### 4.1 Docker Compose for Umami
-
-**Goal**: Optional self-hosted analytics deployment
-
-**Create** `deploy/docker/docker-compose.analytics.yml`:
-
-```yaml
-version: "3.8"
-
-services:
-  umami:
-    image: ghcr.io/umami-software/umami:postgresql-latest
-    container_name: brain-analytics
-    environment:
-      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
-      DATABASE_TYPE: postgresql
-      APP_SECRET: ${UMAMI_APP_SECRET}
-    depends_on:
-      - umami-db
-    restart: unless-stopped
-    ports:
-      - "3001:3000"
-    profiles:
-      - analytics
-
-  umami-db:
-    image: postgres:15-alpine
-    container_name: brain-analytics-db
-    environment:
-      POSTGRES_DB: umami
-      POSTGRES_USER: umami
-      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
-    volumes:
-      - umami-data:/var/lib/postgresql/data
-    restart: unless-stopped
-    profiles:
-      - analytics
-
-volumes:
-  umami-data:
-```
-
-#### 4.2 Usage
-
-**Start with analytics**:
-
-```bash
-docker-compose \
-  -f docker-compose.yml \
-  -f docker-compose.analytics.yml \
-  --profile analytics up -d
-```
-
-**Start without analytics**:
-
-```bash
-docker-compose up -d
-```
-
-#### 4.3 Caddy Configuration
-
-**Add reverse proxy** for analytics subdomain:
-
-```
-analytics.example.com {
-  reverse_proxy brain-analytics:3000
-}
-```
+> **Note**: This phase is no longer needed. Cloudflare Web Analytics is free with unlimited usage and requires no self-hosting infrastructure.
 
 ---
 
@@ -458,15 +312,16 @@ analytics.example.com {
 - [ ] Blog posts have custom meta tags (title, description, og:image)
 - [ ] Canonical URLs are set correctly
 
-### Analytics
+### Analytics ✅ COMPLETE
 
-- [ ] Umami script loads when configured
-- [ ] Umami script does NOT load when not configured
-- [ ] Page views tracked in Umami dashboard
-- [ ] No errors in browser console
-- [ ] Script uses `defer` attribute for performance
-- [ ] Website ID is correctly escaped in HTML
-- [ ] Works in both preview and production environments
+- [x] Cloudflare tracking script loads when configured
+- [x] Tracking script does NOT load when not configured
+- [x] Page views tracked in Cloudflare Web Analytics dashboard
+- [x] No errors in browser console
+- [x] Script uses `defer` attribute for performance
+- [x] Works in both preview and production environments
+- [x] `analytics_fetch_website` tool fetches data from Cloudflare GraphQL API
+- [x] `analytics_fetch_social` tool fetches LinkedIn metrics via messaging
 
 ---
 
@@ -499,22 +354,14 @@ analytics.example.com {
 
 **Why third**: Enhances existing functionality, lower priority
 
-### Phase 4: Analytics (2-3 hours)
+### Phase 4: Analytics ✅ COMPLETE
 
-1. Add analytics config schema
-2. Modify HeadCollector
-3. Add environment variable support
-4. Document Umami setup
+Implemented via dedicated `analytics` plugin with Cloudflare Web Analytics.
+See `docs/plans/analytics-plugin.md` for details.
 
-**Why fourth**: Optional feature, can be done independently
+### Phase 5: Self-Hosted Analytics (Superseded)
 
-### Phase 5: Self-Hosted Analytics (1 hour)
-
-1. Create docker-compose.analytics.yml
-2. Add Caddy config
-3. Document deployment
-
-**Why last**: Completely optional, only if self-hosting desired
+No longer needed - Cloudflare Web Analytics is free with unlimited usage.
 
 ---
 
@@ -527,13 +374,11 @@ analytics.example.com {
 DOMAIN=example.com
 PREVIEW_DOMAIN=preview.example.com
 
-# Analytics (Optional)
-UMAMI_WEBSITE_ID=abc123-def456
-UMAMI_SCRIPT_URL=https://analytics.example.com/script.js
-
-# Self-Hosted Umami (Optional)
-UMAMI_DB_PASSWORD=secure-random-password
-UMAMI_APP_SECRET=another-secure-random-string
+# Analytics (Cloudflare Web Analytics - via Terraform outputs)
+CLOUDFLARE_ACCOUNT_ID=xxx
+CLOUDFLARE_API_TOKEN=xxx
+CLOUDFLARE_ANALYTICS_SITE_TAG=xxx
+CLOUDFLARE_TRACKING_SCRIPT='<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon=\'{"token": "xxx"}\'></script>'
 ```
 
 ### Brain Config
@@ -553,14 +398,18 @@ export default brainAppConfig({
         url: process.env.DOMAIN ? `https://${process.env.DOMAIN}` : undefined,
       },
       analytics: {
-        umami: process.env.UMAMI_WEBSITE_ID
-          ? {
-              websiteId: process.env.UMAMI_WEBSITE_ID,
-              scriptUrl:
-                process.env.UMAMI_SCRIPT_URL ??
-                "https://cloud.umami.is/script.js",
-            }
-          : undefined,
+        trackingScript: process.env["CLOUDFLARE_TRACKING_SCRIPT"],
+      },
+    }),
+    analyticsPlugin({
+      cloudflare: {
+        enabled: true,
+        accountId: process.env["CLOUDFLARE_ACCOUNT_ID"]!,
+        apiToken: process.env["CLOUDFLARE_API_TOKEN"]!,
+        siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"]!,
+      },
+      social: {
+        enabled: true,
       },
     }),
     blogPlugin(/* ... */),
@@ -587,23 +436,27 @@ export default brainAppConfig({
 ❌ Static asset pipeline (favicons 404)
 ❌ Templates don't use Head component
 
+### Implemented Features
+
+✅ Analytics support (Cloudflare Web Analytics via dedicated plugin)
+✅ LinkedIn social metrics (via messaging to social-media plugin)
+✅ Terraform infrastructure for analytics provisioning
+
 ### Nice-to-Have Features
 
-❌ Analytics support (Umami integration)
-❌ Self-hosted analytics option
 ❌ OG images for social sharing
 
 ### Implementation Approach
 
 - **Event-driven**: Subscribe to `site:build:completed` for sitemap/robots.txt (follows RSS pattern)
-- **Environment variables**: For analytics (faster than waiting for site-info refactor)
-- **HeadCollector injection**: Centralized, SSR-compatible analytics
-- **Docker Compose profiles**: Clean separation for optional services
+- **Terraform**: Infrastructure as code for Cloudflare Web Analytics provisioning
+- **HeadCollector injection**: Centralized, SSR-compatible analytics tracking script
+- **Dedicated plugin**: Analytics collected and stored as entities for querying
 
 ### Resources Required
 
-- **Time**: 6-8 hours for complete implementation
-- **RAM**: +100-150MB if self-hosting Umami (negligible on cx33)
+- **Time**: 3-4 hours for remaining SEO features (Phases 1-3)
+- **RAM**: No additional resources (Cloudflare handles analytics infrastructure)
 - **Testing**: Both preview and production environments
 
 ---
@@ -616,7 +469,10 @@ export default brainAppConfig({
 - **Site Build Handler**: `plugins/site-builder/src/jobs/site-build-job-handler.ts`
 - **Blog Templates**: `plugins/blog/src/templates/`
 - **Professional Site Templates**: `plugins/professional-site/src/templates/`
+- **Analytics Plugin**: `plugins/analytics/`
+- **Analytics Plugin Plan**: `docs/plans/analytics-plugin.md`
+- **Cloudflare Analytics Terraform**: `apps/professional-brain/deploy/terraform-state/modules/cloudflare-analytics/`
 
 ---
 
-**Next Steps**: Begin Phase 1 implementation after approval.
+**Next Steps**: Begin Phase 1 SEO implementation (static asset pipeline, robots.txt, sitemap.xml).
