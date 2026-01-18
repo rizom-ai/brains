@@ -14,8 +14,8 @@ describe("AnalyticsPlugin", () => {
         apiToken: "cf_test_token",
         siteTag: "site123",
       },
-      social: {
-        enabled: true,
+      linkedin: {
+        accessToken: "test_token",
       },
     }) as AnalyticsPlugin;
   });

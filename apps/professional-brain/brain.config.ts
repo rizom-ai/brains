@@ -118,6 +118,9 @@ const config = defineConfig({
         apiToken: process.env["CLOUDFLARE_API_TOKEN"] || "",
         siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"] || "",
       },
+      linkedin: process.env["LINKEDIN_ACCESS_TOKEN"]
+        ? { accessToken: process.env["LINKEDIN_ACCESS_TOKEN"] }
+        : undefined,
     }),
     professionalSitePlugin({
       entityRouteConfig,

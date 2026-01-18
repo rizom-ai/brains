@@ -13,11 +13,31 @@ export const cloudflareConfigSchema = z.object({
 });
 
 /**
- * Social media analytics configuration
- * Uses messaging to social-media plugin for platform-specific API calls
+ * LinkedIn analytics configuration
+ * Shares access token with social-media plugin via LINKEDIN_ACCESS_TOKEN env var
  */
-export const socialAnalyticsConfigSchema = z.object({
-  enabled: z.boolean().default(false),
+export const linkedinAnalyticsConfigSchema = z.object({
+  accessToken: z
+    .string()
+    .describe("LinkedIn OAuth2 access token (shared with social-media plugin)"),
+});
+
+/**
+ * Cron schedule configuration
+ */
+export const cronConfigSchema = z.object({
+  websiteMetrics: z
+    .string()
+    .default("0 2 * * *")
+    .describe(
+      "Cron schedule for website metrics collection (default: daily at 2 AM)",
+    ),
+  socialMetrics: z
+    .string()
+    .default("0 */6 * * *")
+    .describe(
+      "Cron schedule for social metrics collection (default: every 6 hours)",
+    ),
 });
 
 /**
@@ -25,9 +45,13 @@ export const socialAnalyticsConfigSchema = z.object({
  */
 export const analyticsConfigSchema = z.object({
   cloudflare: cloudflareConfigSchema.optional(),
-  social: socialAnalyticsConfigSchema.optional(),
+  linkedin: linkedinAnalyticsConfigSchema.optional(),
+  cron: cronConfigSchema.optional(),
 });
 
 export type CloudflareConfig = z.infer<typeof cloudflareConfigSchema>;
-export type SocialAnalyticsConfig = z.infer<typeof socialAnalyticsConfigSchema>;
+export type LinkedinAnalyticsConfig = z.infer<
+  typeof linkedinAnalyticsConfigSchema
+>;
+export type CronConfig = z.infer<typeof cronConfigSchema>;
 export type AnalyticsConfig = z.infer<typeof analyticsConfigSchema>;

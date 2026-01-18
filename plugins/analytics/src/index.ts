@@ -9,7 +9,9 @@ import { WebsiteMetricsAdapter } from "./adapters/website-metrics-adapter";
 import { SocialMetricsAdapter } from "./adapters/social-metrics-adapter";
 import { createAnalyticsTools } from "./tools";
 import { CloudflareClient } from "./lib/cloudflare-client";
+import { LinkedInAnalyticsClient } from "./lib/linkedin-analytics";
 import { createWebsiteMetricsEntity } from "./schemas/website-metrics";
+import { createSocialMetricsEntity } from "./schemas/social-metrics";
 import packageJson from "../package.json";
 
 /**
@@ -17,14 +19,17 @@ import packageJson from "../package.json";
  *
  * Collects and stores:
  * - Website metrics from Cloudflare Web Analytics (pageviews, visitors, etc.)
- * - Social media engagement metrics (via messaging to social-media plugin)
+ * - Social media engagement metrics from LinkedIn
  *
  * Scheduled collection:
  * - Daily website metrics at 2 AM
+ * - Social metrics every 6 hours
  */
 export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
   private websiteCron: Cron | null = null;
+  private socialCron: Cron | null = null;
   private cloudflareClient: CloudflareClient | null = null;
+  private linkedinClient: LinkedInAnalyticsClient | null = null;
 
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super("analytics", packageJson, config, analyticsConfigSchema);
@@ -56,11 +61,32 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     if (this.config.cloudflare?.apiToken && this.config.cloudflare?.accountId) {
       this.cloudflareClient = new CloudflareClient(this.config.cloudflare);
 
-      // Start daily website metrics cron (2 AM)
-      this.websiteCron = new Cron("0 2 * * *", () => {
+      // Start website metrics cron (configurable, default: daily at 2 AM)
+      const websiteCronSchedule =
+        this.config.cron?.websiteMetrics ?? "0 2 * * *";
+      this.websiteCron = new Cron(websiteCronSchedule, () => {
         void this.fetchDailyWebsiteMetrics();
       });
-      this.logger.info("Website metrics cron started (daily at 2 AM)");
+      this.logger.info("Website metrics cron started", {
+        schedule: websiteCronSchedule,
+      });
+    }
+
+    // Initialize LinkedIn client if credentials are configured
+    if (this.config.linkedin?.accessToken) {
+      this.linkedinClient = new LinkedInAnalyticsClient(
+        this.config.linkedin.accessToken,
+      );
+
+      // Start social metrics cron (configurable, default: every 6 hours)
+      const socialCronSchedule =
+        this.config.cron?.socialMetrics ?? "0 */6 * * *";
+      this.socialCron = new Cron(socialCronSchedule, () => {
+        void this.fetchSocialMetrics();
+      });
+      this.logger.info("Social metrics cron started", {
+        schedule: socialCronSchedule,
+      });
     }
 
     this.logger.debug("Analytics plugin registered successfully");
@@ -74,6 +100,11 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       this.websiteCron.stop();
       this.websiteCron = null;
       this.logger.debug("Website metrics cron stopped");
+    }
+    if (this.socialCron) {
+      this.socialCron.stop();
+      this.socialCron = null;
+      this.logger.debug("Social metrics cron stopped");
     }
   }
 
@@ -116,13 +147,95 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
   }
 
   /**
+   * Fetch and store social metrics for all published posts
+   */
+  private async fetchSocialMetrics(): Promise<void> {
+    if (!this.linkedinClient || !this.context) return;
+
+    this.logger.info("Fetching social metrics for published posts");
+
+    try {
+      // Query social-post entities to find published posts
+      interface SocialPostWithFrontmatter {
+        id: string;
+        entityType: string;
+        content: string;
+        created: string;
+        updated: string;
+        contentHash: string;
+        metadata: Record<string, unknown>;
+        frontmatter?: {
+          platformPostId?: string;
+        };
+      }
+
+      const posts =
+        await this.context.entityService.listEntities<SocialPostWithFrontmatter>(
+          "social-post",
+          {
+            filter: { metadata: { status: "published" } },
+            limit: 100,
+          },
+        );
+
+      if (posts.length === 0) {
+        this.logger.debug("No published social posts found");
+        return;
+      }
+
+      let successCount = 0;
+      for (const post of posts) {
+        const platformPostId = post.frontmatter?.platformPostId;
+        if (!platformPostId) continue;
+
+        try {
+          // Fetch analytics from LinkedIn
+          const analytics =
+            await this.linkedinClient.getPostAnalytics(platformPostId);
+
+          // Create/update metrics entity
+          const entity = createSocialMetricsEntity({
+            platform: "linkedin",
+            entityId: post.id,
+            platformPostId,
+            impressions: analytics.impressions,
+            likes: analytics.likes,
+            comments: analytics.comments,
+            shares: analytics.shares,
+          });
+
+          await this.context.entityService.upsertEntity(entity);
+          successCount++;
+        } catch (postError) {
+          this.logger.warn("Failed to fetch metrics for post", {
+            postId: post.id,
+            error: postError,
+          });
+        }
+      }
+
+      this.logger.info("Social metrics updated", {
+        postsProcessed: posts.length,
+        successCount,
+      });
+    } catch (error) {
+      this.logger.error("Failed to fetch social metrics", { error });
+    }
+  }
+
+  /**
    * Get plugin tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
     if (!this.context) {
       throw new Error("Plugin context not available");
     }
-    return createAnalyticsTools(this.id, this.context, this.config.cloudflare);
+    return createAnalyticsTools(
+      this.id,
+      this.context,
+      this.config.cloudflare,
+      this.config.linkedin,
+    );
   }
 }
 
@@ -144,12 +257,12 @@ export const analyticsPlugin = createAnalyticsPlugin;
 export type {
   AnalyticsConfig,
   CloudflareConfig,
-  SocialAnalyticsConfig,
+  LinkedinAnalyticsConfig,
 } from "./config";
 export {
   analyticsConfigSchema,
   cloudflareConfigSchema,
-  socialAnalyticsConfigSchema,
+  linkedinAnalyticsConfigSchema,
 } from "./config";
 
 export type {
