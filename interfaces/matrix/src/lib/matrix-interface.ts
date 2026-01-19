@@ -28,6 +28,9 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   // Track pending confirmations per conversation
   private pendingConfirmations = new Map<string, boolean>();
 
+  // Track direct message rooms (loaded from m.direct account data)
+  private directMessageRooms = new Set<string>();
+
   constructor(config: Partial<MatrixConfig>) {
     super("matrix", packageJson, config, matrixConfigSchema);
   }
@@ -59,10 +62,44 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     // Set up event handlers
     this.setupEventHandlers(context);
 
+    // Load DM rooms from account data
+    await this.loadDirectMessageRooms();
+
     this.logger.debug("Matrix interface registered", {
       homeserver: this.config.homeserver,
       userId: this.config.userId,
     });
+  }
+
+  /**
+   * Load direct message rooms from m.direct account data
+   */
+  private async loadDirectMessageRooms(): Promise<void> {
+    if (!this.client) {
+      return;
+    }
+
+    try {
+      const matrixClient = this.client.getClient();
+      const directEvent = await matrixClient.getAccountData("m.direct");
+
+      if (directEvent) {
+        // m.direct maps user IDs to arrays of room IDs
+        const directRooms = directEvent as Record<string, string[]>;
+        for (const userId in directRooms) {
+          const rooms = directRooms[userId];
+          if (Array.isArray(rooms)) {
+            rooms.forEach((roomId) => this.directMessageRooms.add(roomId));
+          }
+        }
+        this.logger.debug("Loaded direct message rooms", {
+          count: this.directMessageRooms.size,
+        });
+      }
+    } catch (error) {
+      // m.direct may not exist if no DMs have been created
+      this.logger.debug("No m.direct account data found", { error });
+    }
   }
 
   /**
@@ -360,11 +397,9 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
 
   /**
    * Check if room is a direct message
-   * TODO: Implement proper DM detection using room state
    */
-  private isDirectMessage(_roomId: string): boolean {
-    // For now, we don't have DM tracking - rely on mentions
-    return false;
+  private isDirectMessage(roomId: string): boolean {
+    return this.directMessageRooms.has(roomId);
   }
 
   /**

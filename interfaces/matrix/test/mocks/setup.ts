@@ -25,6 +25,7 @@ globalThis.mockMatrixClient = {
     Promise.resolve(["!room1:example.org", "!room2:example.org"]),
   ),
   getRoomStateEvent: mock(() => Promise.resolve({})),
+  getAccountData: mock(() => Promise.resolve(null)),
   _lastSentContent: null,
 };
 

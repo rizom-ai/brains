@@ -510,6 +510,49 @@ describe("MatrixInterface", () => {
 
       expect(mockAgentService.chat).not.toHaveBeenCalled();
     });
+
+    it("should respond in direct message room without mention", async () => {
+      // Set up m.direct account data to indicate DM room
+      const dmRoomId = "!dm-room:example.org";
+      mockMatrixClient.getAccountData.mockResolvedValue({
+        "@user:example.org": [dmRoomId],
+      });
+
+      // Reset harness and mocks to start fresh
+      harness.reset();
+      mockMatrixClient.on.mockClear();
+
+      // Create new interface - DM rooms are loaded during registration
+      const dmInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+
+      // Reconfigure mock shell with agent service
+      const mockShell = harness.getShell();
+      mockShell.setAgentService(mockAgentService);
+
+      await harness.installPlugin(dmInterface);
+
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
+      if (!messageCall) throw new Error("Message handler not found");
+      const dmMessageHandler = messageCall[1];
+
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.text",
+          body: "Hello from DM",
+          // No mention required in DM
+        },
+        event_id: "event_123",
+      };
+
+      dmMessageHandler(dmRoomId, event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should respond in DM even without mention
+      expect(mockAgentService.chat).toHaveBeenCalled();
+    });
   });
 
   describe("Room invite handling", () => {
