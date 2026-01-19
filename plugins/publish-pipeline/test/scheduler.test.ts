@@ -4,12 +4,14 @@ import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import type { PublishProvider } from "@brains/utils";
+import { createMockEntityService } from "@brains/test-utils";
 
 describe("PublishScheduler", () => {
   let scheduler: PublishScheduler;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
+  let mockEntityService: ReturnType<typeof createMockEntityService>;
   let mockOnPublish: ReturnType<typeof mock>;
   let mockOnFailed: ReturnType<typeof mock>;
 
@@ -17,6 +19,19 @@ describe("PublishScheduler", () => {
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
+    mockEntityService = createMockEntityService({
+      returns: {
+        getEntity: {
+          id: "mock-id",
+          entityType: "mock-type",
+          content: "Mock content",
+          metadata: { title: "Mock entity" },
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+          contentHash: "mock-hash",
+        },
+      },
+    });
 
     mockOnPublish = mock(() => {});
     mockOnFailed = mock(() => {});
@@ -25,6 +40,7 @@ describe("PublishScheduler", () => {
       queueManager,
       providerRegistry,
       retryTracker,
+      entityService: mockEntityService,
       onPublish: mockOnPublish,
       onFailed: mockOnFailed,
     });
@@ -214,6 +230,7 @@ describe("PublishScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        entityService: mockEntityService,
         entitySchedules: {
           "blog-post": "* * * * * *", // Every second
         },
@@ -253,6 +270,7 @@ describe("PublishScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        entityService: mockEntityService,
         entitySchedules: {
           "blog-post": "0 0 1 1 *", // Jan 1st at midnight only
           "social-post": "* * * * * *", // Every second
@@ -288,6 +306,7 @@ describe("PublishScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        entityService: mockEntityService,
         entitySchedules: {
           "blog-post": "0 0 1 1 *", // Only blog has cron
         },
@@ -319,6 +338,7 @@ describe("PublishScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        entityService: mockEntityService,
         entitySchedules: {
           "blog-post": "* * * * * *", // Every second
         },

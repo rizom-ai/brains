@@ -80,6 +80,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
         entitySchedules: this.config.entitySchedules,
       }),
       messageBus: messageBusAdapter as never,
+      entityService: context.entityService,
       onPublish: (event) => this.handlePublishSuccess(context, event),
       onFailed: (event) => this.handlePublishFailed(context, event),
     });

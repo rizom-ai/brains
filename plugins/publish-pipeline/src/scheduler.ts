@@ -10,7 +10,7 @@
  */
 
 import { Cron } from "croner";
-import type { IMessageBus } from "@brains/plugins";
+import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
 import type { PublishResult } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";
@@ -33,6 +33,8 @@ export interface SchedulerConfig {
   entitySchedules?: Record<string, string>;
   /** Optional message bus for message-driven publishing */
   messageBus?: IMessageBus;
+  /** Entity service for fetching entity content (required for provider mode) */
+  entityService?: ICoreEntityService;
   /** Callback when entity is ready to publish (message mode) */
   onExecute?: (event: PublishExecuteEvent) => void;
   /** Callback on successful publish (provider mode) */
@@ -68,6 +70,7 @@ export class PublishScheduler {
   private cronJobs: Map<string, Cron> = new Map();
   private immediateInterval: ReturnType<typeof setInterval> | null = null;
   private messageBus: IMessageBus | undefined;
+  private entityService: ICoreEntityService | undefined;
   private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
   private onPublish: ((event: PublishSuccessEvent) => void) | undefined;
   private onFailed: ((event: PublishFailedEvent) => void) | undefined;
@@ -108,6 +111,7 @@ export class PublishScheduler {
     this.retryTracker = config.retryTracker;
     this.entitySchedules = config.entitySchedules ?? {};
     this.messageBus = config.messageBus;
+    this.entityService = config.entityService;
     this.onExecute = config.onExecute;
     this.onPublish = config.onPublish;
     this.onFailed = config.onFailed;
@@ -272,10 +276,38 @@ export class PublishScheduler {
   private async executeWithProvider(entry: QueueEntry): Promise<void> {
     const provider = this.providerRegistry.get(entry.entityType);
 
+    // Fetch entity content using entityService
+    if (!this.entityService) {
+      const errorMessage = "EntityService not available for provider mode";
+      this.onFailed?.({
+        entityType: entry.entityType,
+        entityId: entry.entityId,
+        error: errorMessage,
+        retryCount: 0,
+        willRetry: false,
+      });
+      return;
+    }
+
+    const entity = await this.entityService.getEntity(
+      entry.entityType,
+      entry.entityId,
+    );
+
+    if (!entity) {
+      const errorMessage = `Entity not found: ${entry.entityType}/${entry.entityId}`;
+      this.onFailed?.({
+        entityType: entry.entityType,
+        entityId: entry.entityId,
+        error: errorMessage,
+        retryCount: 0,
+        willRetry: false,
+      });
+      return;
+    }
+
     try {
-      // TODO: In the full implementation, we need to fetch entity content
-      // For now, pass empty content - plugins will need to provide content
-      const result = await provider.publish("", {});
+      const result = await provider.publish(entity.content, entity.metadata);
 
       // Clear any retry info
       this.retryTracker.clearRetries(entry.entityId);
