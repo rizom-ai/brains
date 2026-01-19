@@ -13,6 +13,9 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  # Local backend - path is configured via -backend-config during init
+  backend "local" {}
 }
 
 provider "hcloud" {

@@ -44,10 +44,11 @@ if [ -f "$HETZNER_CONFIG_FILE" ]; then
 fi
 
 # Update .env.production with terraform outputs (analytics, etc.)
+# Note: Must be called while in $TERRAFORM_DIR with backend already configured
 update_env_from_terraform() {
     local env_file="$PROJECT_ROOT/apps/$APP_NAME/deploy/.env.production"
 
-    # Get analytics outputs from terraform
+    # Get analytics outputs from terraform (backend handles state)
     local analytics_enabled=$(terraform output -raw analytics_enabled 2>/dev/null || echo "false")
 
     if [ "$analytics_enabled" = "true" ]; then
@@ -156,30 +157,20 @@ check_prerequisites() {
 }
 
 # Initialize Terraform
+# Runs from source directory, stores state in per-app state directory
 init_terraform() {
     log_info "Initializing Terraform..."
 
-    # Create state directory if needed
+    # Create state directory for this app (only stores state file, not tf files)
     mkdir -p "$TERRAFORM_STATE_DIR"
 
-    # Only copy .tf files if they don't exist or if state doesn't exist
-    # This preserves existing state
-    # TODO: Refactor to run Terraform from source dir with -state flag instead of copying
-    #       This would be cleaner: terraform apply -state=apps/<app>/deploy/terraform-state/terraform.tfstate
-    if [ ! -f "$TERRAFORM_STATE_DIR/terraform.tfstate" ] || [ ! -f "$TERRAFORM_STATE_DIR/main.tf" ]; then
-        log_info "Setting up Terraform configuration..."
-        cp "$TERRAFORM_DIR"/main.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
-        cp "$TERRAFORM_DIR"/variables.tf "$TERRAFORM_STATE_DIR/" 2>/dev/null || true
-        # Copy modules directory for Bunny CDN and Route53 DNS
-        if [ -d "$TERRAFORM_DIR/modules" ]; then
-            mkdir -p "$TERRAFORM_STATE_DIR/modules"
-            cp -r "$TERRAFORM_DIR/modules"/* "$TERRAFORM_STATE_DIR/modules/" 2>/dev/null || true
-        fi
-    fi
+    # State file path for this app
+    local state_file="$TERRAFORM_STATE_DIR/terraform.tfstate"
 
-    # Initialize in the state directory
-    cd "$TERRAFORM_STATE_DIR"
-    terraform init -upgrade
+    # Initialize providers from source directory with backend config for state path
+    cd "$TERRAFORM_DIR"
+    terraform init -upgrade -reconfigure \
+        -backend-config="path=$state_file"
     cd - > /dev/null
 }
 
@@ -262,9 +253,12 @@ deploy_infrastructure() {
     SERVER_TYPE="${APP_SERVER_SIZE:-cx33}"
     DOMAIN="${APP_DOMAIN:-}"
 
+    # State file path (used only for checking existence)
+    local state_file="$TERRAFORM_STATE_DIR/terraform.tfstate"
+
     # Check if infrastructure already exists
-    cd "$TERRAFORM_STATE_DIR"
-    if [ -f "terraform.tfstate" ] && terraform state list 2>/dev/null | grep -q "hcloud_server.main"; then
+    cd "$TERRAFORM_DIR"
+    if [ -f "$state_file" ] && terraform state list 2>/dev/null | grep -q "hcloud_server.main"; then
         log_info "Infrastructure already exists, applying any configuration changes..."
 
         # Apply any infrastructure changes (idempotent - will only change what's needed)
@@ -308,12 +302,10 @@ deploy_infrastructure() {
 
     # Build and push Docker image
     build_and_push_docker_image
-    
+
     # Refresh state first to sync with reality
     log_info "Refreshing Terraform state..."
-    # Ensure state directory exists before cd
-    mkdir -p "$TERRAFORM_STATE_DIR"
-    cd "$TERRAFORM_STATE_DIR"
+    cd "$TERRAFORM_DIR"
 
     # Refresh to update state from actual infrastructure
     terraform refresh \
@@ -340,11 +332,11 @@ deploy_infrastructure() {
         -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         -var="cloudflare_api_token=${CLOUDFLARE_API_TOKEN:-}" \
         -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID:-}" \
-        -out=tfplan
+        -out="$TERRAFORM_STATE_DIR/tfplan"
 
     # Apply deployment (Terraform will handle existing resources properly)
     log_info "Applying infrastructure changes..."
-    terraform apply tfplan
+    terraform apply "$TERRAFORM_STATE_DIR/tfplan"
 
     # Update .env.production with terraform outputs
     update_env_from_terraform
@@ -365,22 +357,26 @@ deploy_infrastructure() {
 update_application() {
     log_step "Updating $APP_NAME deployment"
 
-    cd "$TERRAFORM_STATE_DIR"
-    if [ ! -f "terraform.tfstate" ]; then
+    # State file path
+    local state_file="$TERRAFORM_STATE_DIR/terraform.tfstate"
+
+    if [ ! -f "$state_file" ]; then
         log_error "No existing deployment found!"
         log_info "Run 'deploy' first"
         exit 1
     fi
 
-    # Get server IP from state
+    check_prerequisites
+    init_terraform
+
+    # Get server IP from state (run from source directory, backend handles state)
+    cd "$TERRAFORM_DIR"
     SERVER_IP=$(terraform output -raw server_ip 2>/dev/null)
     if [ -z "$SERVER_IP" ]; then
         log_error "Could not get server IP from Terraform state"
         exit 1
     fi
     cd - > /dev/null
-
-    check_prerequisites
 
     # Check if registry is configured
     DOCKER_REGISTRY="${DOCKER_REGISTRY:-}"
@@ -435,27 +431,20 @@ update_application() {
 destroy_infrastructure() {
     log_step "Destroying Hetzner Infrastructure"
 
-    check_prerequisites
-    
-    cd "$TERRAFORM_STATE_DIR"
-    if [ ! -f "terraform.tfstate" ]; then
+    # State file path
+    local state_file="$TERRAFORM_STATE_DIR/terraform.tfstate"
+
+    if [ ! -f "$state_file" ]; then
         log_warn "No infrastructure to destroy"
         exit 0
     fi
-    
-    # Ensure terraform is initialized
-    if [ ! -d ".terraform" ]; then
-        log_info "Initializing Terraform..."
-        terraform init
-    else
-        # Re-init with upgrade to handle provider version changes
-        log_info "Checking Terraform providers..."
-        terraform init -upgrade >/dev/null 2>&1 || {
-            log_info "Re-initializing Terraform..."
-            terraform init -upgrade
-        }
-    fi
-    
+
+    check_prerequisites
+    init_terraform
+
+    # Run from source directory (backend handles state)
+    cd "$TERRAFORM_DIR"
+
     # Destroy infrastructure
     log_info "Destroying infrastructure..."
 
@@ -470,35 +459,35 @@ destroy_infrastructure() {
         -var="cloudflare_api_token=${CLOUDFLARE_API_TOKEN:-}" \
         -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID:-}" \
         -auto-approve
-    
+
     cd - > /dev/null
-    
+
     log_info "✅ Infrastructure destroyed"
 }
 
 # Get deployment status
 get_status() {
     log_step "Hetzner Deployment Status"
-    
-    # Check if terraform state directory exists
-    if [ ! -d "$TERRAFORM_STATE_DIR" ]; then
-        log_info "No deployment found for $APP_NAME"
-        exit 0
-    fi
-    
-    cd "$TERRAFORM_STATE_DIR"
 
-    if [ ! -f "terraform.tfstate" ]; then
+    # State file path
+    local state_file="$TERRAFORM_STATE_DIR/terraform.tfstate"
+
+    if [ ! -f "$state_file" ]; then
         log_info "No deployment found for $APP_NAME"
         exit 0
     fi
-    
-    # Get server details
+
+    # Initialize terraform to configure backend
+    init_terraform
+
+    # Get server details (run from source directory, backend handles state)
+    cd "$TERRAFORM_DIR"
     SERVER_IP=$(terraform output -raw server_ip 2>/dev/null || echo "unknown")
-    
+    cd - > /dev/null
+
     log_info "App: $APP_NAME"
     log_info "Server IP: $SERVER_IP"
-    
+
     if [ "$SERVER_IP" != "unknown" ]; then
         # Check if server is reachable
         if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "root@$SERVER_IP" "echo 'Connected'" &> /dev/null; then
@@ -518,8 +507,6 @@ get_status() {
             log_warn "Server: ❌ Not reachable"
         fi
     fi
-    
-    cd - > /dev/null
 }
 
 # Main execution based on action

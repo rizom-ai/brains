@@ -22,6 +22,8 @@ import { z } from "@brains/utils";
 import { ImageExtractor } from "./image-extractor";
 import { ImageReferenceResolver } from "./image-reference-resolver";
 import { createHash } from "crypto";
+// Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
+import baseCSS from "../styles/base.css" with { type: "text" };
 
 /**
  * Preact-based static site builder
@@ -275,8 +277,8 @@ export class PreactBuilder implements StaticSiteBuilder {
   private async processStyles(themeCSS: string): Promise<void> {
     this.logger.debug("Processing CSS styles");
 
-    const inputPath = join(__dirname, "../styles/base.css");
-    const baseCSS = await fs.readFile(inputPath, "utf-8");
+    // baseCSS is imported at the top of the file as text (inlined in bundle)
+    // This avoids __dirname path issues when running from a bundled build
 
     // Extract font imports from base and theme CSS
     const { imports: baseImports, cssWithoutImports: baseCSSClean } =

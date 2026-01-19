@@ -29,6 +29,10 @@ RUN mkdir -p /app/data /app/cache /app/brain-data && \
 COPY dist ./dist
 COPY seed-content ./seed-content
 
+# Layer 7: Create writable directories for site builder output
+RUN mkdir -p /app/dist/site-production /app/dist/site-preview && \
+    chmod -R 777 /app/dist/site-production /app/dist/site-preview
+
 EXPOSE 3333
 
 CMD ["bun", "dist/brain.config.js"]
