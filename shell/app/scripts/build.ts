@@ -82,4 +82,11 @@ for (const { name, path } of migrationSources) {
   }
 }
 
+// Copy seed-content if it exists
+const seedContentPath = join(cwd, "seed-content");
+if (existsSync(seedContentPath)) {
+  cpSync(seedContentPath, join(distDir, "seed-content"), { recursive: true });
+  console.log("Copied seed-content");
+}
+
 console.log(`Build complete: dist/brain.config.js`);

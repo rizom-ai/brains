@@ -95,7 +95,7 @@ CMD ["bun", "dist/brain.config.js"]
   "name": "brain-runtime",
   "description": "Runtime dependencies for bundled brain apps",
   "dependencies": {
-    "@matrix-org/matrix-sdk-crypto-nodejs": "^0.2.0-beta.2",
+    "@matrix-org/matrix-sdk-crypto-nodejs": "0.1.0-beta.6",
     "@libsql/client": "^0.14.0",
     "better-sqlite3": "^11.8.1",
     "tailwindcss": "^4.1.11",
@@ -157,14 +157,15 @@ Update `build_and_push_docker_image()` to use the new build script.
 
 ## Files to Create/Modify
 
-| File                                   | Action | Description                   |
-| -------------------------------------- | ------ | ----------------------------- |
-| `deploy/docker/Dockerfile.prod`        | CREATE | Minimal production Dockerfile |
-| `deploy/docker/package.prod.json`      | CREATE | Runtime native module deps    |
-| `deploy/scripts/build-docker-image.sh` | CREATE | Build wrapper script          |
-| `shell/app/scripts/build.ts`           | MODIFY | Copy seed-content to dist     |
-| `deploy/scripts/deploy-docker.sh`      | MODIFY | Use new build flow            |
-| `deploy/providers/hetzner/deploy.sh`   | MODIFY | Use new build flow            |
+| File                                   | Action | Description                          |
+| -------------------------------------- | ------ | ------------------------------------ |
+| `deploy/docker/Dockerfile`             | DELETE | Remove old monorepo-based Dockerfile |
+| `deploy/docker/Dockerfile.prod`        | CREATE | Minimal production Dockerfile        |
+| `deploy/docker/package.prod.json`      | CREATE | Runtime native module deps           |
+| `deploy/scripts/build-docker-image.sh` | CREATE | Build wrapper script                 |
+| `shell/app/scripts/build.ts`           | MODIFY | Copy seed-content to dist            |
+| `deploy/scripts/deploy-docker.sh`      | MODIFY | Use new build flow                   |
+| `deploy/providers/hetzner/deploy.sh`   | MODIFY | Use new build flow                   |
 
 ## Verification
 
@@ -199,7 +200,7 @@ Update `build_and_push_docker_image()` to use the new build script.
 | Metric            | Before   | After                    |
 | ----------------- | -------- | ------------------------ |
 | Docker build time | ~60-90s  | ~15-30s                  |
-| Image size        | ~2GB+    | ~800MB-1GB               |
+| Image size        | ~2GB+    | ~700MB                   |
 | Layer caching     | None     | Excellent                |
 | Workspace issues  | Frequent | None                     |
 | CI/CD ready       | No       | Yes (build artifact)     |

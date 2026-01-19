@@ -111,23 +111,18 @@ REGISTRY_IMAGE_NAME=$(get_docker_image_name "$APP_NAME" "$REGISTRY" "$TAG")
 # Build Docker image
 build_image() {
     log_step "Building Docker image"
-    
-    # With the new simplified Dockerfile, we don't need to build releases
-    # or prepare complex build directories
-    log_info "Building Docker image for $APP_NAME..."
-    
-    # Build Docker image using the Dockerfile
-    if ! docker build \
-        -f "deploy/docker/Dockerfile" \
-        --build-arg APP_NAME="$APP_NAME" \
-        -t "$LOCAL_IMAGE_NAME" \
-        . ; then
+
+    # Use the new bundle-based build script
+    # This builds the app locally, then creates a minimal Docker image
+    log_info "Building Docker image for $APP_NAME using bundle approach..."
+
+    if ! "$SCRIPT_DIR/build-docker-image.sh" "$APP_NAME" "$TAG"; then
         log_error "Docker build failed"
         return 1
     fi
-    
+
     log_info "Docker image built: $LOCAL_IMAGE_NAME"
-    
+
     # Tag for registry if needed
     if [ -n "$REGISTRY" ] && [ "$LOCAL_IMAGE_NAME" != "$REGISTRY_IMAGE_NAME" ]; then
         log_info "Tagging for registry: $REGISTRY_IMAGE_NAME"

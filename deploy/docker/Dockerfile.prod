@@ -1,0 +1,34 @@
+# Minimal production Dockerfile using pre-built bundle
+FROM oven/bun:1.2.13-debian
+
+WORKDIR /app
+
+# Layer 1: System dependencies (rarely changes)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Layer 2: Runtime native module package.json (changes rarely)
+COPY package.json ./package.json
+
+# Layer 3: Install runtime native modules (cached unless package.json changes)
+RUN bun install --ignore-scripts
+
+# Layer 4: Download Matrix native binary
+RUN cd /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && \
+    PACKAGE_VERSION=$(grep '"version"' package.json | cut -d'"' -f4) && \
+    curl -fsSL -o matrix-sdk-crypto.linux-x64-gnu.node \
+        "https://github.com/matrix-org/matrix-rust-sdk/releases/download/matrix-sdk-crypto-nodejs-v${PACKAGE_VERSION}/matrix-sdk-crypto.linux-x64-gnu.node" && \
+    chmod +x matrix-sdk-crypto.linux-x64-gnu.node
+
+# Layer 5: Create directories
+RUN mkdir -p /app/data /app/cache /app/brain-data && \
+    chmod -R 777 /app/data /app/cache /app/brain-data
+
+# Layer 6: Copy pre-built bundle (changes frequently - last layer)
+COPY dist ./dist
+COPY seed-content ./seed-content
+
+EXPOSE 3333
+
+CMD ["bun", "dist/brain.config.js"]
