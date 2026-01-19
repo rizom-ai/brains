@@ -1,23 +1,41 @@
-# Bunny.net to Cloudflare Migration Plan
+# CDN Provider Options: Cloudflare and Bunny.net
 
 ## Summary
 
-Migrate from Bunny.net to Cloudflare for CDN and DNS services, consolidating with existing Cloudflare Analytics.
+Add Cloudflare as the default CDN/DNS provider for new deployments while keeping Bunny.net available as an alternative. This gives developers flexibility to choose based on their needs.
+
+## Provider Comparison
+
+| Aspect           | Cloudflare (Default)       | Bunny.net (Alternative)            |
+| ---------------- | -------------------------- | ---------------------------------- |
+| **Network size** | 300+ PoPs globally         | 114+ PoPs                          |
+| **Pricing**      | Free tier available        | Pay-per-GB (cheap)                 |
+| **HQ / Data**    | US-based                   | EU-based (Slovenia)                |
+| **Edge rules**   | 10 on free plan            | Unlimited                          |
+| **Developer UX** | Familiar, widely used      | Niche, extra account needed        |
+| **Best for**     | Most users, cost-conscious | EU data residency, many edge rules |
+
+## When to Choose Each
+
+**Choose Cloudflare (default) if:**
+
+- You want zero cost for basic CDN
+- You already have a Cloudflare account
+- You prefer unified dashboard with analytics
+- You don't have strict EU data residency requirements
+
+**Choose Bunny.net if:**
+
+- You need EU-based data processing (GDPR)
+- You need more than 10 edge rules
+- You prefer usage-based pricing over free tiers
+- You're already using Bunny.net for other projects
 
 ## Current State
 
-**Bunny.net provides:**
+**Bunny.net module:** `deploy/providers/hetzner/terraform/modules/bunny-cdn/`
 
-- CDN Pull Zones with edge caching (5 geographic zones)
-- DNS zone management (A/CNAME records)
-- Custom hostnames with auto SSL (Let's Encrypt)
-- Edge rules for MCP API redirect
-- Terraform module: `deploy/providers/hetzner/terraform/modules/bunny-cdn/`
-
-**Cloudflare currently provides:**
-
-- Web Analytics only
-- Terraform module: `deploy/providers/hetzner/terraform/modules/cloudflare-analytics/`
+**Cloudflare module:** `deploy/providers/hetzner/terraform/modules/cloudflare-analytics/` (analytics only, CDN to be added)
 
 ## Feature Mapping
 
@@ -40,11 +58,11 @@ Migrate from Bunny.net to Cloudflare for CDN and DNS services, consolidating wit
 
 ## Files to Modify
 
-| File                                              | Changes                                        |
-| ------------------------------------------------- | ---------------------------------------------- |
-| `deploy/providers/hetzner/terraform/main.tf`      | Add cloudflare_cdn_dns module                  |
-| `deploy/providers/hetzner/terraform/variables.tf` | Add cloudflare_zone_id, cloudflare_cdn_enabled |
-| `modules/cloudflare-analytics/main.tf`            | Support zone_tag for integrated analytics      |
+| File                                              | Changes                                                 |
+| ------------------------------------------------- | ------------------------------------------------------- |
+| `deploy/providers/hetzner/terraform/main.tf`      | Add cloudflare_cdn_dns module, update conditional logic |
+| `deploy/providers/hetzner/terraform/variables.tf` | Add cdn_provider variable, cloudflare_zone_id           |
+| `modules/cloudflare-analytics/main.tf`            | Support zone_tag for integrated analytics               |
 
 ## Implementation
 
@@ -112,9 +130,10 @@ resource "cloudflare_zone_setting" "ssl" {
 ### Step 2: Update main.tf
 
 ```hcl
+# CDN Provider Selection
 module "cloudflare_cdn_dns" {
   source = "./modules/cloudflare-cdn-dns"
-  count  = var.cloudflare_cdn_enabled ? 1 : 0
+  count  = var.cdn_provider == "cloudflare" ? 1 : 0
 
   cloudflare_api_token  = var.cloudflare_api_token
   cloudflare_account_id = var.cloudflare_account_id
@@ -123,49 +142,109 @@ module "cloudflare_cdn_dns" {
   origin_ip             = hcloud_server.main.ipv4_address
   domain                = var.domain
 }
+
+module "bunny_cdn" {
+  source = "./modules/bunny-cdn"
+  count  = var.cdn_provider == "bunny" ? 1 : 0
+
+  bunny_api_key = var.bunny_api_key
+  app_name      = var.app_name
+  origin_ip     = hcloud_server.main.ipv4_address
+  domain        = var.domain
+}
 ```
 
 ### Step 3: Add Variables
 
 ```hcl
+variable "cdn_provider" {
+  description = "CDN provider to use: 'cloudflare' (default) or 'bunny'"
+  type        = string
+  default     = "cloudflare"
+
+  validation {
+    condition     = contains(["cloudflare", "bunny", "none"], var.cdn_provider)
+    error_message = "cdn_provider must be 'cloudflare', 'bunny', or 'none'"
+  }
+}
+
 variable "cloudflare_zone_id" {
-  description = "Cloudflare Zone ID for the domain"
+  description = "Cloudflare Zone ID for the domain (required if cdn_provider = 'cloudflare')"
   type        = string
   default     = ""
 }
-
-variable "cloudflare_cdn_enabled" {
-  description = "Enable Cloudflare CDN/DNS (disables Bunny)"
-  type        = bool
-  default     = false
-}
 ```
 
-## Migration Steps (Zero-Downtime)
+## Configuration Guide
 
-### Phase 1: Preparation
+### New Deployments (Cloudflare - Default)
 
-1. Create Cloudflare zone (if not exists) - note Zone ID
-2. Create API token with required permissions (see below)
-3. Add `cloudflare_zone_id` to config.env
-4. Keep `bunny_api_key` active (parallel operation)
-
-### Phase 2: Deploy Cloudflare Resources
+1. Create a Cloudflare account (if you don't have one)
+2. Add your domain to Cloudflare and note the Zone ID
+3. Create API token with required permissions (see below)
+4. Configure your deployment:
 
 ```bash
+# config.env
+cdn_provider=cloudflare
+cloudflare_zone_id=your_zone_id_here
+cloudflare_api_token=your_token_here
+cloudflare_account_id=your_account_id_here
+```
+
+5. Deploy:
+
+```bash
+terraform apply
+```
+
+### New Deployments (Bunny.net - Alternative)
+
+1. Create a Bunny.net account
+2. Generate an API key
+3. Configure your deployment:
+
+```bash
+# config.env
+cdn_provider=bunny
+bunny_api_key=your_api_key_here
+```
+
+4. Deploy:
+
+```bash
+terraform apply
+```
+
+### Migrating Existing Bunny Deployments to Cloudflare (Zero-Downtime)
+
+For users with existing Bunny.net deployments who want to switch:
+
+#### Phase 1: Preparation
+
+1. Create Cloudflare zone - note Zone ID
+2. Create API token with required permissions (see below)
+3. Add Cloudflare credentials to config.env (keep Bunny credentials too)
+4. Set `cdn_provider=bunny` initially (no change yet)
+
+#### Phase 2: Deploy Cloudflare Resources in Parallel
+
+```bash
+# Temporarily enable both for parallel operation
+# In main.tf, temporarily change count logic to enable both
 terraform apply  # Creates CF resources, Bunny still active
 ```
 
-### Phase 3: DNS Cutover
+#### Phase 3: DNS Cutover
 
 1. Update nameservers at registrar: Bunny → Cloudflare
 2. Allow 24-48 hours for propagation
 3. Monitor both dashboards during transition
 
-### Phase 4: Cleanup
+#### Phase 4: Cleanup
 
 1. Verify all traffic via Cloudflare (`dig domain.com NS`)
-2. Set `bunny_cdn_enabled = false`
+2. Set `cdn_provider=cloudflare` in config.env
 3. Run `terraform apply` to destroy Bunny resources
 
 ## Required Cloudflare API Permissions
@@ -178,28 +257,22 @@ Add to existing token:
 - Zone > Cache Purge: Purge
 - Zone > Dynamic Redirect: Edit
 
-## Tradeoffs
-
-| Aspect       | Bunny.net     | Cloudflare             |
-| ------------ | ------------- | ---------------------- |
-| Network size | 114+ PoPs     | 300+ PoPs              |
-| Pricing      | Per GB        | Free for basic CDN     |
-| HQ location  | EU (Slovenia) | US                     |
-| Edge rules   | Unlimited     | 10 on free plan        |
-| Dashboard    | Separate      | Unified with Analytics |
-
 ## Verification
+
+### Cloudflare
 
 1. **Check DNS propagation:**
 
    ```bash
    dig yourdomain.com NS +short
+   # Should show Cloudflare nameservers
    ```
 
 2. **Verify CDN is working:**
 
    ```bash
    curl -I https://yourdomain.com | grep cf-cache-status
+   # Should show: cf-cache-status: HIT or MISS or DYNAMIC
    ```
 
 3. **Test SSL:**
@@ -209,6 +282,30 @@ Add to existing token:
    ```
 
 4. **Test MCP redirect:**
+
+   ```bash
+   curl -I https://yourdomain.com/mcp
+   # Should redirect to preview.yourdomain.com/mcp
+   ```
+
+### Bunny.net
+
+1. **Check DNS propagation:**
+
+   ```bash
+   dig yourdomain.com NS +short
+   # Should show Bunny nameservers
+   ```
+
+2. **Verify CDN is working:**
+
+   ```bash
+   curl -I https://yourdomain.com | grep -i cdn-cache
+   # Should show cache headers from Bunny
+   ```
+
+3. **Test MCP redirect:**
+
    ```bash
    curl -I https://yourdomain.com/mcp
    # Should redirect to preview.yourdomain.com/mcp
