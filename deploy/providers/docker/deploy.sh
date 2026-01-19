@@ -4,18 +4,9 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# Logging functions
-log_info() { echo -e "${GREEN}[DOCKER]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[DOCKER]${NC} $1"; }
-log_error() { echo -e "${RED}[DOCKER]${NC} $1"; }
-log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
+# Source common utilities
+PROVIDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_PREFIX="DOCKER" source "$PROVIDER_DIR/../../scripts/lib/common.sh"
 
 # Required environment variables from deploy-brain.sh:
 # - APP_NAME: Name of the app to deploy

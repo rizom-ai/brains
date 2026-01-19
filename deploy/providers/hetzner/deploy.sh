@@ -4,18 +4,11 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# Logging functions
-log_info() { echo -e "${GREEN}[HETZNER]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[HETZNER]${NC} $1"; }
-log_error() { echo -e "${RED}[HETZNER]${NC} $1"; }
-log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
+# Source common utilities
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_LIB_DIR="$_SCRIPT_DIR/../../scripts/lib"
+LOG_PREFIX="HETZNER" source "$_LIB_DIR/common.sh"
+source "$_LIB_DIR/docker.sh"
 
 # Required environment variables from generic script:
 # - APP_NAME: Name of the app to deploy
@@ -186,18 +179,8 @@ build_and_push_docker_image() {
         # Build and push to registry
         log_info "Using Docker registry: $DOCKER_REGISTRY"
 
-        # Set full image name with registry
-        case "$DOCKER_REGISTRY" in
-            ghcr.io)
-                DOCKER_IMAGE="$DOCKER_REGISTRY/$REGISTRY_USER/personal-brain-$APP_NAME:latest"
-                ;;
-            docker.io)
-                DOCKER_IMAGE="$REGISTRY_USER/personal-brain-$APP_NAME:latest"
-                ;;
-            *)
-                DOCKER_IMAGE="$DOCKER_REGISTRY/personal-brain-$APP_NAME:latest"
-                ;;
-        esac
+        # Set full image name with registry (uses lib/docker.sh)
+        DOCKER_IMAGE=$(get_docker_image_name "$APP_NAME" "$DOCKER_REGISTRY" "latest")
 
         # Always build (Docker will use cache if no changes)
         # The deploy-docker.sh script handles the build and push
@@ -388,18 +371,8 @@ update_application() {
     cd "$PROJECT_ROOT"
 
     if [ -n "$DOCKER_REGISTRY" ]; then
-        # Set full image name with registry
-        case "$DOCKER_REGISTRY" in
-            ghcr.io)
-                DOCKER_IMAGE="$DOCKER_REGISTRY/$REGISTRY_USER/personal-brain-$APP_NAME:latest"
-                ;;
-            docker.io)
-                DOCKER_IMAGE="$REGISTRY_USER/personal-brain-$APP_NAME:latest"
-                ;;
-            *)
-                DOCKER_IMAGE="$DOCKER_REGISTRY/personal-brain-$APP_NAME:latest"
-                ;;
-        esac
+        # Set full image name with registry (uses lib/docker.sh)
+        DOCKER_IMAGE=$(get_docker_image_name "$APP_NAME" "$DOCKER_REGISTRY" "latest")
 
         # Build and push
         if ! env GITHUB_TOKEN="$REGISTRY_TOKEN" \

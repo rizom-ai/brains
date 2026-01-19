@@ -8,13 +8,26 @@ export YELLOW='\033[1;33m'
 export BLUE='\033[0;34m'
 export NC='\033[0m' # No Color
 
-# Logging functions
-log_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+# Log prefix - can be set before sourcing this file (e.g., LOG_PREFIX="BUILD")
+# Defaults to INFO/WARN/ERROR if not set
+export LOG_PREFIX="${LOG_PREFIX:-}"
+
+# Logging functions - use LOG_PREFIX if set, otherwise default labels
+log_info() {
+    local prefix="${LOG_PREFIX:-INFO}"
+    echo -e "${GREEN}[${prefix}]${NC} $1"
+}
+log_warn() {
+    local prefix="${LOG_PREFIX:-WARN}"
+    echo -e "${YELLOW}[${prefix}]${NC} $1"
+}
+log_error() {
+    local prefix="${LOG_PREFIX:-ERROR}"
+    echo -e "${RED}[${prefix}]${NC} $1" >&2
+}
 log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
-log_debug() { 
-    if [ "${DEBUG:-}" = "1" ]; then 
+log_debug() {
+    if [ "${DEBUG:-}" = "1" ]; then
         echo -e "${YELLOW}[DEBUG]${NC} $1" >&2
     fi
 }

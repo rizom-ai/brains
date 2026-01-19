@@ -7,18 +7,8 @@ set -euo pipefail
 # Get the directory where this script is located
 PROVIDER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# Logging functions
-log_info() { echo -e "${GREEN}[DEPLOY]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[DEPLOY]${NC} $1"; }
-log_error() { echo -e "${RED}[DEPLOY]${NC} $1"; }
-log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
+# Source common utilities
+LOG_PREFIX="DEPLOY" source "$PROVIDER_DIR/../../scripts/lib/common.sh"
 
 # Script arguments
 SERVER_IP="${1:-}"
@@ -178,73 +168,31 @@ deploy_app_files() {
         log_info "To enable: Add to crontab: 0 */6 * * * $APP_DIR/memory-monitor.sh >> /var/log/memory-monitor.log 2>&1"
     fi
 
-    # Create docker-compose.yml
+    # Create docker-compose.yml from template
     log_info "Creating docker-compose.yml..."
 
     # Get the user and group IDs first
     USER_ID=$($SSH_CMD "id -u personal-brain")
     GROUP_ID=$($SSH_CMD "id -g personal-brain")
 
+    # Path to templates
+    TEMPLATE_DIR="$PROVIDER_DIR/templates"
+
     if [ -n "$DOMAIN" ]; then
         # With domain - use Caddy for SSL
-        cat << EOF | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
-version: '3.8'
+        sed -e "s|\${DOCKER_IMAGE}|$DOCKER_IMAGE|g" \
+            -e "s|\${APP_DIR}|$APP_DIR|g" \
+            -e "s|\${DATA_DIR}|$DATA_DIR|g" \
+            -e "s|\${USER_ID}|$USER_ID|g" \
+            -e "s|\${GROUP_ID}|$GROUP_ID|g" \
+            "$TEMPLATE_DIR/docker-compose-with-caddy.yml.template" | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
 
-services:
-  personal-brain:
-    image: $DOCKER_IMAGE
-    container_name: personal-brain
-    restart: unless-stopped
-    env_file: $APP_DIR/.env
-    user: "$USER_ID:$GROUP_ID"
-    volumes:
-      - $DATA_DIR:/app/data
-      - $APP_DIR/brain-repo:/app/brain-repo
-      - $APP_DIR/brain-data:/app/brain-data
-      - $APP_DIR/website:/app/apps/shell/dist
-      - $APP_DIR/matrix-storage:/app/.matrix-storage
-    networks:
-      - personal-brain-net
-    expose:
-      - "3333"
-      - "8080"
-      - "4321"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: personal-brain-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - $APP_DIR/Caddyfile:/etc/caddy/Caddyfile:ro
-      - $APP_DIR/caddy-data:/data
-      - $APP_DIR/caddy-config:/config
-    networks:
-      - personal-brain-net
-    depends_on:
-      - personal-brain
-
-networks:
-  personal-brain-net:
-    external: true
-EOF
-
-        # Create Caddyfile
+        # Create Caddyfile from template
         log_info "Creating Caddyfile from template..."
 
         # Check if preview is configured in env file
         PREVIEW_DOMAIN=$(grep -E "^PREVIEW_DOMAIN=" "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "")
 
-        # Path to templates
-        TEMPLATE_DIR="$PROVIDER_DIR/templates"
         CADDY_TEMPLATE="$TEMPLATE_DIR/Caddyfile.template"
         PREVIEW_TEMPLATE="$TEMPLATE_DIR/Caddyfile-preview.template"
 
@@ -258,39 +206,12 @@ EOF
         fi
     else
         # Without domain - direct port access
-        cat << EOF | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
-version: '3.8'
-
-services:
-  personal-brain:
-    image: $DOCKER_IMAGE
-    container_name: personal-brain
-    restart: unless-stopped
-    env_file: $APP_DIR/.env
-    user: "$USER_ID:$GROUP_ID"
-    volumes:
-      - $DATA_DIR:/app/data
-      - $APP_DIR/brain-repo:/app/brain-repo
-      - $APP_DIR/brain-data:/app/brain-data
-      - $APP_DIR/website:/app/apps/shell/dist
-      - $APP_DIR/matrix-storage:/app/.matrix-storage
-    ports:
-      - "3333:3333"
-      - "8080:8080"
-      - "4321:4321"
-    networks:
-      - personal-brain-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-networks:
-  personal-brain-net:
-    external: true
-EOF
+        sed -e "s|\${DOCKER_IMAGE}|$DOCKER_IMAGE|g" \
+            -e "s|\${APP_DIR}|$APP_DIR|g" \
+            -e "s|\${DATA_DIR}|$DATA_DIR|g" \
+            -e "s|\${USER_ID}|$USER_ID|g" \
+            -e "s|\${GROUP_ID}|$GROUP_ID|g" \
+            "$TEMPLATE_DIR/docker-compose-standalone.yml.template" | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
     fi
 }
 

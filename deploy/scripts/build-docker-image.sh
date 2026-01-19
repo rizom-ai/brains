@@ -6,15 +6,9 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-log_info() { echo -e "${GREEN}[BUILD]${NC} $1"; }
-log_error() { echo -e "${RED}[BUILD]${NC} $1"; }
-log_step() { echo -e "\n${BLUE}=== $1 ===${NC}\n"; }
+# Source common utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LOG_PREFIX="BUILD" source "$SCRIPT_DIR/lib/common.sh"
 
 # Arguments
 APP_NAME="${1:-}"
@@ -27,7 +21,6 @@ if [ -z "$APP_NAME" ]; then
 fi
 
 # Find project root (directory containing bun.lock)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR/../.."
 cd "$PROJECT_ROOT"
 
