@@ -18,12 +18,30 @@ Now that we have `brain-build` which bundles apps into a single distributable fi
 
 ## Native Modules Required at Runtime
 
-The build script marks these as external (not bundled):
+The build script marks these as external (not bundled). All are **required** for full functionality:
 
-- `@matrix-org/matrix-sdk-crypto-nodejs` - Matrix E2E encryption
-- `@libsql/client` / `libsql` - Database driver
-- `better-sqlite3` - SQLite native bindings
-- `onnxruntime-node` / `fastembed` - Local embeddings (optional)
+**Database:**
+
+- `@libsql/client` - LibSQL/Turso client
+- `better-sqlite3` - SQLite native bindings (used by drizzle)
+
+**Matrix E2E Encryption:**
+
+- `@matrix-org/matrix-sdk-crypto-nodejs` - Requires manual binary download for Linux
+
+**Tailwind CSS (site building):**
+
+- `tailwindcss` - Core v4
+- `@tailwindcss/postcss` - PostCSS plugin
+- `@tailwindcss/typography` - Typography plugin
+- `postcss` - PostCSS processor
+- `lightningcss` - CSS processing (native module)
+- `@tailwindcss/oxide` - Native Rust module (implicit dependency)
+
+**Embeddings:**
+
+- `fastembed` - Local embedding generation
+- `onnxruntime-node` - ONNX runtime (implicit dependency of fastembed)
 
 ## Implementation
 
@@ -75,10 +93,17 @@ CMD ["bun", "dist/brain.config.js"]
 ```json
 {
   "name": "brain-runtime",
+  "description": "Runtime dependencies for bundled brain apps",
   "dependencies": {
     "@matrix-org/matrix-sdk-crypto-nodejs": "^0.2.0-beta.2",
     "@libsql/client": "^0.14.0",
-    "better-sqlite3": "^11.8.1"
+    "better-sqlite3": "^11.8.1",
+    "tailwindcss": "^4.1.11",
+    "@tailwindcss/postcss": "^4.1.13",
+    "@tailwindcss/typography": "^0.5.19",
+    "postcss": "^8.5.6",
+    "lightningcss": "^1.29.2",
+    "fastembed": "^1.14.4"
   }
 }
 ```
@@ -171,10 +196,11 @@ Update `build_and_push_docker_image()` to use the new build script.
 
 ## Benefits
 
-| Metric            | Before   | After                |
-| ----------------- | -------- | -------------------- |
-| Docker build time | ~60-90s  | ~10-15s              |
-| Image size        | ~2GB+    | ~300-500MB           |
-| Layer caching     | None     | Excellent            |
-| Workspace issues  | Frequent | None                 |
-| CI/CD ready       | No       | Yes (build artifact) |
+| Metric            | Before   | After                    |
+| ----------------- | -------- | ------------------------ |
+| Docker build time | ~60-90s  | ~15-30s                  |
+| Image size        | ~2GB+    | ~800MB-1GB               |
+| Layer caching     | None     | Excellent                |
+| Workspace issues  | Frequent | None                     |
+| CI/CD ready       | No       | Yes (build artifact)     |
+| Rebuild on change | Full     | Only bundle layer (~10s) |
