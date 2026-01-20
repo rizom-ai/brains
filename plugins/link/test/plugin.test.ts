@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import type { LinkPlugin } from "../src/index";
 import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
+import { createServicePluginHarness } from "@brains/plugins/test";
+import type { PluginCapabilities } from "@brains/plugins/test";
 import {
   createMockLinkEntity,
   mockLinkContent,
@@ -152,6 +154,70 @@ This is a test article summary.`;
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata).toEqual({ status: "draft", title: "Test Article" });
+    });
+  });
+});
+
+describe("LinkPlugin with Harness", () => {
+  let harness: ReturnType<typeof createServicePluginHarness>;
+  let plugin: LinkPlugin;
+  let capabilities: PluginCapabilities;
+
+  beforeEach(async () => {
+    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
+
+    plugin = createLinkPlugin({
+      enableSummarization: true,
+      autoExtractKeywords: true,
+    }) as LinkPlugin;
+    capabilities = await harness.installPlugin(plugin);
+  });
+
+  afterEach(() => {
+    harness.reset();
+  });
+
+  describe("Plugin Registration", () => {
+    it("should register plugin with correct metadata", () => {
+      expect(plugin.id).toBe("link");
+      expect(plugin.type).toBe("service");
+      expect(plugin.version).toBeDefined();
+    });
+
+    it("should provide link_capture tool", () => {
+      const toolNames = capabilities.tools.map((t) => t.name);
+      expect(toolNames).toContain("link_capture");
+    });
+  });
+
+  describe("Tool Schemas", () => {
+    it("link_capture should require url parameter", () => {
+      const captureTool = capabilities.tools.find(
+        (t) => t.name === "link_capture",
+      );
+      expect(captureTool).toBeDefined();
+      if (!captureTool) throw new Error("captureTool not found");
+      expect(captureTool.inputSchema["url"]).toBeDefined();
+    });
+  });
+
+  describe("Tool Execution", () => {
+    it("link_capture should throw ZodError for invalid URL format", async () => {
+      // Zod validation happens before try/catch in handler
+      expect(
+        harness.executeTool("link_capture", {
+          url: "not-a-valid-url",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("link_capture should reject invalid domains", async () => {
+      const result = await harness.executeTool("link_capture", {
+        url: "https://this-domain-definitely-does-not-exist-xyz123.com/page",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 });
