@@ -11,7 +11,8 @@ services:
       - ${DATA_DIR}:/app/data
       - ${APP_DIR}/brain-repo:/app/brain-repo
       - ${APP_DIR}/brain-data:/app/brain-data
-      - ${APP_DIR}/website:/app/apps/shell/dist
+      - ${APP_DIR}/site-production:/app/dist/site-production
+      - ${APP_DIR}/site-preview:/app/dist/site-preview
       - ${APP_DIR}/matrix-storage:/app/.matrix-storage
     networks:
       - personal-brain-net
