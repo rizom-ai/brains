@@ -37,6 +37,8 @@ Options:
   --tag <tag>         Docker image tag (default: latest)
   --no-build          Skip building, use existing image
   --push-only         Only push to registry, don't deploy
+  --destroy           Stop and remove the container
+  --status            Show container status
   --help              Show this help message
   --debug             Enable debug output
 
@@ -67,6 +69,8 @@ REGISTRY=""
 TAG="latest"
 SKIP_BUILD=false
 PUSH_ONLY=false
+DESTROY=false
+STATUS=false
 
 # Parse options
 while [ $# -gt 0 ]; do
@@ -85,6 +89,14 @@ while [ $# -gt 0 ]; do
             ;;
         --push-only)
             PUSH_ONLY=true
+            shift
+            ;;
+        --destroy)
+            DESTROY=true
+            shift
+            ;;
+        --status)
+            STATUS=true
             shift
             ;;
         --debug)
@@ -138,7 +150,7 @@ deploy_local() {
     cleanup_docker "$APP_NAME"
     
     # Create directories
-    mkdir -p "$HOME/personal-brain-data/"{data,brain-repo,website,matrix-storage,brain-data}
+    mkdir -p "$HOME/personal-brain-data/"{data,brain-repo,site-production,site-preview,matrix-storage,brain-data}
     
     # Get environment file
     local env_file="$APP_DIR/deploy/.env.production"
@@ -152,9 +164,10 @@ deploy_local() {
         -p "$APP_DEFAULT_PORT:3333" \
         -v "$HOME/personal-brain-data/data:/app/data" \
         -v "$HOME/personal-brain-data/brain-repo:/app/brain-repo" \
-        -v "$HOME/personal-brain-data/website:/app/website" \
-        -v "$HOME/personal-brain-data/matrix-storage:/app/.matrix-storage" \
         -v "$HOME/personal-brain-data/brain-data:/app/brain-data" \
+        -v "$HOME/personal-brain-data/site-production:/app/dist/site-production" \
+        -v "$HOME/personal-brain-data/site-preview:/app/dist/site-preview" \
+        -v "$HOME/personal-brain-data/matrix-storage:/app/.matrix-storage" \
         -v "$env_file:/app/.env:ro" \
         --user "$(id -u):$(id -g)" \
         "$LOCAL_IMAGE_NAME"
@@ -168,6 +181,27 @@ deploy_local() {
         log_error "Container failed to start"
         docker logs "personal-brain-$APP_NAME"
         return 1
+    fi
+}
+
+# Destroy local deployment
+destroy_local() {
+    log_step "Destroying local deployment"
+    docker stop "personal-brain-$APP_NAME" 2>/dev/null || true
+    docker rm "personal-brain-$APP_NAME" 2>/dev/null || true
+    log_info "Local deployment removed"
+}
+
+# Show local deployment status
+status_local() {
+    log_step "Docker Deployment Status"
+    if docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -q "personal-brain-$APP_NAME"; then
+        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep "personal-brain-$APP_NAME"
+        echo ""
+        log_info "Recent logs:"
+        docker logs --tail 10 "personal-brain-$APP_NAME" 2>&1 || true
+    else
+        log_warn "No container found for personal-brain-$APP_NAME"
     fi
 }
 
@@ -193,25 +227,37 @@ deploy_remote() {
 main() {
     # Ensure Docker is available
     ensure_docker
-    
+
+    # Handle status (no build needed)
+    if [ "$STATUS" = true ]; then
+        status_local
+        return 0
+    fi
+
+    # Handle destroy (no build needed)
+    if [ "$DESTROY" = true ]; then
+        destroy_local
+        return 0
+    fi
+
     # Build image if needed
     if [ "$SKIP_BUILD" = false ]; then
         build_image
     else
         log_info "Using existing image: $REGISTRY_IMAGE_NAME"
     fi
-    
+
     # Push to registry if specified
     if [ -n "$REGISTRY" ]; then
         push_docker_image "$REGISTRY_IMAGE_NAME" "$REGISTRY"
     fi
-    
+
     # Handle push-only mode
     if [ "$PUSH_ONLY" = true ]; then
         log_info "Push-only mode - skipping deployment"
         return 0
     fi
-    
+
     # Deploy
     if [ "$SERVER" = "local" ]; then
         deploy_local
