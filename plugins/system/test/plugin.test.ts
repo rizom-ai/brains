@@ -95,4 +95,81 @@ describe("SystemPlugin", () => {
       expect(statusSchema._def.typeName).toBe("ZodOptional");
     });
   });
+
+  describe("Tool Execution", () => {
+    it("system_search should return search results", async () => {
+      const result = await harness.executeTool("system_search", {
+        query: "test query",
+        limit: 5,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveProperty("results");
+    });
+
+    it("system_get should handle unknown entity type", async () => {
+      const result = await harness.executeTool("system_get", {
+        entityType: "nonexistent-type",
+        id: "some-id",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unknown entity type");
+    });
+
+    it("system_list should handle unknown entity type", async () => {
+      const result = await harness.executeTool("system_list", {
+        entityType: "nonexistent-type",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Unknown entity type");
+    });
+
+    it("system_get-identity should return identity data", async () => {
+      const result = await harness.executeTool("system_get-identity", {});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+    });
+
+    it("system_get-profile should return profile data", async () => {
+      const result = await harness.executeTool("system_get-profile", {});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+    });
+
+    it("system_get-status should return app info", async () => {
+      const result = await harness.executeTool("system_get-status", {});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+    });
+
+    it("system_check-job-status should return job summary", async () => {
+      const result = await harness.executeTool("system_check-job-status", {});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveProperty("summary");
+    });
+
+    it("system_get-conversation should handle missing conversation", async () => {
+      const result = await harness.executeTool("system_get-conversation", {
+        conversationId: "nonexistent-id",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not found");
+    });
+
+    it("system_list-conversations should return conversations list", async () => {
+      const result = await harness.executeTool("system_list-conversations", {
+        limit: 10,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveProperty("conversations");
+    });
+  });
 });
