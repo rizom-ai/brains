@@ -168,6 +168,46 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
+   * Execute a tool by name
+   * @param toolName - Full tool name (e.g., "system_search")
+   * @param input - Tool input parameters
+   * @param context - Optional tool context override
+   * @returns Tool result with success/error status
+   */
+  async executeTool(
+    toolName: string,
+    input: Record<string, unknown> = {},
+    context?: { interfaceType?: string; userId?: string; channelId?: string },
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> {
+    if (!this.capabilities) {
+      throw new Error("No plugin installed. Call installPlugin() first.");
+    }
+
+    const tool = this.capabilities.tools.find((t) => t.name === toolName);
+    if (!tool) {
+      const availableTools = this.capabilities.tools.map((t) => t.name);
+      throw new Error(
+        `Tool not found: ${toolName}. Available tools: ${availableTools.join(", ")}`,
+      );
+    }
+
+    // Create a default test context
+    const toolContext: {
+      interfaceType: string;
+      userId: string;
+      channelId?: string;
+    } = {
+      interfaceType: context?.interfaceType ?? "test",
+      userId: context?.userId ?? "test-user",
+    };
+    if (context?.channelId) {
+      toolContext.channelId = context.channelId;
+    }
+
+    return tool.handler(input, toolContext);
+  }
+
+  /**
    * Reset the harness
    */
   reset(): void {
