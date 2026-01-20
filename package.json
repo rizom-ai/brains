@@ -2,8 +2,11 @@
   "name": "rizom-brains",
   "version": "0.0.0",
   "devDependencies": {
+    "@ai-sdk/anthropic": "^3.0.15",
+    "@ai-sdk/openai": "^3.0.12",
     "@manypkg/cli": "^0.25.1",
     "@modelcontextprotocol/sdk": "^1.24.0",
+    "ai": "^6.0.42",
     "dependency-cruiser": "^17.0.1",
     "eslint": "^8.56.0",
     "husky": "^9.0.11",
