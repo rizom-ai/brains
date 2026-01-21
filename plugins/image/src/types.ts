@@ -28,15 +28,18 @@ export interface IImagePlugin {
   /**
    * Get entity by type and ID
    */
-  getEntity(entityType: string, id: string): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity = BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null>;
 
   /**
    * Find entity by ID, slug, or title
    */
-  findEntity(
+  findEntity<T extends BaseEntity = BaseEntity>(
     entityType: string,
     identifier: string,
-  ): Promise<BaseEntity | null>;
+  ): Promise<T | null>;
 
   /**
    * Create a new entity

@@ -71,8 +71,10 @@ function createMockImagePlugin(
   } = {},
 ): IImagePlugin {
   return {
-    getEntity: async () => overrides.getEntity ?? null,
-    findEntity: async () => overrides.findEntity ?? overrides.getEntity ?? null,
+    getEntity: async <T extends BaseEntity>() =>
+      (overrides.getEntity ?? null) as T | null,
+    findEntity: async <T extends BaseEntity>() =>
+      (overrides.findEntity ?? overrides.getEntity ?? null) as T | null,
     createEntity: async () =>
       overrides.createEntity ?? { entityId: "test-id", jobId: "job-1" },
     updateEntity: async () =>
@@ -541,7 +543,7 @@ describe("Image Tools", () => {
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
-        { imageId: "hero-image" },
+        { image: "hero-image" },
         mockToolContext,
       );
 
@@ -570,7 +572,7 @@ describe("Image Tools", () => {
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
-        { imageId: "hero-image", updateEntity: false },
+        { image: "hero-image", updateEntity: false },
         mockToolContext,
       );
 
@@ -591,7 +593,7 @@ describe("Image Tools", () => {
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
-        { imageId: "nonexistent" },
+        { image: "nonexistent" },
         mockToolContext,
       );
 
@@ -615,7 +617,7 @@ describe("Image Tools", () => {
       if (!tool) throw new Error("Tool not found");
 
       const result = await tool.handler(
-        { imageId: "hero-image" },
+        { image: "hero-image" },
         mockToolContext,
       );
 
@@ -642,7 +644,7 @@ describe("Image Tools", () => {
 
       await tool.handler(
         {
-          imageId: "hero-image",
+          image: "hero-image",
           prompt: "Describe this image in detail for accessibility",
         },
         mockToolContext,

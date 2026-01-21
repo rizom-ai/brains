@@ -10,6 +10,7 @@ import {
   isValidDataUrl,
   isHttpUrl,
   fetchImageAsBase64,
+  type Image,
 } from "@brains/image";
 import type { IImagePlugin, EntityWithCoverImage } from "../types";
 
@@ -213,7 +214,9 @@ function createImageGenerateTool(
  * Input schema for image_describe tool
  */
 const describeInputSchema = z.object({
-  imageId: z.string().describe("ID of the image to describe"),
+  image: z
+    .string()
+    .describe("Image identifier - can be ID, slug, or title/name"),
   prompt: z
     .string()
     .optional()
@@ -242,17 +245,17 @@ function createImageDescribeTool(
     async (input: unknown, _toolContext: ToolContext) => {
       try {
         const {
-          imageId,
+          image: imageIdentifier,
           prompt,
           updateEntity = true,
         } = describeInputSchema.parse(input);
 
-        // Get the image entity
-        const image = await plugin.getEntity("image", imageId);
+        // Find the image entity by ID, slug, or title
+        const image = await plugin.findEntity<Image>("image", imageIdentifier);
         if (!image) {
           return {
             success: false,
-            error: `Image not found: ${imageId}`,
+            error: `Image not found: ${imageIdentifier}`,
           };
         }
 
@@ -284,12 +287,12 @@ function createImageDescribeTool(
         return {
           success: true,
           data: {
-            imageId,
+            imageId: image.id,
             description: result.description,
             updated: updateEntity,
             usage: result.usage,
           },
-          message: `Generated description for image: ${result.description.slice(0, 50)}...`,
+          message: `Generated description for "${imageIdentifier}": ${result.description.slice(0, 50)}...`,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

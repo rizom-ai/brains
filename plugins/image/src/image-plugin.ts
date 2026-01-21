@@ -84,15 +84,18 @@ export class ImagePlugin
   /**
    * Get entity by type and ID
    */
-  public async getEntity(
+  public async getEntity<T extends BaseEntity = BaseEntity>(
     entityType: string,
     id: string,
-  ): Promise<BaseEntity | null> {
+  ): Promise<T | null> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
     try {
-      return await this.context.entityService.getEntity(entityType, id);
+      return (await this.context.entityService.getEntity(
+        entityType,
+        id,
+      )) as T | null;
     } catch {
       return null;
     }
@@ -101,10 +104,10 @@ export class ImagePlugin
   /**
    * Find entity by ID, slug, or title
    */
-  public async findEntity(
+  public async findEntity<T extends BaseEntity = BaseEntity>(
     entityType: string,
     identifier: string,
-  ): Promise<BaseEntity | null> {
+  ): Promise<T | null> {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -115,14 +118,14 @@ export class ImagePlugin
         entityType,
         identifier,
       );
-      if (byId) return byId;
+      if (byId) return byId as T;
 
       // Try by slug
       const bySlug = await this.context.entityService.listEntities(entityType, {
         limit: 1,
         filter: { metadata: { slug: identifier } },
       });
-      if (bySlug[0]) return bySlug[0];
+      if (bySlug[0]) return bySlug[0] as T;
 
       // Try by title
       const byTitle = await this.context.entityService.listEntities(
@@ -132,7 +135,7 @@ export class ImagePlugin
           filter: { metadata: { title: identifier } },
         },
       );
-      if (byTitle[0]) return byTitle[0];
+      if (byTitle[0]) return byTitle[0] as T;
 
       return null;
     } catch {
