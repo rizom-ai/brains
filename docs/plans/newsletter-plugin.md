@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add a newsletter plugin that integrates with Buttondown for AI-assisted newsletter composition and delivery, with a signup form for the site.
+Add a newsletter plugin that integrates with Buttondown for AI-assisted newsletter composition and scheduled delivery, with a signup form for the site.
 
 ## Provider Choice: Buttondown
 
@@ -15,23 +15,30 @@ Add a newsletter plugin that integrates with Buttondown for AI-assisted newslett
 
 1. **Generate** (AI-composed, context-aware)
    - "Write a newsletter about my latest post"
-   - "Create a weekly digest of my 3 recent posts"
-   - AI pulls from posts, topics, brain identity/voice
+   - "Create a weekly digest featuring these 3 posts"
+   - AI pulls from any entity type (posts, decks, projects), brain identity/voice
 
 2. **Refine** (conversational)
    - "Make the intro punchier"
-   - "Add a teaser for the superconnectors post"
+   - "Add a teaser for the superconnectors deck"
 
 3. **Send or Queue**
-   - "Send it now" → immediate delivery
-   - "Send it Friday 9am" → queued for later
+   - No params → queue for next scheduled send (e.g., Friday 9am)
+   - `immediate: true` → send now
+   - `scheduledFor: "2024-01-20T09:00:00Z"` → send at specific time
 
 ## Features
 
-1. **Generate tool** - AI composes newsletter content, can reference posts
-2. **Send tool** - Send immediately or queue for scheduled delivery
-3. **Subscribe tool** - Collect subscribers via site form
-4. **Post integration** - Reference posts, generate teasers with links
+1. **Generate tool** - AI composes newsletter, references any entity via `entityIds`
+2. **Send tool** - Three modes: default schedule, immediate, or specific time
+3. **Subscribe/Unsubscribe tools** - Manage subscribers via Buttondown API
+4. **Signup form** - Site component for visitor subscriptions
+5. **Publish-pipeline integration** - Cron-based scheduling
+
+## Data Storage
+
+- **Newsletter entity**: Stored locally (AI-generated content, sent history, referenced entities)
+- **Subscribers**: Buttondown is source of truth (no local storage, query via API)
 
 ## File Structure
 
@@ -42,17 +49,16 @@ plugins/newsletter/
 │   ├── newsletter-plugin.ts
 │   ├── config.ts
 │   ├── schemas/
-│   │   ├── subscriber.ts
 │   │   └── newsletter.ts
 │   ├── adapters/
-│   │   ├── subscriber-adapter.ts
 │   │   └── newsletter-adapter.ts
 │   ├── lib/
 │   │   └── buttondown-client.ts
 │   ├── tools/
 │   │   ├── index.ts
-│   │   ├── subscribe.ts
-│   │   └── newsletter.ts
+│   │   ├── generate.ts
+│   │   ├── send.ts
+│   │   └── subscribe.ts
 │   └── handlers/
 │       └── send-handler.ts
 ├── test/
@@ -67,7 +73,6 @@ export const newsletterConfigSchema = z.object({
     .object({
       apiKey: z.string(),
       doubleOptIn: z.boolean().default(true),
-      defaultTags: z.array(z.string()).optional(),
     })
     .optional(),
 });
@@ -79,20 +84,18 @@ Environment variables:
 BUTTONDOWN_API_KEY=your-api-key
 ```
 
-## Entity Schemas
-
-### Subscriber
+Schedule configured via publish-pipeline:
 
 ```typescript
-subscriberSchema = baseEntitySchema.extend({
-  entityType: z.literal("subscriber"),
-  metadata: z.object({
-    email: z.string().email(),
-    status: z.enum(["unactivated", "regular", "unsubscribed"]),
-    subscribedAt: z.string().datetime().optional(),
-  }),
+// In brain.config.ts
+publishPipelinePlugin({
+  entitySchedules: {
+    newsletter: "0 9 * * 5", // Fridays at 9am
+  },
 });
 ```
+
+## Entity Schema
 
 ### Newsletter
 
@@ -102,8 +105,8 @@ newsletterSchema = baseEntitySchema.extend({
   metadata: z.object({
     subject: z.string(),
     status: z.enum(["draft", "queued", "sent", "failed"]),
-    postIds: z.array(z.string()).optional(), // Referenced posts
-    scheduledFor: z.string().datetime().optional(),
+    entityIds: z.array(z.string()).optional(), // Referenced entities (any type)
+    scheduledFor: z.string().datetime().optional(), // Override schedule
     sentAt: z.string().datetime().optional(),
     buttondownId: z.string().optional(),
   }),
@@ -112,23 +115,31 @@ newsletterSchema = baseEntitySchema.extend({
 
 ## Tools
 
-| Tool                          | Description                                                    |
-| ----------------------------- | -------------------------------------------------------------- |
-| `newsletter_generate`         | AI composes newsletter (params: prompt, postIds?, subject?)    |
-| `newsletter_send`             | Send or queue newsletter (params: newsletterId, scheduledFor?) |
-| `newsletter_subscribe`        | Subscribe email (params: email, name?, tags?)                  |
-| `newsletter_unsubscribe`      | Unsubscribe email (params: email)                              |
-| `newsletter_list`             | List newsletters (params: status?, limit?)                     |
-| `newsletter_list_subscribers` | List subscribers (params: status?, limit?)                     |
+| Tool                          | Description                                                       |
+| ----------------------------- | ----------------------------------------------------------------- |
+| `newsletter_generate`         | AI composes newsletter (params: prompt, entityIds?, subject?)     |
+| `newsletter_send`             | Send newsletter (params: newsletterId, immediate?, scheduledFor?) |
+| `newsletter_subscribe`        | Subscribe email (params: email, name?, tags?)                     |
+| `newsletter_unsubscribe`      | Unsubscribe email (params: email)                                 |
+| `newsletter_list`             | List newsletters (params: status?, limit?)                        |
+| `newsletter_list_subscribers` | List subscribers via Buttondown API (params: status?, limit?)     |
+
+### Send Tool Modes
+
+1. **Default**: `newsletter_send newsletterId="abc"` → queues for next scheduled time
+2. **Immediate**: `newsletter_send newsletterId="abc" immediate=true` → sends now
+3. **Specific time**: `newsletter_send newsletterId="abc" scheduledFor="2024-01-20T09:00:00Z"`
 
 ## Buttondown API Endpoints
 
-| Endpoint                     | Method | Purpose           |
-| ---------------------------- | ------ | ----------------- |
-| `/v1/subscribers`            | POST   | Create subscriber |
-| `/v1/subscribers/{email}`    | GET    | Get subscriber    |
-| `/v1/emails`                 | POST   | Create newsletter |
-| `/v1/emails/{id}/send-draft` | POST   | Send newsletter   |
+| Endpoint                  | Method | Purpose           |
+| ------------------------- | ------ | ----------------- |
+| `/v1/subscribers`         | POST   | Create subscriber |
+| `/v1/subscribers`         | GET    | List subscribers  |
+| `/v1/subscribers/{email}` | GET    | Get subscriber    |
+| `/v1/subscribers/{email}` | DELETE | Unsubscribe       |
+| `/v1/emails`              | POST   | Create/send email |
+| `/v1/emails`              | GET    | List emails       |
 
 Auth: `Authorization: Token $BUTTONDOWN_API_KEY`
 
@@ -151,10 +162,16 @@ Hydration for client-side form submission.
 
 1. **Plugin scaffold** - package.json, config, index.ts
 2. **ButtondownClient** - API client with subscribe/send methods
-3. **Entity schemas** - subscriber and newsletter with adapters
-4. **Tools** - generate, send, subscribe tools
-5. **Job handler** - async send/queue handler
-6. **UI component** - NewsletterSignup in ui-library
+3. **Newsletter entity schema + adapter** - local storage for generated content
+4. **Tools** - generate, send, subscribe, unsubscribe, list tools
+5. **Publish-pipeline integration** - register with scheduler for cron-based sending
+6. **Job handler** - async send handler
+7. **UI component** - NewsletterSignup in ui-library
+8. **Tests** - unit and integration tests
+
+## Future Improvements
+
+- **Friendlier schedule config** - Refactor publish-pipeline to support human-readable schedules like `{ day: "friday", time: "09:00", timezone: "Europe/Amsterdam" }` instead of raw cron expressions
 
 ## Reference Files
 
@@ -163,7 +180,7 @@ Hydration for client-side form submission.
 | ServicePlugin with API | `plugins/analytics/src/`                         |
 | API client             | `plugins/analytics/src/lib/cloudflare-client.ts` |
 | Entity schemas         | `plugins/blog/src/schemas/blog-post.ts`          |
-| Message bus            | `plugins/publish-pipeline/src/types/messages.ts` |
+| Publish-pipeline       | `plugins/publish-pipeline/src/`                  |
 | UI component           | `shared/ui-library/src/`                         |
 
 ## Verification
@@ -176,7 +193,7 @@ bun test plugins/newsletter
 # 1. Configure BUTTONDOWN_API_KEY in .env
 # 2. Subscribe: newsletter_subscribe email="test@example.com"
 # 3. Generate: "write a newsletter about my latest post"
-# 4. Send: newsletter_send newsletterId="..."
-# 5. Queue: newsletter_send newsletterId="..." scheduledFor="2024-01-15T09:00:00Z"
+# 4. Send immediately: newsletter_send newsletterId="..." immediate=true
+# 5. Queue for schedule: newsletter_send newsletterId="..."
 # 6. Check Buttondown dashboard for results
 ```
