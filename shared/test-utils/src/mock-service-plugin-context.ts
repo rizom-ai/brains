@@ -23,8 +23,6 @@ export interface MockAIReturns {
   generateImageError?: Error;
   /** Return value for generate */
   generate?: Record<string, unknown>;
-  /** Return value for describeImage */
-  describeImage?: { description: string };
 }
 
 /**
@@ -144,13 +142,6 @@ export function createMockServicePluginContext(
         );
       }),
       canGenerateImages: mock(() => returns.ai?.canGenerateImages ?? false),
-      describeImage: mock(() =>
-        Promise.resolve({
-          description:
-            returns.ai?.describeImage?.description ?? "Mock image description",
-          usage: { promptTokens: 100, completionTokens: 20, totalTokens: 120 },
-        }),
-      ),
     },
 
     // Identity namespace

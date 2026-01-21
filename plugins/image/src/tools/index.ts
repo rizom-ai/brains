@@ -10,7 +10,6 @@ import {
   isValidDataUrl,
   isHttpUrl,
   fetchImageAsBase64,
-  type Image,
 } from "@brains/image";
 import type { IImagePlugin, EntityWithCoverImage } from "../types";
 
@@ -211,101 +210,6 @@ function createImageGenerateTool(
 }
 
 /**
- * Input schema for image_describe tool
- */
-const describeInputSchema = z.object({
-  image: z
-    .string()
-    .describe("Image identifier - can be ID, slug, or title/name"),
-  prompt: z
-    .string()
-    .optional()
-    .describe("Custom prompt for description (default: generate alt text)"),
-  updateEntity: z
-    .boolean()
-    .optional()
-    .describe(
-      "Update the image entity with the generated description as alt text (default: true)",
-    ),
-});
-
-/**
- * Create the image_describe tool
- */
-function createImageDescribeTool(
-  context: ServicePluginContext,
-  plugin: IImagePlugin,
-  pluginId: string,
-): PluginTool {
-  return createTool(
-    pluginId,
-    "describe",
-    "Generate a description for an image using AI vision. Can automatically update the image's alt text.",
-    describeInputSchema.shape,
-    async (input: unknown, _toolContext: ToolContext) => {
-      try {
-        const {
-          image: imageIdentifier,
-          prompt,
-          updateEntity = true,
-        } = describeInputSchema.parse(input);
-
-        // Find the image entity by ID, slug, or title
-        const image = await plugin.findEntity<Image>("image", imageIdentifier);
-        if (!image) {
-          return {
-            success: false,
-            error: `Image not found: ${imageIdentifier}`,
-          };
-        }
-
-        // Get the data URL from the image content
-        const dataUrl = image.content;
-        if (!dataUrl || !dataUrl.startsWith("data:image/")) {
-          return {
-            success: false,
-            error: "Image does not have valid data URL content",
-          };
-        }
-
-        // Use AI to describe the image
-        const result = await context.ai.describeImage(dataUrl, prompt);
-
-        // Optionally update the entity's alt text
-        if (updateEntity) {
-          const updated = {
-            ...image,
-            metadata: {
-              ...image.metadata,
-              alt: result.description,
-            },
-            updated: new Date().toISOString(),
-          };
-          await plugin.updateEntity(updated);
-        }
-
-        return {
-          success: true,
-          data: {
-            imageId: image.id,
-            description: result.description,
-            updated: updateEntity,
-            usage: result.usage,
-          },
-          message: `Generated description for "${imageIdentifier}": ${result.description.slice(0, 50)}...`,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          success: false,
-          error: msg,
-        };
-      }
-    },
-  );
-}
-
-/**
  * Input schema for set-cover tool
  */
 const setCoverInputSchema = z.object({
@@ -478,7 +382,6 @@ export function createImageTools(
   return [
     createImageUploadTool(plugin, pluginId),
     createImageGenerateTool(context, plugin, pluginId),
-    createImageDescribeTool(context, plugin, pluginId),
     createSetCoverTool(context, plugin, pluginId),
   ];
 }

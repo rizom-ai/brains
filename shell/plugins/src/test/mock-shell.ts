@@ -468,28 +468,6 @@ export class MockShell implements IShell {
     return false;
   }
 
-  async describeImage(
-    _imageDataUrl: string,
-    _prompt?: string,
-  ): Promise<{
-    description: string;
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
-  }> {
-    // Mock implementation - return placeholder description
-    return {
-      description: "A placeholder image description for testing",
-      usage: {
-        promptTokens: 100,
-        completionTokens: 20,
-        totalTokens: 120,
-      },
-    };
-  }
-
   getTemplate(name: string): Template | undefined {
     // Mock implementation - return from templates map
     return this.templates.get(name);

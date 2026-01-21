@@ -432,20 +432,6 @@ export class Shell implements IShell {
     return this.aiService.canGenerateImages();
   }
 
-  public describeImage(
-    imageDataUrl: string,
-    prompt?: string,
-  ): Promise<{
-    description: string;
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
-  }> {
-    return this.aiService.describeImage(imageDataUrl, prompt);
-  }
-
   public getPluginManager(): PluginManager {
     return this.pluginManager;
   }

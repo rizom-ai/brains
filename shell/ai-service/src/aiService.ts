@@ -208,60 +208,6 @@ export class AIService implements IAIService {
   }
 
   /**
-   * Describe an image using vision model (Claude)
-   */
-  public async describeImage(
-    imageDataUrl: string,
-    prompt?: string,
-  ): Promise<{
-    description: string;
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
-  }> {
-    const descriptionPrompt =
-      prompt ??
-      "Describe this image concisely for use as alt text. Focus on the main subject, key visual elements, and context. Keep it under 150 characters if possible.";
-
-    this.logger.debug("Describing image with vision model");
-
-    try {
-      const result = await generateText({
-        model: this.getModel(),
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "image",
-                image: imageDataUrl,
-              },
-              {
-                type: "text",
-                text: descriptionPrompt,
-              },
-            ],
-          },
-        ],
-      });
-
-      return {
-        description: result.text.trim(),
-        usage: {
-          promptTokens: result.usage.inputTokens ?? 0,
-          completionTokens: result.usage.outputTokens ?? 0,
-          totalTokens: result.usage.totalTokens ?? 0,
-        },
-      };
-    } catch (error) {
-      this.logger.error("Failed to describe image", error);
-      throw new Error("Image description failed");
-    }
-  }
-
-  /**
    * Generate an image from a text prompt using DALL-E 3
    */
   public async generateImage(

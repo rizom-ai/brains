@@ -66,9 +66,8 @@ describe("ImagePlugin", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("image_upload");
       expect(toolNames).toContain("image_generate");
-      expect(toolNames).toContain("image_describe");
       expect(toolNames).toContain("image_set-cover");
-      expect(toolNames).toHaveLength(4);
+      expect(toolNames).toHaveLength(3);
     });
   });
 
