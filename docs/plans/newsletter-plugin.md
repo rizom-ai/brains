@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add a newsletter plugin that integrates with Buttondown for subscriber management and newsletter sending, with a signup form for the site.
+Add a newsletter plugin that integrates with Buttondown for AI-assisted newsletter composition and delivery, with a signup form for the site.
 
 ## Provider Choice: Buttondown
 
@@ -11,12 +11,27 @@ Add a newsletter plugin that integrates with Buttondown for subscriber managemen
 - Supports markdown emails
 - Good pricing, no bloat
 
+## User Flow
+
+1. **Generate** (AI-composed, context-aware)
+   - "Write a newsletter about my latest post"
+   - "Create a weekly digest of my 3 recent posts"
+   - AI pulls from posts, topics, brain identity/voice
+
+2. **Refine** (conversational)
+   - "Make the intro punchier"
+   - "Add a teaser for the superconnectors post"
+
+3. **Send or Queue**
+   - "Send it now" → immediate delivery
+   - "Send it Friday 9am" → queued for later
+
 ## Features
 
-1. **Subscribe tool** - Add subscribers via API
-2. **Send newsletter** - Create and send newsletters (from blog post or custom)
-3. **Signup form** - UI component for site-builder
-4. **Auto-send** (optional) - Trigger newsletter on blog publish
+1. **Generate tool** - AI composes newsletter content, can reference posts
+2. **Send tool** - Send immediately or queue for scheduled delivery
+3. **Subscribe tool** - Collect subscribers via site form
+4. **Post integration** - Reference posts, generate teasers with links
 
 ## File Structure
 
@@ -55,7 +70,6 @@ export const newsletterConfigSchema = z.object({
       defaultTags: z.array(z.string()).optional(),
     })
     .optional(),
-  autoSendOnPublish: z.boolean().default(false),
 });
 ```
 
@@ -87,23 +101,25 @@ newsletterSchema = baseEntitySchema.extend({
   entityType: z.literal("newsletter"),
   metadata: z.object({
     subject: z.string(),
-    status: z.enum(["draft", "scheduled", "sent", "failed"]),
-    sourcePostId: z.string().optional(),
+    status: z.enum(["draft", "queued", "sent", "failed"]),
+    postIds: z.array(z.string()).optional(), // Referenced posts
+    scheduledFor: z.string().datetime().optional(),
     sentAt: z.string().datetime().optional(),
+    buttondownId: z.string().optional(),
   }),
 });
 ```
 
 ## Tools
 
-| Tool                          | Description                                            |
-| ----------------------------- | ------------------------------------------------------ |
-| `newsletter_subscribe`        | Subscribe email (params: email, name?, tags?)          |
-| `newsletter_unsubscribe`      | Unsubscribe email                                      |
-| `newsletter_create`           | Create draft (params: subject, body, tags?)            |
-| `newsletter_from_post`        | Create from blog post (params: postId, customSubject?) |
-| `newsletter_send`             | Send newsletter (params: newsletterId)                 |
-| `newsletter_list_subscribers` | List subscribers (params: status?, limit?)             |
+| Tool                          | Description                                                    |
+| ----------------------------- | -------------------------------------------------------------- |
+| `newsletter_generate`         | AI composes newsletter (params: prompt, postIds?, subject?)    |
+| `newsletter_send`             | Send or queue newsletter (params: newsletterId, scheduledFor?) |
+| `newsletter_subscribe`        | Subscribe email (params: email, name?, tags?)                  |
+| `newsletter_unsubscribe`      | Unsubscribe email (params: email)                              |
+| `newsletter_list`             | List newsletters (params: status?, limit?)                     |
+| `newsletter_list_subscribers` | List subscribers (params: status?, limit?)                     |
 
 ## Buttondown API Endpoints
 
@@ -131,26 +147,14 @@ Add `NewsletterSignup` component to ui-library:
 
 Hydration for client-side form submission.
 
-## Message Bus Integration
-
-Subscribe to `publish:completed` for auto-send feature:
-
-```typescript
-context.messaging.subscribe("publish:completed", async (msg) => {
-  if (msg.payload.entityType === "post" && this.config.autoSendOnPublish) {
-    await this.createAndQueueNewsletter(msg.payload.entityId);
-  }
-});
-```
-
 ## Implementation Order
 
 1. **Plugin scaffold** - package.json, config, index.ts
 2. **ButtondownClient** - API client with subscribe/send methods
 3. **Entity schemas** - subscriber and newsletter with adapters
-4. **Tools** - subscribe, create, send tools
-5. **UI component** - NewsletterSignup in ui-library
-6. **Auto-send** - Message bus integration (optional)
+4. **Tools** - generate, send, subscribe tools
+5. **Job handler** - async send/queue handler
+6. **UI component** - NewsletterSignup in ui-library
 
 ## Reference Files
 
@@ -170,8 +174,9 @@ bun test plugins/newsletter
 
 # Manual testing
 # 1. Configure BUTTONDOWN_API_KEY in .env
-# 2. Use CLI to subscribe: newsletter_subscribe email="test@example.com"
-# 3. Create newsletter: newsletter_create subject="Test" body="Hello"
+# 2. Subscribe: newsletter_subscribe email="test@example.com"
+# 3. Generate: "write a newsletter about my latest post"
 # 4. Send: newsletter_send newsletterId="..."
-# 5. Check Buttondown dashboard for results
+# 5. Queue: newsletter_send newsletterId="..." scheduledFor="2024-01-15T09:00:00Z"
+# 6. Check Buttondown dashboard for results
 ```
