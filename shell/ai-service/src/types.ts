@@ -61,6 +61,23 @@ export interface IAIService {
    * Check if image generation is available (OpenAI API key configured)
    */
   canGenerateImages(): boolean;
+
+  /**
+   * Describe an image using vision model (Claude)
+   * @param imageDataUrl - Data URL of the image (data:image/png;base64,...)
+   * @param prompt - Optional custom prompt for description
+   */
+  describeImage(
+    imageDataUrl: string,
+    prompt?: string,
+  ): Promise<{
+    description: string;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
 }
 
 /**

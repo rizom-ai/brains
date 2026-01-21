@@ -113,6 +113,19 @@ export interface IServiceAINamespace extends IAINamespace {
 
   /** Check if image generation is available */
   canGenerateImages: () => boolean;
+
+  /** Describe an image using vision model (Claude) */
+  describeImage: (
+    imageDataUrl: string,
+    prompt?: string,
+  ) => Promise<{
+    description: string;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
 }
 
 /**
@@ -300,6 +313,11 @@ export function createServicePluginContext(
       },
       canGenerateImages: (): boolean => {
         return shell.canGenerateImages();
+      },
+
+      // Image description (vision)
+      describeImage: async (imageDataUrl: string, prompt?: string) => {
+        return shell.describeImage(imageDataUrl, prompt);
       },
     },
 

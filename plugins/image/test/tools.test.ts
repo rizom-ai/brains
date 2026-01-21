@@ -18,6 +18,11 @@ const setCoverDataAsync = z.object({
   entityType: z.string(),
   entityId: z.string(),
 });
+const describeData = z.object({
+  imageId: z.string(),
+  description: z.string(),
+  updated: z.boolean(),
+});
 
 const mockToolContext: ToolContext = {
   interfaceType: "test",
@@ -504,6 +509,148 @@ describe("Image Tools", () => {
         }),
         mockToolContext,
         expect.any(Object),
+      );
+    });
+  });
+
+  describe("image_describe tool", () => {
+    it("should have correct metadata", () => {
+      const plugin = createMockImagePlugin();
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_describe");
+
+      expect(tool).toBeDefined();
+      expect(tool?.description).toContain("description");
+      expect(tool?.description).toContain("vision");
+    });
+
+    it("should describe an image and update alt text by default", async () => {
+      const plugin = createMockImagePlugin({
+        getEntity: mockImageEntity,
+      });
+      const context = createMockServicePluginContext({
+        returns: {
+          ai: {
+            describeImage: { description: "A colorful sunset over mountains" },
+          },
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_describe");
+      if (!tool) throw new Error("Tool not found");
+
+      const result = await tool.handler(
+        { imageId: "hero-image" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = describeData.parse(result.data);
+        expect(data.imageId).toBe("hero-image");
+        expect(data.description).toBe("A colorful sunset over mountains");
+        expect(data.updated).toBe(true);
+      }
+    });
+
+    it("should not update entity when updateEntity is false", async () => {
+      const plugin = createMockImagePlugin({
+        getEntity: mockImageEntity,
+      });
+      const context = createMockServicePluginContext({
+        returns: {
+          ai: {
+            describeImage: { description: "Test description" },
+          },
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_describe");
+      if (!tool) throw new Error("Tool not found");
+
+      const result = await tool.handler(
+        { imageId: "hero-image", updateEntity: false },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = describeData.parse(result.data);
+        expect(data.updated).toBe(false);
+      }
+    });
+
+    it("should fail when image not found", async () => {
+      const plugin = createMockImagePlugin({
+        getEntity: null,
+      });
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_describe");
+      if (!tool) throw new Error("Tool not found");
+
+      const result = await tool.handler(
+        { imageId: "nonexistent" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("not found");
+      }
+    });
+
+    it("should fail when image has no valid data URL", async () => {
+      const invalidImage: Image = {
+        ...mockImageEntity,
+        content: "not-a-data-url",
+      };
+      const plugin = createMockImagePlugin({
+        getEntity: invalidImage,
+      });
+      const context = createMockServicePluginContext();
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_describe");
+      if (!tool) throw new Error("Tool not found");
+
+      const result = await tool.handler(
+        { imageId: "hero-image" },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("valid data URL");
+      }
+    });
+
+    it("should pass custom prompt to AI service", async () => {
+      const plugin = createMockImagePlugin({
+        getEntity: mockImageEntity,
+      });
+      const context = createMockServicePluginContext({
+        returns: {
+          ai: {
+            describeImage: { description: "Custom description" },
+          },
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_describe");
+      if (!tool) throw new Error("Tool not found");
+
+      await tool.handler(
+        {
+          imageId: "hero-image",
+          prompt: "Describe this image in detail for accessibility",
+        },
+        mockToolContext,
+      );
+
+      expect(context.ai.describeImage).toHaveBeenCalledWith(
+        TINY_PNG_DATA_URL,
+        "Describe this image in detail for accessibility",
       );
     });
   });

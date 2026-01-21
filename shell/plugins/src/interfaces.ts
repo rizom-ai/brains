@@ -147,6 +147,19 @@ export interface IShell {
   ): Promise<ImageGenerationResult>;
   canGenerateImages(): boolean;
 
+  // Image description (vision model)
+  describeImage(
+    imageDataUrl: string,
+    prompt?: string,
+  ): Promise<{
+    description: string;
+    usage: {
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    };
+  }>;
+
   registerTemplates(
     templates: Record<string, Template>,
     pluginId?: string,
