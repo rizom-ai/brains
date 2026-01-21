@@ -15,6 +15,7 @@ export const deckMetadataSchema = z.object({
   title: z.string(),
   status: deckStatusSchema,
   publishedAt: z.string().datetime().optional(),
+  coverImageId: z.string().optional(), // References an image entity by ID
 });
 
 export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
@@ -45,6 +46,10 @@ export const deckSchema = z.object({
     .optional()
     .describe("Date when presentation was published"),
   event: z.string().optional().describe("Event where presentation was given"),
+  coverImageId: z
+    .string()
+    .optional()
+    .describe("ID of an image entity to use as cover image"),
 });
 
 export type DeckEntity = z.infer<typeof deckSchema>;

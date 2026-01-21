@@ -17,6 +17,7 @@ const deckFrontmatterSchema = z.object({
   status: z.enum(["draft", "published"]).default("draft"),
   publishedAt: z.string().datetime().optional(),
   event: z.string().optional(),
+  coverImageId: z.string().optional(), // References an image entity by ID
 });
 
 /**
@@ -70,6 +71,9 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
     if (entity.event !== undefined) {
       frontmatter["event"] = entity.event;
     }
+    if (entity.coverImageId !== undefined) {
+      frontmatter["coverImageId"] = entity.coverImageId;
+    }
 
     return generateMarkdownWithFrontmatter(entity.content, frontmatter);
   }
@@ -102,11 +106,13 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
       status,
       publishedAt: frontmatter.publishedAt,
       event: frontmatter.event,
+      coverImageId: frontmatter.coverImageId,
       metadata: {
         slug, // Generated from title if not in frontmatter
         title: frontmatter.title,
         status,
         publishedAt: frontmatter.publishedAt,
+        coverImageId: frontmatter.coverImageId,
       },
     };
   }
