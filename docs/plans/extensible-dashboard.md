@@ -7,9 +7,10 @@ Create a central dashboard where plugins contribute their own widgets. System da
 ## Design Principles
 
 - **Plugin-contributed widgets**: Each plugin registers dashboard sections
-- **Central aggregation**: Single datasource collects all widget data
+- **View concerns in view layer**: Widget registry and datasource live in site-builder
+- **Message-based registration**: Plugins register widgets via messaging events
 - **Type-safe rendering**: Generic widget types with typed data providers
-- **Clean separation**: Site-builder renders widgets without knowing plugin specifics
+- **Lean shell**: No dashboard infrastructure in shell/core
 
 ## Architecture
 
@@ -21,17 +22,17 @@ Create a central dashboard where plugins contribute their own widgets. System da
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              DashboardDataSource (shell/core)                    │
+│              DashboardDataSource (site-builder)                  │
 │   Calls each registered widget's dataProvider()                 │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              DashboardWidgetRegistry (shell/core)                │
+│              DashboardWidgetRegistry (site-builder)              │
 │   Stores registered widgets with metadata + dataProvider        │
 └─────────────────────────────────────────────────────────────────┘
         ▲                       ▲                       ▲
-        │                       │                       │
+        │ messaging             │ messaging             │ messaging
 ┌───────┴───────┐   ┌───────────┴───────────┐   ┌──────┴──────┐
 │ System Plugin │   │   Analytics Plugin    │   │  Future...  │
 │ - entity stats│   │ - website metrics     │   │             │
@@ -44,7 +45,7 @@ Create a central dashboard where plugins contribute their own widgets. System da
 
 ## 1. Widget Registry
 
-**File**: `shell/core/src/dashboard/widget-registry.ts` (NEW)
+**File**: `plugins/site-builder/src/dashboard/widget-registry.ts` (NEW)
 
 ```typescript
 import type { Logger } from "@brains/utils";
@@ -69,20 +70,10 @@ export interface RegisteredWidget extends DashboardWidgetMeta {
 }
 
 export class DashboardWidgetRegistry {
-  private static instance: DashboardWidgetRegistry | null = null;
   private widgets = new Map<string, RegisteredWidget>();
   private logger: Logger;
 
-  static getInstance(logger: Logger): DashboardWidgetRegistry {
-    DashboardWidgetRegistry.instance ??= new DashboardWidgetRegistry(logger);
-    return DashboardWidgetRegistry.instance;
-  }
-
-  static resetInstance(): void {
-    DashboardWidgetRegistry.instance = null;
-  }
-
-  private constructor(logger: Logger) {
+  constructor(logger: Logger) {
     this.logger = logger.child("DashboardWidgetRegistry");
   }
 
@@ -129,6 +120,7 @@ export class DashboardWidgetRegistry {
             id: widget.id,
             pluginId: widget.pluginId,
             title: widget.title,
+            description: widget.description,
             type: widget.type,
             section: widget.section,
             priority: widget.priority,
@@ -142,6 +134,10 @@ export class DashboardWidgetRegistry {
 
     return result;
   }
+
+  get size(): number {
+    return this.widgets.size;
+  }
 }
 ```
 
@@ -149,13 +145,13 @@ export class DashboardWidgetRegistry {
 
 ## 2. Dashboard DataSource
 
-**File**: `shell/core/src/datasources/dashboard-datasource.ts` (NEW)
+**File**: `plugins/site-builder/src/dashboard/dashboard-datasource.ts` (NEW)
 
 ```typescript
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
-import type { DashboardWidgetRegistry } from "../dashboard/widget-registry";
+import type { DashboardWidgetRegistry } from "./widget-registry";
 import { z } from "@brains/utils";
-import { dashboardWidgetSchema } from "../dashboard/widget-registry";
+import { dashboardWidgetSchema } from "./widget-registry";
 
 export const dashboardDataSchema = z.object({
   widgets: z.record(
@@ -201,51 +197,54 @@ export class DashboardDataSource implements DataSource {
 
 ---
 
-## 3. Plugin Context Extension
+## 3. Site-Builder Plugin Integration
 
-**File**: `shell/plugins/src/service/context.ts` (MODIFY)
+**File**: `plugins/site-builder/src/plugin.ts` (MODIFY)
 
-Add `IDashboardNamespace`:
-
-```typescript
-export interface IDashboardNamespace {
-  registerWidget: (widget: {
-    id: string;
-    title: string;
-    description?: string;
-    priority?: number;
-    section?: "primary" | "secondary" | "sidebar";
-    type: "stats" | "list" | "chart" | "custom";
-    dataProvider: () => Promise<unknown>;
-  }) => void;
-  unregisterWidget: (widgetId: string) => void;
-}
-
-export interface ServicePluginContext extends CorePluginContext {
-  // ... existing namespaces ...
-  readonly dashboard: IDashboardNamespace;
-}
-```
-
-In `createServicePluginContext()`:
+Site-builder creates the registry and subscribes to widget registration events:
 
 ```typescript
-// Dashboard namespace
-dashboard: {
-  registerWidget: (widget) => {
-    const dashboardRegistry = shell.getDashboardWidgetRegistry();
-    dashboardRegistry.register({
-      ...widget,
-      pluginId,
-      priority: widget.priority ?? 50,
-      section: widget.section ?? "primary",
-    });
-  },
-  unregisterWidget: (widgetId: string) => {
-    const dashboardRegistry = shell.getDashboardWidgetRegistry();
-    dashboardRegistry.unregister(pluginId, widgetId);
-  },
-},
+import { DashboardWidgetRegistry } from "./dashboard/widget-registry";
+import { DashboardDataSource } from "./dashboard/dashboard-datasource";
+
+export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
+  private widgetRegistry?: DashboardWidgetRegistry;
+
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    // Create widget registry
+    this.widgetRegistry = new DashboardWidgetRegistry(context.logger);
+
+    // Register datasource
+    const dashboardDataSource = new DashboardDataSource(this.widgetRegistry);
+    context.entities.registerDataSource(dashboardDataSource);
+
+    // Subscribe to widget registration events from other plugins
+    context.messaging.subscribe(
+      "site-builder:register-widget",
+      async (payload) => {
+        const { pluginId, widget } = payload;
+        this.widgetRegistry?.register({
+          ...widget,
+          pluginId,
+          priority: widget.priority ?? 50,
+          section: widget.section ?? "primary",
+        });
+        return { success: true };
+      },
+    );
+
+    context.messaging.subscribe(
+      "site-builder:unregister-widget",
+      async (payload) => {
+        const { pluginId, widgetId } = payload;
+        this.widgetRegistry?.unregister(pluginId, widgetId);
+        return { success: true };
+      },
+    );
+  }
+}
 ```
 
 ---
@@ -254,45 +253,56 @@ dashboard: {
 
 **File**: `plugins/system/src/plugin.ts` (MODIFY)
 
+System plugin registers widgets via messaging:
+
 ```typescript
 protected override async onRegister(context: ServicePluginContext): Promise<void> {
   // Entity stats widget
-  context.dashboard.registerWidget({
-    id: "entity-stats",
-    title: "Entity Statistics",
-    type: "stats",
-    section: "primary",
-    priority: 10,
-    dataProvider: async () => {
-      const counts = await this.getEntityCounts();
-      return counts;
+  await context.messaging.send("site-builder:register-widget", {
+    pluginId: this.id,
+    widget: {
+      id: "entity-stats",
+      title: "Entity Statistics",
+      type: "stats",
+      section: "primary",
+      priority: 10,
+      dataProvider: async () => {
+        const counts = await this.getEntityCounts(context);
+        return counts;
+      },
     },
   });
 
   // Job status widget
-  context.dashboard.registerWidget({
-    id: "job-status",
-    title: "Active Jobs",
-    type: "list",
-    section: "secondary",
-    priority: 20,
-    dataProvider: async () => {
-      const status = await context.jobs.getStatus();
-      return { activeJobs: status.activeJobs, activeBatches: status.activeBatches };
+  await context.messaging.send("site-builder:register-widget", {
+    pluginId: this.id,
+    widget: {
+      id: "job-status",
+      title: "Active Jobs",
+      type: "list",
+      section: "secondary",
+      priority: 20,
+      dataProvider: async () => {
+        const status = await context.jobs.getStatus();
+        return { items: status.activeJobs };
+      },
     },
   });
 
   // Identity widget
-  context.dashboard.registerWidget({
-    id: "identity",
-    title: "Brain Identity",
-    type: "custom",
-    section: "sidebar",
-    priority: 5,
-    dataProvider: async () => ({
-      identity: this.getIdentityData(),
-      profile: this.getProfileData(),
-    }),
+  await context.messaging.send("site-builder:register-widget", {
+    pluginId: this.id,
+    widget: {
+      id: "identity",
+      title: "Brain Identity",
+      type: "custom",
+      section: "sidebar",
+      priority: 5,
+      dataProvider: async () => ({
+        identity: context.identity.get(),
+        profile: context.identity.getProfile(),
+      }),
+    },
   });
 }
 ```
@@ -308,45 +318,54 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   // ... existing registration ...
 
   // Website metrics widget
-  context.dashboard.registerWidget({
-    id: "website-metrics",
-    title: "Website Analytics",
-    type: "stats",
-    section: "primary",
-    priority: 30,
-    dataProvider: async () => {
-      const metrics = await context.entityService.listEntities("website-metrics", {
-        limit: 1,
-        sortFields: [{ field: "created", direction: "desc" }],
-      });
-      const latest = metrics[0]?.metadata;
-      return {
-        pageviews: latest?.pageviews ?? 0,
-        visitors: latest?.visitors ?? 0,
-        bounceRate: latest?.bounceRate ?? 0,
-        avgTimeOnPage: latest?.avgTimeOnPage ?? 0,
-      };
+  await context.messaging.send("site-builder:register-widget", {
+    pluginId: this.id,
+    widget: {
+      id: "website-metrics",
+      title: "Website Analytics",
+      type: "stats",
+      section: "primary",
+      priority: 30,
+      dataProvider: async () => {
+        const metrics = await context.entityService.listEntities("website-metrics", {
+          limit: 1,
+          sortFields: [{ field: "created", direction: "desc" }],
+        });
+        const latest = metrics[0]?.metadata;
+        return {
+          pageviews: latest?.pageviews ?? 0,
+          visitors: latest?.visitors ?? 0,
+          bounceRate: latest?.bounceRate ?? 0,
+          avgTimeOnPage: latest?.avgTimeOnPage ?? 0,
+        };
+      },
     },
   });
 
   // Social engagement widget
-  context.dashboard.registerWidget({
-    id: "social-engagement",
-    title: "Social Engagement",
-    type: "stats",
-    section: "primary",
-    priority: 40,
-    dataProvider: async () => {
-      const metrics = await context.entityService.listEntities("social-metrics", {
-        limit: 20,
-        sortFields: [{ field: "updated", direction: "desc" }],
-      });
-      return metrics.reduce((acc, m) => ({
-        impressions: acc.impressions + (m.metadata?.impressions ?? 0),
-        likes: acc.likes + (m.metadata?.likes ?? 0),
-        comments: acc.comments + (m.metadata?.comments ?? 0),
-        shares: acc.shares + (m.metadata?.shares ?? 0),
-      }), { impressions: 0, likes: 0, comments: 0, shares: 0 });
+  await context.messaging.send("site-builder:register-widget", {
+    pluginId: this.id,
+    widget: {
+      id: "social-engagement",
+      title: "Social Engagement",
+      type: "stats",
+      section: "primary",
+      priority: 40,
+      dataProvider: async () => {
+        const metrics = await context.entityService.listEntities("social-metrics", {
+          limit: 20,
+          sortFields: [{ field: "updated", direction: "desc" }],
+        });
+        return metrics.reduce(
+          (acc, m) => ({
+            impressions: acc.impressions + (m.metadata?.impressions ?? 0),
+            likes: acc.likes + (m.metadata?.likes ?? 0),
+            comments: acc.comments + (m.metadata?.comments ?? 0),
+            shares: acc.shares + (m.metadata?.shares ?? 0),
+          }),
+          { impressions: 0, likes: 0, comments: 0, shares: 0 },
+        );
+      },
     },
   });
 }
@@ -497,56 +516,29 @@ export const DashboardLayout = ({ widgets, buildInfo }: DashboardProps) => {
 
 ---
 
-## 7. Shell Initialization
-
-**File**: `shell/core/src/initialization/shellInitializer.ts` (MODIFY)
-
-```typescript
-import { DashboardWidgetRegistry } from "../dashboard/widget-registry";
-import { DashboardDataSource } from "../datasources/dashboard-datasource";
-
-// In initializeServices():
-const dashboardWidgetRegistry = DashboardWidgetRegistry.getInstance(logger);
-
-const dashboardDataSource = new DashboardDataSource(dashboardWidgetRegistry);
-dataSourceRegistry.register(dashboardDataSource);
-
-// Add to IShell interface
-return {
-  // ... existing services ...
-  getDashboardWidgetRegistry: () => dashboardWidgetRegistry,
-};
-```
-
----
-
 ## Files Summary
 
-| File                                                      | Action |
-| --------------------------------------------------------- | ------ |
-| `shell/core/src/dashboard/widget-registry.ts`             | NEW    |
-| `shell/core/src/dashboard/types.ts`                       | NEW    |
-| `shell/core/src/dashboard/index.ts`                       | NEW    |
-| `shell/core/src/datasources/dashboard-datasource.ts`      | NEW    |
-| `shell/core/src/initialization/shellInitializer.ts`       | MODIFY |
-| `shell/plugins/src/service/context.ts`                    | MODIFY |
-| `shell/plugins/src/interfaces.ts`                         | MODIFY |
-| `plugins/system/src/plugin.ts`                            | MODIFY |
-| `plugins/analytics/src/index.ts`                          | MODIFY |
-| `plugins/site-builder/src/templates/dashboard/layout.tsx` | MODIFY |
-| `plugins/site-builder/src/templates/dashboard/schema.ts`  | MODIFY |
+| File                                                         | Action |
+| ------------------------------------------------------------ | ------ |
+| `plugins/site-builder/src/dashboard/widget-registry.ts`      | NEW    |
+| `plugins/site-builder/src/dashboard/dashboard-datasource.ts` | NEW    |
+| `plugins/site-builder/src/dashboard/index.ts`                | NEW    |
+| `plugins/site-builder/src/plugin.ts`                         | MODIFY |
+| `plugins/system/src/plugin.ts`                               | MODIFY |
+| `plugins/analytics/src/index.ts`                             | MODIFY |
+| `plugins/site-builder/src/templates/dashboard/layout.tsx`    | MODIFY |
+| `plugins/site-builder/src/templates/dashboard/schema.ts`     | MODIFY |
 
 ---
 
 ## Implementation Order
 
-1. Dashboard Widget Registry (`shell/core/src/dashboard/`)
-2. Dashboard DataSource (`shell/core/src/datasources/`)
-3. Plugin Context Extension (`shell/plugins/src/`)
-4. Shell Initialization (`shell/core/src/initialization/`)
-5. System Plugin Widgets (`plugins/system/src/`)
-6. Analytics Plugin Widgets (`plugins/analytics/src/`)
-7. Dashboard Template Update (`plugins/site-builder/src/templates/dashboard/`)
+1. Widget Registry (`plugins/site-builder/src/dashboard/`)
+2. Dashboard DataSource (`plugins/site-builder/src/dashboard/`)
+3. Site-Builder Plugin Integration (messaging subscriptions)
+4. System Plugin Widgets (messaging registration)
+5. Analytics Plugin Widgets (messaging registration)
+6. Dashboard Template Update
 
 ---
 
@@ -557,10 +549,11 @@ return {
    - DashboardDataSource: fetch aggregates all widgets correctly
 
 2. **Integration test**:
-   - Register mock widgets from test plugins
-   - Verify aggregation returns data from all plugins
+   - Site-builder subscribes to events
+   - Other plugins send registration messages
+   - Verify widgets appear in registry
 
 3. **E2E test**:
-   - Start shell with system + analytics plugins
+   - Start shell with site-builder + system + analytics plugins
    - Navigate to /dashboard
    - Verify entity stats, website metrics, social engagement all display
