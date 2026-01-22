@@ -4,9 +4,24 @@
 
 Integrate the newsletter plugin into professional-brain with:
 
-1. A new extensible API route system for plugins
-2. A hybrid CTA slot system for UI placement
-3. Newsletter as the first API-enabled plugin
+1. A new extensible API route system for plugins (in MCP interface)
+2. Webserver proxies `/api/*` to MCP for same-origin form submissions
+3. A hybrid CTA slot system for UI placement
+4. Newsletter as the first API-enabled plugin
+
+---
+
+## Architecture Decision
+
+**API routes live in MCP, webserver proxies to it.**
+
+Rationale:
+
+- MCP already has `/api/chat` endpoint with `agentService` access
+- MCP is the "programmatic interface" - APIs fit there conceptually
+- Webserver stays focused on static files
+- Proxy ensures same-origin for HTML form POSTs (no CORS issues)
+- Only explicitly declared tools are exposed (not all tools)
 
 ---
 
@@ -55,26 +70,6 @@ export const apiRouteDefinitionSchema = z.object({
 });
 
 export type ApiRouteDefinition = z.infer<typeof apiRouteDefinitionSchema>;
-
-export interface ApiRouteHandler {
-  (request: ApiRequest): Promise<ApiResponse>;
-}
-
-export interface ApiRequest {
-  method: string;
-  path: string;
-  body: unknown;
-  query: Record<string, string>;
-  headers: Record<string, string>;
-  formData?: Record<string, unknown>;
-}
-
-export interface ApiResponse {
-  status: number;
-  body?: unknown;
-  redirect?: string;
-  headers?: Record<string, string>;
-}
 ```
 
 ### Plugin Base Class Extension
@@ -148,7 +143,6 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
       successRedirect: "/subscribe/thanks",
       errorRedirect: "/subscribe/error",
       rateLimit: { windowMs: 60000, max: 5 },
-      argMapping: { email: "email", name: "name" },
     },
   ];
 
@@ -158,14 +152,14 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
 
 ---
 
-## Part 2: Webserver API Integration
+## Part 2: MCP API Route Integration
 
 ### API Route Handler
 
-**File**: `interfaces/webserver/src/api/route-handler.ts` (NEW)
+**File**: `interfaces/mcp/src/api/route-handler.ts` (NEW)
 
 ```typescript
-import type { Context } from "hono";
+import type { Request, Response } from "express";
 import type { RegisteredApiRoute } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 
@@ -176,151 +170,177 @@ export type ToolInvoker = (
 ) => Promise<{ success: boolean; data?: unknown; error?: string }>;
 
 export async function handleApiRoute(
-  c: Context,
+  req: Request,
+  res: Response,
   route: RegisteredApiRoute,
   toolInvoker: ToolInvoker,
   logger: Logger,
-): Promise<Response> {
+): Promise<void> {
   const { definition, pluginId } = route;
 
   try {
     // Parse input (JSON or form data)
-    let args: Record<string, unknown>;
-    if (definition.formData) {
-      const formData = await c.req.parseBody();
-      args = applyArgMapping(formData, definition.argMapping);
-    } else {
-      args = await c.req.json();
-    }
+    const args = definition.formData ? req.body : req.body;
 
     // Invoke tool
     const result = await toolInvoker(pluginId, definition.tool, args);
 
     // Determine response type
-    const acceptsJson = c.req.header("Accept")?.includes("application/json");
-    const isFormSubmit = c.req.header("Content-Type")?.includes("form");
+    const acceptsJson = req.headers.accept?.includes("application/json");
+    const isFormSubmit = req.headers["content-type"]?.includes("form");
 
     if (result.success) {
       if (!acceptsJson && isFormSubmit && definition.successRedirect) {
-        return c.redirect(definition.successRedirect);
+        res.redirect(definition.successRedirect);
+        return;
       }
-      return c.json({ success: true, data: result.data });
+      res.json({ success: true, data: result.data });
     } else {
       if (!acceptsJson && isFormSubmit && definition.errorRedirect) {
         const errorUrl = `${definition.errorRedirect}?error=${encodeURIComponent(result.error || "Unknown error")}`;
-        return c.redirect(errorUrl);
+        res.redirect(errorUrl);
+        return;
       }
-      return c.json({ success: false, error: result.error }, 400);
+      res.status(400).json({ success: false, error: result.error });
     }
   } catch (error) {
     logger.error("API route error", { path: route.fullPath, error });
-    return c.json({ success: false, error: "Internal server error" }, 500);
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
-}
-
-function applyArgMapping(
-  data: Record<string, unknown>,
-  mapping?: Record<string, string>,
-): Record<string, unknown> {
-  if (!mapping) return data;
-  const result: Record<string, unknown> = {};
-  for (const [formField, toolArg] of Object.entries(mapping)) {
-    if (data[formField] !== undefined) {
-      result[toolArg] = data[formField];
-    }
-  }
-  // Include unmapped fields as-is
-  for (const [key, value] of Object.entries(data)) {
-    if (!mapping[key]) {
-      result[key] = value;
-    }
-  }
-  return result;
 }
 ```
 
-### Mount API Routes in Server
+### Mount Plugin Routes in MCP HTTP Server
 
-**File**: `interfaces/webserver/src/server-manager.ts` (MODIFY)
+**File**: `interfaces/mcp/src/transports/http-server.ts` (MODIFY)
+
+Add after existing `/api/chat` route:
 
 ```typescript
-import type { ApiRouteRegistry, RegisteredApiRoute } from "@brains/plugins";
-import { handleApiRoute, type ToolInvoker } from "./api/route-handler";
+import type { ApiRouteRegistry } from "@brains/plugins";
+import { handleApiRoute, type ToolInvoker } from "../api/route-handler";
 
-export interface ServerManagerOptions {
-  logger: Logger;
-  productionDistDir: string;
-  productionPort: number;
-  previewDistDir?: string;
-  previewPort?: number;
-  // NEW:
-  apiRouteRegistry?: ApiRouteRegistry;
-  toolInvoker?: ToolInvoker;
-}
+// Add to class properties:
+private apiRouteRegistry: ApiRouteRegistry | null = null;
+private toolInvoker: ToolInvoker | null = null;
 
-// In createPreviewApp() and createProductionApp():
-private setupApiRoutes(app: Hono): void {
-  if (!this.options.apiRouteRegistry || !this.options.toolInvoker) {
-    return;
+// Add method to connect API routes:
+public connectApiRoutes(
+  registry: ApiRouteRegistry,
+  toolInvoker: ToolInvoker,
+): void {
+  this.apiRouteRegistry = registry;
+  this.toolInvoker = toolInvoker;
+
+  // Mount all plugin-declared routes
+  for (const route of registry.getAllRoutes()) {
+    const method = route.definition.method.toLowerCase() as "get" | "post" | "put" | "delete";
+
+    this.app[method](
+      route.fullPath,
+      asyncHandler(async (req, res) => {
+        // Check auth if route is not public
+        if (!route.definition.public) {
+          // Use existing auth middleware logic
+          const authHeader = req.headers.authorization;
+          if (!authHeader || !this.validateToken(authHeader)) {
+            res.status(401).json({ error: "Unauthorized" });
+            return;
+          }
+        }
+
+        await handleApiRoute(req, res, route, this.toolInvoker!, this.logger);
+      }),
+    );
   }
 
-  const routes = this.options.apiRouteRegistry.getAllRoutes();
-
-  for (const route of routes) {
-    const method = route.definition.method.toLowerCase();
-    app[method](route.fullPath, async (c) => {
-      return handleApiRoute(c, route, this.options.toolInvoker!, this.logger);
-    });
-  }
-
-  this.logger.info(`Mounted ${routes.length} API routes`);
+  this.logger.info(`Mounted ${registry.getAllRoutes().length} plugin API routes`);
 }
 ```
 
-### Wire Up in WebserverInterface
+### Wire Up in MCP Interface
 
-**File**: `interfaces/webserver/src/webserver-interface.ts` (MODIFY)
+**File**: `interfaces/mcp/src/mcp-interface.ts` (MODIFY)
 
 ```typescript
 import { ApiRouteRegistry } from "@brains/plugins";
 
-protected override async onRegister(
-  context: InterfacePluginContext,
-): Promise<void> {
-  // Collect API routes from all plugins
-  const apiRouteRegistry = new ApiRouteRegistry();
+// In onRegister, after connecting agent service:
+// Collect and mount plugin API routes
+const apiRouteRegistry = new ApiRouteRegistry();
 
-  for (const plugin of context.plugins.getAll()) {
-    if (typeof plugin.getApiRoutes === "function") {
-      for (const route of plugin.getApiRoutes()) {
-        apiRouteRegistry.register(plugin.id, route);
-      }
+for (const plugin of context.plugins.getAll()) {
+  if (typeof plugin.getApiRoutes === "function") {
+    for (const route of plugin.getApiRoutes()) {
+      apiRouteRegistry.register(plugin.id, route);
     }
   }
-
-  // Create tool invoker
-  const toolInvoker: ToolInvoker = async (pluginId, toolName, args) => {
-    return context.messaging.send(`plugin:${pluginId}:tool:execute`, {
-      toolName,
-      args,
-      interfaceType: "webserver",
-      userId: "anonymous",
-    });
-  };
-
-  this.serverManager = new ServerManager({
-    logger: context.logger,
-    productionDistDir: this.config.productionDistDir,
-    productionPort: this.config.productionPort,
-    apiRouteRegistry,
-    toolInvoker,
-  });
 }
+
+const toolInvoker: ToolInvoker = async (pluginId, toolName, args) => {
+  // Use tool registry to invoke directly
+  const tool = context.tools.get(`${pluginId}_${toolName}`);
+  if (!tool) {
+    return { success: false, error: `Tool ${toolName} not found` };
+  }
+  return tool.handler(args, { interfaceType: "mcp-http", userId: "anonymous" });
+};
+
+httpServer.connectApiRoutes(apiRouteRegistry, toolInvoker);
 ```
 
 ---
 
-## Part 3: CTA Slot System
+## Part 3: Webserver Proxy to MCP
+
+### Add Proxy Middleware
+
+**File**: `interfaces/webserver/src/server-manager.ts` (MODIFY)
+
+```typescript
+// Add proxy for /api/* routes to MCP
+private setupApiProxy(app: Hono, mcpPort: number): void {
+  app.all("/api/*", async (c) => {
+    const targetUrl = `http://localhost:${mcpPort}${c.req.path}`;
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: c.req.method,
+        headers: c.req.header(),
+        body: c.req.method !== "GET" ? await c.req.text() : undefined,
+      });
+
+      // Forward response
+      const body = await response.text();
+      return new Response(body, {
+        status: response.status,
+        headers: response.headers,
+      });
+    } catch (error) {
+      this.logger.error("API proxy error", { path: c.req.path, error });
+      return c.json({ success: false, error: "API unavailable" }, 502);
+    }
+  });
+}
+
+// Call in createPreviewApp() and createProductionApp() BEFORE static middleware:
+this.setupApiProxy(app, this.options.mcpPort ?? 3333);
+```
+
+### Update Webserver Config
+
+**File**: `interfaces/webserver/src/config.ts` (MODIFY)
+
+```typescript
+export const webserverConfigSchema = z.object({
+  // existing fields...
+  mcpPort: z.number().default(3333), // Port where MCP HTTP server runs
+});
+```
+
+---
+
+## Part 4: CTA Slot System
 
 ### CTA Types
 
@@ -419,7 +439,7 @@ export function Footer({ cta, ...props }: FooterProps): JSX.Element {
 
 ---
 
-## Part 4: Professional-Brain Configuration
+## Part 5: Professional-Brain Configuration
 
 ### Add Newsletter Plugin
 
@@ -440,8 +460,6 @@ new NewsletterPlugin({
 
 ### Configure Footer CTA
 
-Pass CTA config through site-builder to layout:
-
 ```typescript
 siteBuilderPlugin({
   // existing config...
@@ -454,7 +472,7 @@ siteBuilderPlugin({
 }),
 ```
 
-### Add Thank-You Route
+### Add Thank-You Routes
 
 **File**: `plugins/professional-site/src/routes.ts` (MODIFY)
 
@@ -495,24 +513,29 @@ siteBuilderPlugin({
    - Add types for ApiRouteDefinition
    - Create ApiRouteRegistry
    - Extend ServicePlugin base class
+   - Export from index
 
 2. **Newsletter Plugin API Routes** (`plugins/newsletter/src/`)
    - Add static apiRoutes to NewsletterPlugin
 
-3. **Webserver API Handler** (`interfaces/webserver/src/`)
-   - Create route-handler.ts
-   - Modify ServerManager to mount API routes
-   - Wire up in WebserverInterface
+3. **MCP API Route Handler** (`interfaces/mcp/src/`)
+   - Create api/route-handler.ts
+   - Modify http-server.ts to mount plugin routes
+   - Wire up in mcp-interface.ts
 
-4. **CTA System** (`shared/ui-library/src/`)
+4. **Webserver Proxy** (`interfaces/webserver/src/`)
+   - Add mcpPort to config
+   - Add proxy middleware for /api/\*
+
+5. **CTA System** (`shared/ui-library/src/`)
    - Add CTA types
    - Create CTASlot component
    - Export from index
 
-5. **Footer Integration** (`shared/default-site-content/src/`)
+6. **Footer Integration** (`shared/default-site-content/src/`)
    - Add cta prop to Footer
 
-6. **Professional-Brain Config** (`apps/professional-brain/`)
+7. **Professional-Brain Config** (`apps/professional-brain/`)
    - Add newsletter plugin
    - Configure footer CTA
    - Add thank-you/error routes
@@ -528,9 +551,11 @@ siteBuilderPlugin({
 | `shell/plugins/src/base/service-plugin.ts`           | MODIFY           |
 | `shell/plugins/src/index.ts`                         | MODIFY (exports) |
 | `plugins/newsletter/src/index.ts`                    | MODIFY           |
-| `interfaces/webserver/src/api/route-handler.ts`      | NEW              |
+| `interfaces/mcp/src/api/route-handler.ts`            | NEW              |
+| `interfaces/mcp/src/transports/http-server.ts`       | MODIFY           |
+| `interfaces/mcp/src/mcp-interface.ts`                | MODIFY           |
+| `interfaces/webserver/src/config.ts`                 | MODIFY           |
 | `interfaces/webserver/src/server-manager.ts`         | MODIFY           |
-| `interfaces/webserver/src/webserver-interface.ts`    | MODIFY           |
 | `shared/ui-library/src/types/cta.ts`                 | NEW              |
 | `shared/ui-library/src/CTASlot.tsx`                  | NEW              |
 | `shared/ui-library/src/index.ts`                     | MODIFY (exports) |
@@ -548,13 +573,14 @@ siteBuilderPlugin({
    - CTASlot: renders link vs newsletter correctly
 
 2. **Integration test**:
-   - Mount routes from mock plugin
+   - Start MCP with newsletter plugin
    - POST to /api/newsletter/subscribe
-   - Verify tool invocation
+   - Verify tool invocation and response
 
 3. **E2E test**:
+   - Start both MCP and webserver
    - Build professional-brain site
-   - Start webserver
    - Submit newsletter form in footer
+   - Verify proxy forwards to MCP
    - Verify redirect to thank-you page
    - Check Buttondown for subscriber
