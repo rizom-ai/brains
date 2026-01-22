@@ -4,10 +4,20 @@ import type {
   PluginResource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin, paginationInfoSchema } from "@brains/plugins";
-import { z } from "@brains/utils";
+import {
+  ServicePlugin,
+  paginationInfoSchema,
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
+import { z, type PublishProvider, type PublishResult } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { projectSchema, enrichedProjectSchema } from "./schemas/project";
+import {
+  projectSchema,
+  enrichedProjectSchema,
+  projectFrontmatterSchema,
+  type Project,
+} from "./schemas/project";
 import { projectAdapter } from "./adapters/project-adapter";
 import { createPortfolioTools } from "./tools";
 import type { PortfolioConfig, PortfolioConfigInput } from "./config";
@@ -116,6 +126,10 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);
 
+    // Register with publish-pipeline for both direct and queued publishing
+    await this.registerWithPublishPipeline(context);
+    this.subscribeToPublishExecute(context);
+
     this.logger.info(
       "Portfolio plugin registered successfully (routes auto-generated at /projects/)",
     );
@@ -145,6 +159,114 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         prompt: parsed.prompt,
         templateName: "portfolio:generation",
       });
+    });
+  }
+
+  /**
+   * Register with publish-pipeline using internal provider
+   */
+  private async registerWithPublishPipeline(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    const internalProvider: PublishProvider = {
+      name: "internal",
+      publish: async (): Promise<PublishResult> => {
+        return { id: "internal" };
+      },
+    };
+
+    await context.messaging.send("publish:register", {
+      entityType: "project",
+      provider: internalProvider,
+    });
+  }
+
+  /**
+   * Subscribe to publish:execute messages for project entities
+   */
+  private subscribeToPublishExecute(context: ServicePluginContext): void {
+    context.messaging.subscribe<
+      { entityType: string; entityId: string },
+      { success: boolean }
+    >("publish:execute", async (msg) => {
+      const { entityType, entityId } = msg.payload;
+
+      // Only handle project entities
+      if (entityType !== "project") {
+        return { success: true };
+      }
+
+      try {
+        const project = await context.entityService.getEntity<Project>(
+          "project",
+          entityId,
+        );
+
+        if (!project) {
+          await context.messaging.send("publish:report:failure", {
+            entityType,
+            entityId,
+            error: `Project not found: ${entityId}`,
+          });
+          return { success: true };
+        }
+
+        // Skip already published projects
+        if (project.metadata.status === "published") {
+          return { success: true };
+        }
+
+        // Parse existing content and update frontmatter
+        const parsed = parseMarkdownWithFrontmatter(
+          project.content,
+          projectFrontmatterSchema,
+        );
+
+        const publishedAt = new Date().toISOString();
+        const updatedFrontmatter = {
+          ...parsed.metadata,
+          status: "published" as const,
+          publishedAt,
+        };
+
+        const updatedContent = generateMarkdownWithFrontmatter(
+          parsed.content,
+          updatedFrontmatter,
+        );
+
+        // Update entity
+        await context.entityService.updateEntity({
+          ...project,
+          content: updatedContent,
+          metadata: {
+            ...project.metadata,
+            status: "published",
+            publishedAt,
+          },
+        });
+
+        // Report success
+        await context.messaging.send("publish:report:success", {
+          entityType,
+          entityId,
+          publishedAt,
+        });
+
+        this.logger.info(`Published project: ${entityId}`);
+        return { success: true };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        await context.messaging.send("publish:report:failure", {
+          entityType,
+          entityId,
+          error: errorMessage,
+        });
+        this.logger.error(`Failed to publish project ${entityId}:`, {
+          error: errorMessage,
+        });
+        return { success: true };
+      }
     });
   }
 
