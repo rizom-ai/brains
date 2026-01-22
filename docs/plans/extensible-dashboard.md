@@ -561,3 +561,24 @@ export const DashboardLayout = ({ widgets, buildInfo }: DashboardProps) => {
    - Start shell with dashboard + system + analytics plugins
    - Navigate to /dashboard
    - Verify entity stats, website metrics, social engagement all display
+
+---
+
+## Future Enhancements
+
+### TODO: Dynamic Renderer Resolution
+
+**Current implementation**: Widgets specify a `rendererName` string (e.g., "StatsWidget", "ListWidget", "CustomWidget") that maps to a static lookup in the dashboard layout. This enables hydration since renderers are bundled at compile time.
+
+**Future enhancement**: Support plugin-provided custom renderers for maximum extensibility.
+
+Options to explore:
+
+1. **Dynamic imports**: `await import(`@brains/ui-library/${rendererName}`)` for code splitting
+2. **Client-side renderer registry**: Plugins register renderer components at runtime before hydration kicks in
+3. **Plugin-provided bundles**: Each plugin ships a client-side bundle containing its custom renderers
+4. **Server-side rendering API**: Client requests pre-rendered HTML fragments from server (keeps renderer functions server-side only)
+
+The `rendererName` string interface is forward-compatible with all these approaches - only the resolution mechanism changes.
+
+See also: TODO comment in `plugins/dashboard/src/widget-registry.ts`

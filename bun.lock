@@ -209,6 +209,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/dashboard": {
+      "name": "@brains/dashboard",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/datasource": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/decks": {
       "name": "@brains/decks",
       "version": "0.1.0",
@@ -1057,6 +1075,8 @@
     "@brains/core": ["@brains/core@workspace:shell/core"],
 
     "@brains/daemon-registry": ["@brains/daemon-registry@workspace:shell/daemon-registry"],
+
+    "@brains/dashboard": ["@brains/dashboard@workspace:plugins/dashboard"],
 
     "@brains/datasource": ["@brains/datasource@workspace:shell/datasource"],
 

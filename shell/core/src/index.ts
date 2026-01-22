@@ -35,10 +35,6 @@ export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 // MockShell moved to plugins package
 
-// Export core datasources
-export { SystemStatsDataSource } from "./datasources";
-export type { DashboardData } from "./datasources";
-
 // Export constants for entity types, template names, etc.
 export {
   SHELL_ENTITY_TYPES,

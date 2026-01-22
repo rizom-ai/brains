@@ -12,6 +12,7 @@ import type {
   JobInfo,
   Conversation,
   Message,
+  CorePluginContext,
 } from "@brains/plugins";
 import {
   systemConfigSchema,
@@ -36,6 +37,64 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
 
   constructor(config: Partial<SystemConfig> = {}) {
     super("system", packageJson, config, systemConfigSchema);
+  }
+
+  /**
+   * Register dashboard widgets
+   */
+  protected override async onRegister(
+    context: CorePluginContext,
+  ): Promise<void> {
+    // Register entity stats widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "entity-stats",
+      pluginId: this.id,
+      title: "Entity Statistics",
+      section: "primary",
+      priority: 10,
+      rendererName: "StatsWidget",
+      dataProvider: async () => {
+        const counts = await this.getEntityCounts();
+        return {
+          stats: Object.fromEntries(
+            counts.map(({ entityType, count }) => [entityType, count]),
+          ),
+        };
+      },
+    });
+
+    // Register job status widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "job-status",
+      pluginId: this.id,
+      title: "Active Jobs",
+      section: "secondary",
+      priority: 20,
+      rendererName: "ListWidget",
+      dataProvider: async () => {
+        const { activeJobs, activeBatches } = await this.getJobStatus();
+        return {
+          jobs: activeJobs ?? [],
+          batches: activeBatches ?? [],
+        };
+      },
+    });
+
+    // Register identity widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "identity",
+      pluginId: this.id,
+      title: "Brain Identity",
+      section: "sidebar",
+      priority: 5,
+      rendererName: "CustomWidget",
+      dataProvider: async () => ({
+        identity: this.getIdentityData(),
+        profile: this.getProfileData(),
+      }),
+    });
+
+    this.logger.debug("System plugin registered dashboard widgets");
   }
 
   /**

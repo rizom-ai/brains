@@ -20,6 +20,72 @@ describe("SystemPlugin", () => {
     harness.reset();
   });
 
+  describe("Dashboard Widget Registration", () => {
+    it("should register entity-stats widget on startup", async () => {
+      // Create a fresh harness and capture messages
+      const freshHarness = createCorePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      freshHarness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await freshHarness.installPlugin(new SystemPlugin());
+
+      expect(registeredWidgets).toContainEqual({
+        id: "entity-stats",
+        pluginId: "system",
+      });
+      freshHarness.reset();
+    });
+
+    it("should register job-status widget on startup", async () => {
+      const freshHarness = createCorePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      freshHarness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await freshHarness.installPlugin(new SystemPlugin());
+
+      expect(registeredWidgets).toContainEqual({
+        id: "job-status",
+        pluginId: "system",
+      });
+      freshHarness.reset();
+    });
+
+    it("should register identity widget on startup", async () => {
+      const freshHarness = createCorePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      freshHarness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await freshHarness.installPlugin(new SystemPlugin());
+
+      expect(registeredWidgets).toContainEqual({
+        id: "identity",
+        pluginId: "system",
+      });
+      freshHarness.reset();
+    });
+  });
+
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("system");

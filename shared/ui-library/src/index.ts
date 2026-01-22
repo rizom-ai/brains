@@ -65,3 +65,12 @@ export { Breadcrumb } from "./Breadcrumb";
 export type { BreadcrumbProps, BreadcrumbItem } from "./Breadcrumb";
 export { NewsletterSignup } from "./NewsletterSignup";
 export type { NewsletterSignupProps } from "./NewsletterSignup";
+
+// Widget renderers for dashboard
+export { StatsWidget, ListWidget, CustomWidget } from "./widgets";
+export type {
+  BaseWidgetProps,
+  StatsWidgetProps,
+  ListWidgetProps,
+  CustomWidgetProps,
+} from "./widgets";

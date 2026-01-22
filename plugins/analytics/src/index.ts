@@ -10,8 +10,14 @@ import { SocialMetricsAdapter } from "./adapters/social-metrics-adapter";
 import { createAnalyticsTools } from "./tools";
 import { CloudflareClient } from "./lib/cloudflare-client";
 import { LinkedInAnalyticsClient } from "./lib/linkedin-analytics";
-import { createWebsiteMetricsEntity } from "./schemas/website-metrics";
-import { createSocialMetricsEntity } from "./schemas/social-metrics";
+import {
+  createWebsiteMetricsEntity,
+  type WebsiteMetricsEntity,
+} from "./schemas/website-metrics";
+import {
+  createSocialMetricsEntity,
+  type SocialMetricsEntity,
+} from "./schemas/social-metrics";
 import packageJson from "../package.json";
 
 /**
@@ -89,7 +95,77 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       });
     }
 
+    // Register dashboard widgets
+    await this.registerDashboardWidgets(context);
+
     this.logger.debug("Analytics plugin registered successfully");
+  }
+
+  /**
+   * Register dashboard widgets for analytics data
+   */
+  private async registerDashboardWidgets(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    // Website metrics widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "website-metrics",
+      pluginId: this.id,
+      title: "Website Analytics",
+      section: "primary",
+      priority: 30,
+      rendererName: "StatsWidget",
+      dataProvider: async () => {
+        const metrics =
+          await context.entityService.listEntities<WebsiteMetricsEntity>(
+            "website-metrics",
+            {
+              limit: 1,
+              sortFields: [{ field: "created", direction: "desc" }],
+            },
+          );
+        const latest = metrics[0]?.metadata;
+        return {
+          pageviews: latest?.pageviews ?? 0,
+          visitors: latest?.visitors ?? 0,
+          bounceRate: latest?.bounceRate ?? 0,
+          avgTimeOnPage: latest?.avgTimeOnPage ?? 0,
+        };
+      },
+    });
+
+    // Social engagement widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "social-engagement",
+      pluginId: this.id,
+      title: "Social Engagement",
+      section: "primary",
+      priority: 40,
+      rendererName: "StatsWidget",
+      dataProvider: async () => {
+        const metrics =
+          await context.entityService.listEntities<SocialMetricsEntity>(
+            "social-metrics",
+            {
+              limit: 20,
+              sortFields: [{ field: "updated", direction: "desc" }],
+            },
+          );
+        let impressions = 0;
+        let likes = 0;
+        let comments = 0;
+        let shares = 0;
+        for (const m of metrics) {
+          impressions += m.metadata.impressions;
+          likes += m.metadata.likes;
+          comments += m.metadata.comments;
+          shares += m.metadata.shares;
+        }
+        return { impressions, likes, comments, shares };
+      },
+    });
+
+    this.logger.debug("Analytics dashboard widgets registered");
   }
 
   /**

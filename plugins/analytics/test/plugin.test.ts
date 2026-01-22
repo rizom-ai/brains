@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { AnalyticsPlugin } from "../src/index";
-import { createAnalyticsPlugin } from "../src/index";
+import {
+  createAnalyticsPlugin,
+  AnalyticsPlugin as AnalyticsPluginClass,
+} from "../src/index";
 import { WebsiteMetricsAdapter } from "../src/adapters/website-metrics-adapter";
 import { SocialMetricsAdapter } from "../src/adapters/social-metrics-adapter";
+import { createServicePluginHarness } from "@brains/plugins/test";
 
 describe("AnalyticsPlugin", () => {
   let plugin: AnalyticsPlugin;
@@ -44,6 +48,50 @@ describe("AnalyticsPlugin", () => {
 
       expect(customPlugin.id).toBe("analytics");
       expect(customPlugin.version).toBe("0.1.0");
+    });
+  });
+
+  describe("Dashboard Widget Registration", () => {
+    it("should register website-metrics widget on startup", async () => {
+      const harness = createServicePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      harness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await harness.installPlugin(new AnalyticsPluginClass());
+
+      expect(registeredWidgets).toContainEqual({
+        id: "website-metrics",
+        pluginId: "analytics",
+      });
+      harness.reset();
+    });
+
+    it("should register social-engagement widget on startup", async () => {
+      const harness = createServicePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      harness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await harness.installPlugin(new AnalyticsPluginClass());
+
+      expect(registeredWidgets).toContainEqual({
+        id: "social-engagement",
+        pluginId: "analytics",
+      });
+      harness.reset();
     });
   });
 

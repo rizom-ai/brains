@@ -1,26 +1,25 @@
 import { DashboardWidget } from "./layout";
-import { DashboardDataSchema, type DashboardData } from "./schema";
+import { dashboardDataSchema, type DashboardData } from "./schema";
 import { DashboardFormatter } from "./formatter";
 import { createTemplate } from "@brains/templates";
 
 /**
  * Dashboard template definition
- * Fetches real-time system statistics - does not generate content
+ * Renders extensible dashboard with plugin-contributed widgets
  */
 export const dashboardTemplate = createTemplate<DashboardData>({
   name: "dashboard",
-  description: "Interactive system dashboard showing entity statistics",
-  schema: DashboardDataSchema,
+  description: "Extensible dashboard with plugin-contributed widgets",
+  schema: dashboardDataSchema,
   requiredPermission: "public",
   formatter: new DashboardFormatter(),
-  dataSourceId: "shell:system-stats", // Fetch-only DataSource for real-time stats
+  dataSourceId: "dashboard:dashboard",
   layout: {
     component: DashboardWidget,
     interactive: true,
   },
 });
 
-// Export all dashboard components
 export { DashboardWidget } from "./layout";
-export { DashboardDataSchema, type DashboardData } from "./schema";
+export { dashboardDataSchema, type DashboardData } from "./schema";
 export { DashboardFormatter } from "./formatter";

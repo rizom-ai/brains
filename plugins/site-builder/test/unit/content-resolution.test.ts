@@ -131,24 +131,5 @@ describe("Site Builder Content Resolution", () => {
     expect(dataSourceTemplate.dataSourceId).toBe("shell:mock-test-data");
   });
 
-  it("should verify dashboard template references shell DataSource", async () => {
-    plugin = new SiteBuilderPlugin(
-      createTestConfig({
-        previewOutputDir: "/tmp/test-output",
-        workingDir: "/tmp/test-working",
-      }),
-    );
-
-    await harness.installPlugin(plugin);
-
-    // Check that the dashboard template was registered
-    const templates = harness.getTemplates();
-    expect(templates.has("site-builder:dashboard")).toBe(true);
-
-    const dashboardTemplate = templates.get("site-builder:dashboard");
-    expect(dashboardTemplate).toBeDefined();
-
-    // Verify the template references the shell's SystemStats DataSource
-    expect(dashboardTemplate?.dataSourceId).toBe("shell:system-stats");
-  });
+  // Dashboard template is now registered by dashboard plugin, not site-builder
 });

@@ -17,7 +17,6 @@ import {
   GetRoutePayloadSchema,
 } from "./types/routes";
 import { siteContentAdapter } from "./entities/site-content-adapter";
-import { dashboardTemplate } from "./templates/dashboard";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import { SiteInfoDataSource } from "./datasources/site-info-datasource";
@@ -159,31 +158,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       siteContentSchema,
       siteContentAdapter,
     );
-
-    // Register built-in dashboard template using unified method
-    context.templates.register({ dashboard: dashboardTemplate });
-
-    // Register dashboard route via internal registry
-    this.routeRegistry.register({
-      id: "dashboard",
-      path: "/dashboard",
-      title: "System Dashboard",
-      description: "Monitor your Brain system statistics and activity",
-      layout: "minimal",
-      navigation: {
-        show: true,
-        label: "Dashboard",
-        slot: "secondary", // Footer only
-        priority: 100, // Last item in footer
-      },
-      sections: [
-        {
-          id: "main",
-          template: `${this.id}:dashboard`, // Add plugin prefix
-        },
-      ],
-      pluginId: this.id,
-    });
 
     // Register templates from configuration using unified registration
     if (this.config.templates) {
