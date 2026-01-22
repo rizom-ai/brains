@@ -1,215 +1,164 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-11-25
+Last Updated: 2025-01-22
 
-## Vision
+## Current Focus: Professional-Brain Release
 
-Build a robust, extensible knowledge management platform that serves as the foundation for individual, team, and collective products.
+The immediate priority is releasing a production-ready version of professional-brain (Rover) - a personal knowledge platform for independent professionals.
 
-## Next Priority Items
+---
 
-Based on current progress, the following items are ready to be worked on:
+## Phase 0: Professional-Brain v1.0
 
-### Immediate Priorities
+**Goal**: Clean, stable release without newsletter functionality.
 
-1. **Performance Optimization** - Batch operations, vector search improvements
-2. **Additional Testing** - Integration tests, E2E tests
-3. **Database Backup/Restore** - Data safety
-4. **Health Checks for All Services** - Production readiness
+### What's Working
 
-### Secondary Priorities
+- Site builder with Preact SSR and Tailwind CSS v4
+- Blog plugin with essays, series, RSS feeds
+- Decks plugin for presentations
+- Portfolio plugin for case studies
+- Topics plugin for AI-powered tagging
+- Links plugin for bookmarks
+- Notes plugin for drafts
+- Social media plugin for post generation
+- Analytics (Cloudflare integration)
+- Matrix bot interface
+- MCP interface (stdio + HTTP)
+- Git sync for version control
+- Directory sync for file-based editing
 
-5. **Roadmap Plugin** - Outcome-based goal tracking with milestone management
-6. **UI Component Library Expansion** - Additional reusable components
+### To Complete
 
-## Current Status
+- [ ] Review and fix any broken functionality
+- [ ] Ensure all templates render correctly
+- [ ] Verify deployment pipeline works
+- [ ] Update documentation
+- [ ] Tag v1.0 release
 
-### Completed ✅
+### Out of Scope (Phase 0)
 
-- **Core Architecture**: Shell-based plugin system with direct registration
-- **MCP Integration**: Full MCP server with stdio and HTTP transports
-- **Plugin System**: Four plugin types (Core, Service, Interface, MessageInterface)
-- **Entity Framework**: Functional entity model with Zod schemas and adapters
-- **Conversation Memory**: Conversation tracking and message storage
-- **Job Queue**: Background processing with progress tracking and batch operations
-- **Content Generation**: Template-based content generation with AI integration
-- **Test Infrastructure**: Standardized test harnesses for all plugin types (220+ test files)
-- **Centralized Permission System**: Single source of truth for user permissions across all interfaces
-- **Transport-based MCP Permissions**: Automatic permission levels based on MCP transport type
-- **Database Migration System**: Drizzle-based migrations for all databases
-- **Separate Databases**: Entity, Job Queue, and Conversation databases separated
-- **Structured Logging**: Logger with multiple levels and context support
-- **App Package**: Astro-style configuration with defineConfig and handleCLI
-- **Directory Sync Plugin**: Import/export entities to/from file system
-- **Git Sync Plugin**: Sync entities with Git repositories
-- **Site Builder Plugin**: Static site generation with Preact components and Tailwind CSS v4
-- **Topics Plugin**: AI-powered topic extraction from entities
-- **System Plugin**: System information and health checks
-- **Link Plugin**: Web content capture with AI extraction and search ✅
-- **Summary Plugin**: AI-powered content summarization and daily digests
-- **Template Capabilities System**: Runtime detection of template capabilities
-- **Dynamic Route Generation**: Convention-based routes for entity types
-- **Entity DataSource Integration**: Plugin-specific DataSources for entity display
-- **Site Content Consolidation**: Removed preview/production distinction
-- **Docker Deployment**: Simplified Docker deployment with Dockerfile.simple
-- **Hetzner Cloud Provider**: Terraform-based deployment with automatic HTTPS via Caddy
-- **Team-Brain App**: Created separate app instance with custom configuration
-- **Matrix Bot Display Names**: Fixed to show app-specific names instead of "Personal Brain"
-- **Deployment Idempotency**: Improved deployment scripts to handle existing infrastructure
-- **Blog Plugin**: Long-form content with RSS feeds and series support
-- **Decks Plugin**: Slide deck and presentation management
-- **Type-safe Entity Metadata**: Strongly-typed metadata with backward compatibility
-- **Code Quality**: Zero ESLint warnings, no `as any` type assertions
-- **UI Library Components**: Reusable Preact components (Head, ContentSection, etc.)
+- Newsletter signup/integration
+- API routes for forms
+- CTA slot system
 
-### In Progress 🚧
+---
 
-- **Documentation**: Updating docs to reflect current architecture
+## Phase 1: API Infrastructure
 
-## Phase 1: Production Readiness (Q1 2025)
+**Goal**: Extensible API route system for plugins.
 
-### 1.1 Database Architecture
+### Deliverables
 
-- [x] Separate job queue database from entity database ✅
-- [x] Implement database migration system ✅
-- [ ] Add database backup/restore capabilities
+- Plugin-declared API routes (`static apiRoutes` on ServicePlugin)
+- API route registry in `@brains/plugins`
+- Route handler in MCP HTTP server
+- Webserver proxy (`/api/*` → MCP)
+- Auth support (public vs authenticated routes)
 
-### 1.2 Performance & Scalability
+### Key Files
 
-- [x] Batch operations for job queue ✅
-- [ ] **Batch operations for entity service** (Not started)
-- [x] Async embedding generation queue ✅
-- [ ] **Optimize vector search performance** (Basic implementation exists)
+- `shell/plugins/src/types/api-routes.ts`
+- `shell/plugins/src/registries/api-route-registry.ts`
+- `interfaces/mcp/src/api/route-handler.ts`
+- `interfaces/webserver/src/server-manager.ts`
 
-### 1.3 Monitoring & Observability
+### Plan
 
-- [x] Structured logging with log levels ✅
-- [x] Health check endpoints for MCP service ✅
-- [ ] **Health check endpoints for all services** (Not implemented)
-- [ ] **Metrics collection and reporting** (Not started)
+See `docs/plans/newsletter-integration.md` (Part 1-3)
 
-### 1.4 App Package Refactoring
+---
 
-- [x] Refactor shell/app package for cleaner initialization ✅
-- [x] Separate concerns between app orchestration and shell core ✅
-- [x] Improve plugin initialization flow ✅
-- [x] Add proper lifecycle management ✅
+## Phase 2: Newsletter Integration
 
-### 1.5 Interface Consolidation
+**Goal**: Newsletter signup on professional-brain site.
 
-- [x] Merge matrix-setup functionality into main matrix interface package ✅
-- [x] Consolidate setup utilities with main interface code ✅
-- [x] Provide setup as a built-in command/utility within the interface ✅
+### Deliverables
 
-## Phase 2: First Plugins (Q1-Q2 2025)
+- Newsletter plugin API route exposed
+- CTA slot system (link vs newsletter types)
+- Footer integration with optional CTA
+- Thank-you/error pages
+- Professional-brain config updated
 
-### 2.1 Link Plugin ✅ **COMPLETED**
+### Key Files
 
-- [x] Web content capture with AI extraction ✅
-- [x] Structured content storage (like topics plugin) ✅
-- [x] AI-powered summarization and tagging ✅
-- [x] Simple list and search functionality ✅
+- `plugins/newsletter/src/index.ts` (add apiRoutes)
+- `shared/ui-library/src/CTASlot.tsx`
+- `shared/default-site-content/src/footer.tsx`
+- `apps/professional-brain/brain.config.ts`
 
-### 2.2 Blog Plugin ✅ **COMPLETED**
+### Plan
 
-- [x] Long-form content management ✅
-- [x] Draft/publish workflow ✅
-- [x] RSS feed generation ✅
-- [x] Series support for multi-part content ✅
+See `docs/plans/newsletter-integration.md` (Part 4-5)
 
-### 2.3 Decks Plugin ✅ **COMPLETED**
+---
 
-- [x] Slide deck and presentation management ✅
-- [x] Markdown-based slides ✅
-- [x] Detail page templates ✅
+## Phase 3: Cloudflare Migration
 
-### 2.4 Roadmap Plugin - **Not Started**
+**Goal**: Cloudflare as default CDN, Bunny.net as alternative.
 
-- [ ] Outcome-based goal tracking
-- [ ] Milestone management
-- [ ] Evidence linking to entities
-- [ ] Progress visualization
+### Deliverables
 
-## Phase 3: Enhanced Interfaces (Q2 2025) - **Not Started**
+- Cloudflare CDN/DNS Terraform module
+- Provider selection in deployment config
+- Zero-downtime migration path from Bunny
+- Updated deployment documentation
 
-### 3.1 Web UI
+### Plan
 
-- [ ] React-based web interface
-- [ ] Real-time updates via WebSocket
-- [ ] Visual entity browser
-- [ ] Search and filter capabilities
+See `docs/plans/cloudflare-migration.md`
 
-### 3.2 Mobile Support
+---
 
-- [ ] Progressive Web App (PWA)
-- [ ] Offline capability
-- [ ] Mobile-optimized UI
+## Phase 4: Production Polish
 
-### 3.3 API Expansion
+**Goal**: Professional-brain ready for real users.
 
-- [ ] GraphQL API
-- [ ] REST API v2
-- [ ] Webhook support
+### Potential Items
 
-## Phase 4: Team Features (Q3 2025)
+- Performance optimization
+- Error handling improvements
+- Mobile responsiveness review
+- SEO optimization
+- Accessibility audit
+- Monitoring and alerting
 
-### 4.1 Multi-user Support
+---
 
-- [x] Centralized permission system ✅
-- [ ] **User authentication and authorization** (Not started)
-- [ ] **Role-based access control** (Permission levels exist, no roles)
-- [ ] **Personal and shared workspaces** (Not implemented)
+## Completed
 
-### 4.2 Collaboration
+### 2025-01
 
-- [ ] Real-time collaboration
-- [ ] Comments and annotations
-- [ ] Activity feeds
+- ✅ Newsletter plugin (Buttondown integration)
+- ✅ NewsletterSignup UI component
+- ✅ Deploy script consolidation
+- ✅ Docker build optimization
+- ✅ Image plugin improvements (cover images, alt text)
 
-### 4.3 Team Brain
+### 2024 (Previous)
 
-- [ ] Shared knowledge base
-- [ ] Team-specific plugins
-- [ ] Integration with team tools (Slack, Teams)
+- ✅ Core plugin architecture
+- ✅ Entity framework with Zod schemas
+- ✅ Site builder with Preact + Tailwind
+- ✅ Blog, Decks, Portfolio, Topics plugins
+- ✅ MCP interface (stdio + HTTP)
+- ✅ Matrix bot interface
+- ✅ Conversation memory
+- ✅ Job queue with progress tracking
+- ✅ Git sync and directory sync
+- ✅ Centralized permissions
+- ✅ Hetzner deployment with Terraform
 
-## Phase 5: AI Enhancement (Q3-Q4 2025)
-
-### 5.1 Advanced AI Features
-
-- [ ] Custom AI model fine-tuning
-- [ ] Multi-modal support (images, audio)
-- [ ] AI-powered insights and recommendations
-
-### 5.2 Automation
-
-- [ ] Workflow automation
-- [ ] Smart notifications
-- [ ] Predictive task creation
-
-## Technical Debt & Maintenance
-
-### Ongoing
-
-- [ ] Security audits
-- [ ] Performance monitoring
-- [ ] Dependency updates
-- [ ] Documentation improvements
-- [ ] Test coverage expansion
-
-## Success Metrics
-
-1. **Reliability**: 99.9% uptime for production deployments
-2. **Performance**: <100ms response time for queries
-3. **Adoption**: Active community of plugin developers
-4. **Quality**: >80% test coverage across all packages
+---
 
 ## Future Considerations
 
-- **Collective Brain**: Community-driven knowledge bases
-- **Federation**: Decentralized brain networks
-- **AI Agents**: Autonomous knowledge workers
-- **Enterprise Features**: SSO, audit logs, compliance
+These are not currently planned but may be explored later:
 
-## Contributing
-
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for how to contribute to the project.
+- **Team Brain**: Shared knowledge bases for teams
+- **Collective Brain**: Community-driven knowledge networks
+- **Web UI**: Browser-based interface beyond static site
+- **Mobile App**: Native or PWA mobile experience
+- **Additional Interfaces**: Discord, Slack, WhatsApp
+- **Roadmap Plugin**: Goal tracking and milestone management
