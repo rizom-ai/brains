@@ -7,7 +7,7 @@ Create a central dashboard where plugins contribute their own widgets. System da
 ## Design Principles
 
 - **Plugin-contributed widgets**: Each plugin registers dashboard sections
-- **View concerns in view layer**: Widget registry and datasource live in site-builder
+- **Dedicated dashboard plugin**: Separate package owns registry, datasource, and UI
 - **Message-based registration**: Plugins register widgets via messaging events
 - **Type-safe rendering**: Generic widget types with typed data providers
 - **Lean shell**: No dashboard infrastructure in shell/core
@@ -16,20 +16,11 @@ Create a central dashboard where plugins contribute their own widgets. System da
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Dashboard UI (site-builder)                  │
-│   Renders widgets by type: stats | list | chart | custom        │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              DashboardDataSource (site-builder)                  │
-│   Calls each registered widget's dataProvider()                 │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              DashboardWidgetRegistry (site-builder)              │
-│   Stores registered widgets with metadata + dataProvider        │
+│                     Dashboard Plugin (plugins/dashboard)         │
+│   - Widget Registry                                              │
+│   - Dashboard DataSource                                         │
+│   - Dashboard UI templates                                       │
+│   - Renders widgets by type: stats | list | chart | custom      │
 └─────────────────────────────────────────────────────────────────┘
         ▲                       ▲                       ▲
         │ messaging             │ messaging             │ messaging
@@ -45,7 +36,7 @@ Create a central dashboard where plugins contribute their own widgets. System da
 
 ## 1. Widget Registry
 
-**File**: `plugins/site-builder/src/dashboard/widget-registry.ts` (NEW)
+**File**: `plugins/dashboard/src/widget-registry.ts` (NEW)
 
 ```typescript
 import type { Logger } from "@brains/utils";
@@ -145,7 +136,7 @@ export class DashboardWidgetRegistry {
 
 ## 2. Dashboard DataSource
 
-**File**: `plugins/site-builder/src/dashboard/dashboard-datasource.ts` (NEW)
+**File**: `plugins/dashboard/src/dashboard-datasource.ts` (NEW)
 
 ```typescript
 import type { DataSource, BaseDataSourceContext } from "@brains/datasource";
@@ -197,18 +188,25 @@ export class DashboardDataSource implements DataSource {
 
 ---
 
-## 3. Site-Builder Plugin Integration
+## 3. Dashboard Plugin
 
-**File**: `plugins/site-builder/src/plugin.ts` (MODIFY)
+**File**: `plugins/dashboard/src/plugin.ts` (NEW)
 
-Site-builder creates the registry and subscribes to widget registration events:
+Dashboard plugin creates the registry and subscribes to widget registration events:
 
 ```typescript
-import { DashboardWidgetRegistry } from "./dashboard/widget-registry";
-import { DashboardDataSource } from "./dashboard/dashboard-datasource";
+import { ServicePlugin, type ServicePluginContext } from "@brains/plugins";
+import { DashboardWidgetRegistry } from "./widget-registry";
+import { DashboardDataSource } from "./dashboard-datasource";
+import { dashboardConfigSchema, type DashboardConfig } from "./config";
+import packageJson from "../package.json";
 
-export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
+export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   private widgetRegistry?: DashboardWidgetRegistry;
+
+  constructor(config?: Partial<DashboardConfig>) {
+    super("dashboard", packageJson, config, dashboardConfigSchema);
+  }
 
   protected override async onRegister(
     context: ServicePluginContext,
@@ -222,7 +220,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     // Subscribe to widget registration events from other plugins
     context.messaging.subscribe(
-      "site-builder:register-widget",
+      "dashboard:register-widget",
       async (payload) => {
         const { pluginId, widget } = payload;
         this.widgetRegistry?.register({
@@ -236,7 +234,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
 
     context.messaging.subscribe(
-      "site-builder:unregister-widget",
+      "dashboard:unregister-widget",
       async (payload) => {
         const { pluginId, widgetId } = payload;
         this.widgetRegistry?.unregister(pluginId, widgetId);
@@ -258,7 +256,7 @@ System plugin registers widgets via messaging:
 ```typescript
 protected override async onRegister(context: ServicePluginContext): Promise<void> {
   // Entity stats widget
-  await context.messaging.send("site-builder:register-widget", {
+  await context.messaging.send("dashboard:register-widget", {
     pluginId: this.id,
     widget: {
       id: "entity-stats",
@@ -274,7 +272,7 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   });
 
   // Job status widget
-  await context.messaging.send("site-builder:register-widget", {
+  await context.messaging.send("dashboard:register-widget", {
     pluginId: this.id,
     widget: {
       id: "job-status",
@@ -290,7 +288,7 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   });
 
   // Identity widget
-  await context.messaging.send("site-builder:register-widget", {
+  await context.messaging.send("dashboard:register-widget", {
     pluginId: this.id,
     widget: {
       id: "identity",
@@ -318,7 +316,7 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   // ... existing registration ...
 
   // Website metrics widget
-  await context.messaging.send("site-builder:register-widget", {
+  await context.messaging.send("dashboard:register-widget", {
     pluginId: this.id,
     widget: {
       id: "website-metrics",
@@ -343,7 +341,7 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
   });
 
   // Social engagement widget
-  await context.messaging.send("site-builder:register-widget", {
+  await context.messaging.send("dashboard:register-widget", {
     pluginId: this.id,
     widget: {
       id: "social-engagement",
@@ -375,7 +373,7 @@ protected override async onRegister(context: ServicePluginContext): Promise<void
 
 ## 6. Dashboard UI Template
 
-**File**: `plugins/site-builder/src/templates/dashboard/layout.tsx` (MODIFY)
+**File**: `plugins/dashboard/src/templates/layout.tsx` (NEW)
 
 ```tsx
 interface DashboardProps {
@@ -518,27 +516,33 @@ export const DashboardLayout = ({ widgets, buildInfo }: DashboardProps) => {
 
 ## Files Summary
 
-| File                                                         | Action |
-| ------------------------------------------------------------ | ------ |
-| `plugins/site-builder/src/dashboard/widget-registry.ts`      | NEW    |
-| `plugins/site-builder/src/dashboard/dashboard-datasource.ts` | NEW    |
-| `plugins/site-builder/src/dashboard/index.ts`                | NEW    |
-| `plugins/site-builder/src/plugin.ts`                         | MODIFY |
-| `plugins/system/src/plugin.ts`                               | MODIFY |
-| `plugins/analytics/src/index.ts`                             | MODIFY |
-| `plugins/site-builder/src/templates/dashboard/layout.tsx`    | MODIFY |
-| `plugins/site-builder/src/templates/dashboard/schema.ts`     | MODIFY |
+| File                                            | Action |
+| ----------------------------------------------- | ------ |
+| `plugins/dashboard/package.json`                | NEW    |
+| `plugins/dashboard/tsconfig.json`               | NEW    |
+| `plugins/dashboard/src/index.ts`                | NEW    |
+| `plugins/dashboard/src/plugin.ts`               | NEW    |
+| `plugins/dashboard/src/config.ts`               | NEW    |
+| `plugins/dashboard/src/widget-registry.ts`      | NEW    |
+| `plugins/dashboard/src/dashboard-datasource.ts` | NEW    |
+| `plugins/dashboard/src/templates/layout.tsx`    | NEW    |
+| `plugins/dashboard/src/templates/schema.ts`     | NEW    |
+| `plugins/system/src/plugin.ts`                  | MODIFY |
+| `plugins/analytics/src/index.ts`                | MODIFY |
+| `plugins/site-builder/src/templates/dashboard/` | DELETE |
 
 ---
 
 ## Implementation Order
 
-1. Widget Registry (`plugins/site-builder/src/dashboard/`)
-2. Dashboard DataSource (`plugins/site-builder/src/dashboard/`)
-3. Site-Builder Plugin Integration (messaging subscriptions)
-4. System Plugin Widgets (messaging registration)
-5. Analytics Plugin Widgets (messaging registration)
-6. Dashboard Template Update
+1. Create dashboard plugin package structure
+2. Widget Registry (`plugins/dashboard/src/`)
+3. Dashboard DataSource (`plugins/dashboard/src/`)
+4. Dashboard Plugin with messaging subscriptions
+5. Dashboard UI templates
+6. System Plugin widget registration
+7. Analytics Plugin widget registration
+8. Remove dashboard template from site-builder
 
 ---
 
@@ -549,11 +553,11 @@ export const DashboardLayout = ({ widgets, buildInfo }: DashboardProps) => {
    - DashboardDataSource: fetch aggregates all widgets correctly
 
 2. **Integration test**:
-   - Site-builder subscribes to events
-   - Other plugins send registration messages
+   - Dashboard plugin subscribes to events
+   - System/Analytics plugins send registration messages
    - Verify widgets appear in registry
 
 3. **E2E test**:
-   - Start shell with site-builder + system + analytics plugins
+   - Start shell with dashboard + system + analytics plugins
    - Navigate to /dashboard
    - Verify entity stats, website metrics, social engagement all display
