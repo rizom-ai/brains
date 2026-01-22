@@ -63,3 +63,5 @@ export { Pagination } from "./Pagination";
 export type { PaginationProps } from "./Pagination";
 export { Breadcrumb } from "./Breadcrumb";
 export type { BreadcrumbProps, BreadcrumbItem } from "./Breadcrumb";
+export { NewsletterSignup } from "./NewsletterSignup";
+export type { NewsletterSignupProps } from "./NewsletterSignup";
