@@ -27,8 +27,8 @@ Newsletter **signup/API integration** is out of scope (Phase 2).
 | Blog         | ✅                 | ✅                | ✅          | ❌          |
 | Social-media | ✅                 | ✅                | ✅          | ❌          |
 | Decks        | ✅                 | ✅                | ✅          | ❌          |
-| Portfolio    | ❌                 | ❌                | ❌          | ❌          |
-| Newsletter   | ❌                 | ❌                | ❌          | ❌          |
+| Portfolio    | ✅                 | ✅                | ✅          | ❌          |
+| Newsletter   | ✅                 | ✅                | ✅          | ❌          |
 
 **Principle**: ALL publishable entity types follow the same pattern:
 
