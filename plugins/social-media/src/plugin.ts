@@ -131,6 +131,12 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
 
+    // Subscribe to publish:completed for auto-generation
+    if (this.config.autoGenerateOnBlogPublish) {
+      this.subscribeToPublishCompleted(context);
+      this.logger.info("Auto-generate on blog publish enabled");
+    }
+
     // Register eval handlers for testing
     this.registerEvalHandlers(context);
 
@@ -225,6 +231,44 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     );
 
     this.logger.debug("Subscribed to publish:execute messages");
+  }
+
+  /**
+   * Subscribe to publish:completed to auto-generate social posts for blog posts
+   */
+  private subscribeToPublishCompleted(context: ServicePluginContext): void {
+    context.messaging.subscribe<
+      { entityType: string; entityId: string; publishedAt: string },
+      { success: boolean }
+    >("publish:completed", async (msg) => {
+      const { entityType, entityId } = msg.payload;
+
+      // Only auto-generate for blog posts
+      if (entityType !== "post") {
+        return { success: true };
+      }
+
+      try {
+        // Send message to trigger auto-generation
+        await context.messaging.send("social:auto-generate", {
+          sourceEntityType: entityType,
+          sourceEntityId: entityId,
+          platform: "linkedin",
+        });
+
+        this.logger.info(`Auto-generate social post triggered for ${entityId}`);
+        return { success: true };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.error(`Failed to trigger auto-generate for ${entityId}:`, {
+          error: errorMessage,
+        });
+        return { success: true };
+      }
+    });
+
+    this.logger.debug("Subscribed to publish:completed for auto-generation");
   }
 
   /**

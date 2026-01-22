@@ -24,6 +24,8 @@ export const socialMediaConfigSchema = z.object({
     .default("Create an engaging social media post that drives engagement"),
   /** Maximum retry attempts before marking post as failed (default: 3) */
   maxRetries: z.number().default(3),
+  /** Auto-generate social post when a blog post is published (default: false) */
+  autoGenerateOnBlogPublish: z.boolean().default(false),
 });
 
 /**
