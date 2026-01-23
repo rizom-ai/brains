@@ -21,7 +21,7 @@ describe("SystemPlugin", () => {
   });
 
   describe("Dashboard Widget Registration", () => {
-    it("should register entity-stats widget on startup", async () => {
+    it("should register entity-stats widget after system:plugins:ready", async () => {
       // Create a fresh harness and capture messages
       const freshHarness = createCorePluginHarness({
         dataDir: "/tmp/test-datadir",
@@ -36,6 +36,15 @@ describe("SystemPlugin", () => {
 
       await freshHarness.installPlugin(new SystemPlugin());
 
+      // Widgets should NOT be registered yet (before system:plugins:ready)
+      expect(registeredWidgets).toHaveLength(0);
+
+      // Emit system:plugins:ready - this triggers widget registration
+      await freshHarness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
+
       expect(registeredWidgets).toContainEqual({
         id: "entity-stats",
         pluginId: "system",
@@ -43,7 +52,7 @@ describe("SystemPlugin", () => {
       freshHarness.reset();
     });
 
-    it("should register job-status widget on startup", async () => {
+    it("should register job-status widget after system:plugins:ready", async () => {
       const freshHarness = createCorePluginHarness({
         dataDir: "/tmp/test-datadir",
       });
@@ -56,6 +65,12 @@ describe("SystemPlugin", () => {
       });
 
       await freshHarness.installPlugin(new SystemPlugin());
+
+      // Emit system:plugins:ready - this triggers widget registration
+      await freshHarness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
 
       expect(registeredWidgets).toContainEqual({
         id: "job-status",
@@ -64,7 +79,7 @@ describe("SystemPlugin", () => {
       freshHarness.reset();
     });
 
-    it("should register identity widget on startup", async () => {
+    it("should register identity widget after system:plugins:ready", async () => {
       const freshHarness = createCorePluginHarness({
         dataDir: "/tmp/test-datadir",
       });
@@ -78,10 +93,37 @@ describe("SystemPlugin", () => {
 
       await freshHarness.installPlugin(new SystemPlugin());
 
+      // Emit system:plugins:ready - this triggers widget registration
+      await freshHarness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
+
       expect(registeredWidgets).toContainEqual({
         id: "identity",
         pluginId: "system",
       });
+      freshHarness.reset();
+    });
+
+    it("should NOT register widgets before system:plugins:ready", async () => {
+      // This test verifies the timing fix - widgets should only be sent
+      // after system:plugins:ready, ensuring Dashboard has subscribed first
+      const freshHarness = createCorePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      freshHarness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await freshHarness.installPlugin(new SystemPlugin());
+
+      // Widgets should NOT be registered yet
+      expect(registeredWidgets).toHaveLength(0);
       freshHarness.reset();
     });
   });

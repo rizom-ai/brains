@@ -48,7 +48,7 @@ export type DashboardData = z.infer<typeof dashboardDataSchema>;
  * Each widget's dataProvider is called and the results are collected.
  */
 export class DashboardDataSource implements DataSource {
-  readonly id = "dashboard";
+  readonly id = "dashboard:dashboard";
   readonly name = "Dashboard DataSource";
   readonly description = "Aggregates dashboard widgets from all plugins";
 

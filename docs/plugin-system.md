@@ -319,6 +319,81 @@ const plugin = new MyInterfacePlugin();
 await harness.installPlugin(plugin);
 ```
 
+## Inter-Plugin Messaging Patterns
+
+### The `system:plugins:ready` Pattern
+
+When plugins need to communicate with other plugins via the message bus, timing is critical. Messages sent before a subscriber exists are lost. The `system:plugins:ready` pattern solves this.
+
+**Problem**: Plugin A sends a message in `onRegister()`, but Plugin B (which subscribes to that message) hasn't been initialized yet because it has dependencies that load later.
+
+**Solution**: Plugin A waits for `system:plugins:ready` before sending messages. This event fires after ALL plugins have registered their subscriptions.
+
+#### Pattern Timeline
+
+```
+1. Plugin A initializes → subscribes to "system:plugins:ready"
+2. Plugin B initializes → subscribes to "plugin-a:some-event"
+3. Shell emits "system:plugins:ready"
+4. Plugin A's callback fires → sends "plugin-a:some-event" message
+5. Plugin B receives the message ✓
+```
+
+#### Widget Producer Pattern (System/Analytics plugins)
+
+```typescript
+protected override async onRegister(context: CorePluginContext): Promise<void> {
+  // Subscribe to system:plugins:ready to send widgets AFTER Dashboard is listening
+  context.messaging.subscribe("system:plugins:ready", async () => {
+    await context.messaging.send("dashboard:register-widget", {
+      id: "my-widget",
+      pluginId: this.id,
+      title: "My Widget",
+      section: "primary",
+      priority: 10,
+      rendererName: "StatsWidget",
+      dataProvider: async () => ({ value: 42 }),
+    });
+    return { success: true };
+  });
+}
+```
+
+#### Widget Consumer Pattern (Dashboard plugin)
+
+```typescript
+protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  // Subscribe in onRegister - this runs BEFORE system:plugins:ready
+  context.messaging.subscribe("dashboard:register-widget", async (message) => {
+    const widget = parseWidget(message.payload);
+    this.widgetRegistry.register(widget);
+    return { success: true };
+  });
+}
+```
+
+### When to Use This Pattern
+
+Use `system:plugins:ready` when:
+
+1. Your plugin sends messages that other plugins need to receive
+2. The receiving plugin might have dependencies that cause it to initialize later
+3. Lost messages would cause functionality to silently fail
+
+Examples:
+
+- Dashboard widget registration
+- Route registration with site-builder
+- Service discovery notifications
+
+### When NOT to Use This Pattern
+
+Don't use `system:plugins:ready` when:
+
+1. You're responding to user actions (timing not an issue)
+2. The message is a request/response that will retry on failure
+3. You're subscribing to events (subscribers should be ready before events fire)
+
 ## Best Practices
 
 1. **Use typed schemas**: Always define Zod schemas for tool inputs/outputs
@@ -327,6 +402,7 @@ await harness.installPlugin(plugin);
 4. **Keep tools focused**: Each tool should do one thing well
 5. **Use direct registration**: Register capabilities directly, not via events
 6. **Test with harnesses**: Use the provided test harnesses for consistency
+7. **Use system:plugins:ready for cross-plugin messages**: When sending messages that other plugins need to receive, wait for `system:plugins:ready` to ensure all subscribers are registered
 
 ## Next Steps
 

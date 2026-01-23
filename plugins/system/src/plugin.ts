@@ -40,61 +40,73 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   }
 
   /**
-   * Register dashboard widgets
+   * Register dashboard widgets after all plugins are ready
+   *
+   * We wait for system:plugins:ready to ensure the Dashboard plugin
+   * has already subscribed to dashboard:register-widget messages.
+   * This solves the timing issue where System plugin initializes
+   * before Dashboard and widget messages would be lost.
    */
   protected override async onRegister(
     context: CorePluginContext,
   ): Promise<void> {
-    // Register entity stats widget
-    await context.messaging.send("dashboard:register-widget", {
-      id: "entity-stats",
-      pluginId: this.id,
-      title: "Entity Statistics",
-      section: "primary",
-      priority: 10,
-      rendererName: "StatsWidget",
-      dataProvider: async () => {
-        const counts = await this.getEntityCounts();
-        return {
-          stats: Object.fromEntries(
-            counts.map(({ entityType, count }) => [entityType, count]),
-          ),
-        };
-      },
-    });
+    // Subscribe to system:plugins:ready to register widgets AFTER Dashboard is listening
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      this.logger.info(
+        "system:plugins:ready received, registering dashboard widgets",
+      );
+      // Register entity stats widget
+      await context.messaging.send("dashboard:register-widget", {
+        id: "entity-stats",
+        pluginId: this.id,
+        title: "Entity Statistics",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        dataProvider: async () => {
+          const counts = await this.getEntityCounts();
+          return {
+            stats: Object.fromEntries(
+              counts.map(({ entityType, count }) => [entityType, count]),
+            ),
+          };
+        },
+      });
 
-    // Register job status widget
-    await context.messaging.send("dashboard:register-widget", {
-      id: "job-status",
-      pluginId: this.id,
-      title: "Active Jobs",
-      section: "secondary",
-      priority: 20,
-      rendererName: "ListWidget",
-      dataProvider: async () => {
-        const { activeJobs, activeBatches } = await this.getJobStatus();
-        return {
-          jobs: activeJobs ?? [],
-          batches: activeBatches ?? [],
-        };
-      },
-    });
+      // Register job status widget
+      await context.messaging.send("dashboard:register-widget", {
+        id: "job-status",
+        pluginId: this.id,
+        title: "Active Jobs",
+        section: "secondary",
+        priority: 20,
+        rendererName: "ListWidget",
+        dataProvider: async () => {
+          const { activeJobs, activeBatches } = await this.getJobStatus();
+          return {
+            jobs: activeJobs ?? [],
+            batches: activeBatches ?? [],
+          };
+        },
+      });
 
-    // Register identity widget
-    await context.messaging.send("dashboard:register-widget", {
-      id: "identity",
-      pluginId: this.id,
-      title: "Brain Identity",
-      section: "sidebar",
-      priority: 5,
-      rendererName: "CustomWidget",
-      dataProvider: async () => ({
-        identity: this.getIdentityData(),
-        profile: this.getProfileData(),
-      }),
-    });
+      // Register identity widget
+      await context.messaging.send("dashboard:register-widget", {
+        id: "identity",
+        pluginId: this.id,
+        title: "Brain Identity",
+        section: "sidebar",
+        priority: 5,
+        rendererName: "CustomWidget",
+        dataProvider: async () => ({
+          identity: this.getIdentityData(),
+          profile: this.getProfileData(),
+        }),
+      });
 
-    this.logger.debug("System plugin registered dashboard widgets");
+      this.logger.debug("System plugin registered dashboard widgets");
+      return { success: true };
+    });
   }
 
   /**

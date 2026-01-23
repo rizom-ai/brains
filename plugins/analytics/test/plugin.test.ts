@@ -52,7 +52,7 @@ describe("AnalyticsPlugin", () => {
   });
 
   describe("Dashboard Widget Registration", () => {
-    it("should register website-metrics widget on startup", async () => {
+    it("should register website-metrics widget after system:plugins:ready", async () => {
       const harness = createServicePluginHarness({
         dataDir: "/tmp/test-datadir",
       });
@@ -65,6 +65,15 @@ describe("AnalyticsPlugin", () => {
       });
 
       await harness.installPlugin(new AnalyticsPluginClass());
+
+      // Widgets should NOT be registered yet (before system:plugins:ready)
+      expect(registeredWidgets).toHaveLength(0);
+
+      // Emit system:plugins:ready - this triggers widget registration
+      await harness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
 
       expect(registeredWidgets).toContainEqual({
         id: "website-metrics",
@@ -73,7 +82,7 @@ describe("AnalyticsPlugin", () => {
       harness.reset();
     });
 
-    it("should register social-engagement widget on startup", async () => {
+    it("should register social-engagement widget after system:plugins:ready", async () => {
       const harness = createServicePluginHarness({
         dataDir: "/tmp/test-datadir",
       });
@@ -87,10 +96,37 @@ describe("AnalyticsPlugin", () => {
 
       await harness.installPlugin(new AnalyticsPluginClass());
 
+      // Emit system:plugins:ready - this triggers widget registration
+      await harness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
+
       expect(registeredWidgets).toContainEqual({
         id: "social-engagement",
         pluginId: "analytics",
       });
+      harness.reset();
+    });
+
+    it("should NOT register widgets before system:plugins:ready", async () => {
+      // This test verifies the timing fix - widgets should only be sent
+      // after system:plugins:ready, ensuring Dashboard has subscribed first
+      const harness = createServicePluginHarness({
+        dataDir: "/tmp/test-datadir",
+      });
+      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+
+      harness.subscribe("dashboard:register-widget", (message) => {
+        const payload = message.payload as { id: string; pluginId: string };
+        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        return { success: true };
+      });
+
+      await harness.installPlugin(new AnalyticsPluginClass());
+
+      // Widgets should NOT be registered yet
+      expect(registeredWidgets).toHaveLength(0);
       harness.reset();
     });
   });

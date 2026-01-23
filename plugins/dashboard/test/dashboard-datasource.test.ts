@@ -175,7 +175,7 @@ describe("DashboardDataSource", () => {
 
   describe("metadata", () => {
     it("should have correct id, name, and description", () => {
-      expect(datasource.id).toBe("dashboard");
+      expect(datasource.id).toBe("dashboard:dashboard");
       expect(datasource.name).toBe("Dashboard DataSource");
       expect(datasource.description).toBe(
         "Aggregates dashboard widgets from all plugins",

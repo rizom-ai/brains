@@ -95,14 +95,22 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       });
     }
 
-    // Register dashboard widgets
-    await this.registerDashboardWidgets(context);
+    // Subscribe to system:plugins:ready to register widgets AFTER Dashboard is listening
+    // This solves the timing issue where Analytics plugin initializes
+    // before Dashboard and widget messages would be lost.
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await this.registerDashboardWidgets(context);
+      return { success: true };
+    });
 
     this.logger.debug("Analytics plugin registered successfully");
   }
 
   /**
    * Register dashboard widgets for analytics data
+   *
+   * Called from system:plugins:ready callback to ensure Dashboard
+   * is already subscribed to dashboard:register-widget messages.
    */
   private async registerDashboardWidgets(
     context: ServicePluginContext,

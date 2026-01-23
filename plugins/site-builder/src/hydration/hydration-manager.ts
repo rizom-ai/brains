@@ -1,9 +1,10 @@
 import type { Logger } from "@brains/utils";
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
 import type { RouteDefinition, SectionDefinition } from "../types/routes";
-import { join } from "path";
+import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { promises as fs } from "fs";
+import * as esbuild from "esbuild";
 
 /**
  * Simplified hydration manager - only handles Preact script injection
@@ -173,8 +174,8 @@ export class HydrationManager {
               continue;
             }
 
-            // Copy hydration script for this template
-            await this.copyHydrationScript(templateName, packageName);
+            // Compile hydration script for this template from source
+            await this.compileHydrationScript(templateName, packageName);
           }
         }
 
@@ -192,37 +193,103 @@ export class HydrationManager {
   }
 
   /**
-   * Copy pre-compiled hydration script from dist to output directory
+   * Compile hydration script from source at build time
+   *
+   * This compiles the plugin's hydration.tsx source file directly,
+   * eliminating the need for each plugin to have its own build step.
    */
-  private async copyHydrationScript(
+  private async compileHydrationScript(
     templateName: string,
     packageName: string,
   ): Promise<void> {
     try {
-      // Use import.meta.resolve to find the hydration script
-      // This uses the full package name from package.json
-      const hydrationScriptUrl = import.meta.resolve(
-        `${packageName}/dist/templates/${templateName}/hydration.js`,
+      // Resolve the plugin's package location
+      const packageUrl = import.meta.resolve(packageName);
+      const packagePath = fileURLToPath(packageUrl);
+      const packageDir = dirname(packagePath);
+
+      // Source file: {packageDir}/templates/{templateName}/hydration.tsx
+      const sourceFile = join(
+        packageDir,
+        "templates",
+        templateName,
+        "hydration.tsx",
       );
-      const sourceScript = fileURLToPath(hydrationScriptUrl);
+
+      // Check if source file exists
+      try {
+        await fs.access(sourceFile);
+      } catch {
+        this.logger.error(
+          `Hydration source file not found: ${sourceFile}. ` +
+            `Expected at: src/templates/${templateName}/hydration.tsx in package ${packageName}`,
+        );
+        return;
+      }
 
       // Destination: output directory where website is built
       const targetScript = join(this.outputDir, `${templateName}-hydration.js`);
 
       this.logger.debug(
-        `Copying hydration script from ${sourceScript} to ${targetScript}`,
+        `Compiling hydration script from ${sourceFile} to ${targetScript}`,
       );
 
-      // Copy the pre-compiled script
-      await fs.copyFile(sourceScript, targetScript);
+      // Compile using esbuild with the same config as build:hydration.ts
+      await esbuild.build({
+        entryPoints: [sourceFile],
+        outfile: targetScript,
+        bundle: true,
+        format: "iife",
+        platform: "browser",
+        target: ["es2020"],
+        external: ["preact", "preact/hooks", "preact/jsx-runtime", "crypto"],
+        jsx: "transform",
+        jsxFactory: "window.preact.h",
+        jsxFragment: "window.preact.Fragment",
+        define: {
+          "import.meta.env.SSR": "false",
+        },
+        banner: {
+          js: `
+// Use global preact from window
+const { h, hydrate, useState, useMemo, jsx, jsxs } = window.preact;
+// Shim for Node modules that aren't available in browser
+var __require = function(mod) {
+  if (mod === "crypto") return { randomUUID: () => window.crypto.randomUUID() };
+  throw new Error("Cannot require " + mod + " in browser");
+};
+`,
+        },
+        write: true,
+        sourcemap: false,
+        minify: false,
+      });
 
-      this.logger.info(`Copied hydration script for ${templateName}`);
+      // Post-process to fix any remaining import statements and hook usage
+      let outputCode = await fs.readFile(targetScript, "utf8");
+
+      outputCode = outputCode
+        .replace(/import\s*{[^}]+}\s*from\s*["']preact["'];?/g, "")
+        .replace(/import\s*{[^}]+}\s*from\s*["']preact\/hooks["'];?/g, "")
+        .replace(/var import_hooks = __require\("preact\/hooks"\);/g, "")
+        .replace(/\(0, import_hooks\.useState\)/g, "window.preact.useState")
+        .replace(/\(0, import_hooks\.useMemo\)/g, "window.preact.useMemo")
+        .replace(/\(0, import_hooks\.useEffect\)/g, "window.preact.useEffect")
+        .replace(
+          /\(0, import_hooks\.useCallback\)/g,
+          "window.preact.useCallback",
+        )
+        .replace(/\(0, import_hooks\.useRef\)/g, "window.preact.useRef")
+        .replace(/__require\("preact[^"]*"\)/g, "window.preact");
+
+      await fs.writeFile(targetScript, outputCode, "utf8");
+
+      this.logger.info(`Compiled hydration script for ${templateName}`);
     } catch (error) {
       this.logger.error(
-        `Failed to copy hydration script for ${templateName}:`,
+        `Failed to compile hydration script for ${templateName}:`,
         error,
       );
-      // Add more detailed error information
       if (error instanceof Error) {
         this.logger.error(`Error details: ${error.message}`);
         this.logger.error(`Stack trace: ${error.stack}`);

@@ -54,6 +54,7 @@ const unregisterWidgetPayloadSchema = z.object({
  * and serves the data through a datasource.
  */
 export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
+  public readonly dependencies = ["site-builder"];
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
 
@@ -107,23 +108,31 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     context.messaging.subscribe(
       "dashboard:register-widget",
       async (message) => {
-        const payload = registerWidgetPayloadSchema.parse(message.payload);
-        const widget: RegisteredWidget = {
-          id: payload.id,
-          pluginId: payload.pluginId,
-          title: payload.title,
-          description: payload.description,
-          priority: payload.priority,
-          section: payload.section,
-          rendererName: payload.rendererName,
-          dataProvider: payload.dataProvider as () => Promise<unknown>,
-        };
-        this.widgetRegistry?.register(widget);
-        this.logger.debug("Widget registered via messaging", {
-          widgetId: payload.id,
-          pluginId: payload.pluginId,
-        });
-        return { success: true };
+        try {
+          const payload = registerWidgetPayloadSchema.parse(message.payload);
+          const widget: RegisteredWidget = {
+            id: payload.id,
+            pluginId: payload.pluginId,
+            title: payload.title,
+            description: payload.description,
+            priority: payload.priority,
+            section: payload.section,
+            rendererName: payload.rendererName,
+            dataProvider: payload.dataProvider as () => Promise<unknown>,
+          };
+          this.widgetRegistry?.register(widget);
+          this.logger.debug("Widget registered via messaging", {
+            widgetId: payload.id,
+            pluginId: payload.pluginId,
+          });
+          return { success: true };
+        } catch (error) {
+          this.logger.error("Failed to register widget", {
+            error: error instanceof Error ? error.message : String(error),
+            payload: message.payload,
+          });
+          return { success: false, error: "Widget registration failed" };
+        }
       },
     );
 
