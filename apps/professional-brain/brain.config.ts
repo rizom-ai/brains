@@ -24,6 +24,7 @@ import {
 import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-yeehaa";
 import { analyticsPlugin } from "@brains/analytics";
+import { DashboardPlugin } from "@brains/dashboard";
 
 // Entity route configuration
 const entityRouteConfig = {
@@ -122,6 +123,7 @@ const config = defineConfig({
         ? { accessToken: process.env["LINKEDIN_ACCESS_TOKEN"] }
         : undefined,
     }),
+    new DashboardPlugin(),
     professionalSitePlugin({
       entityRouteConfig,
     }),
