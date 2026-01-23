@@ -97,7 +97,7 @@ setup_app_environment() {
 useradd -r -m -d $APP_DIR -s /bin/false personal-brain || true
 
 # Create data directories with correct ownership
-mkdir -p $DATA_DIR $APP_DIR/brain-repo $APP_DIR/website $APP_DIR/matrix-storage $APP_DIR/brain-data
+mkdir -p $DATA_DIR $APP_DIR/brain-repo $APP_DIR/website $APP_DIR/matrix-storage $APP_DIR/brain-data $APP_DIR/site-production $APP_DIR/site-preview
 chown -R personal-brain:personal-brain $APP_DIR
 
 # Create docker network
