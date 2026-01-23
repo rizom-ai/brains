@@ -1,164 +1,100 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-22
-
-## Current Focus: Professional-Brain Release
-
-The immediate priority is releasing a production-ready version of professional-brain (Rover) - a personal knowledge platform for independent professionals.
+Last Updated: 2025-01-23
 
 ---
 
-## Phase 0: Professional-Brain v1.0
+## Current Focus: Professional-Brain v1.0
 
-**Goal**: Clean, stable release without newsletter functionality.
+**Goal**: Launch yeehaa.io with complete content and working features.
+
+### Remaining for v1.0
+
+- [ ] Dashboard: Add more analytics info to widgets
+- [ ] Series: Auto-generate summary and cover image
+- [ ] Image generation: Evaluate alternatives to DALL-E
+- [ ] Social media auto-generate: Verify working
+- [ ] Discord interface: Implement bot
+- [ ] Publish pipeline: Verify queue/schedule/publish flow
+- [ ] Content: Finalize essays, portfolio, about (last step)
+
+### Recently Fixed
+
+- ✅ Dashboard widget registration timing
+- ✅ Hydration compilation centralized in site-builder
+- ✅ Site build permissions on Hetzner
+- ✅ Topics extraction
+- ✅ Social post data validation
 
 ### What's Working
 
 - Site builder with Preact SSR and Tailwind CSS v4
-- Blog plugin with essays, series, RSS feeds
-- Decks plugin for presentations
-- Portfolio plugin for case studies
-- Topics plugin for AI-powered tagging
-- Links plugin for bookmarks
-- Notes plugin for drafts
-- Social media plugin for post generation
-- Analytics (Cloudflare integration)
+- Blog with essays, series, RSS feeds
+- Decks with cover images
+- Portfolio case studies
+- Topics (AI-powered tagging)
+- Links and Notes
+- Social media plugin (LinkedIn generation)
+- Analytics plugin (Cloudflare)
+- Dashboard plugin (widget system)
 - Matrix bot interface
 - MCP interface (stdio + HTTP)
-- Git sync for version control
-- Directory sync for file-based editing
-
-### To Complete
-
-- [ ] Review and fix any broken functionality
-- [ ] Ensure all templates render correctly
-- [ ] Verify deployment pipeline works
-- [ ] Update documentation
-- [ ] Tag v1.0 release
-
-### Out of Scope (Phase 0)
-
-- Newsletter signup/integration
-- API routes for forms
-- CTA slot system
+- Git sync and directory sync
+- Hetzner deployment
 
 ---
 
-## Phase 1: API Infrastructure
+## Phase 1: Newsletter Integration (post-v1.0)
 
-**Goal**: Extensible API route system for plugins.
+**Goal**: Newsletter signup on site.
 
-### Deliverables
+### Requires
 
-- Plugin-declared API routes (`static apiRoutes` on ServicePlugin)
-- API route registry in `@brains/plugins`
-- Route handler in MCP HTTP server
-- Webserver proxy (`/api/*` → MCP)
-- Auth support (public vs authenticated routes)
-
-### Key Files
-
-- `shell/plugins/src/types/api-routes.ts`
-- `shell/plugins/src/registries/api-route-registry.ts`
-- `interfaces/mcp/src/api/route-handler.ts`
-- `interfaces/webserver/src/server-manager.ts`
-
-### Plan
-
-See `docs/plans/newsletter-integration.md` (Part 1-3)
-
----
-
-## Phase 2: Newsletter Integration
-
-**Goal**: Newsletter signup on professional-brain site.
+- API routes infrastructure (plugin-declared routes)
+- MCP HTTP route handler
+- Webserver proxy (`/api/*`)
 
 ### Deliverables
 
-- Newsletter plugin API route exposed
-- CTA slot system (link vs newsletter types)
-- Footer integration with optional CTA
+- Newsletter plugin API route
+- CTA slot in footer
 - Thank-you/error pages
-- Professional-brain config updated
-
-### Key Files
-
-- `plugins/newsletter/src/index.ts` (add apiRoutes)
-- `shared/ui-library/src/CTASlot.tsx`
-- `shared/default-site-content/src/footer.tsx`
-- `apps/professional-brain/brain.config.ts`
 
 ### Plan
 
-See `docs/plans/newsletter-integration.md` (Part 4-5)
+See `docs/plans/newsletter-integration.md`
 
 ---
 
-## Phase 3: Cloudflare Migration
-
-**Goal**: Cloudflare as default CDN, Bunny.net as alternative.
-
-### Deliverables
-
-- Cloudflare CDN/DNS Terraform module
-- Provider selection in deployment config
-- Zero-downtime migration path from Bunny
-- Updated deployment documentation
-
-### Plan
-
-See `docs/plans/cloudflare-migration.md`
-
----
-
-## Phase 4: Production Polish
-
-**Goal**: Professional-brain ready for real users.
-
-### Potential Items
+## Phase 2: Production Polish
 
 - Performance optimization
-- Error handling improvements
 - Mobile responsiveness review
-- SEO optimization
+- SEO improvements
 - Accessibility audit
-- Monitoring and alerting
 
 ---
 
-## Completed
+## Completed (2025-01)
 
-### 2025-01
-
+- ✅ Dashboard plugin with extensible widgets
+- ✅ Social media auto-generate on blog publish
 - ✅ Newsletter plugin (Buttondown integration)
 - ✅ NewsletterSignup UI component
+- ✅ Publish pipeline (queue, schedule, execute)
 - ✅ Deploy script consolidation
 - ✅ Docker build optimization
-- ✅ Image plugin improvements (cover images, alt text)
-
-### 2024 (Previous)
-
-- ✅ Core plugin architecture
-- ✅ Entity framework with Zod schemas
-- ✅ Site builder with Preact + Tailwind
-- ✅ Blog, Decks, Portfolio, Topics plugins
-- ✅ MCP interface (stdio + HTTP)
-- ✅ Matrix bot interface
-- ✅ Conversation memory
-- ✅ Job queue with progress tracking
-- ✅ Git sync and directory sync
-- ✅ Centralized permissions
-- ✅ Hetzner deployment with Terraform
+- ✅ Image plugin (cover images, alt text)
+- ✅ Decks cover image support
+- ✅ AI SDK v6 stabilization
+- ✅ Plugin test coverage
 
 ---
 
 ## Future Considerations
 
-These are not currently planned but may be explored later:
-
-- **Team Brain**: Shared knowledge bases for teams
-- **Collective Brain**: Community-driven knowledge networks
-- **Web UI**: Browser-based interface beyond static site
-- **Mobile App**: Native or PWA mobile experience
-- **Additional Interfaces**: Discord, Slack, WhatsApp
-- **Roadmap Plugin**: Goal tracking and milestone management
+- **Astro Site Builder**: Alternative SSG with content collections (see `docs/plans/site-builder-astro.md`)
+- **Team Brain**: Shared knowledge bases
+- **Collective Brain**: Community knowledge networks
+- **Web UI**: Browser interface beyond static site
+- **Additional Interfaces**: Slack, WhatsApp
