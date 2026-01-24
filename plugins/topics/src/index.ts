@@ -276,20 +276,18 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       this.logger.debug("Queuing topic extraction for entity", {
         entityId: entity.id,
         entityType: entity.entityType,
-        contentLength: entity.content.length,
+        contentHash: entity.contentHash,
       });
 
       // Queue extraction job - the AI extraction runs asynchronously
       // This prevents blocking entity creation/updates
+      // Job data is minimal (no content) to avoid large base64 data in job queue
       await context.jobs.enqueue(
         "extract",
         {
           entityId: entity.id,
           entityType: entity.entityType,
-          entityContent: entity.content,
-          entityMetadata: entity.metadata,
-          entityCreated: entity.created,
-          entityUpdated: entity.updated,
+          contentHash: entity.contentHash,
           minRelevanceScore: this.config.minRelevanceScore,
           autoMerge: this.config.autoMerge,
           mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,

@@ -1,4 +1,4 @@
-import { z, computeContentHash } from "@brains/utils";
+import { z } from "@brains/utils";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,
@@ -11,14 +11,12 @@ import type { MessageBus } from "@brains/messaging-service";
 
 /**
  * Zod schema for embedding job data validation
+ * Content is NOT in job data - fetched fresh from entity when processing
  */
 const embeddingJobDataSchema = z.object({
   id: z.string().min(1, "Entity ID is required"),
   entityType: z.string().min(1, "Entity type is required"),
-  content: z.string().min(1, "Content is required"),
-  metadata: z.record(z.string(), z.unknown()).default({}),
-  created: z.number().int().positive("Created timestamp must be positive"),
-  updated: z.number().int().positive("Updated timestamp must be positive"),
+  contentHash: z.string().min(1, "Content hash is required"),
   operation: z.enum(["create", "update"]),
 });
 
@@ -99,7 +97,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         jobId,
         entityId: data.id,
         entityType: data.entityType,
-        contentLength: data.content.length,
+        contentHash: data.contentHash,
       });
 
       // Report initial progress
@@ -109,9 +107,8 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         message: `Generating embedding for ${data.entityType} ${data.id}`,
       });
 
-      // Check if entity still exists and content matches
-      // With immediate persistence, entity should exist for both CREATE and UPDATE
-      // This prevents stale jobs from generating embeddings for outdated content
+      // Fetch fresh entity - content is NOT stored in job data to avoid
+      // large base64 data bloating job queue and dashboard hydration props
       const currentEntity = await this.entityService.getEntity(
         data.entityType,
         data.id,
@@ -127,24 +124,24 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         return;
       }
 
-      const jobContentHash = computeContentHash(data.content);
-      if (currentEntity.contentHash !== jobContentHash) {
+      // Check if content has changed since job was queued (staleness detection)
+      if (currentEntity.contentHash !== data.contentHash) {
         this.logger.info(
           "Entity content changed since job created, skipping stale embedding",
           {
             jobId,
             entityId: data.id,
             entityType: data.entityType,
-            jobContentHash,
+            jobContentHash: data.contentHash,
             currentContentHash: currentEntity.contentHash,
           },
         );
         return;
       }
 
-      // Generate embedding for the entity content
+      // Generate embedding using fresh content from entity
       const embedding = await this.embeddingService.generateEmbedding(
-        data.content,
+        currentEntity.content,
       );
 
       // Report progress after embedding generation
@@ -159,7 +156,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
         entityId: data.id,
         entityType: data.entityType,
         embedding,
-        contentHash: jobContentHash,
+        contentHash: data.contentHash,
       });
 
       // Emit entity:embedding:ready event after successful save
@@ -219,7 +216,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
       jobId,
       entityId: data.id,
       entityType: data.entityType,
-      contentLength: data.content.length,
+      contentHash: data.contentHash,
       errorMessage: error.message,
       errorStack: error.stack,
     });
@@ -242,7 +239,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
       this.logger.debug("Embedding job data validation successful", {
         entityId: result.id,
         entityType: result.entityType,
-        contentLength: result.content.length,
+        contentHash: result.contentHash,
       });
 
       return result;

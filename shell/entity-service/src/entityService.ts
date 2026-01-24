@@ -227,14 +227,14 @@ export class EntityService implements IEntityService {
       );
     }
 
-    // Prepare entity data for queue (for embedding generation)
+    // Prepare job data for embedding generation
+    // Include contentHash instead of content to:
+    // 1. Enable staleness detection (compare hashes)
+    // 2. Avoid large base64 data (images) bloating job queue and dashboard hydration
     const entityForQueue: EmbeddingJobData = {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-      content: markdown,
-      metadata,
-      created: new Date(validatedEntity.created).getTime(),
-      updated: new Date(validatedEntity.updated).getTime(),
+      contentHash,
       operation: "create",
     };
 
@@ -378,14 +378,12 @@ export class EntityService implements IEntityService {
     }
 
     // Queue embedding generation for the updated entity
+    // Job data is minimal (no content) to avoid large base64 data in job queue
     const rootJobId = createId();
     const entityForQueue: EmbeddingJobData = {
       id: validatedEntity.id,
       entityType: validatedEntity.entityType,
-      content: markdown,
-      created: new Date(validatedEntity.created).getTime(),
-      updated: new Date(validatedEntity.updated).getTime(),
-      metadata,
+      contentHash,
       operation: "update",
     };
     const jobId = await this.jobQueueService.enqueue(

@@ -1,23 +1,18 @@
 import { z } from "@brains/utils";
 
 /**
- * Entity type without embedding field (used for job queue data)
+ * Embedding job data - minimal data for job queue
+ * Content is NOT stored to avoid large base64 data in job queue
+ * (which would end up in dashboard hydration props JSON)
+ * Handler fetches fresh content from entity when processing
  */
-export interface EntityWithoutEmbedding {
+export interface EmbeddingJobData {
   id: string;
   entityType: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  created: number;
-  updated: number;
-}
-
-/**
- * Embedding job data that includes the operation type
- */
-export type EmbeddingJobData = EntityWithoutEmbedding & {
+  /** Hash of content at job creation time - for staleness detection */
+  contentHash: string;
   operation: "create" | "update";
-};
+}
 
 /**
  * Base entity schema that all entities must extend

@@ -10,7 +10,8 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";
-import { ProgressReporter } from "@brains/utils";
+import { ProgressReporter, computeContentHash } from "@brains/utils";
+import type { BaseEntity } from "@brains/plugins";
 
 describe("TopicExtractionHandler", () => {
   let handler: TopicExtractionHandler;
@@ -43,15 +44,18 @@ describe("TopicExtractionHandler", () => {
     progressReporter = reporter;
   });
 
+  // Helper to add entity to MockShell's internal storage
+  const addEntityToShell = (entity: BaseEntity): void => {
+    // Access MockShell's internal entities map via createEntity
+    void mockShell.getEntityService().createEntity(entity);
+  };
+
   describe("validateAndParse", () => {
     it("should validate correct job data", () => {
       const validData = {
         entityId: "test-entity",
         entityType: "post",
-        entityContent: "Test content about machine learning",
-        entityMetadata: { title: "Test Post" },
-        entityCreated: new Date().toISOString(),
-        entityUpdated: new Date().toISOString(),
+        contentHash: computeContentHash("Test content"),
         minRelevanceScore: 0.5,
         autoMerge: true,
         mergeSimilarityThreshold: 0.85,
@@ -68,7 +72,7 @@ describe("TopicExtractionHandler", () => {
     it("should reject invalid job data - missing required fields", () => {
       const invalidData = {
         entityId: "test-entity",
-        // missing entityType, entityContent, etc.
+        // missing entityType, contentHash, etc.
       };
 
       const result = handler.validateAndParse(invalidData);
@@ -80,10 +84,7 @@ describe("TopicExtractionHandler", () => {
       const invalidData = {
         entityId: "test-entity",
         entityType: "post",
-        entityContent: "Test content",
-        entityMetadata: { title: "Test" },
-        entityCreated: new Date().toISOString(),
-        entityUpdated: new Date().toISOString(),
+        contentHash: computeContentHash("Test content"),
         minRelevanceScore: "not a number", // wrong type
         autoMerge: true,
         mergeSimilarityThreshold: 0.85,
@@ -98,10 +99,7 @@ describe("TopicExtractionHandler", () => {
       const invalidData = {
         entityId: "test-entity",
         entityType: "post",
-        entityContent: "Test content",
-        entityMetadata: { title: "Test" },
-        entityCreated: new Date().toISOString(),
-        entityUpdated: new Date().toISOString(),
+        contentHash: computeContentHash("Test content"),
         minRelevanceScore: 1.5, // > 1
         autoMerge: true,
         mergeSimilarityThreshold: 0.85,
@@ -114,20 +112,72 @@ describe("TopicExtractionHandler", () => {
   });
 
   describe("process", () => {
-    const createValidJobData = (content: string): TopicExtractionJobData => ({
-      entityId: "test-entity",
+    const createJobData = (
+      entityId: string,
+      contentHash: string,
+    ): TopicExtractionJobData => ({
+      entityId,
       entityType: "post",
-      entityContent: content,
-      entityMetadata: { title: "Test Post" },
-      entityCreated: new Date().toISOString(),
-      entityUpdated: new Date().toISOString(),
+      contentHash,
       minRelevanceScore: 0.5,
       autoMerge: true,
       mergeSimilarityThreshold: 0.85,
     });
 
+    const createEntity = (id: string, content: string): BaseEntity => ({
+      id,
+      entityType: "post",
+      content,
+      contentHash: computeContentHash(content),
+      metadata: { title: "Test Post" },
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    });
+
+    it("should return success with 0 topics when entity not found", async () => {
+      // Don't add any entity - it won't be found
+      const jobData = createJobData("non-existent", computeContentHash(""));
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.topicsExtracted).toBe(0);
+    });
+
+    it("should skip extraction when content has changed (staleness)", async () => {
+      const originalContent = "Original content";
+      const newContent = "Updated content that is different";
+
+      // Add entity with NEW content
+      const entity = createEntity("test-entity", newContent);
+      addEntityToShell(entity);
+
+      // But job data has hash of ORIGINAL content (simulating stale job)
+      const jobData = createJobData(
+        "test-entity",
+        computeContentHash(originalContent),
+      );
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.topicsExtracted).toBe(0);
+    });
+
     it("should return success with 0 topics for empty content", async () => {
-      const jobData = createValidJobData("");
+      const content = "";
+      const entity = createEntity("test-entity", content);
+      addEntityToShell(entity);
+
+      const jobData = createJobData("test-entity", entity.contentHash);
 
       const result = await handler.process(
         jobData,
@@ -140,7 +190,11 @@ describe("TopicExtractionHandler", () => {
     });
 
     it("should return success with 0 topics for whitespace-only content", async () => {
-      const jobData = createValidJobData("   \n\t  ");
+      const content = "   \n\t  ";
+      const entity = createEntity("test-entity", content);
+      addEntityToShell(entity);
+
+      const jobData = createJobData("test-entity", entity.contentHash);
 
       const result = await handler.process(
         jobData,
@@ -153,14 +207,18 @@ describe("TopicExtractionHandler", () => {
     });
 
     it("should extract topics from meaningful content", async () => {
-      const jobData = createValidJobData(`
+      const content = `
         # Introduction to Machine Learning
 
         Machine learning is a subset of artificial intelligence that enables
         systems to learn and improve from experience without being explicitly
         programmed. Deep learning, using neural networks, has revolutionized
         the field with breakthrough applications in computer vision and NLP.
-      `);
+      `;
+      const entity = createEntity("test-entity", content);
+      addEntityToShell(entity);
+
+      const jobData = createJobData("test-entity", entity.contentHash);
 
       const result = await handler.process(
         jobData,
@@ -174,7 +232,11 @@ describe("TopicExtractionHandler", () => {
     });
 
     it("should report progress during extraction", async () => {
-      const jobData = createValidJobData("Brief content about technology");
+      const content = "Brief content about technology";
+      const entity = createEntity("test-entity", content);
+      addEntityToShell(entity);
+
+      const jobData = createJobData("test-entity", entity.contentHash);
 
       await handler.process(jobData, "job-123", progressReporter);
 

@@ -1,23 +1,16 @@
-import type { ServicePluginContext, BaseEntity } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import {
-  z,
-  createId,
-  computeContentHash,
-  PROGRESS_STEPS,
-  JobResult,
-} from "@brains/utils";
+import { z, createId, PROGRESS_STEPS, JobResult } from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 
 // Schema for extraction job data
+// Content is NOT stored to avoid large data (including base64 images) in job queue
+// Handler fetches fresh content from entity when processing
 export const topicExtractionJobDataSchema = z.object({
   entityId: z.string(),
   entityType: z.string(),
-  entityContent: z.string(),
-  entityMetadata: z.record(z.unknown()),
-  entityCreated: z.string(),
-  entityUpdated: z.string(),
+  contentHash: z.string(), // For staleness detection
   minRelevanceScore: z.number().min(0).max(1),
   autoMerge: z.boolean(),
   mergeSimilarityThreshold: z.number().min(0).max(1),
@@ -63,10 +56,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
     const {
       entityId,
       entityType,
-      entityContent,
-      entityMetadata,
-      entityCreated,
-      entityUpdated,
+      contentHash,
       minRelevanceScore,
       autoMerge,
       mergeSimilarityThreshold,
@@ -76,7 +66,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
       jobId,
       entityId,
       entityType,
-      contentLength: entityContent.length,
+      contentHash,
     });
 
     try {
@@ -85,16 +75,42 @@ export class TopicExtractionHandler extends BaseJobHandler<
         message: `Extracting topics from ${entityType}: ${entityId}`,
       });
 
-      // Reconstruct entity for extraction
-      const entity: BaseEntity = {
-        id: entityId,
+      // Fetch fresh entity - content is NOT stored in job data to avoid
+      // large data (including base64 images) bloating job queue
+      const entity = await this.context.entityService.getEntity(
         entityType,
-        content: entityContent,
-        contentHash: computeContentHash(entityContent),
-        metadata: entityMetadata,
-        created: entityCreated,
-        updated: entityUpdated,
-      };
+        entityId,
+      );
+
+      if (!entity) {
+        this.logger.warn("Entity no longer exists, skipping topic extraction", {
+          jobId,
+          entityId,
+          entityType,
+        });
+        return {
+          success: true,
+          topicsExtracted: 0,
+        };
+      }
+
+      // Check if content has changed since job was queued (staleness detection)
+      if (entity.contentHash !== contentHash) {
+        this.logger.info(
+          "Entity content changed since job created, skipping stale extraction",
+          {
+            jobId,
+            entityId,
+            entityType,
+            jobContentHash: contentHash,
+            currentContentHash: entity.contentHash,
+          },
+        );
+        return {
+          success: true,
+          topicsExtracted: 0,
+        };
+      }
 
       // Extract topics using AI (this is the slow part that was blocking)
       const extractedTopics = await this.topicExtractor.extractFromEntity(
@@ -190,7 +206,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
     return {
       entityId: data.entityId,
       entityType: data.entityType,
-      contentLength: data.entityContent.length,
+      contentHash: data.contentHash,
     };
   }
 }
