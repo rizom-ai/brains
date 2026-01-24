@@ -323,4 +323,253 @@ describe("CloudflareClient", () => {
       expect(isValid).toBe(false);
     });
   });
+
+  describe("getTopPages", () => {
+    it("should fetch top pages grouped by requestPath", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    count: 45,
+                    dimensions: { requestPath: "/essays/economy-of-abundance" },
+                  },
+                  {
+                    count: 30,
+                    dimensions: { requestPath: "/" },
+                  },
+                  {
+                    count: 20,
+                    dimensions: { requestPath: "/decks/offcourse" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getTopPages({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result).toEqual([
+        { path: "/essays/economy-of-abundance", views: 45 },
+        { path: "/", views: 30 },
+        { path: "/decks/offcourse", views: 20 },
+      ]);
+    });
+
+    it("should return empty array when no data", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getTopPages({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("getTopReferrers", () => {
+    it("should fetch top referrers grouped by refererHost", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 25 },
+                    dimensions: { refererHost: "google.com" },
+                  },
+                  {
+                    sum: { visits: 15 },
+                    dimensions: { refererHost: "linkedin.com" },
+                  },
+                  {
+                    sum: { visits: 40 },
+                    dimensions: { refererHost: "" }, // Direct traffic
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getTopReferrers({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result).toEqual([
+        { host: "google.com", visits: 25 },
+        { host: "linkedin.com", visits: 15 },
+        { host: "(direct)", visits: 40 },
+      ]);
+    });
+  });
+
+  describe("getDeviceBreakdown", () => {
+    it("should fetch device type breakdown", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 60 },
+                    dimensions: { deviceType: "desktop" },
+                  },
+                  {
+                    sum: { visits: 38 },
+                    dimensions: { deviceType: "mobile" },
+                  },
+                  {
+                    sum: { visits: 2 },
+                    dimensions: { deviceType: "tablet" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getDeviceBreakdown({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result).toEqual({
+        desktop: 60,
+        mobile: 38,
+        tablet: 2,
+      });
+    });
+
+    it("should return zeros for missing device types", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 100 },
+                    dimensions: { deviceType: "desktop" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getDeviceBreakdown({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result).toEqual({
+        desktop: 100,
+        mobile: 0,
+        tablet: 0,
+      });
+    });
+  });
+
+  describe("getTopCountries", () => {
+    it("should fetch top countries grouped by countryName", async () => {
+      const mockResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 40 },
+                    dimensions: { countryName: "United States" },
+                  },
+                  {
+                    sum: { visits: 15 },
+                    dimensions: { countryName: "Netherlands" },
+                  },
+                  {
+                    sum: { visits: 10 },
+                    dimensions: { countryName: "Germany" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResponse), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+
+      const result = await client.getTopCountries({
+        startDate: "2025-01-15",
+        endDate: "2025-01-15",
+      });
+
+      expect(result).toEqual([
+        { country: "United States", visits: 40 },
+        { country: "Netherlands", visits: 15 },
+        { country: "Germany", visits: 10 },
+      ]);
+    });
+  });
 });

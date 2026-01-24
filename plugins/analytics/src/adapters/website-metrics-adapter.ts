@@ -7,16 +7,17 @@ import {
 import type { z } from "@brains/utils";
 import {
   websiteMetricsSchema,
-  websiteMetricsMetadataSchema,
+  websiteMetricsFrontmatterSchema,
 } from "../schemas/website-metrics";
 import type {
   WebsiteMetricsEntity,
   WebsiteMetricsMetadata,
+  WebsiteMetricsFrontmatter,
 } from "../schemas/website-metrics";
 
 /**
  * Adapter for website metrics entities
- * Stores metrics data in frontmatter, minimal content body
+ * Stores all data (including breakdowns) in content as YAML frontmatter
  */
 export class WebsiteMetricsAdapter
   implements EntityAdapter<WebsiteMetricsEntity, WebsiteMetricsMetadata>
@@ -26,40 +27,36 @@ export class WebsiteMetricsAdapter
 
   /**
    * Convert entity to markdown with frontmatter
+   * Parses frontmatter from content, regenerates with body
    */
   public toMarkdown(entity: WebsiteMetricsEntity): string {
-    const contentBody = this.createContentBody(entity.metadata);
-    return generateMarkdownWithFrontmatter(contentBody, entity.metadata);
-  }
+    // Parse existing frontmatter from content
+    const { content: body, metadata: frontmatter } =
+      parseMarkdownWithFrontmatter(
+        entity.content,
+        websiteMetricsFrontmatterSchema,
+      );
 
-  /**
-   * Create content body from metadata
-   */
-  private createContentBody(metadata: WebsiteMetricsMetadata): string {
-    const lines: string[] = [];
-    lines.push(`# Website Metrics: ${metadata.period}`);
-    lines.push("");
-    lines.push(`**Period**: ${metadata.startDate} to ${metadata.endDate}`);
-    lines.push("");
-    lines.push("## Summary");
-    lines.push("");
-    lines.push(`- **Pageviews**: ${metadata.pageviews.toLocaleString()}`);
-    lines.push(`- **Visitors**: ${metadata.visitors.toLocaleString()}`);
-    lines.push(`- **Visits**: ${metadata.visits.toLocaleString()}`);
-    lines.push(`- **Bounce Rate**: ${(metadata.bounceRate * 100).toFixed(1)}%`);
-    lines.push(`- **Avg Time on Page**: ${metadata.avgTimeOnPage.toFixed(1)}s`);
-    lines.push("");
-    return lines.join("\n");
+    // Regenerate markdown with frontmatter
+    return generateMarkdownWithFrontmatter(body, frontmatter);
   }
 
   /**
    * Create entity from markdown
+   * Parses frontmatter and extracts metadata (queryable subset)
    */
   public fromMarkdown(markdown: string): Partial<WebsiteMetricsEntity> {
-    const { metadata } = parseMarkdownWithFrontmatter(
+    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
       markdown,
-      websiteMetricsMetadataSchema,
+      websiteMetricsFrontmatterSchema,
     );
+
+    // Extract metadata (queryable subset) from frontmatter
+    const metadata: WebsiteMetricsMetadata = {
+      date: frontmatter.date,
+      pageviews: frontmatter.pageviews,
+      visitors: frontmatter.visitors,
+    };
 
     return {
       entityType: "website-metrics",
@@ -87,9 +84,28 @@ export class WebsiteMetricsAdapter
   }
 
   /**
-   * Generate frontmatter for the entity
+   * Generate frontmatter string from entity
+   * Parses frontmatter from content and generates YAML
    */
   public generateFrontMatter(entity: WebsiteMetricsEntity): string {
-    return generateFrontmatter(entity.metadata);
+    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+      entity.content,
+      websiteMetricsFrontmatterSchema,
+    );
+    return generateFrontmatter(frontmatter);
+  }
+
+  /**
+   * Parse full frontmatter data from entity content
+   * Use this to access breakdown arrays (topPages, topReferrers, etc.)
+   */
+  public parseFrontmatterData(
+    entity: WebsiteMetricsEntity,
+  ): WebsiteMetricsFrontmatter {
+    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+      entity.content,
+      websiteMetricsFrontmatterSchema,
+    );
+    return frontmatter;
   }
 }

@@ -192,8 +192,8 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should fetch and store website metrics", async () => {
-      // Mock Cloudflare API response
-      const mockResponse = {
+      // Mock Cloudflare API responses for all 5 parallel calls
+      const mockStatsResponse = {
         data: {
           viewer: {
             accounts: [
@@ -211,21 +211,112 @@ describe("AnalyticsPlugin Integration", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+      const mockTopPagesResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  { count: 45, dimensions: { requestPath: "/essays/test" } },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockReferrersResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 25 },
+                    dimensions: { refererHost: "google.com" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockDevicesResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 60 },
+                    dimensions: { deviceType: "desktop" },
+                  },
+                  { sum: { visits: 38 }, dimensions: { deviceType: "mobile" } },
+                  { sum: { visits: 2 }, dimensions: { deviceType: "tablet" } },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockCountriesResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 40 },
+                    dimensions: { countryName: "United States" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      // Mock all 5 API calls
+      mockFetch
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockStatsResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockTopPagesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockReferrersResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockDevicesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockCountriesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
 
       // Execute tool
       const result = await executeTool(
         capabilities,
         "analytics_fetch_website",
         {
-          startDate: "2025-01-15",
-          endDate: "2025-01-15",
-          period: "daily",
+          date: "2025-01-15",
         },
       );
 
@@ -237,16 +328,19 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should handle API errors gracefully", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response("Unauthorized", { status: 401 }),
-      );
+      // Mock all 5 parallel API calls to return 401
+      mockFetch
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
+        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }));
 
       const result = await executeTool(
         capabilities,
         "analytics_fetch_website",
         {
-          startDate: "2025-01-15",
-          endDate: "2025-01-15",
+          date: "2025-01-15",
         },
       );
 

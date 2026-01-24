@@ -144,59 +144,115 @@ describe("AnalyticsPlugin", () => {
     });
 
     it("should convert entity to markdown with frontmatter", () => {
+      // Create entity with content containing frontmatter (as it would be stored)
+      const content = `---
+date: "2025-01-15"
+pageviews: 1500
+visitors: 450
+topPages:
+  - path: /essays/test
+    views: 45
+topReferrers:
+  - host: google.com
+    visits: 25
+devices:
+  desktop: 60
+  mobile: 38
+  tablet: 2
+topCountries:
+  - country: United States
+    visits: 40
+---
+
+# Website Metrics
+
+Website metrics for 2025-01-15`;
+
       const entity = {
-        id: "website-metrics-daily-2025-01-15",
+        id: "website-metrics-2025-01-15",
         entityType: "website-metrics" as const,
-        content: "",
+        content,
         contentHash: "abc123",
         created: "2025-01-15T10:00:00.000Z",
         updated: "2025-01-15T10:00:00.000Z",
         metadata: {
-          period: "daily" as const,
-          startDate: "2025-01-15",
-          endDate: "2025-01-15",
+          date: "2025-01-15",
           pageviews: 1500,
           visitors: 450,
-          visits: 600,
-          bounces: 180,
-          totalTime: 27000,
-          bounceRate: 0.3,
-          avgTimeOnPage: 45,
         },
       };
 
       const markdown = adapter.toMarkdown(entity);
       expect(markdown).toContain("---");
-      expect(markdown).toContain("period: daily");
       expect(markdown).toContain("pageviews: 1500");
-      expect(markdown).toContain("# Website Metrics: daily");
+      expect(markdown).toContain("# Website Metrics");
+      expect(markdown).toContain("topPages:");
+      expect(markdown).toContain("devices:");
     });
 
     it("should extract metadata from entity", () => {
       const entity = {
-        id: "website-metrics-daily-2025-01-15",
+        id: "website-metrics-2025-01-15",
         entityType: "website-metrics" as const,
         content: "",
         contentHash: "abc123",
         created: "2025-01-15T10:00:00.000Z",
         updated: "2025-01-15T10:00:00.000Z",
         metadata: {
-          period: "daily" as const,
-          startDate: "2025-01-15",
-          endDate: "2025-01-15",
+          date: "2025-01-15",
           pageviews: 1500,
           visitors: 450,
-          visits: 600,
-          bounces: 180,
-          totalTime: 27000,
-          bounceRate: 0.3,
-          avgTimeOnPage: 45,
         },
       };
 
       const metadata = adapter.extractMetadata(entity);
-      expect(metadata.period).toBe("daily");
       expect(metadata.pageviews).toBe(1500);
+      expect(metadata.date).toBe("2025-01-15");
+      expect(metadata.visitors).toBe(450);
+    });
+
+    it("should parse frontmatter data including breakdowns", () => {
+      const content = `---
+date: "2025-01-15"
+pageviews: 1500
+visitors: 450
+topPages:
+  - path: /essays/test
+    views: 45
+topReferrers:
+  - host: google.com
+    visits: 25
+devices:
+  desktop: 60
+  mobile: 38
+  tablet: 2
+topCountries:
+  - country: United States
+    visits: 40
+---
+
+# Website Metrics`;
+
+      const entity = {
+        id: "website-metrics-2025-01-15",
+        entityType: "website-metrics" as const,
+        content,
+        contentHash: "abc123",
+        created: "2025-01-15T10:00:00.000Z",
+        updated: "2025-01-15T10:00:00.000Z",
+        metadata: {
+          date: "2025-01-15",
+          pageviews: 1500,
+          visitors: 450,
+        },
+      };
+
+      const frontmatter = adapter.parseFrontmatterData(entity);
+      expect(frontmatter.date).toBe("2025-01-15");
+      expect(frontmatter.topPages).toHaveLength(1);
+      expect(frontmatter.topPages[0]?.path).toBe("/essays/test");
+      expect(frontmatter.devices.desktop).toBe(60);
+      expect(frontmatter.topCountries[0]?.country).toBe("United States");
     });
   });
 

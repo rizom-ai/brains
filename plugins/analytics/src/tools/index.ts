@@ -11,20 +11,14 @@ import type { SocialMetricsEntity } from "../schemas/social-metrics";
 
 // Schema for fetch_website tool parameters
 const fetchWebsiteParamsSchema = z.object({
-  startDate: z.string().describe("Start date in YYYY-MM-DD format").optional(),
-  endDate: z.string().describe("End date in YYYY-MM-DD format").optional(),
-  period: z
-    .enum(["daily", "weekly", "monthly"])
-    .describe("Aggregation period")
-    .default("daily"),
+  date: z
+    .string()
+    .describe("Date in YYYY-MM-DD format (defaults to yesterday)")
+    .optional(),
 });
 
 // Schema for get_website_trends tool parameters
 const getWebsiteTrendsParamsSchema = z.object({
-  period: z
-    .enum(["daily", "weekly", "monthly"])
-    .describe("Filter by period type")
-    .optional(),
   limit: z.number().describe("Maximum number of results").default(30),
 });
 
@@ -80,31 +74,50 @@ export function createAnalyticsTools(
       createTypedTool(
         pluginId,
         "fetch_website",
-        "Fetch website analytics from Cloudflare and store as metrics entity. Defaults to yesterday if no dates provided.",
+        "Fetch website analytics from Cloudflare for a single day and store as metrics entity. Defaults to yesterday.",
         fetchWebsiteParamsSchema,
         async (input) => {
-          // Default to yesterday if no dates provided
-          const startDate = input.startDate ?? toISODateString(getYesterday());
-          const endDate = input.endDate ?? startDate;
-          const period = input.period;
+          // Date defaults to yesterday
+          const date = input.date ?? toISODateString(getYesterday());
 
           try {
-            // Fetch stats from Cloudflare
-            const stats = await cloudflareClient.getWebsiteStats({
-              startDate,
-              endDate,
-            });
+            // Fetch all data from Cloudflare in parallel
+            const [stats, topPages, topReferrers, devices, topCountries] =
+              await Promise.all([
+                cloudflareClient.getWebsiteStats({
+                  startDate: date,
+                  endDate: date,
+                }),
+                cloudflareClient.getTopPages({
+                  startDate: date,
+                  endDate: date,
+                  limit: 20,
+                }),
+                cloudflareClient.getTopReferrers({
+                  startDate: date,
+                  endDate: date,
+                  limit: 20,
+                }),
+                cloudflareClient.getDeviceBreakdown({
+                  startDate: date,
+                  endDate: date,
+                }),
+                cloudflareClient.getTopCountries({
+                  startDate: date,
+                  endDate: date,
+                  limit: 20,
+                }),
+              ]);
 
-            // Create the metrics entity
+            // Create the metrics entity with all breakdowns
             const entity = createWebsiteMetricsEntity({
-              period,
-              startDate,
-              endDate,
+              date,
               pageviews: stats.pageviews,
               visitors: stats.visitors,
-              visits: stats.visits,
-              bounces: stats.bounces,
-              totalTime: stats.totalTime,
+              topPages,
+              topReferrers,
+              devices,
+              topCountries,
             });
 
             // Upsert the entity (update if exists, create if not)
@@ -113,15 +126,16 @@ export function createAnalyticsTools(
             return toolSuccess(
               {
                 entityId: result.entityId,
-                period,
-                startDate,
-                endDate,
+                date,
                 pageviews: stats.pageviews,
                 visitors: stats.visitors,
-                visits: stats.visits,
+                topPagesCount: topPages.length,
+                topReferrersCount: topReferrers.length,
+                topCountriesCount: topCountries.length,
+                devices,
                 created: result.created,
               },
-              `Website metrics ${result.created ? "created" : "updated"} for ${startDate}`,
+              `Website metrics ${result.created ? "created" : "updated"} for ${date}`,
             );
           } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
@@ -135,7 +149,7 @@ export function createAnalyticsTools(
       createTypedTool(
         pluginId,
         "get_website_trends",
-        "Query stored website metrics to see trends over time.",
+        "Query stored daily website metrics to see trends over time.",
         getWebsiteTrendsParamsSchema,
         async (input) => {
           try {
@@ -146,28 +160,20 @@ export function createAnalyticsTools(
                 {
                   limit: input.limit,
                   sortFields: [{ field: "created", direction: "desc" }],
-                  ...(input.period && {
-                    filter: { metadata: { period: input.period } },
-                  }),
                 },
               );
 
             // Format for display
             const trends = entities.map((e) => ({
               id: e.id,
-              period: e.metadata.period,
-              startDate: e.metadata.startDate,
-              endDate: e.metadata.endDate,
+              date: e.metadata.date,
               pageviews: e.metadata.pageviews,
               visitors: e.metadata.visitors,
-              visits: e.metadata.visits,
-              bounceRate: e.metadata.bounceRate,
-              avgTimeOnPage: e.metadata.avgTimeOnPage,
             }));
 
             return toolSuccess(
               { count: trends.length, trends },
-              `Found ${trends.length} metrics records`,
+              `Found ${trends.length} daily metrics records`,
             );
           } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);

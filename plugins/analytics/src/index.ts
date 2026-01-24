@@ -136,8 +136,6 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
         return {
           pageviews: latest?.pageviews ?? 0,
           visitors: latest?.visitors ?? 0,
-          bounceRate: latest?.bounceRate ?? 0,
-          avgTimeOnPage: latest?.avgTimeOnPage ?? 0,
         };
       },
     });
@@ -202,20 +200,42 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     this.logger.info("Fetching daily website metrics", { date: yesterday });
 
     try {
-      const stats = await this.cloudflareClient.getWebsiteStats({
-        startDate: yesterday,
-        endDate: yesterday,
-      });
+      // Fetch all data from Cloudflare in parallel
+      const [stats, topPages, topReferrers, devices, topCountries] =
+        await Promise.all([
+          this.cloudflareClient.getWebsiteStats({
+            startDate: yesterday,
+            endDate: yesterday,
+          }),
+          this.cloudflareClient.getTopPages({
+            startDate: yesterday,
+            endDate: yesterday,
+            limit: 20,
+          }),
+          this.cloudflareClient.getTopReferrers({
+            startDate: yesterday,
+            endDate: yesterday,
+            limit: 20,
+          }),
+          this.cloudflareClient.getDeviceBreakdown({
+            startDate: yesterday,
+            endDate: yesterday,
+          }),
+          this.cloudflareClient.getTopCountries({
+            startDate: yesterday,
+            endDate: yesterday,
+            limit: 20,
+          }),
+        ]);
 
       const entity = createWebsiteMetricsEntity({
-        period: "daily",
-        startDate: yesterday,
-        endDate: yesterday,
+        date: yesterday,
         pageviews: stats.pageviews,
         visitors: stats.visitors,
-        visits: stats.visits,
-        bounces: stats.bounces,
-        totalTime: stats.totalTime,
+        topPages,
+        topReferrers,
+        devices,
+        topCountries,
       });
 
       await this.context.entityService.upsertEntity(entity);
@@ -224,6 +244,8 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
         date: yesterday,
         pageviews: stats.pageviews,
         visitors: stats.visitors,
+        topPagesCount: topPages.length,
+        topReferrersCount: topReferrers.length,
       });
     } catch (error) {
       this.logger.error("Failed to fetch website metrics", { error });

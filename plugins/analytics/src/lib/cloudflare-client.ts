@@ -31,6 +31,48 @@ export interface GetWebsiteStatsOptions {
 }
 
 /**
+ * Options for fetching dimension breakdowns
+ */
+export interface GetBreakdownOptions {
+  startDate: string;
+  endDate: string;
+  limit?: number;
+}
+
+/**
+ * Top page result
+ */
+export interface TopPageResult {
+  path: string;
+  views: number;
+}
+
+/**
+ * Top referrer result
+ */
+export interface TopReferrerResult {
+  host: string;
+  visits: number;
+}
+
+/**
+ * Device breakdown result
+ */
+export interface DeviceBreakdownResult {
+  desktop: number;
+  mobile: number;
+  tablet: number;
+}
+
+/**
+ * Top country result
+ */
+export interface TopCountryResult {
+  country: string;
+  visits: number;
+}
+
+/**
  * Aggregated website statistics
  */
 export interface WebsiteStats {
@@ -180,5 +222,365 @@ export class CloudflareClient {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Get top pages by views for a date range
+   */
+  async getTopPages(options: GetBreakdownOptions): Promise<TopPageResult[]> {
+    const query = `
+      query GetTopPages($accountTag: String!, $siteTag: String!, $start: String!, $end: String!, $limit: Int!) {
+        viewer {
+          accounts(filter: { accountTag: $accountTag }) {
+            rumPageloadEventsAdaptiveGroups(
+              filter: {
+                AND: [
+                  { date_geq: $start }
+                  { date_leq: $end }
+                  { siteTag: $siteTag }
+                ]
+              }
+              limit: $limit
+              orderBy: [count_DESC]
+            ) {
+              count
+              dimensions {
+                requestPath
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      accountTag: this.config.accountId,
+      siteTag: this.config.siteTag,
+      start: options.startDate.split("T")[0],
+      end: options.endDate.split("T")[0],
+      limit: options.limit ?? 20,
+    };
+
+    const response = await fetch(this.graphqlUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Cloudflare API error: ${response.status} - ${errorText}`,
+      );
+    }
+
+    interface TopPagesResponse {
+      data: {
+        viewer: {
+          accounts: Array<{
+            rumPageloadEventsAdaptiveGroups: Array<{
+              count: number;
+              dimensions: { requestPath: string };
+            }>;
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }>;
+    }
+
+    const result = (await response.json()) as TopPagesResponse;
+
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(
+        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
+      );
+    }
+
+    const groups =
+      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+
+    return groups.map((g) => ({
+      path: g.dimensions.requestPath,
+      views: g.count,
+    }));
+  }
+
+  /**
+   * Get top referrers by visits for a date range
+   */
+  async getTopReferrers(
+    options: GetBreakdownOptions,
+  ): Promise<TopReferrerResult[]> {
+    const query = `
+      query GetTopReferrers($accountTag: String!, $siteTag: String!, $start: String!, $end: String!, $limit: Int!) {
+        viewer {
+          accounts(filter: { accountTag: $accountTag }) {
+            rumPageloadEventsAdaptiveGroups(
+              filter: {
+                AND: [
+                  { date_geq: $start }
+                  { date_leq: $end }
+                  { siteTag: $siteTag }
+                ]
+              }
+              limit: $limit
+              orderBy: [sum_visits_DESC]
+            ) {
+              sum {
+                visits
+              }
+              dimensions {
+                refererHost
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      accountTag: this.config.accountId,
+      siteTag: this.config.siteTag,
+      start: options.startDate.split("T")[0],
+      end: options.endDate.split("T")[0],
+      limit: options.limit ?? 20,
+    };
+
+    const response = await fetch(this.graphqlUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Cloudflare API error: ${response.status} - ${errorText}`,
+      );
+    }
+
+    interface TopReferrersResponse {
+      data: {
+        viewer: {
+          accounts: Array<{
+            rumPageloadEventsAdaptiveGroups: Array<{
+              sum: { visits: number };
+              dimensions: { refererHost: string };
+            }>;
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }>;
+    }
+
+    const result = (await response.json()) as TopReferrersResponse;
+
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(
+        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
+      );
+    }
+
+    const groups =
+      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+
+    return groups.map((g) => ({
+      host: g.dimensions.refererHost || "(direct)",
+      visits: g.sum.visits,
+    }));
+  }
+
+  /**
+   * Get device type breakdown for a date range
+   */
+  async getDeviceBreakdown(
+    options: GetBreakdownOptions,
+  ): Promise<DeviceBreakdownResult> {
+    const query = `
+      query GetDeviceBreakdown($accountTag: String!, $siteTag: String!, $start: String!, $end: String!) {
+        viewer {
+          accounts(filter: { accountTag: $accountTag }) {
+            rumPageloadEventsAdaptiveGroups(
+              filter: {
+                AND: [
+                  { date_geq: $start }
+                  { date_leq: $end }
+                  { siteTag: $siteTag }
+                ]
+              }
+              limit: 10
+            ) {
+              sum {
+                visits
+              }
+              dimensions {
+                deviceType
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      accountTag: this.config.accountId,
+      siteTag: this.config.siteTag,
+      start: options.startDate.split("T")[0],
+      end: options.endDate.split("T")[0],
+    };
+
+    const response = await fetch(this.graphqlUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Cloudflare API error: ${response.status} - ${errorText}`,
+      );
+    }
+
+    interface DeviceBreakdownResponse {
+      data: {
+        viewer: {
+          accounts: Array<{
+            rumPageloadEventsAdaptiveGroups: Array<{
+              sum: { visits: number };
+              dimensions: { deviceType: string };
+            }>;
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }>;
+    }
+
+    const result = (await response.json()) as DeviceBreakdownResponse;
+
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(
+        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
+      );
+    }
+
+    const groups =
+      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+
+    const breakdown: DeviceBreakdownResult = {
+      desktop: 0,
+      mobile: 0,
+      tablet: 0,
+    };
+
+    for (const g of groups) {
+      const deviceType = g.dimensions.deviceType.toLowerCase();
+      if (deviceType === "desktop") {
+        breakdown.desktop = g.sum.visits;
+      } else if (deviceType === "mobile") {
+        breakdown.mobile = g.sum.visits;
+      } else if (deviceType === "tablet") {
+        breakdown.tablet = g.sum.visits;
+      }
+    }
+
+    return breakdown;
+  }
+
+  /**
+   * Get top countries by visits for a date range
+   */
+  async getTopCountries(
+    options: GetBreakdownOptions,
+  ): Promise<TopCountryResult[]> {
+    const query = `
+      query GetTopCountries($accountTag: String!, $siteTag: String!, $start: String!, $end: String!, $limit: Int!) {
+        viewer {
+          accounts(filter: { accountTag: $accountTag }) {
+            rumPageloadEventsAdaptiveGroups(
+              filter: {
+                AND: [
+                  { date_geq: $start }
+                  { date_leq: $end }
+                  { siteTag: $siteTag }
+                ]
+              }
+              limit: $limit
+              orderBy: [sum_visits_DESC]
+            ) {
+              sum {
+                visits
+              }
+              dimensions {
+                countryName
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const variables = {
+      accountTag: this.config.accountId,
+      siteTag: this.config.siteTag,
+      start: options.startDate.split("T")[0],
+      end: options.endDate.split("T")[0],
+      limit: options.limit ?? 20,
+    };
+
+    const response = await fetch(this.graphqlUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.config.apiToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `Cloudflare API error: ${response.status} - ${errorText}`,
+      );
+    }
+
+    interface TopCountriesResponse {
+      data: {
+        viewer: {
+          accounts: Array<{
+            rumPageloadEventsAdaptiveGroups: Array<{
+              sum: { visits: number };
+              dimensions: { countryName: string };
+            }>;
+          }>;
+        };
+      };
+      errors?: Array<{ message: string }>;
+    }
+
+    const result = (await response.json()) as TopCountriesResponse;
+
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(
+        `Cloudflare GraphQL error: ${result.errors.map((e) => e.message).join(", ")}`,
+      );
+    }
+
+    const groups =
+      result.data.viewer.accounts[0]?.rumPageloadEventsAdaptiveGroups ?? [];
+
+    return groups.map((g) => ({
+      country: g.dimensions.countryName,
+      visits: g.sum.visits,
+    }));
   }
 }

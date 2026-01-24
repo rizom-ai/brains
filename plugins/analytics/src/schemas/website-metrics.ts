@@ -1,23 +1,82 @@
 import { z } from "@brains/utils";
-import { baseEntitySchema } from "@brains/plugins";
+import {
+  baseEntitySchema,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { createHash } from "crypto";
 
 /**
- * Website metrics metadata schema
- * Stores aggregated website analytics for a time period
+ * Schema for top pages breakdown
  */
-export const websiteMetricsMetadataSchema = z.object({
-  period: z.enum(["daily", "weekly", "monthly"]),
-  startDate: z.string().describe("ISO date (YYYY-MM-DD)"),
-  endDate: z.string().describe("ISO date (YYYY-MM-DD)"),
+export const topPageSchema = z.object({
+  path: z.string(),
+  views: z.number(),
+});
+
+export type TopPage = z.infer<typeof topPageSchema>;
+
+/**
+ * Schema for referrer breakdown
+ */
+export const topReferrerSchema = z.object({
+  host: z.string(),
+  visits: z.number(),
+});
+
+export type TopReferrer = z.infer<typeof topReferrerSchema>;
+
+/**
+ * Schema for device breakdown
+ */
+export const deviceBreakdownSchema = z.object({
+  desktop: z.number(),
+  mobile: z.number(),
+  tablet: z.number(),
+});
+
+export type DeviceBreakdown = z.infer<typeof deviceBreakdownSchema>;
+
+/**
+ * Schema for country breakdown
+ */
+export const topCountrySchema = z.object({
+  country: z.string(),
+  visits: z.number(),
+});
+
+export type TopCountry = z.infer<typeof topCountrySchema>;
+
+/**
+ * Website metrics frontmatter schema (full data stored in markdown)
+ * Contains all analytics data including breakdowns
+ * One entity per day - daily snapshots only
+ */
+export const websiteMetricsFrontmatterSchema = z.object({
+  date: z.string().describe("ISO date (YYYY-MM-DD)"),
   pageviews: z.number().describe("Total page views"),
   visitors: z.number().describe("Unique visitors"),
-  visits: z.number().describe("Total visits/sessions"),
-  bounces: z.number().describe("Bounced visits"),
-  totalTime: z.number().describe("Total time on site in seconds"),
-  bounceRate: z.number().describe("Bounce rate (bounces/visits)"),
-  avgTimeOnPage: z.number().describe("Average time per pageview in seconds"),
+
+  // Breakdown arrays (stored in frontmatter, not metadata)
+  topPages: z.array(topPageSchema),
+  topReferrers: z.array(topReferrerSchema),
+  devices: deviceBreakdownSchema,
+  topCountries: z.array(topCountrySchema),
 });
+
+export type WebsiteMetricsFrontmatter = z.infer<
+  typeof websiteMetricsFrontmatterSchema
+>;
+
+/**
+ * Website metrics metadata schema (queryable subset)
+ * Derived from frontmatter using .pick()
+ */
+export const websiteMetricsMetadataSchema =
+  websiteMetricsFrontmatterSchema.pick({
+    date: true,
+    pageviews: true,
+    visitors: true,
+  });
 
 export type WebsiteMetricsMetadata = z.infer<
   typeof websiteMetricsMetadataSchema
@@ -25,8 +84,11 @@ export type WebsiteMetricsMetadata = z.infer<
 
 /**
  * Website metrics entity schema
- * One entity per time period (daily/weekly/monthly)
- * ID format: "website-metrics-{period}-{startDate}"
+ * One entity per day (daily snapshots only)
+ * ID format: "website-metrics-{date}"
+ *
+ * Note: Breakdowns (topPages, topReferrers, devices, topCountries) are stored
+ * in the content field as YAML frontmatter, parsed by the adapter when needed.
  */
 export const websiteMetricsSchema = baseEntitySchema.extend({
   entityType: z.literal("website-metrics"),
@@ -37,38 +99,46 @@ export type WebsiteMetricsEntity = z.infer<typeof websiteMetricsSchema>;
 
 /**
  * Input for creating a website metrics entity
- * bounceRate and avgTimeOnPage are computed automatically
+ * Includes core metrics and optional breakdown data
  */
 export interface CreateWebsiteMetricsInput {
-  period: "daily" | "weekly" | "monthly";
-  startDate: string;
-  endDate: string;
+  date: string;
   pageviews: number;
   visitors: number;
-  visits: number;
-  bounces: number;
-  totalTime: number;
+  topPages?: TopPage[];
+  topReferrers?: TopReferrer[];
+  devices?: DeviceBreakdown;
+  topCountries?: TopCountry[];
 }
 
 /**
  * Create a website metrics entity
- * Automatically computes bounceRate and avgTimeOnPage
+ * Breakdowns are stored in content as YAML frontmatter
  */
 export function createWebsiteMetricsEntity(
   input: CreateWebsiteMetricsInput,
 ): WebsiteMetricsEntity {
   const now = new Date().toISOString();
 
-  // Compute derived metrics
-  const bounceRate = input.visits > 0 ? input.bounces / input.visits : 0;
-  const avgTimeOnPage =
-    input.pageviews > 0 ? input.totalTime / input.pageviews : 0;
+  // Generate ID from date
+  const id = `website-metrics-${input.date}`;
 
-  // Generate ID from period and start date
-  const id = `website-metrics-${input.period}-${input.startDate}`;
+  // Build frontmatter data (all data including breakdowns)
+  const frontmatterData: WebsiteMetricsFrontmatter = {
+    date: input.date,
+    pageviews: input.pageviews,
+    visitors: input.visitors,
+    topPages: input.topPages ?? [],
+    topReferrers: input.topReferrers ?? [],
+    devices: input.devices ?? { desktop: 0, mobile: 0, tablet: 0 },
+    topCountries: input.topCountries ?? [],
+  };
 
-  // Generate content summary
-  const content = `Website metrics for ${input.startDate} to ${input.endDate}`;
+  // Generate markdown body
+  const body = `# Website Metrics\n\nWebsite metrics for ${input.date}`;
+
+  // Generate content with YAML frontmatter using helper
+  const content = generateMarkdownWithFrontmatter(body, frontmatterData);
   const contentHash = createHash("sha256").update(content).digest("hex");
 
   return websiteMetricsSchema.parse({
@@ -79,16 +149,9 @@ export function createWebsiteMetricsEntity(
     created: now,
     updated: now,
     metadata: {
-      period: input.period,
-      startDate: input.startDate,
-      endDate: input.endDate,
+      date: input.date,
       pageviews: input.pageviews,
       visitors: input.visitors,
-      visits: input.visits,
-      bounces: input.bounces,
-      totalTime: input.totalTime,
-      bounceRate,
-      avgTimeOnPage,
     },
   });
 }
