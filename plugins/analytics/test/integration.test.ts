@@ -89,7 +89,7 @@ describe("AnalyticsPlugin Integration", () => {
       expect(capabilities.tools.length).toBe(4);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("analytics_fetch_website");
+      expect(toolNames).toContain("analytics_query_website");
       expect(toolNames).toContain("analytics_get_website_trends");
       expect(toolNames).toContain("analytics_fetch_social");
       expect(toolNames).toContain("analytics_get_social_summary");
@@ -97,7 +97,7 @@ describe("AnalyticsPlugin Integration", () => {
 
     it("should have correct tool descriptions", () => {
       const fetchWebsiteTool = capabilities.tools.find(
-        (t) => t.name === "analytics_fetch_website",
+        (t) => t.name === "analytics_query_website",
       );
       expect(fetchWebsiteTool?.description).toContain("Cloudflare");
 
@@ -128,7 +128,7 @@ describe("AnalyticsPlugin Integration", () => {
       expect(capabilities.tools.length).toBe(2);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("analytics_fetch_website");
+      expect(toolNames).toContain("analytics_query_website");
       expect(toolNames).toContain("analytics_get_website_trends");
       expect(toolNames).not.toContain("analytics_fetch_social");
       expect(toolNames).not.toContain("analytics_get_social_summary");
@@ -153,7 +153,7 @@ describe("AnalyticsPlugin Integration", () => {
       expect(capabilities.tools.length).toBe(2);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).not.toContain("analytics_fetch_website");
+      expect(toolNames).not.toContain("analytics_query_website");
       expect(toolNames).not.toContain("analytics_get_website_trends");
       expect(toolNames).toContain("analytics_fetch_social");
       expect(toolNames).toContain("analytics_get_social_summary");
@@ -176,7 +176,7 @@ describe("AnalyticsPlugin Integration", () => {
     });
   });
 
-  describe("Tool Execution - fetch_website", () => {
+  describe("Tool Execution - query_website", () => {
     beforeEach(async () => {
       harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
 
@@ -191,7 +191,7 @@ describe("AnalyticsPlugin Integration", () => {
       capabilities = await harness.installPlugin(plugin);
     });
 
-    it("should fetch and store website metrics", async () => {
+    it("should query website metrics for a single day without storing", async () => {
       // Mock Cloudflare API responses for all 5 parallel calls
       const mockStatsResponse = {
         data: {
@@ -314,7 +314,7 @@ describe("AnalyticsPlugin Integration", () => {
       // Execute tool
       const result = await executeTool(
         capabilities,
-        "analytics_fetch_website",
+        "analytics_query_website",
         {
           date: "2025-01-15",
         },
@@ -322,9 +322,23 @@ describe("AnalyticsPlugin Integration", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      const data = result.data as { pageviews: number; visitors: number };
+      const data = result.data as {
+        startDate: string;
+        endDate: string;
+        pageviews: number;
+        visitors: number;
+        topPages: Array<{ path: string; views: number }>;
+        topReferrers: Array<{ host: string; visits: number }>;
+        devices: { desktop: number; mobile: number; tablet: number };
+        topCountries: Array<{ country: string; visits: number }>;
+      };
+      expect(data.startDate).toBe("2025-01-15");
+      expect(data.endDate).toBe("2025-01-15");
       expect(data.pageviews).toBe(500);
       expect(data.visitors).toBe(400);
+      expect(data.topPages).toHaveLength(1);
+      expect(data.topPages[0]?.path).toBe("/essays/test");
+      expect(data.devices.desktop).toBe(60);
     });
 
     it("should handle API errors gracefully", async () => {
@@ -338,7 +352,7 @@ describe("AnalyticsPlugin Integration", () => {
 
       const result = await executeTool(
         capabilities,
-        "analytics_fetch_website",
+        "analytics_query_website",
         {
           date: "2025-01-15",
         },
@@ -346,6 +360,158 @@ describe("AnalyticsPlugin Integration", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("401");
+    });
+
+    it("should query website metrics for a date range using days parameter", async () => {
+      // Mock Cloudflare API responses for all 5 parallel calls
+      const mockStatsResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    count: 1500,
+                    sum: { visits: 1200 },
+                    dimensions: { date: "2025-01-15" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockTopPagesResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  { count: 200, dimensions: { requestPath: "/" } },
+                  { count: 150, dimensions: { requestPath: "/essays/test" } },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockReferrersResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 100 },
+                    dimensions: { refererHost: "google.com" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockDevicesResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 700 },
+                    dimensions: { deviceType: "desktop" },
+                  },
+                  {
+                    sum: { visits: 450 },
+                    dimensions: { deviceType: "mobile" },
+                  },
+                  { sum: { visits: 50 }, dimensions: { deviceType: "tablet" } },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      const mockCountriesResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    sum: { visits: 500 },
+                    dimensions: { countryName: "United States" },
+                  },
+                  {
+                    sum: { visits: 300 },
+                    dimensions: { countryName: "Netherlands" },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      };
+
+      // Mock all 5 API calls
+      mockFetch
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockStatsResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockTopPagesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockReferrersResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockDevicesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockCountriesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+
+      // Execute tool with days parameter
+      const result = await executeTool(
+        capabilities,
+        "analytics_query_website",
+        {
+          days: 7,
+        },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      const data = result.data as {
+        startDate: string;
+        endDate: string;
+        pageviews: number;
+        visitors: number;
+        topPages: Array<{ path: string; views: number }>;
+      };
+      // Should have a 7-day range
+      expect(data.pageviews).toBe(1500);
+      expect(data.visitors).toBe(1200);
+      expect(data.topPages).toHaveLength(2);
     });
   });
 

@@ -4,16 +4,21 @@ import { z, toISODateString, getYesterday } from "@brains/utils";
 import { CloudflareClient } from "../lib/cloudflare-client";
 import { LinkedInAnalyticsClient } from "../lib/linkedin-analytics";
 import type { CloudflareConfig, LinkedinAnalyticsConfig } from "../config";
-import { createWebsiteMetricsEntity } from "../schemas/website-metrics";
 import type { WebsiteMetricsEntity } from "../schemas/website-metrics";
 import { createSocialMetricsEntity } from "../schemas/social-metrics";
 import type { SocialMetricsEntity } from "../schemas/social-metrics";
 
-// Schema for fetch_website tool parameters
-const fetchWebsiteParamsSchema = z.object({
+// Schema for query_website tool parameters
+const queryWebsiteParamsSchema = z.object({
   date: z
     .string()
-    .describe("Date in YYYY-MM-DD format (defaults to yesterday)")
+    .describe("Single date in YYYY-MM-DD format (use this OR days, not both)")
+    .optional(),
+  days: z
+    .number()
+    .describe(
+      "Number of days to query (e.g., 7 for last week). Defaults to 1 (yesterday only)",
+    )
     .optional(),
 });
 
@@ -73,69 +78,59 @@ export function createAnalyticsTools(
     tools.push(
       createTypedTool(
         pluginId,
-        "fetch_website",
-        "Fetch website analytics from Cloudflare for a single day and store as metrics entity. Defaults to yesterday.",
-        fetchWebsiteParamsSchema,
+        "query_website",
+        "Query website analytics from Cloudflare. Use 'date' for a single day or 'days' for a range (e.g., days=7 for last week). Does not store data - use cron for storage.",
+        queryWebsiteParamsSchema,
         async (input) => {
-          // Date defaults to yesterday
-          const date = input.date ?? toISODateString(getYesterday());
+          // Calculate date range
+          let startDate: string;
+          let endDate: string;
+
+          if (input.date) {
+            // Single specific date
+            startDate = input.date;
+            endDate = input.date;
+          } else {
+            // Use days parameter (default: 1 = yesterday only)
+            const days = input.days ?? 1;
+            const end = getYesterday();
+            const start = new Date(end);
+            start.setDate(start.getDate() - days + 1);
+            startDate = toISODateString(start);
+            endDate = toISODateString(end);
+          }
 
           try {
             // Fetch all data from Cloudflare in parallel
             const [stats, topPages, topReferrers, devices, topCountries] =
               await Promise.all([
-                cloudflareClient.getWebsiteStats({
-                  startDate: date,
-                  endDate: date,
-                }),
-                cloudflareClient.getTopPages({
-                  startDate: date,
-                  endDate: date,
-                  limit: 20,
-                }),
+                cloudflareClient.getWebsiteStats({ startDate, endDate }),
+                cloudflareClient.getTopPages({ startDate, endDate, limit: 20 }),
                 cloudflareClient.getTopReferrers({
-                  startDate: date,
-                  endDate: date,
+                  startDate,
+                  endDate,
                   limit: 20,
                 }),
-                cloudflareClient.getDeviceBreakdown({
-                  startDate: date,
-                  endDate: date,
-                }),
+                cloudflareClient.getDeviceBreakdown({ startDate, endDate }),
                 cloudflareClient.getTopCountries({
-                  startDate: date,
-                  endDate: date,
+                  startDate,
+                  endDate,
                   limit: 20,
                 }),
               ]);
 
-            // Create the metrics entity with all breakdowns
-            const entity = createWebsiteMetricsEntity({
-              date,
-              pageviews: stats.pageviews,
-              visitors: stats.visitors,
-              topPages,
-              topReferrers,
-              devices,
-              topCountries,
-            });
-
-            // Upsert the entity (update if exists, create if not)
-            const result = await context.entityService.upsertEntity(entity);
-
             return toolSuccess(
               {
-                entityId: result.entityId,
-                date,
+                startDate,
+                endDate,
                 pageviews: stats.pageviews,
                 visitors: stats.visitors,
-                topPagesCount: topPages.length,
-                topReferrersCount: topReferrers.length,
-                topCountriesCount: topCountries.length,
+                topPages,
+                topReferrers,
                 devices,
-                created: result.created,
+                topCountries,
               },
-              `Website metrics ${result.created ? "created" : "updated"} for ${date}`,
+              `Website analytics for ${startDate === endDate ? startDate : `${startDate} to ${endDate}`}`,
             );
           } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
