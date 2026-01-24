@@ -186,6 +186,125 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       },
     });
 
+    // Top Pages widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "top-pages",
+      pluginId: this.id,
+      title: "Top Pages",
+      section: "primary",
+      priority: 31,
+      rendererName: "ListWidget",
+      dataProvider: async () => {
+        const metrics =
+          await context.entityService.listEntities<WebsiteMetricsEntity>(
+            "website-metrics",
+            {
+              limit: 1,
+              sortFields: [{ field: "created", direction: "desc" }],
+            },
+          );
+        const latest = metrics[0];
+        if (!latest) return { items: [] };
+
+        const adapter = new WebsiteMetricsAdapter();
+        const frontmatter = adapter.parseFrontmatterData(latest);
+        return {
+          items: frontmatter.topPages.slice(0, 10).map((p) => ({
+            id: p.path,
+            name: `${p.path} (${p.views})`,
+          })),
+        };
+      },
+    });
+
+    // Traffic Sources widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "traffic-sources",
+      pluginId: this.id,
+      title: "Traffic Sources",
+      section: "sidebar",
+      priority: 50,
+      rendererName: "ListWidget",
+      dataProvider: async () => {
+        const metrics =
+          await context.entityService.listEntities<WebsiteMetricsEntity>(
+            "website-metrics",
+            {
+              limit: 1,
+              sortFields: [{ field: "created", direction: "desc" }],
+            },
+          );
+        const latest = metrics[0];
+        if (!latest) return { items: [] };
+
+        const adapter = new WebsiteMetricsAdapter();
+        const frontmatter = adapter.parseFrontmatterData(latest);
+        return {
+          items: frontmatter.topReferrers.slice(0, 10).map((r) => ({
+            id: r.host,
+            name: `${r.host} (${r.visits})`,
+          })),
+        };
+      },
+    });
+
+    // Devices widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "devices",
+      pluginId: this.id,
+      title: "Devices",
+      section: "sidebar",
+      priority: 51,
+      rendererName: "StatsWidget",
+      dataProvider: async () => {
+        const metrics =
+          await context.entityService.listEntities<WebsiteMetricsEntity>(
+            "website-metrics",
+            {
+              limit: 1,
+              sortFields: [{ field: "created", direction: "desc" }],
+            },
+          );
+        const latest = metrics[0];
+        if (!latest) return { desktop: 0, mobile: 0, tablet: 0 };
+
+        const adapter = new WebsiteMetricsAdapter();
+        const frontmatter = adapter.parseFrontmatterData(latest);
+        return frontmatter.devices;
+      },
+    });
+
+    // Countries widget
+    await context.messaging.send("dashboard:register-widget", {
+      id: "countries",
+      pluginId: this.id,
+      title: "Top Countries",
+      section: "sidebar",
+      priority: 52,
+      rendererName: "ListWidget",
+      dataProvider: async () => {
+        const metrics =
+          await context.entityService.listEntities<WebsiteMetricsEntity>(
+            "website-metrics",
+            {
+              limit: 1,
+              sortFields: [{ field: "created", direction: "desc" }],
+            },
+          );
+        const latest = metrics[0];
+        if (!latest) return { items: [] };
+
+        const adapter = new WebsiteMetricsAdapter();
+        const frontmatter = adapter.parseFrontmatterData(latest);
+        return {
+          items: frontmatter.topCountries.slice(0, 10).map((c) => ({
+            id: c.country,
+            name: `${c.country} (${c.visits})`,
+          })),
+        };
+      },
+    });
+
     this.logger.debug("Analytics dashboard widgets registered");
   }
 
