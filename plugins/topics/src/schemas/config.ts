@@ -27,6 +27,7 @@ export const topicsPluginConfigSchema = z.object({
       "series",
       "website-metrics",
       "social-metrics",
+      "page-metrics",
     ]),
 
   /**

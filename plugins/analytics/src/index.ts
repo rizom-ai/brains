@@ -5,8 +5,10 @@ import { toISODateString, getYesterday } from "@brains/utils";
 import { analyticsConfigSchema, type AnalyticsConfig } from "./config";
 import { websiteMetricsSchema } from "./schemas/website-metrics";
 import { socialMetricsSchema } from "./schemas/social-metrics";
+import { pageMetricsSchema } from "./schemas/page-metrics";
 import { WebsiteMetricsAdapter } from "./adapters/website-metrics-adapter";
 import { SocialMetricsAdapter } from "./adapters/social-metrics-adapter";
+import { PageMetricsAdapter } from "./adapters/page-metrics-adapter";
 import { createAnalyticsTools } from "./tools";
 import { CloudflareClient } from "./lib/cloudflare-client";
 import { LinkedInAnalyticsClient } from "./lib/linkedin-analytics";
@@ -18,6 +20,11 @@ import {
   createSocialMetricsEntity,
   type SocialMetricsEntity,
 } from "./schemas/social-metrics";
+import {
+  createPageMetricsEntity,
+  type PageMetricsEntity,
+  type HistoryEntry,
+} from "./schemas/page-metrics";
 import packageJson from "../package.json";
 
 /**
@@ -61,6 +68,14 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       "social-metrics",
       socialMetricsSchema,
       socialMetricsAdapter,
+    );
+
+    // Register page metrics entity type
+    const pageMetricsAdapter = new PageMetricsAdapter();
+    context.entities.register(
+      "page-metrics",
+      pageMetricsSchema,
+      pageMetricsAdapter,
     );
 
     // Initialize Cloudflare client if credentials are configured
@@ -240,6 +255,9 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
 
       await this.context.entityService.upsertEntity(entity);
 
+      // Update page-metrics for each top page
+      await this.updatePageMetrics(yesterday, topPages);
+
       this.logger.info("Website metrics stored", {
         date: yesterday,
         pageviews: stats.pageviews,
@@ -250,6 +268,73 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     } catch (error) {
       this.logger.error("Failed to fetch website metrics", { error });
     }
+  }
+
+  /**
+   * Update page-metrics entities for each page in the top pages list
+   */
+  private async updatePageMetrics(
+    date: string,
+    topPages: Array<{ path: string; views: number }>,
+  ): Promise<void> {
+    if (!this.context) return;
+
+    for (const page of topPages) {
+      try {
+        // Try to get existing page-metrics entity
+        const existingId = this.pathToId(page.path);
+        const existing =
+          await this.context.entityService.getEntity<PageMetricsEntity>(
+            "page-metrics",
+            existingId,
+          );
+
+        let existingHistory: HistoryEntry[] = [];
+        let existingTotal = 0;
+
+        if (existing) {
+          // Parse frontmatter to get history
+          const adapter = new PageMetricsAdapter();
+          const frontmatter = adapter.parseFrontmatterData(existing);
+          existingHistory = frontmatter.history;
+          existingTotal = frontmatter.totalPageviews;
+        }
+
+        // Create updated entity
+        const pageMetrics = createPageMetricsEntity({
+          path: page.path,
+          views: page.views,
+          date,
+          existingHistory,
+          existingTotal,
+        });
+
+        await this.context.entityService.upsertEntity(pageMetrics);
+      } catch (error) {
+        this.logger.warn("Failed to update page metrics", {
+          path: page.path,
+          error,
+        });
+      }
+    }
+
+    this.logger.debug("Page metrics updated", { count: topPages.length });
+  }
+
+  /**
+   * Convert path to entity ID
+   */
+  private pathToId(path: string): string {
+    if (path === "/") return "page-metrics-root";
+
+    const slug = path
+      .replace(/^\//, "")
+      .replace(/\//g, "-")
+      .replace(/[^a-z0-9-]/gi, "-")
+      .replace(/-+/g, "-")
+      .replace(/-$/, "");
+
+    return `page-metrics-${slug}`;
   }
 
   /**
@@ -395,3 +480,17 @@ export {
 
 export { WebsiteMetricsAdapter } from "./adapters/website-metrics-adapter";
 export { SocialMetricsAdapter } from "./adapters/social-metrics-adapter";
+
+export type {
+  PageMetricsEntity,
+  PageMetricsMetadata,
+  CreatePageMetricsInput,
+  HistoryEntry,
+} from "./schemas/page-metrics";
+export {
+  pageMetricsSchema,
+  pageMetricsMetadataSchema,
+  createPageMetricsEntity,
+} from "./schemas/page-metrics";
+
+export { PageMetricsAdapter } from "./adapters/page-metrics-adapter";
