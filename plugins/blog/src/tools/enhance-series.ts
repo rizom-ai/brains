@@ -71,13 +71,13 @@ export function createEnhanceSeriesToolFactory(
         const allPosts =
           await context.entityService.listEntities<BlogPost>("post");
         const seriesPosts = allPosts.filter(
-          (p) => p.metadata.seriesName === series.metadata.name,
+          (p) => p.metadata.seriesName === series.metadata.title,
         );
 
         if (seriesPosts.length === 0) {
           return {
             success: false,
-            error: `No posts found in series: ${series.metadata.name}`,
+            error: `No posts found in series: ${series.metadata.title}`,
           };
         }
 
@@ -94,7 +94,7 @@ export function createEnhanceSeriesToolFactory(
           })
           .join("\n");
 
-        const prompt = `Series name: ${series.metadata.name}
+        const prompt = `Series name: ${series.metadata.title}
 
 Posts in this series:
 ${postSummaries}`;
@@ -156,11 +156,11 @@ ${postSummaries}`;
           success: true,
           data: {
             seriesId: series.id,
-            seriesName: series.metadata.name,
+            seriesName: series.metadata.title,
             description: generated.description,
             postCount: seriesPosts.length,
           },
-          message: `Series "${series.metadata.name}" enhanced with description. Use image_set-cover with generate:true and prompt:"${generated.description}" to generate a cover image.`,
+          message: `Series "${series.metadata.title}" enhanced with description. Use image_set-cover with generate:true and prompt:"${generated.description}" to generate a cover image.`,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);

@@ -64,13 +64,13 @@ export const SeriesListTemplate = ({
                 {item.coverImageUrl && (
                   <CardImage
                     src={item.coverImageUrl}
-                    alt={item.name}
+                    alt={item.title}
                     size="small"
                   />
                 )}
                 <div className="flex-grow">
                   <CardTitle href={`/series/${item.slug}`}>
-                    {item.name}
+                    {item.title}
                   </CardTitle>
                   <CardMetadata>
                     {item.postCount} {item.postCount === 1 ? "post" : "posts"}

@@ -125,6 +125,18 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
         title,
       });
 
+      // Delete existing image if regenerating
+      const existingImage = await this.context.entityService.getEntity(
+        "image",
+        imageId,
+      );
+      if (existingImage) {
+        this.logger.debug("Deleting existing image for regeneration", {
+          imageId,
+        });
+        await this.context.entityService.deleteEntity("image", imageId);
+      }
+
       await this.context.entityService.createEntity({
         ...entityData,
         id: imageId,

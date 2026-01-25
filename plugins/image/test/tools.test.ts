@@ -506,5 +506,60 @@ describe("Image Tools", () => {
         expect.any(Object),
       );
     });
+
+    it("BUG: should use title from series entity metadata when generating cover", async () => {
+      // Regression test: Series entities have 'title' in metadata (required by CoverImageMetadata)
+      // Previously series only had 'name', causing entity.metadata.title to be undefined
+      const mockSeriesEntity: BaseEntity = {
+        id: "series-ecosystem",
+        entityType: "series",
+        content:
+          "---\ntitle: Ecosystem Architecture\nslug: ecosystem\n---\n\n# Ecosystem Architecture",
+        metadata: {
+          title: "Ecosystem Architecture", // Required for CoverImageMetadata interface
+          slug: "ecosystem",
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "series123",
+      };
+
+      const plugin = createMockImagePlugin({
+        canGenerateImages: true,
+        getAdapter: mockAdapterWithCover,
+        findEntity: mockSeriesEntity,
+      });
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "series-cover-job",
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_set-cover");
+      if (!tool) throw new Error("Tool not found");
+
+      const result = await tool.handler(
+        {
+          entityType: "series",
+          entityId: "series-ecosystem",
+          generate: true,
+        },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+
+      // Verify job was enqueued with correct title (not "undefined Cover")
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.objectContaining({
+          title: "Ecosystem Architecture Cover", // Should use the series title
+          targetEntityType: "series",
+          targetEntityId: "series-ecosystem",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
+    });
   });
 });

@@ -184,6 +184,53 @@ describe("ImageGenerationJobHandler", () => {
       );
     });
 
+    it("should delete existing image before creating when regenerating", async () => {
+      // Setup: existing image with same ID
+      const existingImage = {
+        id: "sunset-image",
+        entityType: "image",
+        content: "old-data",
+        metadata: { title: "Old Image" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "old-hash",
+      };
+
+      const regenContext = createMockServicePluginContext({
+        returns: {
+          entityService: {
+            getEntity: existingImage, // Image already exists
+            deleteEntity: true,
+            createEntity: { entityId: "sunset-image", jobId: "job-123" },
+          },
+          ai: {
+            canGenerateImages: true,
+            generateImage: {
+              base64: VALID_PNG_BASE64,
+              dataUrl: VALID_PNG_DATA_URL,
+            },
+          },
+        },
+      });
+      const regenHandler = new ImageGenerationJobHandler(regenContext, logger);
+
+      const jobData = createValidJobData();
+      const result = await regenHandler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      // Should have deleted the existing image
+      expect(regenContext.entityService.deleteEntity).toHaveBeenCalledWith(
+        "image",
+        "sunset-image",
+      );
+      // Should have created the new image
+      expect(regenContext.entityService.createEntity).toHaveBeenCalled();
+    });
+
     it("should pass size and style options to AI service", async () => {
       const jobData = createValidJobData({
         size: "1024x1024",

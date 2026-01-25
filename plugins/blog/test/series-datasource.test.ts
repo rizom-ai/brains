@@ -52,11 +52,11 @@ Content for ${title}`;
     });
   };
 
-  const createMockSeries = (name: string, slug: string): Series =>
+  const createMockSeries = (title: string, slug: string): Series =>
     createTestEntity<Series>("series", {
       id: `series-${slug}`,
-      content: `# ${name}`,
-      metadata: { name, slug },
+      content: `# ${title}`,
+      metadata: { title, slug },
     });
 
   beforeEach(() => {
@@ -90,7 +90,7 @@ Content for ${title}`;
       const schema = z.object({
         series: z.array(
           z.object({
-            name: z.string(),
+            title: z.string(),
             slug: z.string(),
             postCount: z.number(),
           }),
@@ -105,12 +105,12 @@ Content for ${title}`;
 
       expect(result.series).toHaveLength(2);
       expect(result.series).toContainEqual({
-        name: "New Institutions",
+        title: "New Institutions",
         slug: "new-institutions",
         postCount: 2,
       });
       expect(result.series).toContainEqual({
-        name: "Other Series",
+        title: "Other Series",
         slug: "other-series",
         postCount: 1,
       });
@@ -125,7 +125,7 @@ Content for ${title}`;
       const schema = z.object({
         series: z.array(
           z.object({
-            name: z.string(),
+            title: z.string(),
             slug: z.string(),
             postCount: z.number(),
           }),
@@ -190,7 +190,7 @@ Content for ${title}`;
       const schema = z.object({
         series: z.array(
           z.object({
-            name: z.string(),
+            title: z.string(),
             slug: z.string(),
             postCount: z.number(),
           }),
@@ -206,7 +206,7 @@ Content for ${title}`;
 
       expect(result.series).toHaveLength(2);
       expect(result.series).toContainEqual({
-        name: "New Institutions",
+        title: "New Institutions",
         slug: "new-institutions",
         postCount: 2,
       });
@@ -267,7 +267,7 @@ Content for ${title}`;
       const schema = z.object({
         series: z.array(
           z.object({
-            name: z.string(),
+            title: z.string(),
             slug: z.string(),
             postCount: z.number(),
           }),

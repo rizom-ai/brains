@@ -1,4 +1,4 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, afterEach } from "bun:test";
 import type {
   ServicePluginContext,
   ToolContext,
@@ -6,6 +6,13 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { createNewsletterTools } from "../src/tools";
+
+// Save original fetch to restore after tests
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
 
 // Mock logger
 const mockLogger = {

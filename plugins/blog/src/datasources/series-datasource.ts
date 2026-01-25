@@ -172,9 +172,9 @@ export class SeriesDataSource implements DataSource {
         );
 
         return {
-          name: entity.metadata.name,
+          title: entity.metadata.title,
           slug: entity.metadata.slug,
-          postCount: postCounts.get(entity.metadata.name) ?? 0,
+          postCount: postCounts.get(entity.metadata.title) ?? 0,
           coverImageUrl,
         };
       }),
@@ -239,7 +239,7 @@ export class SeriesDataSource implements DataSource {
       });
     }
 
-    const seriesName = seriesEntity.metadata.name;
+    const seriesName = seriesEntity.metadata.title;
 
     // Resolve cover image using shared utility
     const coverImageUrl = await resolveEntityCoverImage(

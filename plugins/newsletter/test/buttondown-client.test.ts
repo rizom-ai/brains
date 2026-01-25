@@ -1,6 +1,13 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ButtondownClient } from "../src/lib/buttondown-client";
 import type { Logger } from "@brains/utils";
+
+// Save original fetch to restore after tests
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
 
 // Mock logger - cast through unknown to satisfy type checker
 const mockLogger = {

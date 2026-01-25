@@ -76,7 +76,7 @@ Content for ${title}`;
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
         metadata: {
-          name: "New Institutions",
+          title: "New Institutions",
           slug: "new-institutions",
         },
       });
@@ -105,7 +105,7 @@ Content for ${title}`;
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
         metadata: {
-          name: "New Institutions",
+          title: "New Institutions",
           slug: "new-institutions",
         },
       });
@@ -133,7 +133,8 @@ Content for ${title}`;
 
       const seriesNames = upsertSpy.mock.calls.map(
         (call) =>
-          (call[0] as unknown as { metadata: { name: string } }).metadata.name,
+          (call[0] as unknown as { metadata: { title: string } }).metadata
+            .title,
       );
       expect(seriesNames).toContain("New Institutions");
       expect(seriesNames).toContain("Future of Work");
@@ -160,7 +161,7 @@ Content for ${title}`;
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
         metadata: {
-          name: "New Institutions",
+          title: "New Institutions",
           slug: "new-institutions",
         },
       });
@@ -179,7 +180,7 @@ Content for ${title}`;
             contentHash: "",
             created: "",
             updated: "",
-            metadata: { name: "Old Series", slug: "old-series" },
+            metadata: { title: "Old Series", slug: "old-series" },
           },
         ]); // series
 

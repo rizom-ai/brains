@@ -48,14 +48,14 @@ Post content here.`;
     };
   };
 
-  const createMockSeries = (name: string): Series => {
-    const slug = name.toLowerCase().replace(/\s+/g, "-");
+  const createMockSeries = (title: string): Series => {
+    const slug = title.toLowerCase().replace(/\s+/g, "-");
     const content = `---
-name: "${name}"
+title: "${title}"
 slug: ${slug}
 ---
 
-# ${name}`;
+# ${title}`;
 
     return {
       id: `series-${slug}`,
@@ -63,7 +63,7 @@ slug: ${slug}
       content,
       contentHash: computeContentHash(content),
       metadata: {
-        name,
+        title,
         slug,
       },
       created: new Date().toISOString(),

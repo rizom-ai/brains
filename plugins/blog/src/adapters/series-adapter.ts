@@ -41,7 +41,7 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
     }
 
     const frontmatter: Record<string, unknown> = {
-      name: entity.metadata.name,
+      title: entity.metadata.title,
       slug: entity.metadata.slug,
     };
     if (entity.metadata.description) {
@@ -67,7 +67,7 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
 
     // Extract metadata (without coverImageId) from frontmatter
     const metadata: SeriesMetadata = {
-      name: frontmatter.name,
+      title: frontmatter.title,
       slug: frontmatter.slug,
       description: frontmatter.description,
     };

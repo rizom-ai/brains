@@ -6,7 +6,7 @@ import { baseEntitySchema } from "@brains/plugins";
  * Contains all series data including coverImageId
  */
 export const seriesFrontmatterSchema = z.object({
-  name: z.string(),
+  title: z.string(),
   slug: z.string(),
   description: z.string().optional(),
   coverImageId: z.string().optional(),
@@ -16,12 +16,14 @@ export type SeriesFrontmatter = z.infer<typeof seriesFrontmatterSchema>;
 
 /**
  * Series metadata schema (searchable fields only)
+ * Derived from frontmatter using .pick() to stay in sync
  * Does NOT include coverImageId - that's read from frontmatter at runtime
+ * Uses 'title' to satisfy CoverImageMetadata interface required by image_set-cover
  */
-export const seriesMetadataSchema = z.object({
-  name: z.string(),
-  slug: z.string(),
-  description: z.string().optional(),
+export const seriesMetadataSchema = seriesFrontmatterSchema.pick({
+  title: true,
+  slug: true,
+  description: true,
 });
 
 /**
@@ -45,7 +47,7 @@ export type SeriesWithData = z.infer<typeof seriesWithDataSchema>;
  * Includes resolved coverImageUrl from coverImageId
  */
 export const seriesListItemSchema = z.object({
-  name: z.string(),
+  title: z.string(),
   slug: z.string(),
   postCount: z.number(),
   coverImageUrl: z.string().optional(),

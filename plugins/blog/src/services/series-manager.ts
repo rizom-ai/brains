@@ -76,7 +76,7 @@ export class SeriesManager {
         metadata: {
           // Preserve existing metadata fields (like description)
           ...existing?.metadata,
-          name: seriesName,
+          title: seriesName,
           slug: slugify(seriesName),
         },
       };
