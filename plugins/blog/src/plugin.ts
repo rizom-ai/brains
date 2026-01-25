@@ -13,6 +13,7 @@ import { seriesSchema, seriesListItemSchema } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
 import { createGenerateTool } from "./tools/generate";
+import { createEnhanceSeriesToolFactory } from "./tools/enhance-series";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
@@ -27,6 +28,7 @@ import {
 } from "./templates/series-list";
 import { blogGenerationTemplate } from "./templates/generation-template";
 import { blogExcerptTemplate } from "./templates/excerpt-template";
+import { seriesDescriptionTemplate } from "./templates/series-description-template";
 import { homepageTemplate } from "./templates/homepage";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import {
@@ -230,6 +232,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       homepage: homepageTemplate,
       generation: blogGenerationTemplate,
       excerpt: blogExcerptTemplate,
+      "series-description": seriesDescriptionTemplate,
     });
 
     // Register job handler for blog generation
@@ -509,7 +512,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
 
     // Note: RSS generation is automatic via site:build:completed event
     // Publish tool removed - use publish-pipeline_publish instead
-    return [createGenerateTool(this.pluginContext, this.config, this.id)];
+    return [
+      createGenerateTool(this.pluginContext, this.config, this.id),
+      createEnhanceSeriesToolFactory(this.pluginContext, this.id),
+    ];
   }
 
   /**
