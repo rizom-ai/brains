@@ -370,4 +370,176 @@ Content for ${title}`;
       expect(createdEntity.content).toContain("slug: my-series");
     });
   });
+
+  describe("cleanupOrphanedSeries", () => {
+    it("should delete series if no posts reference it", async () => {
+      // Series exists
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "old-series",
+        entityType: "series",
+        content: "",
+        contentHash: "",
+        created: "",
+        updated: "",
+        metadata: { title: "Old Series", slug: "old-series" },
+      });
+      // No posts reference this series
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+      const deleteSpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+
+      await manager.cleanupOrphanedSeries("Old Series");
+
+      expect(deleteSpy).toHaveBeenCalledWith("series", "old-series");
+    });
+
+    it("should not delete series if posts still reference it", async () => {
+      const post = createMockPost("1", "Post 1", "post-1", "Old Series", 1);
+
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "old-series",
+        entityType: "series",
+        content: "",
+        contentHash: "",
+        created: "",
+        updated: "",
+        metadata: { title: "Old Series", slug: "old-series" },
+      });
+      // One post still references this series
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([post]);
+      const deleteSpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+
+      await manager.cleanupOrphanedSeries("Old Series");
+
+      expect(deleteSpy).not.toHaveBeenCalled();
+    });
+
+    it("should do nothing if series does not exist", async () => {
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
+      const listSpy = spyOn(
+        mockEntityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+      const deleteSpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+
+      await manager.cleanupOrphanedSeries("Non Existent");
+
+      // Should not query posts or delete if series doesn't exist
+      expect(listSpy).not.toHaveBeenCalled();
+      expect(deleteSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handlePostDelete", () => {
+    it("should cleanup orphaned series when post is deleted", async () => {
+      const post = createMockPost("1", "Post 1", "post-1", "Old Series", 1);
+
+      // Series exists
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "old-series",
+        entityType: "series",
+        content: "",
+        contentHash: "",
+        created: "",
+        updated: "",
+        metadata: { title: "Old Series", slug: "old-series" },
+      });
+      // No other posts reference this series
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+      const deleteSpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+
+      await manager.handlePostDelete(post);
+
+      expect(deleteSpy).toHaveBeenCalledWith("series", "old-series");
+    });
+
+    it("should do nothing when deleted post has no seriesName", async () => {
+      const post = createMockPost("1", "Post 1", "post-1"); // No series
+
+      const getSpy = spyOn(mockEntityService, "getEntity").mockResolvedValue(
+        null,
+      );
+
+      await manager.handlePostDelete(post);
+
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("handlePostChange with oldSeriesName", () => {
+    it("should cleanup old series when post moves to new series", async () => {
+      const post = createMockPost("1", "Post 1", "post-1", "New Series", 1);
+
+      // New series doesn't exist yet
+      const getEntitySpy = spyOn(mockEntityService, "getEntity");
+      getEntitySpy
+        .mockResolvedValueOnce(null) // New Series doesn't exist
+        .mockResolvedValueOnce({
+          // Old Series exists
+          id: "old-series",
+          entityType: "series",
+          content: "",
+          contentHash: "",
+          created: "",
+          updated: "",
+          metadata: { title: "Old Series", slug: "old-series" },
+        });
+
+      // No posts reference old series anymore
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+
+      const upsertSpy = spyOn(
+        mockEntityService,
+        "upsertEntity",
+      ).mockResolvedValue({
+        entityId: "new-series",
+        jobId: "job-1",
+        created: true,
+      });
+      const deleteSpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+
+      await manager.handlePostChange(post, "Old Series");
+
+      // Should create new series
+      expect(upsertSpy).toHaveBeenCalled();
+      // Should delete old orphaned series
+      expect(deleteSpy).toHaveBeenCalledWith("series", "old-series");
+    });
+
+    it("should not cleanup if old and new series are the same", async () => {
+      const post = createMockPost("1", "Post 1", "post-1", "Same Series", 1);
+
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "same-series",
+        entityType: "series",
+        content: "",
+        contentHash: "",
+        created: "",
+        updated: "",
+        metadata: { title: "Same Series", slug: "same-series" },
+      });
+      const deleteSpy = spyOn(
+        mockEntityService,
+        "deleteEntity",
+      ).mockResolvedValue(true);
+
+      await manager.handlePostChange(post, "Same Series");
+
+      expect(deleteSpy).not.toHaveBeenCalled();
+    });
+  });
 });

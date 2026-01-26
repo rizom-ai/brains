@@ -97,16 +97,64 @@ export class SeriesManager {
   }
 
   /**
-   * Handle a post change - only ensure the affected series exists
-   * Does NOT do a full sync - only handles the specific series
+   * Handle a post change - ensure the new series exists and cleanup old if changed
+   * @param post The post that changed
+   * @param oldSeriesName Optional previous series name (if post moved between series)
    */
-  async handlePostChange(post: BlogPost): Promise<void> {
+  async handlePostChange(
+    post: BlogPost,
+    oldSeriesName?: string,
+  ): Promise<void> {
+    const seriesName = post.metadata.seriesName;
+
+    // Ensure new series exists
+    if (seriesName) {
+      await this.ensureSeriesExists(seriesName);
+    }
+
+    // Cleanup old series if post moved to a different series
+    if (oldSeriesName && oldSeriesName !== seriesName) {
+      await this.cleanupOrphanedSeries(oldSeriesName);
+    }
+  }
+
+  /**
+   * Handle a post deletion - cleanup orphaned series
+   */
+  async handlePostDelete(post: BlogPost): Promise<void> {
     const seriesName = post.metadata.seriesName;
     if (!seriesName) {
       return;
     }
 
-    await this.ensureSeriesExists(seriesName);
+    await this.cleanupOrphanedSeries(seriesName);
+  }
+
+  /**
+   * Check if a series has no posts and delete it if orphaned
+   */
+  async cleanupOrphanedSeries(seriesName: string): Promise<void> {
+    const seriesId = slugify(seriesName);
+
+    // Check if series exists
+    const series = await this.entityService.getEntity<Series>(
+      "series",
+      seriesId,
+    );
+    if (!series) {
+      return;
+    }
+
+    // Check if any posts still reference this series
+    const posts = await this.entityService.listEntities<BlogPost>("post", {
+      filter: { metadata: { seriesName } },
+      limit: 1,
+    });
+
+    if (posts.length === 0) {
+      await this.entityService.deleteEntity("series", seriesId);
+      this.logger.debug(`Deleted orphaned series: ${seriesName}`);
+    }
   }
 
   /**
