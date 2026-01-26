@@ -26,7 +26,7 @@ This is the content of the blog post.`,
   updated: "2024-01-01T10:00:00Z",
 };
 
-describe("SocialMediaPlugin - Auto-Generate on Blog Publish", () => {
+describe("SocialMediaPlugin - Auto-Generate on Blog Queued", () => {
   let plugin: SocialMediaPlugin;
   let mockShell: MockShell;
   let logger: ReturnType<typeof createSilentLogger>;
@@ -47,13 +47,12 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Publish", () => {
     mock.restore();
   });
 
-  describe("publish:completed subscription", () => {
+  describe("entity:updated subscription for queued status", () => {
     it("should not auto-generate when feature is disabled", async () => {
       plugin = new SocialMediaPlugin({
         autoGenerateOnBlogPublish: false,
       });
 
-      // Track if social:auto-generate message is sent
       const messageBus = mockShell.getMessageBus();
       messageBus.subscribe("social:auto-generate", async (msg) => {
         generationTriggered = true;
@@ -63,31 +62,28 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Publish", () => {
 
       await plugin.register(mockShell);
 
-      // Add blog post to entity service
-      const entityService = mockShell.getEntityService();
-      await entityService.createEntity(samplePublishedPost);
-
-      // Send publish:completed message
+      // Send entity:updated for a post with queued status
       await messageBus.send(
-        "publish:completed",
+        "entity:updated",
         {
           entityType: "post",
           entityId: "post-1",
-          publishedAt: "2024-01-01T10:00:00Z",
+          entity: {
+            ...samplePublishedPost,
+            metadata: { ...samplePublishedPost.metadata, status: "queued" },
+          },
         },
         "test",
       );
 
-      // Generation should not be triggered
       expect(generationTriggered).toBe(false);
     });
 
-    it("should auto-generate social post when blog post is published", async () => {
+    it("should auto-generate social post when blog post status changes to queued", async () => {
       plugin = new SocialMediaPlugin({
         autoGenerateOnBlogPublish: true,
       });
 
-      // Track if social:auto-generate message is sent
       const messageBus = mockShell.getMessageBus();
       messageBus.subscribe("social:auto-generate", async (msg) => {
         generationTriggered = true;
@@ -97,22 +93,20 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Publish", () => {
 
       await plugin.register(mockShell);
 
-      // Add blog post to entity service
-      const entityService = mockShell.getEntityService();
-      await entityService.createEntity(samplePublishedPost);
-
-      // Send publish:completed message
+      // Send entity:updated for a post with queued status
       await messageBus.send(
-        "publish:completed",
+        "entity:updated",
         {
           entityType: "post",
           entityId: "post-1",
-          publishedAt: "2024-01-01T10:00:00Z",
+          entity: {
+            ...samplePublishedPost,
+            metadata: { ...samplePublishedPost.metadata, status: "queued" },
+          },
         },
         "test",
       );
 
-      // Generation should be triggered
       expect(generationTriggered).toBe(true);
       expect(generationData).toMatchObject({
         sourceEntityType: "post",
@@ -121,12 +115,11 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Publish", () => {
       });
     });
 
-    it("should skip non-post entity types", async () => {
+    it("should not auto-generate when post status is not queued", async () => {
       plugin = new SocialMediaPlugin({
         autoGenerateOnBlogPublish: true,
       });
 
-      // Track if social:auto-generate message is sent
       const messageBus = mockShell.getMessageBus();
       messageBus.subscribe("social:auto-generate", async (msg) => {
         generationTriggered = true;
@@ -136,18 +129,97 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Publish", () => {
 
       await plugin.register(mockShell);
 
-      // Send publish:completed for a deck
+      // Send entity:updated for a post with draft status
       await messageBus.send(
-        "publish:completed",
+        "entity:updated",
         {
-          entityType: "deck",
-          entityId: "deck-1",
-          publishedAt: "2024-01-01T10:00:00Z",
+          entityType: "post",
+          entityId: "post-1",
+          entity: {
+            ...samplePublishedPost,
+            metadata: { ...samplePublishedPost.metadata, status: "draft" },
+          },
         },
         "test",
       );
 
-      // Generation should not be triggered
+      expect(generationTriggered).toBe(false);
+    });
+
+    it("should skip non-post entity types", async () => {
+      plugin = new SocialMediaPlugin({
+        autoGenerateOnBlogPublish: true,
+      });
+
+      const messageBus = mockShell.getMessageBus();
+      messageBus.subscribe("social:auto-generate", async (msg) => {
+        generationTriggered = true;
+        generationData = msg.payload;
+        return { success: true };
+      });
+
+      await plugin.register(mockShell);
+
+      // Send entity:updated for a deck with queued status
+      await messageBus.send(
+        "entity:updated",
+        {
+          entityType: "deck",
+          entityId: "deck-1",
+          entity: {
+            id: "deck-1",
+            entityType: "deck",
+            metadata: { status: "queued" },
+          },
+        },
+        "test",
+      );
+
+      expect(generationTriggered).toBe(false);
+    });
+
+    it("should not auto-generate if social post already exists for this source", async () => {
+      plugin = new SocialMediaPlugin({
+        autoGenerateOnBlogPublish: true,
+      });
+
+      const messageBus = mockShell.getMessageBus();
+      messageBus.subscribe("social:auto-generate", async (msg) => {
+        generationTriggered = true;
+        generationData = msg.payload;
+        return { success: true };
+      });
+
+      await plugin.register(mockShell);
+
+      // Create existing social post linked to this blog post
+      const entityService = mockShell.getEntityService();
+      await entityService.createEntity({
+        id: "social-post-1",
+        entityType: "social-post",
+        content: "Existing social post",
+        metadata: {
+          platform: "linkedin",
+          status: "draft",
+          sourceEntityType: "post",
+          sourceEntityId: "post-1",
+        },
+      });
+
+      // Send entity:updated for the blog post with queued status
+      await messageBus.send(
+        "entity:updated",
+        {
+          entityType: "post",
+          entityId: "post-1",
+          entity: {
+            ...samplePublishedPost,
+            metadata: { ...samplePublishedPost.metadata, status: "queued" },
+          },
+        },
+        "test",
+      );
+
       expect(generationTriggered).toBe(false);
     });
   });

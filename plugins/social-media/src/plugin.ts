@@ -131,10 +131,11 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
 
-    // Subscribe to publish:completed for auto-generation
+    // Subscribe to entity:updated for auto-generation when blog posts are queued
     if (this.config.autoGenerateOnBlogPublish) {
-      this.subscribeToPublishCompleted(context);
-      this.logger.info("Auto-generate on blog publish enabled");
+      this.subscribeToEntityUpdatedForAutoGenerate(context);
+      this.subscribeToAutoGenerate(context);
+      this.logger.info("Auto-generate on blog queued enabled");
     }
 
     // Register eval handlers for testing
@@ -234,21 +235,54 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
   }
 
   /**
-   * Subscribe to publish:completed to auto-generate social posts for blog posts
+   * Subscribe to entity:updated to auto-generate social posts when blog posts are queued
    */
-  private subscribeToPublishCompleted(context: ServicePluginContext): void {
+  private subscribeToEntityUpdatedForAutoGenerate(
+    context: ServicePluginContext,
+  ): void {
     context.messaging.subscribe<
-      { entityType: string; entityId: string; publishedAt: string },
+      {
+        entityType: string;
+        entityId: string;
+        entity: { metadata?: { status?: string } };
+      },
       { success: boolean }
-    >("publish:completed", async (msg) => {
-      const { entityType, entityId } = msg.payload;
+    >("entity:updated", async (msg) => {
+      const { entityType, entityId, entity } = msg.payload;
 
       // Only auto-generate for blog posts
       if (entityType !== "post") {
         return { success: true };
       }
 
+      // Only trigger when status is "queued"
+      const status = entity?.metadata?.status;
+      if (status !== "queued") {
+        return { success: true };
+      }
+
       try {
+        // Check if a social post already exists for this source
+        const existingPosts = await context.entityService.listEntities(
+          "social-post",
+          {
+            filter: {
+              metadata: {
+                sourceEntityType: "post",
+                sourceEntityId: entityId,
+              },
+            },
+            limit: 1,
+          },
+        );
+
+        if (existingPosts.length > 0) {
+          this.logger.debug(
+            `Social post already exists for ${entityId}, skipping auto-generate`,
+          );
+          return { success: true };
+        }
+
         // Send message to trigger auto-generation
         await context.messaging.send("social:auto-generate", {
           sourceEntityType: entityType,
@@ -256,7 +290,9 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
           platform: "linkedin",
         });
 
-        this.logger.info(`Auto-generate social post triggered for ${entityId}`);
+        this.logger.info(
+          `Auto-generate social post triggered for queued post ${entityId}`,
+        );
         return { success: true };
       } catch (error) {
         const errorMessage =
@@ -268,7 +304,54 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       }
     });
 
-    this.logger.debug("Subscribed to publish:completed for auto-generation");
+    this.logger.debug("Subscribed to entity:updated for auto-generation");
+  }
+
+  /**
+   * Subscribe to social:auto-generate messages and enqueue generation jobs
+   */
+  private subscribeToAutoGenerate(context: ServicePluginContext): void {
+    context.messaging.subscribe<
+      {
+        sourceEntityType: string;
+        sourceEntityId: string;
+        platform: string;
+      },
+      { success: boolean; jobId?: string }
+    >("social:auto-generate", async (msg) => {
+      const { sourceEntityType, sourceEntityId, platform } = msg.payload;
+
+      try {
+        // Enqueue generation job
+        const jobId = await context.jobs.enqueue(
+          "social-media:generation",
+          {
+            sourceEntityType,
+            sourceEntityId,
+            platform,
+            addToQueue: false, // Default to draft status
+          },
+          { interfaceType: "job", userId: "system" },
+        );
+
+        this.logger.info(
+          `Social post generation job enqueued for ${sourceEntityType}/${sourceEntityId}`,
+          { jobId },
+        );
+
+        return { success: true, jobId };
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        this.logger.error(
+          `Failed to enqueue social post generation for ${sourceEntityId}:`,
+          { error: errorMessage },
+        );
+        return { success: false };
+      }
+    });
+
+    this.logger.debug("Subscribed to social:auto-generate messages");
   }
 
   /**

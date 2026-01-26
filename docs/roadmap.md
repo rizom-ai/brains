@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-23
+Last Updated: 2025-01-26
 
 ---
 
@@ -10,15 +10,14 @@ Last Updated: 2025-01-23
 
 ### Remaining for v1.0
 
-- [ ] Dashboard: Add more analytics info to widgets
-- [ ] Series: Auto-generate summary and cover image
-- [ ] Image generation: Evaluate alternatives to DALL-E
-- [ ] Social media auto-generate: Verify working
-- [ ] Discord interface: Implement bot
+- [x] Social media auto-generate: Triggers on blog post status → queued
 - [ ] Publish pipeline: Verify queue/schedule/publish flow
 - [ ] Content: Finalize essays, portfolio, about (last step)
 
 ### Recently Fixed
+
+- ✅ Series: Auto-generate summary and cover image (enhance-series tool, image_generate with target params)
+- ✅ Dashboard: Analytics widgets (Top Pages, Traffic Sources, Devices, Countries)
 
 - ✅ Dashboard widget registration timing
 - ✅ Hydration compilation centralized in site-builder
@@ -44,7 +43,21 @@ Last Updated: 2025-01-23
 
 ---
 
-## Phase 1: Newsletter Integration (post-v1.0)
+## Phase 1: Post-v1.0 Improvements
+
+### Discord Interface
+
+- [ ] Implement Discord bot (see `docs/plans/discord-interface.md`)
+
+### Image Generation Provider
+
+- [ ] Add Nano Banana Pro (Google Gemini) as alternative to DALL-E
+- [ ] Make provider configurable: `IMAGE_PROVIDER=google|openai`
+- [ ] Better text rendering for cover images with titles
+
+---
+
+## Phase 2: Newsletter Integration
 
 **Goal**: Newsletter signup on site.
 
