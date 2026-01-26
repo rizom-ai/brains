@@ -15,6 +15,7 @@ import {
   type BlogPostWithData,
 } from "../schemas/blog-post";
 import { seriesFrontmatterSchema } from "../schemas/series";
+import { seriesAdapter } from "../adapters/series-adapter";
 
 // Custom query format (used by SeriesRouteGenerator)
 const customQuerySchema = z.object({
@@ -176,10 +177,11 @@ export class SeriesDataSource implements DataSource {
           this.entityService,
         );
 
+        const body = seriesAdapter.parseBody(entity.content);
         return {
           title: parsed.metadata.title,
           slug: parsed.metadata.slug,
-          description: parsed.metadata.description,
+          description: body.description,
           postCount: postCounts.get(parsed.metadata.title) ?? 0,
           coverImageUrl,
         };
@@ -213,11 +215,8 @@ export class SeriesDataSource implements DataSource {
     let coverImageUrl: string | undefined;
 
     if (seriesEntity) {
-      const parsed = parseMarkdownWithFrontmatter(
-        seriesEntity.content,
-        seriesFrontmatterSchema,
-      );
-      description = parsed.metadata.description;
+      const body = seriesAdapter.parseBody(seriesEntity.content);
+      description = body.description;
       coverImageUrl = await resolveEntityCoverImage(
         seriesEntity,
         this.entityService,

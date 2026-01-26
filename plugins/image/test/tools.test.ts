@@ -11,12 +11,6 @@ const withImageId = z.object({ imageId: z.string() });
 const withJobId = z.object({ jobId: z.string() });
 const setCoverData = z.object({
   imageId: z.string().nullable(),
-  generated: z.boolean(),
-});
-const setCoverDataAsync = z.object({
-  jobId: z.string(),
-  entityType: z.string(),
-  entityId: z.string(),
 });
 
 const mockToolContext: ToolContext = {
@@ -250,6 +244,78 @@ describe("Image Tools", () => {
         expect.any(Object),
       );
     });
+
+    it("should pass targetEntityType and targetEntityId to job when provided", async () => {
+      const plugin = createMockImagePlugin({
+        canGenerateImages: true,
+      });
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "gen-job-target",
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_generate");
+      if (!tool) throw new Error("Tool not found");
+
+      const result = await tool.handler(
+        {
+          prompt: "Cover for my series",
+          title: "My Series Cover",
+          targetEntityType: "series",
+          targetEntityId: "my-series",
+        },
+        mockToolContext,
+      );
+
+      expect(result.success).toBe(true);
+
+      // Verify job was enqueued with target entity info
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.objectContaining({
+          prompt: expect.stringContaining("Cover for my series"),
+          title: "My Series Cover",
+          targetEntityType: "series",
+          targetEntityId: "my-series",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
+    });
+
+    it("should not include target fields when not provided", async () => {
+      const plugin = createMockImagePlugin({
+        canGenerateImages: true,
+      });
+      const context = createMockServicePluginContext({
+        returns: {
+          jobsEnqueue: "gen-job-no-target",
+        },
+      });
+      const tools = createImageTools(context, plugin, "image");
+      const tool = tools.find((t) => t.name === "image_generate");
+      if (!tool) throw new Error("Tool not found");
+
+      await tool.handler(
+        {
+          prompt: "Just an image",
+          title: "Standalone Image",
+        },
+        mockToolContext,
+      );
+
+      // Verify job was enqueued without target entity info
+      expect(context.jobs.enqueue).toHaveBeenCalledWith(
+        "image-generate",
+        expect.not.objectContaining({
+          targetEntityType: expect.anything(),
+          targetEntityId: expect.anything(),
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
+    });
   });
 
   describe("image_set-cover tool", () => {
@@ -295,7 +361,6 @@ describe("Image Tools", () => {
       if (result.success) {
         const data = setCoverData.parse(result.data);
         expect(data.imageId).toBe("hero-image");
-        expect(data.generated).toBe(false);
       }
     });
 
@@ -398,168 +463,6 @@ describe("Image Tools", () => {
       if (!result.success) {
         expect(result.error).toContain("Image not found");
       }
-    });
-
-    it("should queue job when generate:true", async () => {
-      const plugin = createMockImagePlugin({
-        canGenerateImages: true,
-        getAdapter: mockAdapterWithCover,
-        findEntity: mockPostEntity,
-      });
-      const context = createMockServicePluginContext({
-        returns: {
-          jobsEnqueue: "cover-job-789",
-        },
-      });
-      const tools = createImageTools(context, plugin, "image");
-      const tool = tools.find((t) => t.name === "image_set-cover");
-      if (!tool) throw new Error("Tool not found");
-
-      const result = await tool.handler(
-        {
-          entityType: "post",
-          entityId: "test-post",
-          generate: true,
-        },
-        mockToolContext,
-      );
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = setCoverDataAsync.parse(result.data);
-        expect(data.jobId).toBe("cover-job-789");
-        expect(data.entityType).toBe("post");
-        expect(data.entityId).toBe("test-post");
-      }
-
-      // Verify job was enqueued with target entity info
-      expect(context.jobs.enqueue).toHaveBeenCalledWith(
-        "image-generate",
-        expect.objectContaining({
-          targetEntityType: "post",
-          targetEntityId: "test-post",
-        }),
-        mockToolContext,
-        expect.any(Object),
-      );
-    });
-
-    it("should fail generation when API not available", async () => {
-      const plugin = createMockImagePlugin({
-        canGenerateImages: false,
-        getAdapter: mockAdapterWithCover,
-        findEntity: mockPostEntity,
-      });
-      const context = createMockServicePluginContext();
-      const tools = createImageTools(context, plugin, "image");
-      const tool = tools.find((t) => t.name === "image_set-cover");
-      if (!tool) throw new Error("Tool not found");
-
-      const result = await tool.handler(
-        {
-          entityType: "post",
-          entityId: "test-post",
-          generate: true,
-        },
-        mockToolContext,
-      );
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("not available");
-      }
-    });
-
-    it("should pass size and style options when generating", async () => {
-      const plugin = createMockImagePlugin({
-        canGenerateImages: true,
-        getAdapter: mockAdapterWithCover,
-        findEntity: mockPostEntity,
-      });
-      const context = createMockServicePluginContext({
-        returns: {
-          jobsEnqueue: "cover-job-abc",
-        },
-      });
-      const tools = createImageTools(context, plugin, "image");
-      const tool = tools.find((t) => t.name === "image_set-cover");
-      if (!tool) throw new Error("Tool not found");
-
-      await tool.handler(
-        {
-          entityType: "post",
-          entityId: "test-post",
-          generate: true,
-          size: "1024x1024",
-          style: "natural",
-        },
-        mockToolContext,
-      );
-
-      expect(context.jobs.enqueue).toHaveBeenCalledWith(
-        "image-generate",
-        expect.objectContaining({
-          size: "1024x1024",
-          style: "natural",
-        }),
-        mockToolContext,
-        expect.any(Object),
-      );
-    });
-
-    it("BUG: should use title from series entity metadata when generating cover", async () => {
-      // Regression test: Series entities have 'title' in metadata (required by CoverImageMetadata)
-      // Previously series only had 'name', causing entity.metadata.title to be undefined
-      const mockSeriesEntity: BaseEntity = {
-        id: "series-ecosystem",
-        entityType: "series",
-        content:
-          "---\ntitle: Ecosystem Architecture\nslug: ecosystem\n---\n\n# Ecosystem Architecture",
-        metadata: {
-          title: "Ecosystem Architecture", // Required for CoverImageMetadata interface
-          slug: "ecosystem",
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        contentHash: "series123",
-      };
-
-      const plugin = createMockImagePlugin({
-        canGenerateImages: true,
-        getAdapter: mockAdapterWithCover,
-        findEntity: mockSeriesEntity,
-      });
-      const context = createMockServicePluginContext({
-        returns: {
-          jobsEnqueue: "series-cover-job",
-        },
-      });
-      const tools = createImageTools(context, plugin, "image");
-      const tool = tools.find((t) => t.name === "image_set-cover");
-      if (!tool) throw new Error("Tool not found");
-
-      const result = await tool.handler(
-        {
-          entityType: "series",
-          entityId: "series-ecosystem",
-          generate: true,
-        },
-        mockToolContext,
-      );
-
-      expect(result.success).toBe(true);
-
-      // Verify job was enqueued with correct title (not "undefined Cover")
-      expect(context.jobs.enqueue).toHaveBeenCalledWith(
-        "image-generate",
-        expect.objectContaining({
-          title: "Ecosystem Architecture Cover", // Should use the series title
-          targetEntityType: "series",
-          targetEntityId: "series-ecosystem",
-        }),
-        mockToolContext,
-        expect.any(Object),
-      );
     });
   });
 });

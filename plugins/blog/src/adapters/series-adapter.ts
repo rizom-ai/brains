@@ -7,14 +7,17 @@ import type { z } from "@brains/utils";
 import {
   seriesSchema,
   seriesFrontmatterSchema,
+  createSeriesBodyFormatter,
   type Series,
   type SeriesMetadata,
   type SeriesFrontmatter,
+  type SeriesBody,
 } from "../schemas/series";
 
 /**
  * Adapter for series entities
  * Series are auto-derived from posts but stored with frontmatter for round-trip sync
+ * Description is stored in structured content body, not frontmatter
  */
 export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
   public readonly entityType = "series" as const;
@@ -26,31 +29,50 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
    * Preserves coverImageId from existing frontmatter if present
    */
   public toMarkdown(entity: Series): string {
-    // Extract body and existing frontmatter data
-    let contentBody = entity.content;
-    let existingDescription: string | undefined;
+    // Extract existing frontmatter data
     let existingCoverImageId: string | undefined;
+    let existingBody: SeriesBody = {};
 
     try {
       const parsed = parseMarkdownWithFrontmatter(
         entity.content,
         seriesFrontmatterSchema,
       );
-      contentBody = parsed.content;
-      existingDescription = parsed.metadata.description;
       existingCoverImageId = parsed.metadata.coverImageId;
+      // Parse structured content from body
+      const formatter = createSeriesBodyFormatter(entity.metadata.title);
+      existingBody = formatter.parse(parsed.content);
     } catch {
-      // Content doesn't have valid frontmatter, use as-is
+      // Content doesn't have valid frontmatter/body, use defaults
     }
 
     const frontmatter: SeriesFrontmatter = {
       title: entity.metadata.title,
       slug: entity.metadata.slug,
-      ...(existingDescription && { description: existingDescription }),
       ...(existingCoverImageId && { coverImageId: existingCoverImageId }),
     };
 
+    // Generate structured content body
+    const formatter = createSeriesBodyFormatter(entity.metadata.title);
+    const contentBody = formatter.format(existingBody);
+
     return generateMarkdownWithFrontmatter(contentBody, frontmatter);
+  }
+
+  /**
+   * Parse series body from content
+   */
+  public parseBody(markdown: string): SeriesBody {
+    try {
+      const { content, metadata } = parseMarkdownWithFrontmatter(
+        markdown,
+        seriesFrontmatterSchema,
+      );
+      const formatter = createSeriesBodyFormatter(metadata.title);
+      return formatter.parse(content);
+    } catch {
+      return {};
+    }
   }
 
   /**

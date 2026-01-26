@@ -66,7 +66,7 @@ Content for ${title}`;
         mockEntityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "series-new-institutions",
+        entityId: "new-institutions",
         jobId: "job-1",
         created: true,
       });
@@ -75,6 +75,7 @@ Content for ${title}`;
 
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
+        id: "new-institutions",
         metadata: {
           title: "New Institutions",
           slug: "new-institutions",
@@ -94,7 +95,7 @@ Content for ${title}`;
         mockEntityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "series-new-institutions",
+        entityId: "new-institutions",
         jobId: "job-1",
         created: true,
       });
@@ -104,6 +105,7 @@ Content for ${title}`;
       // Should only create one series entity (postCount computed dynamically when fetching)
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
+        id: "new-institutions",
         metadata: {
           title: "New Institutions",
           slug: "new-institutions",
@@ -122,7 +124,7 @@ Content for ${title}`;
         mockEntityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "series-test",
+        entityId: "test",
         jobId: "job-1",
         created: true,
       });
@@ -131,13 +133,11 @@ Content for ${title}`;
 
       expect(upsertSpy).toHaveBeenCalledTimes(2);
 
-      const seriesNames = upsertSpy.mock.calls.map(
-        (call) =>
-          (call[0] as unknown as { metadata: { title: string } }).metadata
-            .title,
+      const seriesIds = upsertSpy.mock.calls.map(
+        (call) => (call[0] as unknown as { id: string }).id,
       );
-      expect(seriesNames).toContain("New Institutions");
-      expect(seriesNames).toContain("Future of Work");
+      expect(seriesIds).toContain("new-institutions");
+      expect(seriesIds).toContain("future-of-work");
     });
 
     it("should ignore posts without seriesName", async () => {
@@ -151,7 +151,7 @@ Content for ${title}`;
         mockEntityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "series-new-institutions",
+        entityId: "new-institutions",
         jobId: "job-1",
         created: true,
       });
@@ -160,6 +160,7 @@ Content for ${title}`;
 
       expect(upsertSpy).toHaveBeenCalledTimes(1);
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
+        id: "new-institutions",
         metadata: {
           title: "New Institutions",
           slug: "new-institutions",
@@ -174,7 +175,7 @@ Content for ${title}`;
         .mockResolvedValueOnce([]) // posts
         .mockResolvedValueOnce([
           {
-            id: "series-old-series",
+            id: "old-series",
             entityType: "series",
             content: "",
             contentHash: "",
@@ -191,10 +192,10 @@ Content for ${title}`;
 
       await manager.syncSeriesFromPosts();
 
-      expect(deleteSpy).toHaveBeenCalledWith("series", "series-old-series");
+      expect(deleteSpy).toHaveBeenCalledWith("series", "old-series");
     });
 
-    it("should use slugified name as entity ID", async () => {
+    it("should use slugified name as entity ID (without prefix)", async () => {
       const posts = [
         createMockPost("1", "Post 1", "post-1", "The Future of Work", 1),
       ];
@@ -204,7 +205,7 @@ Content for ${title}`;
         mockEntityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "series-the-future-of-work",
+        entityId: "the-future-of-work",
         jobId: "job-1",
         created: true,
       });
@@ -212,7 +213,7 @@ Content for ${title}`;
       await manager.syncSeriesFromPosts();
 
       expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
-        id: "series-the-future-of-work",
+        id: "the-future-of-work",
         metadata: {
           slug: "the-future-of-work",
         },
@@ -221,7 +222,7 @@ Content for ${title}`;
   });
 
   describe("handlePostChange", () => {
-    it("should sync series when post with seriesName is created", async () => {
+    it("should ensure series exists when post with seriesName is created", async () => {
       const post = createMockPost(
         "1",
         "Post 1",
@@ -230,33 +231,143 @@ Content for ${title}`;
         1,
       );
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([post]);
+      // Series doesn't exist yet
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
       const upsertSpy = spyOn(
         mockEntityService,
         "upsertEntity",
       ).mockResolvedValue({
-        entityId: "series-new-institutions",
+        entityId: "new-institutions",
         jobId: "job-1",
         created: true,
       });
 
       await manager.handlePostChange(post);
 
-      expect(upsertSpy).toHaveBeenCalled();
+      expect(upsertSpy).toHaveBeenCalledTimes(1);
+      expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
+        id: "new-institutions",
+        metadata: {
+          title: "New Institutions",
+          slug: "new-institutions",
+        },
+      });
     });
 
-    it("should not sync when post has no seriesName", async () => {
-      const post = createMockPost("1", "Post 1", "post-1"); // No series
+    it("should not create series if it already exists", async () => {
+      const post = createMockPost(
+        "1",
+        "Post 1",
+        "post-1",
+        "New Institutions",
+        1,
+      );
 
-      const listSpy = spyOn(
+      // Series already exists
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "new-institutions",
+        entityType: "series",
+        content: "",
+        contentHash: "",
+        created: "",
+        updated: "",
+        metadata: { title: "New Institutions", slug: "new-institutions" },
+      });
+      const upsertSpy = spyOn(
         mockEntityService,
-        "listEntities",
-      ).mockResolvedValue([]);
+        "upsertEntity",
+      ).mockResolvedValue({
+        entityId: "new-institutions",
+        jobId: "job-1",
+        created: false,
+      });
 
       await manager.handlePostChange(post);
 
-      // Should not query for posts since this post has no series
-      expect(listSpy).not.toHaveBeenCalled();
+      // Should NOT upsert since series already exists
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
+
+    it("should not query when post has no seriesName", async () => {
+      const post = createMockPost("1", "Post 1", "post-1"); // No series
+
+      const getSpy = spyOn(mockEntityService, "getEntity").mockResolvedValue(
+        null,
+      );
+
+      await manager.handlePostChange(post);
+
+      // Should not query since this post has no series
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("ensureSeriesExists", () => {
+    it("should create series if it does not exist", async () => {
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
+      const upsertSpy = spyOn(
+        mockEntityService,
+        "upsertEntity",
+      ).mockResolvedValue({
+        entityId: "new-institutions",
+        jobId: "job-1",
+        created: true,
+      });
+
+      await manager.ensureSeriesExists("New Institutions");
+
+      expect(upsertSpy).toHaveBeenCalledTimes(1);
+      expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
+        id: "new-institutions",
+        entityType: "series",
+        metadata: {
+          title: "New Institutions",
+          slug: "new-institutions",
+        },
+      });
+    });
+
+    it("should not create series if it already exists", async () => {
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "new-institutions",
+        entityType: "series",
+        content: "",
+        contentHash: "",
+        created: "",
+        updated: "",
+        metadata: { title: "New Institutions", slug: "new-institutions" },
+      });
+      const upsertSpy = spyOn(
+        mockEntityService,
+        "upsertEntity",
+      ).mockResolvedValue({
+        entityId: "new-institutions",
+        jobId: "job-1",
+        created: false,
+      });
+
+      await manager.ensureSeriesExists("New Institutions");
+
+      expect(upsertSpy).not.toHaveBeenCalled();
+    });
+
+    it("should generate proper frontmatter content", async () => {
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
+      const upsertSpy = spyOn(
+        mockEntityService,
+        "upsertEntity",
+      ).mockResolvedValue({
+        entityId: "my-series",
+        jobId: "job-1",
+        created: true,
+      });
+
+      await manager.ensureSeriesExists("My Series");
+
+      const createdEntity = upsertSpy.mock.calls[0]?.[0] as { content: string };
+      // Content should have frontmatter with title and slug
+      expect(createdEntity.content).toContain("title: My Series");
+      expect(createdEntity.content).toContain("slug: my-series");
     });
   });
 });

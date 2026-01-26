@@ -142,6 +142,16 @@ const generateInputSchema = z.object({
     .enum(["vivid", "natural"])
     .optional()
     .describe("Style: vivid (dramatic, default) or natural (less hyper-real)"),
+  targetEntityType: z
+    .string()
+    .optional()
+    .describe(
+      "Entity type to set as cover image after generation (e.g., 'series', 'post')",
+    ),
+  targetEntityId: z
+    .string()
+    .optional()
+    .describe("Entity ID to set as cover image after generation"),
 });
 
 /**
@@ -168,7 +178,8 @@ function createImageGenerateTool(
           };
         }
 
-        const { prompt, title, size, style } = generateInputSchema.parse(input);
+        const { prompt, title, size, style, targetEntityType, targetEntityId } =
+          generateInputSchema.parse(input);
 
         // Build full prompt with base context
         const basePrompt = buildImageBasePrompt(plugin);
@@ -182,6 +193,8 @@ function createImageGenerateTool(
             title,
             ...(size && { size }),
             ...(style && { style }),
+            ...(targetEntityType && { targetEntityType }),
+            ...(targetEntityId && { targetEntityId }),
           },
           toolContext,
           {
@@ -218,44 +231,25 @@ const setCoverInputSchema = z.object({
   imageId: z
     .string()
     .nullable()
-    .optional()
     .describe("Image ID to set as cover, or null to remove"),
-  generate: z
-    .boolean()
-    .optional()
-    .describe("Generate a new cover image based on entity title"),
-  prompt: z
-    .string()
-    .optional()
-    .describe("Custom prompt for image generation (used with generate: true)"),
-  size: z
-    .enum(["1024x1024", "1792x1024", "1024x1792"])
-    .optional()
-    .describe(
-      "Image size when generating: square, landscape (default), or portrait",
-    ),
-  style: z
-    .enum(["vivid", "natural"])
-    .optional()
-    .describe("Style when generating: vivid (dramatic, default) or natural"),
 });
 
 /**
  * Create the set-cover tool
  */
 function createSetCoverTool(
-  context: ServicePluginContext,
+  _context: ServicePluginContext,
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
   return createTool(
     pluginId,
     "set-cover",
-    "Set or remove cover image on an entity. Use imageId to set existing image, generate:true to queue image generation job, or imageId:null to remove.",
+    "Set or remove cover image on an entity. Use imageId to set an existing image, or null to remove.",
     setCoverInputSchema.shape,
-    async (input: unknown, toolContext: ToolContext) => {
+    async (input: unknown, _toolContext: ToolContext) => {
       try {
-        const { entityType, entityId, imageId, generate, prompt, size, style } =
+        const { entityType, entityId, imageId } =
           setCoverInputSchema.parse(input);
 
         // Get adapter and check capability
@@ -277,77 +271,23 @@ function createSetCoverTool(
         }
         const entity = baseEntity as EntityWithCoverImage;
 
-        // Generate new image if requested (async via job queue)
-        if (generate) {
-          if (!plugin.canGenerateImages()) {
-            return {
-              success: false,
-              error:
-                "Image generation not available: OPENAI_API_KEY not configured",
-            };
-          }
-
-          // Extract title from entity metadata (properly typed via EntityWithCoverImage)
-          const entityTitle = entity.metadata.title;
-          const imageTitle = `${entityTitle} Cover`;
-
-          // Build generation prompt
-          const basePrompt = buildImageBasePrompt(plugin);
-          const subjectPrompt = prompt ?? `Cover image for: ${entityTitle}`;
-          const fullPrompt = basePrompt + subjectPrompt;
-
-          // Queue the image generation job with target entity info
-          const jobId = await context.jobs.enqueue(
-            "image-generate",
-            {
-              prompt: fullPrompt,
-              title: imageTitle,
-              ...(size && { size }),
-              ...(style && { style }),
-              targetEntityType: entityType,
-              targetEntityId: entity.id,
-            },
-            toolContext,
-            {
-              source: `${pluginId}_set-cover`,
-              metadata: {
-                operationType: "content_operations",
-                operationTarget: "image",
-              },
-            },
-          );
-
-          return {
-            success: true,
-            data: {
-              jobId,
-              entityType,
-              entityId,
-            },
-            message: `Cover image generation job queued for ${entityType}/${entityId} (jobId: ${jobId})`,
-          };
-        }
-
-        // Set existing image or remove
-        const finalImageId: string | null = imageId ?? null;
-
-        if (finalImageId) {
+        if (imageId) {
           // Validate existing image exists
-          const image = await plugin.getEntity("image", finalImageId);
+          const image = await plugin.getEntity("image", imageId);
           if (!image) {
             return {
               success: false,
-              error: `Image not found: ${finalImageId}`,
+              error: `Image not found: ${imageId}`,
             };
           }
         }
 
         // Update entity using shared utility
-        const updated = setCoverImageId(entity, finalImageId);
+        const updated = setCoverImageId(entity, imageId);
         await plugin.updateEntity(updated);
 
-        const message = finalImageId
-          ? `Cover image set to '${finalImageId}' on ${entityType}/${entityId}`
+        const message = imageId
+          ? `Cover image set to '${imageId}' on ${entityType}/${entityId}`
           : `Cover image removed from ${entityType}/${entityId}`;
 
         return {
@@ -355,8 +295,7 @@ function createSetCoverTool(
           data: {
             entityType,
             entityId,
-            imageId: finalImageId,
-            generated: false,
+            imageId,
           },
           message,
         };

@@ -1,8 +1,10 @@
 import type { IEntityService } from "@brains/plugins";
+import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { slugify, computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";
+import type { SeriesFrontmatter } from "../schemas/series";
 
 /**
  * Manages series entities derived from blog posts
@@ -49,7 +51,7 @@ export class SeriesManager {
     // Create series entities only if they don't already exist
     const processedIds = new Set<string>();
     for (const seriesName of seriesNames) {
-      const seriesId = `series-${slugify(seriesName)}`;
+      const seriesId = slugify(seriesName);
       processedIds.add(seriesId);
 
       // Check if series already exists
@@ -57,7 +59,7 @@ export class SeriesManager {
 
       // Preserve existing content (which may have frontmatter with coverImageId, description, etc.)
       // Only create new minimal content for truly new series
-      const content = existing?.content ?? `# ${seriesName}`;
+      const content = existing?.content ?? this.createSeriesContent(seriesName);
       const contentHash = computeContentHash(content);
 
       // Skip if series exists and content hasn't changed
@@ -74,8 +76,6 @@ export class SeriesManager {
         created: existing?.created ?? new Date().toISOString(),
         updated: new Date().toISOString(),
         metadata: {
-          // Preserve existing metadata fields (like description)
-          ...existing?.metadata,
           title: seriesName,
           slug: slugify(seriesName),
         },
@@ -97,15 +97,64 @@ export class SeriesManager {
   }
 
   /**
-   * Handle a post change (create/update/delete)
-   * Only triggers sync if the post has a seriesName
+   * Handle a post change - only ensure the affected series exists
+   * Does NOT do a full sync - only handles the specific series
    */
   async handlePostChange(post: BlogPost): Promise<void> {
-    if (!post.metadata.seriesName) {
+    const seriesName = post.metadata.seriesName;
+    if (!seriesName) {
       return;
     }
 
-    // Full sync to ensure counts are accurate
-    await this.syncSeriesFromPosts();
+    await this.ensureSeriesExists(seriesName);
+  }
+
+  /**
+   * Ensure a series entity exists for the given series name
+   * Creates it if it doesn't exist, does nothing if it does
+   */
+  async ensureSeriesExists(seriesName: string): Promise<void> {
+    const seriesId = slugify(seriesName);
+
+    // Check if series already exists
+    const existing = await this.entityService.getEntity<Series>(
+      "series",
+      seriesId,
+    );
+
+    if (existing) {
+      this.logger.debug(`Series already exists: ${seriesName}`);
+      return;
+    }
+
+    // Create new series
+    const content = this.createSeriesContent(seriesName);
+    const seriesEntity: Series = {
+      id: seriesId,
+      entityType: "series",
+      content,
+      contentHash: computeContentHash(content),
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      metadata: {
+        title: seriesName,
+        slug: slugify(seriesName),
+      },
+    };
+
+    await this.entityService.upsertEntity(seriesEntity);
+    this.logger.debug(`Created series: ${seriesName}`);
+  }
+
+  /**
+   * Create initial markdown content for a new series
+   */
+  private createSeriesContent(seriesName: string): string {
+    const slug = slugify(seriesName);
+    const frontmatter: SeriesFrontmatter = {
+      title: seriesName,
+      slug,
+    };
+    return generateMarkdownWithFrontmatter("", frontmatter);
   }
 }

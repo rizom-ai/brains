@@ -58,7 +58,7 @@ slug: ${slug}
 # ${title}`;
 
     return {
-      id: `series-${slug}`,
+      id: slug, // No prefix - just the slug
       entityType: "series",
       content,
       contentHash: computeContentHash(content),

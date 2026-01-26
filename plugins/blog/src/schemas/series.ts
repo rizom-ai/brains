@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z, StructuredContentFormatter } from "@brains/utils";
 import { baseEntitySchema } from "@brains/plugins";
 
 /**
@@ -8,7 +8,6 @@ import { baseEntitySchema } from "@brains/plugins";
 export const seriesFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string(),
-  description: z.string().optional(),
   coverImageId: z.string().optional(),
 });
 
@@ -56,3 +55,24 @@ export const seriesListItemSchema = z.object({
 export type Series = z.infer<typeof seriesSchema>;
 export type SeriesMetadata = z.infer<typeof seriesMetadataSchema>;
 export type SeriesListItem = z.infer<typeof seriesListItemSchema>;
+
+/**
+ * Series body schema (structured content in markdown body)
+ */
+export const seriesBodySchema = z.object({
+  description: z.string().optional(),
+});
+
+export type SeriesBody = z.infer<typeof seriesBodySchema>;
+
+/**
+ * Create formatter for series content body
+ */
+export function createSeriesBodyFormatter(
+  title: string,
+): StructuredContentFormatter<SeriesBody> {
+  return new StructuredContentFormatter(seriesBodySchema, {
+    title,
+    mappings: [{ key: "description", label: "Description", type: "string" }],
+  });
+}

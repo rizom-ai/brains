@@ -7,16 +7,17 @@ import {
 import { z, slugify, computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
-import type { Series, SeriesFrontmatter } from "../schemas/series";
-import { seriesFrontmatterSchema } from "../schemas/series";
+import type { Series } from "../schemas/series";
+import {
+  seriesFrontmatterSchema,
+  createSeriesBodyFormatter,
+} from "../schemas/series";
 
 /**
  * Input schema for blog_enhance-series tool
  */
 export const enhanceSeriesInputSchema = z.object({
-  seriesId: z
-    .string()
-    .describe("Series ID or slug (e.g., 'series-my-series' or 'my-series')"),
+  seriesId: z.string().describe("Series ID or slug (e.g., 'my-series')"),
 });
 
 export type EnhanceSeriesInput = z.infer<typeof enhanceSeriesInputSchema>;
@@ -37,30 +38,21 @@ export function createEnhanceSeriesToolFactory(
       try {
         const { seriesId } = enhanceSeriesInputSchema.parse(input);
 
-        // Try to find series by ID or construct ID from slug
+        // Try to find series by ID (which is the slug)
         let series: Series | null =
           (await context.entityService.getEntity<Series>("series", seriesId)) ??
           null;
 
-        // If not found, try with series- prefix
-        if (!series && !seriesId.startsWith("series-")) {
-          series =
-            (await context.entityService.getEntity<Series>(
-              "series",
-              `series-${seriesId}`,
-            )) ?? null;
-        }
-
-        // If still not found, try by slug in metadata
+        // If not found, try slugifying the input
         if (!series) {
-          const allSeries =
-            await context.entityService.listEntities<Series>("series");
-          series =
-            allSeries.find(
-              (s) =>
-                s.metadata.slug === seriesId ||
-                s.metadata.slug === slugify(seriesId),
-            ) ?? null;
+          const slugifiedId = slugify(seriesId);
+          if (slugifiedId !== seriesId) {
+            series =
+              (await context.entityService.getEntity<Series>(
+                "series",
+                slugifiedId,
+              )) ?? null;
+          }
         }
 
         if (!series) {
@@ -115,20 +107,21 @@ ${postSummaries}`;
           };
         }
 
-        // Parse existing frontmatter and update with new description
+        // Parse existing frontmatter and generate new body with description
         const parsed = parseMarkdownWithFrontmatter(
           series.content,
           seriesFrontmatterSchema,
         );
 
-        const updatedFrontmatter: SeriesFrontmatter = {
-          ...parsed.metadata,
+        // Generate structured content body with description
+        const formatter = createSeriesBodyFormatter(series.metadata.title);
+        const newBody = formatter.format({
           description: generated.description,
-        };
+        });
 
         const finalContent = generateMarkdownWithFrontmatter(
-          parsed.content,
-          updatedFrontmatter,
+          newBody,
+          parsed.metadata,
         );
 
         await context.entities.update({
@@ -146,7 +139,7 @@ ${postSummaries}`;
             description: generated.description,
             postCount: seriesPosts.length,
           },
-          message: `Series "${series.metadata.title}" enhanced with description. Use image_set-cover with generate:true and prompt:"${generated.description}" to generate a cover image.`,
+          message: `Series "${series.metadata.title}" enhanced with description. Use image_generate with prompt:"${generated.description}", title:"${series.metadata.title} Cover", targetEntityType:"series", targetEntityId:"${series.id}" to generate a cover image.`,
         };
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
