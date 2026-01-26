@@ -18,6 +18,7 @@ export interface SeriesDetailProps {
   seriesName: string;
   posts: EnrichedBlogPost[];
   coverImageUrl?: string;
+  description?: string;
 }
 
 /**
@@ -27,9 +28,12 @@ export const SeriesDetailTemplate = ({
   seriesName,
   posts,
   coverImageUrl,
+  description: seriesDescription,
 }: SeriesDetailProps): JSX.Element => {
   const title = `Series: ${seriesName}`;
-  const description = `${posts.length} ${posts.length === 1 ? "post" : "posts"} in the ${seriesName} series`;
+  const description =
+    seriesDescription ??
+    `${posts.length} ${posts.length === 1 ? "post" : "posts"} in the ${seriesName} series`;
 
   // Handle empty series
   if (posts.length === 0) {
@@ -76,6 +80,10 @@ export const SeriesDetailTemplate = ({
             description="in this series"
             className="mb-4"
           />
+
+          {seriesDescription && (
+            <p className="text-theme-muted mb-8">{seriesDescription}</p>
+          )}
 
           <div className="space-y-6">
             {posts.map((post) => (

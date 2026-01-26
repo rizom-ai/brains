@@ -1,11 +1,14 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
-import { createTool, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  createTool,
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { z, slugify, computeContentHash } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
-import type { Series } from "../schemas/series";
+import type { Series, SeriesFrontmatter } from "../schemas/series";
 import { seriesFrontmatterSchema } from "../schemas/series";
-import { seriesAdapter } from "../adapters/series-adapter";
 
 /**
  * Input schema for blog_enhance-series tool
@@ -105,50 +108,33 @@ ${postSummaries}`;
           templateName: "blog:series-description",
         });
 
-        // Update series with new description
-        const existingFrontmatter = parseMarkdownWithFrontmatter(
+        if (!generated.description) {
+          return {
+            success: false,
+            error: "Failed to generate description",
+          };
+        }
+
+        // Parse existing frontmatter and update with new description
+        const parsed = parseMarkdownWithFrontmatter(
           series.content,
           seriesFrontmatterSchema,
         );
 
-        // Build updated content with description in frontmatter
-        const updatedContent = seriesAdapter.toMarkdown({
-          ...series,
-          metadata: {
-            ...series.metadata,
-            description: generated.description,
-          },
-        });
+        const updatedFrontmatter: SeriesFrontmatter = {
+          ...parsed.metadata,
+          description: generated.description,
+        };
 
-        // Preserve coverImageId if it exists
-        let finalContent = updatedContent;
-        if (existingFrontmatter.metadata.coverImageId) {
-          // Re-parse and add coverImageId back
-          const parsed = parseMarkdownWithFrontmatter(
-            updatedContent,
-            seriesFrontmatterSchema.partial(),
-          );
-          const frontmatterWithCover = {
-            ...parsed.metadata,
-            coverImageId: existingFrontmatter.metadata.coverImageId,
-          };
-          const { generateMarkdownWithFrontmatter } = await import(
-            "@brains/plugins"
-          );
-          finalContent = generateMarkdownWithFrontmatter(
-            parsed.content,
-            frontmatterWithCover,
-          );
-        }
+        const finalContent = generateMarkdownWithFrontmatter(
+          parsed.content,
+          updatedFrontmatter,
+        );
 
         await context.entities.update({
           ...series,
           content: finalContent,
           contentHash: computeContentHash(finalContent),
-          metadata: {
-            ...series.metadata,
-            description: generated.description,
-          },
           updated: new Date().toISOString(),
         });
 

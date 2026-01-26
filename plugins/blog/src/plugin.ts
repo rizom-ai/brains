@@ -156,6 +156,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       seriesName: z.string(),
       posts: z.array(enrichedBlogPostSchema),
       coverImageUrl: z.string().optional(),
+      description: z.string().optional(),
     });
 
     context.templates.register({

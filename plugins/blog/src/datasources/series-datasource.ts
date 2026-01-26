@@ -14,6 +14,7 @@ import {
   blogPostWithDataSchema,
   type BlogPostWithData,
 } from "../schemas/blog-post";
+import { seriesFrontmatterSchema } from "../schemas/series";
 
 // Custom query format (used by SeriesRouteGenerator)
 const customQuerySchema = z.object({
@@ -166,15 +167,20 @@ export class SeriesDataSource implements DataSource {
     // Build series list with resolved cover images using shared utility
     const series = await Promise.all(
       seriesEntities.map(async (entity) => {
+        const parsed = parseMarkdownWithFrontmatter(
+          entity.content,
+          seriesFrontmatterSchema,
+        );
         const coverImageUrl = await resolveEntityCoverImage(
           entity,
           this.entityService,
         );
 
         return {
-          title: entity.metadata.title,
-          slug: entity.metadata.slug,
-          postCount: postCounts.get(entity.metadata.title) ?? 0,
+          title: parsed.metadata.title,
+          slug: parsed.metadata.slug,
+          description: parsed.metadata.description,
+          postCount: postCounts.get(parsed.metadata.title) ?? 0,
           coverImageUrl,
         };
       }),
@@ -192,8 +198,32 @@ export class SeriesDataSource implements DataSource {
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
-    coverImageUrl?: string,
+    seriesEntity?: Series,
   ): Promise<T> {
+    // Look up series entity if not provided
+    if (!seriesEntity) {
+      const seriesEntities = await this.entityService.listEntities<Series>(
+        "series",
+        { filter: { metadata: { title: seriesName } } },
+      );
+      seriesEntity = seriesEntities[0];
+    }
+
+    let description: string | undefined;
+    let coverImageUrl: string | undefined;
+
+    if (seriesEntity) {
+      const parsed = parseMarkdownWithFrontmatter(
+        seriesEntity.content,
+        seriesFrontmatterSchema,
+      );
+      description = parsed.metadata.description;
+      coverImageUrl = await resolveEntityCoverImage(
+        seriesEntity,
+        this.entityService,
+      );
+    }
+
     const posts = await this.entityService.listEntities<BlogPost>("post", {
       filter: { metadata: { seriesName } },
       sortFields: [{ field: "seriesIndex", direction: "asc" }],
@@ -210,12 +240,13 @@ export class SeriesDataSource implements DataSource {
       seriesName,
       posts: postsWithData,
       coverImageUrl,
+      description,
     });
   }
 
   /**
    * Fetch posts for a series by slug
-   * Looks up the series entity to get the name and cover image, then fetches posts
+   * Looks up the series name from slug, then delegates to fetchSeriesDetail
    */
   private async fetchSeriesDetailBySlug<T>(
     seriesSlug: string,
@@ -225,9 +256,7 @@ export class SeriesDataSource implements DataSource {
     // Look up series entity by slug to get the name
     const seriesEntities = await this.entityService.listEntities<Series>(
       "series",
-      {
-        filter: { metadata: { slug: seriesSlug } },
-      },
+      { filter: { metadata: { slug: seriesSlug } } },
     );
 
     const seriesEntity = seriesEntities[0];
@@ -239,19 +268,11 @@ export class SeriesDataSource implements DataSource {
       });
     }
 
-    const seriesName = seriesEntity.metadata.title;
-
-    // Resolve cover image using shared utility
-    const coverImageUrl = await resolveEntityCoverImage(
-      seriesEntity,
-      this.entityService,
-    );
-
     return this.fetchSeriesDetail(
-      seriesName,
+      seriesEntity.metadata.title,
       outputSchema,
       context,
-      coverImageUrl,
+      seriesEntity,
     );
   }
 }

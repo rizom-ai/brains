@@ -23,7 +23,6 @@ export type SeriesFrontmatter = z.infer<typeof seriesFrontmatterSchema>;
 export const seriesMetadataSchema = seriesFrontmatterSchema.pick({
   title: true,
   slug: true,
-  description: true,
 });
 
 /**
@@ -49,6 +48,7 @@ export type SeriesWithData = z.infer<typeof seriesWithDataSchema>;
 export const seriesListItemSchema = z.object({
   title: z.string(),
   slug: z.string(),
+  description: z.string().optional(),
   postCount: z.number(),
   coverImageUrl: z.string().optional(),
 });

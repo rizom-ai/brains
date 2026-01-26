@@ -9,6 +9,7 @@ import {
   seriesFrontmatterSchema,
   type Series,
   type SeriesMetadata,
+  type SeriesFrontmatter,
 } from "../schemas/series";
 
 /**
@@ -25,8 +26,9 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
    * Preserves coverImageId from existing frontmatter if present
    */
   public toMarkdown(entity: Series): string {
-    // Extract body without frontmatter
+    // Extract body and existing frontmatter data
     let contentBody = entity.content;
+    let existingDescription: string | undefined;
     let existingCoverImageId: string | undefined;
 
     try {
@@ -35,21 +37,18 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
         seriesFrontmatterSchema,
       );
       contentBody = parsed.content;
+      existingDescription = parsed.metadata.description;
       existingCoverImageId = parsed.metadata.coverImageId;
     } catch {
       // Content doesn't have valid frontmatter, use as-is
     }
 
-    const frontmatter: Record<string, unknown> = {
+    const frontmatter: SeriesFrontmatter = {
       title: entity.metadata.title,
       slug: entity.metadata.slug,
+      ...(existingDescription && { description: existingDescription }),
+      ...(existingCoverImageId && { coverImageId: existingCoverImageId }),
     };
-    if (entity.metadata.description) {
-      frontmatter["description"] = entity.metadata.description;
-    }
-    if (existingCoverImageId) {
-      frontmatter["coverImageId"] = existingCoverImageId;
-    }
 
     return generateMarkdownWithFrontmatter(contentBody, frontmatter);
   }
@@ -65,11 +64,10 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
       seriesFrontmatterSchema,
     );
 
-    // Extract metadata (without coverImageId) from frontmatter
+    // Metadata only has fields needed for DB queries (not description/coverImageId)
     const metadata: SeriesMetadata = {
       title: frontmatter.title,
       slug: frontmatter.slug,
-      description: frontmatter.description,
     };
 
     return {

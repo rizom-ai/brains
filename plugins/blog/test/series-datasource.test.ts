@@ -52,12 +52,19 @@ Content for ${title}`;
     });
   };
 
-  const createMockSeries = (title: string, slug: string): Series =>
-    createTestEntity<Series>("series", {
+  const createMockSeries = (title: string, slug: string): Series => {
+    const content = `---
+title: ${title}
+slug: ${slug}
+---
+
+# ${title}`;
+    return createTestEntity<Series>("series", {
       id: `series-${slug}`,
-      content: `# ${title}`,
+      content,
       metadata: { title, slug },
     });
+  };
 
   beforeEach(() => {
     mockLogger = createMockLogger();

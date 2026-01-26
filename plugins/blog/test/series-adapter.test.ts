@@ -4,11 +4,19 @@ import type { Series } from "../src/schemas/series";
 import { createTestEntity } from "@brains/test-utils";
 
 function createMockSeries(overrides: Partial<Series> = {}): Series {
+  const title = overrides.metadata?.title ?? "Test Series";
+  const slug = overrides.metadata?.slug ?? "test-series";
+  const defaultContent = `---
+title: ${title}
+slug: ${slug}
+---
+
+# ${title}`;
   return createTestEntity<Series>("series", {
-    content: "# Test Series",
+    content: overrides.content ?? defaultContent,
     metadata: {
-      title: "Test Series",
-      slug: "test-series",
+      title,
+      slug,
     },
     ...overrides,
   });

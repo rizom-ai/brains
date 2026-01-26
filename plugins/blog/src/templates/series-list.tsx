@@ -75,6 +75,9 @@ export const SeriesListTemplate = ({
                   <CardMetadata>
                     {item.postCount} {item.postCount === 1 ? "post" : "posts"}
                   </CardMetadata>
+                  {item.description && (
+                    <p className="text-theme-muted">{item.description}</p>
+                  )}
                 </div>
               </Card>
             ))}

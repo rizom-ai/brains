@@ -200,6 +200,7 @@ export class MockShell implements IShell {
         return {
           message: `Generated content for ${templateName}`,
           summary: "Test summary",
+          description: "Mock generated description for testing",
           topics: [],
           sources: [],
           ...context,
