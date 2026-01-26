@@ -60,28 +60,6 @@ describe("Analytics Config Schema", () => {
     });
   });
 
-  describe("linkedin config", () => {
-    it("should validate linkedin config with access token", () => {
-      const config = {
-        linkedin: {
-          accessToken: "AQVh7...",
-        },
-      };
-
-      const result = analyticsConfigSchema.safeParse(config);
-      expect(result.success).toBe(true);
-    });
-
-    it("should require accessToken when linkedin is provided", () => {
-      const config = {
-        linkedin: {},
-      };
-
-      const result = analyticsConfigSchema.safeParse(config);
-      expect(result.success).toBe(false);
-    });
-  });
-
   describe("cron config", () => {
     it("should use default cron schedules when not provided", () => {
       const config = {
@@ -92,7 +70,6 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.cron?.websiteMetrics).toBe("0 2 * * *");
-        expect(result.data.cron?.socialMetrics).toBe("0 */6 * * *");
       }
     });
 
@@ -100,7 +77,6 @@ describe("Analytics Config Schema", () => {
       const config = {
         cron: {
           websiteMetrics: "0 3 * * *",
-          socialMetrics: "0 */12 * * *",
         },
       };
 
@@ -108,36 +84,20 @@ describe("Analytics Config Schema", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.cron?.websiteMetrics).toBe("0 3 * * *");
-        expect(result.data.cron?.socialMetrics).toBe("0 */12 * * *");
-      }
-    });
-
-    it("should allow partial cron config with defaults for missing fields", () => {
-      const config = {
-        cron: {
-          websiteMetrics: "0 4 * * *",
-        },
-      };
-
-      const result = analyticsConfigSchema.safeParse(config);
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.cron?.websiteMetrics).toBe("0 4 * * *");
-        expect(result.data.cron?.socialMetrics).toBe("0 */6 * * *");
       }
     });
   });
 
   describe("combined config", () => {
-    it("should validate config with both cloudflare and linkedin", () => {
+    it("should validate config with cloudflare and cron", () => {
       const config = {
         cloudflare: {
           accountId: "abc123",
           apiToken: "cf_token_secret",
           siteTag: "site123",
         },
-        linkedin: {
-          accessToken: "AQVh7...",
+        cron: {
+          websiteMetrics: "0 4 * * *",
         },
       };
 
@@ -151,17 +111,6 @@ describe("Analytics Config Schema", () => {
           accountId: "abc123",
           apiToken: "cf_token_secret",
           siteTag: "site123",
-        },
-      };
-
-      const result = analyticsConfigSchema.safeParse(config);
-      expect(result.success).toBe(true);
-    });
-
-    it("should validate config with only linkedin", () => {
-      const config = {
-        linkedin: {
-          accessToken: "AQVh7...",
         },
       };
 

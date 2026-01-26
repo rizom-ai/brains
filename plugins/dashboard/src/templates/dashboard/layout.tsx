@@ -84,8 +84,9 @@ function groupWidgetsBySection(
   // Sort each group
   const sortFn =
     sortBy === "priority"
-      ? (a: WidgetData, b: WidgetData) => a.widget.priority - b.widget.priority
-      : (a: WidgetData, b: WidgetData) =>
+      ? (a: WidgetData, b: WidgetData): number =>
+          a.widget.priority - b.widget.priority
+      : (a: WidgetData, b: WidgetData): number =>
           a.widget.title.localeCompare(b.widget.title);
 
   for (const section of Object.keys(groups) as Array<keyof typeof groups>) {

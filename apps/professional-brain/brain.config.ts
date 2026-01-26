@@ -113,16 +113,16 @@ const config = defineConfig({
     linkPlugin({}),
     portfolioPlugin({}),
     new TopicsPlugin({}),
-    socialMediaPlugin({}),
+    socialMediaPlugin({
+      linkedin: { accessToken: process.env["LINKEDIN_ACCESS_TOKEN"] },
+      autoGenerateOnBlogPublish: true,
+    }),
     analyticsPlugin({
       cloudflare: {
         accountId: process.env["CLOUDFLARE_ACCOUNT_ID"] || "",
         apiToken: process.env["CLOUDFLARE_API_TOKEN"] || "",
         siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"] || "",
       },
-      linkedin: process.env["LINKEDIN_ACCESS_TOKEN"]
-        ? { accessToken: process.env["LINKEDIN_ACCESS_TOKEN"] }
-        : undefined,
     }),
     new DashboardPlugin(),
     professionalSitePlugin({

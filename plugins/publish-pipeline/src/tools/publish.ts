@@ -4,8 +4,9 @@ import type {
   ServicePluginContext,
   BaseEntity,
 } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import { createTool, parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
+import type { PublishImageData } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishableMetadata } from "../schemas/publishable";
 
@@ -134,10 +135,54 @@ export function createPublishTool(
         }
 
         // Get the provider for this entity type
+        if (!providerRegistry.has(entityType)) {
+          return {
+            success: false,
+            error: `No publish provider registered for ${entityType}. Check that the required credentials are configured.`,
+          };
+        }
         const provider = providerRegistry.get(entityType);
 
+        // Extract body content and frontmatter from markdown
+        let bodyContent = entity.content;
+        let coverImageId: string | undefined;
+        try {
+          const parsed = parseMarkdownWithFrontmatter(
+            entity.content,
+            z.record(z.unknown()),
+          );
+          bodyContent = parsed.content;
+          const rawCoverImageId = parsed.metadata["coverImageId"];
+          coverImageId =
+            typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
+        } catch {
+          // If parsing fails, use content as-is
+        }
+
+        // Fetch image data if coverImageId exists
+        let imageData: PublishImageData | undefined;
+        if (coverImageId) {
+          const image = await context.entityService.getEntity<BaseEntity>(
+            "image",
+            coverImageId,
+          );
+          if (image?.content) {
+            const match = image.content.match(/^data:([^;]+);base64,(.+)$/);
+            if (match?.[1] && match[2]) {
+              imageData = {
+                data: Buffer.from(match[2], "base64"),
+                mimeType: match[1],
+              };
+            }
+          }
+        }
+
         // Publish using the provider
-        const result = await provider.publish(entity.content, entity.metadata);
+        const result = await provider.publish(
+          bodyContent,
+          entity.metadata,
+          imageData,
+        );
 
         // Update entity status
         await context.entityService.updateEntity({

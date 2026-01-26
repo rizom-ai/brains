@@ -59,26 +59,43 @@ export const SocialPostListTemplate = ({
                     href={post.url}
                     className="block p-6 bg-surface rounded-lg border border-theme hover:border-brand transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded ${STATUS_COLORS[post.frontmatter.status] ?? STATUS_COLORS["draft"]}`}
-                        >
-                          {post.frontmatter.status}
-                        </span>
-                        <span className="text-xs text-theme-muted uppercase">
-                          {post.frontmatter.platform}
-                        </span>
+                    <div className="flex gap-4">
+                      {post.coverImageUrl && (
+                        <img
+                          src={post.coverImageUrl}
+                          alt={post.frontmatter.title}
+                          className="w-24 h-24 object-cover rounded shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <h2 className="text-lg font-semibold text-heading">
+                            {post.frontmatter.title}
+                          </h2>
+                          <time className="text-sm text-theme-muted shrink-0">
+                            {formatDate(
+                              post.frontmatter.publishedAt ?? post.created,
+                            )}
+                          </time>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <span
+                            className={`px-2 py-1 text-xs font-medium rounded ${STATUS_COLORS[post.frontmatter.status] ?? STATUS_COLORS["draft"]}`}
+                          >
+                            {post.frontmatter.status}
+                          </span>
+                          <span className="text-xs text-theme-muted uppercase">
+                            {post.frontmatter.platform}
+                          </span>
+                          <span className="text-xs text-theme-muted font-mono">
+                            {post.id}
+                          </span>
+                        </div>
+                        <p className="text-theme leading-relaxed">
+                          {truncateText(post.body, 200)}
+                        </p>
                       </div>
-                      <time className="text-sm text-theme-muted">
-                        {formatDate(
-                          post.frontmatter.publishedAt ?? post.created,
-                        )}
-                      </time>
                     </div>
-                    <p className="text-theme leading-relaxed">
-                      {truncateText(post.body, 200)}
-                    </p>
                   </a>
                 </li>
               ))}

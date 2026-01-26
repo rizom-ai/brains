@@ -50,6 +50,11 @@ export const SocialPostDetailTemplate = ({
           <div className="max-w-3xl mx-auto">
             <Breadcrumb items={breadcrumbItems} />
 
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl font-bold text-heading mb-4">
+              {post.frontmatter.title}
+            </h1>
+
             {/* Status and metadata */}
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <span
@@ -59,6 +64,9 @@ export const SocialPostDetailTemplate = ({
               </span>
               <span className="text-sm text-theme-muted uppercase">
                 {post.frontmatter.platform}
+              </span>
+              <span className="text-sm text-theme-muted font-mono">
+                {post.id}
               </span>
               {post.frontmatter.queueOrder !== undefined && (
                 <span className="text-sm text-theme-muted">

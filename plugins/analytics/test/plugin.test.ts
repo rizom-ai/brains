@@ -5,7 +5,6 @@ import {
   AnalyticsPlugin as AnalyticsPluginClass,
 } from "../src/index";
 import { WebsiteMetricsAdapter } from "../src/adapters/website-metrics-adapter";
-import { SocialMetricsAdapter } from "../src/adapters/social-metrics-adapter";
 import { createServicePluginHarness } from "@brains/plugins/test";
 
 describe("AnalyticsPlugin", () => {
@@ -17,9 +16,6 @@ describe("AnalyticsPlugin", () => {
         accountId: "abc123",
         apiToken: "cf_test_token",
         siteTag: "site123",
-      },
-      linkedin: {
-        accessToken: "test_token",
       },
     }) as AnalyticsPlugin;
   });
@@ -77,33 +73,6 @@ describe("AnalyticsPlugin", () => {
 
       expect(registeredWidgets).toContainEqual({
         id: "website-metrics",
-        pluginId: "analytics",
-      });
-      harness.reset();
-    });
-
-    it("should register social-engagement widget after system:plugins:ready", async () => {
-      const harness = createServicePluginHarness({
-        dataDir: "/tmp/test-datadir",
-      });
-      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
-
-      harness.subscribe("dashboard:register-widget", (message) => {
-        const payload = message.payload as { id: string; pluginId: string };
-        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
-        return { success: true };
-      });
-
-      await harness.installPlugin(new AnalyticsPluginClass());
-
-      // Emit system:plugins:ready - this triggers widget registration
-      await harness.sendMessage("system:plugins:ready", {
-        timestamp: new Date().toISOString(),
-        pluginCount: 1,
-      });
-
-      expect(registeredWidgets).toContainEqual({
-        id: "social-engagement",
         pluginId: "analytics",
       });
       harness.reset();
@@ -253,73 +222,6 @@ topCountries:
       expect(frontmatter.topPages[0]?.path).toBe("/essays/test");
       expect(frontmatter.devices.desktop).toBe(60);
       expect(frontmatter.topCountries[0]?.country).toBe("United States");
-    });
-  });
-
-  describe("SocialMetricsAdapter", () => {
-    let adapter: SocialMetricsAdapter;
-
-    beforeEach(() => {
-      adapter = new SocialMetricsAdapter();
-    });
-
-    it("should have correct entity type and schema", () => {
-      expect(adapter.entityType).toBe("social-metrics");
-      expect(adapter.schema).toBeDefined();
-    });
-
-    it("should convert entity to markdown with frontmatter", () => {
-      const entity = {
-        id: "social-metrics-urn-li-ugcPost-123",
-        entityType: "social-metrics" as const,
-        content: "",
-        contentHash: "abc123",
-        created: "2025-01-15T10:00:00.000Z",
-        updated: "2025-01-15T10:00:00.000Z",
-        metadata: {
-          platform: "linkedin" as const,
-          entityId: "social-post-test",
-          platformPostId: "urn:li:ugcPost:123",
-          snapshotDate: "2025-01-15T10:00:00.000Z",
-          impressions: 5000,
-          likes: 150,
-          comments: 25,
-          shares: 10,
-          engagementRate: 0.037,
-        },
-      };
-
-      const markdown = adapter.toMarkdown(entity);
-      expect(markdown).toContain("---");
-      expect(markdown).toContain("platform: linkedin");
-      expect(markdown).toContain("impressions: 5000");
-      expect(markdown).toContain("# Social Metrics: linkedin");
-    });
-
-    it("should extract metadata from entity", () => {
-      const entity = {
-        id: "social-metrics-urn-li-ugcPost-123",
-        entityType: "social-metrics" as const,
-        content: "",
-        contentHash: "abc123",
-        created: "2025-01-15T10:00:00.000Z",
-        updated: "2025-01-15T10:00:00.000Z",
-        metadata: {
-          platform: "linkedin" as const,
-          entityId: "social-post-test",
-          platformPostId: "urn:li:ugcPost:123",
-          snapshotDate: "2025-01-15T10:00:00.000Z",
-          impressions: 5000,
-          likes: 150,
-          comments: 25,
-          shares: 10,
-          engagementRate: 0.037,
-        },
-      };
-
-      const metadata = adapter.extractMetadata(entity);
-      expect(metadata.platform).toBe("linkedin");
-      expect(metadata.impressions).toBe(5000);
     });
   });
 });

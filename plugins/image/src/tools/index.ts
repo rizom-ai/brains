@@ -132,8 +132,16 @@ Image subject: `;
 const generateInputSchema = z.object({
   prompt: z
     .string()
-    .describe("Text description of the image to generate (be specific)"),
-  title: z.string().describe("Title for the generated image (used as ID)"),
+    .optional()
+    .describe(
+      "Text description of the image to generate. If not provided and targetEntityId is set, auto-generates from entity content.",
+    ),
+  title: z
+    .string()
+    .optional()
+    .describe(
+      "Title for the generated image (used as ID). If not provided, derives from target entity title.",
+    ),
   size: z
     .enum(["1024x1024", "1792x1024", "1024x1792"])
     .optional()
@@ -178,8 +186,47 @@ function createImageGenerateTool(
           };
         }
 
-        const { prompt, title, size, style, targetEntityType, targetEntityId } =
-          generateInputSchema.parse(input);
+        const parsed = generateInputSchema.parse(input);
+        const { size, style, targetEntityType, targetEntityId } = parsed;
+        let { prompt, title } = parsed;
+
+        // If no prompt provided but target entity specified, auto-generate from entity content
+        if (!prompt && targetEntityType && targetEntityId) {
+          const entity = await context.entityService.getEntity(
+            targetEntityType,
+            targetEntityId,
+          );
+          if (!entity) {
+            return {
+              success: false,
+              error: `Target entity not found: ${targetEntityType}/${targetEntityId}`,
+            };
+          }
+
+          // Extract title from metadata if not provided
+          const entityTitle =
+            (entity.metadata as { title?: string }).title ?? targetEntityId;
+          title ??= `${entityTitle} Cover Image`;
+
+          // Generate prompt from entity content
+          prompt = `Professional cover image for: "${entityTitle}". Content theme: ${entity.content.slice(0, 500)}`;
+        }
+
+        // Validate we have required fields
+        if (!prompt) {
+          return {
+            success: false,
+            error:
+              "Either prompt or targetEntityId must be provided to generate an image",
+          };
+        }
+        if (!title) {
+          return {
+            success: false,
+            error:
+              "Either title or targetEntityId must be provided to name the image",
+          };
+        }
 
         // Build full prompt with base context
         const basePrompt = buildImageBasePrompt(plugin);

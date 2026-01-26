@@ -62,9 +62,6 @@ describe("AnalyticsPlugin Integration", () => {
           apiToken: "test_token",
           siteTag: "test_site",
         },
-        linkedin: {
-          accessToken: "test_linkedin_token",
-        },
       });
 
       capabilities = await harness.installPlugin(plugin);
@@ -85,14 +82,12 @@ describe("AnalyticsPlugin Integration", () => {
       expect(entityService).toBeDefined();
     });
 
-    it("should provide all tools when both providers configured", () => {
-      expect(capabilities.tools.length).toBe(4);
+    it("should provide Cloudflare tools when configured", () => {
+      expect(capabilities.tools.length).toBe(2);
 
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("analytics_query_website");
       expect(toolNames).toContain("analytics_get_website_trends");
-      expect(toolNames).toContain("analytics_fetch_social");
-      expect(toolNames).toContain("analytics_get_social_summary");
     });
 
     it("should have correct tool descriptions", () => {
@@ -100,63 +95,6 @@ describe("AnalyticsPlugin Integration", () => {
         (t) => t.name === "analytics_query_website",
       );
       expect(fetchWebsiteTool?.description).toContain("Cloudflare");
-
-      const fetchSocialTool = capabilities.tools.find(
-        (t) => t.name === "analytics_fetch_social",
-      );
-      expect(fetchSocialTool?.description).toContain("LinkedIn");
-    });
-  });
-
-  describe("Cloudflare-only Configuration", () => {
-    beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
-
-      plugin = new AnalyticsPlugin({
-        cloudflare: {
-          accountId: "test_account",
-          apiToken: "test_token",
-          siteTag: "test_site",
-        },
-        // No LinkedIn config
-      });
-
-      capabilities = await harness.installPlugin(plugin);
-    });
-
-    it("should only provide Cloudflare tools", () => {
-      expect(capabilities.tools.length).toBe(2);
-
-      const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("analytics_query_website");
-      expect(toolNames).toContain("analytics_get_website_trends");
-      expect(toolNames).not.toContain("analytics_fetch_social");
-      expect(toolNames).not.toContain("analytics_get_social_summary");
-    });
-  });
-
-  describe("LinkedIn-only Configuration", () => {
-    beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
-
-      plugin = new AnalyticsPlugin({
-        // No Cloudflare config
-        linkedin: {
-          accessToken: "test_linkedin_token",
-        },
-      });
-
-      capabilities = await harness.installPlugin(plugin);
-    });
-
-    it("should only provide LinkedIn tools", () => {
-      expect(capabilities.tools.length).toBe(2);
-
-      const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).not.toContain("analytics_query_website");
-      expect(toolNames).not.toContain("analytics_get_website_trends");
-      expect(toolNames).toContain("analytics_fetch_social");
-      expect(toolNames).toContain("analytics_get_social_summary");
     });
   });
 
@@ -544,62 +482,6 @@ describe("AnalyticsPlugin Integration", () => {
     });
   });
 
-  describe("Tool Execution - fetch_social", () => {
-    beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
-
-      plugin = new AnalyticsPlugin({
-        linkedin: {
-          accessToken: "test_linkedin_token",
-        },
-      });
-
-      capabilities = await harness.installPlugin(plugin);
-    });
-
-    it("should return empty when no published posts", async () => {
-      const result = await executeTool(
-        capabilities,
-        "analytics_fetch_social",
-        {},
-      );
-
-      expect(result.success).toBe(true);
-      const data = result.data as { fetched: number };
-      expect(data.fetched).toBe(0);
-    });
-  });
-
-  describe("Tool Execution - get_social_summary", () => {
-    beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
-
-      plugin = new AnalyticsPlugin({
-        linkedin: {
-          accessToken: "test_linkedin_token",
-        },
-      });
-
-      capabilities = await harness.installPlugin(plugin);
-    });
-
-    it("should return empty summary when no metrics stored", async () => {
-      const result = await executeTool(
-        capabilities,
-        "analytics_get_social_summary",
-        { limit: 10 },
-      );
-
-      expect(result.success).toBe(true);
-      const data = result.data as {
-        count: number;
-        totals: { impressions: number };
-      };
-      expect(data.count).toBe(0);
-      expect(data.totals.impressions).toBe(0);
-    });
-  });
-
   describe("Plugin Lifecycle", () => {
     it("should handle plugin registration and reset", async () => {
       harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
@@ -610,13 +492,10 @@ describe("AnalyticsPlugin Integration", () => {
           apiToken: "test_token",
           siteTag: "test_site",
         },
-        linkedin: {
-          accessToken: "test_linkedin_token",
-        },
       });
 
       const caps = await harness.installPlugin(plugin);
-      expect(caps.tools.length).toBe(4);
+      expect(caps.tools.length).toBe(2);
 
       // Reset harness should not throw
       harness.reset();

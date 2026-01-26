@@ -4,7 +4,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
 } from "@brains/plugins";
-import { z, slugify } from "@brains/utils";
+import { type z, slugify } from "@brains/utils";
 import {
   socialPostSchema,
   socialPostFrontmatterSchema,
@@ -27,30 +27,55 @@ export class SocialPostAdapter
 
   /**
    * Convert social post entity to markdown with frontmatter
+   *
+   * IMPORTANT: Uses entity.metadata as the authoritative source for metadata fields.
+   * Frontmatter-only fields (not in metadata schema) are preserved from entity.content.
    */
   public toMarkdown(entity: SocialPost): string {
-    // Extract the body content without any existing frontmatter
+    // Extract the body content and existing frontmatter from content
     let contentBody = "";
-    try {
-      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
-      contentBody = parsed.content;
-    } catch {
-      // Content doesn't have frontmatter, use as-is
-      contentBody = entity.content;
-    }
+    let existingFrontmatter: Partial<SocialPostFrontmatter> = {};
 
-    // Parse frontmatter from content and regenerate with it
     try {
-      const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+      const parsed = parseMarkdownWithFrontmatter(
         entity.content,
         socialPostFrontmatterSchema,
       );
-
-      return generateMarkdownWithFrontmatter(contentBody, frontmatter);
+      contentBody = parsed.content;
+      existingFrontmatter = parsed.metadata;
     } catch {
-      // No valid frontmatter, return content as-is
-      return contentBody;
+      // Content doesn't have valid frontmatter, use content as body
+      contentBody = entity.content;
     }
+
+    // Build frontmatter: metadata fields from entity.metadata (authoritative),
+    // frontmatter-only fields from existingFrontmatter (preserved)
+    const frontmatter: SocialPostFrontmatter = {
+      // Start with existing frontmatter (preserves frontmatter-only fields like
+      // retryCount, lastError, platformPostId, coverImageId, sourceEntityId, etc.)
+      ...existingFrontmatter,
+
+      // Override with entity.metadata (authoritative source for these fields)
+      title: entity.metadata.title,
+      platform: entity.metadata.platform,
+      status: entity.metadata.status,
+
+      // Conditionally include optional metadata fields
+      ...(entity.metadata.publishedAt !== undefined && {
+        publishedAt: entity.metadata.publishedAt,
+      }),
+      // Only include queueOrder if defined in metadata (allows removal)
+      ...(entity.metadata.queueOrder !== undefined && {
+        queueOrder: entity.metadata.queueOrder,
+      }),
+    };
+
+    // Remove queueOrder if not in metadata (was removed during publish)
+    if (entity.metadata.queueOrder === undefined) {
+      delete frontmatter.queueOrder;
+    }
+
+    return generateMarkdownWithFrontmatter(contentBody, frontmatter);
   }
 
   /**

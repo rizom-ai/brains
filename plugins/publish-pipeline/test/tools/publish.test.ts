@@ -180,17 +180,17 @@ describe("Publish Pipeline - Publish Tool", () => {
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
-    it("should use default internal provider when none registered", async () => {
-      // No provider registered - should use internal provider
+    it("should return error when no provider registered", async () => {
+      // No provider registered - should return error
       const tool = createPublishTool(context, pluginId, providerRegistry);
       const result = await tool.handler(
         { entityType: "social-post", id: "draft-post" },
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("platformId", "internal");
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("No publish provider registered");
       }
     });
 
@@ -237,6 +237,127 @@ describe("Publish Pipeline - Publish Tool", () => {
         "draft-post",
       );
       expect(updated?.metadata["status"]).toBe("published");
+    });
+  });
+
+  describe("content processing", () => {
+    it("should strip frontmatter from content before publishing", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      // Create post with frontmatter
+      await context.entityService.createEntity({
+        id: "frontmatter-post",
+        entityType: "social-post",
+        content: `---
+title: Test Post
+platform: linkedin
+status: draft
+---
+This is the actual post content.`,
+        metadata: {
+          slug: "frontmatter-post",
+          platform: "linkedin",
+          status: "draft",
+        },
+      });
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      await tool.handler(
+        { entityType: "social-post", id: "frontmatter-post" },
+        createMockToolContext(),
+      );
+
+      // Verify provider received only the body content, not frontmatter
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "This is the actual post content.",
+        expect.anything(),
+        undefined,
+      );
+    });
+
+    it("should pass image data when coverImageId is in frontmatter", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      // Create an image entity
+      await context.entityService.createEntity({
+        id: "test-cover-image",
+        entityType: "image",
+        content:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        metadata: { slug: "test-cover-image" },
+      });
+
+      // Create post with coverImageId in frontmatter
+      await context.entityService.createEntity({
+        id: "post-with-image",
+        entityType: "social-post",
+        content: `---
+title: Post With Image
+platform: linkedin
+status: draft
+coverImageId: test-cover-image
+---
+Post content with an image.`,
+        metadata: {
+          slug: "post-with-image",
+          platform: "linkedin",
+          status: "draft",
+        },
+      });
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      await tool.handler(
+        { entityType: "social-post", id: "post-with-image" },
+        createMockToolContext(),
+      );
+
+      // Verify provider received image data
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "Post content with an image.",
+        expect.anything(),
+        expect.objectContaining({
+          mimeType: "image/png",
+        }),
+      );
+    });
+
+    it("should publish without image when coverImageId not found", async () => {
+      const linkedinProvider = createMockProvider("linkedin");
+      providerRegistry.register("social-post", linkedinProvider);
+
+      // Create post with non-existent coverImageId
+      await context.entityService.createEntity({
+        id: "post-missing-image",
+        entityType: "social-post",
+        content: `---
+title: Post Missing Image
+platform: linkedin
+status: draft
+coverImageId: nonexistent-image
+---
+Post content without image.`,
+        metadata: {
+          slug: "post-missing-image",
+          platform: "linkedin",
+          status: "draft",
+        },
+      });
+
+      const tool = createPublishTool(context, pluginId, providerRegistry);
+      const result = await tool.handler(
+        { entityType: "social-post", id: "post-missing-image" },
+        createMockToolContext(),
+      );
+
+      // Should still succeed, just without image
+      expect(result.success).toBe(true);
+      expect(linkedinProvider.publish).toHaveBeenCalledWith(
+        "Post content without image.",
+        expect.anything(),
+        undefined,
+      );
     });
   });
 

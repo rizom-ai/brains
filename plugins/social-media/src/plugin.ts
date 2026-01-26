@@ -175,8 +175,8 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
    * Initialize platform providers based on config
    */
   private initializeProviders(): void {
-    // LinkedIn provider
-    if (this.config.linkedin) {
+    // LinkedIn provider - only init if accessToken is actually provided
+    if (this.config.linkedin?.accessToken) {
       const linkedinProvider = createLinkedInProvider(
         this.config.linkedin,
         this.logger.child("LinkedInClient"),
@@ -256,7 +256,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       }
 
       // Only trigger when status is "queued"
-      const status = entity?.metadata?.status;
+      const status = entity.metadata?.status;
       if (status !== "queued") {
         return { success: true };
       }

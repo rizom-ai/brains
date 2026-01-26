@@ -217,7 +217,7 @@ export class LinkedInClient implements PublishProvider {
 
   /**
    * Get the current user's LinkedIn ID (URN)
-   * Uses the userinfo endpoint which is more reliable
+   * Tries /v2/userinfo first (requires openid scope), falls back to /v2/me
    */
   private async getUserId(): Promise<string> {
     if (this.cachedUserId) {
@@ -228,24 +228,42 @@ export class LinkedInClient implements PublishProvider {
       throw new Error("LinkedIn access token not configured");
     }
 
-    // Use OpenID Connect userinfo endpoint
-    const response = await fetch("https://api.linkedin.com/v2/userinfo", {
+    // Try OpenID Connect userinfo endpoint first (requires openid scope)
+    try {
+      const userinfoResponse = await fetch(
+        "https://api.linkedin.com/v2/userinfo",
+        {
+          headers: {
+            Authorization: `Bearer ${this.config.accessToken}`,
+          },
+        },
+      );
+
+      if (userinfoResponse.ok) {
+        const data = (await userinfoResponse.json()) as LinkedInUserInfo;
+        this.cachedUserId = `urn:li:person:${data.sub}`;
+        return this.cachedUserId;
+      }
+    } catch {
+      // Fall through to /v2/me
+    }
+
+    // Fall back to /v2/me endpoint (works with w_member_social)
+    const meResponse = await fetch("https://api.linkedin.com/v2/me", {
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,
       },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!meResponse.ok) {
+      const errorText = await meResponse.text();
       throw new Error(
-        `Failed to get LinkedIn user info: ${response.status} - ${errorText}`,
+        `Failed to get LinkedIn user ID: ${meResponse.status} - ${errorText}`,
       );
     }
 
-    const data = (await response.json()) as LinkedInUserInfo;
-
-    // The sub field contains the user ID, we need to format it as URN
-    this.cachedUserId = `urn:li:person:${data.sub}`;
+    const meData = (await meResponse.json()) as { id: string };
+    this.cachedUserId = `urn:li:person:${meData.id}`;
     return this.cachedUserId;
   }
 }
