@@ -100,6 +100,7 @@ const config = defineConfig({
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Yeehaa",
       authorEmail: "yeehaa@rizom.ai",
+      autoPush: true,
     }),
     new WebserverInterface({
       previewPort: 4321,
