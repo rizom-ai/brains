@@ -16,6 +16,7 @@ import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
 import type { z } from "@brains/utils";
 import type { ApiRouteDefinition } from "../types/api-routes";
+import type { SlotRegistration } from "../types/slots";
 
 /**
  * Base class for service plugins
@@ -29,6 +30,11 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
 
   /** Get API routes for this plugin (override in subclass) */
   getApiRoutes(): ApiRouteDefinition[] {
+    return [];
+  }
+
+  /** Get UI slot registrations for this plugin (override in subclass) */
+  getSlotRegistrations(): SlotRegistration[] {
     return [];
   }
 

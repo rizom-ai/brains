@@ -731,14 +731,13 @@ describe("PreactBuilder", () => {
         cssProcessor: new MockCSSProcessor(),
       });
 
-      // Create a slot registry with a registered component
+      // Create a slot registry with a registered render function
       const slotRegistry = new UISlotRegistry();
-      const NewsletterComponent = () =>
-        h("div", { class: "newsletter" }, "Subscribe to newsletter");
 
       slotRegistry.register("footer-top", {
         pluginId: "newsletter",
-        component: NewsletterComponent,
+        render: () =>
+          h("div", { class: "newsletter" }, "Subscribe to newsletter"),
       });
 
       // Track if slots were passed to layout
@@ -752,9 +751,7 @@ describe("PreactBuilder", () => {
             ? h(
                 "footer",
                 {},
-                slots
-                  .getSlot("footer-top")
-                  .map((entry) => h(entry.component, entry.props ?? {})),
+                slots.getSlot("footer-top").map((entry) => entry.render()),
               )
             : null,
         ]);
@@ -840,20 +837,20 @@ describe("PreactBuilder", () => {
 
       const slotRegistry = new UISlotRegistry();
 
-      // Register components with different priorities
+      // Register render functions with different priorities
       slotRegistry.register("footer-top", {
         pluginId: "low-priority",
-        component: (): VNode => h("span", {}, "Low"),
+        render: (): VNode => h("span", {}, "Low"),
         priority: 10,
       });
       slotRegistry.register("footer-top", {
         pluginId: "high-priority",
-        component: (): VNode => h("span", {}, "High"),
+        render: (): VNode => h("span", {}, "High"),
         priority: 100,
       });
       slotRegistry.register("footer-top", {
         pluginId: "medium-priority",
-        component: (): VNode => h("span", {}, "Medium"),
+        render: (): VNode => h("span", {}, "Medium"),
         priority: 50,
       });
 
@@ -863,9 +860,7 @@ describe("PreactBuilder", () => {
           h(
             "div",
             { id: "slot-container" },
-            slots
-              ?.getSlot("footer-top")
-              .map((entry) => h(entry.component, entry.props ?? {})),
+            slots?.getSlot("footer-top").map((entry) => entry.render()),
           ),
         ]);
       };
@@ -943,9 +938,7 @@ describe("PreactBuilder", () => {
             ? h(
                 "footer",
                 {},
-                slots
-                  .getSlot("footer-top")
-                  .map((entry) => h(entry.component, entry.props ?? {})),
+                slots.getSlot("footer-top").map((entry) => entry.render()),
               )
             : h("footer", { id: "empty-footer" }, "Default footer"),
         ]);

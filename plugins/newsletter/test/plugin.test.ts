@@ -80,4 +80,47 @@ describe("NewsletterPlugin", () => {
       expect(routes).toHaveLength(0);
     });
   });
+
+  describe("Slot Registrations", () => {
+    it("should return footer-top slot when buttondown is configured", () => {
+      const plugin = new NewsletterPlugin({
+        buttondown: {
+          apiKey: "test-api-key",
+          doubleOptIn: true,
+        },
+      });
+
+      const slots = plugin.getSlotRegistrations();
+
+      expect(slots).toHaveLength(1);
+      expect(slots[0]).toMatchObject({
+        slotName: "footer-top",
+        pluginId: "newsletter",
+      });
+      expect(typeof slots[0]?.render).toBe("function");
+    });
+
+    it("should have render function that returns a VNode", () => {
+      const plugin = new NewsletterPlugin({
+        buttondown: {
+          apiKey: "test-api-key",
+          doubleOptIn: true,
+        },
+      });
+
+      const slots = plugin.getSlotRegistrations();
+      const vnode = slots[0]?.render();
+
+      expect(vnode).toBeDefined();
+      expect(vnode?.type).toBeDefined();
+    });
+
+    it("should return empty array when buttondown is not configured", () => {
+      const plugin = new NewsletterPlugin({});
+
+      const slots = plugin.getSlotRegistrations();
+
+      expect(slots).toHaveLength(0);
+    });
+  });
 });

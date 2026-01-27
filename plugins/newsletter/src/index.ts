@@ -3,9 +3,12 @@ import type {
   ServicePluginContext,
   PluginTool,
   ApiRouteDefinition,
+  SlotRegistration,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import type { PublishProvider, PublishResult } from "@brains/utils";
+import { h } from "preact";
+import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterConfigSchema, type NewsletterConfig } from "./config";
 import { createNewsletterTools } from "./tools";
 import {
@@ -104,6 +107,25 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
         public: true,
         successRedirect: "/subscribe/thanks",
         errorRedirect: "/subscribe/error",
+      },
+    ];
+  }
+
+  /**
+   * Get UI slot registrations
+   * Registers NewsletterSignup component to footer-top slot
+   */
+  override getSlotRegistrations(): SlotRegistration[] {
+    if (!this.config.buttondown?.apiKey) {
+      return [];
+    }
+
+    return [
+      {
+        slotName: "footer-top",
+        pluginId: this.id,
+        render: () =>
+          h(NewsletterSignup, { action: `/api/${this.id}/subscribe` }),
       },
     ];
   }

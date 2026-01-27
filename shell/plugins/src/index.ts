@@ -35,6 +35,9 @@ export {
   type RegisteredApiRoute,
 } from "./types/api-routes";
 
+// UI Slots
+export type { SlotRegistration } from "./types/slots";
+
 // Interface plugin
 export { InterfacePlugin } from "./interface/interface-plugin";
 export type {

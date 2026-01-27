@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { UISlotRegistry } from "../../src/lib/ui-slot-registry";
 
-// Mock component for testing
-const MockComponent = () => null;
-const AnotherComponent = () => null;
+// Mock render functions for testing
+const mockRender = (): null => null;
+const anotherRender = (): null => null;
 
 describe("UISlotRegistry", () => {
   let registry: UISlotRegistry;
@@ -13,41 +13,41 @@ describe("UISlotRegistry", () => {
   });
 
   describe("register", () => {
-    it("should register a component to a slot", () => {
+    it("should register a render function to a slot", () => {
       registry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: mockRender,
       });
 
       const slots = registry.getSlot("footer-top");
       expect(slots).toHaveLength(1);
       expect(slots[0]?.pluginId).toBe("newsletter");
-      expect(slots[0]?.component).toBe(MockComponent);
+      expect(slots[0]?.render).toBe(mockRender);
     });
 
-    it("should register multiple components to the same slot", () => {
+    it("should register multiple render functions to the same slot", () => {
       registry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: mockRender,
       });
       registry.register("footer-top", {
         pluginId: "social",
-        component: AnotherComponent,
+        render: anotherRender,
       });
 
       const slots = registry.getSlot("footer-top");
       expect(slots).toHaveLength(2);
     });
 
-    it("should register components with priority", () => {
+    it("should register with priority", () => {
       registry.register("footer-top", {
         pluginId: "low-priority",
-        component: AnotherComponent,
+        render: anotherRender,
         priority: 10,
       });
       registry.register("footer-top", {
         pluginId: "high-priority",
-        component: MockComponent,
+        render: mockRender,
         priority: 100,
       });
 
@@ -60,25 +60,11 @@ describe("UISlotRegistry", () => {
     it("should use default priority of 50", () => {
       registry.register("footer-top", {
         pluginId: "default",
-        component: MockComponent,
+        render: mockRender,
       });
 
       const slots = registry.getSlot("footer-top");
       expect(slots[0]?.priority).toBe(50);
-    });
-
-    it("should register components with props", () => {
-      registry.register("footer-top", {
-        pluginId: "newsletter",
-        component: MockComponent,
-        props: { title: "Subscribe", buttonText: "Sign Up" },
-      });
-
-      const slots = registry.getSlot("footer-top");
-      expect(slots[0]?.props).toEqual({
-        title: "Subscribe",
-        buttonText: "Sign Up",
-      });
     });
   });
 
@@ -91,17 +77,17 @@ describe("UISlotRegistry", () => {
     it("should return slots sorted by priority (highest first)", () => {
       registry.register("sidebar", {
         pluginId: "a",
-        component: MockComponent,
+        render: mockRender,
         priority: 20,
       });
       registry.register("sidebar", {
         pluginId: "b",
-        component: MockComponent,
+        render: mockRender,
         priority: 80,
       });
       registry.register("sidebar", {
         pluginId: "c",
-        component: MockComponent,
+        render: mockRender,
         priority: 50,
       });
 
@@ -118,7 +104,7 @@ describe("UISlotRegistry", () => {
     it("should return true for registered slot", () => {
       registry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: mockRender,
       });
 
       expect(registry.hasSlot("footer-top")).toBe(true);
@@ -129,11 +115,11 @@ describe("UISlotRegistry", () => {
     it("should remove a specific plugin's registration from a slot", () => {
       registry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: mockRender,
       });
       registry.register("footer-top", {
         pluginId: "social",
-        component: AnotherComponent,
+        render: anotherRender,
       });
 
       registry.unregister("footer-top", "newsletter");
@@ -146,7 +132,7 @@ describe("UISlotRegistry", () => {
     it("should do nothing if plugin not registered to slot", () => {
       registry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: mockRender,
       });
 
       registry.unregister("footer-top", "nonexistent");
@@ -160,15 +146,15 @@ describe("UISlotRegistry", () => {
     it("should remove all registrations for a plugin", () => {
       registry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: mockRender,
       });
       registry.register("sidebar", {
         pluginId: "newsletter",
-        component: AnotherComponent,
+        render: anotherRender,
       });
       registry.register("footer-top", {
         pluginId: "other",
-        component: MockComponent,
+        render: mockRender,
       });
 
       registry.unregisterAll("newsletter");
@@ -184,10 +170,10 @@ describe("UISlotRegistry", () => {
     it("should return all registered slot names", () => {
       registry.register("footer-top", {
         pluginId: "a",
-        component: MockComponent,
+        render: mockRender,
       });
-      registry.register("sidebar", { pluginId: "b", component: MockComponent });
-      registry.register("header", { pluginId: "c", component: MockComponent });
+      registry.register("sidebar", { pluginId: "b", render: mockRender });
+      registry.register("header", { pluginId: "c", render: mockRender });
 
       const names = registry.getSlotNames();
       expect(names).toContain("footer-top");
@@ -201,9 +187,9 @@ describe("UISlotRegistry", () => {
     it("should remove all registrations", () => {
       registry.register("footer-top", {
         pluginId: "a",
-        component: MockComponent,
+        render: mockRender,
       });
-      registry.register("sidebar", { pluginId: "b", component: MockComponent });
+      registry.register("sidebar", { pluginId: "b", render: mockRender });
 
       registry.clear();
 

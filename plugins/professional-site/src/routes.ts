@@ -40,4 +40,40 @@ export const routes = [
       },
     ],
   },
+  {
+    id: "subscribe-thanks",
+    path: "/subscribe/thanks",
+    title: "Thanks for subscribing",
+    description: "Newsletter subscription confirmation",
+    layout: "default",
+    navigation: {
+      show: false,
+    },
+    sections: [
+      {
+        id: "subscribe-thanks",
+        template: "professional-site:subscribe-thanks",
+        dataQuery: {},
+        content: {},
+      },
+    ],
+  },
+  {
+    id: "subscribe-error",
+    path: "/subscribe/error",
+    title: "Subscription failed",
+    description: "Newsletter subscription error",
+    layout: "default",
+    navigation: {
+      show: false,
+    },
+    sections: [
+      {
+        id: "subscribe-error",
+        template: "professional-site:subscribe-error",
+        dataQuery: {},
+        content: {},
+      },
+    ],
+  },
 ];

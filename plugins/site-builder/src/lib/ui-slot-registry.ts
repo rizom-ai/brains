@@ -1,15 +1,14 @@
-import type { ComponentType } from "preact";
+import type { JSX } from "preact";
 
 /**
- * Registration for a UI slot
+ * Registration for a UI slot.
+ * Uses a pre-bound render function for type-safe heterogeneous storage.
  */
 export interface SlotRegistration {
   /** Plugin that registered this slot */
   pluginId: string;
-  /** Component to render */
-  component: ComponentType<Record<string, unknown>>;
-  /** Props to pass to component */
-  props?: Record<string, unknown>;
+  /** Pre-bound render function - type safety enforced at creation */
+  render: () => JSX.Element | null;
   /** Priority for ordering (higher = first, default 50) */
   priority?: number;
 }

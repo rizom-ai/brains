@@ -19,6 +19,10 @@ import {
 } from "./templates/homepage-list";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
 import {
+  SubscribeThanksLayout,
+  SubscribeErrorLayout,
+} from "./templates/subscribe-result";
+import {
   type ProfessionalSiteConfig,
   professionalSiteConfigSchema,
 } from "./config";
@@ -81,6 +85,9 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
       profile: professionalProfileSchema,
     });
 
+    // Empty schema for static pages
+    const emptySchema = z.object({});
+
     context.templates.register({
       "homepage-list": createTemplate<
         z.infer<typeof homepageListSchema>,
@@ -104,6 +111,32 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
         requiredPermission: "public",
         layout: {
           component: AboutPageLayout,
+          interactive: false,
+        },
+      }),
+      "subscribe-thanks": createTemplate<
+        z.infer<typeof emptySchema>,
+        Record<string, never>
+      >({
+        name: "subscribe-thanks",
+        description: "Newsletter subscription success page",
+        schema: emptySchema,
+        requiredPermission: "public",
+        layout: {
+          component: SubscribeThanksLayout,
+          interactive: false,
+        },
+      }),
+      "subscribe-error": createTemplate<
+        z.infer<typeof emptySchema>,
+        Record<string, never>
+      >({
+        name: "subscribe-error",
+        description: "Newsletter subscription error page",
+        schema: emptySchema,
+        requiredPermission: "public",
+        layout: {
+          component: SubscribeErrorLayout,
           interactive: false,
         },
       }),

@@ -55,13 +55,12 @@ describe("ProfessionalLayout", () => {
       expect(props.slots).toBeUndefined();
     });
 
-    it("should allow registering components to footer-top slot", () => {
+    it("should allow registering render functions to footer-top slot", () => {
       const slotRegistry = new UISlotRegistry();
-      const MockComponent = () => null;
 
       slotRegistry.register("footer-top", {
         pluginId: "newsletter",
-        component: MockComponent,
+        render: () => null,
       });
 
       expect(slotRegistry.hasSlot("footer-top")).toBe(true);
