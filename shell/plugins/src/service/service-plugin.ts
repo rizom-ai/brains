@@ -15,6 +15,7 @@ import type { BatchOperation, JobOptions } from "@brains/job-queue";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
 import type { z } from "@brains/utils";
+import type { ApiRouteDefinition } from "../types/api-routes";
 
 /**
  * Base class for service plugins
@@ -25,6 +26,11 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
   ServicePluginContext
 > {
   public readonly type = "service" as const;
+
+  /** Get API routes for this plugin (override in subclass) */
+  getApiRoutes(): ApiRouteDefinition[] {
+    return [];
+  }
 
   /**
    * Register the plugin with shell - creates ServicePluginContext internally

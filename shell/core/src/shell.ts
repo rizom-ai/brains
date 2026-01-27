@@ -6,6 +6,7 @@ import type {
   PluginResource,
   AppInfo,
   EvalHandler,
+  RegisteredApiRoute,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
 import type { ServiceRegistry } from "@brains/service-registry";
@@ -504,6 +505,34 @@ export class Shell implements IShell {
    */
   public getPluginPackageName(pluginId: string): string | undefined {
     return this.pluginManager.getPluginPackageName(pluginId);
+  }
+
+  /**
+   * Get all API routes declared by plugins
+   * Collects routes from all plugins that have getApiRoutes() method
+   */
+  public getPluginApiRoutes(): RegisteredApiRoute[] {
+    const routes: RegisteredApiRoute[] = [];
+
+    for (const [pluginId, info] of this.pluginManager.getAllPlugins()) {
+      const plugin = info.plugin;
+      // Check if plugin has getApiRoutes method (ServicePlugin instances)
+      if (
+        "getApiRoutes" in plugin &&
+        typeof plugin.getApiRoutes === "function"
+      ) {
+        const pluginRoutes = plugin.getApiRoutes();
+        for (const definition of pluginRoutes) {
+          routes.push({
+            pluginId,
+            fullPath: `/api/${pluginId}${definition.path}`,
+            definition,
+          });
+        }
+      }
+    }
+
+    return routes;
   }
 
   /**

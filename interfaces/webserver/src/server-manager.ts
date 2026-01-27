@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { serveStatic } from "hono/bun";
 import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
@@ -6,6 +6,7 @@ import type { Server } from "bun";
 import type { Logger } from "@brains/utils";
 import { join, resolve } from "path";
 import { existsSync } from "fs";
+import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
 
 // WORKAROUND: Capture native Response before @hono/node-server can override it.
 // The MCP SDK's streamableHttp.js imports @hono/node-server which calls getRequestListener(),
@@ -13,6 +14,64 @@ import { existsSync } from "fs";
 // _Response objects, causing "Expected a Response object" errors.
 // TODO: File issue with MCP SDK - they shouldn't override globals on Bun.
 const NativeResponse = globalThis.Response;
+
+/**
+ * Create an API route handler for a registered plugin route
+ * Handles request parsing, tool invocation via message bus, and response formatting
+ */
+export function createApiRouteHandler(
+  route: RegisteredApiRoute,
+  messageBus: IMessageBus,
+): (c: Context) => Promise<Response> {
+  return async (c: Context): Promise<Response> => {
+    const req = c.req.raw;
+    const contentType = req.headers.get("content-type") ?? "";
+    const acceptsJson = req.headers.get("accept")?.includes("application/json");
+
+    // Parse request body
+    let args: Record<string, unknown> = {};
+    if (contentType.includes("application/json")) {
+      args = await req.json();
+    } else if (contentType.includes("form")) {
+      const formData = await req.formData();
+      for (const [key, value] of formData.entries()) {
+        args[key] = value;
+      }
+    }
+
+    // Call tool via message bus
+    const toolName = `${route.pluginId}_${route.definition.tool}`;
+    const response = await messageBus.send(
+      `plugin:${route.pluginId}:tool:execute`,
+      {
+        toolName,
+        args,
+        interfaceType: "webserver",
+        userId: "anonymous",
+      },
+      "webserver",
+    );
+
+    const success = "success" in response && response.success === true;
+    const data = "data" in response ? response.data : response;
+
+    // Return response based on Accept header and route config
+    if (acceptsJson) {
+      return c.json({ success, data }, success ? 200 : 400);
+    }
+
+    // Redirect for form submissions
+    if (success && route.definition.successRedirect) {
+      return c.redirect(route.definition.successRedirect);
+    }
+    if (!success && route.definition.errorRedirect) {
+      return c.redirect(route.definition.errorRedirect);
+    }
+
+    // Default JSON response if no redirect configured
+    return c.json({ success, data }, success ? 200 : 400);
+  };
+}
 
 export interface ServerManagerOptions {
   logger: Logger;
@@ -293,5 +352,29 @@ export class ServerManager {
         ? `http://localhost:${this.options.productionPort}`
         : undefined,
     };
+  }
+
+  /**
+   * Mount API routes from plugins onto a Hono app
+   * Routes are mounted at /api/{pluginId}/{path}
+   */
+  mountApiRoutes(
+    app: Hono,
+    routes: RegisteredApiRoute[],
+    messageBus: IMessageBus,
+  ): void {
+    for (const route of routes) {
+      const handler = createApiRouteHandler(route, messageBus);
+      const method = route.definition.method.toLowerCase() as
+        | "get"
+        | "post"
+        | "put"
+        | "delete";
+
+      app[method](route.fullPath, handler);
+      this.logger.debug(
+        `Mounted API route: ${route.definition.method} ${route.fullPath} -> ${route.pluginId}_${route.definition.tool}`,
+      );
+    }
   }
 }

@@ -7,6 +7,7 @@ import type {
   PluginResource,
   AppInfo,
   EvalHandler,
+  RegisteredApiRoute,
 } from "@brains/plugins";
 import type { Daemon } from "@brains/daemon-registry";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -569,6 +570,27 @@ export class MockShell implements IShell {
     this.logger.debug(`Mock: Registered daemon ${name} for plugin ${pluginId}`);
     // Store in services map for test verification if needed
     this.services.set(`daemon:${name}`, daemon);
+  }
+
+  // API routes from plugins - returns empty by default in mock
+  getPluginApiRoutes(): RegisteredApiRoute[] {
+    const routes: RegisteredApiRoute[] = [];
+    for (const [pluginId, plugin] of this.plugins) {
+      if (
+        "getApiRoutes" in plugin &&
+        typeof plugin.getApiRoutes === "function"
+      ) {
+        const pluginRoutes = plugin.getApiRoutes();
+        for (const definition of pluginRoutes) {
+          routes.push({
+            pluginId,
+            fullPath: `/api/${pluginId}${definition.path}`,
+            definition,
+          });
+        }
+      }
+    }
+    return routes;
   }
 
   // Create a fresh instance

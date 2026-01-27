@@ -28,6 +28,13 @@ export type {
 } from "./service/context";
 export { createServicePluginContext } from "./service/context";
 
+// API routes
+export {
+  apiRouteDefinitionSchema,
+  type ApiRouteDefinition,
+  type RegisteredApiRoute,
+} from "./types/api-routes";
+
 // Interface plugin
 export { InterfacePlugin } from "./interface/interface-plugin";
 export type {
