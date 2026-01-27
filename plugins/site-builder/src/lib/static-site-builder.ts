@@ -2,11 +2,13 @@ import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { RouteDefinition } from "../types/routes";
 import type { CSSProcessor } from "../css/css-processor";
-import type { LayoutComponent } from "../config";
+import type { LayoutComponent, LayoutSlots } from "../config";
 import type { SiteInfo } from "../types/site-info";
 
 // Re-export SiteInfo type for consumers
 export type { SiteInfo } from "../types/site-info";
+// Re-export LayoutSlots for consumers
+export type { LayoutSlots } from "../config";
 
 /**
  * Build context passed to static site builders
@@ -30,6 +32,8 @@ export interface BuildContext {
   layouts: Record<string, LayoutComponent>;
   getSiteInfo: () => Promise<SiteInfo>;
   themeCSS?: string;
+  /** Optional UI slot registry for plugin-registered components */
+  slots?: LayoutSlots;
 }
 
 /**

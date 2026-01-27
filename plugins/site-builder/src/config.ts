@@ -9,6 +9,13 @@ import { siteInfoBodySchema } from "./services/site-info-schema";
 import type { ComponentChildren, JSX } from "preact";
 
 import type { SiteInfo } from "./types/site-info";
+import type { UISlotRegistry } from "./lib/ui-slot-registry";
+
+/**
+ * Type alias for layout slots - uses the UISlotRegistry directly
+ * Layouts can use this to render plugin-registered components
+ */
+export type LayoutSlots = UISlotRegistry;
 
 // Layout component type - accepts JSX sections and returns JSX
 export type LayoutComponent = (props: {
@@ -17,6 +24,8 @@ export type LayoutComponent = (props: {
   description: string;
   path: string;
   siteInfo: SiteInfo;
+  /** Optional slots for plugin-registered UI components */
+  slots?: LayoutSlots;
 }) => JSX.Element;
 
 /**

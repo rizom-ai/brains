@@ -146,6 +146,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       description: route.description,
       path: route.path,
       siteInfo,
+      ...(context.slots && { slots: context.slots }),
     };
 
     // Create head collector for SSR

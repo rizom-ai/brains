@@ -14,6 +14,8 @@ import { tmpdir } from "os";
 import { h, type VNode } from "preact";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { TestLayout } from "../test-helpers";
+import { UISlotRegistry } from "../../src/lib/ui-slot-registry";
+import type { LayoutComponent } from "../../src/config";
 
 describe("PreactBuilder", () => {
   let testDir: string;
@@ -718,6 +720,360 @@ describe("PreactBuilder", () => {
     );
     expect(html).not.toContain("entity://image/inline-image");
     expect(html).toContain("/images/inline-image.png");
+  });
+
+  describe("UI Slots", () => {
+    it("should pass slots to layout component", async () => {
+      const builder = createPreactBuilder({
+        logger,
+        outputDir,
+        workingDir,
+        cssProcessor: new MockCSSProcessor(),
+      });
+
+      // Create a slot registry with a registered component
+      const slotRegistry = new UISlotRegistry();
+      const NewsletterComponent = () =>
+        h("div", { class: "newsletter" }, "Subscribe to newsletter");
+
+      slotRegistry.register("footer-top", {
+        pluginId: "newsletter",
+        component: NewsletterComponent,
+      });
+
+      // Track if slots were passed to layout
+      let receivedSlots: UISlotRegistry | undefined;
+      const LayoutWithSlots: LayoutComponent = ({ sections, slots }) => {
+        receivedSlots = slots;
+        return h("main", {}, [
+          ...sections,
+          // Render slot components if present
+          slots?.hasSlot("footer-top")
+            ? h(
+                "footer",
+                {},
+                slots
+                  .getSlot("footer-top")
+                  .map((entry) => h(entry.component, entry.props ?? {})),
+              )
+            : null,
+        ]);
+      };
+
+      const viewRegistry = {
+        getViewTemplate: (_name: string): ViewTemplate => ({
+          name: "test",
+          schema: z.object({ title: z.string() }),
+          pluginId: "test-plugin",
+          renderers: {
+            web: (props: unknown): VNode => {
+              const { title } = props as { title: string };
+              return h("div", {}, title);
+            },
+          },
+          interactive: false,
+        }),
+        registerRoute: (): void => {},
+        getRoute: (): undefined => undefined,
+        listRoutes: (): RouteDefinition[] => [],
+        registerViewTemplate: (): void => {},
+        listViewTemplates: (): ViewTemplate[] => [],
+        validateViewTemplate: (): boolean => true,
+        getRenderer: (): undefined => undefined,
+        hasRenderer: (): boolean => false,
+        listFormats: (): OutputFormat[] => [],
+      };
+
+      const buildContext: BuildContext = {
+        routes: [
+          {
+            id: "test",
+            path: "/",
+            title: "Test Page",
+            description: "Test Description",
+            layout: "default",
+            sections: [
+              {
+                id: "test-section",
+                template: "test",
+                content: { title: "Hello World" },
+              },
+            ],
+          },
+        ],
+        getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+        pluginContext: createMockServicePluginContext(),
+        siteConfig: {
+          title: "Test Site",
+          description: "Test Site Description",
+        },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: LayoutWithSlots },
+        getSiteInfo: async () => ({
+          title: "Test Site",
+          description: "Test Site Description",
+          navigation: { primary: [], secondary: [] },
+          copyright: "© 2025 Test Site. All rights reserved.",
+        }),
+        slots: slotRegistry,
+      };
+
+      await builder.build(buildContext, () => {});
+
+      // Verify slots were passed to layout
+      expect(receivedSlots).toBeDefined();
+      expect(receivedSlots?.hasSlot("footer-top")).toBe(true);
+
+      // Verify slot component was rendered in HTML
+      const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+      expect(html).toContain("Subscribe to newsletter");
+      expect(html).toContain('class="newsletter"');
+    });
+
+    it("should render slots in priority order", async () => {
+      const builder = createPreactBuilder({
+        logger,
+        outputDir,
+        workingDir,
+        cssProcessor: new MockCSSProcessor(),
+      });
+
+      const slotRegistry = new UISlotRegistry();
+
+      // Register components with different priorities
+      slotRegistry.register("footer-top", {
+        pluginId: "low-priority",
+        component: (): VNode => h("span", {}, "Low"),
+        priority: 10,
+      });
+      slotRegistry.register("footer-top", {
+        pluginId: "high-priority",
+        component: (): VNode => h("span", {}, "High"),
+        priority: 100,
+      });
+      slotRegistry.register("footer-top", {
+        pluginId: "medium-priority",
+        component: (): VNode => h("span", {}, "Medium"),
+        priority: 50,
+      });
+
+      const LayoutWithSlots: LayoutComponent = ({ sections, slots }) => {
+        return h("main", {}, [
+          ...sections,
+          h(
+            "div",
+            { id: "slot-container" },
+            slots
+              ?.getSlot("footer-top")
+              .map((entry) => h(entry.component, entry.props ?? {})),
+          ),
+        ]);
+      };
+
+      const viewRegistry = {
+        getViewTemplate: (_name: string): ViewTemplate => ({
+          name: "test",
+          schema: z.object({}),
+          pluginId: "test-plugin",
+          renderers: { web: (): VNode => h("div", {}, "Content") },
+          interactive: false,
+        }),
+        registerRoute: (): void => {},
+        getRoute: (): undefined => undefined,
+        listRoutes: (): RouteDefinition[] => [],
+        registerViewTemplate: (): void => {},
+        listViewTemplates: (): ViewTemplate[] => [],
+        validateViewTemplate: (): boolean => true,
+        getRenderer: (): undefined => undefined,
+        hasRenderer: (): boolean => false,
+        listFormats: (): OutputFormat[] => [],
+      };
+
+      const buildContext: BuildContext = {
+        routes: [
+          {
+            id: "test",
+            path: "/",
+            title: "Test",
+            description: "Test",
+            layout: "default",
+            sections: [{ id: "content", template: "test", content: {} }],
+          },
+        ],
+        getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+        pluginContext: createMockServicePluginContext(),
+        siteConfig: { title: "Test", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: LayoutWithSlots },
+        getSiteInfo: async () => ({
+          title: "Test",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "© 2025 Test",
+        }),
+        slots: slotRegistry,
+      };
+
+      await builder.build(buildContext, () => {});
+
+      const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+      // Verify order: High should come before Medium, Medium before Low
+      const highPos = html.indexOf("High");
+      const mediumPos = html.indexOf("Medium");
+      const lowPos = html.indexOf("Low");
+      expect(highPos).toBeLessThan(mediumPos);
+      expect(mediumPos).toBeLessThan(lowPos);
+    });
+
+    it("should handle empty slot registry gracefully", async () => {
+      const builder = createPreactBuilder({
+        logger,
+        outputDir,
+        workingDir,
+        cssProcessor: new MockCSSProcessor(),
+      });
+
+      const emptySlotRegistry = new UISlotRegistry();
+
+      const LayoutWithSlots: LayoutComponent = ({ sections, slots }) => {
+        return h("main", {}, [
+          ...sections,
+          // Should handle empty slots gracefully
+          slots?.hasSlot("footer-top")
+            ? h(
+                "footer",
+                {},
+                slots
+                  .getSlot("footer-top")
+                  .map((entry) => h(entry.component, entry.props ?? {})),
+              )
+            : h("footer", { id: "empty-footer" }, "Default footer"),
+        ]);
+      };
+
+      const viewRegistry = {
+        getViewTemplate: (_name: string): ViewTemplate => ({
+          name: "test",
+          schema: z.object({}),
+          pluginId: "test-plugin",
+          renderers: { web: (): VNode => h("div", {}, "Content") },
+          interactive: false,
+        }),
+        registerRoute: (): void => {},
+        getRoute: (): undefined => undefined,
+        listRoutes: (): RouteDefinition[] => [],
+        registerViewTemplate: (): void => {},
+        listViewTemplates: (): ViewTemplate[] => [],
+        validateViewTemplate: (): boolean => true,
+        getRenderer: (): undefined => undefined,
+        hasRenderer: (): boolean => false,
+        listFormats: (): OutputFormat[] => [],
+      };
+
+      const buildContext: BuildContext = {
+        routes: [
+          {
+            id: "test",
+            path: "/",
+            title: "Test",
+            description: "Test",
+            layout: "default",
+            sections: [{ id: "content", template: "test", content: {} }],
+          },
+        ],
+        getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+        pluginContext: createMockServicePluginContext(),
+        siteConfig: { title: "Test", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: LayoutWithSlots },
+        getSiteInfo: async () => ({
+          title: "Test",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "© 2025 Test",
+        }),
+        slots: emptySlotRegistry,
+      };
+
+      await builder.build(buildContext, () => {});
+
+      const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+      // Should render default footer since no slots registered
+      expect(html).toContain('id="empty-footer"');
+      expect(html).toContain("Default footer");
+    });
+
+    it("should work without slots (backwards compatibility)", async () => {
+      const builder = createPreactBuilder({
+        logger,
+        outputDir,
+        workingDir,
+        cssProcessor: new MockCSSProcessor(),
+      });
+
+      // Layout that handles missing slots prop
+      const LayoutWithOptionalSlots: LayoutComponent = ({
+        sections,
+        slots,
+      }) => {
+        return h("main", {}, [
+          ...sections,
+          slots?.hasSlot("footer-top")
+            ? h("footer", {}, "Has slots")
+            : h("footer", {}, "No slots"),
+        ]);
+      };
+
+      const viewRegistry = {
+        getViewTemplate: (_name: string): ViewTemplate => ({
+          name: "test",
+          schema: z.object({}),
+          pluginId: "test-plugin",
+          renderers: { web: (): VNode => h("div", {}, "Content") },
+          interactive: false,
+        }),
+        registerRoute: (): void => {},
+        getRoute: (): undefined => undefined,
+        listRoutes: (): RouteDefinition[] => [],
+        registerViewTemplate: (): void => {},
+        listViewTemplates: (): ViewTemplate[] => [],
+        validateViewTemplate: (): boolean => true,
+        getRenderer: (): undefined => undefined,
+        hasRenderer: (): boolean => false,
+        listFormats: (): OutputFormat[] => [],
+      };
+
+      // BuildContext without slots property
+      const buildContext: BuildContext = {
+        routes: [
+          {
+            id: "test",
+            path: "/",
+            title: "Test",
+            description: "Test",
+            layout: "default",
+            sections: [{ id: "content", template: "test", content: {} }],
+          },
+        ],
+        getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+        pluginContext: createMockServicePluginContext(),
+        siteConfig: { title: "Test", description: "Test" },
+        getContent: async (_route, section) => section.content ?? null,
+        layouts: { default: LayoutWithOptionalSlots },
+        getSiteInfo: async () => ({
+          title: "Test",
+          description: "Test",
+          navigation: { primary: [], secondary: [] },
+          copyright: "© 2025 Test",
+        }),
+        // No slots property - testing backwards compatibility
+      };
+
+      await builder.build(buildContext, () => {});
+
+      const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+      expect(html).toContain("No slots");
+    });
   });
 
   it("should extract and resolve entity://image references", async () => {
