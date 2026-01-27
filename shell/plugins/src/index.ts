@@ -42,6 +42,7 @@ export type {
   IInterfaceConversationsNamespace,
   IPermissionsNamespace,
   IDaemonsNamespace,
+  IApiRoutesNamespace,
 } from "./interface/context";
 export { createInterfacePluginContext } from "./interface/context";
 

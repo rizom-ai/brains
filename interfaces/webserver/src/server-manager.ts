@@ -96,6 +96,8 @@ export class ServerManager {
     preview: null,
     production: null,
   };
+  private apiRoutes: RegisteredApiRoute[] = [];
+  private messageBus: IMessageBus | null = null;
 
   constructor(options: ServerManagerOptions) {
     this.logger = options.logger;
@@ -109,6 +111,22 @@ export class ServerManager {
       }),
       ...(options.previewPort && { previewPort: options.previewPort }),
     };
+  }
+
+  /**
+   * Set API routes to be mounted when servers start
+   */
+  setApiRoutes(routes: RegisteredApiRoute[], messageBus: IMessageBus): void {
+    this.apiRoutes = routes;
+    this.messageBus = messageBus;
+    this.logger.debug(`Configured ${routes.length} API routes`);
+  }
+
+  /**
+   * Check if API routes have been configured
+   */
+  hasApiRoutes(): boolean {
+    return this.apiRoutes.length > 0 && this.messageBus !== null;
   }
 
   /**
@@ -130,6 +148,11 @@ export class ServerManager {
       await next();
       c.header("Cache-Control", "no-cache, no-store, must-revalidate");
     });
+
+    // Mount API routes before static files
+    if (this.messageBus) {
+      this.mountApiRoutes(app, this.apiRoutes, this.messageBus);
+    }
 
     // Serve static files
     app.use(
@@ -190,6 +213,11 @@ export class ServerManager {
         c.header("Cache-Control", "public, max-age=3600");
       }
     });
+
+    // Mount API routes before static files
+    if (this.messageBus) {
+      this.mountApiRoutes(app, this.apiRoutes, this.messageBus);
+    }
 
     // Serve static files
     app.use(

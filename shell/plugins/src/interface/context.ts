@@ -15,6 +15,8 @@ import type {
   MessageRole,
   ConversationMetadata,
 } from "@brains/conversation-service";
+import type { RegisteredApiRoute } from "../types/api-routes";
+import type { IMessageBus } from "@brains/messaging-service";
 
 /**
  * Permissions namespace for InterfacePluginContext
@@ -32,6 +34,17 @@ export interface IPermissionsNamespace {
 export interface IDaemonsNamespace {
   /** Register a daemon for this interface */
   register: (name: string, daemon: Daemon) => void;
+}
+
+/**
+ * API Routes namespace for InterfacePluginContext
+ * Provides access to plugin-declared API routes
+ */
+export interface IApiRoutesNamespace {
+  /** Get all registered API routes from plugins */
+  getRoutes: () => RegisteredApiRoute[];
+  /** Get the message bus for handling route requests */
+  getMessageBus: () => IMessageBus;
 }
 
 /**
@@ -118,6 +131,17 @@ export interface InterfacePluginContext extends CorePluginContext {
    * - `conversations.addMessage()` - Add a message to a conversation
    */
   readonly conversations: IInterfaceConversationsNamespace;
+
+  // ============================================================================
+  // API Routes (Plugin-declared HTTP endpoints)
+  // ============================================================================
+
+  /**
+   * API Routes namespace for webserver interfaces
+   * - `apiRoutes.getRoutes()` - Get all registered API routes from plugins
+   * - `apiRoutes.getMessageBus()` - Get message bus for route handling
+   */
+  readonly apiRoutes: IApiRoutesNamespace;
 }
 
 /**
@@ -246,6 +270,16 @@ export function createInterfacePluginContext(
           content,
           metadata,
         );
+      },
+    },
+
+    // API Routes namespace
+    apiRoutes: {
+      getRoutes: (): RegisteredApiRoute[] => {
+        return shell.getPluginApiRoutes();
+      },
+      getMessageBus: (): IMessageBus => {
+        return shell.getMessageBus();
       },
     },
   };

@@ -17,7 +17,17 @@ import packageJson from "../package.json";
  * This is a pure serving interface - site building is handled by site-builder
  */
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
-  private serverManager!: ServerManager;
+  private serverManager?: ServerManager;
+
+  /**
+   * Get server manager, throwing if not initialized
+   */
+  private getServerManager(): ServerManager {
+    if (!this.serverManager) {
+      throw new Error("ServerManager not initialized - onRegister not called");
+    }
+    return this.serverManager;
+  }
 
   constructor(config: Partial<WebserverConfig> = {}) {
     super("webserver", packageJson, config, webserverConfigSchema);
@@ -39,6 +49,14 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       }),
       ...(this.config.previewPort && { previewPort: this.config.previewPort }),
     });
+
+    // Configure API routes from plugins
+    const apiRoutes = context.apiRoutes.getRoutes();
+    if (apiRoutes.length > 0) {
+      const messageBus = context.apiRoutes.getMessageBus();
+      this.serverManager.setApiRoutes(apiRoutes, messageBus);
+      context.logger.info(`Configured ${apiRoutes.length} API routes`);
+    }
   }
 
   /**
@@ -52,19 +70,19 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
 
         // Auto-start servers based on configuration
         if (this.config.previewPort && this.config.previewDistDir) {
-          await this.serverManager.startPreviewServer();
+          await this.getServerManager().startPreviewServer();
           this.logger.info("Preview server enabled");
         } else {
           this.logger.info("Preview server disabled (not configured)");
         }
 
-        await this.serverManager.startProductionServer();
+        await this.getServerManager().startProductionServer();
       },
       stop: async (): Promise<void> => {
-        await this.serverManager.stopAll();
+        await this.getServerManager().stopAll();
       },
       healthCheck: async (): Promise<DaemonHealth> => {
-        const status = this.serverManager.getStatus();
+        const status = this.getServerManager().getStatus();
         const isRunning = status.preview || status.production;
 
         const previewUrl =

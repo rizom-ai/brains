@@ -285,4 +285,24 @@ describe("ServerManager.mountApiRoutes", () => {
     const json = await response.json();
     expect(json).toEqual({ success: true, data: { subscribed: true } });
   });
+
+  it("should store api routes configuration for use when starting servers", () => {
+    const routes: RegisteredApiRoute[] = [
+      {
+        pluginId: "newsletter",
+        fullPath: "/api/newsletter/subscribe",
+        definition: {
+          path: "/subscribe",
+          method: "POST",
+          tool: "subscribe",
+          public: true,
+        },
+      },
+    ];
+
+    serverManager.setApiRoutes(routes, mockMessageBus);
+
+    // Routes are stored and will be mounted when servers start
+    expect(serverManager.hasApiRoutes()).toBe(true);
+  });
 });
