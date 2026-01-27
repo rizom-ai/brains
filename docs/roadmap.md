@@ -12,6 +12,7 @@ Last Updated: 2025-01-26
 
 - [x] Social media auto-generate: Triggers on blog post status → queued
 - [x] Publish pipeline: Verify queue/schedule/publish flow
+- [ ] Newsletter signup on site (see `docs/plans/newsletter-integration.md`)
 - [ ] Content: Finalize essays, portfolio, about (last step)
 
 ### Recently Fixed
@@ -54,28 +55,6 @@ Last Updated: 2025-01-26
 - [ ] Add Nano Banana Pro (Google Gemini) as alternative to DALL-E
 - [ ] Make provider configurable: `IMAGE_PROVIDER=google|openai`
 - [ ] Better text rendering for cover images with titles
-
----
-
-## Phase 2: Newsletter Integration
-
-**Goal**: Newsletter signup on site.
-
-### Requires
-
-- API routes infrastructure (plugin-declared routes)
-- MCP HTTP route handler
-- Webserver proxy (`/api/*`)
-
-### Deliverables
-
-- Newsletter plugin API route
-- CTA slot in footer
-- Thank-you/error pages
-
-### Plan
-
-See `docs/plans/newsletter-integration.md`
 
 ---
 
