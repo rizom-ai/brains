@@ -11,7 +11,7 @@ Last Updated: 2025-01-26
 ### Remaining for v1.0
 
 - [x] Social media auto-generate: Triggers on blog post status → queued
-- [ ] Publish pipeline: Verify queue/schedule/publish flow
+- [x] Publish pipeline: Verify queue/schedule/publish flow
 - [ ] Content: Finalize essays, portfolio, about (last step)
 
 ### Recently Fixed
