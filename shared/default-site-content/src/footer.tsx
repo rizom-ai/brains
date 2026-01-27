@@ -1,4 +1,4 @@
-import type { JSX } from "preact";
+import type { JSX, ComponentChildren } from "preact";
 import {
   FooterContent,
   type NavigationItem,
@@ -10,6 +10,8 @@ interface FooterProps {
   secondaryNavigation: NavigationItem[];
   copyright?: string | undefined;
   socialLinks?: SocialLink[] | undefined;
+  /** Content to render at the top of the footer (e.g., slot components) */
+  children?: ComponentChildren;
 }
 
 export const Footer = ({
@@ -17,12 +19,14 @@ export const Footer = ({
   secondaryNavigation,
   copyright,
   socialLinks,
+  children,
 }: FooterProps): JSX.Element => {
   const currentYear = new Date().getFullYear();
 
   return (
     <footer className="footer py-8 bg-footer">
       <div className="container mx-auto px-4 max-w-6xl">
+        {children && <div className="mb-8 max-w-md mx-auto">{children}</div>}
         <FooterContent
           primaryNav={primaryNavigation}
           secondaryNav={secondaryNavigation}

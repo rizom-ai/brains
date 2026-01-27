@@ -28,6 +28,13 @@ export { siteInfoCTASchema } from "./services/site-info-schema";
 // Export event payload types for plugins that subscribe to build events
 export type { SiteBuildCompletedPayload } from "./types/job-types";
 
+// Export UI slot registry for plugin-registered components
+export { UISlotRegistry } from "./lib/ui-slot-registry";
+export type { SlotRegistration } from "./lib/ui-slot-registry";
+export type { LayoutSlots } from "./config";
+export { Slot } from "./components/Slot";
+export type { SlotProps } from "./components/Slot";
+
 // Export route types and schemas for other plugins to use
 export type {
   RouteDefinition,

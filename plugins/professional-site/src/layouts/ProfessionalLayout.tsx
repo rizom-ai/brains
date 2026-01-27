@@ -1,5 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
-import type { SiteInfo } from "@brains/site-builder-plugin";
+import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
+import { Slot } from "@brains/site-builder-plugin";
 import { CompactHeader } from "../components/CompactHeader";
 import { AnimatedWaveDivider } from "../components/AnimatedWaveDivider";
 import { Footer } from "@brains/default-site-content";
@@ -10,6 +11,8 @@ export interface ProfessionalLayoutProps {
   description: string;
   path: string;
   siteInfo: SiteInfo;
+  /** Optional slots for plugin-registered UI components */
+  slots?: LayoutSlots;
 }
 
 /**
@@ -19,6 +22,7 @@ export interface ProfessionalLayoutProps {
 export function ProfessionalLayout({
   sections,
   siteInfo,
+  slots,
 }: ProfessionalLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme">
@@ -37,7 +41,9 @@ export function ProfessionalLayout({
         secondaryNavigation={siteInfo.navigation.secondary}
         copyright={siteInfo.copyright}
         socialLinks={siteInfo.socialLinks}
-      />
+      >
+        <Slot name="footer-top" slots={slots} />
+      </Footer>
     </div>
   );
 }
