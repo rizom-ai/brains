@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { Plugin } from "@brains/plugins";
-import { createNewsletterPlugin } from "../src";
+import { createNewsletterPlugin, NewsletterPlugin } from "../src";
 
 describe("NewsletterPlugin", () => {
   let plugin: Plugin;
@@ -34,6 +34,50 @@ describe("NewsletterPlugin", () => {
         },
       });
       expect(customPlugin.id).toBe("newsletter");
+    });
+  });
+
+  describe("API Routes", () => {
+    it("should return subscribe route when buttondown is configured", () => {
+      const plugin = new NewsletterPlugin({
+        buttondown: {
+          apiKey: "test-api-key",
+          doubleOptIn: true,
+        },
+      });
+
+      const routes = plugin.getApiRoutes();
+
+      expect(routes).toHaveLength(1);
+      expect(routes[0]).toMatchObject({
+        path: "/subscribe",
+        method: "POST",
+        tool: "subscribe",
+        public: true,
+        successRedirect: "/subscribe/thanks",
+        errorRedirect: "/subscribe/error",
+      });
+    });
+
+    it("should return empty array when buttondown is not configured", () => {
+      const plugin = new NewsletterPlugin({});
+
+      const routes = plugin.getApiRoutes();
+
+      expect(routes).toHaveLength(0);
+    });
+
+    it("should return empty array when buttondown apiKey is missing", () => {
+      const plugin = new NewsletterPlugin({
+        buttondown: {
+          apiKey: "",
+          doubleOptIn: true,
+        },
+      });
+
+      const routes = plugin.getApiRoutes();
+
+      expect(routes).toHaveLength(0);
     });
   });
 });

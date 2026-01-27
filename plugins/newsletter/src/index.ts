@@ -1,4 +1,9 @@
-import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
+import type {
+  Plugin,
+  ServicePluginContext,
+  PluginTool,
+  ApiRouteDefinition,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import type { PublishProvider, PublishResult } from "@brains/utils";
 import { newsletterConfigSchema, type NewsletterConfig } from "./config";
@@ -80,6 +85,27 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
       return [];
     }
     return createNewsletterTools(this.id, this.context, this.config.buttondown);
+  }
+
+  /**
+   * Get API routes for webserver
+   * Exposes /api/newsletter/subscribe for form submissions
+   */
+  override getApiRoutes(): ApiRouteDefinition[] {
+    if (!this.config.buttondown?.apiKey) {
+      return [];
+    }
+
+    return [
+      {
+        path: "/subscribe",
+        method: "POST",
+        tool: "subscribe",
+        public: true,
+        successRedirect: "/subscribe/thanks",
+        errorRedirect: "/subscribe/error",
+      },
+    ];
   }
 
   /**
