@@ -258,6 +258,7 @@ export {
   createResource,
   toolSuccess,
   toolError,
+  toolResultSchema,
   type ToolResult,
 } from "./utils/tool-helpers";
 

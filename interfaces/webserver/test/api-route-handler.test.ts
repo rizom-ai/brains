@@ -9,8 +9,15 @@ describe("createApiRouteHandler", () => {
   let app: Hono;
 
   beforeEach(() => {
+    // Message bus wraps tool result in { success, data }
+    // Tool result is { success, data, message? }
     mockMessageBus = createMockMessageBus({
-      returns: { send: { success: true, data: { subscribed: true } } },
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { subscribed: true } },
+        },
+      },
     }) as unknown as IMessageBus;
     app = new Hono();
   });
@@ -143,9 +150,14 @@ describe("createApiRouteHandler", () => {
     });
 
     it("should redirect to errorRedirect on failure for form submissions", async () => {
-      // Create a fresh mock bus with error response
+      // Create a fresh mock bus with error response (tool result format)
       const errorMockBus = createMockMessageBus({
-        returns: { send: { success: false, error: "Invalid email" } },
+        returns: {
+          send: {
+            success: true,
+            data: { success: false, error: "Invalid email" },
+          },
+        },
       }) as unknown as IMessageBus;
 
       const route = createMockRoute({
@@ -180,7 +192,12 @@ describe("ServerManager.mountApiRoutes", () => {
     });
 
     mockMessageBus = createMockMessageBus({
-      returns: { send: { success: true, data: { subscribed: true } } },
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { subscribed: true } },
+        },
+      },
     }) as unknown as IMessageBus;
   });
 

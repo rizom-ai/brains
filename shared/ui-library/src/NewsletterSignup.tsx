@@ -40,7 +40,7 @@ export function NewsletterSignup({
     .join(" ");
 
   // Inline script for client-side form handling
-  const alreadySubscribedMessage = "You're already subscribed!";
+  const alreadySubscribedMessage = "You are already subscribed!";
   const inlineScript = `
 (function() {
   var form = document.currentScript.previousElementSibling;
@@ -67,8 +67,8 @@ export function NewsletterSignup({
     })
     .then(function(response) {
       if (response.ok) {
-        return response.json().then(function(data) {
-          var msg = data.message === 'already_subscribed'
+        return response.json().then(function(res) {
+          var msg = (res.data && res.data.message === 'already_subscribed')
             ? '${alreadySubscribedMessage}'
             : '${successMessage}';
           container.innerHTML = '<div class="text-center py-4">' +

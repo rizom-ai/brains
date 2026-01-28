@@ -4,26 +4,37 @@ import type {
   ToolResponse,
   ToolContext,
 } from "../interfaces";
-import type { z } from "@brains/utils";
-import { Logger } from "@brains/utils";
+import { z, Logger } from "@brains/utils";
 
 /**
- * Standardized tool result type
+ * Zod schema for tool result validation
+ * Use this to parse/validate tool results at runtime
+ */
+export const toolResultSchema = z.union([
+  z.object({
+    success: z.literal(true),
+    data: z.unknown(),
+    message: z.string().optional(),
+  }),
+  z.object({
+    success: z.literal(false),
+    error: z.string(),
+    code: z.string().optional(),
+  }),
+]);
+
+/**
+ * Standardized tool result type derived from schema
  * All tools should return this format for consistent handling
  *
- * @template T - The type of data returned on success
+ * @template T - The type of data returned on success (defaults to unknown)
  */
 export type ToolResult<T = unknown> =
-  | {
-      success: true;
-      data: T;
-      message?: string; // Human-readable description
-    }
-  | {
-      success: false;
-      error: string;
-      code?: string; // Optional error code for programmatic handling
-    };
+  | (Omit<
+      Extract<z.infer<typeof toolResultSchema>, { success: true }>,
+      "data"
+    > & { data: T })
+  | Extract<z.infer<typeof toolResultSchema>, { success: false }>;
 
 /**
  * Helper to create a success result

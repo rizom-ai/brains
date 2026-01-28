@@ -4,6 +4,7 @@ import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
 import type { Server } from "bun";
 import type { Logger } from "@brains/utils";
+import { toolResultSchema } from "@brains/plugins";
 import { join, resolve } from "path";
 import { existsSync } from "fs";
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
@@ -52,12 +53,20 @@ export function createApiRouteHandler(
       "webserver",
     );
 
-    const success = "success" in response && response.success === true;
-    const data = "data" in response ? response.data : response;
+    // The message bus wraps the tool result in { success, data }
+    // Extract and validate the inner tool result
+    const innerData =
+      typeof response === "object" && "data" in response
+        ? response.data
+        : response;
+
+    const parseResult = toolResultSchema.safeParse(innerData);
+    const toolResult = parseResult.success ? parseResult.data : innerData;
+    const success = parseResult.success && parseResult.data.success === true;
 
     // Return response based on Accept header and route config
     if (acceptsJson) {
-      return c.json({ success, data }, success ? 200 : 400);
+      return c.json(toolResult, success ? 200 : 400);
     }
 
     // Redirect for form submissions
@@ -69,7 +78,7 @@ export function createApiRouteHandler(
     }
 
     // Default JSON response if no redirect configured
-    return c.json({ success, data }, success ? 200 : 400);
+    return c.json(toolResult, success ? 200 : 400);
   };
 }
 
