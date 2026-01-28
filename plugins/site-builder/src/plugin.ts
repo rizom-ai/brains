@@ -9,6 +9,7 @@ import { siteContentSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
 import { RouteRegistry } from "./lib/route-registry";
+import { UISlotRegistry, type SlotRegistration } from "./lib/ui-slot-registry";
 import type { RouteDefinition } from "./types/routes";
 import {
   RegisterRoutesPayloadSchema,
@@ -50,6 +51,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteContentService?: SiteContentService;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
+  private _slotRegistry?: UISlotRegistry;
   private siteInfoService?: SiteInfoService;
   private profileService?: ProfileService;
   private layouts: Record<string, LayoutComponent>;
@@ -100,6 +102,23 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
     // Initialize route registry with logger
     this._routeRegistry = new RouteRegistry(context.logger);
+
+    // Initialize slot registry for UI components from other plugins
+    this._slotRegistry = new UISlotRegistry();
+
+    // Subscribe to slot registration messages from other plugins
+    context.messaging.subscribe<
+      SlotRegistration & { slotName: string },
+      { success: boolean }
+    >("plugin:site-builder:slot:register", async (message) => {
+      const { slotName, pluginId, render, priority } = message.payload;
+      this._slotRegistry?.register(slotName, {
+        pluginId,
+        render,
+        ...(priority !== undefined && { priority }),
+      });
+      return { success: true };
+    });
 
     // Register NavigationDataSource
     const navigationDataSource = new NavigationDataSource(
@@ -303,6 +322,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    */
   public getSiteContentService(): SiteContentService | undefined {
     return this.siteContentService;
+  }
+
+  /**
+   * Get the slot registry for UI component slots
+   */
+  public getSlotRegistry(): UISlotRegistry | undefined {
+    return this._slotRegistry;
   }
 
   /**

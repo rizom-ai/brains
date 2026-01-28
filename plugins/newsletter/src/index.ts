@@ -3,7 +3,6 @@ import type {
   ServicePluginContext,
   PluginTool,
   ApiRouteDefinition,
-  SlotRegistration,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import type { PublishProvider, PublishResult } from "@brains/utils";
@@ -49,6 +48,15 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
     // Register with publish-pipeline for both direct and queued publishing
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
+
+    // Register slot for newsletter signup form if buttondown is configured
+    if (this.config.buttondown) {
+      await context.messaging.send("plugin:site-builder:slot:register", {
+        pluginId: this.id,
+        slotName: "footer-top",
+        render: () => h(NewsletterSignup, null),
+      });
+    }
 
     // Subscribe to publish:completed for auto-send feature
     if (this.config.autoSendOnPublish && this.config.buttondown) {
@@ -107,25 +115,6 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
         public: true,
         successRedirect: "/subscribe/thanks",
         errorRedirect: "/subscribe/error",
-      },
-    ];
-  }
-
-  /**
-   * Get UI slot registrations
-   * Registers NewsletterSignup component to footer-top slot
-   */
-  override getSlotRegistrations(): SlotRegistration[] {
-    if (!this.config.buttondown?.apiKey) {
-      return [];
-    }
-
-    return [
-      {
-        slotName: "footer-top",
-        pluginId: this.id,
-        render: () =>
-          h(NewsletterSignup, { action: `/api/${this.id}/subscribe` }),
       },
     ];
   }

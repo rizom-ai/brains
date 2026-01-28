@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import type { Plugin } from "@brains/plugins";
+import type { Plugin, MessageWithPayload } from "@brains/plugins";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { createNewsletterPlugin, NewsletterPlugin } from "../src";
 
 describe("NewsletterPlugin", () => {
@@ -81,8 +82,27 @@ describe("NewsletterPlugin", () => {
     });
   });
 
-  describe("Slot Registrations", () => {
-    it("should return footer-top slot when buttondown is configured", () => {
+  describe("Slot Registration Messaging", () => {
+    interface SlotRegistrationPayload {
+      pluginId: string;
+      slotName: string;
+      render: () => unknown;
+      priority?: number;
+    }
+
+    it("should send slot registration message when buttondown is configured", async () => {
+      const harness = createServicePluginHarness<NewsletterPlugin>();
+      let receivedPayload: SlotRegistrationPayload | undefined;
+
+      // Subscribe before installing plugin
+      harness.subscribe<SlotRegistrationPayload>(
+        "plugin:site-builder:slot:register",
+        (msg: MessageWithPayload<SlotRegistrationPayload>) => {
+          receivedPayload = msg.payload;
+          return { success: true };
+        },
+      );
+
       const plugin = new NewsletterPlugin({
         buttondown: {
           apiKey: "test-api-key",
@@ -90,17 +110,30 @@ describe("NewsletterPlugin", () => {
         },
       });
 
-      const slots = plugin.getSlotRegistrations();
+      await harness.installPlugin(plugin);
 
-      expect(slots).toHaveLength(1);
-      expect(slots[0]).toMatchObject({
-        slotName: "footer-top",
+      expect(receivedPayload).toBeDefined();
+      expect(receivedPayload).toMatchObject({
         pluginId: "newsletter",
+        slotName: "footer-top",
       });
-      expect(typeof slots[0]?.render).toBe("function");
+      expect(typeof receivedPayload?.render).toBe("function");
+
+      harness.reset();
     });
 
-    it("should have render function that returns a VNode", () => {
+    it("should have render function that returns a VNode", async () => {
+      const harness = createServicePluginHarness<NewsletterPlugin>();
+      let receivedPayload: SlotRegistrationPayload | undefined;
+
+      harness.subscribe<SlotRegistrationPayload>(
+        "plugin:site-builder:slot:register",
+        (msg: MessageWithPayload<SlotRegistrationPayload>) => {
+          receivedPayload = msg.payload;
+          return { success: true };
+        },
+      );
+
       const plugin = new NewsletterPlugin({
         buttondown: {
           apiKey: "test-api-key",
@@ -108,19 +141,32 @@ describe("NewsletterPlugin", () => {
         },
       });
 
-      const slots = plugin.getSlotRegistrations();
-      const vnode = slots[0]?.render();
+      await harness.installPlugin(plugin);
+
+      const vnode = receivedPayload?.render() as { type?: unknown } | undefined;
 
       expect(vnode).toBeDefined();
       expect(vnode?.type).toBeDefined();
+
+      harness.reset();
     });
 
-    it("should return empty array when buttondown is not configured", () => {
+    it("should not send slot registration when buttondown is not configured", async () => {
+      const harness = createServicePluginHarness<NewsletterPlugin>();
+      let messageReceived = false;
+
+      harness.subscribe("plugin:site-builder:slot:register", () => {
+        messageReceived = true;
+        return { success: true };
+      });
+
       const plugin = new NewsletterPlugin({});
 
-      const slots = plugin.getSlotRegistrations();
+      await harness.installPlugin(plugin);
 
-      expect(slots).toHaveLength(0);
+      expect(messageReceived).toBe(false);
+
+      harness.reset();
     });
   });
 });
