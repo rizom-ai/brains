@@ -90,7 +90,7 @@ describe("NewsletterPlugin", () => {
       priority?: number;
     }
 
-    it("should send slot registration message when buttondown is configured", async () => {
+    it("should send slot registration message on system:plugins:ready when buttondown is configured", async () => {
       const harness = createServicePluginHarness<NewsletterPlugin>();
       let receivedPayload: SlotRegistrationPayload | undefined;
 
@@ -111,6 +111,15 @@ describe("NewsletterPlugin", () => {
       });
 
       await harness.installPlugin(plugin);
+
+      // Slot registration should NOT have happened yet
+      expect(receivedPayload).toBeUndefined();
+
+      // Emit system:plugins:ready to trigger slot registration
+      await harness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
 
       expect(receivedPayload).toBeDefined();
       expect(receivedPayload).toMatchObject({
@@ -143,6 +152,12 @@ describe("NewsletterPlugin", () => {
 
       await harness.installPlugin(plugin);
 
+      // Emit system:plugins:ready to trigger slot registration
+      await harness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
+
       const vnode = receivedPayload?.render() as { type?: unknown } | undefined;
 
       expect(vnode).toBeDefined();
@@ -163,6 +178,12 @@ describe("NewsletterPlugin", () => {
       const plugin = new NewsletterPlugin({});
 
       await harness.installPlugin(plugin);
+
+      // Emit system:plugins:ready
+      await harness.sendMessage("system:plugins:ready", {
+        timestamp: new Date().toISOString(),
+        pluginCount: 1,
+      });
 
       expect(messageReceived).toBe(false);
 

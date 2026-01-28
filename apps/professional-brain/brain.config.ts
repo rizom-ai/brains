@@ -25,6 +25,7 @@ import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-yeehaa";
 import { analyticsPlugin } from "@brains/analytics";
 import { DashboardPlugin } from "@brains/dashboard";
+import { createNewsletterPlugin } from "@brains/newsletter";
 
 // Entity route configuration
 const entityRouteConfig = {
@@ -125,6 +126,12 @@ const config = defineConfig({
       },
     }),
     new DashboardPlugin(),
+    createNewsletterPlugin({
+      buttondown: {
+        apiKey: process.env["BUTTONDOWN_API_KEY"] || "test-api-key",
+        doubleOptIn: true,
+      },
+    }),
     professionalSitePlugin({
       entityRouteConfig,
     }),

@@ -49,12 +49,16 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
 
-    // Register slot for newsletter signup form if buttondown is configured
+    // Register slot for newsletter signup form when all plugins are ready
+    // This ensures site-builder has subscribed to the slot:register channel
     if (this.config.buttondown) {
-      await context.messaging.send("plugin:site-builder:slot:register", {
-        pluginId: this.id,
-        slotName: "footer-top",
-        render: () => h(NewsletterSignup, null),
+      context.messaging.subscribe("system:plugins:ready", async () => {
+        await context.messaging.send("plugin:site-builder:slot:register", {
+          pluginId: this.id,
+          slotName: "footer-top",
+          render: () => h(NewsletterSignup, null),
+        });
+        return { success: true };
       });
     }
 
