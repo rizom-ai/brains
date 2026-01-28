@@ -8,8 +8,13 @@ const BUTTONDOWN_API_URL = "https://api.buttondown.email/v1";
 
 /**
  * Subscriber status in Buttondown
+ * "already_subscribed" is a local status indicating the subscriber already exists
  */
-export type SubscriberType = "unactivated" | "regular" | "unsubscribed";
+export type SubscriberType =
+  | "unactivated"
+  | "regular"
+  | "unsubscribed"
+  | "already_subscribed";
 
 /**
  * Buttondown subscriber
@@ -127,6 +132,7 @@ export class ButtondownClient {
 
   /**
    * Create a new subscriber
+   * Returns subscriber with subscriber_type "already_subscribed" if they exist
    */
   async createSubscriber(input: CreateSubscriberInput): Promise<Subscriber> {
     const body: {
@@ -149,10 +155,27 @@ export class ButtondownClient {
 
     this.logger.info("Creating subscriber", { email: input.email });
 
-    return this.request<Subscriber>("/subscribers", {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
+    try {
+      return await this.request<Subscriber>("/subscribers", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    } catch (error) {
+      // Handle "already subscribed" - return with special status
+      if (
+        error instanceof Error &&
+        error.message.includes("already subscribed")
+      ) {
+        const idMatch = error.message.match(/id=([a-f0-9-]+)/);
+        this.logger.info("Subscriber already exists", { email: input.email });
+        return {
+          id: idMatch?.[1] ?? "existing",
+          email: input.email,
+          subscriber_type: "already_subscribed",
+        };
+      }
+      throw error;
+    }
   }
 
   /**

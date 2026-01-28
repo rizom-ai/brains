@@ -74,13 +74,22 @@ export function createNewsletterTools(
             ...(input.tags && { tags: input.tags }),
           });
 
+          const isAlreadySubscribed =
+            subscriber.subscriber_type === "already_subscribed";
+          const message = isAlreadySubscribed
+            ? "already_subscribed"
+            : "subscribed";
+
           return toolSuccess(
             {
               subscriberId: subscriber.id,
               email: subscriber.email,
               status: subscriber.subscriber_type,
+              message,
             },
-            `Subscribed ${input.email} successfully`,
+            isAlreadySubscribed
+              ? `${input.email} is already subscribed`
+              : `Subscribed ${input.email} successfully`,
           );
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
