@@ -1,7 +1,11 @@
 import type { JSX, ComponentChildren } from "preact";
 import { Footer } from "../footer";
 import { Header } from "@brains/ui-library";
-import type { SiteInfo } from "@brains/site-builder-plugin";
+import {
+  Slot,
+  type SiteInfo,
+  type LayoutSlots,
+} from "@brains/site-builder-plugin";
 
 export interface DefaultLayoutProps {
   sections: ComponentChildren[]; // JSX elements for sections
@@ -9,6 +13,7 @@ export interface DefaultLayoutProps {
   description: string;
   path: string; // Current route path for canonical URL
   siteInfo: SiteInfo;
+  slots?: LayoutSlots;
 }
 
 /**
@@ -18,6 +23,7 @@ export interface DefaultLayoutProps {
 export function DefaultLayout({
   sections,
   siteInfo,
+  slots,
 }: DefaultLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme">
@@ -35,7 +41,9 @@ export function DefaultLayout({
         secondaryNavigation={siteInfo.navigation.secondary}
         copyright={siteInfo.copyright}
         socialLinks={siteInfo.socialLinks}
-      />
+      >
+        <Slot name="footer-top" slots={slots} />
+      </Footer>
     </div>
   );
 }

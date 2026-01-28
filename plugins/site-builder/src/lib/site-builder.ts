@@ -270,6 +270,7 @@ export class SiteBuilder implements ISiteBuilder {
         ...(parsedOptions.themeCSS !== undefined && {
           themeCSS: parsedOptions.themeCSS,
         }),
+        ...(options.slots && { slots: options.slots }),
       };
 
       // Run static site build (85% to 95% of overall progress)

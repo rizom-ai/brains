@@ -2,10 +2,12 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
+import { UISlotRegistry } from "../../src/lib/ui-slot-registry";
 import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
+import { ProgressReporter } from "@brains/utils";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;
@@ -101,6 +103,61 @@ describe("SiteBuildJobHandler", () => {
 
       expect(result).not.toBeNull();
       expect(result?.enableContentGeneration).toBeUndefined();
+    });
+  });
+
+  describe("slot registry", () => {
+    it("should pass slot registry to siteBuilder.build()", async () => {
+      const slotRegistry = new UISlotRegistry();
+      slotRegistry.register("footer-top", {
+        pluginId: "newsletter",
+        render: () => null,
+      });
+
+      let capturedOptions: { slots?: unknown } | undefined;
+
+      const mockSiteBuilderWithSlots: ISiteBuilder = {
+        build: async (options) => {
+          capturedOptions = options;
+          return {
+            success: true,
+            outputDir: "/tmp/output",
+            filesGenerated: 10,
+            routesBuilt: 10,
+          };
+        },
+      };
+
+      const mockContext = createMockServicePluginContext();
+      const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
+        title: "Test Site",
+        description: "Test Description",
+      };
+
+      const handlerWithSlots = new SiteBuildJobHandler(
+        createSilentLogger("test"),
+        mockSiteBuilderWithSlots,
+        {}, // layouts
+        defaultSiteConfig,
+        mockContext,
+        undefined, // entityRouteConfig
+        undefined, // themeCSS
+        undefined, // previewUrl
+        undefined, // productionUrl
+        slotRegistry,
+      );
+
+      const progressReporter = ProgressReporter.from(async () => {});
+      if (!progressReporter) throw new Error("Expected progress reporter");
+
+      await handlerWithSlots.process(
+        { outputDir: "/tmp/output" },
+        "job-123",
+        progressReporter,
+      );
+
+      expect(capturedOptions).toBeDefined();
+      expect(capturedOptions?.slots).toBe(slotRegistry);
     });
   });
 });

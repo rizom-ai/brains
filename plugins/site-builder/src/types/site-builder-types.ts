@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
 import type { ProgressCallback } from "@brains/plugins";
-import type { LayoutComponent } from "../config";
+import type { LayoutComponent, LayoutSlots } from "../config";
 
 /**
  * Site builder options schema
@@ -26,6 +26,8 @@ export const SiteBuilderOptionsSchema = z.object({
 export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema> & {
   // Override layouts type
   layouts: Record<string, LayoutComponent>;
+  // Optional slot registry for plugin-registered UI components
+  slots?: LayoutSlots | undefined;
 };
 
 /**
