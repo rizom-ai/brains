@@ -130,12 +130,12 @@ export class ButtondownClient {
    */
   async createSubscriber(input: CreateSubscriberInput): Promise<Subscriber> {
     const body: {
-      email: string;
+      email_address: string;
       type: string;
       metadata?: { name: string };
       tags?: string[];
     } = {
-      email: input.email,
+      email_address: input.email,
       type: this.config.doubleOptIn ? "unactivated" : "regular",
     };
 
