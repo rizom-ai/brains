@@ -128,7 +128,7 @@ const config = defineConfig({
     new DashboardPlugin(),
     createNewsletterPlugin({
       buttondown: {
-        apiKey: process.env["BUTTONDOWN_API_KEY"] || "test-api-key",
+        apiKey: process.env["BUTTONDOWN_API_KEY"] || "",
         doubleOptIn: true,
       },
     }),
