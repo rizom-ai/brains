@@ -16,6 +16,9 @@ import {
 } from "./handlers/publish-handler";
 import { GenerationJobHandler } from "./handlers/generation-handler";
 import { generationTemplate } from "./templates/generation-template";
+import { newsletterListTemplate } from "./templates/newsletter-list";
+import { newsletterDetailTemplate } from "./templates/newsletter-detail";
+import { NewsletterDataSource } from "./datasources/newsletter-datasource";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import { newsletterAdapter } from "./adapters/newsletter-adapter";
 import { ButtondownClient } from "./lib/buttondown-client";
@@ -47,9 +50,18 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
       newsletterAdapter,
     );
 
-    // Register AI generation template
+    // Register newsletter datasource
+    const newsletterDataSource = new NewsletterDataSource(
+      context.entityService,
+      this.logger.child("NewsletterDataSource"),
+    );
+    context.entities.registerDataSource(newsletterDataSource);
+
+    // Register templates (AI generation + view templates)
     context.templates.register({
       generation: generationTemplate,
+      "newsletter-list": newsletterListTemplate,
+      "newsletter-detail": newsletterDetailTemplate,
     });
 
     // Register with publish-pipeline for both direct and queued publishing
