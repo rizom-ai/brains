@@ -4,9 +4,15 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { buildPaginationInfo } from "@brains/plugins";
+import {
+  buildPaginationInfo,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { Newsletter } from "../schemas/newsletter";
+import {
+  type Newsletter,
+  newsletterMetadataSchema,
+} from "../schemas/newsletter";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -22,6 +28,22 @@ const entityFetchQuerySchema = z.object({
     })
     .optional(),
 });
+
+/**
+ * Extract body content from newsletter (strips frontmatter)
+ */
+function getNewsletterBody(newsletter: Newsletter): string {
+  try {
+    const { content } = parseMarkdownWithFrontmatter(
+      newsletter.content,
+      newsletterMetadataSchema,
+    );
+    return content;
+  } catch {
+    // Content doesn't have frontmatter, return as-is
+    return newsletter.content;
+  }
+}
 
 /**
  * Generate excerpt from content
@@ -140,11 +162,14 @@ export class NewsletterDataSource implements DataSource {
       );
     }
 
+    // Parse content to strip frontmatter
+    const body = getNewsletterBody(newsletter);
+
     const detailData = {
       id: newsletter.id,
       subject: newsletter.metadata.subject,
       status: newsletter.metadata.status,
-      content: newsletter.content,
+      content: body,
       created: newsletter.created,
       updated: newsletter.updated,
       sentAt: newsletter.metadata.sentAt,
@@ -217,16 +242,19 @@ export class NewsletterDataSource implements DataSource {
       pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
     }
 
-    // Enrich newsletters with excerpt and URL
-    const enrichedNewsletters = newsletters.map((newsletter) => ({
-      id: newsletter.id,
-      subject: newsletter.metadata.subject,
-      status: newsletter.metadata.status,
-      excerpt: generateExcerpt(newsletter.content),
-      created: newsletter.created,
-      sentAt: newsletter.metadata.sentAt,
-      url: `/newsletters/${newsletter.id}`,
-    }));
+    // Enrich newsletters with excerpt (from body, not frontmatter) and URL
+    const enrichedNewsletters = newsletters.map((newsletter) => {
+      const body = getNewsletterBody(newsletter);
+      return {
+        id: newsletter.id,
+        subject: newsletter.metadata.subject,
+        status: newsletter.metadata.status,
+        excerpt: generateExcerpt(body),
+        created: newsletter.created,
+        sentAt: newsletter.metadata.sentAt,
+        url: `/newsletters/${newsletter.id}`,
+      };
+    });
 
     const listData = {
       newsletters: enrichedNewsletters,
