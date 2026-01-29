@@ -2,28 +2,28 @@
 
 ## Context
 
-The newsletter plugin currently only has subscriber management tools (`subscribe`, `unsubscribe`, `list_subscribers`) and a basic `send` tool that bypasses the entity system. It's missing the content generation and entity management tools that blog and social-media plugins have.
+The newsletter plugin currently only has subscriber management tools (`subscribe`, `unsubscribe`, `list_subscribers`) and a basic `send` tool that bypasses the entity system. It's missing the content generation tools that blog and social-media plugins have.
 
 **Current state:**
 
-- Uses `createTypedTool()` pattern (differs from blog's `createTool()`)
+- Uses `createTypedTool()` pattern
 - Has newsletter entity schema with status workflow: `draft` → `queued` → `sent` → `failed`
 - Has publish pipeline integration
 - Has Buttondown API client
 - `send` tool sends raw content directly (bypasses entity tracking)
-- Missing: generate, create, list, get, publish tools
+- Missing: generate tool
 
 **Target state (matching blog/social-media patterns):**
 
-- AI-powered newsletter generation from posts, prompts, or direct content
-- Full entity CRUD via tools
-- Job-based async generation with progress reporting
-- **Remove `send` tool** - replace with entity-based `publish` for better tracking
-- Keep subscriber management tools unchanged (`subscribe`, `unsubscribe`, `list_subscribers`)
+- `newsletter_generate` - Job-based AI generation (like blog/social-media)
+- No CRUD tools - use `system_list`, `system_get` for entity access
+- No publish tool - use existing publish-pipeline integration
+- **Remove `send` tool** - replaced by generate + publish-pipeline workflow
+- Keep subscriber management tools unchanged
 
-## New Tools to Add
+## New Tool to Add
 
-### 1. `newsletter_generate` (Job-based, like blog/social-media)
+### `newsletter_generate` (Job-based, like blog/social-media)
 
 Queue a job to AI-generate newsletter content.
 
@@ -48,60 +48,13 @@ Queue a job to AI-generate newsletter content.
 2. Source entity path - aggregate from blog posts
 3. Prompt path - AI generates from prompt
 
-### 2. `newsletter_create` (Synchronous)
+## Entity Access (No Tools Needed)
 
-Create a newsletter draft directly without AI.
+Following blog/social-media pattern, use system tools instead of plugin-specific tools:
 
-**Input schema:**
-
-```typescript
-{
-  subject: string,
-  content: string,
-  status?: "draft" | "queued",
-  entityIds?: string[],
-  scheduledFor?: string,
-}
-```
-
-### 3. `newsletter_list` (Synchronous)
-
-List newsletters with filtering.
-
-**Input schema:**
-
-```typescript
-{
-  status?: "draft" | "queued" | "sent" | "failed",
-  limit?: number,
-}
-```
-
-### 4. `newsletter_get` (Synchronous)
-
-Get a specific newsletter by ID.
-
-**Input schema:**
-
-```typescript
-{
-  id: string,
-}
-```
-
-### 5. `newsletter_publish` (Synchronous)
-
-Publish a draft newsletter (send via Buttondown).
-
-**Input schema:**
-
-```typescript
-{
-  id: string,
-  immediate?: boolean,      // Send now vs keep as draft in Buttondown
-  scheduledFor?: string,    // Schedule for later
-}
-```
+- **List newsletters**: `system_list` with `entityType: "newsletter"`
+- **Get newsletter**: `system_get` with `entityType: "newsletter"` and `id`
+- **Publish newsletter**: `publish-pipeline_publish` with `entityType: "newsletter"`
 
 ## Files to Create
 
@@ -130,25 +83,21 @@ AI template for newsletter generation.
 
 **Remove:**
 
-- `newsletter_send` - Replaced by entity-based workflow
+- `newsletter_send` - Replaced by generate + publish-pipeline workflow
 
 **Add new:**
 
 - `newsletter_generate` - AI-generate content (job-based)
-- `newsletter_create` - Create draft directly
-- `newsletter_list` - List newsletters
-- `newsletter_get` - Get newsletter by ID
-- `newsletter_publish` - Send a newsletter entity
+
+**Total: 4 tools** (was 4, adding 1, removing 1)
 
 ## Files to Modify
 
 ### `plugins/newsletter/src/tools/index.ts`
 
 - Remove `send` tool and `sendParamsSchema`
-- Import newsletter schema, createNewsletter factory
-- Add input schemas with `.describe()` on all fields
+- Add `generate` tool schema with `.describe()` on all fields
 - Add `generate` tool (enqueues job)
-- Add `create`, `list`, `get`, `publish` tools (synchronous)
 
 ### `plugins/newsletter/src/index.ts`
 
@@ -204,7 +153,7 @@ Newsletter template should:
 ### `plugins/newsletter/test/generate-tool.test.ts`
 
 - Test job enqueueing
-- Test input validation
+- Test input validation (at least one of prompt/sourceEntityIds/content required)
 
 ### `plugins/newsletter/test/generation-handler.test.ts`
 
@@ -215,7 +164,7 @@ Newsletter template should:
 
 ### Update `plugins/newsletter/test/tools.test.ts`
 
-- Add tests for `create`, `list`, `get`, `publish` tools
+- Remove tests for `send` tool
 
 ## Verification
 
@@ -223,18 +172,15 @@ Newsletter template should:
 2. `bun test plugins/newsletter` - all tests pass
 3. Manual test via Matrix:
    - "Generate a newsletter from my recent blog posts"
-   - "Create a newsletter draft with subject 'Weekly Update'"
-   - "List my newsletter drafts"
-   - "Get newsletter [id]"
-   - "Publish newsletter [id]"
+   - "Generate a newsletter about topic X"
+   - Use `system_list` to see newsletters
+   - Use `publish-pipeline_publish` to send
 
 ## Implementation Order
 
-1. Add input schemas to `tools/index.ts`
-2. Add `create`, `list`, `get` tools (synchronous, no dependencies)
-3. Create generation handler
-4. Add `generate` tool (job-based)
-5. Add `publish` tool
-6. Register handler and template in plugin
-7. Write tests
-8. Manual verification
+1. Remove `send` tool from `tools/index.ts`
+2. Create generation handler (`handlers/generation-handler.ts`)
+3. Add `generate` tool (job-based)
+4. Register handler and template in plugin
+5. Write tests
+6. Manual verification
