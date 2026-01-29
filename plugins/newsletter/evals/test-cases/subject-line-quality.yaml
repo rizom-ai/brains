@@ -1,0 +1,55 @@
+id: newsletter-subject-line-quality
+name: Generate compelling subject line
+description: Tests that AI generates subject lines that create curiosity without clickbait
+type: plugin
+tags:
+  - newsletter
+  - subject
+  - quality
+  - tone
+plugin: newsletter
+handler: generation
+
+input:
+  content: |
+    ## What I Learned From Shipping 50 Features
+
+    Over the past year, our team shipped 50 features to production. Some were hits,
+    others missed the mark. Here's what we learned about velocity, quality, and
+    knowing when to say no.
+
+    ### Lesson 1: Small batches win
+    The features that shipped fastest were the ones we broke into tiny pieces.
+
+    ### Lesson 2: Talk to users early
+    Our biggest misses came from features we built without user validation.
+
+    ### Lesson 3: Technical debt is real
+    We paid the price for shortcuts taken in the early days.
+
+expectedOutput:
+  hasFields:
+    - subject
+    - content
+  fieldValidation:
+    - field: subject
+      minLength: 25
+      maxLength: 70
+  contentNotContains:
+    - field: subject
+      patterns:
+        - "!!!"
+        - "YOU WON'T BELIEVE"
+        - "SHOCKING"
+        - "AMAZING"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    customCriteria:
+      - name: creates_curiosity
+        description: "Subject line creates curiosity or promises value without being clickbait"
+        minScore: 4
+      - name: professional_tone
+        description: "Subject line maintains professional tone"
+        minScore: 5

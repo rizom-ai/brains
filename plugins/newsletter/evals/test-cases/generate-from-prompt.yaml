@@ -1,0 +1,35 @@
+id: newsletter-generate-from-prompt
+name: Generate newsletter from prompt
+description: Tests that AI generates a complete newsletter from a simple prompt
+type: plugin
+tags:
+  - newsletter
+  - generation
+  - prompt
+  - core
+plugin: newsletter
+handler: generation
+
+input:
+  prompt: "Write a newsletter about the latest trends in AI and how they're changing software development"
+
+expectedOutput:
+  hasFields:
+    - subject
+    - content
+  fieldValidation:
+    - field: subject
+      minLength: 20
+      maxLength: 80
+    - field: content
+      minLength: 300
+      maxLength: 2000
+  contentContains:
+    - field: content
+      patterns:
+        - "[Aa][Ii]|[Aa]rtificial [Ii]ntelligence"
+        - "[Ss]oftware|[Dd]evelop"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

@@ -1,4 +1,8 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import type {
+  PluginTool,
+  ServicePluginContext,
+  ToolContext,
+} from "@brains/plugins";
 import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { ButtondownClient } from "../lib/buttondown-client";
@@ -28,19 +32,32 @@ const listSubscribersParamsSchema = z.object({
   limit: z.number().optional().describe("Maximum number of results"),
 });
 
-// Schema for send newsletter tool parameters
-const sendParamsSchema = z.object({
-  subject: z.string().describe("Newsletter subject line"),
-  body: z.string().describe("Newsletter body content (markdown supported)"),
-  immediate: z
-    .boolean()
-    .default(false)
-    .describe("Send immediately (true) or save as draft (false)"),
-  scheduledFor: z
+// Schema for generate newsletter tool parameters
+const generateParamsSchema = z.object({
+  prompt: z
     .string()
-    .datetime()
     .optional()
-    .describe("Schedule for specific time (ISO 8601 format)"),
+    .describe("AI generation prompt for newsletter content"),
+  sourceEntityIds: z
+    .array(z.string())
+    .optional()
+    .describe("Entity IDs to include in newsletter (e.g., blog post IDs)"),
+  sourceEntityType: z
+    .enum(["post"])
+    .optional()
+    .describe("Type of source entities (currently only 'post' supported)"),
+  content: z
+    .string()
+    .optional()
+    .describe("Direct newsletter content (skips AI generation)"),
+  subject: z
+    .string()
+    .optional()
+    .describe("Newsletter subject line (AI-generated if not provided)"),
+  addToQueue: z
+    .boolean()
+    .optional()
+    .describe("Create as queued (true) or draft (false, default)"),
 });
 
 /**
@@ -155,44 +172,45 @@ export function createNewsletterTools(
     ),
   );
 
-  // Send newsletter tool
+  // Generate newsletter tool
   tools.push(
     createTypedTool(
       pluginId,
-      "send",
-      "Send a newsletter or save as draft. Use immediate=true to send now, or provide scheduledFor for scheduled delivery.",
-      sendParamsSchema,
-      async (input) => {
+      "generate",
+      "Queue a job to generate newsletter content. Requires at least one of: prompt (AI generation), sourceEntityIds (generate from blog posts), or content (direct content with subject).",
+      generateParamsSchema,
+      async (input, toolContext: ToolContext) => {
+        // Validate that at least one content source is provided
+        if (!input.prompt && !input.sourceEntityIds?.length && !input.content) {
+          return toolError(
+            "At least one of prompt, sourceEntityIds, or content is required",
+          );
+        }
+
         try {
-          // Determine status based on input
-          let status: "draft" | "about_to_send" | "scheduled" = "draft";
-          if (input.immediate) {
-            status = "about_to_send";
-          } else if (input.scheduledFor) {
-            status = "scheduled";
-          }
-
-          const email = await client.createEmail({
-            subject: input.subject,
-            body: input.body,
-            status,
-            ...(input.scheduledFor && { publish_date: input.scheduledFor }),
-          });
-
-          const action =
-            status === "about_to_send"
-              ? "sent"
-              : status === "scheduled"
-                ? "scheduled"
-                : "saved as draft";
+          const jobId = await context.jobs.enqueue(
+            "newsletter-generation",
+            {
+              prompt: input.prompt,
+              sourceEntityIds: input.sourceEntityIds,
+              sourceEntityType: input.sourceEntityType,
+              content: input.content,
+              subject: input.subject,
+              addToQueue: input.addToQueue,
+            },
+            toolContext,
+            {
+              source: `${pluginId}_generate`,
+              metadata: {
+                operationType: "content_operations",
+                operationTarget: "newsletter",
+              },
+            },
+          );
 
           return toolSuccess(
-            {
-              emailId: email.id,
-              subject: email.subject,
-              status: email.status,
-            },
-            `Newsletter "${input.subject}" ${action}`,
+            { jobId },
+            `Newsletter generation job queued (jobId: ${jobId})`,
           );
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);

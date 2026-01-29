@@ -1,0 +1,55 @@
+id: newsletter-generate-from-posts
+name: Generate newsletter from blog posts
+description: Tests that AI aggregates multiple blog posts into a cohesive newsletter
+type: plugin
+tags:
+  - newsletter
+  - generation
+  - aggregation
+  - core
+plugin: newsletter
+handler: generation
+
+input:
+  content: |
+    ## Building Resilient APIs
+    Learn the key patterns for building APIs that gracefully handle failures, including circuit breakers, retries, and fallbacks.
+    Read more: https://example.com/posts/resilient-apis
+
+    ---
+
+    ## The Art of Code Review
+    Effective code review is about more than finding bugs. It's about knowledge sharing, mentoring, and maintaining code quality.
+    Read more: https://example.com/posts/code-review
+
+    ---
+
+    ## Why We Chose TypeScript
+    After two years of using TypeScript in production, here's what we learned about type safety, developer experience, and team velocity.
+    Read more: https://example.com/posts/typescript-journey
+
+expectedOutput:
+  hasFields:
+    - subject
+    - content
+  fieldValidation:
+    - field: subject
+      minLength: 20
+      maxLength: 80
+    - field: content
+      minLength: 400
+      maxLength: 2500
+  contentContains:
+    - field: content
+      patterns:
+        - "[Rr]esilient|API"
+        - "[Cc]ode [Rr]eview"
+        - "[Tt]ype[Ss]cript"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    customCriteria:
+      - name: includes_all_posts
+        description: "Newsletter mentions all three blog posts"
+        minScore: 4

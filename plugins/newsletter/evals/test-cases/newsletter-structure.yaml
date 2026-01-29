@@ -1,0 +1,48 @@
+id: newsletter-proper-structure
+name: Generate well-structured newsletter
+description: Tests that AI generates a newsletter with proper markdown structure, sections, and flow
+type: plugin
+tags:
+  - newsletter
+  - structure
+  - formatting
+  - quality
+plugin: newsletter
+handler: generation
+
+input:
+  prompt: "Write a newsletter sharing three productivity tips for remote developers"
+
+expectedOutput:
+  hasFields:
+    - subject
+    - content
+  fieldValidation:
+    - field: subject
+      minLength: 20
+      maxLength: 80
+    - field: content
+      minLength: 300
+      maxLength: 1500
+  contentContains:
+    - field: content
+      patterns:
+        - "##"
+        - "[Pp]roductiv|[Rr]emote|[Dd]eveloper"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    customCriteria:
+      - name: has_intro
+        description: "Newsletter has a brief personal introduction before main content"
+        minScore: 4
+      - name: has_sections
+        description: "Content is organized with clear sections using markdown headers"
+        minScore: 4
+      - name: has_closing
+        description: "Newsletter ends with a closing or call-to-action"
+        minScore: 4
+      - name: conversational_tone
+        description: "Tone is conversational and authentic, not corporate"
+        minScore: 4

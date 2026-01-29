@@ -1,11 +1,6 @@
-import { describe, it, expect, mock, afterEach } from "bun:test";
-import type {
-  ServicePluginContext,
-  ToolContext,
-  PluginTool,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { createNewsletterTools } from "../src/tools";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { createServicePluginHarness } from "@brains/plugins/test";
+import { NewsletterPlugin } from "../src";
 
 // Save original fetch to restore after tests
 const originalFetch = globalThis.fetch;
@@ -14,15 +9,6 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-// Mock logger
-const mockLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  child: () => mockLogger,
-} as unknown as Logger;
-
 // Helper to create a mock fetch
 function mockFetch(
   handler: (url: string, options: RequestInit) => Promise<Partial<Response>>,
@@ -30,51 +16,17 @@ function mockFetch(
   globalThis.fetch = mock(handler) as unknown as typeof fetch;
 }
 
-// Create minimal mock context
-function createMockContext(): ServicePluginContext {
-  return {
-    logger: mockLogger,
-    entityService: {
-      getEntity: mock(() => Promise.resolve(null)),
-      listEntities: mock(() => Promise.resolve([])),
-      createEntity: mock(() =>
-        Promise.resolve({ entityId: "test-id", jobId: "job-1" }),
-      ),
-      upsertEntity: mock(() =>
-        Promise.resolve({ entityId: "test-id", jobId: "job-1", created: true }),
-      ),
-    },
-    entities: {
-      register: mock(() => {}),
-      getAdapter: mock(() => null),
-    },
-    messaging: {
-      send: mock(() => Promise.resolve()),
-      subscribe: mock((): { unsubscribe: () => void } => ({
-        unsubscribe: (): void => {},
-      })),
-    },
-  } as unknown as ServicePluginContext;
-}
-
-// Create mock tool context
-function createMockToolContext(): ToolContext {
-  return {
-    interfaceType: "test",
-    userId: "test-user",
-  };
-}
-
-// Helper to find tool or throw
-function findTool(tools: PluginTool[], name: string): PluginTool {
-  const tool = tools.find((t) => t.name === name);
-  if (!tool) {
-    throw new Error(`Tool ${name} not found`);
-  }
-  return tool;
-}
-
 describe("Newsletter Tools", () => {
+  let harness: ReturnType<typeof createServicePluginHarness>;
+
+  beforeEach(async () => {
+    harness = createServicePluginHarness();
+  });
+
+  afterEach(() => {
+    harness.reset();
+  });
+
   describe("newsletter_subscribe", () => {
     it("should subscribe email via Buttondown API", async () => {
       mockFetch(() =>
@@ -89,19 +41,19 @@ describe("Newsletter Tools", () => {
         }),
       );
 
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
+
+      const result = await harness.executeTool("newsletter_subscribe", {
+        email: "test@example.com",
       });
 
-      const subscribeTool = findTool(tools, "newsletter_subscribe");
-
-      const result = await subscribeTool.handler(
-        { email: "test@example.com" },
-        toolContext,
-      );
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toHaveProperty("subscriberId", "sub-123");
@@ -122,21 +74,19 @@ describe("Newsletter Tools", () => {
         });
       });
 
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
-      });
-
-      const subscribeTool = findTool(tools, "newsletter_subscribe");
-      await subscribeTool.handler(
-        {
-          email: "test@example.com",
-          name: "Test User",
-        },
-        toolContext,
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
       );
+
+      await harness.executeTool("newsletter_subscribe", {
+        email: "test@example.com",
+        name: "Test User",
+      });
 
       expect(capturedBody).toContain("Test User");
     });
@@ -150,22 +100,53 @@ describe("Newsletter Tools", () => {
         }),
       );
 
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
-      });
-
-      const subscribeTool = findTool(tools, "newsletter_subscribe");
-      const result = await subscribeTool.handler(
-        { email: "invalid" },
-        toolContext,
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
       );
+
+      const result = await harness.executeTool("newsletter_subscribe", {
+        email: "invalid",
+      });
 
       expect(result.success).toBe(false);
       expect(result).toHaveProperty("error");
       expect((result as { error: string }).error).toContain("Invalid email");
+    });
+
+    it("should detect already subscribed users", async () => {
+      mockFetch(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          json: () =>
+            Promise.resolve({
+              detail: "This email is already subscribed (id=sub-existing)",
+            }),
+        }),
+      );
+
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
+
+      const result = await harness.executeTool("newsletter_subscribe", {
+        email: "existing@example.com",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toHaveProperty("message", "already_subscribed");
+      }
     });
   });
 
@@ -178,19 +159,19 @@ describe("Newsletter Tools", () => {
         }),
       );
 
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
+
+      const result = await harness.executeTool("newsletter_unsubscribe", {
+        email: "test@example.com",
       });
 
-      const unsubscribeTool = findTool(tools, "newsletter_unsubscribe");
-
-      const result = await unsubscribeTool.handler(
-        { email: "test@example.com" },
-        toolContext,
-      );
       expect(result.success).toBe(true);
     });
   });
@@ -219,16 +200,20 @@ describe("Newsletter Tools", () => {
         }),
       );
 
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
-      });
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
 
-      const listTool = findTool(tools, "newsletter_list_subscribers");
+      const result = await harness.executeTool(
+        "newsletter_list_subscribers",
+        {},
+      );
 
-      const result = await listTool.handler({}, toolContext);
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data).toHaveProperty("subscribers");
@@ -237,86 +222,114 @@ describe("Newsletter Tools", () => {
     });
   });
 
-  describe("newsletter_send", () => {
-    it("should send newsletter via Buttondown API", async () => {
-      mockFetch(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              id: "email-123",
-              subject: "Test Newsletter",
-              status: "sent",
-            }),
+  describe("newsletter_generate", () => {
+    it("should queue a generation job with prompt", async () => {
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
         }),
       );
 
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
+      const result = await harness.executeTool("newsletter_generate", {
+        prompt: "Create a newsletter about our latest product updates",
       });
-
-      const sendTool = findTool(tools, "newsletter_send");
-
-      const result = await sendTool.handler(
-        {
-          subject: "Test Newsletter",
-          body: "Hello subscribers!",
-          immediate: true,
-        },
-        toolContext,
-      );
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data).toHaveProperty("emailId", "email-123");
+        expect(result.data).toHaveProperty("jobId");
       }
     });
 
-    it("should create draft when immediate is false", async () => {
-      let capturedBody: string | undefined;
-      mockFetch((_url, options) => {
-        capturedBody = options.body as string;
-        return Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              id: "email-123",
-              subject: "Test Newsletter",
-              status: "draft",
-            }),
-        });
-      });
-
-      const context = createMockContext();
-      const toolContext = createMockToolContext();
-      const tools = createNewsletterTools("newsletter", context, {
-        apiKey: "test-key",
-        doubleOptIn: true,
-      });
-
-      const sendTool = findTool(tools, "newsletter_send");
-      await sendTool.handler(
-        {
-          subject: "Test Newsletter",
-          body: "Hello!",
-          immediate: false,
-        },
-        toolContext,
+    it("should queue a generation job with source entity IDs", async () => {
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
       );
 
-      expect(capturedBody).toContain('"status":"draft"');
+      const result = await harness.executeTool("newsletter_generate", {
+        sourceEntityIds: ["post-1", "post-2"],
+        sourceEntityType: "post",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toHaveProperty("jobId");
+      }
+    });
+
+    it("should queue a generation job with direct content", async () => {
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
+
+      const result = await harness.executeTool("newsletter_generate", {
+        subject: "Weekly Update",
+        content: "Hello subscribers! Here are this week's highlights...",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data).toHaveProperty("jobId");
+      }
+    });
+
+    it("should fail when no content source provided", async () => {
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
+
+      const result = await harness.executeTool("newsletter_generate", {});
+
+      expect(result.success).toBe(false);
+      expect(result).toHaveProperty("error");
+    });
+
+    it("should accept addToQueue flag", async () => {
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: {
+            apiKey: "test-key",
+            doubleOptIn: true,
+          },
+        }),
+      );
+
+      const result = await harness.executeTool("newsletter_generate", {
+        prompt: "Create a newsletter",
+        addToQueue: true,
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 
   describe("without buttondown config", () => {
-    it("should return empty tools array when no config provided", () => {
-      const context = createMockContext();
-      const tools = createNewsletterTools("newsletter", context, undefined);
+    it("should return empty tools array when no config provided", async () => {
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      expect(tools).toHaveLength(0);
+      // Tools should not be registered, so executing should throw
+      expect(
+        harness.executeTool("newsletter_subscribe", {
+          email: "test@example.com",
+        }),
+      ).rejects.toThrow("Tool not found");
     });
   });
 });

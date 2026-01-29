@@ -5,7 +5,7 @@ import type {
   ApiRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import type { PublishProvider, PublishResult } from "@brains/utils";
+import { z, type PublishProvider, type PublishResult } from "@brains/utils";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterConfigSchema, type NewsletterConfig } from "./config";
@@ -14,6 +14,8 @@ import {
   handlePublishCompleted,
   type PublishCompletedPayload,
 } from "./handlers/publish-handler";
+import { GenerationJobHandler } from "./handlers/generation-handler";
+import { generationTemplate } from "./templates/generation-template";
 import { newsletterSchema, type Newsletter } from "./schemas/newsletter";
 import { newsletterAdapter } from "./adapters/newsletter-adapter";
 import { ButtondownClient } from "./lib/buttondown-client";
@@ -44,6 +46,11 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
       newsletterSchema,
       newsletterAdapter,
     );
+
+    // Register AI generation template
+    context.templates.register({
+      generation: generationTemplate,
+    });
 
     // Register with publish-pipeline for both direct and queued publishing
     await this.registerWithPublishPipeline(context);
@@ -89,7 +96,43 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
       this.logger.info("Newsletter auto-send on publish enabled");
     }
 
+    // Register newsletter generation job handler
+    context.jobs.registerHandler(
+      "newsletter-generation",
+      new GenerationJobHandler(this.logger, context, this.config),
+    );
+
+    // Register eval handlers for AI testing
+    this.registerEvalHandlers(context);
+
     this.logger.debug("Newsletter plugin registered");
+  }
+
+  /**
+   * Register eval handlers for plugin testing
+   */
+  private registerEvalHandlers(context: ServicePluginContext): void {
+    // Single unified generation handler (matches social-media pattern)
+    const generationInputSchema = z.object({
+      prompt: z.string().optional(),
+      content: z.string().optional(),
+    });
+
+    context.eval.registerHandler("generation", async (input: unknown) => {
+      const parsed = generationInputSchema.parse(input);
+
+      const generationPrompt = parsed.content
+        ? `Create an engaging newsletter based on this content:\n\n${parsed.content}`
+        : (parsed.prompt ?? "Write an engaging newsletter");
+
+      return context.ai.generate<{
+        subject: string;
+        content: string;
+      }>({
+        prompt: generationPrompt,
+        templateName: "newsletter:generation",
+      });
+    });
   }
 
   /**
