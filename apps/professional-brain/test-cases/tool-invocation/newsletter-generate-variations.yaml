@@ -1,0 +1,26 @@
+id: tool-invocation-newsletter-generate-variations
+name: Newsletter Generate Natural Language Variations
+description: Tests that various phrasings of newsletter generation requests invoke the tool
+type: tool_invocation
+tags:
+  - newsletter
+  - natural-language
+  - anti-hallucination
+
+turns:
+  - userMessage: "Create a newsletter for my subscribers about remote work"
+
+successCriteria:
+  expectedTools:
+    - toolName: newsletter_generate
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 40000

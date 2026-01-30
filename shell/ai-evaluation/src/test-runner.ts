@@ -205,9 +205,9 @@ export class TestRunner implements ITestRunner {
           for (const [key, expectedValue] of Object.entries(
             expected.argsContain,
           )) {
-            // Check if ANY call has the expected arg value
+            // Check if ANY call has the expected arg value (use deep equality for arrays/objects)
             const anyCallMatches = matchingCalls.some(
-              (tc) => tc.args && tc.args[key] === expectedValue,
+              (tc) => tc.args && Bun.deepEquals(tc.args[key], expectedValue),
             );
 
             if (!anyCallMatches) {

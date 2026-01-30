@@ -30,6 +30,7 @@
     "@brains/link": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
+    "@brains/newsletter": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/professional-site": "workspace:*",

@@ -1,0 +1,30 @@
+id: tool-invocation-newsletter-generate-from-post
+name: Newsletter Generate From Blog Post
+description: Verifies the agent calls newsletter_generate with sourceEntityIds when asked to create newsletter from a post
+type: tool_invocation
+tags:
+  - core
+  - newsletter
+  - blog-integration
+  - anti-hallucination
+
+turns:
+  - userMessage: "Generate a newsletter about my blog post 'Urging New Institutions'"
+
+successCriteria:
+  expectedTools:
+    - toolName: newsletter_generate
+      shouldBeCalled: true
+      argsContain:
+        sourceEntityIds: ["Urging New Institutions"]
+  toolCountRange:
+    min: 1
+  responseContains:
+    - "queued"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 40000

@@ -62,18 +62,34 @@ const generateParamsSchema = z.object({
 
 /**
  * Create newsletter plugin tools
+ * Generate tool is always available; subscriber tools require Buttondown API
  */
 export function createNewsletterTools(
   pluginId: string,
   context: ServicePluginContext,
   buttondownConfig?: ButtondownConfig,
 ): PluginTool[] {
-  // Return empty array if no config - tools require Buttondown API
-  if (!buttondownConfig?.apiKey) {
-    return [];
+  const tools: PluginTool[] = [];
+
+  // Subscriber tools require Buttondown API
+  if (buttondownConfig?.apiKey) {
+    const client = new ButtondownClient(buttondownConfig, context.logger);
+    tools.push(...createSubscriberTools(pluginId, client));
   }
 
-  const client = new ButtondownClient(buttondownConfig, context.logger);
+  // Generate tool is always available (uses job queue, not Buttondown API)
+  tools.push(createGenerateTool(pluginId, context));
+
+  return tools;
+}
+
+/**
+ * Create subscriber management tools (require Buttondown API)
+ */
+function createSubscriberTools(
+  pluginId: string,
+  client: ButtondownClient,
+): PluginTool[] {
   const tools: PluginTool[] = [];
 
   // Subscribe tool
@@ -172,53 +188,58 @@ export function createNewsletterTools(
     ),
   );
 
-  // Generate newsletter tool
-  tools.push(
-    createTypedTool(
-      pluginId,
-      "generate",
-      "Queue a job to generate newsletter content. Requires at least one of: prompt (AI generation), sourceEntityIds (generate from blog posts), or content (direct content with subject).",
-      generateParamsSchema,
-      async (input, toolContext: ToolContext) => {
-        // Validate that at least one content source is provided
-        if (!input.prompt && !input.sourceEntityIds?.length && !input.content) {
-          return toolError(
-            "At least one of prompt, sourceEntityIds, or content is required",
-          );
-        }
-
-        try {
-          const jobId = await context.jobs.enqueue(
-            "newsletter-generation",
-            {
-              prompt: input.prompt,
-              sourceEntityIds: input.sourceEntityIds,
-              sourceEntityType: input.sourceEntityType,
-              content: input.content,
-              subject: input.subject,
-              addToQueue: input.addToQueue,
-            },
-            toolContext,
-            {
-              source: `${pluginId}_generate`,
-              metadata: {
-                operationType: "content_operations",
-                operationTarget: "newsletter",
-              },
-            },
-          );
-
-          return toolSuccess(
-            { jobId },
-            `Newsletter generation job queued (jobId: ${jobId})`,
-          );
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          return toolError(msg);
-        }
-      },
-    ),
-  );
-
   return tools;
+}
+
+/**
+ * Create the newsletter generate tool (does not require Buttondown API)
+ */
+function createGenerateTool(
+  pluginId: string,
+  context: ServicePluginContext,
+): PluginTool {
+  return createTypedTool(
+    pluginId,
+    "generate",
+    "Queue a job to generate newsletter content. Requires at least one of: prompt (AI generation), sourceEntityIds (generate from blog posts), or content (direct content with subject).",
+    generateParamsSchema,
+    async (input, toolContext: ToolContext) => {
+      // Validate that at least one content source is provided
+      if (!input.prompt && !input.sourceEntityIds?.length && !input.content) {
+        return toolError(
+          "At least one of prompt, sourceEntityIds, or content is required",
+        );
+      }
+
+      try {
+        const jobId = await context.jobs.enqueue(
+          "newsletter-generation",
+          {
+            prompt: input.prompt,
+            sourceEntityIds: input.sourceEntityIds,
+            sourceEntityType: input.sourceEntityType,
+            content: input.content,
+            subject: input.subject,
+            addToQueue: input.addToQueue,
+          },
+          toolContext,
+          {
+            source: `${pluginId}_generate`,
+            metadata: {
+              operationType: "content_operations",
+              operationTarget: "newsletter",
+            },
+          },
+        );
+
+        return toolSuccess(
+          { jobId },
+          `Newsletter generation job queued (jobId: ${jobId})`,
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        return toolError(msg);
+      }
+    },
+  );
 }

@@ -1,0 +1,24 @@
+id: newsletter-generate-agent
+name: Generate newsletter via natural language
+description: Tests that the agent correctly invokes the newsletter_generate tool when asked to create a newsletter
+type: tool_invocation
+tags:
+  - newsletter
+  - agent
+  - core
+
+turns:
+  - userMessage: "Generate a newsletter about the Align the Misaligned blog post for me"
+
+successCriteria:
+  expectedTools:
+    - toolName: newsletter_generate
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseContains:
+    - "newsletter"
+  responseNotContains:
+    - "lying"
+    - "cannot"
+    - "unable"
