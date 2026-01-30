@@ -1,5 +1,7 @@
 # Plan: Complete Newsletter Plugin Tools
 
+> **Status: COMPLETED** (2025-01-30)
+
 ## Context
 
 The newsletter plugin currently only has subscriber management tools (`subscribe`, `unsubscribe`, `list_subscribers`) and a basic `send` tool that bypasses the entity system. It's missing the content generation tools that blog and social-media plugins have.

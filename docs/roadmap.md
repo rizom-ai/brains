@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-26
+Last Updated: 2025-01-30
 
 ---
 
@@ -12,7 +12,8 @@ Last Updated: 2025-01-26
 
 - [x] Social media auto-generate: Triggers on blog post status → queued
 - [x] Publish pipeline: Verify queue/schedule/publish flow
-- [ ] Newsletter signup on site (see `docs/plans/newsletter-integration.md`)
+- [x] Newsletter signup on site (form → Buttondown API)
+- [x] Newsletter generation tool with agent evals
 - [ ] Content: Finalize essays, portfolio, about (last step)
 
 ### Recently Fixed
@@ -35,6 +36,7 @@ Last Updated: 2025-01-26
 - Topics (AI-powered tagging)
 - Links and Notes
 - Social media plugin (LinkedIn generation)
+- Newsletter plugin (generation, signup, Buttondown integration)
 - Analytics plugin (Cloudflare)
 - Dashboard plugin (widget system)
 - Matrix bot interface
@@ -72,7 +74,10 @@ Last Updated: 2025-01-26
 - ✅ Dashboard plugin with extensible widgets
 - ✅ Social media auto-generate on blog publish
 - ✅ Newsletter plugin (Buttondown integration)
+- ✅ Newsletter generation tool (AI-powered, job-based)
+- ✅ Newsletter agent evals (tool invocation tests)
 - ✅ NewsletterSignup UI component
+- ✅ Newsletter signup on site (API routes, footer slot)
 - ✅ Publish pipeline (queue, schedule, execute)
 - ✅ Deploy script consolidation
 - ✅ Docker build optimization

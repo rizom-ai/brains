@@ -1,5 +1,7 @@
 # Newsletter Integration into Professional-Brain
 
+> **Status: COMPLETED** (2025-01-30)
+
 ## Overview
 
 Integrate the newsletter plugin into professional-brain with:
