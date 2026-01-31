@@ -84,11 +84,11 @@ Environment variables:
 BUTTONDOWN_API_KEY=your-api-key
 ```
 
-Schedule configured via publish-pipeline:
+Schedule configured via content-pipeline:
 
 ```typescript
 // In brain.config.ts
-publishPipelinePlugin({
+contentPipelinePlugin({
   entitySchedules: {
     newsletter: "0 9 * * 5", // Fridays at 9am
   },
@@ -171,7 +171,7 @@ Hydration for client-side form submission.
 
 ## Future Improvements
 
-- **Friendlier schedule config** - Refactor publish-pipeline to support human-readable schedules like `{ day: "friday", time: "09:00", timezone: "Europe/Amsterdam" }` instead of raw cron expressions
+- **Friendlier schedule config** - Refactor content-pipeline to support human-readable schedules like `{ day: "friday", time: "09:00", timezone: "Europe/Amsterdam" }` instead of raw cron expressions
 
 ## Reference Files
 
@@ -180,7 +180,7 @@ Hydration for client-side form submission.
 | ServicePlugin with API | `plugins/analytics/src/`                         |
 | API client             | `plugins/analytics/src/lib/cloudflare-client.ts` |
 | Entity schemas         | `plugins/blog/src/schemas/blog-post.ts`          |
-| Publish-pipeline       | `plugins/publish-pipeline/src/`                  |
+| Content-pipeline       | `plugins/content-pipeline/src/`                  |
 | UI component           | `shared/ui-library/src/`                         |
 
 ## Verification

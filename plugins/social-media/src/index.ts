@@ -56,7 +56,7 @@ export {
   type PublishExecutePayload,
 } from "./handlers";
 
-// Provider exports (uses PublishProvider from @brains/publish-pipeline)
+// Provider exports (uses PublishProvider from @brains/utils)
 export { LinkedInClient, createLinkedInProvider } from "./lib/linkedin-client";
 
 // Template exports

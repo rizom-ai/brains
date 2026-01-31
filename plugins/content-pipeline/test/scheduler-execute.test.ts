@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { PublishScheduler } from "../src/scheduler";
+import { ContentScheduler } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
@@ -24,8 +24,8 @@ function createMockMessageBus(): IMessageBus & {
   };
 }
 
-describe("PublishScheduler - Execute Message Mode", () => {
-  let scheduler: PublishScheduler;
+describe("ContentScheduler - Execute Message Mode", () => {
+  let scheduler: ContentScheduler;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
@@ -39,7 +39,7 @@ describe("PublishScheduler - Execute Message Mode", () => {
     messageBus = createMockMessageBus();
     onExecuteMock = mock(() => {});
 
-    scheduler = PublishScheduler.createFresh({
+    scheduler = ContentScheduler.createFresh({
       queueManager,
       providerRegistry,
       retryTracker,
@@ -50,7 +50,7 @@ describe("PublishScheduler - Execute Message Mode", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    PublishScheduler.resetInstance();
+    ContentScheduler.resetInstance();
   });
 
   describe("message-driven publishing", () => {

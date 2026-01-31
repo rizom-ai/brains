@@ -1,5 +1,5 @@
 /**
- * PublishScheduler - Cron-based scheduler for publish queues
+ * ContentScheduler - Cron-based scheduler for content pipeline queues
  *
  * Implements Component Interface Standardization pattern.
  * Uses croner for cron-based scheduling per entity type.
@@ -60,8 +60,8 @@ export interface PublishFailedEvent {
 /** Interval for immediate processing (1 second) */
 const IMMEDIATE_INTERVAL_MS = 1000;
 
-export class PublishScheduler {
-  private static instance: PublishScheduler | null = null;
+export class ContentScheduler {
+  private static instance: ContentScheduler | null = null;
 
   private queueManager: QueueManager;
   private providerRegistry: ProviderRegistry;
@@ -80,26 +80,26 @@ export class PublishScheduler {
   /**
    * Get the singleton instance
    */
-  public static getInstance(config: SchedulerConfig): PublishScheduler {
-    PublishScheduler.instance ??= new PublishScheduler(config);
-    return PublishScheduler.instance;
+  public static getInstance(config: SchedulerConfig): ContentScheduler {
+    ContentScheduler.instance ??= new ContentScheduler(config);
+    return ContentScheduler.instance;
   }
 
   /**
    * Reset the singleton instance (primarily for testing)
    */
   public static resetInstance(): void {
-    if (PublishScheduler.instance) {
-      void PublishScheduler.instance.stop();
+    if (ContentScheduler.instance) {
+      void ContentScheduler.instance.stop();
     }
-    PublishScheduler.instance = null;
+    ContentScheduler.instance = null;
   }
 
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(config: SchedulerConfig): PublishScheduler {
-    return new PublishScheduler(config);
+  public static createFresh(config: SchedulerConfig): ContentScheduler {
+    return new ContentScheduler(config);
   }
 
   /**

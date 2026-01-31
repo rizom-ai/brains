@@ -49,7 +49,7 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
 /**
  * Plugin configuration schema
  */
-export const publishPipelineConfigSchema = z.object({
+export const contentPipelineConfigSchema = z.object({
   /**
    * Per-entity-type cron schedules.
    * Uses standard cron syntax with optional seconds field.
@@ -76,4 +76,4 @@ export const publishPipelineConfigSchema = z.object({
   retryBaseDelayMs: z.number().optional().default(5000),
 });
 
-export type PublishPipelineConfig = z.infer<typeof publishPipelineConfigSchema>;
+export type ContentPipelineConfig = z.infer<typeof contentPipelineConfigSchema>;

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { PublishScheduler } from "../src/scheduler";
+import { ContentScheduler } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import type { PublishProvider } from "@brains/utils";
 import { createMockEntityService } from "@brains/test-utils";
 
-describe("PublishScheduler", () => {
-  let scheduler: PublishScheduler;
+describe("ContentScheduler", () => {
+  let scheduler: ContentScheduler;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
@@ -36,7 +36,7 @@ describe("PublishScheduler", () => {
     mockOnPublish = mock(() => {});
     mockOnFailed = mock(() => {});
 
-    scheduler = PublishScheduler.createFresh({
+    scheduler = ContentScheduler.createFresh({
       queueManager,
       providerRegistry,
       retryTracker,
@@ -48,7 +48,7 @@ describe("PublishScheduler", () => {
 
   afterEach(async () => {
     await scheduler.stop();
-    PublishScheduler.resetInstance();
+    ContentScheduler.resetInstance();
   });
 
   describe("start/stop", () => {
@@ -199,12 +199,12 @@ describe("PublishScheduler", () => {
 
   describe("singleton pattern", () => {
     it("should return same instance from getInstance", () => {
-      const instance1 = PublishScheduler.getInstance({
+      const instance1 = ContentScheduler.getInstance({
         queueManager,
         providerRegistry,
         retryTracker,
       });
-      const instance2 = PublishScheduler.getInstance({
+      const instance2 = ContentScheduler.getInstance({
         queueManager,
         providerRegistry,
         retryTracker,
@@ -226,7 +226,7 @@ describe("PublishScheduler", () => {
       });
 
       // Create scheduler with cron that runs every second
-      const schedulerWithCron = PublishScheduler.createFresh({
+      const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
@@ -266,7 +266,7 @@ describe("PublishScheduler", () => {
       });
 
       // Blog: far future (won't trigger), Social: every second
-      const schedulerWithCron = PublishScheduler.createFresh({
+      const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
@@ -302,7 +302,7 @@ describe("PublishScheduler", () => {
       });
 
       // No cron for deck - should process on next tick (immediate mode)
-      const schedulerWithCron = PublishScheduler.createFresh({
+      const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
@@ -334,7 +334,7 @@ describe("PublishScheduler", () => {
         publish: blogPublishMock,
       });
 
-      const schedulerWithCron = PublishScheduler.createFresh({
+      const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
@@ -361,7 +361,7 @@ describe("PublishScheduler", () => {
 
     it("should validate cron expression format", () => {
       expect(() =>
-        PublishScheduler.createFresh({
+        ContentScheduler.createFresh({
           queueManager,
           providerRegistry,
           retryTracker,

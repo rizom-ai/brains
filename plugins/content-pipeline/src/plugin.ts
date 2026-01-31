@@ -1,5 +1,5 @@
 /**
- * PublishPipelinePlugin - Plugin for managing publishing pipeline
+ * ContentPipelinePlugin - Plugin for managing content publishing pipeline
  *
  * Provides centralized queue management, scheduling, and retry logic
  * for all publishable entity types via message-driven architecture.
@@ -12,7 +12,7 @@ import { createQueueTool } from "./tools/queue";
 import { createPublishTool } from "./tools/publish";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
-import { PublishScheduler } from "./scheduler";
+import { ContentScheduler } from "./scheduler";
 import { PUBLISH_MESSAGES } from "./types/messages";
 import type {
   PublishRegisterPayload,
@@ -24,27 +24,27 @@ import type {
   PublishReportSuccessPayload,
   PublishReportFailurePayload,
 } from "./types/messages";
-import type { PublishPipelineConfig } from "./types/config";
-import { publishPipelineConfigSchema } from "./types/config";
+import type { ContentPipelineConfig } from "./types/config";
+import { contentPipelineConfigSchema } from "./types/config";
 import packageJson from "../package.json";
 
 /**
- * Publish Pipeline Plugin
+ * Content Pipeline Plugin
  * Manages entity publishing queues and scheduling
  */
-export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> {
+export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> {
   private pluginContext?: ServicePluginContext;
   private queueManager!: QueueManager;
   private providerRegistry!: ProviderRegistry;
   private retryTracker!: RetryTracker;
-  private scheduler!: PublishScheduler;
+  private scheduler!: ContentScheduler;
 
-  constructor(config?: Partial<PublishPipelineConfig>) {
+  constructor(config?: Partial<ContentPipelineConfig>) {
     super(
-      "publish-pipeline",
+      "content-pipeline",
       packageJson,
       config ?? {},
-      publishPipelineConfigSchema,
+      contentPipelineConfigSchema,
     );
   }
 
@@ -72,7 +72,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
       subscribe: (): (() => void) => () => {},
     };
 
-    this.scheduler = PublishScheduler.createFresh({
+    this.scheduler = ContentScheduler.createFresh({
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
@@ -91,7 +91,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
     // Start the scheduler
     await this.scheduler.start();
 
-    this.logger.info("Publish pipeline plugin started");
+    this.logger.info("Content pipeline plugin started");
   }
 
   private subscribeToMessages(context: ServicePluginContext): void {
@@ -367,7 +367,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
 
   public async cleanup(): Promise<void> {
     await this.scheduler.stop();
-    this.logger.info("Publish pipeline plugin stopped");
+    this.logger.info("Content pipeline plugin stopped");
   }
 
   // Expose components for testing
@@ -383,7 +383,7 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
     return this.retryTracker;
   }
 
-  public getScheduler(): PublishScheduler {
+  public getScheduler(): ContentScheduler {
     return this.scheduler;
   }
 }
@@ -391,8 +391,8 @@ export class PublishPipelinePlugin extends ServicePlugin<PublishPipelineConfig> 
 /**
  * Factory function to create the plugin
  */
-export function publishPipelinePlugin(
-  config?: Partial<PublishPipelineConfig>,
+export function contentPipelinePlugin(
+  config?: Partial<ContentPipelineConfig>,
 ): Plugin {
-  return new PublishPipelinePlugin(config);
+  return new ContentPipelinePlugin(config);
 }

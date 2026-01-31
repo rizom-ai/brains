@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { PublishPipelinePlugin } from "../src/plugin";
+import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import { createSilentLogger } from "@brains/test-utils";
 import { MockShell } from "@brains/plugins/test";
 
-describe("PublishPipelinePlugin - Report Handlers", () => {
-  let plugin: PublishPipelinePlugin;
+describe("ContentPipelinePlugin - Report Handlers", () => {
+  let plugin: ContentPipelinePlugin;
   let mockShell: MockShell;
   let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(async () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
-    plugin = new PublishPipelinePlugin({});
+    plugin = new ContentPipelinePlugin({});
     await plugin.register(mockShell);
   });
 
@@ -68,7 +68,7 @@ describe("PublishPipelinePlugin - Report Handlers", () => {
 
     it("should indicate willRetry=false after max retries", async () => {
       // Create plugin with maxRetries=2
-      const limitedPlugin = new PublishPipelinePlugin({
+      const limitedPlugin = new ContentPipelinePlugin({
         maxRetries: 2,
       });
       const limitedShell = MockShell.createFresh({

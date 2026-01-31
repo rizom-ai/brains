@@ -1,7 +1,7 @@
 /**
- * @brains/publish-pipeline
+ * @brains/content-pipeline
  *
- * Plugin for managing entity publishing queues and scheduling.
+ * Plugin for managing content publishing pipeline and scheduling.
  * Provides centralized queue management, scheduling, and retry logic
  * for all publishable entity types.
  */
@@ -18,7 +18,7 @@ export * from "./types/config";
 export { QueueManager, type QueueEntry } from "./queue-manager";
 export { ProviderRegistry } from "./provider-registry";
 export {
-  PublishScheduler,
+  ContentScheduler,
   type SchedulerConfig,
   type PublishSuccessEvent,
   type PublishFailedEvent,
@@ -46,4 +46,4 @@ export {
 } from "./tools";
 
 // Plugin
-export { PublishPipelinePlugin, publishPipelinePlugin } from "./plugin";
+export { ContentPipelinePlugin, contentPipelinePlugin } from "./plugin";

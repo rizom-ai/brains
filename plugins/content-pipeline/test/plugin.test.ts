@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { PublishPipelinePlugin } from "../src/plugin";
+import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { PublishProvider } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
 import { MockShell } from "@brains/plugins/test";
 
-describe("PublishPipelinePlugin", () => {
-  let plugin: PublishPipelinePlugin;
+describe("ContentPipelinePlugin", () => {
+  let plugin: ContentPipelinePlugin;
   let mockShell: MockShell;
   let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(async () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
-    plugin = new PublishPipelinePlugin({});
+    plugin = new ContentPipelinePlugin({});
     await plugin.register(mockShell);
   });
 
@@ -28,7 +28,7 @@ describe("PublishPipelinePlugin", () => {
     });
 
     it("should have correct plugin id", () => {
-      expect(plugin.id).toBe("publish-pipeline");
+      expect(plugin.id).toBe("content-pipeline");
     });
 
     it("should initialize components", () => {
