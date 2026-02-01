@@ -2,7 +2,7 @@
  * ContentScheduler - Cron-based scheduler for content pipeline queues
  *
  * Implements Component Interface Standardization pattern.
- * Uses croner for cron-based scheduling per entity type.
+ * Uses a pluggable backend for scheduling (defaults to croner).
  *
  * Two modes:
  * 1. Provider mode (default): Calls provider.publish() directly
@@ -11,7 +11,6 @@
  * Also supports generation scheduling for automatic draft creation.
  */
 
-import { Cron } from "croner";
 import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
 import type { PublishResult } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
@@ -19,6 +18,7 @@ import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
 import type { GenerationCondition } from "./types/config";
 import { PUBLISH_MESSAGES, GENERATE_MESSAGES } from "./types/messages";
+import type { SchedulerBackend, ScheduledJob } from "./scheduler-backend";
 
 export interface PublishExecuteEvent {
   entityType: string;
@@ -38,6 +38,11 @@ export interface SchedulerConfig {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
+  /**
+   * Scheduler backend for cron/interval scheduling.
+   * Use CronerBackend for production, TestSchedulerBackend for tests.
+   */
+  backend: SchedulerBackend;
   /**
    * Per-entity-type publish schedules (cron syntax).
    * Entity types without a schedule are processed immediately (every second).
@@ -94,12 +99,13 @@ export class ContentScheduler {
   private queueManager: QueueManager;
   private providerRegistry: ProviderRegistry;
   private retryTracker: RetryTracker;
+  private backend: SchedulerBackend;
   private entitySchedules: Record<string, string>;
   private generationSchedules: Record<string, string>;
   private generationConditions: Record<string, GenerationCondition>;
-  private publishCronJobs: Map<string, Cron> = new Map();
-  private generationCronJobs: Map<string, Cron> = new Map();
-  private immediateInterval: ReturnType<typeof setInterval> | null = null;
+  private publishJobs: Map<string, ScheduledJob> = new Map();
+  private generationJobs: Map<string, ScheduledJob> = new Map();
+  private immediateIntervalJob: ScheduledJob | null = null;
   private messageBus: IMessageBus | undefined;
   private entityService: ICoreEntityService | undefined;
   private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
@@ -147,6 +153,7 @@ export class ContentScheduler {
     this.queueManager = config.queueManager;
     this.providerRegistry = config.providerRegistry;
     this.retryTracker = config.retryTracker;
+    this.backend = config.backend;
     this.entitySchedules = config.entitySchedules ?? {};
     this.generationSchedules = config.generationSchedules ?? {};
     this.generationConditions = config.generationConditions ?? {};
@@ -185,8 +192,7 @@ export class ContentScheduler {
     scheduleType: string,
   ): void {
     try {
-      const testCron = new Cron(cronExpr);
-      testCron.stop();
+      this.backend.validateCron(cronExpr);
     } catch (error) {
       throw new Error(
         `Invalid ${scheduleType} cron expression for ${entityType}: "${cronExpr}" - ${error instanceof Error ? error.message : String(error)}`,
@@ -211,26 +217,27 @@ export class ContentScheduler {
 
     // Create publish cron jobs for each configured entity type
     for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {
-      const job = new Cron(cronExpr, () => {
-        void this.processEntityType(entityType);
-      });
-      this.publishCronJobs.set(entityType, job);
+      const job = this.backend.scheduleCron(cronExpr, () =>
+        this.processEntityType(entityType),
+      );
+      this.publishJobs.set(entityType, job);
     }
 
     // Create generation cron jobs for each configured entity type
     for (const [entityType, cronExpr] of Object.entries(
       this.generationSchedules,
     )) {
-      const job = new Cron(cronExpr, () => {
-        void this.triggerGeneration(entityType);
-      });
-      this.generationCronJobs.set(entityType, job);
+      const job = this.backend.scheduleCron(cronExpr, () =>
+        this.triggerGeneration(entityType),
+      );
+      this.generationJobs.set(entityType, job);
     }
 
     // Create interval for entity types without schedules (immediate mode)
-    this.immediateInterval = setInterval(() => {
-      void this.processUnscheduledTypes();
-    }, IMMEDIATE_INTERVAL_MS);
+    this.immediateIntervalJob = this.backend.scheduleInterval(
+      IMMEDIATE_INTERVAL_MS,
+      () => this.processUnscheduledTypes(),
+    );
   }
 
   /**
@@ -239,22 +246,22 @@ export class ContentScheduler {
   public async stop(): Promise<void> {
     this.running = false;
 
-    // Stop all publish cron jobs
-    for (const job of this.publishCronJobs.values()) {
+    // Stop all publish jobs
+    for (const job of this.publishJobs.values()) {
       job.stop();
     }
-    this.publishCronJobs.clear();
+    this.publishJobs.clear();
 
-    // Stop all generation cron jobs
-    for (const job of this.generationCronJobs.values()) {
+    // Stop all generation jobs
+    for (const job of this.generationJobs.values()) {
       job.stop();
     }
-    this.generationCronJobs.clear();
+    this.generationJobs.clear();
 
     // Stop immediate interval
-    if (this.immediateInterval) {
-      clearInterval(this.immediateInterval);
-      this.immediateInterval = null;
+    if (this.immediateIntervalJob) {
+      this.immediateIntervalJob.stop();
+      this.immediateIntervalJob = null;
     }
   }
 

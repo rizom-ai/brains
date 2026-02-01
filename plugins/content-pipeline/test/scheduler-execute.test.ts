@@ -3,6 +3,7 @@ import { ContentScheduler } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
+import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
 
@@ -26,6 +27,7 @@ function createMockMessageBus(): IMessageBus & {
 
 describe("ContentScheduler - Execute Message Mode", () => {
   let scheduler: ContentScheduler;
+  let backend: TestSchedulerBackend;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
@@ -33,6 +35,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
   let onExecuteMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
+    backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
@@ -43,6 +46,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
       queueManager,
       providerRegistry,
       retryTracker,
+      backend,
       messageBus,
       onExecute: onExecuteMock,
     });
@@ -58,8 +62,8 @@ describe("ContentScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Trigger the interval (processes unscheduled types)
+      await backend.tick();
 
       // Should have sent execute message
       const executeMessages = messageBus._sentMessages.filter(
@@ -76,8 +80,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       expect(onExecuteMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -91,8 +94,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       const queue = await queueManager.list("social-post");
       expect(queue.length).toBe(0);
@@ -108,8 +110,7 @@ describe("ContentScheduler - Execute Message Mode", () => {
       await queueManager.add("social-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       // Provider should NOT be called when using message-driven mode
       expect(publishMock).not.toHaveBeenCalled();

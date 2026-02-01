@@ -138,6 +138,9 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       this.logger.info("Auto-generate on blog queued enabled");
     }
 
+    // Subscribe to generate:execute for scheduled generation
+    this.subscribeToGenerateExecute(context);
+
     // Register eval handlers for testing
     this.registerEvalHandlers(context);
 
@@ -352,6 +355,154 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     });
 
     this.logger.debug("Subscribed to social:auto-generate messages");
+  }
+
+  /**
+   * Subscribe to generate:execute messages for scheduled social post generation
+   * Triggered by content-pipeline scheduler based on generation schedule
+   */
+  private subscribeToGenerateExecute(context: ServicePluginContext): void {
+    context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
+      "generate:execute",
+      async (msg) => {
+        const { entityType } = msg.payload;
+
+        // Only handle social-post entities
+        if (entityType !== "social-post") {
+          return { success: true };
+        }
+
+        this.logger.info("Received generate:execute for social-post");
+
+        try {
+          // Find a recent published blog post to generate from
+          const recentPosts = await context.entityService.listEntities("post", {
+            filter: { metadata: { status: "published" } },
+            limit: 5,
+          });
+
+          if (recentPosts.length === 0) {
+            this.logger.info(
+              "No published posts found for social post generation",
+            );
+            await context.messaging.send("generate:report:failure", {
+              entityType: "social-post",
+              error: "No published posts available for social post generation",
+            });
+            return { success: true };
+          }
+
+          // Check which posts don't already have social posts
+          let sourcePost = null;
+          for (const post of recentPosts) {
+            const existingPosts = await context.entityService.listEntities(
+              "social-post",
+              {
+                filter: {
+                  metadata: {
+                    sourceEntityType: "post",
+                    sourceEntityId: post.id,
+                  },
+                },
+                limit: 1,
+              },
+            );
+
+            if (existingPosts.length === 0) {
+              sourcePost = post;
+              break;
+            }
+          }
+
+          if (!sourcePost) {
+            this.logger.info("All recent posts already have social posts");
+            await context.messaging.send("generate:report:failure", {
+              entityType: "social-post",
+              error: "All recent posts already have social posts generated",
+            });
+            return { success: true };
+          }
+
+          // Enqueue generation job
+          const jobId = await context.jobs.enqueue(
+            "social-media:generation",
+            {
+              sourceEntityType: "post",
+              sourceEntityId: sourcePost.id,
+              platform: "linkedin",
+              addToQueue: false, // Create as draft for review
+            },
+            { interfaceType: "job", userId: "system" },
+          );
+
+          this.logger.info("Social post generation job queued", {
+            jobId,
+            sourcePostId: sourcePost.id,
+          });
+
+          // Monitor job completion to report back to content-pipeline
+          this.monitorGenerationJob(context, jobId);
+
+          return { success: true };
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          this.logger.error("Failed to handle generate:execute:", {
+            error: errorMessage,
+          });
+          await context.messaging.send("generate:report:failure", {
+            entityType: "social-post",
+            error: errorMessage,
+          });
+          return { success: true };
+        }
+      },
+    );
+
+    this.logger.debug("Subscribed to generate:execute messages");
+  }
+
+  /**
+   * Monitor a generation job and report completion to content-pipeline
+   */
+  private monitorGenerationJob(
+    context: ServicePluginContext,
+    jobId: string,
+  ): void {
+    const unsubscribe = context.messaging.subscribe<
+      {
+        jobId: string;
+        result: { success: boolean; entityId?: string; error?: string };
+      },
+      { success: boolean }
+    >("job:completed", async (msg) => {
+      if (msg.payload.jobId !== jobId) {
+        return { success: true };
+      }
+
+      const result = msg.payload.result;
+
+      if (result.success && result.entityId) {
+        await context.messaging.send("generate:report:success", {
+          entityType: "social-post",
+          entityId: result.entityId,
+        });
+        this.logger.info("Social post generation completed", {
+          entityId: result.entityId,
+        });
+      } else {
+        await context.messaging.send("generate:report:failure", {
+          entityType: "social-post",
+          error: result.error ?? "Unknown error",
+        });
+        this.logger.error("Social post generation failed", {
+          error: result.error,
+        });
+      }
+
+      unsubscribe();
+      return { success: true };
+    });
   }
 
   /**

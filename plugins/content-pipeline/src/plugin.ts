@@ -13,7 +13,8 @@ import { createPublishTool } from "./tools/publish";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { ContentScheduler } from "./scheduler";
-import { PUBLISH_MESSAGES } from "./types/messages";
+import { CronerBackend } from "./scheduler-backend";
+import { PUBLISH_MESSAGES, GENERATE_MESSAGES } from "./types/messages";
 import type {
   PublishRegisterPayload,
   PublishQueuePayload,
@@ -24,6 +25,8 @@ import type {
   PublishReportSuccessPayload,
   PublishReportFailurePayload,
 } from "./types/messages";
+import type { GenerationCondition } from "./types/config";
+import type { GenerationConditionResult } from "./scheduler";
 import type { ContentPipelineConfig } from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
 import packageJson from "../package.json";
@@ -76,13 +79,23 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
+      backend: new CronerBackend(),
       ...(this.config.entitySchedules && {
         entitySchedules: this.config.entitySchedules,
+      }),
+      ...(this.config.generationSchedules && {
+        generationSchedules: this.config.generationSchedules,
+      }),
+      ...(this.config.generationConditions && {
+        generationConditions: this.config.generationConditions,
       }),
       messageBus: messageBusAdapter as never,
       entityService: context.entityService,
       onPublish: (event) => this.handlePublishSuccess(context, event),
       onFailed: (event) => this.handlePublishFailed(context, event),
+      onCheckGenerationConditions: (entityType, conditions) =>
+        this.checkGenerationConditions(context, entityType, conditions),
+      onGenerate: (event) => this.handleGenerateExecute(context, event),
     });
 
     // Subscribe to message bus events
@@ -352,6 +365,106 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     });
 
     return { success: true };
+  }
+
+  // ============================================
+  // Generation Scheduling Methods
+  // ============================================
+
+  /**
+   * Check if generation conditions are met for an entity type
+   */
+  private async checkGenerationConditions(
+    context: ServicePluginContext,
+    entityType: string,
+    conditions: GenerationCondition,
+  ): Promise<GenerationConditionResult> {
+    try {
+      // Check skipIfDraftExists condition
+      if (conditions.skipIfDraftExists !== false) {
+        const drafts = await context.entityService.listEntities(entityType, {
+          filter: { metadata: { status: "draft" } },
+          limit: 1,
+        });
+
+        if (drafts.length > 0) {
+          return {
+            shouldGenerate: false,
+            reason: "Draft already exists",
+          };
+        }
+      }
+
+      // Check maxUnpublishedDrafts condition
+      if (conditions.maxUnpublishedDrafts !== undefined) {
+        const unpublishedDrafts = await context.entityService.listEntities(
+          entityType,
+          {
+            filter: { metadata: { status: "draft" } },
+            limit: conditions.maxUnpublishedDrafts + 1,
+          },
+        );
+
+        if (unpublishedDrafts.length >= conditions.maxUnpublishedDrafts) {
+          return {
+            shouldGenerate: false,
+            reason: `Max unpublished drafts reached (${unpublishedDrafts.length}/${conditions.maxUnpublishedDrafts})`,
+          };
+        }
+      }
+
+      // Check minSourceEntities condition
+      if (
+        conditions.minSourceEntities !== undefined &&
+        conditions.sourceEntityType
+      ) {
+        const sourceEntities = await context.entityService.listEntities(
+          conditions.sourceEntityType,
+          {
+            publishedOnly: true,
+            limit: conditions.minSourceEntities,
+          },
+        );
+
+        if (sourceEntities.length < conditions.minSourceEntities) {
+          return {
+            shouldGenerate: false,
+            reason: `Not enough source entities (${sourceEntities.length}/${conditions.minSourceEntities} ${conditions.sourceEntityType})`,
+          };
+        }
+      }
+
+      // All conditions met
+      return { shouldGenerate: true };
+    } catch (error) {
+      this.logger.error("Failed to check generation conditions", {
+        entityType,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      // Fail safe: don't generate if we can't check conditions
+      return {
+        shouldGenerate: false,
+        reason: `Condition check failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
+  /**
+   * Handle generation trigger event
+   */
+  private handleGenerateExecute(
+    context: ServicePluginContext,
+    event: { entityType: string },
+  ): void {
+    this.logger.info(`Generation triggered for ${event.entityType}`);
+
+    // The generate:execute message is already sent by the scheduler.
+    // Plugins subscribe to this message to perform their generation logic.
+    // This callback is for logging and potential additional actions.
+    void context.messaging.send(GENERATE_MESSAGES.EXECUTE, {
+      entityType: event.entityType,
+    });
   }
 
   protected override async getTools(): Promise<PluginTool[]> {

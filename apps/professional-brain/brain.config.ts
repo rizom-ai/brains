@@ -107,7 +107,25 @@ const config = defineConfig({
       previewPort: 4321,
       previewDistDir: "./dist/site-preview",
     }),
-    contentPipelinePlugin({}),
+    contentPipelinePlugin({
+      // Generation schedules for automatic draft creation
+      generationSchedules: {
+        newsletter: "0 9 * * 1", // Every Monday at 9am
+        "social-post": "0 10 * * *", // Every day at 10am
+      },
+      // Conditions that must be met before generating drafts
+      generationConditions: {
+        newsletter: {
+          skipIfDraftExists: true, // Don't generate if draft already exists
+          minSourceEntities: 1, // Need at least 1 published post
+          sourceEntityType: "post",
+        },
+        "social-post": {
+          skipIfDraftExists: true, // Don't generate if draft already exists
+          maxUnpublishedDrafts: 5, // Don't accumulate too many drafts
+        },
+      },
+    }),
     blogPlugin({}),
     decksPlugin({}),
     notePlugin({}),

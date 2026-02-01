@@ -30,6 +30,12 @@ export {
   type RetryConfig,
   type RetryInfo,
 } from "./retry-tracker";
+export {
+  CronerBackend,
+  TestSchedulerBackend,
+  type SchedulerBackend,
+  type ScheduledJob,
+} from "./scheduler-backend";
 
 // Tools
 export {

@@ -3,11 +3,13 @@ import { ContentScheduler } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
+import { TestSchedulerBackend } from "../src/scheduler-backend";
 import type { PublishProvider } from "@brains/utils";
 import { createMockEntityService } from "@brains/test-utils";
 
 describe("ContentScheduler", () => {
   let scheduler: ContentScheduler;
+  let backend: TestSchedulerBackend;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
@@ -16,6 +18,7 @@ describe("ContentScheduler", () => {
   let mockOnFailed: ReturnType<typeof mock>;
 
   beforeEach(() => {
+    backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
@@ -40,6 +43,7 @@ describe("ContentScheduler", () => {
       queueManager,
       providerRegistry,
       retryTracker,
+      backend,
       entityService: mockEntityService,
       onPublish: mockOnPublish,
       onFailed: mockOnFailed,
@@ -84,8 +88,8 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger (immediate mode runs every second)
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Trigger the immediate interval (processes unscheduled types)
+      await backend.tick();
 
       expect(publishMock).toHaveBeenCalled();
     });
@@ -100,8 +104,7 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       expect(mockOnPublish).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -121,8 +124,7 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       const queue = await queueManager.list("blog-post");
       expect(queue.length).toBe(0);
@@ -142,8 +144,7 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       expect(mockOnFailed).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -166,8 +167,7 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await scheduler.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await backend.tick();
 
       const retryInfo = retryTracker.getRetryInfo("post-1");
       expect(retryInfo?.retryCount).toBe(1);
@@ -203,11 +203,13 @@ describe("ContentScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
       });
       const instance2 = ContentScheduler.getInstance({
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
       });
 
       expect(instance1).toBe(instance2);
@@ -216,6 +218,7 @@ describe("ContentScheduler", () => {
 
   describe("cron-based scheduling", () => {
     it("should process entity when cron schedule triggers", async () => {
+      const cronBackend = new TestSchedulerBackend();
       const blogPublishMock = mock(() =>
         Promise.resolve({ id: "blog-result-1" }),
       );
@@ -225,14 +228,14 @@ describe("ContentScheduler", () => {
         publish: blogPublishMock,
       });
 
-      // Create scheduler with cron that runs every second
       const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
+        backend: cronBackend,
         entityService: mockEntityService,
         entitySchedules: {
-          "blog-post": "* * * * * *", // Every second
+          "blog-post": "* * * * * *",
         },
         onPublish: mockOnPublish,
       });
@@ -240,8 +243,8 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-1");
       await schedulerWithCron.start();
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Trigger the cron
+      await cronBackend.tick("* * * * * *");
 
       expect(blogPublishMock).toHaveBeenCalled();
 
@@ -249,6 +252,7 @@ describe("ContentScheduler", () => {
     });
 
     it("should use different schedules for different entity types", async () => {
+      const cronBackend = new TestSchedulerBackend();
       const blogPublishMock = mock(() =>
         Promise.resolve({ id: "blog-result" }),
       );
@@ -265,11 +269,11 @@ describe("ContentScheduler", () => {
         publish: socialPublishMock,
       });
 
-      // Blog: far future (won't trigger), Social: every second
       const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
+        backend: cronBackend,
         entityService: mockEntityService,
         entitySchedules: {
           "blog-post": "0 0 1 1 *", // Jan 1st at midnight only
@@ -282,7 +286,8 @@ describe("ContentScheduler", () => {
       await queueManager.add("social-post", "social-1");
       await schedulerWithCron.start();
 
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Trigger only the social cron
+      await cronBackend.tick("* * * * * *");
 
       // Social should have been called, blog should not
       expect(socialPublishMock).toHaveBeenCalled();
@@ -292,6 +297,7 @@ describe("ContentScheduler", () => {
     });
 
     it("should process immediately for entity types without cron schedule", async () => {
+      const cronBackend = new TestSchedulerBackend();
       const deckPublishMock = mock(() =>
         Promise.resolve({ id: "deck-result" }),
       );
@@ -301,11 +307,11 @@ describe("ContentScheduler", () => {
         publish: deckPublishMock,
       });
 
-      // No cron for deck - should process on next tick (immediate mode)
       const schedulerWithCron = ContentScheduler.createFresh({
         queueManager,
         providerRegistry,
         retryTracker,
+        backend: cronBackend,
         entityService: mockEntityService,
         entitySchedules: {
           "blog-post": "0 0 1 1 *", // Only blog has cron
@@ -316,8 +322,8 @@ describe("ContentScheduler", () => {
       await queueManager.add("deck", "deck-1");
       await schedulerWithCron.start();
 
-      // Should process quickly (immediate mode polls every 1s by default)
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Trigger intervals (processes unscheduled types)
+      await cronBackend.tickIntervals();
 
       expect(deckPublishMock).toHaveBeenCalled();
 
@@ -325,6 +331,7 @@ describe("ContentScheduler", () => {
     });
 
     it("should process one item per cron trigger", async () => {
+      const cronBackend = new TestSchedulerBackend();
       const blogPublishMock = mock(() =>
         Promise.resolve({ id: "blog-result" }),
       );
@@ -338,9 +345,10 @@ describe("ContentScheduler", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend: cronBackend,
         entityService: mockEntityService,
         entitySchedules: {
-          "blog-post": "* * * * * *", // Every second
+          "blog-post": "* * * * * *",
         },
         onPublish: mockOnPublish,
       });
@@ -351,10 +359,10 @@ describe("ContentScheduler", () => {
       await queueManager.add("blog-post", "post-3");
       await schedulerWithCron.start();
 
-      // Wait ~1.5 seconds - should process 1-2 items (one per second)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Trigger once - should process exactly one item
+      await cronBackend.tick("* * * * * *");
 
-      expect(blogPublishMock.mock.calls.length).toBeLessThanOrEqual(2);
+      expect(blogPublishMock.mock.calls.length).toBe(1);
 
       await schedulerWithCron.stop();
     });
@@ -365,6 +373,7 @@ describe("ContentScheduler", () => {
           queueManager,
           providerRegistry,
           retryTracker,
+          backend,
           entitySchedules: {
             "blog-post": "invalid cron",
           },

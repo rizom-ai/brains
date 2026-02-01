@@ -3,6 +3,7 @@ import { ContentScheduler } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
+import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { GENERATE_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
 
@@ -26,6 +27,7 @@ function createMockMessageBus(): IMessageBus & {
 
 describe("ContentScheduler - Generation Scheduling", () => {
   let scheduler: ContentScheduler;
+  let backend: TestSchedulerBackend;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
@@ -33,6 +35,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
   let onGenerateMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
+    backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
@@ -51,6 +54,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "0 9 * * 1", // Monday 9am
@@ -66,6 +70,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
           queueManager,
           providerRegistry,
           retryTracker,
+          backend,
           generationSchedules: {
             newsletter: "invalid cron",
           },
@@ -78,9 +83,10 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
-          newsletter: "* * * * * *", // Every second for testing
+          newsletter: "* * * * * *",
         },
         onGenerate: onGenerateMock,
       });
@@ -88,8 +94,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       await scheduler.start();
       expect(scheduler.isRunning()).toBe(true);
 
-      // Wait for cron to trigger
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Trigger the generation cron
+      await backend.tick("* * * * * *");
 
       expect(onGenerateMock).toHaveBeenCalled();
     });
@@ -108,6 +114,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "* * * * * *",
@@ -122,7 +129,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await backend.tick("* * * * * *");
 
       // Should have checked conditions but not generated
       expect(checkConditionsMock).toHaveBeenCalled();
@@ -138,6 +146,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "* * * * * *",
@@ -153,7 +162,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await backend.tick("* * * * * *");
 
       expect(checkConditionsMock).toHaveBeenCalled();
       expect(onGenerateMock).toHaveBeenCalledWith(
@@ -175,13 +185,14 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "* * * * * *",
         },
         generationConditions: {
           newsletter: {
-            maxUnpublishedDrafts: 5, // Don't generate if 5+ drafts exist
+            maxUnpublishedDrafts: 5,
           },
         },
         onCheckGenerationConditions: checkConditionsMock,
@@ -189,7 +200,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await backend.tick("* * * * * *");
 
       expect(checkConditionsMock).toHaveBeenCalled();
       expect(onGenerateMock).not.toHaveBeenCalled();
@@ -213,6 +225,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "* * * * * *",
@@ -223,7 +236,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await backend.tick("* * * * * *");
 
       expect(checkConditionsMock).toHaveBeenCalledWith(
         "newsletter",
@@ -238,6 +252,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "* * * * * *",
@@ -246,7 +261,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await backend.tick("* * * * * *");
 
       const executeMessages = messageBus._sentMessages.filter(
         (m) => m.type === GENERATE_MESSAGES.EXECUTE,
@@ -262,6 +278,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           "social-post": "* * * * * *",
@@ -270,7 +287,8 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await backend.tick("* * * * * *");
 
       expect(onGenerateMock).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -286,6 +304,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
       });
 
@@ -310,6 +329,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
       });
 
@@ -337,6 +357,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
         queueManager,
         providerRegistry,
         retryTracker,
+        backend,
         messageBus,
         generationSchedules: {
           newsletter: "0 0 1 1 *", // Far future - won't trigger
@@ -352,7 +373,9 @@ describe("ContentScheduler - Generation Scheduling", () => {
       });
 
       await scheduler.start();
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      // Trigger only the social-post cron
+      await backend.tick("* * * * * *");
 
       // Social should have triggered, newsletter should not
       expect(socialGenMock).toHaveBeenCalled();
