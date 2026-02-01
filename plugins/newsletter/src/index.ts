@@ -203,7 +203,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
             const email = await client.createEmail({
               subject: (metadata["subject"] as string) || "Newsletter",
               body: content,
-              status: "sent", // Send immediately
+              status: "about_to_send", // Send immediately
             });
             return { id: email.id };
           },
@@ -269,7 +269,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
           const email = await client.createEmail({
             subject: newsletter.metadata.subject,
             body: newsletter.content,
-            status: "sent",
+            status: "about_to_send", // Triggers immediate send
           });
           buttondownId = email.id;
         }
