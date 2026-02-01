@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createCorePluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { PluginTool } from "@brains/plugins";
 import { AnalyticsPlugin } from "../src/index";
@@ -35,7 +35,7 @@ async function executeTool(
 }
 
 describe("AnalyticsPlugin Integration", () => {
-  let harness: ReturnType<typeof createServicePluginHarness> | undefined;
+  let harness: ReturnType<typeof createCorePluginHarness> | undefined;
   let plugin: AnalyticsPlugin;
   let capabilities: PluginCapabilities;
 
@@ -54,7 +54,7 @@ describe("AnalyticsPlugin Integration", () => {
 
   describe("Plugin Registration", () => {
     beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
+      harness = createCorePluginHarness();
 
       plugin = new AnalyticsPlugin({
         cloudflare: {
@@ -69,38 +69,29 @@ describe("AnalyticsPlugin Integration", () => {
 
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("analytics");
-      expect(plugin.type).toBe("service");
+      expect(plugin.type).toBe("core");
       expect(plugin.version).toBe("0.1.0");
     });
 
-    it("should register entity types", () => {
-      expect(harness).toBeDefined();
-      const shell = harness?.getShell();
-      const entityService = shell?.getEntityService();
-
-      // Entity types are registered through the context
-      expect(entityService).toBeDefined();
-    });
-
-    it("should provide Cloudflare tools when configured", () => {
-      expect(capabilities.tools.length).toBe(2);
+    it("should provide query tool when Cloudflare is configured", () => {
+      expect(capabilities.tools.length).toBe(1);
 
       const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("analytics_query_website");
-      expect(toolNames).toContain("analytics_get_website_trends");
+      expect(toolNames).toContain("analytics_query");
     });
 
-    it("should have correct tool descriptions", () => {
-      const fetchWebsiteTool = capabilities.tools.find(
-        (t) => t.name === "analytics_query_website",
+    it("should have correct tool description", () => {
+      const queryTool = capabilities.tools.find(
+        (t) => t.name === "analytics_query",
       );
-      expect(fetchWebsiteTool?.description).toContain("Cloudflare");
+      expect(queryTool?.description).toContain("Cloudflare");
+      expect(queryTool?.description).toContain("Date range options");
     });
   });
 
   describe("No Providers Configuration", () => {
     beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
+      harness = createCorePluginHarness();
 
       plugin = new AnalyticsPlugin({
         // No providers configured
@@ -114,9 +105,9 @@ describe("AnalyticsPlugin Integration", () => {
     });
   });
 
-  describe("Tool Execution - query_website", () => {
+  describe("Tool Execution - analytics_query", () => {
     beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
+      harness = createCorePluginHarness();
 
       plugin = new AnalyticsPlugin({
         cloudflare: {
@@ -129,7 +120,7 @@ describe("AnalyticsPlugin Integration", () => {
       capabilities = await harness.installPlugin(plugin);
     });
 
-    it("should query website metrics for a single day without storing", async () => {
+    it("should query website metrics for a single day", async () => {
       // Mock Cloudflare API responses for all 5 parallel calls
       const mockStatsResponse = {
         data: {
@@ -250,30 +241,24 @@ describe("AnalyticsPlugin Integration", () => {
         );
 
       // Execute tool
-      const result = await executeTool(
-        capabilities,
-        "analytics_query_website",
-        {
-          date: "2025-01-15",
-        },
-      );
+      const result = await executeTool(capabilities, "analytics_query", {
+        date: "2025-01-15",
+      });
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       const data = result.data as {
-        startDate: string;
-        endDate: string;
-        pageviews: number;
-        visitors: number;
+        range: { startDate: string; endDate: string };
+        summary: { pageviews: number; visitors: number };
         topPages: Array<{ path: string; views: number }>;
         topReferrers: Array<{ host: string; visits: number }>;
         devices: { desktop: number; mobile: number; tablet: number };
         topCountries: Array<{ country: string; visits: number }>;
       };
-      expect(data.startDate).toBe("2025-01-15");
-      expect(data.endDate).toBe("2025-01-15");
-      expect(data.pageviews).toBe(500);
-      expect(data.visitors).toBe(400);
+      expect(data.range.startDate).toBe("2025-01-15");
+      expect(data.range.endDate).toBe("2025-01-15");
+      expect(data.summary.pageviews).toBe(500);
+      expect(data.summary.visitors).toBe(400);
       expect(data.topPages).toHaveLength(1);
       expect(data.topPages[0]?.path).toBe("/essays/test");
       expect(data.devices.desktop).toBe(60);
@@ -288,13 +273,9 @@ describe("AnalyticsPlugin Integration", () => {
         .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
         .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }));
 
-      const result = await executeTool(
-        capabilities,
-        "analytics_query_website",
-        {
-          date: "2025-01-15",
-        },
-      );
+      const result = await executeTool(capabilities, "analytics_query", {
+        date: "2025-01-15",
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("401");
@@ -429,62 +410,108 @@ describe("AnalyticsPlugin Integration", () => {
         );
 
       // Execute tool with days parameter
-      const result = await executeTool(
-        capabilities,
-        "analytics_query_website",
-        {
-          days: 7,
-        },
-      );
+      const result = await executeTool(capabilities, "analytics_query", {
+        days: 7,
+      });
 
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       const data = result.data as {
-        startDate: string;
-        endDate: string;
-        pageviews: number;
-        visitors: number;
+        range: { startDate: string; endDate: string };
+        summary: { pageviews: number; visitors: number };
         topPages: Array<{ path: string; views: number }>;
       };
       // Should have a 7-day range
-      expect(data.pageviews).toBe(1500);
-      expect(data.visitors).toBe(1200);
+      expect(data.summary.pageviews).toBe(1500);
+      expect(data.summary.visitors).toBe(1200);
       expect(data.topPages).toHaveLength(2);
     });
-  });
 
-  describe("Tool Execution - get_website_trends", () => {
-    beforeEach(async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
-
-      plugin = new AnalyticsPlugin({
-        cloudflare: {
-          accountId: "test_account",
-          apiToken: "test_token",
-          siteTag: "test_site",
+    it("should query website metrics with custom date range", async () => {
+      // Mock Cloudflare API responses
+      const mockStatsResponse = {
+        data: {
+          viewer: {
+            accounts: [
+              {
+                rumPageloadEventsAdaptiveGroups: [
+                  {
+                    count: 3000,
+                    sum: { visits: 2500 },
+                    dimensions: { date: "2025-01-01" },
+                  },
+                ],
+              },
+            ],
+          },
         },
+      };
+
+      const mockEmptyResponse = {
+        data: {
+          viewer: { accounts: [{ rumPageloadEventsAdaptiveGroups: [] }] },
+        },
+      };
+
+      // Mock all 5 API calls
+      mockFetch
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockStatsResponse), { status: 200 }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
+        );
+
+      // Execute tool with custom date range
+      const result = await executeTool(capabilities, "analytics_query", {
+        startDate: "2025-01-01",
+        endDate: "2025-01-31",
       });
 
-      capabilities = await harness.installPlugin(plugin);
+      expect(result.success).toBe(true);
+      expect(result.data).toBeDefined();
+      const data = result.data as {
+        range: { startDate: string; endDate: string };
+        summary: { pageviews: number; visitors: number };
+      };
+      expect(data.range.startDate).toBe("2025-01-01");
+      expect(data.range.endDate).toBe("2025-01-31");
+      expect(data.summary.pageviews).toBe(3000);
     });
 
-    it("should return empty trends when no metrics stored", async () => {
-      const result = await executeTool(
-        capabilities,
-        "analytics_get_website_trends",
-        { limit: 10 },
-      );
+    it("should reject conflicting parameters", async () => {
+      const result = await executeTool(capabilities, "analytics_query", {
+        date: "2025-01-15",
+        days: 7,
+      });
 
-      expect(result.success).toBe(true);
-      const data = result.data as { count: number; trends: unknown[] };
-      expect(data.count).toBe(0);
-      expect(data.trends).toEqual([]);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Cannot combine");
+    });
+
+    it("should reject incomplete custom range", async () => {
+      const result = await executeTool(capabilities, "analytics_query", {
+        startDate: "2025-01-01",
+        // Missing endDate
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("startDate");
     });
   });
 
   describe("Plugin Lifecycle", () => {
     it("should handle plugin registration and reset", async () => {
-      harness = createServicePluginHarness({ dataDir: "/tmp/test-analytics" });
+      harness = createCorePluginHarness();
 
       plugin = new AnalyticsPlugin({
         cloudflare: {
@@ -495,7 +522,7 @@ describe("AnalyticsPlugin Integration", () => {
       });
 
       const caps = await harness.installPlugin(plugin);
-      expect(caps.tools.length).toBe(2);
+      expect(caps.tools.length).toBe(1);
 
       // Reset harness should not throw
       harness.reset();

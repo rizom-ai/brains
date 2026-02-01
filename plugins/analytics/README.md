@@ -1,12 +1,13 @@
 # Analytics Plugin
 
-Collects and stores website metrics from Cloudflare Web Analytics.
+Query website analytics directly from Cloudflare Web Analytics.
 
 ## Features
 
-- **Website Analytics**: Fetches metrics from Cloudflare Web Analytics (pageviews, visitors, top pages, referrers, devices, countries)
-- **Scheduled Collection**: Automatic daily data collection via cron
-- **Entity Storage**: Metrics stored as entities for querying and historical analysis
+- **Real-time Queries**: Fetch metrics directly from Cloudflare (no local storage)
+- **Flexible Date Ranges**: Single day, last N days, or custom date ranges
+- **Comprehensive Data**: Pageviews, visitors, top pages, referrers, devices, countries
+- **Privacy-Focused**: Uses Cloudflare Web Analytics (no cookies, GDPR compliant)
 
 ## Configuration
 
@@ -14,16 +15,10 @@ Collects and stores website metrics from Cloudflare Web Analytics.
 import { analyticsPlugin } from "@brains/analytics";
 
 analyticsPlugin({
-  // Cloudflare Web Analytics (optional)
   cloudflare: {
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
     apiToken: process.env.CLOUDFLARE_API_TOKEN,
     siteTag: process.env.CLOUDFLARE_ANALYTICS_SITE_TAG,
-  },
-
-  // Custom cron schedule (optional)
-  cron: {
-    websiteMetrics: "0 2 * * *", // Daily at 2 AM (default)
   },
 });
 ```
@@ -31,7 +26,6 @@ analyticsPlugin({
 ## Environment Variables
 
 ```bash
-# Cloudflare Web Analytics
 CLOUDFLARE_ACCOUNT_ID=your_account_id
 CLOUDFLARE_API_TOKEN=your_api_token  # Needs Analytics:Read permission
 CLOUDFLARE_ANALYTICS_SITE_TAG=your_site_tag
@@ -39,43 +33,56 @@ CLOUDFLARE_ANALYTICS_SITE_TAG=your_site_tag
 
 ## MCP Tools
 
-| Tool                           | Description                                       |
-| ------------------------------ | ------------------------------------------------- |
-| `analytics_fetch_website`      | Fetch metrics from Cloudflare and store as entity |
-| `analytics_get_website_trends` | Query stored website metrics                      |
+### `analytics_query`
 
-## Entity Types
+Query website analytics from Cloudflare.
 
-### `website-metrics`
+**Date range options** (use only one):
 
-Daily snapshots of website traffic with breakdowns.
+- No params: yesterday only
+- `date`: single specific day (YYYY-MM-DD)
+- `days`: last N days from yesterday (e.g., 7 for last week, 30 for last month)
+- `startDate` + `endDate`: custom date range
+
+**Parameters:**
+
+- `date` (optional): Single date in YYYY-MM-DD format
+- `days` (optional): Number of days back from yesterday (1-365)
+- `startDate` (optional): Start date for custom range
+- `endDate` (optional): End date for custom range
+- `limit` (optional): Max items for breakdowns (default: 20, max: 100)
+
+**Returns:**
 
 ```typescript
 {
-  id: "website-metrics-2025-01-15",
-  entityType: "website-metrics",
-  metadata: {
-    date: "2025-01-15",
-    pageviews: 1500,
-    visitors: 450,
-  }
+  range: { startDate: string, endDate: string },
+  summary: { pageviews: number, visitors: number },
+  topPages: Array<{ path: string, views: number }>,
+  topReferrers: Array<{ host: string, visits: number }>,
+  devices: { desktop: number, mobile: number, tablet: number },
+  topCountries: Array<{ country: string, visits: number }>,
 }
 ```
 
-Frontmatter includes additional breakdowns:
+**Examples:**
 
-- `topPages`: Array of `{ path, views }`
-- `topReferrers`: Array of `{ host, visits }`
-- `devices`: Object with `{ desktop, mobile, tablet }` percentages
-- `topCountries`: Array of `{ country, visits }`
+```typescript
+// Yesterday's stats
+analytics_query({});
 
-## Scheduled Collection
+// Specific day
+analytics_query({ date: "2025-01-15" });
 
-When configured, the plugin automatically collects metrics on a schedule:
+// Last 7 days
+analytics_query({ days: 7 });
 
-- **Website metrics**: Daily at 2 AM (collects yesterday's data)
+// Last 30 days with more results
+analytics_query({ days: 30, limit: 50 });
 
-The schedule is customizable via the `cron` config option.
+// Custom date range
+analytics_query({ startDate: "2025-01-01", endDate: "2025-01-31" });
+```
 
 ## Infrastructure Setup
 
