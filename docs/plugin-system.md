@@ -19,14 +19,25 @@ Base class for plugins that provide core functionality:
 
 **Implemented Plugins:**
 
-- SystemPlugin - System information and health checks
+- AnalyticsPlugin - Cloudflare analytics integration
+- BlogPlugin - Blog post management with RSS feeds and series
+- ContentPipelinePlugin - Publishing queue with scheduling and retry
+- DashboardPlugin - Extensible widget system for dashboards
+- DecksPlugin - Slide deck and presentation management
 - DirectorySyncPlugin - Import/export entities to/from file system
 - GitSyncPlugin - Sync entities with Git repositories
+- ImagePlugin - AI-powered image generation
 - LinkPlugin - Web content capture with AI extraction
-- SiteBuilderPlugin - Static site generation with Preact/Tailwind
-- SummaryPlugin - Content summarization and daily digests
-- TopicsPlugin - AI-powered topic extraction
+- NewsletterPlugin - Buttondown newsletter integration
+- NotePlugin - Personal knowledge capture
 - PluginExamples - Example plugins demonstrating all plugin types
+- PortfolioPlugin - Portfolio project showcase
+- ProfessionalSitePlugin - Professional homepage templates
+- SiteBuilderPlugin - Static site generation with Preact/Tailwind
+- SocialMediaPlugin - Multi-provider social media posting
+- SummaryPlugin - Content summarization and daily digests
+- SystemPlugin - System information and health checks
+- TopicsPlugin - AI-powered topic extraction
 
 ### ServicePlugin
 

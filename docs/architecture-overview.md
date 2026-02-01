@@ -57,11 +57,22 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 
 ### Plugin Packages (Feature Extensions)
 
+- **plugins/analytics**: Cloudflare analytics integration
+- **plugins/blog**: Blog post management with RSS feeds and series
+- **plugins/content-pipeline**: Publishing queue with scheduling and retry
+- **plugins/dashboard**: Extensible widget system for dashboards
+- **plugins/decks**: Slide deck and presentation management
 - **plugins/directory-sync**: Import/export entities to/from file system
 - **plugins/git-sync**: Sync entities with Git repositories
+- **plugins/image**: AI-powered image generation
 - **plugins/link**: Web content capture with AI-powered extraction
+- **plugins/newsletter**: Buttondown newsletter integration
+- **plugins/note**: Personal knowledge capture
 - **plugins/plugin-examples**: Example plugins demonstrating all plugin types
+- **plugins/portfolio**: Portfolio project showcase
+- **plugins/professional-site**: Professional homepage templates
 - **plugins/site-builder**: Static site generation with Preact and Tailwind CSS v4
+- **plugins/social-media**: Multi-provider social media posting
 - **plugins/summary**: AI-powered content summarization and daily digests
 - **plugins/system**: System information and health checks
 - **plugins/topics**: AI-powered topic extraction from entities
