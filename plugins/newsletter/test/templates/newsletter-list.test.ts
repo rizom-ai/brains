@@ -12,7 +12,7 @@ describe("Newsletter List Template", () => {
           {
             id: "nl-1",
             subject: "Weekly Update",
-            status: "sent",
+            status: "published",
             excerpt: "This is a preview of the newsletter content...",
             created: "2025-01-01T10:00:00.000Z",
             sentAt: "2025-01-01T12:00:00.000Z",

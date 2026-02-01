@@ -22,7 +22,7 @@ describe("NewsletterDataSource", () => {
   const createMockNewsletter = (
     id: string,
     subject: string,
-    status: "draft" | "queued" | "sent" | "failed",
+    status: "draft" | "queued" | "published" | "failed",
     content: string = "Newsletter content",
     sentAt?: string,
     entityIds?: string[],
@@ -74,7 +74,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter(
           "nl-1",
           "First Newsletter",
-          "sent",
+          "published",
           "Content 1",
           "2025-01-01T10:00:00.000Z",
         ),
@@ -141,8 +141,8 @@ describe("NewsletterDataSource", () => {
 
     it("should respect limit parameter", async () => {
       const newsletters: Newsletter[] = [
-        createMockNewsletter("nl-1", "Newsletter 1", "sent"),
-        createMockNewsletter("nl-2", "Newsletter 2", "sent"),
+        createMockNewsletter("nl-1", "Newsletter 1", "published"),
+        createMockNewsletter("nl-2", "Newsletter 2", "published"),
       ];
 
       listEntitiesSpy.mockResolvedValue(newsletters);
@@ -165,17 +165,17 @@ describe("NewsletterDataSource", () => {
     });
 
     it("should filter by status when specified", async () => {
-      const sentNewsletters: Newsletter[] = [
+      const publishedNewsletters: Newsletter[] = [
         createMockNewsletter(
           "nl-1",
           "Sent Newsletter",
-          "sent",
+          "published",
           "Content",
           "2025-01-01T10:00:00.000Z",
         ),
       ];
 
-      listEntitiesSpy.mockResolvedValue(sentNewsletters);
+      listEntitiesSpy.mockResolvedValue(publishedNewsletters);
 
       const schema = z.object({
         newsletters: z.array(z.any()),
@@ -183,7 +183,7 @@ describe("NewsletterDataSource", () => {
       });
 
       await datasource.fetch(
-        { entityType: "newsletter", query: { status: "sent" } },
+        { entityType: "newsletter", query: { status: "published" } },
         schema,
         mockContext,
       );
@@ -191,7 +191,7 @@ describe("NewsletterDataSource", () => {
       expect(mockEntityService.listEntities).toHaveBeenCalledWith(
         "newsletter",
         expect.objectContaining({
-          filter: { metadata: { status: "sent" } },
+          filter: { metadata: { status: "published" } },
         }),
       );
     });
@@ -202,7 +202,7 @@ describe("NewsletterDataSource", () => {
       const newsletter = createMockNewsletter(
         "nl-1",
         "My Newsletter",
-        "sent",
+        "published",
         "Full newsletter content here",
         "2025-01-01T10:00:00.000Z",
       );
@@ -254,7 +254,7 @@ describe("NewsletterDataSource", () => {
       const targetNewsletter = createMockNewsletter(
         "nl-2",
         "Middle Newsletter",
-        "sent",
+        "published",
         "Content",
         "2025-01-02T10:00:00.000Z",
       );
@@ -263,7 +263,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter(
           "nl-3",
           "Newest",
-          "sent",
+          "published",
           "Content",
           "2025-01-03T10:00:00.000Z",
         ),
@@ -271,7 +271,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter(
           "nl-1",
           "Oldest",
-          "sent",
+          "published",
           "Content",
           "2025-01-01T10:00:00.000Z",
         ),
@@ -302,7 +302,7 @@ describe("NewsletterDataSource", () => {
       const targetNewsletter = createMockNewsletter(
         "nl-1",
         "First Newsletter",
-        "sent",
+        "published",
         "Content",
         "2025-01-03T10:00:00.000Z",
       );
@@ -312,7 +312,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter(
           "nl-2",
           "Older",
-          "sent",
+          "published",
           "Content",
           "2025-01-01T10:00:00.000Z",
         ),
@@ -342,7 +342,7 @@ describe("NewsletterDataSource", () => {
       const targetNewsletter = createMockNewsletter(
         "nl-2",
         "Last Newsletter",
-        "sent",
+        "published",
         "Content",
         "2025-01-01T10:00:00.000Z",
       );
@@ -351,7 +351,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter(
           "nl-1",
           "Newer",
-          "sent",
+          "published",
           "Content",
           "2025-01-03T10:00:00.000Z",
         ),
@@ -380,11 +380,11 @@ describe("NewsletterDataSource", () => {
   });
 
   describe("sourceEntities", () => {
-    it("should resolve source entities when entityIds are present", async () => {
+    it("should resolve source entities when entityIds are prepublished", async () => {
       const newsletter = createMockNewsletter(
         "nl-1",
         "Newsletter with sources",
-        "sent",
+        "published",
         "Content",
         "2025-01-01T10:00:00.000Z",
         ["post-1", "post-2"],
@@ -434,7 +434,7 @@ describe("NewsletterDataSource", () => {
       const newsletter = createMockNewsletter(
         "nl-1",
         "Newsletter",
-        "sent",
+        "published",
         "Content",
         "2025-01-01T10:00:00.000Z",
         ["post-1", "nonexistent"],
@@ -491,9 +491,9 @@ describe("NewsletterDataSource", () => {
 
     it("should return paginated newsletters when page is specified", async () => {
       const newsletters: Newsletter[] = [
-        createMockNewsletter("nl-1", "Newsletter 1", "sent"),
-        createMockNewsletter("nl-2", "Newsletter 2", "sent"),
-        createMockNewsletter("nl-3", "Newsletter 3", "sent"),
+        createMockNewsletter("nl-1", "Newsletter 1", "published"),
+        createMockNewsletter("nl-2", "Newsletter 2", "published"),
+        createMockNewsletter("nl-3", "Newsletter 3", "published"),
       ];
 
       listEntitiesSpy.mockResolvedValue(newsletters);
@@ -516,7 +516,7 @@ describe("NewsletterDataSource", () => {
 
     it("should return null pagination when page is not specified", async () => {
       const newsletters: Newsletter[] = [
-        createMockNewsletter("nl-1", "Newsletter 1", "sent"),
+        createMockNewsletter("nl-1", "Newsletter 1", "published"),
       ];
 
       listEntitiesSpy.mockResolvedValue(newsletters);

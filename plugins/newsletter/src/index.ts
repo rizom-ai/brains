@@ -251,9 +251,9 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
           return { success: true };
         }
 
-        // Skip already sent newsletters
-        if (newsletter.metadata.status === "sent") {
-          this.logger.debug(`Newsletter already sent: ${entityId}`);
+        // Skip already published newsletters
+        if (newsletter.metadata.status === "published") {
+          this.logger.debug(`Newsletter already published: ${entityId}`);
           return { success: true };
         }
 
@@ -279,7 +279,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
           ...newsletter,
           metadata: {
             ...newsletter.metadata,
-            status: "sent",
+            status: "published",
             sentAt,
             buttondownId,
           },

@@ -20,7 +20,7 @@ const entityFetchQuerySchema = z.object({
   query: z
     .object({
       id: z.string().optional(),
-      status: z.enum(["draft", "queued", "sent", "failed"]).optional(),
+      status: z.enum(["draft", "queued", "published", "failed"]).optional(),
       limit: z.number().optional(),
       page: z.number().optional(),
       pageSize: z.number().optional(),
@@ -202,7 +202,7 @@ export class NewsletterDataSource implements DataSource {
     limit: number | undefined,
     page: number | undefined,
     pageSize: number | undefined,
-    status: "draft" | "queued" | "sent" | "failed" | undefined,
+    status: "draft" | "queued" | "published" | "failed" | undefined,
     _baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
   ): Promise<T> {

@@ -1,6 +1,7 @@
 {
   "name": "@brains/image-plugin",
   "version": "0.1.0",
+  "description": "Plugin for AI-powered image generation and management",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {

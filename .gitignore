@@ -285,3 +285,4 @@ override.tf.json
 .terraformrc
 terraform.rc
 terraform-state/
+brain-output.log

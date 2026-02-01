@@ -7,7 +7,7 @@ import { baseEntitySchema } from "@brains/plugins";
 export const newsletterStatusSchema = z.enum([
   "draft",
   "queued",
-  "sent",
+  "published",
   "failed",
 ]);
 export type NewsletterStatus = z.infer<typeof newsletterStatusSchema>;

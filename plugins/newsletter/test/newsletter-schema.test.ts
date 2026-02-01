@@ -49,7 +49,7 @@ describe("Newsletter Schema", () => {
     });
 
     it("should validate status enum", () => {
-      const validStatuses = ["draft", "queued", "sent", "failed"];
+      const validStatuses = ["draft", "queued", "published", "failed"];
       for (const status of validStatuses) {
         const result = newsletterMetadataSchema.safeParse({
           subject: "Test",

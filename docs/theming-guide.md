@@ -514,7 +514,6 @@ Or create a component variant with the right specificity built-in.
 
 - [Tailwind CSS v4 Documentation](https://tailwindcss.com/docs)
 - [CSS Custom Properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
-- [Theming System Streamlining Plan](./plans/theming-system-streamlining.md)
 - Theme Examples:
   - [theme-default](../shared/theme-default/src/theme.css)
   - [theme-yeehaa](../shared/theme-yeehaa/src/theme.css)

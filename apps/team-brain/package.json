@@ -37,7 +37,7 @@
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/summary": "workspace:*",
     "@brains/webserver": "workspace:*",
-    "preact": "^10.19.3"
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@types/bun": "latest",

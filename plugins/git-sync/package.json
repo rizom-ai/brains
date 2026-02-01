@@ -1,6 +1,7 @@
 {
   "name": "@brains/git-sync",
   "version": "0.1.0",
+  "description": "Plugin for syncing brain data with git repositories",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

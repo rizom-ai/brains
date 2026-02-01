@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-01-30
+Last Updated: 2025-02-01
 
 ---
 
@@ -85,6 +85,10 @@ Last Updated: 2025-01-30
 - ✅ Decks cover image support
 - ✅ AI SDK v6 stabilization
 - ✅ Plugin test coverage
+- ✅ Content-pipeline rename (publish-pipeline → content-pipeline)
+- ✅ Generation scheduling (newsletters, social posts)
+- ✅ TestSchedulerBackend for deterministic testing
+- ✅ Buttondown API fix (about_to_send status)
 
 ---
 

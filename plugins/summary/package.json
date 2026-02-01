@@ -1,6 +1,7 @@
 {
   "name": "@brains/summary",
   "version": "0.1.0",
+  "description": "Plugin for generating entity summaries and digests",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {

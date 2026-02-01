@@ -10,7 +10,7 @@ describe("Newsletter Detail Template", () => {
       const validData = {
         id: "nl-1",
         subject: "Weekly Update",
-        status: "sent",
+        status: "published",
         content:
           "# Full Newsletter Content\n\nThis is the complete newsletter...",
         created: "2025-01-01T10:00:00.000Z",
@@ -55,7 +55,7 @@ describe("Newsletter Detail Template", () => {
       const validData = {
         id: "nl-1",
         subject: "Newsletter with Sources",
-        status: "sent",
+        status: "published",
         content: "Content referencing blog posts...",
         created: "2025-01-01T10:00:00.000Z",
         updated: "2025-01-01T11:00:00.000Z",
@@ -82,7 +82,7 @@ describe("Newsletter Detail Template", () => {
       const validData = {
         id: "nl-2",
         subject: "Middle Newsletter",
-        status: "sent",
+        status: "published",
         content: "Content here...",
         created: "2025-01-02T10:00:00.000Z",
         updated: "2025-01-02T11:00:00.000Z",
@@ -107,7 +107,7 @@ describe("Newsletter Detail Template", () => {
       const validData = {
         id: "nl-1",
         subject: "Only Newsletter",
-        status: "sent",
+        status: "published",
         content: "Content here...",
         created: "2025-01-01T10:00:00.000Z",
         updated: "2025-01-01T11:00:00.000Z",

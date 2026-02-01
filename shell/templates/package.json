@@ -11,7 +11,7 @@
   "dependencies": {
     "@brains/permission-service": "workspace:*",
     "@brains/utils": "workspace:*",
-    "preact": "^10.19.3"
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@brains/typescript-config": "workspace:*",

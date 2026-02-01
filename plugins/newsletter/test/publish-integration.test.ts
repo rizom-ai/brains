@@ -176,25 +176,25 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
         "newsletter",
         "test-newsletter-2024-01-01",
       );
-      expect(updatedNewsletter?.metadata.status).toBe("sent");
+      expect(updatedNewsletter?.metadata.status).toBe("published");
       expect(updatedNewsletter?.metadata.sentAt).toBeDefined();
     });
 
-    it("should skip already sent newsletters", async () => {
+    it("should skip already published newsletters", async () => {
       plugin = new NewsletterPlugin({});
       await plugin.register(mockShell);
 
-      // Add sent newsletter
-      const sentNewsletter: Newsletter = {
+      // Add published newsletter
+      const publishedNewsletter: Newsletter = {
         ...sampleDraftNewsletter,
         metadata: {
           ...sampleDraftNewsletter.metadata,
-          status: "sent",
+          status: "published",
           sentAt: "2024-01-01T00:00:00Z",
         },
       };
       const entityService = mockShell.getEntityService();
-      await entityService.createEntity(sentNewsletter);
+      await entityService.createEntity(publishedNewsletter);
 
       const messageBus = mockShell.getMessageBus();
       await messageBus.send(
@@ -203,7 +203,7 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
         "test",
       );
 
-      // No report messages for already sent
+      // No report messages for already published
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );

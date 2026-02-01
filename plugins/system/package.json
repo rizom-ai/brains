@@ -1,6 +1,7 @@
 {
   "name": "@brains/system",
   "version": "0.1.0",
+  "description": "Core system plugin providing shell management and health monitoring",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
