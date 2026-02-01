@@ -106,7 +106,7 @@ export interface PublishListResponsePayload {
 }
 
 /**
- * Message type constants
+ * Message type constants for publishing
  */
 export const PUBLISH_MESSAGES = {
   // Plugin → Service
@@ -125,4 +125,52 @@ export const PUBLISH_MESSAGES = {
   COMPLETED: "publish:completed",
   FAILED: "publish:failed",
   LIST_RESPONSE: "publish:list:response",
+} as const;
+
+/**
+ * Generation message payloads
+ */
+
+/** Register a generation handler for an entity type */
+export interface GenerateRegisterPayload {
+  entityType: string;
+}
+
+/** Trigger generation for an entity type (scheduler → plugin) */
+export interface GenerateExecutePayload {
+  entityType: string;
+}
+
+/** Generation completed successfully */
+export interface GenerateCompletedPayload {
+  entityType: string;
+  entityId: string;
+}
+
+/** Generation failed */
+export interface GenerateFailedPayload {
+  entityType: string;
+  error: string;
+}
+
+/** Generation skipped due to conditions */
+export interface GenerateSkippedPayload {
+  entityType: string;
+  reason: string;
+}
+
+/**
+ * Message type constants for generation
+ */
+export const GENERATE_MESSAGES = {
+  // Plugin → Service
+  REGISTER: "generate:register",
+  REPORT_SUCCESS: "generate:report:success",
+  REPORT_FAILURE: "generate:report:failure",
+
+  // Service → Plugin
+  EXECUTE: "generate:execute",
+  COMPLETED: "generate:completed",
+  FAILED: "generate:failed",
+  SKIPPED: "generate:skipped",
 } as const;

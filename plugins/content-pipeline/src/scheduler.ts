@@ -7,6 +7,8 @@
  * Two modes:
  * 1. Provider mode (default): Calls provider.publish() directly
  * 2. Message mode: Emits publish:execute message for plugins to handle
+ *
+ * Also supports generation scheduling for automatic draft creation.
  */
 
 import { Cron } from "croner";
@@ -15,11 +17,21 @@ import type { PublishResult } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
-import { PUBLISH_MESSAGES } from "./types/messages";
+import type { GenerationCondition } from "./types/config";
+import { PUBLISH_MESSAGES, GENERATE_MESSAGES } from "./types/messages";
 
 export interface PublishExecuteEvent {
   entityType: string;
   entityId: string;
+}
+
+export interface GenerateExecuteEvent {
+  entityType: string;
+}
+
+export interface GenerationConditionResult {
+  shouldGenerate: boolean;
+  reason?: string;
 }
 
 export interface SchedulerConfig {
@@ -27,11 +39,20 @@ export interface SchedulerConfig {
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
   /**
-   * Per-entity-type cron schedules.
+   * Per-entity-type publish schedules (cron syntax).
    * Entity types without a schedule are processed immediately (every second).
    */
   entitySchedules?: Record<string, string>;
-  /** Optional message bus for message-driven publishing */
+  /**
+   * Per-entity-type generation schedules (cron syntax).
+   * Triggers automatic draft generation on schedule.
+   */
+  generationSchedules?: Record<string, string>;
+  /**
+   * Conditions that must be met before generating drafts.
+   */
+  generationConditions?: Record<string, GenerationCondition>;
+  /** Optional message bus for message-driven publishing/generation */
   messageBus?: IMessageBus;
   /** Entity service for fetching entity content (required for provider mode) */
   entityService?: ICoreEntityService;
@@ -41,6 +62,13 @@ export interface SchedulerConfig {
   onPublish?: (event: PublishSuccessEvent) => void;
   /** Callback on failed publish (provider mode) */
   onFailed?: (event: PublishFailedEvent) => void;
+  /** Callback to check generation conditions */
+  onCheckGenerationConditions?: (
+    entityType: string,
+    conditions: GenerationCondition,
+  ) => Promise<GenerationConditionResult>;
+  /** Callback when generation should be triggered */
+  onGenerate?: (event: GenerateExecuteEvent) => void;
 }
 
 export interface PublishSuccessEvent {
@@ -67,13 +95,23 @@ export class ContentScheduler {
   private providerRegistry: ProviderRegistry;
   private retryTracker: RetryTracker;
   private entitySchedules: Record<string, string>;
-  private cronJobs: Map<string, Cron> = new Map();
+  private generationSchedules: Record<string, string>;
+  private generationConditions: Record<string, GenerationCondition>;
+  private publishCronJobs: Map<string, Cron> = new Map();
+  private generationCronJobs: Map<string, Cron> = new Map();
   private immediateInterval: ReturnType<typeof setInterval> | null = null;
   private messageBus: IMessageBus | undefined;
   private entityService: ICoreEntityService | undefined;
   private onExecute: ((event: PublishExecuteEvent) => void) | undefined;
   private onPublish: ((event: PublishSuccessEvent) => void) | undefined;
   private onFailed: ((event: PublishFailedEvent) => void) | undefined;
+  private onCheckGenerationConditions:
+    | ((
+        entityType: string,
+        conditions: GenerationCondition,
+      ) => Promise<GenerationConditionResult>)
+    | undefined;
+  private onGenerate: ((event: GenerateExecuteEvent) => void) | undefined;
 
   private running = false;
 
@@ -110,11 +148,15 @@ export class ContentScheduler {
     this.providerRegistry = config.providerRegistry;
     this.retryTracker = config.retryTracker;
     this.entitySchedules = config.entitySchedules ?? {};
+    this.generationSchedules = config.generationSchedules ?? {};
+    this.generationConditions = config.generationConditions ?? {};
     this.messageBus = config.messageBus;
     this.entityService = config.entityService;
     this.onExecute = config.onExecute;
     this.onPublish = config.onPublish;
     this.onFailed = config.onFailed;
+    this.onCheckGenerationConditions = config.onCheckGenerationConditions;
+    this.onGenerate = config.onGenerate;
 
     // Validate all cron expressions upfront
     this.validateCronExpressions();
@@ -124,16 +166,31 @@ export class ContentScheduler {
    * Validate all cron expressions
    */
   private validateCronExpressions(): void {
+    // Validate publish schedules
     for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {
-      try {
-        // Try to create a cron to validate the expression
-        const testCron = new Cron(cronExpr);
-        testCron.stop();
-      } catch (error) {
-        throw new Error(
-          `Invalid cron expression for ${entityType}: "${cronExpr}" - ${error instanceof Error ? error.message : String(error)}`,
-        );
-      }
+      this.validateCronExpression(entityType, cronExpr, "publish");
+    }
+
+    // Validate generation schedules
+    for (const [entityType, cronExpr] of Object.entries(
+      this.generationSchedules,
+    )) {
+      this.validateCronExpression(entityType, cronExpr, "generation");
+    }
+  }
+
+  private validateCronExpression(
+    entityType: string,
+    cronExpr: string,
+    scheduleType: string,
+  ): void {
+    try {
+      const testCron = new Cron(cronExpr);
+      testCron.stop();
+    } catch (error) {
+      throw new Error(
+        `Invalid ${scheduleType} cron expression for ${entityType}: "${cronExpr}" - ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -152,12 +209,22 @@ export class ContentScheduler {
 
     this.running = true;
 
-    // Create cron jobs for each configured entity type
+    // Create publish cron jobs for each configured entity type
     for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {
       const job = new Cron(cronExpr, () => {
         void this.processEntityType(entityType);
       });
-      this.cronJobs.set(entityType, job);
+      this.publishCronJobs.set(entityType, job);
+    }
+
+    // Create generation cron jobs for each configured entity type
+    for (const [entityType, cronExpr] of Object.entries(
+      this.generationSchedules,
+    )) {
+      const job = new Cron(cronExpr, () => {
+        void this.triggerGeneration(entityType);
+      });
+      this.generationCronJobs.set(entityType, job);
     }
 
     // Create interval for entity types without schedules (immediate mode)
@@ -172,11 +239,17 @@ export class ContentScheduler {
   public async stop(): Promise<void> {
     this.running = false;
 
-    // Stop all cron jobs
-    for (const job of this.cronJobs.values()) {
+    // Stop all publish cron jobs
+    for (const job of this.publishCronJobs.values()) {
       job.stop();
     }
-    this.cronJobs.clear();
+    this.publishCronJobs.clear();
+
+    // Stop all generation cron jobs
+    for (const job of this.generationCronJobs.values()) {
+      job.stop();
+    }
+    this.generationCronJobs.clear();
 
     // Stop immediate interval
     if (this.immediateInterval) {
@@ -405,5 +478,81 @@ export class ContentScheduler {
   ): Promise<PublishResult> {
     const provider = this.providerRegistry.get(entityType);
     return provider.publish(content, metadata);
+  }
+
+  // ============================================
+  // Generation Scheduling Methods
+  // ============================================
+
+  /**
+   * Trigger generation for an entity type (called by generation cron job)
+   */
+  private async triggerGeneration(entityType: string): Promise<void> {
+    if (!this.running) return;
+
+    try {
+      // Check conditions if configured
+      const conditions = this.generationConditions[entityType];
+      if (conditions && this.onCheckGenerationConditions) {
+        const result = await this.onCheckGenerationConditions(
+          entityType,
+          conditions,
+        );
+
+        if (!result.shouldGenerate) {
+          // Emit skipped message
+          if (this.messageBus) {
+            void this.messageBus.send(
+              GENERATE_MESSAGES.SKIPPED,
+              { entityType, reason: result.reason ?? "Conditions not met" },
+              "content-pipeline",
+            );
+          }
+          return;
+        }
+      }
+
+      // Emit generate:execute message
+      const event: GenerateExecuteEvent = { entityType };
+
+      if (this.messageBus) {
+        await this.messageBus.send(
+          GENERATE_MESSAGES.EXECUTE,
+          event,
+          "content-pipeline",
+        );
+      }
+
+      // Call callback
+      this.onGenerate?.(event);
+    } catch (error) {
+      console.error(`Generation trigger error for ${entityType}:`, error);
+    }
+  }
+
+  /**
+   * Report successful generation (called by plugin after creating draft)
+   */
+  public completeGeneration(entityType: string, entityId: string): void {
+    if (this.messageBus) {
+      void this.messageBus.send(
+        GENERATE_MESSAGES.COMPLETED,
+        { entityType, entityId },
+        "content-pipeline",
+      );
+    }
+  }
+
+  /**
+   * Report failed generation
+   */
+  public failGeneration(entityType: string, error: string): void {
+    if (this.messageBus) {
+      void this.messageBus.send(
+        GENERATE_MESSAGES.FAILED,
+        { entityType, error },
+        "content-pipeline",
+      );
+    }
   }
 }

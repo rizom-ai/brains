@@ -47,12 +47,31 @@ export const DEFAULT_SCHEDULER_CONFIG: SchedulerConfig = {
 };
 
 /**
+ * Generation condition schema
+ * Controls when automatic draft generation should occur
+ */
+export const generationConditionSchema = z.object({
+  /** Skip generation if a draft already exists for this period (default: true) */
+  skipIfDraftExists: z.boolean().optional(),
+
+  /** Minimum number of source entities required to generate */
+  minSourceEntities: z.number().optional(),
+
+  /** Maximum number of unpublished drafts allowed before stopping generation */
+  maxUnpublishedDrafts: z.number().optional(),
+
+  /** Entity type to use as source content (e.g., "post" for newsletter) */
+  sourceEntityType: z.string().optional(),
+});
+
+export type GenerationCondition = z.infer<typeof generationConditionSchema>;
+
+/**
  * Plugin configuration schema
  */
 export const contentPipelineConfigSchema = z.object({
   /**
-   * Per-entity-type cron schedules.
-   * Uses standard cron syntax with optional seconds field.
+   * Per-entity-type publish schedules (cron syntax).
    * Entity types without a schedule are processed immediately when queued.
    *
    * Examples:
@@ -60,14 +79,37 @@ export const contentPipelineConfigSchema = z.object({
    *   "0 9 * * 1-5"    - Weekdays at 9am
    *   "0 *\/6 * * *"    - Every 6 hours
    *   "* * * * * *"    - Every second (6-field format)
-   *
-   * Usage:
-   *   entitySchedules: {
-   *     post: "0 9 * * *",        // Blog posts at 9am daily
-   *     'social-post': "0 9,12,18 * * *" // Social at 9am, noon, 6pm
-   *   }
    */
   entitySchedules: z.record(z.string(), z.string()).optional(),
+
+  /**
+   * Per-entity-type generation schedules (cron syntax).
+   * Triggers automatic draft generation on schedule.
+   *
+   * Example:
+   *   generationSchedules: {
+   *     newsletter: "0 9 * * 1",     // Generate newsletter draft Monday 9am
+   *     'social-post': "0 9 * * *",  // Generate social post daily 9am
+   *   }
+   */
+  generationSchedules: z.record(z.string(), z.string()).optional(),
+
+  /**
+   * Conditions that must be met before generating drafts.
+   *
+   * Example:
+   *   generationConditions: {
+   *     newsletter: {
+   *       skipIfDraftExists: true,
+   *       minSourceEntities: 1,
+   *       maxUnpublishedDrafts: 3,
+   *       sourceEntityType: "post",
+   *     },
+   *   }
+   */
+  generationConditions: z
+    .record(z.string(), generationConditionSchema)
+    .optional(),
 
   /** Maximum number of retry attempts */
   maxRetries: z.number().optional().default(3),
