@@ -49,6 +49,8 @@ export { EntryCard } from "./EntryCard";
 export type { EntryCardProps } from "./EntryCard";
 export { StatBox } from "./StatBox";
 export type { StatBoxProps } from "./StatBox";
+export { StatusBadge } from "./StatusBadge";
+export type { StatusBadgeProps } from "./StatusBadge";
 export { ContentListItem } from "./ContentListItem";
 export type { ContentListItemProps, SeriesInfo } from "./ContentListItem";
 export { ContentSection } from "./ContentSection";

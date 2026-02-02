@@ -34,6 +34,13 @@
     --palette-dark-bg-muted: #2d3748;
     --palette-black: #000000;
 
+    /* Warning/Status Colors */
+    --palette-warning-light: #fefce8;
+    --palette-warning: #facc15;
+    --palette-warning-dark: #ca8a04;
+    --palette-warning-text: #854d0e;
+    --palette-warning-border: #fde047;
+
     /* Dark mode gradient colors */
     --palette-purple: #6B2FA0;
     --palette-warm-red: #8B3A1A;
@@ -89,6 +96,12 @@
 
     /* Footer */
     --color-footer: var(--palette-brand-blue);
+
+    /* Warning/Status Colors */
+    --color-warning-bg: var(--palette-warning-light);
+    --color-warning-border: var(--palette-warning-border);
+    --color-warning-text: var(--palette-warning-text);
+    --color-warning-text-emphasis: #92400e;
 
     /* Typography */
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
@@ -150,6 +163,12 @@
 
     /* Footer - Dark mode uses dark purple for grounded feel */
     --color-footer: var(--palette-dark-purple);
+
+    /* Warning/Status Colors - Dark mode */
+    --color-warning-bg: rgba(202, 138, 4, 0.2);
+    --color-warning-border: rgba(202, 138, 4, 0.5);
+    --color-warning-text: #fde047;
+    --color-warning-text-emphasis: #fef08a;
   }
 }
 
@@ -216,6 +235,7 @@
   .bg-theme-subtle { background-color: var(--color-bg-subtle); }
   .bg-theme-muted { background-color: var(--color-bg-muted); }
   .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .bg-surface { background-color: var(--color-bg-subtle); } /* Alias for bg-theme-subtle */
   .text-theme { color: var(--color-text); }
   .text-theme-muted { color: var(--color-text-muted); }
   .text-theme-light { color: var(--color-text-light); }
@@ -224,6 +244,12 @@
   .border-theme { border-color: var(--color-border); }
   .border-theme-light { border-color: var(--color-border-light); }
   .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
+
+  /* Warning utilities - theme-aware */
+  .bg-warning { background-color: var(--color-warning-bg); }
+  .border-warning { border-color: var(--color-warning-border); }
+  .text-warning { color: var(--color-warning-text); }
+  .text-warning-emphasis { color: var(--color-warning-text-emphasis); }
 
   /* Hover states for theme utilities */
   .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
@@ -505,5 +531,35 @@
   /* Focus ring for dark/brand backgrounds */
   .focus-ring-light {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand;
+  }
+}
+
+/* Component utilities for consistency and code reduction */
+@layer utilities {
+  /* Widget containers - standardized with rounded-lg */
+  .widget-container {
+    @apply bg-theme-subtle rounded-lg p-4;
+  }
+
+  /* Form inputs - consistent styling */
+  .form-input {
+    @apply px-4 py-2 rounded-lg border border-theme-muted bg-theme text-theme
+           placeholder:text-theme-muted focus:outline-none focus:ring-2
+           focus:ring-brand disabled:opacity-50 transition-colors;
+  }
+
+  /* Primary button - consistent styling */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg bg-brand hover:bg-brand-dark text-theme-inverse
+           font-medium transition-colors disabled:opacity-50;
+  }
+
+  /* Pagination controls */
+  .pagination-btn {
+    @apply px-3 py-2 text-sm font-medium text-theme hover:text-brand
+           hover:bg-surface rounded-lg transition-colors;
+  }
+  .pagination-btn-active {
+    @apply px-3 py-2 text-sm font-semibold text-brand bg-surface rounded-lg;
   }
 }

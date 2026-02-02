@@ -43,7 +43,7 @@ export function ListWidget({
   const allItems: ListItem[] = [...jobs, ...batches, ...items];
 
   return (
-    <div className="bg-theme-subtle rounded-lg p-4">
+    <div className="widget-container">
       <h3 className="text-lg font-semibold mb-3 text-theme">{title}</h3>
       {description && (
         <p className="text-sm text-theme-muted mb-3">{description}</p>
@@ -55,7 +55,7 @@ export function ListWidget({
           {allItems.map((item) => (
             <div
               key={item.id}
-              className="bg-theme p-2 rounded border border-theme text-sm"
+              className="bg-theme p-2 rounded-lg border border-theme text-sm"
             >
               <span className="text-theme">
                 {item.type ?? item.name ?? item.id}

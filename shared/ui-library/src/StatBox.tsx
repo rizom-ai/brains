@@ -15,7 +15,7 @@ export const StatBox = ({
   className = "",
 }: StatBoxProps): JSX.Element => {
   return (
-    <div className={`bg-theme p-4 rounded ${className}`}>
+    <div className={`bg-theme p-4 rounded-lg ${className}`}>
       <h3 className="font-semibold text-theme">{title}</h3>
       <p className="text-2xl font-bold text-brand">{count}</p>
     </div>

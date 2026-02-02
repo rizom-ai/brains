@@ -1,17 +1,15 @@
 import type { JSX } from "preact";
-import { Head, Breadcrumb, type BreadcrumbItem } from "@brains/ui-library";
+import {
+  Head,
+  Breadcrumb,
+  StatusBadge,
+  type BreadcrumbItem,
+} from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
 
 export interface SocialPostDetailProps {
   post: EnrichedSocialPost;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  queued: "bg-yellow-100 text-yellow-700",
-  published: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-};
 
 function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", {
@@ -57,11 +55,7 @@ export const SocialPostDetailTemplate = ({
 
             {/* Status and metadata */}
             <div className="flex flex-wrap items-center gap-3 mb-6">
-              <span
-                className={`px-3 py-1 text-sm font-medium rounded ${STATUS_COLORS[post.frontmatter.status] ?? STATUS_COLORS["draft"]}`}
-              >
-                {post.frontmatter.status}
-              </span>
+              <StatusBadge status={post.frontmatter.status} />
               <span className="text-sm text-theme-muted uppercase">
                 {post.frontmatter.platform}
               </span>
@@ -87,7 +81,7 @@ export const SocialPostDetailTemplate = ({
             )}
 
             {/* Post content */}
-            <div className="bg-surface rounded-lg border border-theme p-8 mb-8">
+            <div className="bg-theme-subtle rounded-lg border border-theme p-8 mb-8">
               <p className="text-lg text-theme leading-relaxed whitespace-pre-wrap">
                 {post.body}
               </p>

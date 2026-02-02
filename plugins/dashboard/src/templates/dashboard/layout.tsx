@@ -150,17 +150,14 @@ const DashboardRender = ({
                   onFilterChange((e.target as HTMLInputElement).value)
               : undefined
           }
-          className="px-4 py-2 bg-theme border border-theme rounded text-theme placeholder-theme-muted sm:flex-1"
+          className="form-input sm:flex-1"
         />
-        <button
-          onClick={onSortChange}
-          className="px-4 py-2 bg-brand text-theme-inverse rounded hover:bg-brand-dark"
-        >
+        <button onClick={onSortChange} className="btn-primary">
           Sort by {sortBy === "priority" ? "Title" : "Priority"}
         </button>
         <button
           onClick={onToggleSidebar}
-          className="px-4 py-2 bg-theme-muted text-theme rounded border border-theme hover:bg-theme-subtle"
+          className="px-4 py-2 bg-theme-muted text-theme rounded-lg border border-theme hover:bg-theme-subtle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
           {showSidebar ? "Hide" : "Show"} Sidebar
         </button>

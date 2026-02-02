@@ -119,7 +119,7 @@ export function NewsletterSignup({
             type="text"
             name="name"
             placeholder="Your name"
-            className="px-4 py-2 rounded border border-theme-muted bg-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+            className="form-input"
           />
         )}
         <input
@@ -127,12 +127,9 @@ export function NewsletterSignup({
           name="email"
           placeholder="your@email.com"
           required
-          className="px-4 py-2 rounded border border-theme-muted bg-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50"
+          className="form-input"
         />
-        <button
-          type="submit"
-          className="px-4 py-2 rounded bg-brand hover:bg-brand-dark text-theme-inverse font-medium transition-colors disabled:opacity-50"
-        >
+        <button type="submit" className="btn-primary">
           {buttonText}
         </button>
       </form>

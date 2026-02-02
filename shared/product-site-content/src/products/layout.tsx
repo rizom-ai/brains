@@ -3,6 +3,7 @@ import type { JSX } from "preact";
 import type { ProductsSection } from "./schema";
 import * as LucideIcons from "lucide-preact";
 import type { LucideIcon } from "lucide-preact";
+import { StatusBadge } from "@brains/ui-library";
 
 const getIcon = (iconName: string): LucideIcon => {
   // Get the icon component from Lucide, fallback to HelpCircle if not found
@@ -17,13 +18,6 @@ export const ProductsLayout = ({
   description,
   products,
 }: ProductsSection): JSX.Element => {
-  const statusColors = {
-    live: "bg-green-500/20 text-green-400",
-    beta: "bg-blue-500/20 text-blue-400",
-    alpha: "bg-yellow-500/20 text-yellow-400",
-    concept: "bg-theme-muted text-theme-muted",
-  };
-
   return (
     <section className="py-16 md:py-24 bg-theme">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -48,11 +42,7 @@ export const ProductsLayout = ({
                   <div className="text-brand">
                     <IconComponent size={48} />
                   </div>
-                  <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${statusColors[product.status]}`}
-                  >
-                    {product.status}
-                  </span>
+                  <StatusBadge status={product.status} />
                 </div>
 
                 <h3 className="text-2xl font-bold text-theme mb-2">

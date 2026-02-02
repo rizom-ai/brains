@@ -123,7 +123,7 @@ export const ProjectDetailTemplate = ({
                       {frontmatter.technologies.map((tech) => (
                         <span
                           key={tech}
-                          className="text-xs px-2 py-1 bg-theme-muted rounded-md"
+                          className="text-xs px-2 py-1 bg-theme-muted rounded-full"
                         >
                           {tech}
                         </span>

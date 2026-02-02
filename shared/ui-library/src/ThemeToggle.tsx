@@ -17,7 +17,7 @@ export function ThemeToggle({
 }: ThemeToggleProps): JSX.Element {
   // Variant classes
   const variantClasses = {
-    default: "bg-white/20 hover:bg-white/30 text-white", // Semi-transparent for overlays
+    default: "bg-theme-muted/50 hover:bg-theme-muted text-theme", // Theme-aware semi-transparent
     light: "bg-theme-subtle hover:bg-theme-muted text-theme",
     dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
     footer:
@@ -39,7 +39,7 @@ export function ThemeToggle({
   };
 
   const buttonClasses = [
-    "rounded-full transition-colors",
+    "rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
     variantClasses[variant],
     buttonPadding[size],
     className,

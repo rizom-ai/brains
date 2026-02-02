@@ -77,11 +77,11 @@ export const LinkDetailLayout = ({
 
           {/* Status badge for pending links */}
           {isPending && (
-            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <p className="font-medium text-yellow-800 dark:text-yellow-200">
+            <div className="mt-6 p-4 bg-warning border border-warning rounded-lg">
+              <p className="font-medium text-warning-emphasis">
                 Pending Review
               </p>
-              <p className="mt-1 text-sm text-yellow-700 dark:text-yellow-300">
+              <p className="mt-1 text-sm text-warning">
                 This link needs additional information or review.
               </p>
             </div>

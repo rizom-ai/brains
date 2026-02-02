@@ -87,7 +87,7 @@ export const Pagination = ({
       {hasPrevPage ? (
         <a
           href={getPageUrl(baseUrl, currentPage - 1)}
-          className="px-3 py-2 text-sm font-medium text-theme hover:text-brand hover:bg-surface rounded-md transition-colors"
+          className="pagination-btn"
           aria-label="Previous page"
         >
           ← Prev
@@ -111,7 +111,7 @@ export const Pagination = ({
           ) : page === currentPage ? (
             <span
               key={page}
-              className="px-3 py-2 text-sm font-semibold text-brand bg-surface rounded-md"
+              className="pagination-btn-active"
               aria-current="page"
             >
               {page}
@@ -120,7 +120,7 @@ export const Pagination = ({
             <a
               key={page}
               href={getPageUrl(baseUrl, page)}
-              className="px-3 py-2 text-sm font-medium text-theme hover:text-brand hover:bg-surface rounded-md transition-colors"
+              className="pagination-btn"
             >
               {page}
             </a>
@@ -132,7 +132,7 @@ export const Pagination = ({
       {hasNextPage ? (
         <a
           href={getPageUrl(baseUrl, currentPage + 1)}
-          className="px-3 py-2 text-sm font-medium text-theme hover:text-brand hover:bg-surface rounded-md transition-colors"
+          className="pagination-btn"
           aria-label="Next page"
         >
           Next →

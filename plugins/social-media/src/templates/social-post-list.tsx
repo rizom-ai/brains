@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
-import { Head, Pagination } from "@brains/ui-library";
+import { Head, Pagination, StatusBadge } from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
 
 export interface SocialPostListProps {
@@ -9,13 +9,6 @@ export interface SocialPostListProps {
   pagination?: PaginationInfo | null;
   baseUrl?: string;
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700",
-  queued: "bg-yellow-100 text-yellow-700",
-  published: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-};
 
 function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
@@ -57,14 +50,14 @@ export const SocialPostListTemplate = ({
                 <li key={post.id}>
                   <a
                     href={post.url}
-                    className="block p-6 bg-surface rounded-lg border border-theme hover:border-brand transition-colors"
+                    className="block p-6 bg-theme-subtle rounded-lg border border-theme hover:border-brand transition-colors"
                   >
                     <div className="flex gap-4">
                       {post.coverImageUrl && (
                         <img
                           src={post.coverImageUrl}
                           alt={post.frontmatter.title}
-                          className="w-24 h-24 object-cover rounded shrink-0"
+                          className="w-24 h-24 object-cover rounded-lg shrink-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">
@@ -79,11 +72,7 @@ export const SocialPostListTemplate = ({
                           </time>
                         </div>
                         <div className="flex items-center gap-2 mb-3">
-                          <span
-                            className={`px-2 py-1 text-xs font-medium rounded ${STATUS_COLORS[post.frontmatter.status] ?? STATUS_COLORS["draft"]}`}
-                          >
-                            {post.frontmatter.status}
-                          </span>
+                          <StatusBadge status={post.frontmatter.status} />
                           <span className="text-xs text-theme-muted uppercase">
                             {post.frontmatter.platform}
                           </span>

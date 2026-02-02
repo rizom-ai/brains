@@ -19,7 +19,7 @@ export function CTASection({ cta, socialLinks }: CTASectionProps): JSX.Element {
       </h2>
       <a
         href={cta.buttonLink}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-lg hover:bg-brand-dark transition-colors font-medium text-lg"
+        className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-theme-inverse rounded-lg hover:bg-brand-dark transition-colors font-medium text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
       >
         {cta.buttonText}
       </a>

@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { paginationInfoSchema, createTemplate } from "@brains/plugins";
-import { Head, Pagination, formatDate } from "@brains/ui-library";
+import { Head, Pagination, formatDate, StatusBadge } from "@brains/ui-library";
 import { newsletterStatusSchema } from "../schemas/newsletter";
 
 /**
@@ -38,30 +38,6 @@ export interface NewsletterListProps {
   pagination?: PaginationInfo | null;
   baseUrl?: string;
 }
-
-/**
- * Status badge colors
- */
-const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200",
-  queued: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200",
-  sent: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200",
-  failed: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200",
-};
-
-/**
- * Status badge component
- */
-const StatusBadge = ({ status }: { status: string }): JSX.Element => {
-  const colorClass = statusColors[status] ?? statusColors["draft"];
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colorClass}`}
-    >
-      {status}
-    </span>
-  );
-};
 
 /**
  * Newsletter list template - displays all newsletters with status badges
