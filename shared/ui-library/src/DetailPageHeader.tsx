@@ -1,13 +1,27 @@
 import type { JSX } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
 import { formatDate } from "./utils/formatDate";
 
-export interface DetailPageHeaderProps {
+const detailPageHeaderVariants = cva("", {
+  variants: {
+    titleSize: {
+      "3xl": "text-3xl",
+      "4xl": "text-4xl",
+    },
+  },
+  defaultVariants: {
+    titleSize: "4xl",
+  },
+});
+
+export interface DetailPageHeaderProps
+  extends VariantProps<typeof detailPageHeaderVariants> {
   title: string;
   created?: string;
   updated?: string;
   summary?: string;
   metadata?: JSX.Element;
-  titleSize?: "3xl" | "4xl";
   useSemanticHeader?: boolean;
   className?: string;
 }
@@ -21,16 +35,22 @@ export const DetailPageHeader = ({
   updated,
   summary,
   metadata,
-  titleSize = "4xl",
+  titleSize,
   useSemanticHeader = true,
-  className = "",
+  className,
 }: DetailPageHeaderProps): JSX.Element => {
   const Wrapper = useSemanticHeader ? "header" : "div";
-  const titleClass = `text-${titleSize} font-bold mb-4 text-theme`;
 
   return (
-    <Wrapper className={`mb-8 ${className}`}>
-      <h1 className={titleClass}>{title}</h1>
+    <Wrapper className={cn("mb-8", className)}>
+      <h1
+        className={cn(
+          detailPageHeaderVariants({ titleSize }),
+          "font-bold mb-4 text-theme",
+        )}
+      >
+        {title}
+      </h1>
 
       {(created ?? updated ?? metadata) && (
         <div className="text-sm text-theme-muted mb-4">
@@ -52,3 +72,5 @@ export const DetailPageHeader = ({
     </Wrapper>
   );
 };
+
+export { detailPageHeaderVariants };

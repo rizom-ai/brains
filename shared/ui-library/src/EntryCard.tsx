@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 import { formatDate } from "./utils/formatDate";
 
 export interface EntryCardProps {
@@ -17,11 +18,14 @@ export const EntryCard = ({
   created,
   updated,
   content,
-  className = "",
+  className,
 }: EntryCardProps): JSX.Element => {
   return (
     <article
-      className={`entry-card bg-theme-subtle rounded-lg p-6 border border-theme ${className}`}
+      className={cn(
+        "entry-card bg-theme-subtle rounded-lg p-6 border border-theme",
+        className,
+      )}
     >
       <header className="mb-4">
         <h2 className="text-xl font-semibold mb-2 text-theme">{title}</h2>

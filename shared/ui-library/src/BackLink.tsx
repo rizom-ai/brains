@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface BackLinkProps {
   href: string;
@@ -17,10 +18,10 @@ export interface BackLinkProps {
 export const BackLink = ({
   href,
   children,
-  className = "",
+  className,
 }: BackLinkProps): JSX.Element => {
   return (
-    <nav className={`mt-8 pt-6 border-t border-theme ${className}`}>
+    <nav className={cn("mt-8 pt-6 border-t border-theme", className)}>
       <a href={href} className="text-brand hover:text-brand-dark text-sm">
         ← {children}
       </a>

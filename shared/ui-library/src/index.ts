@@ -34,7 +34,7 @@ export type { FooterContentProps } from "./FooterContent";
 // Header
 export { Header } from "./Header";
 export type { HeaderProps, CTAConfig } from "./Header";
-export { Logo } from "./Logo";
+export { Logo, logoVariants } from "./Logo";
 export type { LogoProps } from "./Logo";
 
 // Prose
@@ -74,7 +74,7 @@ export { BackLink } from "./BackLink";
 export type { BackLinkProps } from "./BackLink";
 
 // Detail page
-export { DetailPageHeader } from "./DetailPageHeader";
+export { DetailPageHeader, detailPageHeaderVariants } from "./DetailPageHeader";
 export type { DetailPageHeaderProps } from "./DetailPageHeader";
 
 // Stats

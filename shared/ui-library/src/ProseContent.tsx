@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface ProseContentProps {
   html: string;
@@ -19,11 +20,12 @@ export interface ProseContentProps {
  */
 export const ProseContent = ({
   html,
-  className = "",
+  className,
 }: ProseContentProps): JSX.Element => {
   return (
     <article
-      className={`prose prose-lg max-w-none
+      className={cn(
+        `prose prose-lg max-w-none
         prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:mt-0
         prose-h2:text-3xl prose-h2:font-semibold prose-h2:mt-16 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-4
         prose-h3:text-2xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4
@@ -35,7 +37,9 @@ export const ProseContent = ({
         prose-pre:rounded-lg prose-pre:my-6 prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-sm
         prose-blockquote:border-l-2 prose-blockquote:border-brand prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:mt-8 prose-blockquote:mb-2 prose-blockquote:text-lg prose-blockquote:leading-relaxed prose-blockquote:font-light prose-blockquote:not-italic
         prose-hr:my-12
-        prose-img:rounded-lg prose-img:shadow-md prose-img:my-8 ${className}`}
+        prose-img:rounded-lg prose-img:shadow-md prose-img:my-8`,
+        className,
+      )}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

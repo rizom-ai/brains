@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface NewsletterSignupProps {
   /** Form title */
@@ -28,17 +29,9 @@ export function NewsletterSignup({
   buttonText = "Subscribe",
   showNameField = false,
   action = "/api/newsletter/subscribe",
-  className = "",
+  className,
   successMessage = "Check your email to confirm your subscription.",
 }: NewsletterSignupProps): JSX.Element {
-  const containerClasses = [
-    "newsletter-signup",
-    "p-6 rounded-lg bg-theme-subtle",
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   // Inline script for client-side form handling
   const alreadySubscribedMessage = "You are already subscribed!";
   const inlineScript = `
@@ -102,7 +95,12 @@ export function NewsletterSignup({
 `;
 
   return (
-    <div className={containerClasses}>
+    <div
+      className={cn(
+        "newsletter-signup p-6 rounded-lg bg-theme-subtle",
+        className,
+      )}
+    >
       {title && (
         <h3 className="text-lg font-semibold text-theme mb-2">{title}</h3>
       )}

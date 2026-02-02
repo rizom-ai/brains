@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface ListPageHeaderProps {
   title: string;
@@ -29,7 +30,7 @@ export const ListPageHeader = ({
   singularLabel,
   pluralLabel,
   description,
-  className = "",
+  className,
 }: ListPageHeaderProps): JSX.Element => {
   // Build the count text if count and label are provided
   const countText =
@@ -44,7 +45,7 @@ export const ListPageHeader = ({
       : (countText ?? description);
 
   return (
-    <div className={`mb-8 ${className}`}>
+    <div className={cn("mb-8", className)}>
       <h1 className="text-3xl font-bold mb-2 text-theme">{title}</h1>
       {subtitle && <p className="text-theme-muted">{subtitle}</p>}
     </div>

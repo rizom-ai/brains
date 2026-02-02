@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface SocialLink {
   platform: "github" | "instagram" | "linkedin" | "email" | "website";
@@ -87,13 +88,13 @@ const icons = {
  */
 export function SocialLinks({
   links,
-  className = "",
+  className,
   iconClassName = "w-5 h-5",
 }: SocialLinksProps): JSX.Element | null {
   if (links.length === 0) return null;
 
   return (
-    <div className={`flex gap-4 items-center ${className}`}>
+    <div className={cn("flex gap-4 items-center", className)}>
       {links.map((link, index) => {
         const Icon = icons[link.platform];
         const defaultLabel = `${link.platform.charAt(0).toUpperCase()}${link.platform.slice(1)}`;

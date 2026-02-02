@@ -1,17 +1,21 @@
 import type { VNode } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
 
-/**
- * Logo component props
- */
-export interface LogoProps {
-  /**
-   * Logo variant
-   * - "full": Icon + text (default)
-   * - "icon": Icon only
-   * - "text": Text only
-   */
-  variant?: "full" | "icon" | "text";
+const logoVariants = cva("", {
+  variants: {
+    variant: {
+      full: "",
+      icon: "",
+      text: "",
+    },
+  },
+  defaultVariants: {
+    variant: "full",
+  },
+});
 
+export interface LogoProps extends VariantProps<typeof logoVariants> {
   /**
    * Height in pixels (width will be auto-calculated based on aspect ratio)
    */
@@ -39,9 +43,9 @@ export interface LogoProps {
  * Displays the Rizom branding with icon and/or text
  */
 export function Logo({
-  variant = "full",
+  variant,
   height = 32,
-  className = "",
+  className,
   color = "currentColor",
   title,
 }: LogoProps): VNode {
@@ -49,14 +53,19 @@ export function Logo({
   if (title) {
     return (
       <span
-        className={`font-semibold text-xl uppercase tracking-wide ${className}`}
+        className={cn(
+          "font-semibold text-xl uppercase tracking-wide",
+          className,
+        )}
       >
         {title}
       </span>
     );
   }
 
-  if (variant === "icon") {
+  const resolvedVariant = variant ?? "full";
+
+  if (resolvedVariant === "icon") {
     return (
       <svg
         height={height}
@@ -123,7 +132,7 @@ export function Logo({
     );
   }
 
-  if (variant === "text") {
+  if (resolvedVariant === "text") {
     return (
       <svg
         height={height}
@@ -166,7 +175,7 @@ export function Logo({
 
   return (
     <div
-      className={`inline-flex items-center ${className}`}
+      className={cn("inline-flex items-center", className)}
       style={{ gap: `${gap}px` }}
       aria-label="Rizom logo"
     >
@@ -262,3 +271,5 @@ export function Logo({
     </div>
   );
 }
+
+export { logoVariants };

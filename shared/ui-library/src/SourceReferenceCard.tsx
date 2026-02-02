@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface SourceReferenceCardProps {
   id: string;
@@ -18,7 +19,7 @@ export const SourceReferenceCard = ({
   type,
   excerpt,
   href,
-  className = "",
+  className,
 }: SourceReferenceCardProps): JSX.Element => {
   const displayType = type === "conversation" ? "Conversation Summary" : type;
 
@@ -26,7 +27,10 @@ export const SourceReferenceCard = ({
     <a
       key={id}
       href={href}
-      className={`block p-4 bg-theme-subtle rounded-lg hover:bg-theme-muted transition-colors border border-theme ${className}`}
+      className={cn(
+        "block p-4 bg-theme-subtle rounded-lg hover:bg-theme-muted transition-colors border border-theme",
+        className,
+      )}
     >
       <div className="flex justify-between items-start">
         <div>

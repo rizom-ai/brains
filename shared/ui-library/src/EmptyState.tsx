@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface EmptyStateProps {
   message: string;
@@ -22,10 +23,10 @@ export interface EmptyStateProps {
 export const EmptyState = ({
   message,
   description,
-  className = "",
+  className,
 }: EmptyStateProps): JSX.Element => {
   return (
-    <div className={`text-center py-12 ${className}`}>
+    <div className={cn("text-center py-12", className)}>
       <p className="text-theme-muted">{message}</p>
       {description && (
         <p className="text-sm text-theme-muted mt-2">{description}</p>
