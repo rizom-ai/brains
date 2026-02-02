@@ -2,7 +2,15 @@ import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { paginationInfoSchema, createTemplate } from "@brains/plugins";
-import { Head, Pagination, formatDate, StatusBadge } from "@brains/ui-library";
+import {
+  Head,
+  Pagination,
+  formatDate,
+  StatusBadge,
+  Card,
+  CardTitle,
+  CardMetadata,
+} from "@brains/ui-library";
 import { newsletterStatusSchema } from "../schemas/newsletter";
 
 /**
@@ -57,52 +65,39 @@ export const NewsletterListTemplate = ({
       <Head title={title} description={description} />
       <div className="newsletter-list bg-theme">
         <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
-          <section>
-            <div className="grid md:grid-cols-[200px_1px_1fr] gap-y-2 gap-x-0 md:gap-12 items-start">
-              <h2 className="text-xl md:text-2xl font-semibold text-heading">
-                {title}
-              </h2>
-              <div className="border-t md:border-t-0 md:border-l border-theme md:self-stretch" />
-              <div className="mt-6 md:mt-0">
-                {newsletters.length === 0 ? (
-                  <p className="text-theme-muted italic">No newsletters yet.</p>
-                ) : (
-                  <ul className="space-y-10">
-                    {newsletters.map((newsletter) => (
-                      <li key={newsletter.id}>
-                        <a
-                          href={newsletter.url}
-                          className="block group hover:opacity-80 transition-opacity"
-                        >
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-medium text-heading group-hover:text-brand transition-colors">
-                                {newsletter.subject}
-                              </h3>
-                              <div className="flex items-center gap-2 mt-1">
-                                <StatusBadge status={newsletter.status} />
-                                <span className="text-sm text-theme-muted">
-                                  {formatDate(
-                                    newsletter.sentAt ?? newsletter.created,
-                                    { style: "long" },
-                                  )}
-                                </span>
-                              </div>
-                              {newsletter.excerpt && (
-                                <p className="mt-2 text-sm text-theme-muted line-clamp-2">
-                                  {newsletter.excerpt}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-heading mb-8">
+            {title}
+          </h1>
+
+          {newsletters.length === 0 ? (
+            <p className="text-theme-muted italic">No newsletters yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {newsletters.map((newsletter) => (
+                <Card key={newsletter.id} href={newsletter.url}>
+                  <CardTitle className="text-lg">
+                    {newsletter.subject}
+                  </CardTitle>
+                  <CardMetadata>
+                    <div className="flex items-center gap-3">
+                      <StatusBadge status={newsletter.status} />
+                      <span className="text-sm text-theme-muted">
+                        {formatDate(newsletter.sentAt ?? newsletter.created, {
+                          style: "long",
+                        })}
+                      </span>
+                    </div>
+                  </CardMetadata>
+                  {newsletter.excerpt && (
+                    <p className="text-theme-muted line-clamp-2">
+                      {newsletter.excerpt}
+                    </p>
+                  )}
+                </Card>
+              ))}
             </div>
-          </section>
+          )}
+
           {pagination && pagination.totalPages > 1 && (
             <Pagination
               currentPage={pagination.currentPage}
