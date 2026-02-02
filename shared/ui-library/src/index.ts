@@ -14,7 +14,7 @@ export { ThemeToggle, themeToggleVariants } from "./ThemeToggle";
 export type { ThemeToggleProps } from "./ThemeToggle";
 
 // Navigation
-export { NavLinks } from "./NavLinks";
+export { NavLinks, navLinksVariants } from "./NavLinks";
 export type { NavLinksProps, NavigationItem } from "./NavLinks";
 
 // Layout
@@ -40,13 +40,13 @@ export type { LogoProps } from "./Logo";
 // Prose
 export { ProseContent } from "./ProseContent";
 export type { ProseContentProps } from "./ProseContent";
-export { ProseHeading } from "./ProseHeading";
+export { ProseHeading, proseHeadingVariants } from "./ProseHeading";
 export type { ProseHeadingProps, HeadingLevel } from "./ProseHeading";
 
 // Card components
 export { Card, cardVariants } from "./Card";
 export type { CardProps, CardVariant } from "./Card";
-export { CardImage } from "./CardImage";
+export { CardImage, cardImageVariants } from "./CardImage";
 export type { CardImageProps, CardImageSize } from "./CardImage";
 export { CardTitle } from "./CardTitle";
 export type { CardTitleProps } from "./CardTitle";
@@ -78,7 +78,7 @@ export { DetailPageHeader } from "./DetailPageHeader";
 export type { DetailPageHeaderProps } from "./DetailPageHeader";
 
 // Stats
-export { StatBadge } from "./StatBadge";
+export { StatBadge, statBadgeVariants } from "./StatBadge";
 export type { StatBadgeProps } from "./StatBadge";
 export { StatBox } from "./StatBox";
 export type { StatBoxProps } from "./StatBox";

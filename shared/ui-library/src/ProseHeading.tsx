@@ -1,9 +1,24 @@
 import type { JSX, ComponentChildren } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
+
+const proseHeadingVariants = cva("", {
+  variants: {
+    level: {
+      1: "text-4xl font-bold mb-8 mt-0 leading-tight tracking-tight",
+      2: "text-3xl font-semibold mt-16 mb-6 border-b pb-4 leading-snug tracking-tight",
+      3: "text-2xl font-semibold mt-10 mb-4 leading-snug tracking-tight",
+    },
+  },
+  defaultVariants: {
+    level: 1,
+  },
+});
 
 export type HeadingLevel = 1 | 2 | 3;
 
-export interface ProseHeadingProps {
-  level: HeadingLevel;
+export interface ProseHeadingProps
+  extends VariantProps<typeof proseHeadingVariants> {
   children: ComponentChildren;
   className?: string;
 }
@@ -21,18 +36,16 @@ export interface ProseHeadingProps {
 export const ProseHeading = ({
   level,
   children,
-  className = "",
+  className,
 }: ProseHeadingProps): JSX.Element => {
-  // Base classes that match ProseContent's prose styles
-  // Includes typography properties from Tailwind's prose plugin
-  const baseClasses = {
-    1: "text-4xl font-bold mb-8 mt-0 leading-tight tracking-tight",
-    2: "text-3xl font-semibold mt-16 mb-6 border-b pb-4 leading-snug tracking-tight",
-    3: "text-2xl font-semibold mt-10 mb-4 leading-snug tracking-tight",
-  };
+  const resolvedLevel = level ?? 1;
+  const Tag = `h${resolvedLevel}` as keyof JSX.IntrinsicElements;
 
-  const Tag = `h${level}` as keyof JSX.IntrinsicElements;
-  const classes = `${baseClasses[level]} ${className}`;
-
-  return <Tag className={classes}>{children}</Tag>;
+  return (
+    <Tag className={cn(proseHeadingVariants({ level }), className)}>
+      {children}
+    </Tag>
+  );
 };
+
+export { proseHeadingVariants };

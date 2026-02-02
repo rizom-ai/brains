@@ -1,4 +1,5 @@
 import type { JSX, ComponentChildren } from "preact";
+import { cn } from "./lib/utils";
 
 export interface CardMetadataProps {
   children: ComponentChildren;
@@ -32,7 +33,7 @@ export interface CardMetadataProps {
  */
 export const CardMetadata = ({
   children,
-  className = "",
+  className,
 }: CardMetadataProps): JSX.Element => {
-  return <div className={`mb-3 ${className}`}>{children}</div>;
+  return <div className={cn("mb-3", className)}>{children}</div>;
 };
