@@ -1,10 +1,27 @@
 import type { JSX } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
 
-export interface TagsListProps {
+const tagVariants = cva("rounded-full", {
+  variants: {
+    variant: {
+      default: "bg-theme-muted text-theme",
+      muted: "bg-theme text-theme-muted",
+    },
+    size: {
+      xs: "text-xs px-2 py-1",
+      sm: "text-sm px-3 py-1",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+    size: "xs",
+  },
+});
+
+export interface TagsListProps extends VariantProps<typeof tagVariants> {
   tags: string[];
   maxVisible?: number;
-  variant?: "default" | "muted";
-  size?: "xs" | "sm";
   className?: string;
 }
 
@@ -19,38 +36,32 @@ export interface TagsListProps {
 export const TagsList = ({
   tags,
   maxVisible = 5,
-  variant = "default",
-  size = "xs",
-  className = "",
+  variant,
+  size,
+  className,
 }: TagsListProps): JSX.Element => {
   const visibleTags = tags.slice(0, maxVisible);
   const remainingCount = tags.length - maxVisible;
 
-  const sizeClasses = {
-    xs: "text-xs px-2 py-1",
-    sm: "text-sm px-3 py-1",
-  };
-
-  const variantClasses = {
-    default: "bg-theme-muted text-theme",
-    muted: "bg-theme text-theme-muted",
-  };
-
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
+    <div className={cn("flex flex-wrap gap-2", className)}>
       {visibleTags.map((tag) => (
-        <span
-          key={tag}
-          className={`${sizeClasses[size]} ${variantClasses[variant]} rounded-full`}
-        >
+        <span key={tag} className={cn(tagVariants({ variant, size }))}>
           {tag}
         </span>
       ))}
       {remainingCount > 0 && (
-        <span className={`${sizeClasses[size]} text-theme-muted`}>
+        <span
+          className={cn(
+            tagVariants({ size }),
+            "bg-transparent text-theme-muted",
+          )}
+        >
           +{remainingCount} more
         </span>
       )}
     </div>
   );
 };
+
+export { tagVariants };

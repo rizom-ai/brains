@@ -1,10 +1,37 @@
 import type { JSX, ComponentChildren } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
 
-export interface LinkButtonProps {
+const linkButtonVariants = cva(
+  "inline-block font-semibold transition-colors text-center",
+  {
+    variants: {
+      variant: {
+        primary:
+          "bg-brand text-theme-inverse hover:bg-brand-dark focus:ring-brand/20 focus:outline-none focus:ring-4",
+        accent:
+          "bg-accent text-theme-inverse hover:bg-accent-dark focus:ring-accent/20 focus:outline-none focus:ring-4",
+        secondary:
+          "bg-theme-muted text-theme hover:bg-theme-muted-dark focus:outline-none focus:ring-4",
+        unstyled: "",
+      },
+      size: {
+        sm: "px-3 py-1.5 text-sm",
+        md: "px-4 py-2 text-sm",
+        lg: "px-6 py-3 text-base",
+        xl: "px-12 py-6 text-4xl",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  },
+);
+
+export interface LinkButtonProps
+  extends VariantProps<typeof linkButtonVariants> {
   href: string;
   children: ComponentChildren;
-  variant?: "primary" | "accent" | "secondary";
-  size?: "sm" | "md" | "lg" | "xl";
   external?: boolean;
   className?: string;
 }
@@ -17,43 +44,10 @@ export function LinkButton({
   href,
   children,
   variant,
-  size = "md",
+  size,
   external = false,
-  className = "",
+  className,
 }: LinkButtonProps): JSX.Element {
-  // Base classes
-  const baseClasses =
-    "inline-block font-semibold transition-colors text-center";
-
-  // Variant classes (only applied if variant is specified)
-  const variantClasses = variant
-    ? {
-        primary:
-          "bg-brand text-theme-inverse hover:bg-brand-dark focus:ring-brand/20",
-        accent:
-          "bg-accent text-theme-inverse hover:bg-accent-dark focus:ring-accent/20",
-        secondary: "bg-theme-muted text-theme hover:bg-theme-muted-dark",
-      }[variant]
-    : "";
-
-  // Size classes
-  const sizeClasses = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
-    xl: "px-12 py-6 text-4xl",
-  };
-
-  const classes = [
-    baseClasses,
-    variantClasses,
-    sizeClasses[size],
-    variant && "focus:outline-none focus:ring-4",
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
   const externalProps = external
     ? {
         target: "_blank" as const,
@@ -62,8 +56,14 @@ export function LinkButton({
     : {};
 
   return (
-    <a href={href} className={classes} {...externalProps}>
+    <a
+      href={href}
+      className={cn(linkButtonVariants({ variant, size }), className)}
+      {...externalProps}
+    >
       {children}
     </a>
   );
 }
+
+export { linkButtonVariants };

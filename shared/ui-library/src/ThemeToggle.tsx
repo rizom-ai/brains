@@ -1,8 +1,39 @@
 import type { JSX } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
 
-export interface ThemeToggleProps {
-  variant?: "default" | "light" | "dark" | "footer";
-  size?: "sm" | "md" | "lg";
+const themeToggleVariants = cva(
+  "rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default: "bg-theme-muted/50 hover:bg-theme-muted text-theme",
+        light: "bg-theme-subtle hover:bg-theme-muted text-theme",
+        dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
+        footer:
+          "bg-theme-toggle hover:bg-theme-toggle-hover text-theme-toggle-icon",
+      },
+      size: {
+        sm: "p-1.5",
+        md: "p-2",
+        lg: "p-3",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "md",
+    },
+  },
+);
+
+const iconSizeMap = {
+  sm: "w-4 h-4",
+  md: "w-5 h-5",
+  lg: "w-6 h-6",
+} as const;
+
+export interface ThemeToggleProps
+  extends VariantProps<typeof themeToggleVariants> {
   className?: string;
 }
 
@@ -11,54 +42,22 @@ export interface ThemeToggleProps {
  * Uses a global toggleTheme() function that should be defined in the page
  */
 export function ThemeToggle({
-  variant = "default",
-  size = "md",
-  className = "",
+  variant,
+  size,
+  className,
 }: ThemeToggleProps): JSX.Element {
-  // Variant classes
-  const variantClasses = {
-    default: "bg-theme-muted/50 hover:bg-theme-muted text-theme", // Theme-aware semi-transparent
-    light: "bg-theme-subtle hover:bg-theme-muted text-theme",
-    dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
-    footer:
-      "bg-theme-toggle hover:bg-theme-toggle-hover text-theme-toggle-icon", // Footer-specific colors
-  };
-
-  // Button padding
-  const buttonPadding = {
-    sm: "p-1.5",
-    md: "p-2",
-    lg: "p-3",
-  };
-
-  // Icon size
-  const iconSize = {
-    sm: "w-4 h-4",
-    md: "w-5 h-5",
-    lg: "w-6 h-6",
-  };
-
-  const buttonClasses = [
-    "rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
-    variantClasses[variant],
-    buttonPadding[size],
-    className,
-  ]
-    .filter(Boolean)
-    .join(" ");
-
-  const iconSizeClass = iconSize[size];
+  const iconSizeClass = iconSizeMap[size ?? "md"];
 
   return (
     <button
       // @ts-expect-error - onclick is valid HTML attribute for SSR
       onclick="toggleTheme()"
       type="button"
-      className={buttonClasses}
+      className={cn(themeToggleVariants({ variant, size }), className)}
       aria-label="Toggle dark mode"
     >
       <svg
-        className={`${iconSizeClass} transition-colors`}
+        className={cn(iconSizeClass, "transition-colors")}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -83,3 +82,5 @@ export function ThemeToggle({
     </button>
   );
 }
+
+export { themeToggleVariants };

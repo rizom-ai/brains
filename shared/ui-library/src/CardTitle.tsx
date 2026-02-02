@@ -1,4 +1,5 @@
 import type { JSX, ComponentChildren } from "preact";
+import { cn } from "./lib/utils";
 
 export interface CardTitleProps {
   href?: string;
@@ -25,13 +26,13 @@ export interface CardTitleProps {
 export const CardTitle = ({
   href,
   children,
-  className = "",
+  className,
 }: CardTitleProps): JSX.Element => {
-  const baseClasses = "text-2xl font-semibold mb-2 text-theme";
+  const baseClasses = cn("text-2xl font-semibold mb-2 text-theme", className);
 
   if (href) {
     return (
-      <h2 className={`${baseClasses} ${className}`}>
+      <h2 className={baseClasses}>
         <a href={href} className="hover:text-brand">
           {children}
         </a>
@@ -39,5 +40,5 @@ export const CardTitle = ({
     );
   }
 
-  return <h2 className={`${baseClasses} ${className}`}>{children}</h2>;
+  return <h2 className={baseClasses}>{children}</h2>;
 };

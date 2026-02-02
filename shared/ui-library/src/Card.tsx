@@ -1,10 +1,27 @@
 import type { JSX, ComponentChildren } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "./lib/utils";
 
-export type CardVariant = "vertical" | "horizontal";
+const cardVariants = cva(
+  "bg-theme-subtle rounded-lg border border-theme hover:shadow-lg transition-shadow",
+  {
+    variants: {
+      variant: {
+        vertical: "flex flex-col p-6",
+        horizontal: "flex items-start gap-4 p-6",
+        compact: "flex flex-col p-4",
+      },
+    },
+    defaultVariants: {
+      variant: "vertical",
+    },
+  },
+);
 
-export interface CardProps {
+export type CardVariant = "vertical" | "horizontal" | "compact";
+
+export interface CardProps extends VariantProps<typeof cardVariants> {
   href?: string;
-  variant?: CardVariant;
   className?: string;
   children: ComponentChildren;
 }
@@ -12,7 +29,7 @@ export interface CardProps {
 /**
  * Generic card container component used across blog posts, decks, links, and other content.
  *
- * Provides consistent styling with support for vertical (default) and horizontal layouts.
+ * Provides consistent styling with support for vertical (default), horizontal, and compact layouts.
  * Can optionally be wrapped in a link for clickable cards.
  *
  * @example Vertical card (default)
@@ -37,19 +54,11 @@ export interface CardProps {
  */
 export const Card = ({
   href,
-  variant = "vertical",
-  className = "",
+  variant,
+  className,
   children,
 }: CardProps): JSX.Element => {
-  const baseClasses =
-    "bg-theme-subtle rounded-lg p-6 hover:shadow-lg transition-shadow border border-theme";
-
-  const variantClasses = {
-    vertical: "flex flex-col",
-    horizontal: "flex items-start gap-4",
-  };
-
-  const classes = `${baseClasses} ${variantClasses[variant]} ${className}`;
+  const classes = cn(cardVariants({ variant }), className);
 
   // If href is provided, render as clickable article
   if (href) {
@@ -64,3 +73,5 @@ export const Card = ({
 
   return <article className={classes}>{children}</article>;
 };
+
+export { cardVariants };
