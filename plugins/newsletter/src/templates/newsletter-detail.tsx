@@ -8,6 +8,7 @@ import {
   ProseContent,
   formatDate,
   StatusBadge,
+  Card,
   type BreadcrumbItem,
 } from "@brains/ui-library";
 import { newsletterStatusSchema } from "../schemas/newsletter";
@@ -107,7 +108,7 @@ export const NewsletterDetailTemplate = ({
 
             {/* Source entities */}
             {sourceEntities && sourceEntities.length > 0 && (
-              <div className="mb-8 p-4 bg-theme-muted rounded-lg">
+              <Card variant="compact" className="mb-8">
                 <h3 className="text-sm font-medium text-heading mb-2">
                   Related Content
                 </h3>
@@ -123,7 +124,7 @@ export const NewsletterDetailTemplate = ({
                     </li>
                   ))}
                 </ul>
-              </div>
+              </Card>
             )}
 
             {/* Newsletter Content */}
@@ -134,24 +135,22 @@ export const NewsletterDetailTemplate = ({
               <nav className="mt-12 pt-8 border-t border-theme">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {prevNewsletter ? (
-                    <a
-                      href={prevNewsletter.url}
-                      className="group p-4 rounded-lg border border-theme hover:border-brand transition-colors"
-                    >
+                    <Card href={prevNewsletter.url} variant="compact">
                       <span className="text-xs text-theme-muted uppercase tracking-wide">
                         Newer
                       </span>
                       <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
                         {prevNewsletter.subject}
                       </span>
-                    </a>
+                    </Card>
                   ) : (
                     <div />
                   )}
                   {nextNewsletter && (
-                    <a
+                    <Card
                       href={nextNewsletter.url}
-                      className="group p-4 rounded-lg border border-theme hover:border-brand transition-colors md:text-right"
+                      variant="compact"
+                      className="md:text-right"
                     >
                       <span className="text-xs text-theme-muted uppercase tracking-wide">
                         Older
@@ -159,7 +158,7 @@ export const NewsletterDetailTemplate = ({
                       <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
                         {nextNewsletter.subject}
                       </span>
-                    </a>
+                    </Card>
                   )}
                 </div>
               </nav>

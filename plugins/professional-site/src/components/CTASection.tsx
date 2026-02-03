@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
-import type { SocialLink } from "@brains/ui-library";
+import { type SocialLink, LinkButton } from "@brains/ui-library";
 
 interface CTASectionProps {
   cta: SiteInfoCTA;
@@ -17,12 +17,9 @@ export function CTASection({ cta, socialLinks }: CTASectionProps): JSX.Element {
       <h2 className="text-2xl md:text-3xl font-semibold text-heading mb-6">
         {cta.heading}
       </h2>
-      <a
-        href={cta.buttonLink}
-        className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-theme-inverse rounded-lg hover:bg-brand-dark transition-colors font-medium text-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-      >
+      <LinkButton href={cta.buttonLink} variant="primary" size="lg">
         {cta.buttonText}
-      </a>
+      </LinkButton>
 
       {socialLinks && socialLinks.length > 0 && (
         <div className="flex flex-wrap justify-center gap-4 mt-8">

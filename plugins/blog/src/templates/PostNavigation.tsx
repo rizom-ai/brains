@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
+import { Card } from "@brains/ui-library";
 
 export interface PostNavigationProps {
   prevPost: EnrichedBlogPost | null;
@@ -18,22 +19,31 @@ export const PostNavigation = ({
   }
 
   return (
-    <nav className="flex justify-between items-center border-t border-theme pt-8 mt-16">
-      {prevPost ? (
-        <a href={prevPost.url} className="text-brand hover:underline">
-          ← Previous: {prevPost.frontmatter.title}
-        </a>
-      ) : (
-        <div />
-      )}
-      {nextPost && (
-        <a
-          href={nextPost.url}
-          className="text-brand hover:underline text-right"
-        >
-          Next: {nextPost.frontmatter.title} →
-        </a>
-      )}
+    <nav className="border-t border-theme pt-8 mt-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {prevPost ? (
+          <Card href={prevPost.url} variant="compact">
+            <span className="text-xs text-theme-muted uppercase tracking-wide">
+              Previous
+            </span>
+            <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+              {prevPost.frontmatter.title}
+            </span>
+          </Card>
+        ) : (
+          <div />
+        )}
+        {nextPost && (
+          <Card href={nextPost.url} variant="compact" className="md:text-right">
+            <span className="text-xs text-theme-muted uppercase tracking-wide">
+              Next
+            </span>
+            <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+              {nextPost.frontmatter.title}
+            </span>
+          </Card>
+        )}
+      </div>
     </nav>
   );
 };

@@ -21,7 +21,7 @@ const cardVariants = cva(
 export type CardVariant = "vertical" | "horizontal" | "compact";
 
 export interface CardProps extends VariantProps<typeof cardVariants> {
-  href?: string;
+  href?: string | undefined;
   className?: string;
   children: ComponentChildren;
 }
@@ -60,10 +60,10 @@ export const Card = ({
 }: CardProps): JSX.Element => {
   const classes = cn(cardVariants({ variant }), className);
 
-  // If href is provided, render as clickable article
+  // If href is provided, render as clickable article with group for hover effects
   if (href) {
     return (
-      <article className={classes}>
+      <article className={cn(classes, "group")}>
         <a href={href} className="contents">
           {children}
         </a>

@@ -3,6 +3,7 @@ import {
   Head,
   Breadcrumb,
   StatusBadge,
+  Card,
   type BreadcrumbItem,
 } from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
@@ -81,11 +82,11 @@ export const SocialPostDetailTemplate = ({
             )}
 
             {/* Post content */}
-            <div className="bg-theme-subtle rounded-lg border border-theme p-8 mb-8">
+            <Card className="p-8 mb-8">
               <p className="text-lg text-theme leading-relaxed whitespace-pre-wrap">
                 {post.body}
               </p>
-            </div>
+            </Card>
 
             {/* Metadata section */}
             <div className="space-y-4 text-sm text-theme-muted">

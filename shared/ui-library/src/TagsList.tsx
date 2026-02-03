@@ -7,10 +7,13 @@ const tagVariants = cva("rounded-full", {
     variant: {
       default: "bg-theme-muted text-theme",
       muted: "bg-theme text-theme-muted",
+      accent: "bg-accent/10 text-accent",
     },
     size: {
       xs: "text-xs px-2 py-1",
       sm: "text-sm px-3 py-1",
+      md: "text-sm px-3 py-1 font-medium",
+      lg: "text-sm px-4 py-2 font-medium",
     },
   },
   defaultVariants: {

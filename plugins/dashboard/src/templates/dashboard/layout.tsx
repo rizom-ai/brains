@@ -10,6 +10,7 @@ import {
   ListWidget,
   CustomWidget,
   type BaseWidgetProps,
+  Button,
 } from "@brains/ui-library";
 
 /**
@@ -152,15 +153,12 @@ const DashboardRender = ({
           }
           className="form-input sm:flex-1"
         />
-        <button onClick={onSortChange} className="btn-primary">
+        <Button onClick={onSortChange}>
           Sort by {sortBy === "priority" ? "Title" : "Priority"}
-        </button>
-        <button
-          onClick={onToggleSidebar}
-          className="px-4 py-2 bg-theme-muted text-theme rounded-lg border border-theme hover:bg-theme-subtle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-        >
+        </Button>
+        <Button onClick={onToggleSidebar} variant="secondary">
           {showSidebar ? "Hide" : "Show"} Sidebar
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Head, ProseContent } from "@brains/ui-library";
+import { Head, ProseContent, TagsList, Card } from "@brains/ui-library";
 import { markdownToHtml } from "@brains/utils";
 import type { EnrichedProject } from "../schemas/project";
 
@@ -22,33 +22,35 @@ const ProjectNavigation = ({
   if (!prevProject && !nextProject) return null;
 
   return (
-    <nav className="flex justify-between items-center pt-12 mt-12 border-t border-theme-muted">
-      {prevProject ? (
-        <a
-          href={prevProject.url}
-          className="group flex flex-col items-start max-w-[45%]"
-        >
-          <span className="text-sm text-theme-muted mb-1">
-            Previous Project
-          </span>
-          <span className="text-heading font-medium group-hover:text-brand transition-colors">
-            {prevProject.metadata.title}
-          </span>
-        </a>
-      ) : (
-        <div />
-      )}
-      {nextProject && (
-        <a
-          href={nextProject.url}
-          className="group flex flex-col items-end max-w-[45%] text-right"
-        >
-          <span className="text-sm text-theme-muted mb-1">Next Project</span>
-          <span className="text-heading font-medium group-hover:text-brand transition-colors">
-            {nextProject.metadata.title}
-          </span>
-        </a>
-      )}
+    <nav className="pt-12 mt-12 border-t border-theme-muted">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {prevProject ? (
+          <Card href={prevProject.url} variant="compact">
+            <span className="text-xs text-theme-muted uppercase tracking-wide">
+              Previous
+            </span>
+            <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+              {prevProject.metadata.title}
+            </span>
+          </Card>
+        ) : (
+          <div />
+        )}
+        {nextProject && (
+          <Card
+            href={nextProject.url}
+            variant="compact"
+            className="md:text-right"
+          >
+            <span className="text-xs text-theme-muted uppercase tracking-wide">
+              Next
+            </span>
+            <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+              {nextProject.metadata.title}
+            </span>
+          </Card>
+        )}
+      </div>
     </nav>
   );
 };
@@ -119,16 +121,7 @@ export const ProjectDetailTemplate = ({
                 frontmatter.technologies.length > 0 && (
                   <>
                     <span className="text-theme-muted">|</span>
-                    <div className="flex flex-wrap gap-2">
-                      {frontmatter.technologies.map((tech) => (
-                        <span
-                          key={tech}
-                          className="text-xs px-2 py-1 bg-theme-muted rounded-full"
-                        >
-                          {tech}
-                        </span>
-                      ))}
-                    </div>
+                    <TagsList tags={frontmatter.technologies} />
                   </>
                 )}
               {frontmatter.url && (

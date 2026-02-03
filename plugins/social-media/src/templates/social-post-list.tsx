@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
-import { Head, Pagination, StatusBadge } from "@brains/ui-library";
+import { Head, Pagination, StatusBadge, Card } from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
 
 export interface SocialPostListProps {
@@ -48,10 +48,7 @@ export const SocialPostListTemplate = ({
             <ul className="space-y-6">
               {posts.map((post) => (
                 <li key={post.id}>
-                  <a
-                    href={post.url}
-                    className="block p-6 bg-theme-subtle rounded-lg border border-theme hover:border-brand transition-colors"
-                  >
+                  <Card href={post.url} variant="horizontal">
                     <div className="flex gap-4">
                       {post.coverImageUrl && (
                         <img
@@ -85,7 +82,7 @@ export const SocialPostListTemplate = ({
                         </p>
                       </div>
                     </div>
-                  </a>
+                  </Card>
                 </li>
               ))}
             </ul>

@@ -8,6 +8,7 @@ import {
   EmptyState,
   TagsList,
   formatDate,
+  LinkButton,
 } from "@brains/ui-library";
 
 export const LinkListLayout = ({
@@ -67,11 +68,12 @@ export const LinkListLayout = ({
               </div>
 
               <div className="flex-shrink-0">
-                <a
+                <LinkButton
                   href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-theme-muted text-theme hover:bg-brand hover:text-theme-inverse transition-colors"
+                  external
+                  variant="secondary"
+                  size="icon"
+                  className="hover:bg-brand hover:text-theme-inverse"
                   aria-label={`Open ${link.title} in new tab`}
                 >
                   <svg
@@ -89,7 +91,7 @@ export const LinkListLayout = ({
                     <polyline points="15 3 21 3 21 9" />
                     <line x1="10" y1="14" x2="21" y2="3" />
                   </svg>
-                </a>
+                </LinkButton>
               </div>
             </div>
           </Card>

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { LandingHeroData } from "./schema";
+import { LinkButton } from "@brains/ui-library";
 
 export const HeroLayout = ({
   headline,
@@ -27,9 +27,11 @@ export const HeroLayout = ({
         </p>
         {ctaText && ctaLink && (
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
+            <LinkButton
               href={ctaLink}
-              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-theme-inverse bg-gradient-to-r from-accent to-accent-dark rounded-xl shadow-lg hover:-translate-y-0.5 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-accent/20"
+              variant="accent"
+              size="xl"
+              className="group bg-gradient-to-r from-accent to-accent-dark shadow-lg hover:-translate-y-0.5 hover:shadow-xl"
             >
               {ctaText}
               <svg
@@ -45,10 +47,12 @@ export const HeroLayout = ({
                   d="M13 7l5 5m0 0l-5 5m5-5H6"
                 ></path>
               </svg>
-            </a>
-            <a
+            </LinkButton>
+            <LinkButton
               href="#features"
-              className="inline-flex items-center justify-center px-8 py-4 text-lg font-semibold text-brand border-2 border-brand rounded-xl hover:bg-brand hover:text-theme-inverse hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-brand/20"
+              variant="outline"
+              size="xl"
+              className="hover:shadow-lg hover:-translate-y-0.5"
             >
               Learn More
               <svg
@@ -64,7 +68,7 @@ export const HeroLayout = ({
                   d="M19 14l-7 7m0 0l-7-7m7 7V3"
                 ></path>
               </svg>
-            </a>
+            </LinkButton>
           </div>
         )}
       </div>

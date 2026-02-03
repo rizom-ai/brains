@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import { cn } from "./lib/utils";
+import { Button } from "./Button";
 
 export interface NewsletterSignupProps {
   /** Form title */
@@ -127,9 +128,7 @@ export function NewsletterSignup({
           required
           className="form-input"
         />
-        <button type="submit" className="btn-primary">
-          {buttonText}
-        </button>
+        <Button type="submit">{buttonText}</Button>
       </form>
       <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
     </div>

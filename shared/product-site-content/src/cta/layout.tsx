@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { CTASection } from "./schema";
+import { LinkButton } from "@brains/ui-library";
 
 export const CTALayout = ({
   headline,
@@ -21,9 +21,11 @@ export const CTALayout = ({
           {description}
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
+          <LinkButton
             href={primaryButton.link}
-            className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-brand-dark bg-theme-inverse rounded-2xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            variant="unstyled"
+            size="2xl"
+            className="bg-theme-inverse text-brand-dark font-bold hover:shadow-2xl hover:-translate-y-1"
           >
             {primaryButton.text}
             <svg
@@ -39,11 +41,12 @@ export const CTALayout = ({
                 d="M13 7l5 5m0 0l-5 5m5-5H6"
               ></path>
             </svg>
-          </a>
+          </LinkButton>
           {secondaryButton && (
-            <a
+            <LinkButton
               href={secondaryButton.link}
-              className="inline-flex items-center justify-center px-10 py-5 text-lg font-bold text-theme-inverse border-2 border-theme-light rounded-2xl hover:bg-theme-inverse hover:text-brand hover:border-theme-inverse transition-all duration-300"
+              variant="outline-light"
+              size="2xl"
             >
               {secondaryButton.text}
               <svg
@@ -65,7 +68,7 @@ export const CTALayout = ({
                   d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 ></path>
               </svg>
-            </a>
+            </LinkButton>
           )}
         </div>
       </div>

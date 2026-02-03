@@ -6,6 +6,8 @@ import {
   BackLink,
   TagsList,
   LinkButton,
+  Card,
+  Alert,
 } from "@brains/ui-library";
 
 interface LinkNavigationProps {
@@ -20,37 +22,37 @@ const LinkNavigation = ({
   if (!prevLink && !nextLink) return null;
 
   return (
-    <nav className="flex justify-between items-center mt-12 pt-8 border-t border-theme-muted">
-      {prevLink ? (
-        <a
-          href={`/links/${prevLink.id}`}
-          className="flex flex-col text-left group"
-        >
-          <span className="text-xs text-theme-muted uppercase tracking-wide">
-            Previous
-          </span>
-          <span className="text-brand group-hover:text-brand-dark font-medium truncate max-w-xs">
-            {prevLink.title}
-          </span>
-        </a>
-      ) : (
-        <div />
-      )}
-      {nextLink ? (
-        <a
-          href={`/links/${nextLink.id}`}
-          className="flex flex-col text-right group"
-        >
-          <span className="text-xs text-theme-muted uppercase tracking-wide">
-            Next
-          </span>
-          <span className="text-brand group-hover:text-brand-dark font-medium truncate max-w-xs">
-            {nextLink.title}
-          </span>
-        </a>
-      ) : (
-        <div />
-      )}
+    <nav className="mt-12 pt-8 border-t border-theme-muted">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {prevLink ? (
+          <Card href={`/links/${prevLink.id}`} variant="compact">
+            <span className="text-xs text-theme-muted uppercase tracking-wide">
+              Previous
+            </span>
+            <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+              {prevLink.title}
+            </span>
+          </Card>
+        ) : (
+          <div />
+        )}
+        {nextLink ? (
+          <Card
+            href={`/links/${nextLink.id}`}
+            variant="compact"
+            className="md:text-right"
+          >
+            <span className="text-xs text-theme-muted uppercase tracking-wide">
+              Next
+            </span>
+            <span className="block mt-1 font-medium text-heading group-hover:text-brand transition-colors truncate">
+              {nextLink.title}
+            </span>
+          </Card>
+        ) : (
+          <div />
+        )}
+      </div>
     </nav>
   );
 };
@@ -77,14 +79,9 @@ export const LinkDetailLayout = ({
 
           {/* Status badge for pending links */}
           {isPending && (
-            <div className="mt-6 p-4 bg-warning border border-warning rounded-lg">
-              <p className="font-medium text-warning-emphasis">
-                Pending Review
-              </p>
-              <p className="mt-1 text-sm text-warning">
-                This link needs additional information or review.
-              </p>
-            </div>
+            <Alert variant="warning" title="Pending Review" className="mt-6">
+              This link needs additional information or review.
+            </Alert>
           )}
 
           <DetailPageHeader
@@ -136,7 +133,7 @@ export const LinkDetailLayout = ({
           )}
 
           {/* Full URL */}
-          <div className="p-4 bg-theme-muted rounded-lg mb-8">
+          <Card variant="compact" className="mb-8">
             <p className="text-xs text-theme-muted uppercase tracking-wide mb-1">
               Full URL
             </p>
@@ -148,7 +145,7 @@ export const LinkDetailLayout = ({
             >
               {link.url}
             </a>
-          </div>
+          </Card>
 
           <LinkNavigation prevLink={prevLink} nextLink={nextLink} />
         </div>

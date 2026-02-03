@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
+import { Card } from "@brains/ui-library";
 
 export interface SeriesSidebarProps {
   currentPost: EnrichedBlogPost;
@@ -25,7 +26,7 @@ export const SeriesSidebar = ({
   return (
     <aside className="hidden lg:block w-64 shrink-0">
       <div className="sticky top-8">
-        <div className="bg-theme-subtle rounded-lg p-4">
+        <Card variant="compact">
           <h3 className="font-semibold text-theme text-sm mb-1">
             {currentPost.frontmatter.seriesName}
           </h3>
@@ -59,7 +60,7 @@ export const SeriesSidebar = ({
               </li>
             ))}
           </ol>
-        </div>
+        </Card>
       </div>
     </aside>
   );

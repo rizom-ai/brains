@@ -1,8 +1,8 @@
 import type { JSX } from "preact";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { FeaturesSection } from "./schema";
 import * as LucideIcons from "lucide-preact";
 import type { LucideIcon } from "lucide-preact";
+import { Card } from "@brains/ui-library";
 
 const getIcon = (iconName: string): LucideIcon => {
   // Get the icon component from Lucide, fallback to HelpCircle if not found
@@ -33,10 +33,7 @@ export const FeaturesLayout = ({
           {features.map((feature, index) => {
             const IconComponent = getIcon(feature.icon);
             return (
-              <div
-                key={index}
-                className="bg-theme rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
-              >
+              <Card key={index} className="bg-theme shadow-sm hover:shadow-md">
                 <div className="text-brand mb-4">
                   <IconComponent size={48} />
                 </div>
@@ -44,7 +41,7 @@ export const FeaturesLayout = ({
                   {feature.title}
                 </h3>
                 <p className="text-theme-muted">{feature.description}</p>
-              </div>
+              </Card>
             );
           })}
         </div>

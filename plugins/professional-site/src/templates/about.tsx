@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
 import type { ProfessionalProfile } from "../schemas";
-import { Head, ProseContent } from "@brains/ui-library";
+import {
+  Head,
+  ProseContent,
+  tagVariants,
+  LinkButton,
+} from "@brains/ui-library";
 import { markdownToHtml } from "@brains/utils";
 
 /**
@@ -58,7 +63,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
                 {profile.expertise.map((skill, i) => (
                   <li
                     key={i}
-                    className="px-4 py-2 bg-accent/10 text-accent rounded-full text-sm font-medium"
+                    className={tagVariants({ variant: "accent", size: "lg" })}
                   >
                     {skill}
                   </li>
@@ -127,15 +132,15 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
                 {profile.socialLinks && profile.socialLinks.length > 0 && (
                   <div className="flex flex-wrap gap-4 mt-4">
                     {profile.socialLinks.map((link, i) => (
-                      <a
+                      <LinkButton
                         key={i}
                         href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 border border-theme rounded-lg text-theme hover:text-brand hover:border-brand transition-colors"
+                        external
+                        variant="secondary"
+                        size="md"
                       >
                         {link.label || link.platform}
-                      </a>
+                      </LinkButton>
                     ))}
                   </div>
                 )}

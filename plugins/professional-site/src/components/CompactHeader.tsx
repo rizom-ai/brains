@@ -1,5 +1,5 @@
 import type { VNode } from "preact";
-import { Logo } from "@brains/ui-library";
+import { Logo, Button, cn } from "@brains/ui-library";
 import type { NavigationItem } from "@brains/site-builder-plugin";
 
 /**
@@ -57,11 +57,14 @@ export function CompactHeader({
           </nav>
 
           {/* Mobile hamburger button */}
-          <button
-            // @ts-expect-error - onclick is valid HTML attribute for SSR
-            onclick="toggleMobileMenu()"
+          <Button
+            variant="ghost"
+            ssrOnClick="toggleMobileMenu()"
             type="button"
-            className="md:hidden p-2 text-theme hover:text-brand transition-colors"
+            className={cn(
+              "md:hidden p-2 h-auto",
+              "text-theme hover:text-brand hover:bg-transparent",
+            )}
             aria-label="Toggle navigation menu"
             aria-expanded="false"
             aria-controls="mobile-menu"
@@ -91,7 +94,7 @@ export function CompactHeader({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {/* Mobile navigation menu */}

@@ -53,7 +53,11 @@ const entityRouteConfig = {
     pluralName: "social-posts",
     navigation: { slot: "secondary" }, // Show in footer only
   },
-};
+  newsletter: {
+    label: "Newsletter",
+    navigation: { slot: "secondary" }, // Show in footer only
+  },
+} as const;
 
 const config = defineConfig({
   name: "professional-brain",

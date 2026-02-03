@@ -3,7 +3,12 @@ import type { ProfessionalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
-import { ContentSection, type ContentItem, Head } from "@brains/ui-library";
+import {
+  ContentSection,
+  type ContentItem,
+  Head,
+  TagsList,
+} from "@brains/ui-library";
 import { AnimatedWaveDivider } from "../components/AnimatedWaveDivider";
 import { CTASection } from "../components/CTASection";
 
@@ -120,16 +125,11 @@ export const HomepageListLayout = ({
                     </p>
                   )}
                   {profile.expertise && profile.expertise.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {profile.expertise.map((skill, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
+                    <TagsList
+                      tags={profile.expertise}
+                      variant="accent"
+                      size="sm"
+                    />
                   )}
                 </div>
               </ContentSection>

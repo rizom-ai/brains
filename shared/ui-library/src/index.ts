@@ -1,6 +1,10 @@
 // Utilities
 export { cn } from "./lib/utils";
 
+// Alert
+export { Alert, alertVariants } from "./Alert";
+export type { AlertProps } from "./Alert";
+
 // Button
 export { Button, buttonVariants } from "./Button";
 export type { ButtonProps } from "./Button";

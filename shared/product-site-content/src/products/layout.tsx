@@ -1,9 +1,8 @@
 import type { JSX } from "preact";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { ProductsSection } from "./schema";
 import * as LucideIcons from "lucide-preact";
 import type { LucideIcon } from "lucide-preact";
-import { StatusBadge } from "@brains/ui-library";
+import { StatusBadge, Card, LinkButton } from "@brains/ui-library";
 
 const getIcon = (iconName: string): LucideIcon => {
   // Get the icon component from Lucide, fallback to HelpCircle if not found
@@ -34,9 +33,9 @@ export const ProductsLayout = ({
           {products.map((product) => {
             const IconComponent = getIcon(product.icon);
             return (
-              <div
+              <Card
                 key={product.id}
-                className="bg-theme-subtle rounded-2xl p-8 hover:bg-theme hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-transparent hover:border-brand-light"
+                className="rounded-2xl p-8 hover:bg-theme hover:-translate-y-1 transition-all duration-300 border-transparent hover:border-brand-light"
               >
                 <div className="flex items-start justify-between mb-6">
                   <div className="text-brand">
@@ -56,15 +55,16 @@ export const ProductsLayout = ({
                 </p>
 
                 {product.link && (
-                  <a
+                  <LinkButton
                     href={product.link}
-                    className="inline-flex items-center text-brand font-semibold hover:text-brand transition-colors"
+                    variant="unstyled"
+                    className="text-brand font-semibold hover:text-brand-dark"
                   >
                     Learn more
                     <LucideIcons.ChevronRight className="ml-1 w-4 h-4" />
-                  </a>
+                  </LinkButton>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>
