@@ -77,7 +77,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
         await context.messaging.send("plugin:site-builder:slot:register", {
           pluginId: this.id,
           slotName: "footer-top",
-          render: () => h(NewsletterSignup, null),
+          render: () => h(NewsletterSignup, { variant: "inline" }),
         });
         return { success: true };
       });

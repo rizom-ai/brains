@@ -26,7 +26,7 @@ export const Footer = ({
   return (
     <footer className="footer py-8 bg-footer">
       <div className="container mx-auto px-4 max-w-6xl">
-        {children && <div className="mb-8 max-w-md mx-auto">{children}</div>}
+        {children && <div className="mb-8">{children}</div>}
         <FooterContent
           primaryNav={primaryNavigation}
           secondaryNav={secondaryNavigation}

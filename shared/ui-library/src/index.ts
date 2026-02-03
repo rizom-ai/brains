@@ -122,7 +122,7 @@ export { Breadcrumb } from "./Breadcrumb";
 export type { BreadcrumbProps, BreadcrumbItem } from "./Breadcrumb";
 
 // Newsletter
-export { NewsletterSignup } from "./NewsletterSignup";
+export { NewsletterSignup, newsletterSignupVariants } from "./NewsletterSignup";
 export type { NewsletterSignupProps } from "./NewsletterSignup";
 
 // Widget renderers for dashboard

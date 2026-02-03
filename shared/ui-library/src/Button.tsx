@@ -49,17 +49,19 @@ export function Button({
   className,
   children,
   ssrOnClick,
+  type = "button",
   ...props
 }: ButtonProps): JSX.Element {
-  // Build button with optional SSR onclick
-  const buttonProps = {
-    className: cn(buttonVariants({ variant, size }), className),
-    ...props,
-    // SSR onclick needs to be lowercase for static HTML
-    ...(ssrOnClick && { onclick: ssrOnClick }),
-  };
-
-  return <button {...buttonProps}>{children}</button>;
+  return (
+    <button
+      type={type}
+      className={cn(buttonVariants({ variant, size }), className)}
+      {...props}
+      {...(ssrOnClick && { onclick: ssrOnClick })}
+    >
+      {children}
+    </button>
+  );
 }
 
 export { buttonVariants };

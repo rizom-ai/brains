@@ -1,8 +1,26 @@
 import type { JSX } from "preact";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./lib/utils";
 import { Button } from "./Button";
 
-export interface NewsletterSignupProps {
+const newsletterSignupVariants = cva("newsletter-signup", {
+  variants: {
+    variant: {
+      /** Horizontal inline form - for footer, minimal presence */
+      inline: "",
+      /** Card with background - for sidebar, end of post */
+      card: "p-6 rounded-lg bg-theme-subtle",
+      /** Full-width section - for homepage, dedicated page */
+      section: "py-16 text-center",
+    },
+  },
+  defaultVariants: {
+    variant: "card",
+  },
+});
+
+export interface NewsletterSignupProps
+  extends VariantProps<typeof newsletterSignupVariants> {
   /** Form title */
   title?: string;
   /** Description text below title */
@@ -22,18 +40,41 @@ export interface NewsletterSignupProps {
 /**
  * NewsletterSignup component - a form for subscribing to the newsletter
  *
+ * Variants:
+ * - `inline`: Horizontal layout for footer (label + input + button)
+ * - `card`: Vertical card with background for sidebar/end-of-post
+ * - `section`: Full-width prominent section for homepage/dedicated page
+ *
  * Uses embedded vanilla JS for client-side interactivity without requiring hydration.
  */
 export function NewsletterSignup({
-  title = "Subscribe to our newsletter",
-  description = "Get the latest updates delivered to your inbox.",
+  variant = "card",
+  title,
+  description,
   buttonText = "Subscribe",
   showNameField = false,
   action = "/api/newsletter/subscribe",
   className,
   successMessage = "Check your email to confirm your subscription.",
 }: NewsletterSignupProps): JSX.Element {
-  // Inline script for client-side form handling
+  // Set appropriate defaults based on variant
+  const displayTitle =
+    title ??
+    (variant === "inline"
+      ? "Stay updated"
+      : variant === "section"
+        ? "Subscribe to the Newsletter"
+        : "Subscribe");
+
+  const displayDescription =
+    description ??
+    (variant === "section"
+      ? "Get the latest essays and updates delivered to your inbox."
+      : variant === "card"
+        ? "Get updates delivered to your inbox."
+        : undefined);
+
+  // Inline script for client-side form handling (original working version)
   const alreadySubscribedMessage = "You are already subscribed!";
   const inlineScript = `
 (function() {
@@ -95,18 +136,97 @@ export function NewsletterSignup({
 })();
 `;
 
+  // Inline variant: horizontal layout for footer (adapts to footer background)
+  if (variant === "inline") {
+    return (
+      <div
+        className={cn(
+          newsletterSignupVariants({ variant }),
+          "max-w-xl mx-auto",
+          className,
+        )}
+      >
+        <form
+          action={action}
+          method="POST"
+          className="newsletter-signup-form flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl bg-theme-subtle border border-theme"
+        >
+          <span className="text-heading font-medium whitespace-nowrap">
+            {displayTitle}
+          </span>
+          <div className="flex flex-1 w-full sm:w-auto gap-2">
+            <input
+              type="email"
+              name="email"
+              placeholder="your@email.com"
+              required
+              className="flex-1 min-w-0 px-4 py-2 text-sm rounded-lg bg-theme border border-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+            />
+            <Button type="submit" size="sm" className="font-semibold px-5">
+              {buttonText}
+            </Button>
+          </div>
+        </form>
+        <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
+      </div>
+    );
+  }
+
+  // Section variant: full-width prominent layout
+  if (variant === "section") {
+    return (
+      <div className={cn(newsletterSignupVariants({ variant }), className)}>
+        <div className="max-w-xl mx-auto px-6">
+          {displayTitle && (
+            <h2 className="text-3xl font-bold text-heading mb-3">
+              {displayTitle}
+            </h2>
+          )}
+          {displayDescription && (
+            <p className="text-theme-muted text-lg mb-8">
+              {displayDescription}
+            </p>
+          )}
+          <form
+            action={action}
+            method="POST"
+            className="newsletter-signup-form flex flex-col sm:flex-row gap-3 justify-center"
+          >
+            {showNameField && (
+              <input
+                type="text"
+                name="name"
+                placeholder="Your name"
+                className="px-4 py-3 text-base rounded-lg border border-theme bg-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+            )}
+            <input
+              type="email"
+              name="email"
+              placeholder="your@email.com"
+              required
+              className="flex-1 max-w-sm px-4 py-3 text-base rounded-lg border border-theme bg-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+            <Button type="submit" size="lg">
+              {buttonText}
+            </Button>
+          </form>
+        </div>
+        <script dangerouslySetInnerHTML={{ __html: inlineScript }} />
+      </div>
+    );
+  }
+
+  // Card variant (default): vertical card layout
   return (
-    <div
-      className={cn(
-        "newsletter-signup p-6 rounded-lg bg-theme-subtle",
-        className,
+    <div className={cn(newsletterSignupVariants({ variant }), className)}>
+      {displayTitle && (
+        <h3 className="text-lg font-semibold text-heading mb-2">
+          {displayTitle}
+        </h3>
       )}
-    >
-      {title && (
-        <h3 className="text-lg font-semibold text-theme mb-2">{title}</h3>
-      )}
-      {description && (
-        <p className="text-theme-muted text-sm mb-4">{description}</p>
+      {displayDescription && (
+        <p className="text-theme-muted text-sm mb-4">{displayDescription}</p>
       )}
       <form
         action={action}
@@ -118,7 +238,7 @@ export function NewsletterSignup({
             type="text"
             name="name"
             placeholder="Your name"
-            className="form-input"
+            className="px-3 py-2 text-sm rounded-lg border border-theme bg-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand"
           />
         )}
         <input
@@ -126,7 +246,7 @@ export function NewsletterSignup({
           name="email"
           placeholder="your@email.com"
           required
-          className="form-input"
+          className="px-3 py-2 text-sm rounded-lg border border-theme bg-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand"
         />
         <Button type="submit">{buttonText}</Button>
       </form>
@@ -134,3 +254,5 @@ export function NewsletterSignup({
     </div>
   );
 }
+
+export { newsletterSignupVariants };
