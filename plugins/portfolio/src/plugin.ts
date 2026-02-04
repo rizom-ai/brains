@@ -59,7 +59,6 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
 
     // Register project datasource
     const projectDataSource = new ProjectDataSource(
-      context.entityService,
       this.logger.child("ProjectDataSource"),
     );
     context.entities.registerDataSource(projectDataSource);

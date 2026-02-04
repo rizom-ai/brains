@@ -71,10 +71,7 @@ export class NewsletterDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms newsletter entities for rendering";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("NewsletterDataSource initialized");
   }
 
@@ -84,13 +81,19 @@ export class NewsletterDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     const params = entityFetchQuerySchema.parse(query);
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
 
     // Case 1: Fetch single newsletter by ID
     if (params.query?.id) {
-      return this.fetchSingleNewsletter(params.query.id, outputSchema);
+      return this.fetchSingleNewsletter(
+        params.query.id,
+        outputSchema,
+        entityService,
+      );
     }
 
     // Case 2: Fetch list of newsletters
@@ -101,6 +104,7 @@ export class NewsletterDataSource implements DataSource {
       params.query?.status,
       params.query?.baseUrl,
       outputSchema,
+      entityService,
     );
   }
 
@@ -110,9 +114,10 @@ export class NewsletterDataSource implements DataSource {
   private async fetchSingleNewsletter<T>(
     id: string,
     outputSchema: z.ZodSchema<T>,
+    entityService: IEntityService,
   ): Promise<T> {
     // Fetch newsletter by ID
-    const newsletter = await this.entityService.getEntity<Newsletter>(
+    const newsletter = await entityService.getEntity<Newsletter>(
       "newsletter",
       id,
     );
@@ -123,7 +128,7 @@ export class NewsletterDataSource implements DataSource {
 
     // Fetch all newsletters for navigation (sorted by created desc)
     const allNewsletters: Newsletter[] =
-      await this.entityService.listEntities<Newsletter>("newsletter", {
+      await entityService.listEntities<Newsletter>("newsletter", {
         limit: 1000,
         sortFields: [{ field: "created", direction: "desc" }],
       });
@@ -142,7 +147,7 @@ export class NewsletterDataSource implements DataSource {
       const resolvedEntities = await Promise.all(
         newsletter.metadata.entityIds.map(async (entityId) => {
           // Try to fetch as post first (most common case)
-          const entity = await this.entityService.getEntity("post", entityId);
+          const entity = await entityService.getEntity("post", entityId);
           if (entity) {
             const metadata = entity.metadata as {
               title?: string;
@@ -205,6 +210,7 @@ export class NewsletterDataSource implements DataSource {
     status: "draft" | "queued" | "published" | "failed" | undefined,
     _baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
+    entityService: IEntityService,
   ): Promise<T> {
     const currentPage = page ?? 1;
     const itemsPerPage = pageSize ?? limit ?? 10;
@@ -227,15 +233,12 @@ export class NewsletterDataSource implements DataSource {
     }
 
     const newsletters: Newsletter[] =
-      await this.entityService.listEntities<Newsletter>(
-        "newsletter",
-        queryOptions,
-      );
+      await entityService.listEntities<Newsletter>("newsletter", queryOptions);
 
     // Get total count for pagination
     let pagination = null;
     if (page !== undefined) {
-      const totalItems = await this.entityService.countEntities(
+      const totalItems = await entityService.countEntities(
         "newsletter",
         status ? { filter: { metadata: { status } } } : undefined,
       );

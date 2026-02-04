@@ -1,4 +1,5 @@
 import type { z } from "@brains/utils";
+import type { IEntityService } from "@brains/plugins";
 
 /**
  * Context passed to all DataSource operations
@@ -10,6 +11,13 @@ export interface BaseDataSourceContext {
    * Set by site-builder: true for production, false for preview
    */
   publishedOnly?: boolean;
+
+  /**
+   * Scoped entity service that auto-applies publishedOnly filter
+   * Datasources should use this instead of their injected entityService
+   * to ensure consistent filtering behavior across environments
+   */
+  entityService: IEntityService;
 }
 
 /**

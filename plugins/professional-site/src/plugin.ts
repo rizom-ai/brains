@@ -59,14 +59,13 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
 
     // Register homepage datasource
     const homepageDataSource = new HomepageListDataSource(
-      context.entityService,
       postsListUrl,
       decksListUrl,
     );
     context.entities.registerDataSource(homepageDataSource);
 
     // Register about page datasource
-    const aboutDataSource = new AboutDataSource(context.entityService);
+    const aboutDataSource = new AboutDataSource();
     context.entities.registerDataSource(aboutDataSource);
 
     // Register homepage template

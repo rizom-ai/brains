@@ -97,10 +97,7 @@ export class SeriesDataSource implements DataSource {
   public readonly name = "Series DataSource";
   public readonly description = "Fetches series list and detail data";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("SeriesDataSource initialized");
   }
 
@@ -110,22 +107,28 @@ export class SeriesDataSource implements DataSource {
     context: BaseDataSourceContext,
   ): Promise<T> {
     const params = normalizeQuery(query);
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
 
     if (params.type === "list") {
-      return this.fetchSeriesList(outputSchema, context);
+      return this.fetchSeriesList(outputSchema, entityService);
     }
 
     // params.type === "detail" at this point
     // Need either seriesName or seriesSlug
     if (params.seriesName) {
-      return this.fetchSeriesDetail(params.seriesName, outputSchema, context);
+      return this.fetchSeriesDetail(
+        params.seriesName,
+        outputSchema,
+        entityService,
+      );
     }
 
     if (params.seriesSlug) {
       return this.fetchSeriesDetailBySlug(
         params.seriesSlug,
         outputSchema,
-        context,
+        entityService,
       );
     }
 
@@ -141,19 +144,14 @@ export class SeriesDataSource implements DataSource {
    */
   private async fetchSeriesList<T>(
     outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
+    entityService: IEntityService,
   ): Promise<T> {
     // Fetch series entities and posts in parallel
     // Use high limit to ensure all posts are counted
-    // Filter posts by publishedOnly if specified
+    // publishedOnly filtering is handled by the scoped entityService
     const [seriesEntities, posts] = await Promise.all([
-      this.entityService.listEntities<Series>("series", { limit: 1000 }),
-      this.entityService.listEntities<BlogPost>("post", {
-        limit: 1000,
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
-      }),
+      entityService.listEntities<Series>("series", { limit: 1000 }),
+      entityService.listEntities<BlogPost>("post", { limit: 1000 }),
     ]);
 
     // Count posts per series
@@ -174,7 +172,7 @@ export class SeriesDataSource implements DataSource {
         );
         const coverImageUrl = await resolveEntityCoverImage(
           entity,
-          this.entityService,
+          entityService,
         );
 
         const body = seriesAdapter.parseBody(entity.content);
@@ -199,12 +197,12 @@ export class SeriesDataSource implements DataSource {
   private async fetchSeriesDetail<T>(
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
+    entityService: IEntityService,
     seriesEntity?: Series,
   ): Promise<T> {
     // Look up series entity if not provided
     if (!seriesEntity) {
-      const seriesEntities = await this.entityService.listEntities<Series>(
+      const seriesEntities = await entityService.listEntities<Series>(
         "series",
         { filter: { metadata: { title: seriesName } } },
       );
@@ -219,16 +217,14 @@ export class SeriesDataSource implements DataSource {
       description = body.description;
       coverImageUrl = await resolveEntityCoverImage(
         seriesEntity,
-        this.entityService,
+        entityService,
       );
     }
 
-    const posts = await this.entityService.listEntities<BlogPost>("post", {
+    // publishedOnly filtering is handled by the scoped entityService
+    const posts = await entityService.listEntities<BlogPost>("post", {
       filter: { metadata: { seriesName } },
       sortFields: [{ field: "seriesIndex", direction: "asc" }],
-      ...(context.publishedOnly !== undefined && {
-        publishedOnly: context.publishedOnly,
-      }),
     });
 
     const postsWithData = posts.map(parsePostData);
@@ -250,13 +246,12 @@ export class SeriesDataSource implements DataSource {
   private async fetchSeriesDetailBySlug<T>(
     seriesSlug: string,
     outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
+    entityService: IEntityService,
   ): Promise<T> {
     // Look up series entity by slug to get the name
-    const seriesEntities = await this.entityService.listEntities<Series>(
-      "series",
-      { filter: { metadata: { slug: seriesSlug } } },
-    );
+    const seriesEntities = await entityService.listEntities<Series>("series", {
+      filter: { metadata: { slug: seriesSlug } },
+    });
 
     const seriesEntity = seriesEntities[0];
     if (!seriesEntity) {
@@ -270,7 +265,7 @@ export class SeriesDataSource implements DataSource {
     return this.fetchSeriesDetail(
       seriesEntity.metadata.title,
       outputSchema,
-      context,
+      entityService,
       seriesEntity,
     );
   }

@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { sortByPublicationDate, type z } from "@brains/utils";
 import {
@@ -41,7 +37,6 @@ export class HomepageListDataSource implements DataSource {
     "Fetches profile, blog posts, and presentation decks for homepage";
 
   constructor(
-    private readonly entityService: IEntityService,
     private readonly postsListUrl: string,
     private readonly decksListUrl: string,
   ) {}
@@ -52,10 +47,12 @@ export class HomepageListDataSource implements DataSource {
   async fetch<T>(
     _query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
+    const entityService = context.entityService;
+
     // Fetch profile entity
-    const profileEntities = await this.entityService.listEntities("profile", {
+    const profileEntities = await entityService.listEntities("profile", {
       limit: 1,
     });
     const profileEntity = profileEntities[0];
@@ -70,17 +67,14 @@ export class HomepageListDataSource implements DataSource {
     );
 
     // Fetch recent published posts (fetch 20, sort by publishedAt, take 3)
-    const publishedPosts = await this.entityService.listEntities<BlogPost>(
-      "post",
-      {
-        limit: 20,
-        filter: {
-          metadata: {
-            status: "published",
-          },
+    const publishedPosts = await entityService.listEntities<BlogPost>("post", {
+      limit: 20,
+      filter: {
+        metadata: {
+          status: "published",
         },
       },
-    );
+    });
 
     // Sort by publishedAt (or created as fallback) and take the 3 most recent
     const sortedPosts = publishedPosts.sort(sortByPublicationDate).slice(0, 3);
@@ -97,7 +91,7 @@ export class HomepageListDataSource implements DataSource {
     });
 
     // Fetch recent published decks (fetch 20, sort by publishedAt, take 3)
-    const publishedDecks = await this.entityService.listEntities<DeckEntity>(
+    const publishedDecks = await entityService.listEntities<DeckEntity>(
       "deck",
       {
         limit: 20,
@@ -113,12 +107,9 @@ export class HomepageListDataSource implements DataSource {
     const decks = publishedDecks.sort(sortByPublicationDate).slice(0, 3);
 
     // Fetch site-info for CTA
-    const siteInfoEntities = await this.entityService.listEntities(
-      "site-info",
-      {
-        limit: 1,
-      },
-    );
+    const siteInfoEntities = await entityService.listEntities("site-info", {
+      limit: 1,
+    });
     const siteInfoEntity = siteInfoEntities[0];
     if (!siteInfoEntity) {
       throw new Error("Site info not found");

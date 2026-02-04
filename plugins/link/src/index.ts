@@ -51,7 +51,6 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
 
     // Register DataSource
     const linksDataSource = new LinksDataSource(
-      context.entityService,
       this.logger.child("LinksDataSource"),
     );
     context.entities.registerDataSource(linksDataSource);

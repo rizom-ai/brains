@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -35,10 +31,7 @@ export class SummaryDataSource implements DataSource {
 
   private adapter: SummaryAdapter;
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.adapter = new SummaryAdapter();
     this.logger.debug("SummaryDataSource initialized");
   }
@@ -46,20 +39,21 @@ export class SummaryDataSource implements DataSource {
   /**
    * Fetch and transform summary entities to template-ready format
    * Returns SummaryDetailData for single summary or SummaryListData for multiple
-   * @param context - Optional context (environment, etc.)
+   * @param context - Context with scoped entityService
    */
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
+    const entityService = context.entityService;
 
     const queryId = params.query?.conversationId ?? params.query?.id;
     if (queryId) {
       // Fetch single summary (detail view)
-      const entity = await this.entityService.getEntity<SummaryEntity>(
+      const entity = await entityService.getEntity<SummaryEntity>(
         params.query?.conversationId ? "summary" : params.entityType,
         queryId,
       );
@@ -94,7 +88,7 @@ export class SummaryDataSource implements DataSource {
     }
 
     // Fetch multiple summaries (list view)
-    const entities = await this.entityService.listEntities<SummaryEntity>(
+    const entities = await entityService.listEntities<SummaryEntity>(
       params.entityType,
       {
         limit: params.query?.limit ?? 100,

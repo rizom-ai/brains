@@ -120,24 +120,19 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     // Register blog datasource
     // Note: inline image resolution is handled by site-builder, not datasource
     const blogDataSource = new BlogDataSource(
-      context.entityService,
       this.logger.child("BlogDataSource"),
     );
     context.entities.registerDataSource(blogDataSource);
 
     // Register series datasource
     const seriesDataSource = new SeriesDataSource(
-      context.entityService,
       this.logger.child("SeriesDataSource"),
     );
     context.entities.registerDataSource(seriesDataSource);
 
     // Register RSS datasource
     const { RSSDataSource } = await import("./datasources/rss-datasource");
-    const rssDataSource = new RSSDataSource(
-      context.entityService,
-      this.logger.child("RSSDataSource"),
-    );
+    const rssDataSource = new RSSDataSource(this.logger.child("RSSDataSource"));
     context.entities.registerDataSource(rssDataSource);
 
     // Register blog templates

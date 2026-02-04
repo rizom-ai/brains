@@ -75,7 +75,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
     // Register DataSource
     const topicsDataSource = new TopicsDataSource(
-      context.entityService,
       this.logger.child("TopicsDataSource"),
     );
     context.entities.registerDataSource(topicsDataSource);

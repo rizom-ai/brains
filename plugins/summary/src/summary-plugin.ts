@@ -57,10 +57,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     });
 
     // Register datasource for templates
-    const summaryDataSource = new SummaryDataSource(
-      context.entityService,
-      this.logger,
-    );
+    const summaryDataSource = new SummaryDataSource(this.logger);
     context.entities.registerDataSource(summaryDataSource);
 
     // Initialize digest handler using singleton pattern

@@ -42,7 +42,7 @@ describe("NewsletterDataSource", () => {
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
-    mockContext = {};
+    mockContext = { entityService: mockEntityService };
 
     listEntitiesSpy = spyOn(
       mockEntityService,
@@ -54,7 +54,7 @@ describe("NewsletterDataSource", () => {
       "getEntity",
     ) as unknown as typeof getEntitySpy;
 
-    datasource = new NewsletterDataSource(mockEntityService, mockLogger);
+    datasource = new NewsletterDataSource(mockLogger);
   });
 
   describe("metadata", () => {

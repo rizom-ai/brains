@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { SocialPostDataSource } from "../src/datasources/social-post-datasource";
 import type { SocialPost } from "../src/schemas/social-post";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import {
@@ -14,6 +14,7 @@ describe("SocialPostDataSource", () => {
   let datasource: SocialPostDataSource;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
+  let mockContext: BaseDataSourceContext;
   let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let countEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
@@ -50,6 +51,7 @@ ${body}`;
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
+    mockContext = { entityService: mockEntityService };
 
     listEntitiesSpy = spyOn(
       mockEntityService,
@@ -61,7 +63,7 @@ ${body}`;
       "countEntities",
     ) as unknown as typeof countEntitiesSpy;
 
-    datasource = new SocialPostDataSource(mockEntityService, mockLogger);
+    datasource = new SocialPostDataSource(mockLogger);
   });
 
   describe("fetch by id (slug)", () => {
@@ -89,6 +91,7 @@ ${body}`;
       const result = await datasource.fetch(
         { entityType: "social-post", query: { id: "my-linkedin-post" } },
         schema,
+        mockContext,
       );
 
       expect(result.post.id).toBe("post-1");
@@ -109,6 +112,7 @@ ${body}`;
         datasource.fetch(
           { entityType: "social-post", query: { id: "nonexistent" } },
           schema,
+          mockContext,
         ),
       ).rejects.toThrow("Social post not found with slug: nonexistent");
     });
@@ -142,6 +146,7 @@ ${body}`;
       const result = await datasource.fetch(
         { entityType: "social-post", query: {} },
         schema,
+        mockContext,
       );
 
       expect(result.posts).toHaveLength(2);
@@ -174,6 +179,7 @@ ${body}`;
       const result = await datasource.fetch(
         { entityType: "social-post", query: { status: "queued" } },
         schema,
+        mockContext,
       );
 
       expect(result.posts).toHaveLength(1);
@@ -214,6 +220,7 @@ ${body}`;
       await datasource.fetch(
         { entityType: "social-post", query: { sortByQueue: true } },
         schema,
+        mockContext,
       );
 
       expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
@@ -253,6 +260,7 @@ ${body}`;
       const result = await datasource.fetch(
         { entityType: "social-post", query: { page: 1, pageSize: 10 } },
         schema,
+        mockContext,
       );
 
       expect(result.pagination).not.toBeNull();
@@ -275,6 +283,7 @@ ${body}`;
       await datasource.fetch(
         { entityType: "social-post", query: { page: 2, pageSize: 10 } },
         schema,
+        mockContext,
       );
 
       expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
@@ -306,6 +315,7 @@ ${body}`;
       const result = await datasource.fetch(
         { entityType: "social-post", query: { nextInQueue: true } },
         schema,
+        mockContext,
       );
 
       expect(result.post?.id).toBe("post-1");
@@ -326,6 +336,7 @@ ${body}`;
       const result = await datasource.fetch(
         { entityType: "social-post", query: { nextInQueue: true } },
         schema,
+        mockContext,
       );
 
       expect(result.post).toBeNull();

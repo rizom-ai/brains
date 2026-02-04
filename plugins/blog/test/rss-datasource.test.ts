@@ -5,7 +5,7 @@ import {
   createMockEntityService as createBaseMockEntityService,
   createTestEntity,
 } from "@brains/test-utils";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { z } from "zod";
 
@@ -15,8 +15,6 @@ describe("RSSDataSource", () => {
     spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
     return mockEntityService;
   };
-
-  const mockContext: BaseDataSourceContext = {};
 
   const post1Content =
     "---\ntitle: First Post\nslug: first-post\nexcerpt: Excerpt 1\nauthor: John\nstatus: published\npublishedAt: 2025-01-15T10:00:00.000Z\n---\nContent 1";
@@ -59,25 +57,22 @@ describe("RSSDataSource", () => {
 
   describe("metadata", () => {
     test("should have correct datasource ID", () => {
-      const entityService = createMockEntityService([]);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
 
       expect(datasource.id).toBe("blog:rss");
     });
 
     test("should have descriptive name", () => {
-      const entityService = createMockEntityService([]);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
 
       expect(datasource.name).toBe("Blog RSS Feed DataSource");
     });
 
     test("should have description mentioning RSS 2.0", () => {
-      const entityService = createMockEntityService([]);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
 
       expect(datasource.description).toContain("RSS 2.0");
     });
@@ -87,7 +82,8 @@ describe("RSSDataSource", () => {
     test("should fetch published posts only", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -97,7 +93,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(result.xml).toContain("<title>First Post</title>");
@@ -108,7 +104,8 @@ describe("RSSDataSource", () => {
     test("should generate valid RSS 2.0 XML", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -118,7 +115,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(result.xml).toContain('<?xml version="1.0"');
@@ -129,7 +126,8 @@ describe("RSSDataSource", () => {
     test("should use query parameters in RSS config", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -141,7 +139,7 @@ describe("RSSDataSource", () => {
           copyright: "© 2025",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(result.xml).toContain("<title>Test Blog Title</title>");
@@ -155,7 +153,8 @@ describe("RSSDataSource", () => {
     test("should default language to en-us", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -165,7 +164,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(result.xml).toContain("<language>en-us</language>");
@@ -174,7 +173,8 @@ describe("RSSDataSource", () => {
     test("should parse frontmatter from post content", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -184,7 +184,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       // Should extract title and author from frontmatter
@@ -196,7 +196,8 @@ describe("RSSDataSource", () => {
     test("should validate query parameters", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
 
@@ -208,7 +209,7 @@ describe("RSSDataSource", () => {
             // Missing siteUrl, title, description
           },
           outputSchema,
-          mockContext,
+          context,
         ),
       ).rejects.toThrow();
     });
@@ -216,7 +217,8 @@ describe("RSSDataSource", () => {
     test("should validate invalid URL", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
 
@@ -229,7 +231,7 @@ describe("RSSDataSource", () => {
             description: "Description",
           },
           outputSchema,
-          mockContext,
+          context,
         ),
       ).rejects.toThrow();
     });
@@ -237,7 +239,8 @@ describe("RSSDataSource", () => {
     test("should return result matching output schema", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -247,7 +250,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(result).toHaveProperty("xml");
@@ -261,7 +264,8 @@ describe("RSSDataSource", () => {
       const draftOnly: BlogPost[] = [draftPost]; // Only draft
       const entityService = createMockEntityService(draftOnly);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       const result = await datasource.fetch(
@@ -271,7 +275,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(result.xml).toContain("<channel>");
@@ -281,7 +285,8 @@ describe("RSSDataSource", () => {
     test("should list entities with limit 1000", async () => {
       const entityService = createMockEntityService(samplePosts);
       const logger = createSilentLogger();
-      const datasource = new RSSDataSource(entityService, logger);
+      const datasource = new RSSDataSource(logger);
+      const context = { entityService };
 
       const outputSchema = z.object({ xml: z.string() });
       await datasource.fetch(
@@ -291,7 +296,7 @@ describe("RSSDataSource", () => {
           description: "Blog description",
         },
         outputSchema,
-        mockContext,
+        context,
       );
 
       expect(entityService.listEntities).toHaveBeenCalledWith("post", {

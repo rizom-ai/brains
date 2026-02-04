@@ -69,8 +69,8 @@ slug: ${slug}
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
-    mockContext = {};
-    datasource = new SeriesDataSource(mockEntityService, mockLogger);
+    mockContext = { entityService: mockEntityService };
+    datasource = new SeriesDataSource(mockLogger);
   });
 
   describe("fetchSeriesList", () => {

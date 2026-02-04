@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z, EntityUrlGenerator, truncateText } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
@@ -28,30 +24,28 @@ export class TopicsDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms topic entities for rendering";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("TopicsDataSource initialized");
   }
 
   /**
    * Fetch and transform topic entities to template-ready format
    * Returns TopicDetailData for single topic or TopicListData for multiple
-   * @param context - Optional context (environment, etc.)
+   * @param context - Context with scoped entityService
    */
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
     const adapter = new TopicAdapter();
+    const entityService = context.entityService;
 
     if (params.query?.id) {
       // Fetch and transform single entity to TopicDetailData
-      const entity = await this.entityService.getEntity(
+      const entity = await entityService.getEntity(
         params.entityType,
         params.query.id,
       );
@@ -84,15 +78,14 @@ export class TopicsDataSource implements DataSource {
     }
 
     // Fetch and transform entity list to TopicListData
-    const listOptions: Parameters<typeof this.entityService.listEntities>[1] =
-      {};
+    const listOptions: Parameters<typeof entityService.listEntities>[1] = {};
     if (params.query?.limit !== undefined) {
       listOptions.limit = params.query.limit;
     } else {
       listOptions.limit = 100;
     }
 
-    const entities = await this.entityService.listEntities(
+    const entities = await entityService.listEntities(
       params.entityType,
       listOptions,
     );

@@ -153,11 +153,15 @@ export class ContentService implements IContentService {
         try {
           // DataSource handles fetching and any needed transformation internally
           if (dataSource.fetch) {
-            // Build context from options
+            // Build context from options with scoped entityService
             const context: BaseDataSourceContext = {
               ...(options?.publishedOnly !== undefined && {
                 publishedOnly: options.publishedOnly,
               }),
+              // Provide scoped entityService that auto-applies publishedOnly
+              entityService: this.createScopedEntityService(
+                options?.publishedOnly,
+              ),
             };
 
             const data = await dataSource.fetch(
@@ -232,6 +236,64 @@ export class ContentService implements IContentService {
       `No content could be resolved for ${scopedTemplateName}`,
     );
     return null;
+  }
+
+  /**
+   * Create a scoped entityService that auto-applies publishedOnly filter
+   * In production (publishedOnly=true), all listEntities calls get publishedOnly: true
+   * In preview (publishedOnly=false/undefined), no filter is added
+   *
+   * IMPORTANT: If the caller already provides a status filter, we skip adding
+   * publishedOnly to avoid conflicting WHERE clauses (e.g., status='published' AND status='queued')
+   */
+  private createScopedEntityService(
+    publishedOnly: boolean | undefined,
+  ): IEntityService {
+    const baseService = this.dependencies.entityService;
+
+    // If not in production mode, return the base service unchanged
+    if (!publishedOnly) {
+      return baseService;
+    }
+
+    // Use Proxy to intercept listEntities/countEntities while properly forwarding
+    // all other methods (including prototype methods on class instances)
+    return new Proxy(baseService, {
+      get(target, prop, receiver) {
+        if (prop === "listEntities") {
+          return (
+            entityType: string,
+            options?: Parameters<IEntityService["listEntities"]>[1],
+          ) => {
+            const hasStatusFilter =
+              options?.filter?.metadata?.["status"] !== undefined;
+            return target.listEntities(entityType, {
+              ...options,
+              ...(!hasStatusFilter && { publishedOnly: true }),
+            });
+          };
+        }
+        if (prop === "countEntities") {
+          return (
+            entityType: string,
+            options?: Parameters<IEntityService["countEntities"]>[1],
+          ) => {
+            const hasStatusFilter =
+              options?.filter?.metadata?.["status"] !== undefined;
+            return target.countEntities(entityType, {
+              ...options,
+              ...(!hasStatusFilter && { publishedOnly: true }),
+            });
+          };
+        }
+        // Forward all other property access, binding methods to preserve 'this'
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value === "function") {
+          return value.bind(target);
+        }
+        return value;
+      },
+    });
   }
 
   /**

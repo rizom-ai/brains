@@ -142,7 +142,7 @@ export function NewsletterSignup({
       <div
         className={cn(
           newsletterSignupVariants({ variant }),
-          "max-w-xl mx-auto",
+          "max-w-md mx-auto",
           className,
         )}
       >
@@ -160,9 +160,9 @@ export function NewsletterSignup({
               name="email"
               placeholder="your@email.com"
               required
-              className="flex-1 min-w-0 px-4 py-2 text-sm rounded-lg bg-theme border border-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="flex-1 min-w-0 px-4 py-2.5 rounded-lg bg-theme border border-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
-            <Button type="submit" size="sm" className="font-semibold px-5">
+            <Button type="submit" className="font-semibold px-6">
               {buttonText}
             </Button>
           </div>

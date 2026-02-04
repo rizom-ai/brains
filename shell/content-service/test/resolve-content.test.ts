@@ -88,7 +88,7 @@ describe("ContentService.resolveContent", () => {
       expect(mockDataSource.fetch).toHaveBeenCalledWith(
         { timeRange: "24h" },
         mockTemplate.schema,
-        {}, // BaseDataSourceContext (empty, no generateEntityUrl)
+        expect.objectContaining({ entityService: expect.anything() }),
       );
     });
 
@@ -402,8 +402,437 @@ describe("ContentService.resolveContent", () => {
       expect(mockDataSource.fetch).toHaveBeenCalledWith(
         { test: true },
         mockTemplate.schema,
-        {}, // BaseDataSourceContext (empty object)
+        expect.objectContaining({ entityService: expect.anything() }),
       );
+    });
+  });
+
+  describe("publishedOnly context with scoped entityService", () => {
+    it("should pass scoped entityService that auto-applies publishedOnly in production", async () => {
+      const mockTemplate: Template = {
+        name: "prod-test",
+        description: "Production test template",
+        dataSourceId: "shell:test-source",
+        schema: z.object({ items: z.array(z.string()) }),
+        requiredPermission: "public",
+      };
+
+      let capturedContext: {
+        publishedOnly?: boolean;
+        entityService?: unknown;
+      } = {};
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:test-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          capturedContext = context;
+          // Datasource uses context.entityService (not its own)
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.listEntities("post", { limit: 10 });
+          return { items: [] };
+        }),
+      };
+
+      templateRegistry.register("prod-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listEntitiesSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("prod-test", {
+        dataParams: { entityType: "post" },
+        publishedOnly: true,
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // Context should have entityService
+      expect(capturedContext.entityService).toBeDefined();
+      // The scoped entityService should auto-add publishedOnly: true
+      expect(listEntitiesSpy).toHaveBeenCalledWith(
+        "post",
+        expect.objectContaining({ publishedOnly: true }),
+      );
+    });
+
+    it("should pass scoped entityService without filter in preview", async () => {
+      const mockTemplate: Template = {
+        name: "preview-test",
+        description: "Preview test template",
+        dataSourceId: "shell:test-source",
+        schema: z.object({ items: z.array(z.string()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:test-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.listEntities("post", { limit: 10 });
+          return { items: [] };
+        }),
+      };
+
+      templateRegistry.register("preview-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listEntitiesSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("preview-test", {
+        dataParams: { entityType: "post" },
+        publishedOnly: false,
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // In preview, publishedOnly should NOT be added
+      expect(listEntitiesSpy).toHaveBeenCalledWith("post", { limit: 10 });
+    });
+
+    it("should NOT add publishedOnly when datasource already filters on status (avoids conflict)", async () => {
+      // Regression test: When a datasource filters on status (e.g., status='queued'),
+      // adding publishedOnly would create conflicting WHERE clauses:
+      // status='published' AND status='queued' - which returns nothing!
+      const mockTemplate: Template = {
+        name: "queue-test",
+        description: "Queue test template",
+        dataSourceId: "shell:queue-source",
+        schema: z.object({ post: z.unknown().nullable() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:queue-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Datasource explicitly filters for queued status
+          await svc.listEntities("social-post", {
+            filter: { metadata: { status: "queued" } },
+            limit: 1,
+          });
+          return { post: null };
+        }),
+      };
+
+      templateRegistry.register("queue-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listEntitiesSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("queue-test", {
+        dataParams: {},
+        publishedOnly: true, // Production mode
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // Should NOT add publishedOnly since datasource already filters on status
+      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
+        filter: { metadata: { status: "queued" } },
+        limit: 1,
+        // Note: publishedOnly should NOT be present here
+      });
+      // Explicitly verify publishedOnly was NOT added
+      const callArgs = listEntitiesSpy.mock.calls[0];
+      expect(callArgs?.[1]).not.toHaveProperty("publishedOnly");
+    });
+
+    it("should add publishedOnly when datasource filters on non-status metadata", async () => {
+      // When filtering on other metadata (like slug, seriesName), publishedOnly should still apply
+      const mockTemplate: Template = {
+        name: "series-test",
+        description: "Series test template",
+        dataSourceId: "shell:series-source",
+        schema: z.object({ posts: z.array(z.unknown()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:series-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Datasource filters on seriesName, not status
+          await svc.listEntities("post", {
+            filter: { metadata: { seriesName: "My Series" } },
+            limit: 100,
+          });
+          return { posts: [] };
+        }),
+      };
+
+      templateRegistry.register("series-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const listEntitiesSpy = spyOn(
+        mockDependencies.entityService,
+        "listEntities",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("series-test", {
+        dataParams: {},
+        publishedOnly: true, // Production mode
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // Should add publishedOnly since the filter is on seriesName, not status
+      expect(listEntitiesSpy).toHaveBeenCalledWith("post", {
+        filter: { metadata: { seriesName: "My Series" } },
+        limit: 100,
+        publishedOnly: true,
+      });
+    });
+
+    it("should add publishedOnly to countEntities when no status filter", async () => {
+      const mockTemplate: Template = {
+        name: "count-test",
+        description: "Count test template",
+        dataSourceId: "shell:count-source",
+        schema: z.object({ count: z.number() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:count-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          await svc.countEntities("post");
+          return { count: 0 };
+        }),
+      };
+
+      templateRegistry.register("count-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const countEntitiesSpy = spyOn(
+        mockDependencies.entityService,
+        "countEntities",
+      ).mockResolvedValue(0);
+
+      await contentService.resolveContent("count-test", {
+        dataParams: {},
+        publishedOnly: true,
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // Should add publishedOnly to countEntities
+      expect(countEntitiesSpy).toHaveBeenCalledWith("post", {
+        publishedOnly: true,
+      });
+    });
+
+    it("should NOT add publishedOnly to countEntities when status filter present", async () => {
+      const mockTemplate: Template = {
+        name: "count-status-test",
+        description: "Count with status filter test template",
+        dataSourceId: "shell:count-status-source",
+        schema: z.object({ count: z.number() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:count-status-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Count with explicit status filter
+          await svc.countEntities("newsletter", {
+            filter: { metadata: { status: "draft" } },
+          });
+          return { count: 0 };
+        }),
+      };
+
+      templateRegistry.register("count-status-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const countEntitiesSpy = spyOn(
+        mockDependencies.entityService,
+        "countEntities",
+      ).mockResolvedValue(0);
+
+      await contentService.resolveContent("count-status-test", {
+        dataParams: {},
+        publishedOnly: true,
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // Should NOT add publishedOnly since status filter already present
+      expect(countEntitiesSpy).toHaveBeenCalledWith("newsletter", {
+        filter: { metadata: { status: "draft" } },
+      });
+      const callArgs = countEntitiesSpy.mock.calls[0];
+      expect(callArgs?.[1]).not.toHaveProperty("publishedOnly");
+    });
+
+    it("should forward getEntity calls through scoped entityService", async () => {
+      // Regression test: The scoped entityService must properly forward all methods,
+      // not just listEntities/countEntities. If using object spread on a class instance,
+      // prototype methods won't be copied and calls will fail.
+      const mockTemplate: Template = {
+        name: "forward-test",
+        description: "Forward test template",
+        dataSourceId: "shell:forward-source",
+        schema: z.object({ entity: z.unknown().nullable() }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:forward-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Call getEntity - this should be forwarded to base service
+          const entity = await svc.getEntity("post", "test-id");
+          return { entity };
+        }),
+      };
+
+      templateRegistry.register("forward-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const getEntitySpy = spyOn(
+        mockDependencies.entityService,
+        "getEntity",
+      ).mockResolvedValue({
+        id: "test-id",
+        entityType: "post",
+        content: "test",
+        created: "2025-01-01",
+        updated: "2025-01-01",
+        metadata: {},
+        contentHash: "abc",
+      });
+
+      await contentService.resolveContent("forward-test", {
+        dataParams: {},
+        publishedOnly: true, // Use scoped service
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // getEntity should be forwarded to base service
+      expect(getEntitySpy).toHaveBeenCalledWith("post", "test-id");
+    });
+
+    it("should forward search calls through scoped entityService", async () => {
+      const mockTemplate: Template = {
+        name: "search-test",
+        description: "Search test template",
+        dataSourceId: "shell:search-source",
+        schema: z.object({ results: z.array(z.unknown()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:search-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc =
+            context.entityService as typeof mockDependencies.entityService;
+          // Call search - this should be forwarded to base service
+          const results = await svc.search("test query");
+          return { results };
+        }),
+      };
+
+      templateRegistry.register("search-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const searchSpy = spyOn(
+        mockDependencies.entityService,
+        "search",
+      ).mockResolvedValue([]);
+
+      await contentService.resolveContent("search-test", {
+        dataParams: {},
+        publishedOnly: true, // Use scoped service
+        generateEntityUrl: testGenerateEntityUrl,
+      });
+
+      // search should be forwarded to base service
+      expect(searchSpy).toHaveBeenCalledWith("test query");
+    });
+
+    it("should properly proxy class-based entityService (regression for prototype methods)", async () => {
+      // Regression test: When using object spread {...baseService} on a class instance,
+      // prototype methods are NOT copied. This test uses a class-based mock to catch this.
+      class MockEntityServiceClass {
+        getEntity = mock((_type: string, _id: string) => Promise.resolve(null));
+        listEntities = mock((_type: string, _options?: unknown) =>
+          Promise.resolve([]),
+        );
+        countEntities = mock((_type: string, _options?: unknown) =>
+          Promise.resolve(0),
+        );
+        search = mock((_query: string, _options?: unknown) =>
+          Promise.resolve([]),
+        );
+        // Methods on prototype (simulating real class behavior)
+        getEntityTypes(): string[] {
+          return ["post", "deck"];
+        }
+        hasEntityType(type: string): boolean {
+          return ["post", "deck"].includes(type);
+        }
+      }
+
+      const classBasedService = new MockEntityServiceClass();
+
+      // Create new ContentService with class-based entity service
+      const classDependencies: ContentServiceDependencies = {
+        ...mockDependencies,
+        entityService:
+          classBasedService as unknown as typeof mockDependencies.entityService,
+      };
+      const classContentService = new ContentService(classDependencies);
+
+      const mockTemplate: Template = {
+        name: "class-proxy-test",
+        description: "Class proxy test template",
+        dataSourceId: "shell:class-source",
+        schema: z.object({ types: z.array(z.string()) }),
+        requiredPermission: "public",
+      };
+
+      const mockDataSource: Partial<DataSource> = {
+        id: "shell:class-source",
+        fetch: mock().mockImplementation(async (_query, _schema, context) => {
+          const svc = context.entityService as MockEntityServiceClass;
+          // Call prototype method - this MUST work through the proxy
+          const types = svc.getEntityTypes();
+          const hasPost = svc.hasEntityType("post");
+          // Also call instance methods
+          await svc.listEntities("post", { limit: 5 });
+          return { types, hasPost };
+        }),
+      };
+
+      templateRegistry.register("class-proxy-test", mockTemplate);
+      dataSourceGetSpy.mockReturnValue(mockDataSource);
+
+      const result = await classContentService.resolveContent(
+        "class-proxy-test",
+        {
+          dataParams: {},
+          publishedOnly: true, // Use scoped service - triggers proxy
+          generateEntityUrl: testGenerateEntityUrl,
+        },
+      );
+
+      // Verify prototype methods were callable
+      expect(result).toEqual({ types: ["post", "deck"], hasPost: true });
+      // Verify listEntities was called with publishedOnly added
+      expect(classBasedService.listEntities).toHaveBeenCalledWith("post", {
+        limit: 5,
+        publishedOnly: true,
+      });
     });
   });
 

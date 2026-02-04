@@ -63,7 +63,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
 
     // Register datasource
     const socialPostDataSource = new SocialPostDataSource(
-      context.entityService,
       this.logger.child("SocialPostDataSource"),
     );
     context.entities.registerDataSource(socialPostDataSource);

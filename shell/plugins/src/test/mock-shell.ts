@@ -249,10 +249,33 @@ export class MockShell implements IShell {
         const entity = this.entities.get(id);
         return entity?.entityType === _type ? entity : null;
       },
-      listEntities: async (type: string) => {
-        return Array.from(this.entities.values()).filter(
+      listEntities: async (
+        type: string,
+        options?: {
+          filter?: { metadata?: Record<string, unknown> };
+          publishedOnly?: boolean;
+        },
+      ) => {
+        let results = Array.from(this.entities.values()).filter(
           (e) => e.entityType === type,
         );
+
+        // Apply publishedOnly filter
+        if (options?.publishedOnly) {
+          results = results.filter(
+            (e) => e.metadata?.["status"] === "published",
+          );
+        }
+
+        // Apply metadata filter
+        if (options?.filter?.metadata) {
+          const filterEntries = Object.entries(options.filter.metadata);
+          results = results.filter((e) =>
+            filterEntries.every(([key, value]) => e.metadata?.[key] === value),
+          );
+        }
+
+        return results;
       },
       search: async () => [],
       getEntityTypes: () => Array.from(this.entityTypes),

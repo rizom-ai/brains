@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
@@ -32,10 +28,7 @@ export class LinksDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms link entities for rendering";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("LinksDataSource initialized");
   }
 
@@ -45,17 +38,15 @@ export class LinksDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    context?: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     const params = entityFetchQuerySchema.parse(query);
     const adapter = new LinkAdapter();
 
-    // Fetch links (filtered at database level when publishedOnly is set)
-    const entities = await this.entityService.listEntities(params.entityType, {
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
+    const entities = await entityService.listEntities(params.entityType, {
       limit: 1000,
-      ...(context?.publishedOnly !== undefined && {
-        publishedOnly: context.publishedOnly,
-      }),
     });
 
     // Transform entities to LinkSummary

@@ -7,11 +7,13 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";
+import type { BaseDataSourceContext } from "@brains/plugins";
 import { topicListSchema } from "../../src/templates/topic-list/schema";
 
 describe("TopicsDataSource", () => {
   let dataSource: TopicsDataSource;
   let context: ServicePluginContext;
+  let mockContext: BaseDataSourceContext;
   let logger: Logger;
   let mockShell: MockShell;
 
@@ -19,7 +21,10 @@ describe("TopicsDataSource", () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger });
     context = createServicePluginContext(mockShell, "topics");
-    dataSource = new TopicsDataSource(context.entityService, logger);
+    // Only pass logger to constructor - entityService comes from context
+    dataSource = new TopicsDataSource(logger);
+    // Create context with entityService for fetch calls
+    mockContext = { entityService: context.entityService };
   });
 
   it("should be instantiable", () => {
@@ -33,9 +38,11 @@ describe("TopicsDataSource", () => {
   });
 
   it("should fetch data without throwing", async () => {
+    // Pass context with entityService to fetch
     const result = await dataSource.fetch(
       { entityType: "topic" },
       topicListSchema,
+      mockContext,
     );
     expect(result).toBeDefined();
     expect(result.topics).toBeInstanceOf(Array);

@@ -53,7 +53,6 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
 
     // Register newsletter datasource
     const newsletterDataSource = new NewsletterDataSource(
-      context.entityService,
       this.logger.child("NewsletterDataSource"),
     );
     context.entities.registerDataSource(newsletterDataSource);

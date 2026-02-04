@@ -58,7 +58,7 @@ Content for ${title}`;
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
-    mockContext = {};
+    mockContext = { entityService: mockEntityService };
 
     // Set up spy for mock method
     listEntitiesSpy = spyOn(
@@ -66,7 +66,7 @@ Content for ${title}`;
       "listEntities",
     ) as unknown as typeof listEntitiesSpy;
 
-    datasource = new BlogDataSource(mockEntityService, mockLogger);
+    datasource = new BlogDataSource(mockLogger);
   });
 
   describe("fetchLatestPost", () => {
@@ -979,8 +979,9 @@ Content for ${title}`;
       expect(result.pagination?.hasPrevPage).toBe(false);
     });
 
-    it("should only paginate published posts when publishedOnly is true", async () => {
+    it("should paginate posts using scoped entityService", async () => {
       // With database-level pagination, listEntities returns only current page
+      // publishedOnly filtering is handled by the scoped entityService, not the datasource
       const page1Posts: BlogPost[] = [
         createMockPost(
           "post-1",
@@ -1004,21 +1005,18 @@ Content for ${title}`;
       const result = await datasource.fetch(
         { entityType: "post", query: { page: 1, pageSize: 2 } },
         paginatedListSchema,
-        { ...mockContext, publishedOnly: true },
+        mockContext,
       );
 
-      // Verify database-level pagination was used
+      // Verify database-level pagination was used (without publishedOnly - handled by scoped entityService)
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
         limit: 2,
         offset: 0,
         sortFields: [{ field: "publishedAt", direction: "desc" }],
-        publishedOnly: true,
       });
 
-      // Verify countEntities was called for total
-      expect(mockEntityService.countEntities).toHaveBeenCalledWith("post", {
-        publishedOnly: true,
-      });
+      // Verify countEntities was called for total (without publishedOnly - handled by scoped entityService)
+      expect(mockEntityService.countEntities).toHaveBeenCalledWith("post");
 
       expect(result.pagination?.totalItems).toBe(3); // Total from countEntities
       expect(result.pagination?.totalPages).toBe(2); // 3 posts / 2 per page = 2 pages

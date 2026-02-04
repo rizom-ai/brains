@@ -202,6 +202,36 @@ describe("listEntities sortFields", () => {
     // post-3 (draft) should be excluded
   });
 
+  test("should include entities WITHOUT status field when publishedOnly is true", async () => {
+    // Create an entity without a status field (like profile, link, project, etc.)
+    const mockEmbedding = new Float32Array(384).fill(0.1);
+    await insertTestEntity(dbConfig, {
+      id: "post-no-status",
+      entityType: "post",
+      content: "Post without status field",
+      metadata: {
+        publishedAt: "2025-01-04T00:00:00.000Z",
+        // NOTE: no status field!
+      },
+      created: new Date("2025-01-04T10:00:00.000Z").getTime(),
+      updated: new Date("2025-01-04T10:00:00.000Z").getTime(),
+      embedding: mockEmbedding,
+    });
+
+    const result = await entityService.listEntities<BaseEntity>("post", {
+      publishedOnly: true,
+    });
+
+    // Should include: post-1 (published), post-2 (published), post-no-status (no status = include)
+    // Should exclude: post-3 (draft)
+    expect(result).toHaveLength(3);
+    expect(result.map((r) => r.id).sort()).toEqual([
+      "post-1",
+      "post-2",
+      "post-no-status",
+    ]);
+  });
+
   test("should return all entities when no limit is specified", async () => {
     // When no limit option is provided, listEntities should return all matching entities
     const result = await entityService.listEntities<BaseEntity>("post");

@@ -112,9 +112,10 @@ export class EntityQueries {
     const whereConditions = [eq(entities.entityType, entityType)];
 
     // Handle publishedOnly filter (filters on metadata.status = "published")
+    // Also include entities that don't have a status field at all (e.g., profile, link, project)
     if (publishedOnly) {
       whereConditions.push(
-        sql`json_extract(${entities.metadata}, '$.status') = 'published'`,
+        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
       );
     }
 
@@ -211,9 +212,10 @@ export class EntityQueries {
     // Build where conditions (same logic as listEntities)
     const whereConditions = [eq(entities.entityType, entityType)];
 
+    // Also include entities that don't have a status field at all
     if (publishedOnly) {
       whereConditions.push(
-        sql`json_extract(${entities.metadata}, '$.status') = 'published'`,
+        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
       );
     }
 

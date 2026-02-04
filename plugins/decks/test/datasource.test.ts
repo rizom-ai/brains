@@ -43,9 +43,9 @@ describe("DeckDataSource", () => {
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
-    mockContext = {};
+    mockContext = { entityService: mockEntityService };
 
-    datasource = new DeckDataSource(mockEntityService, mockLogger);
+    datasource = new DeckDataSource(mockLogger);
   });
 
   describe("fetchDeckList", () => {
@@ -53,9 +53,8 @@ describe("DeckDataSource", () => {
       decks: z.array(z.any()),
     });
 
-    it("should show only published decks when publishedOnly is true", async () => {
-      // When publishedOnly is true, entity service filters at database level
-      // Mock returns only published decks (simulating entity service filtering)
+    it("should show only published decks when context entityService is scoped to published", async () => {
+      // When the context entityService is scoped (production mode), it returns only published decks
       const publishedDecks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -80,7 +79,7 @@ describe("DeckDataSource", () => {
       const result = await datasource.fetch(
         { entityType: "deck" },
         listSchema,
-        { ...mockContext, publishedOnly: true },
+        mockContext,
       );
 
       expect(result.decks).toHaveLength(2);
@@ -88,15 +87,14 @@ describe("DeckDataSource", () => {
         result.decks.every((d: DeckEntity) => d.status === "published"),
       ).toBe(true);
 
-      // Verify publishedOnly was passed to entity service
+      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("deck", {
         limit: 100,
-        publishedOnly: true,
       });
     });
 
-    it("should show all decks (including drafts) when publishedOnly is false", async () => {
-      // When publishedOnly is false, entity service returns all decks
+    it("should show all decks when context entityService returns all", async () => {
+      // When the context entityService is not scoped (preview mode), it returns all decks
       const decks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -114,7 +112,7 @@ describe("DeckDataSource", () => {
       const result = await datasource.fetch(
         { entityType: "deck" },
         listSchema,
-        { ...mockContext, publishedOnly: false },
+        mockContext,
       );
 
       expect(result.decks).toHaveLength(3);
@@ -123,10 +121,9 @@ describe("DeckDataSource", () => {
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
 
-      // Verify publishedOnly: false was passed to entity service
+      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("deck", {
         limit: 100,
-        publishedOnly: false,
       });
     });
 

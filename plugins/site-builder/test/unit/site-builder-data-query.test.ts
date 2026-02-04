@@ -325,6 +325,98 @@ describe("SiteBuilder dataQuery handling", () => {
       );
     });
 
+    it("should set publishedOnly=true for list sections in production", async () => {
+      const route: RouteDefinition = {
+        id: "topics",
+        path: "/topics",
+        title: "Topics",
+        description: "All topics",
+        layout: "default",
+        sections: [
+          {
+            id: "list",
+            template: "topics:topic-list",
+            dataQuery: {
+              entityType: "topic",
+              query: { limit: 100 },
+            },
+          },
+        ],
+      };
+
+      mockRouteRegistry.list = mock().mockReturnValue([route]);
+      mockContext.templates.resolve = mock().mockResolvedValue({
+        topics: [],
+        totalCount: 0,
+      });
+
+      await siteBuilder.build({
+        outputDir: "/tmp/test-build",
+        environment: "production",
+        enableContentGeneration: false,
+        cleanBeforeBuild: false,
+        siteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        layouts: { default: TestLayout },
+      });
+
+      // List sections should have publishedOnly=true in production
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
+        "topics:topic-list",
+        expect.objectContaining({
+          publishedOnly: true,
+        }),
+      );
+    });
+
+    it("should set publishedOnly=true for detail sections in production", async () => {
+      const route: RouteDefinition = {
+        id: "topic-detail",
+        path: "/topics/test-topic",
+        title: "Test Topic",
+        description: "Topic detail",
+        layout: "default",
+        sections: [
+          {
+            id: "detail",
+            template: "topics:topic-detail",
+            dataQuery: {
+              entityType: "topic",
+              query: { id: "test-topic" },
+            },
+          },
+        ],
+      };
+
+      mockRouteRegistry.list = mock().mockReturnValue([route]);
+      mockContext.templates.resolve = mock().mockResolvedValue({
+        id: "test-topic",
+        title: "Test Topic",
+      });
+
+      await siteBuilder.build({
+        outputDir: "/tmp/test-build",
+        environment: "production",
+        enableContentGeneration: false,
+        cleanBeforeBuild: false,
+        siteConfig: {
+          title: "Test Site",
+          description: "Test Description",
+        },
+        layouts: { default: TestLayout },
+      });
+
+      // Detail sections should also have publishedOnly=true in production
+      expect(mockContext.templates.resolve).toHaveBeenCalledWith(
+        "topics:topic-detail",
+        expect.objectContaining({
+          publishedOnly: true,
+        }),
+      );
+    });
+
     it("should handle dataQuery with additional query params", async () => {
       const route: RouteDefinition = {
         id: "custom-query",

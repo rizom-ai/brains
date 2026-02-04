@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createMockLogger } from "@brains/test-utils";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { DashboardWidgetRegistry } from "../src/widget-registry";
 import {
   DashboardDataSource,
@@ -7,16 +7,19 @@ import {
 } from "../src/dashboard-datasource";
 import type { RegisteredWidget } from "../src/widget-registry";
 import type { DashboardData } from "../src/dashboard-datasource";
+import type { BaseDataSourceContext } from "@brains/plugins";
 
 describe("DashboardDataSource", () => {
   let registry: DashboardWidgetRegistry;
   let datasource: DashboardDataSource;
   let mockLogger: ReturnType<typeof createMockLogger>;
+  let mockContext: BaseDataSourceContext;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     registry = new DashboardWidgetRegistry(mockLogger);
     datasource = new DashboardDataSource(registry, mockLogger);
+    mockContext = { entityService: createMockEntityService() };
   });
 
   describe("fetch", () => {
@@ -24,7 +27,7 @@ describe("DashboardDataSource", () => {
       const result = await datasource.fetch<DashboardData>(
         {},
         dashboardDataSchema,
-        {},
+        mockContext,
       );
 
       expect(result.widgets).toEqual({});
@@ -60,7 +63,7 @@ describe("DashboardDataSource", () => {
       const result = await datasource.fetch<DashboardData>(
         {},
         dashboardDataSchema,
-        {},
+        mockContext,
       );
 
       expect(Object.keys(result.widgets)).toHaveLength(2);
@@ -106,7 +109,7 @@ describe("DashboardDataSource", () => {
       const result = await datasource.fetch<DashboardData>(
         {},
         dashboardDataSchema,
-        {},
+        mockContext,
       );
 
       // Good widget should be in results
@@ -137,7 +140,7 @@ describe("DashboardDataSource", () => {
       const result = await datasource.fetch<DashboardData>(
         {},
         dashboardDataSchema,
-        {},
+        mockContext,
       );
       const widgetData = result.widgets["test:test-widget"];
 
@@ -161,7 +164,7 @@ describe("DashboardDataSource", () => {
       const result = await datasource.fetch<DashboardData>(
         {},
         dashboardDataSchema,
-        {},
+        mockContext,
       );
 
       const after = new Date();

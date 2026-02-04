@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { z } from "@brains/utils";
 import {
   ProfessionalProfileParser,
@@ -25,18 +21,18 @@ export class AboutDataSource implements DataSource {
   public readonly name = "About Page DataSource";
   public readonly description = "Fetches full profile data for the about page";
 
-  constructor(private readonly entityService: IEntityService) {}
-
   /**
    * Fetch about page data
    */
   async fetch<T>(
     _query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
+    const entityService = context.entityService;
+
     // Fetch profile entity
-    const profileEntities = await this.entityService.listEntities("profile", {
+    const profileEntities = await entityService.listEntities("profile", {
       limit: 1,
     });
     const profileEntity = profileEntities[0];

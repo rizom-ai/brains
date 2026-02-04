@@ -164,16 +164,14 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
         "Get all dashboard widget data aggregated from plugins",
         z.object({}),
         async () => {
-          if (!this.datasource) {
+          if (!this.datasource || !this.context) {
             return toolError("Dashboard not initialized");
           }
 
           try {
-            const data = await this.datasource.fetch(
-              {},
-              dashboardDataSchema,
-              {},
-            );
+            const data = await this.datasource.fetch({}, dashboardDataSchema, {
+              entityService: this.context.entityService,
+            });
             return toolSuccess(data, "Dashboard data retrieved");
           } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);

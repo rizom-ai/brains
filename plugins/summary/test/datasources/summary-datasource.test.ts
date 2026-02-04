@@ -12,7 +12,7 @@ import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";
@@ -21,6 +21,7 @@ import { createMockSummaryEntity } from "../fixtures/summary-entities";
 describe("SummaryDataSource", () => {
   let datasource: SummaryDataSource;
   let mockEntityService: IEntityService;
+  let mockContext: BaseDataSourceContext;
   let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(() => {
@@ -28,8 +29,11 @@ describe("SummaryDataSource", () => {
 
     // Create mock entity service
     mockEntityService = createMockEntityService();
+    // Only provide entityService via context - not constructor
+    mockContext = { entityService: mockEntityService };
 
-    datasource = new SummaryDataSource(mockEntityService, logger);
+    // Only pass logger to constructor
+    datasource = new SummaryDataSource(logger);
   });
 
   afterEach(() => {
@@ -98,6 +102,7 @@ Test content
           query: { conversationId: "conv-123" },
         },
         summaryDetailSchema,
+        mockContext,
       );
 
       expect(getEntitySpy).toHaveBeenCalledWith("summary", "conv-123");
@@ -137,6 +142,7 @@ Test content
           query: { id: "conv-456" },
         },
         summaryDetailSchema,
+        mockContext,
       );
 
       expect(getEntitySpy).toHaveBeenCalledWith("summary", "conv-456");
@@ -188,6 +194,7 @@ Test content
           query: { limit: 50 },
         },
         summaryListSchema,
+        mockContext,
       );
 
       expect(listEntitiesSpy).toHaveBeenCalledWith("summary", { limit: 50 });
@@ -205,6 +212,7 @@ Test content
             query: { conversationId: "non-existent" },
           },
           summaryDetailSchema,
+          mockContext,
         ),
       ).rejects.toThrow("Summary not found: non-existent");
     });
@@ -219,6 +227,7 @@ Test content
             query: { id: "non-existent" },
           },
           summaryDetailSchema,
+          mockContext,
         ),
       ).rejects.toThrow("Summary not found: non-existent");
     });

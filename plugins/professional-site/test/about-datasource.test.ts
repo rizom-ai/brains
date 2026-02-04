@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { AboutDataSource } from "../src/datasources/about-datasource";
 import { createMockEntityService, createTestEntity } from "@brains/test-utils";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { professionalProfileSchema } from "../src/schemas";
 
 describe("AboutDataSource", () => {
   let datasource: AboutDataSource;
   let mockEntityService: IEntityService;
+  let mockContext: BaseDataSourceContext;
 
   const profileContent = `# Profile
 
@@ -51,7 +52,11 @@ Open for consulting`;
       },
     );
 
-    datasource = new AboutDataSource(mockEntityService);
+    // Only provide entityService via context - not constructor
+    mockContext = { entityService: mockEntityService };
+
+    // No constructor args - entityService comes from context
+    datasource = new AboutDataSource();
   });
 
   it("should have correct metadata", () => {
@@ -65,7 +70,7 @@ Open for consulting`;
       profile: professionalProfileSchema,
     });
 
-    const result = await datasource.fetch({}, schema);
+    const result = await datasource.fetch({}, schema, mockContext);
 
     expect(result.profile.name).toBe("Yeehaa");
     expect(result.profile.description).toBe(
@@ -86,13 +91,17 @@ Open for consulting`;
       Promise.resolve([]),
     );
 
-    datasource = new AboutDataSource(mockEntityService);
+    // Recreate context with new mock
+    mockContext = { entityService: mockEntityService };
+    datasource = new AboutDataSource();
 
     const schema = z.object({
       profile: professionalProfileSchema,
     });
 
-    expect(datasource.fetch({}, schema)).rejects.toThrow("Profile not found");
+    expect(datasource.fetch({}, schema, mockContext)).rejects.toThrow(
+      "Profile not found",
+    );
   });
 
   it("should handle profile with minimal fields", async () => {
@@ -114,13 +123,15 @@ Test User`;
       },
     );
 
-    datasource = new AboutDataSource(mockEntityService);
+    // Recreate context with new mock
+    mockContext = { entityService: mockEntityService };
+    datasource = new AboutDataSource();
 
     const schema = z.object({
       profile: professionalProfileSchema,
     });
 
-    const result = await datasource.fetch({}, schema);
+    const result = await datasource.fetch({}, schema, mockContext);
 
     expect(result.profile.name).toBe("Test User");
     expect(result.profile.description).toBeUndefined();

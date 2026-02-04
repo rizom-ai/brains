@@ -110,10 +110,7 @@ export class BlogDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms blog post entities for rendering";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("BlogDataSource initialized");
   }
 
@@ -128,15 +125,17 @@ export class BlogDataSource implements DataSource {
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
 
     // Case 1: Fetch latest published post
     if (params.query?.latest) {
-      return this.fetchLatestPost(outputSchema, context);
+      return this.fetchLatestPost(outputSchema, entityService);
     }
 
     // Case 2: Fetch single post by slug (for human-readable URLs)
     if (params.query?.id) {
-      return this.fetchSinglePost(params.query.id, outputSchema, context);
+      return this.fetchSinglePost(params.query.id, outputSchema, entityService);
     }
 
     // Case 3: Fetch posts in a series
@@ -144,7 +143,7 @@ export class BlogDataSource implements DataSource {
       return this.fetchSeriesPosts(
         params.query["metadata.seriesName"],
         outputSchema,
-        context,
+        entityService,
       );
     }
 
@@ -155,7 +154,7 @@ export class BlogDataSource implements DataSource {
       params.query?.pageSize,
       params.query?.baseUrl,
       outputSchema,
-      context,
+      entityService,
     );
   }
 
@@ -166,13 +165,12 @@ export class BlogDataSource implements DataSource {
    */
   private async fetchLatestPost<T>(
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    entityService: IEntityService,
   ): Promise<T> {
     // Get the latest published post using database-level sorting
     const publishedPosts: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", {
+      await entityService.listEntities<BlogPost>("post", {
         limit: 1,
-        publishedOnly: true,
         sortFields: [{ field: "publishedAt", direction: "desc" }],
       });
 
@@ -188,7 +186,7 @@ export class BlogDataSource implements DataSource {
 
     let post = parsePostData(latestEntity);
     // Resolve cover image (inline images resolved by site-builder)
-    post = await resolvePostCoverImage(post, this.entityService);
+    post = await resolvePostCoverImage(post, entityService);
 
     // For home page, we don't need prev/next navigation
     // But include series posts if this is part of a series
@@ -196,16 +194,15 @@ export class BlogDataSource implements DataSource {
     const seriesName = latestEntity.metadata.seriesName;
     if (seriesName) {
       const seriesEntities: BlogPost[] =
-        await this.entityService.listEntities<BlogPost>("post", {
+        await entityService.listEntities<BlogPost>("post", {
           limit: 100,
-          publishedOnly: true,
           filter: { metadata: { seriesName } },
           sortFields: [{ field: "seriesIndex", direction: "asc" }],
         });
       const parsedSeriesPosts = seriesEntities.map(parsePostData);
       seriesPosts = await resolvePostsCoverImages(
         parsedSeriesPosts,
-        this.entityService,
+        entityService,
       );
     }
 
@@ -225,18 +222,20 @@ export class BlogDataSource implements DataSource {
   private async fetchSinglePost<T>(
     slug: string,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    entityService: IEntityService,
   ): Promise<T> {
     // Query by slug in metadata
-    const entities: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", {
+    const entities: BlogPost[] = await entityService.listEntities<BlogPost>(
+      "post",
+      {
         filter: {
           metadata: {
             slug,
           },
         },
         limit: 1,
-      });
+      },
+    );
 
     const entity = entities[0];
     if (!entity) {
@@ -246,14 +245,16 @@ export class BlogDataSource implements DataSource {
     // Parse frontmatter for full post data and resolve cover image
     // (inline images resolved by site-builder)
     let post = parsePostData(entity);
-    post = await resolvePostCoverImage(post, this.entityService);
+    post = await resolvePostCoverImage(post, entityService);
 
     // For detail view, fetch posts sorted for prev/next navigation
-    const sortedPosts: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", {
+    const sortedPosts: BlogPost[] = await entityService.listEntities<BlogPost>(
+      "post",
+      {
         limit: 1000,
         sortFields: [{ field: "publishedAt", direction: "desc" }],
-      });
+      },
+    );
 
     const currentIndex = sortedPosts.findIndex((p) => p.id === entity.id);
     const prevEntity = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
@@ -265,10 +266,10 @@ export class BlogDataSource implements DataSource {
     let nextPost = nextEntity ? parsePostData(nextEntity) : null;
     // Resolve cover images for prev/next posts
     if (prevPost) {
-      prevPost = await resolvePostCoverImage(prevPost, this.entityService);
+      prevPost = await resolvePostCoverImage(prevPost, entityService);
     }
     if (nextPost) {
-      nextPost = await resolvePostCoverImage(nextPost, this.entityService);
+      nextPost = await resolvePostCoverImage(nextPost, entityService);
     }
 
     // Get series posts if this is part of a series
@@ -276,16 +277,15 @@ export class BlogDataSource implements DataSource {
     const seriesName = entity.metadata.seriesName;
     if (seriesName) {
       const seriesEntities: BlogPost[] =
-        await this.entityService.listEntities<BlogPost>("post", {
+        await entityService.listEntities<BlogPost>("post", {
           limit: 100,
-          publishedOnly: true,
           filter: { metadata: { seriesName } },
           sortFields: [{ field: "seriesIndex", direction: "asc" }],
         });
       const parsedSeriesPosts = seriesEntities.map(parsePostData);
       seriesPosts = await resolvePostsCoverImages(
         parsedSeriesPosts,
-        this.entityService,
+        entityService,
       );
     }
 
@@ -305,10 +305,10 @@ export class BlogDataSource implements DataSource {
   private async fetchSeriesPosts<T>(
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    entityService: IEntityService,
   ): Promise<T> {
     const seriesEntities: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", {
+      await entityService.listEntities<BlogPost>("post", {
         limit: 100,
         filter: { metadata: { seriesName } },
         sortFields: [{ field: "seriesIndex", direction: "asc" }],
@@ -317,7 +317,7 @@ export class BlogDataSource implements DataSource {
     const parsedPosts = seriesEntities.map(parsePostData);
     const seriesPosts = await resolvePostsCoverImages(
       parsedPosts,
-      this.entityService,
+      entityService,
     );
 
     const seriesData = {
@@ -337,31 +337,27 @@ export class BlogDataSource implements DataSource {
     pageSize: number | undefined,
     baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
+    entityService: IEntityService,
   ): Promise<T> {
     const currentPage = page ?? 1;
     const itemsPerPage = pageSize ?? limit ?? 10;
     const offset = (currentPage - 1) * itemsPerPage;
 
     // Fetch posts with database-level sorting, filtering, and pagination
-    const entities: BlogPost[] =
-      await this.entityService.listEntities<BlogPost>("post", {
+    // publishedOnly filtering is handled by the scoped entityService
+    const entities: BlogPost[] = await entityService.listEntities<BlogPost>(
+      "post",
+      {
         limit: itemsPerPage,
         offset,
         sortFields: [{ field: "publishedAt", direction: "desc" }],
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
-      });
+      },
+    );
 
     // Get total count for pagination info (only if page is specified)
     let pagination = null;
     if (page !== undefined) {
-      const totalItems = await this.entityService.countEntities("post", {
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
-      });
+      const totalItems = await entityService.countEntities("post");
       pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
     }
 
@@ -369,7 +365,7 @@ export class BlogDataSource implements DataSource {
     const parsedPosts = entities.map(parsePostData);
     const postsWithData = await resolvePostsCoverImages(
       parsedPosts,
-      this.entityService,
+      entityService,
     );
 
     const listData = {

@@ -1,8 +1,4 @@
-import type {
-  IEntityService,
-  DataSource,
-  BaseDataSourceContext,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import {
   parseMarkdownWithFrontmatter,
@@ -65,16 +61,13 @@ export class ProjectDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms project entities for rendering";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("ProjectDataSource initialized");
   }
 
   /**
    * Fetch and transform project entities to template-ready format
-   * @param context - Context with environment and URL generation
+   * @param context - Context with scoped entityService
    */
   async fetch<T>(
     query: unknown,
@@ -83,10 +76,15 @@ export class ProjectDataSource implements DataSource {
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
+    const entityService = context.entityService;
 
     // Case 1: Fetch single project by slug
     if (params.query?.id) {
-      return this.fetchSingleProject(params.query.id, outputSchema, context);
+      return this.fetchSingleProject(
+        params.query.id,
+        outputSchema,
+        entityService,
+      );
     }
 
     // Case 2: Fetch list of all projects (with optional pagination)
@@ -96,7 +94,7 @@ export class ProjectDataSource implements DataSource {
       params.query?.pageSize,
       params.query?.baseUrl,
       outputSchema,
-      context,
+      entityService,
     );
   }
 
@@ -106,10 +104,10 @@ export class ProjectDataSource implements DataSource {
   private async fetchSingleProject<T>(
     slug: string,
     outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     // Query by slug in metadata
-    const entities: Project[] = await this.entityService.listEntities<Project>(
+    const entities: Project[] = await entityService.listEntities<Project>(
       "project",
       {
         filter: {
@@ -130,17 +128,16 @@ export class ProjectDataSource implements DataSource {
     const project = parseProjectData(entity);
 
     // For detail view, fetch projects sorted for prev/next navigation
-    const sortedProjects: Project[] =
-      await this.entityService.listEntities<Project>("project", {
+    const sortedProjects: Project[] = await entityService.listEntities<Project>(
+      "project",
+      {
         limit: 1000,
         sortFields: [
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },
         ],
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
-      });
+      },
+    );
 
     const currentIndex = sortedProjects.findIndex((p) => p.id === entity.id);
     const prevEntity =
@@ -170,14 +167,14 @@ export class ProjectDataSource implements DataSource {
     pageSize: number | undefined,
     baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
+    entityService: BaseDataSourceContext["entityService"],
   ): Promise<T> {
     const currentPage = page ?? 1;
     const itemsPerPage = pageSize ?? limit ?? 10;
     const offset = (currentPage - 1) * itemsPerPage;
 
     // Fetch projects with database-level sorting, filtering, and pagination
-    const projects: Project[] = await this.entityService.listEntities<Project>(
+    const projects: Project[] = await entityService.listEntities<Project>(
       "project",
       {
         limit: itemsPerPage,
@@ -186,20 +183,13 @@ export class ProjectDataSource implements DataSource {
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },
         ],
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
       },
     );
 
     // Get total count for pagination info (only if page is specified)
     let pagination = null;
     if (page !== undefined) {
-      const totalItems = await this.entityService.countEntities("project", {
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
-      });
+      const totalItems = await entityService.countEntities("project", {});
       pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
     }
 

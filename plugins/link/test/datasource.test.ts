@@ -54,9 +54,9 @@ Summary for ${title}`;
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
-    mockContext = {};
+    mockContext = { entityService: mockEntityService };
 
-    datasource = new LinksDataSource(mockEntityService, mockLogger);
+    datasource = new LinksDataSource(mockLogger);
   });
 
   describe("fetchLinkList", () => {
@@ -65,9 +65,9 @@ Summary for ${title}`;
       totalCount: z.number(),
     });
 
-    it("should show only published links when publishedOnly is true", async () => {
-      // When publishedOnly is true, entity service filters at database level
-      // Mock returns only published links (simulating entity service filtering)
+    it("should show only published links when context entityService is scoped to published", async () => {
+      // When publishedOnly is true, the context.entityService is a scoped wrapper
+      // that automatically filters. Mock returns only published links.
       const publishedLinks = [
         createMockLink(
           "link-1",
@@ -90,7 +90,7 @@ Summary for ${title}`;
       const result = await datasource.fetch(
         { entityType: "link" },
         listSchema,
-        { ...mockContext, publishedOnly: true },
+        mockContext,
       );
 
       expect(result.links).toHaveLength(2);
@@ -99,15 +99,14 @@ Summary for ${title}`;
       ).toBe(true);
       expect(result.totalCount).toBe(2);
 
-      // Verify publishedOnly was passed to entity service
+      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("link", {
         limit: 1000,
-        publishedOnly: true,
       });
     });
 
-    it("should show all links (including draft/pending/failed) when publishedOnly is false", async () => {
-      // When publishedOnly is false, entity service returns all links
+    it("should show all links when context entityService returns all", async () => {
+      // When the context entityService is not scoped (preview mode), it returns all links
       const links = [
         createMockLink(
           "link-1",
@@ -134,7 +133,7 @@ Summary for ${title}`;
       const result = await datasource.fetch(
         { entityType: "link" },
         listSchema,
-        { ...mockContext, publishedOnly: false },
+        mockContext,
       );
 
       expect(result.links).toHaveLength(3);
@@ -145,10 +144,9 @@ Summary for ${title}`;
       expect(statuses).toContain("draft");
       expect(statuses).toContain("pending");
 
-      // Verify publishedOnly: false was passed to entity service
+      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("link", {
         limit: 1000,
-        publishedOnly: false,
       });
     });
 

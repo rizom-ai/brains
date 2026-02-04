@@ -41,7 +41,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     });
 
     // Register deck datasource
-    const datasource = new DeckDataSource(context.entityService, this.logger);
+    const datasource = new DeckDataSource(this.logger);
     context.entities.registerDataSource(datasource);
 
     // Register deck templates

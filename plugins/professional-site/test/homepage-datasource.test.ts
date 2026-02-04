@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { HomepageListDataSource } from "../src/datasources/homepage-datasource";
 import { createMockEntityService, createTestEntity } from "@brains/test-utils";
-import type { IEntityService, ListOptions } from "@brains/plugins";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
 import { z } from "@brains/utils";
@@ -13,6 +13,7 @@ import { siteInfoCTASchema } from "@brains/site-builder-plugin";
 describe("HomepageListDataSource", () => {
   let datasource: HomepageListDataSource;
   let mockEntityService: IEntityService;
+  let mockContext: BaseDataSourceContext;
 
   const profileContent = `# Profile
 
@@ -111,7 +112,11 @@ mailto:test@example.com`;
       },
     );
 
-    datasource = new HomepageListDataSource(mockEntityService);
+    // Only provide entityService via context - not constructor
+    mockContext = { entityService: mockEntityService };
+
+    // Only pass URL config to constructor (no entityService)
+    datasource = new HomepageListDataSource("/essays", "/presentations");
   });
 
   it("should have correct metadata", () => {
@@ -128,12 +133,12 @@ mailto:test@example.com`;
       cta: siteInfoCTASchema,
     });
 
-    const result = await datasource.fetch({}, schema);
+    const result = await datasource.fetch({}, schema, mockContext);
 
     expect(result.profile.name).toBe("Yeehaa");
     expect(result.profile.tagline).toBe("Building tools for thought");
     expect(result.posts).toHaveLength(1);
-    expect(result.posts[0].frontmatter.excerpt).toBe("This is a test excerpt");
+    expect(result.posts[0]?.frontmatter.excerpt).toBe("This is a test excerpt");
     expect(result.decks).toHaveLength(1);
     expect(result.cta.heading).toBe("Let's work together");
     expect(result.cta.buttonText).toBe("Get in Touch");
@@ -150,7 +155,10 @@ mailto:test@example.com`;
     };
 
     spyOn(mockEntityService, "listEntities").mockImplementation(
-      (entityType: string, options?: ListOptions) => {
+      (
+        entityType: string,
+        options?: { filter?: { metadata?: { status?: string } } },
+      ) => {
         if (entityType === "profile") return Promise.resolve([mockProfile]);
         if (entityType === "post") {
           // Respect filter parameter - only return published posts if filter requests them
@@ -168,7 +176,9 @@ mailto:test@example.com`;
       },
     );
 
-    datasource = new HomepageListDataSource(mockEntityService);
+    // Recreate context with new mock
+    mockContext = { entityService: mockEntityService };
+    datasource = new HomepageListDataSource("/essays", "/presentations");
 
     const schema = z.object({
       profile: professionalProfileSchema,
@@ -176,11 +186,11 @@ mailto:test@example.com`;
       decks: z.array(deckSchema),
     });
 
-    const result = await datasource.fetch({}, schema);
+    const result = await datasource.fetch({}, schema, mockContext);
 
     // Should only include published post
     expect(result.posts).toHaveLength(1);
-    expect(result.posts[0].metadata.status).toBe("published");
+    expect(result.posts[0]?.metadata.status).toBe("published");
   });
 
   it("should throw error if profile not found", async () => {
@@ -194,7 +204,9 @@ mailto:test@example.com`;
       },
     );
 
-    datasource = new HomepageListDataSource(mockEntityService);
+    // Recreate context with new mock
+    mockContext = { entityService: mockEntityService };
+    datasource = new HomepageListDataSource("/essays", "/presentations");
 
     const schema = z.object({
       profile: professionalProfileSchema,
@@ -202,6 +214,8 @@ mailto:test@example.com`;
       decks: z.array(deckSchema),
     });
 
-    expect(datasource.fetch({}, schema)).rejects.toThrow("Profile not found");
+    expect(datasource.fetch({}, schema, mockContext)).rejects.toThrow(
+      "Profile not found",
+    );
   });
 });

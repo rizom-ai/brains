@@ -58,9 +58,11 @@ Outcome for ${title}`;
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
-    mockContext = {};
+    // Only provide entityService via context - not constructor
+    mockContext = { entityService: mockEntityService };
 
-    datasource = new ProjectDataSource(mockEntityService, mockLogger);
+    // Only pass logger to constructor
+    datasource = new ProjectDataSource(mockLogger);
   });
 
   describe("fetchProjectList", () => {
@@ -107,8 +109,8 @@ Outcome for ${title}`;
         ),
       ).toBe(true);
 
-      // Verify sortFields and publishedOnly were passed to entity service
-      // Default limit is 10, offset is 0 when no pagination specified
+      // Datasource delegates filtering to scoped entityService (via context)
+      // It should NOT pass publishedOnly - filtering happens in content-service
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
         limit: 10,
         offset: 0,
@@ -116,12 +118,11 @@ Outcome for ${title}`;
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },
         ],
-        publishedOnly: true,
       });
     });
 
-    it("should show all projects (including drafts) when publishedOnly is false", async () => {
-      // When publishedOnly is false, entity service returns all projects
+    it("should show all projects (including drafts) when context entityService returns all", async () => {
+      // When context entityService is not scoped (preview mode), it returns all projects
       const projects: Project[] = [
         createMockProject(
           "proj-1",
@@ -151,7 +152,7 @@ Outcome for ${title}`;
       const result = await datasource.fetch(
         { entityType: "project" },
         listSchema,
-        { ...mockContext, publishedOnly: false },
+        mockContext,
       );
 
       expect(result.projects).toHaveLength(3);
@@ -162,8 +163,7 @@ Outcome for ${title}`;
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
 
-      // Verify sortFields and publishedOnly: false was passed to entity service
-      // Default limit is 10, offset is 0 when no pagination specified
+      // Datasource delegates filtering to scoped entityService (via context)
       expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
         limit: 10,
         offset: 0,
@@ -171,7 +171,6 @@ Outcome for ${title}`;
           { field: "year", direction: "desc" },
           { field: "title", direction: "asc" },
         ],
-        publishedOnly: false,
       });
     });
   });
@@ -183,7 +182,7 @@ Outcome for ${title}`;
       nextProject: z.any().nullable(),
     });
 
-    it("should include draft projects in prev/next when publishedOnly is false", async () => {
+    it("should include draft projects in prev/next when context entityService returns all", async () => {
       // Sort order: by year desc, then title asc
       // So: proj-2 (2024 Published), proj-3 (2024 Draft), proj-1 (2023 Published)
       const targetProject = createMockProject(
@@ -221,7 +220,7 @@ Outcome for ${title}`;
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "published-2023" } },
         detailSchema,
-        { ...mockContext, publishedOnly: false },
+        mockContext,
       );
 
       expect(result.project.id).toBe("proj-1");
@@ -231,7 +230,7 @@ Outcome for ${title}`;
       expect(result.nextProject).toBeNull();
     });
 
-    it("should exclude draft projects from prev/next when publishedOnly is true", async () => {
+    it("should exclude draft projects from prev/next when context entityService is scoped", async () => {
       const targetProject = createMockProject(
         "proj-2",
         "Middle Project",
@@ -258,10 +257,11 @@ Outcome for ${title}`;
         .mockResolvedValueOnce([targetProject])
         .mockResolvedValueOnce(publishedProjectsSorted);
 
+      // The context's entityService is already scoped to return only published
       const result = await datasource.fetch(
         { entityType: "project", query: { id: "middle-project" } },
         detailSchema,
-        { ...mockContext, publishedOnly: true },
+        mockContext,
       );
 
       expect(result.project.id).toBe("proj-2");

@@ -98,10 +98,7 @@ export class SocialPostDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms social post entities for queue management and publishing";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("SocialPostDataSource initialized");
   }
 
@@ -111,18 +108,20 @@ export class SocialPostDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context?: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     const params = querySchema.parse(query);
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
 
     // Case 1: Fetch next post in queue
     if (params.query?.nextInQueue) {
-      return this.fetchNextInQueue(outputSchema);
+      return this.fetchNextInQueue(outputSchema, entityService);
     }
 
     // Case 2: Fetch single post by slug (id param contains the slug)
     if (params.query?.id) {
-      return this.fetchBySlug(params.query.id, outputSchema);
+      return this.fetchBySlug(params.query.id, outputSchema, entityService);
     }
 
     // Case 3: Fetch list with optional filters
@@ -135,24 +134,30 @@ export class SocialPostDataSource implements DataSource {
       params.query?.pageSize,
       params.query?.baseUrl,
       outputSchema,
+      entityService,
     );
   }
 
   /**
    * Fetch the next post in queue (lowest queueOrder with status=queued)
    */
-  private async fetchNextInQueue<T>(outputSchema: z.ZodSchema<T>): Promise<T> {
-    const entities: SocialPost[] =
-      await this.entityService.listEntities<SocialPost>("social-post", {
+  private async fetchNextInQueue<T>(
+    outputSchema: z.ZodSchema<T>,
+    entityService: IEntityService,
+  ): Promise<T> {
+    const entities: SocialPost[] = await entityService.listEntities<SocialPost>(
+      "social-post",
+      {
         filter: { metadata: { status: "queued" } },
         sortFields: [{ field: "queueOrder", direction: "asc" }],
         limit: 1,
-      });
+      },
+    );
 
     const entity = entities[0];
     let post = entity ? parsePostData(entity) : null;
     if (post) {
-      post = await resolvePostCoverImage(post, this.entityService);
+      post = await resolvePostCoverImage(post, entityService);
     }
 
     return outputSchema.parse({ post });
@@ -164,12 +169,15 @@ export class SocialPostDataSource implements DataSource {
   private async fetchBySlug<T>(
     slug: string,
     outputSchema: z.ZodSchema<T>,
+    entityService: IEntityService,
   ): Promise<T> {
-    const entities: SocialPost[] =
-      await this.entityService.listEntities<SocialPost>("social-post", {
+    const entities: SocialPost[] = await entityService.listEntities<SocialPost>(
+      "social-post",
+      {
         filter: { metadata: { slug } },
         limit: 1,
-      });
+      },
+    );
 
     const entity = entities[0];
     if (!entity) {
@@ -177,7 +185,7 @@ export class SocialPostDataSource implements DataSource {
     }
 
     let post = parsePostData(entity);
-    post = await resolvePostCoverImage(post, this.entityService);
+    post = await resolvePostCoverImage(post, entityService);
     return outputSchema.parse({ post });
   }
 
@@ -193,6 +201,7 @@ export class SocialPostDataSource implements DataSource {
     pageSize: number | undefined,
     baseUrl: string | undefined,
     outputSchema: z.ZodSchema<T>,
+    entityService: IEntityService,
   ): Promise<T> {
     const metadataFilter: Record<string, string> = {};
     if (platform) metadataFilter["platform"] = platform;
@@ -207,27 +216,26 @@ export class SocialPostDataSource implements DataSource {
     const itemsPerPage = pageSize ?? limit ?? 100;
     const offset = (currentPage - 1) * itemsPerPage;
 
-    const entities: SocialPost[] =
-      await this.entityService.listEntities<SocialPost>("social-post", {
+    const entities: SocialPost[] = await entityService.listEntities<SocialPost>(
+      "social-post",
+      {
         ...(hasFilter && { filter: { metadata: metadataFilter } }),
         sortFields,
         limit: itemsPerPage,
         offset,
-      });
+      },
+    );
 
     let pagination = null;
     if (page !== undefined) {
-      const totalItems = await this.entityService.countEntities("social-post", {
+      const totalItems = await entityService.countEntities("social-post", {
         ...(hasFilter && { filter: { metadata: metadataFilter } }),
       });
       pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
     }
 
     const parsedPosts = entities.map(parsePostData);
-    const posts = await resolvePostsCoverImages(
-      parsedPosts,
-      this.entityService,
-    );
+    const posts = await resolvePostsCoverImages(parsedPosts, entityService);
 
     return outputSchema.parse({
       posts,

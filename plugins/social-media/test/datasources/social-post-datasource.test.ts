@@ -7,6 +7,7 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";
+import type { BaseDataSourceContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 // Output schema for testing list queries
@@ -23,6 +24,7 @@ const singlePostSchema = z.object({
 describe("SocialPostDataSource", () => {
   let dataSource: SocialPostDataSource;
   let context: ServicePluginContext;
+  let mockContext: BaseDataSourceContext;
   let logger: Logger;
   let mockShell: MockShell;
 
@@ -30,7 +32,8 @@ describe("SocialPostDataSource", () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger });
     context = createServicePluginContext(mockShell, "social-media");
-    dataSource = new SocialPostDataSource(context.entityService, logger);
+    mockContext = { entityService: context.entityService };
+    dataSource = new SocialPostDataSource(logger);
   });
 
   describe("instantiation", () => {
@@ -50,6 +53,7 @@ describe("SocialPostDataSource", () => {
       const result = await dataSource.fetch(
         { entityType: "social-post" },
         postListSchema,
+        mockContext,
       );
       expect(result).toBeDefined();
       expect(result.posts).toBeInstanceOf(Array);
@@ -66,6 +70,7 @@ describe("SocialPostDataSource", () => {
           query: { platform: "linkedin" },
         },
         postListSchema,
+        mockContext,
       );
       expect(result).toBeDefined();
       expect(result.posts).toBeInstanceOf(Array);
@@ -78,6 +83,7 @@ describe("SocialPostDataSource", () => {
           query: { status: "queued" },
         },
         postListSchema,
+        mockContext,
       );
       expect(result).toBeDefined();
       expect(result.posts).toBeInstanceOf(Array);
@@ -90,6 +96,7 @@ describe("SocialPostDataSource", () => {
           query: { status: "queued", sortByQueue: true },
         },
         postListSchema,
+        mockContext,
       );
       expect(result).toBeDefined();
       expect(result.posts).toBeInstanceOf(Array);
@@ -102,6 +109,7 @@ describe("SocialPostDataSource", () => {
           query: { nextInQueue: true },
         },
         singlePostSchema,
+        mockContext,
       );
       expect(result.post).toBeNull();
     });
@@ -115,6 +123,7 @@ describe("SocialPostDataSource", () => {
             query: { id: "non-existent-slug" },
           },
           singlePostSchema,
+          mockContext,
         );
       } catch (e) {
         error = e as Error;
@@ -130,6 +139,7 @@ describe("SocialPostDataSource", () => {
           query: { limit: 5 },
         },
         postListSchema,
+        mockContext,
       );
       expect(result).toBeDefined();
       expect(result.posts).toBeInstanceOf(Array);

@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
@@ -31,10 +27,7 @@ export class RSSDataSource implements DataSource {
   public readonly description =
     "Generates RSS 2.0 feed XML from published blog posts";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("RSSDataSource initialized");
   }
 
@@ -45,13 +38,15 @@ export class RSSDataSource implements DataSource {
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
+    context: BaseDataSourceContext,
   ): Promise<T> {
     // Parse query parameters
     const params = rssFeedQuerySchema.parse(query);
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
 
     // Fetch all published posts
-    const allPosts: BlogPost[] = await this.entityService.listEntities("post", {
+    const allPosts: BlogPost[] = await entityService.listEntities("post", {
       limit: 1000,
     });
 

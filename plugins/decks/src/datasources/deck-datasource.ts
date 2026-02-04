@@ -1,8 +1,4 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
+import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z, sortByPublicationDate } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
@@ -29,10 +25,7 @@ export class DeckDataSource implements DataSource {
   public readonly description =
     "Fetches and transforms deck entities for rendering";
 
-  constructor(
-    private entityService: IEntityService,
-    private readonly logger: Logger,
-  ) {
+  constructor(private readonly logger: Logger) {
     this.logger.debug("DeckDataSource initialized");
   }
 
@@ -48,11 +41,13 @@ export class DeckDataSource implements DataSource {
   ): Promise<T> {
     // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
+    // Use context.entityService for automatic publishedOnly filtering
+    const entityService = context.entityService;
 
     const queryId = params.query?.id;
     if (queryId) {
       // Fetch single deck (detail view) by slug
-      const entities = await this.entityService.listEntities<DeckEntity>(
+      const entities = await entityService.listEntities<DeckEntity>(
         params.entityType,
         {
           filter: {
@@ -77,14 +72,11 @@ export class DeckDataSource implements DataSource {
       return outputSchema.parse(detailData);
     }
 
-    // Fetch decks (filtered at database level when publishedOnly is set)
-    const filteredDecks = await this.entityService.listEntities<DeckEntity>(
+    // Fetch decks - publishedOnly filtering is handled by scoped entityService
+    const filteredDecks = await entityService.listEntities<DeckEntity>(
       params.entityType,
       {
         limit: params.query?.limit ?? 100,
-        ...(context.publishedOnly !== undefined && {
-          publishedOnly: context.publishedOnly,
-        }),
       },
     );
 
