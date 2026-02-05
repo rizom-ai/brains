@@ -76,10 +76,7 @@ export function createBatchExtractTool(
           {
             entityId: entity.id,
             entityType: entity.entityType,
-            entityContent: entity.content,
-            entityMetadata: entity.metadata,
-            entityCreated: entity.created,
-            entityUpdated: entity.updated,
+            contentHash: entity.contentHash,
             minRelevanceScore: 0.6,
             autoMerge: true,
             mergeSimilarityThreshold: 0.85,

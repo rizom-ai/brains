@@ -29,6 +29,13 @@ describe("TopicsPlugin", () => {
       expect(plugin.isEntityPublished(draftEntity)).toBe(false);
     });
 
+    it("should return false for pending entities", () => {
+      const pendingEntity = createTestEntity("post", {
+        metadata: { status: "pending" },
+      });
+      expect(plugin.isEntityPublished(pendingEntity)).toBe(false);
+    });
+
     it("should return true for published entities", () => {
       const publishedEntity = createTestEntity("post", {
         metadata: { status: "published" },
@@ -54,12 +61,12 @@ describe("TopicsPlugin", () => {
   describe("shouldProcessEntityType", () => {
     it("should always skip topic entity type to prevent recursion", () => {
       const pluginWithWhitelist = new TopicsPlugin({
-        includeEntityTypes: ["topic", "post"], // Even if topic is in whitelist
+        includeEntityTypes: ["topic", "post"],
       });
       expect(pluginWithWhitelist.shouldProcessEntityType("topic")).toBe(false);
     });
 
-    it("should process only whitelisted types when includeEntityTypes is set", () => {
+    it("should process only whitelisted types", () => {
       const pluginWithWhitelist = new TopicsPlugin({
         includeEntityTypes: ["post", "summary"],
       });
@@ -69,30 +76,14 @@ describe("TopicsPlugin", () => {
       expect(pluginWithWhitelist.shouldProcessEntityType("deck")).toBe(false);
     });
 
-    it("should process all types except blacklisted when includeEntityTypes is empty", () => {
-      const pluginWithBlacklist = new TopicsPlugin({
+    it("should process nothing when includeEntityTypes is empty", () => {
+      const pluginWithEmpty = new TopicsPlugin({
         includeEntityTypes: [],
-        excludeEntityTypes: ["profile", "deck"],
       });
-      expect(pluginWithBlacklist.shouldProcessEntityType("post")).toBe(true);
-      expect(pluginWithBlacklist.shouldProcessEntityType("summary")).toBe(true);
-      expect(pluginWithBlacklist.shouldProcessEntityType("link")).toBe(true);
-      expect(pluginWithBlacklist.shouldProcessEntityType("profile")).toBe(
-        false,
-      );
-      expect(pluginWithBlacklist.shouldProcessEntityType("deck")).toBe(false);
-    });
-
-    it("should process all types when both lists are empty", () => {
-      const pluginWithNoFilter = new TopicsPlugin({
-        includeEntityTypes: [],
-        excludeEntityTypes: [],
-      });
-      expect(pluginWithNoFilter.shouldProcessEntityType("post")).toBe(true);
-      expect(pluginWithNoFilter.shouldProcessEntityType("link")).toBe(true);
-      expect(pluginWithNoFilter.shouldProcessEntityType("deck")).toBe(true);
-      // But topic is still excluded
-      expect(pluginWithNoFilter.shouldProcessEntityType("topic")).toBe(false);
+      expect(pluginWithEmpty.shouldProcessEntityType("post")).toBe(false);
+      expect(pluginWithEmpty.shouldProcessEntityType("link")).toBe(false);
+      expect(pluginWithEmpty.shouldProcessEntityType("deck")).toBe(false);
+      expect(pluginWithEmpty.shouldProcessEntityType("topic")).toBe(false);
     });
   });
 });

@@ -135,7 +135,9 @@ const config = defineConfig({
     notePlugin({}),
     linkPlugin({}),
     portfolioPlugin({}),
-    new TopicsPlugin({}),
+    new TopicsPlugin({
+      includeEntityTypes: ["post", "deck", "project", "link"],
+    }),
     socialMediaPlugin({
       linkedin: { accessToken: process.env["LINKEDIN_ACCESS_TOKEN"] },
       autoGenerateOnBlogPublish: true,

@@ -73,7 +73,9 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
 
   beforeEach(async () => {
     harness = createServicePluginHarness<TopicsPlugin>();
-    plugin = new TopicsPlugin();
+    plugin = new TopicsPlugin({
+      includeEntityTypes: ["post", "link", "deck"],
+    });
     await harness.installPlugin(plugin);
   });
 

@@ -230,18 +230,10 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
    * Public for testing
    */
   public shouldProcessEntityType(entityType: string): boolean {
-    // Always skip topics to prevent recursion
     if (entityType === "topic") {
       return false;
     }
-
-    // Whitelist mode: only process included types
-    if (this.config.includeEntityTypes.length > 0) {
-      return this.config.includeEntityTypes.includes(entityType);
-    }
-
-    // Blacklist mode: process all except excluded types
-    return !this.config.excludeEntityTypes.includes(entityType);
+    return this.config.includeEntityTypes.includes(entityType);
   }
 
   /**
@@ -251,7 +243,8 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
    */
   public isEntityPublished(entity: BaseEntity): boolean {
     const metadata = entity.metadata as Record<string, unknown>;
-    return metadata["status"] !== "draft";
+    const status = metadata["status"];
+    return status === "published" || status === undefined || status === null;
   }
 
   /**

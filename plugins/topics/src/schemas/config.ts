@@ -6,29 +6,9 @@ import { z } from "@brains/utils";
 export const topicsPluginConfigSchema = z.object({
   /**
    * Whitelist of entity types to extract topics from.
-   * If non-empty, only these types are processed.
-   * If empty, all types except excludeEntityTypes are processed (blacklist mode).
+   * Only these types are processed. If empty, no types are processed.
    */
   includeEntityTypes: z.array(z.string()).default([]),
-
-  /**
-   * Blacklist of entity types to exclude from topic extraction.
-   * Only used when includeEntityTypes is empty.
-   * Default excludes singleton/system entities, non-text content, and metrics.
-   */
-  excludeEntityTypes: z
-    .array(z.string())
-    .default([
-      "base",
-      "profile",
-      "identity",
-      "site-info",
-      "image",
-      "series",
-      "website-metrics",
-      "social-metrics",
-      "page-metrics",
-    ]),
 
   /**
    * Minimum relevance score for topic extraction
