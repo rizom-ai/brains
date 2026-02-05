@@ -154,7 +154,7 @@ export function NewsletterSignup({
           <span className="text-heading font-medium whitespace-nowrap">
             {displayTitle}
           </span>
-          <div className="flex flex-1 w-full sm:w-auto gap-2">
+          <div className="flex flex-1 w-full sm:w-auto gap-2 min-w-0">
             <input
               type="email"
               name="email"
@@ -162,7 +162,10 @@ export function NewsletterSignup({
               required
               className="flex-1 min-w-0 px-4 py-2.5 rounded-lg bg-theme border border-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             />
-            <Button type="submit" className="font-semibold px-6">
+            <Button
+              type="submit"
+              className="shrink-0 whitespace-nowrap font-semibold"
+            >
               {buttonText}
             </Button>
           </div>
