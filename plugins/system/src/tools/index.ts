@@ -1,7 +1,22 @@
-import type { PluginTool } from "@brains/plugins";
+import type { PluginTool, BaseEntity } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
 import { z } from "@brains/utils";
+
+/**
+ * Strip binary content (e.g., base64 data URLs) from entities before
+ * returning them in tool results. Prevents multi-MB image data from
+ * being fed into the LLM context.
+ */
+function sanitizeEntity<T extends BaseEntity>(entity: T): T {
+  if (entity.entityType === "image" && entity.content.startsWith("data:")) {
+    return {
+      ...entity,
+      content: "[binary image data — use metadata for image info]",
+    };
+  }
+  return entity;
+}
 
 export function createSystemTools(
   plugin: ISystemPlugin,
@@ -33,7 +48,12 @@ export function createSystemTools(
 
         return {
           success: true,
-          data: { results },
+          data: {
+            results: results.map((r) => ({
+              ...r,
+              entity: sanitizeEntity(r.entity),
+            })),
+          },
         };
       },
       { visibility: "public" },
@@ -67,7 +87,7 @@ export function createSystemTools(
         if (entity) {
           return {
             success: true,
-            data: { entity },
+            data: { entity: sanitizeEntity(entity) },
           };
         }
         return {
@@ -118,10 +138,11 @@ export function createSystemTools(
         }
 
         const entities = await plugin.listEntities(parsed.entityType, options);
+        const sanitized = entities.map(sanitizeEntity);
 
         return {
           success: true,
-          data: { entities, count: entities.length },
+          data: { entities: sanitized, count: sanitized.length },
         };
       },
       { visibility: "public" },

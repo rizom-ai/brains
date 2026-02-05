@@ -2,6 +2,8 @@ import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { SystemPlugin } from "../src/plugin";
 import { createCorePluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
+import { createTestEntity } from "@brains/test-utils";
+import type { BaseEntity } from "@brains/plugins";
 
 describe("SystemPlugin", () => {
   let harness: ReturnType<typeof createCorePluginHarness>;
@@ -278,6 +280,73 @@ describe("SystemPlugin", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty("conversations");
+    });
+  });
+
+  describe("Binary content sanitization", () => {
+    const FAKE_BASE64 = "iVBORw0KGgo" + "A".repeat(1000);
+    const IMAGE_DATA_URL = `data:image/png;base64,${FAKE_BASE64}`;
+
+    const mockImageEntity = createTestEntity<BaseEntity>("image", {
+      id: "test-image",
+      content: IMAGE_DATA_URL,
+      metadata: {
+        title: "Test Image",
+        alt: "Test Image",
+        format: "png",
+        width: 100,
+        height: 100,
+      },
+    });
+
+    const mockPostEntity = createTestEntity<BaseEntity>("post", {
+      id: "test-post",
+      content: "---\ntitle: Test Post\n---\nHello world",
+      metadata: { title: "Test Post", slug: "test-post", status: "published" },
+    });
+
+    it("system_get should strip base64 content from image entities", async () => {
+      harness.getShell().addEntities([mockImageEntity]);
+
+      const result = await harness.executeTool("system_get", {
+        entityType: "image",
+        id: "test-image",
+      });
+
+      expect(result.success).toBe(true);
+      const entity = (result.data as { entity: BaseEntity }).entity;
+      expect(entity.content).not.toContain("base64");
+      expect(entity.content).not.toContain(FAKE_BASE64);
+      expect(entity.metadata).toHaveProperty("title", "Test Image");
+    });
+
+    it("system_list should strip base64 content from image entities", async () => {
+      harness.getShell().addEntities([mockImageEntity]);
+
+      const result = await harness.executeTool("system_list", {
+        entityType: "image",
+      });
+
+      expect(result.success).toBe(true);
+      const entities = (result.data as { entities: BaseEntity[] }).entities;
+      expect(entities).toHaveLength(1);
+      const image = entities[0];
+      expect(image).toBeDefined();
+      expect(image?.content).not.toContain("base64");
+      expect(image?.metadata).toHaveProperty("title", "Test Image");
+    });
+
+    it("system_get should preserve content for non-image entities", async () => {
+      harness.getShell().addEntities([mockPostEntity]);
+
+      const result = await harness.executeTool("system_get", {
+        entityType: "post",
+        id: "test-post",
+      });
+
+      expect(result.success).toBe(true);
+      const entity = (result.data as { entity: BaseEntity }).entity;
+      expect(entity.content).toBe("---\ntitle: Test Post\n---\nHello world");
     });
   });
 });
