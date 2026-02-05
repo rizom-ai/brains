@@ -179,13 +179,11 @@ export class SocialPostAdapter
   }
 
   /**
-   * Generate a URL-safe slug from platform + title + date
-   * Format: {platform}-{slugified-title}-{YYYYMMDD} (e.g., "linkedin-product-launch-20260114")
+   * Generate a URL-safe slug from platform + title
+   * Format: {platform}-{slugified-title} (e.g., "linkedin-product-launch")
    */
   private generateSlug(platform: string, title: string): string {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-    return `${platform}-${slugify(title)}-${dateStr}`;
+    return `${platform}-${slugify(title)}`;
   }
 }
 

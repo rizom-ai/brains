@@ -44,7 +44,7 @@ Check out my new article about TypeScript best practices!`;
       expect(result.metadata?.status).toBe("draft");
     });
 
-    it("should auto-generate slug from platform + title + date", () => {
+    it("should auto-generate slug from platform + title", () => {
       const markdown = `---
 title: Product Launch Update
 platform: linkedin
@@ -54,10 +54,7 @@ This is a test post for LinkedIn`;
 
       const result = socialPostAdapter.fromMarkdown(markdown);
 
-      // Slug format: {platform}-{title}-{YYYYMMDD}
-      expect(result.metadata?.slug).toMatch(
-        /^linkedin-product-launch-update-\d{8}$/,
-      );
+      expect(result.metadata?.slug).toBe("linkedin-product-launch-update");
     });
 
     it("should parse queued post with queueOrder", () => {
@@ -295,7 +292,7 @@ My post content`,
   });
 
   describe("slug generation", () => {
-    it("should generate slug from platform + title + date", () => {
+    it("should generate slug from platform + title", () => {
       const markdown = `---
 title: Amazing New Feature
 platform: linkedin
@@ -305,10 +302,7 @@ This is the full post content that describes the feature in detail`;
 
       const result = socialPostAdapter.fromMarkdown(markdown);
 
-      // Slug format: {platform}-{title}-{YYYYMMDD}
-      expect(result.metadata?.slug).toMatch(
-        /^linkedin-amazing-new-feature-\d{8}$/,
-      );
+      expect(result.metadata?.slug).toBe("linkedin-amazing-new-feature");
     });
 
     it("should handle special characters in title for slug", () => {
@@ -323,10 +317,7 @@ Check out the latest features`;
 
       expect(result.metadata?.slug).not.toContain("'");
       expect(result.metadata?.slug).not.toContain("?");
-      // Slug format: {platform}-{title}-{YYYYMMDD}
-      expect(result.metadata?.slug).toMatch(
-        /^linkedin-whats-new-in-typescript-50-\d{8}$/,
-      );
+      expect(result.metadata?.slug).toBe("linkedin-whats-new-in-typescript-50");
     });
 
     it("should handle long titles", () => {
@@ -341,7 +332,7 @@ Post content`;
       const slug = result.metadata?.slug;
 
       expect(slug).toBeDefined();
-      expect(slug).toMatch(/^linkedin-.*-\d{8}$/);
+      expect(slug).toMatch(/^linkedin-/);
     });
   });
 });

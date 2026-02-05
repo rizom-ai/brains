@@ -312,7 +312,7 @@ describe("GenerationJobHandler", () => {
       expect(imageJob).toBeUndefined();
     });
 
-    it("should use slug as entity ID (platform-title-date format)", async () => {
+    it("should use slug as entity ID (platform-title format)", async () => {
       const jobData: GenerationJobData = {
         title: "My Awesome Post",
         content: "Post content here",
@@ -327,8 +327,7 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      // Entity ID should match the slug format: linkedin-my-awesome-post-YYYYMMDD
-      expect(result.entityId).toMatch(/^linkedin-my-awesome-post-\d{8}$/);
+      expect(result.entityId).toBe("linkedin-my-awesome-post");
       expect(result.slug).toBe(result.entityId);
     });
   });
