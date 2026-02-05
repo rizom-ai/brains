@@ -211,7 +211,11 @@ export interface EntityService extends ICoreEntityService {
   ): Promise<T | null>;
   createEntity<T extends BaseEntity>(
     entity: EntityInput<T>,
-    options?: { priority?: number; maxRetries?: number },
+    options?: {
+      priority?: number;
+      maxRetries?: number;
+      deduplicateId?: boolean;
+    },
   ): Promise<{ entityId: string; jobId: string }>;
   updateEntity<T extends BaseEntity>(
     entity: T,

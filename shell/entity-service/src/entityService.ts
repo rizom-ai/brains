@@ -161,7 +161,11 @@ export class EntityService implements IEntityService {
    */
   public async createEntity<T extends BaseEntity>(
     entity: EntityInput<T>,
-    options?: { priority?: number; maxRetries?: number },
+    options?: {
+      priority?: number;
+      maxRetries?: number;
+      deduplicateId?: boolean;
+    },
   ): Promise<{ entityId: string; jobId: string }> {
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
@@ -193,9 +197,18 @@ export class EntityService implements IEntityService {
     // Compute contentHash from the serialized markdown
     const contentHash = computeContentHash(markdown);
 
+    // Resolve final ID (may deduplicate on collision)
+    let finalId = validatedEntity.id;
+    if (options?.deduplicateId) {
+      finalId = await this.resolveUniqueId(
+        validatedEntity.id,
+        validatedEntity.entityType,
+      );
+    }
+
     // Write entity to database immediately (without embedding)
     await this.db.insert(entities).values({
-      id: validatedEntity.id,
+      id: finalId,
       entityType: validatedEntity.entityType,
       content: markdown,
       contentHash,
@@ -205,20 +218,20 @@ export class EntityService implements IEntityService {
     });
 
     this.logger.debug(
-      `Persisted entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
+      `Persisted entity ${validatedEntity.entityType}:${finalId} immediately`,
     );
 
     // Emit entity:created event immediately (entity is now readable)
     if (this.messageBus) {
       this.logger.debug(
-        `Emitting entity:created event for ${validatedEntity.entityType}:${validatedEntity.id}`,
+        `Emitting entity:created event for ${validatedEntity.entityType}:${finalId}`,
       );
       await this.messageBus.send(
         "entity:created",
         {
           entityType: validatedEntity.entityType,
-          entityId: validatedEntity.id,
-          entity: validatedEntity,
+          entityId: finalId,
+          entity: { ...validatedEntity, id: finalId },
         },
         "entity-service",
         undefined,
@@ -232,7 +245,7 @@ export class EntityService implements IEntityService {
     // 1. Enable staleness detection (compare hashes)
     // 2. Avoid large base64 data (images) bloating job queue and dashboard hydration
     const entityForQueue: EmbeddingJobData = {
-      id: validatedEntity.id,
+      id: finalId,
       entityType: validatedEntity.entityType,
       contentHash,
       operation: "create",
@@ -252,19 +265,65 @@ export class EntityService implements IEntityService {
         rootJobId,
         metadata: {
           operationType: "data_processing" as const,
-          operationTarget: validatedEntity.id,
+          operationTarget: finalId,
         },
       },
     );
 
     this.logger.debug(
-      `Queued embedding job for ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
+      `Queued embedding job for ${validatedEntity.entityType}:${finalId} (job: ${jobId})`,
     );
 
     return {
-      entityId: validatedEntity.id,
+      entityId: finalId,
       jobId,
     };
+  }
+
+  /**
+   * Find a unique ID by appending -2, -3, etc. if the base ID already exists.
+   */
+  private async resolveUniqueId(
+    baseId: string,
+    entityType: string,
+  ): Promise<string> {
+    // Check if base ID is available
+    const existing = await this.db
+      .select({ id: entities.id })
+      .from(entities)
+      .where(and(eq(entities.id, baseId), eq(entities.entityType, entityType)))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return baseId;
+    }
+
+    // Try suffixes -2, -3, ... up to a reasonable limit
+    for (let suffix = 2; suffix <= 100; suffix++) {
+      const candidateId = `${baseId}-${suffix}`;
+      const taken = await this.db
+        .select({ id: entities.id })
+        .from(entities)
+        .where(
+          and(
+            eq(entities.id, candidateId),
+            eq(entities.entityType, entityType),
+          ),
+        )
+        .limit(1);
+
+      if (taken.length === 0) {
+        this.logger.debug(`Deduplicated entity ID: ${baseId} → ${candidateId}`);
+        return candidateId;
+      }
+    }
+
+    // Extremely unlikely fallback: append random suffix
+    const fallbackId = `${baseId}-${createId().slice(0, 8)}`;
+    this.logger.warn(
+      `Could not deduplicate entity ID after 100 attempts, using random suffix: ${fallbackId}`,
+    );
+    return fallbackId;
   }
 
   /**

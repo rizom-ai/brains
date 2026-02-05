@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { BaseJobHandler } from "@brains/plugins";
+import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import { z, slugify, computeContentHash } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
@@ -206,21 +206,39 @@ Add your conclusion here`;
         message: "Saving deck to database",
       });
 
-      // Generate markdown with frontmatter
-      const markdown = this.formatter.toMarkdown({
+      // Ensure title doesn't collide with an existing entity
+      const finalTitle = await ensureUniqueTitle({
+        entityType: "deck",
+        title,
+        deriveId: (t) => t,
+        regeneratePrompt:
+          "Generate a different presentation deck title on the same topic.",
+        context: this.context,
+      });
+
+      // Update entity data if title changed
+      if (finalTitle !== title) {
+        deckEntity.title = finalTitle;
+        deckEntity.metadata.title = finalTitle;
+        deckEntity.metadata.slug = slugify(finalTitle);
+      }
+
+      // Regenerate markdown with (possibly updated) entity data
+      const finalMarkdown = this.formatter.toMarkdown({
         ...deckEntity,
         id: "temp",
         created: now,
         updated: now,
       });
 
-      // Create entity with full data
-      // Use title as entity ID for human-readable filenames (matches existing convention)
-      const result = await this.context.entityService.createEntity({
-        id: title,
-        ...deckEntity,
-        content: markdown,
-      });
+      const result = await this.context.entityService.createEntity(
+        {
+          id: finalTitle,
+          ...deckEntity,
+          content: finalMarkdown,
+        },
+        { deduplicateId: true },
+      );
 
       await progressReporter.report({
         progress: 100,

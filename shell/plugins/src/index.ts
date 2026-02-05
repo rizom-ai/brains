@@ -27,6 +27,8 @@ export type {
   IPluginsNamespace,
 } from "./service/context";
 export { createServicePluginContext } from "./service/context";
+export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export type { EnsureUniqueTitleParams } from "./service/create-entity-with-unique-title";
 
 // API routes
 export {

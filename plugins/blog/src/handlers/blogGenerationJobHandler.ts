@@ -1,4 +1,4 @@
-import { BaseJobHandler, ProfileAdapter } from "@brains/plugins";
+import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -173,22 +173,8 @@ Add your conclusion here.`;
 
       const finalExcerpt = excerpt;
 
-      // Get author from profile entity
-      const profile = await this.context.entityService.getEntity(
-        "profile",
-        "profile",
-      );
-      if (!profile?.content) {
-        return {
-          success: false,
-          error: "Profile entity not found or invalid",
-        };
-      }
-
-      // Parse profile content to get name
-      const profileAdapter = new ProfileAdapter();
-      const profileData = profileAdapter.parseProfileBody(profile.content);
-      const author = profileData.name;
+      // Get author name from profile
+      const author = this.context.identity.getProfile().name;
 
       // Handle series indexing
       let finalSeriesIndex = seriesIndex;
@@ -223,26 +209,39 @@ Add your conclusion here.`;
         ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
       };
 
-      const postContent = blogPostAdapter.createPostContent(
-        frontmatter,
-        content,
-      );
-
-      // Duplicate key searchable fields in metadata for fast queries (following summary pattern)
-      // Use title as entity ID for human-readable filenames (matches existing post naming convention)
-      const result = await this.context.entityService.createEntity({
-        id: title,
+      // Ensure title doesn't collide with an existing entity
+      const finalTitle = await ensureUniqueTitle({
         entityType: "post",
-        content: postContent,
-        metadata: {
-          title: frontmatter.title,
-          slug: frontmatter.slug, // Store slug in metadata for fast lookups
-          status: frontmatter.status,
-          publishedAt: frontmatter.publishedAt, // undefined for drafts, which is fine
-          seriesName: frontmatter.seriesName,
-          seriesIndex: frontmatter.seriesIndex,
-        },
+        title,
+        deriveId: (t) => t,
+        regeneratePrompt:
+          "Generate a different blog post title on the same topic.",
+        context: this.context,
       });
+      const finalSlug = slugify(finalTitle);
+
+      // Update frontmatter if title changed
+      if (finalTitle !== title) {
+        frontmatter.title = finalTitle;
+        frontmatter.slug = finalSlug;
+      }
+
+      const result = await this.context.entityService.createEntity(
+        {
+          id: finalTitle,
+          entityType: "post",
+          content: blogPostAdapter.createPostContent(frontmatter, content),
+          metadata: {
+            title: frontmatter.title,
+            slug: frontmatter.slug,
+            status: frontmatter.status,
+            publishedAt: frontmatter.publishedAt,
+            seriesName: frontmatter.seriesName,
+            seriesIndex: frontmatter.seriesIndex,
+          },
+        },
+        { deduplicateId: true },
+      );
 
       await progressReporter.report({
         progress: 100,

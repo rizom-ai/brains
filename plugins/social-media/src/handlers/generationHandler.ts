@@ -1,6 +1,6 @@
-import { BaseJobHandler } from "@brains/plugins";
+import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -243,13 +243,31 @@ ${sourceEntity.content}`,
         };
       }
 
-      // Use slug as entity ID for human-readable filenames
-      const result = await this.context.entityService.createEntity({
-        id: metadata.slug,
+      // Ensure title doesn't collide with an existing entity
+      const finalTitle = await ensureUniqueTitle({
         entityType: "social-post",
-        content: postContent,
-        metadata,
+        title,
+        deriveId: (t) => `${platform}-${slugify(t)}`,
+        regeneratePrompt:
+          "Generate a different social media post title on the same topic.",
+        context: this.context,
       });
+
+      // Rebuild metadata if title changed
+      if (finalTitle !== title) {
+        metadata.title = finalTitle;
+        metadata.slug = `${platform}-${slugify(finalTitle)}`;
+      }
+
+      const result = await this.context.entityService.createEntity(
+        {
+          id: metadata.slug,
+          entityType: "social-post",
+          content: postContent,
+          metadata,
+        },
+        { deduplicateId: true },
+      );
 
       // Queue image generation if requested
       if (data.generateImage) {

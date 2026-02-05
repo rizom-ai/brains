@@ -9,32 +9,15 @@ import {
   createTestEntity,
 } from "@brains/test-utils";
 import type { BlogPost } from "../src/schemas/blog-post";
-import type { BaseEntity } from "@brains/plugins";
 
 describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
   let mockContext: ServicePluginContext;
   let mockProgressReporter: ProgressReporter;
   let generateSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let reportSpy: Mock<(...args: unknown[]) => void>;
-
-  const createMockProfile = (name: string): BaseEntity => {
-    const content = `# Profile
-
-## Name
-${name}
-
-## Description
-Test description`;
-    return createTestEntity("profile", {
-      id: "profile",
-      content,
-      metadata: {},
-    });
-  };
 
   const createMockPost = (
     id: string,
@@ -77,7 +60,7 @@ Content`;
           },
         },
         entityService: {
-          getEntity: createMockProfile("Test Author"),
+          getEntity: null,
           listEntities: [],
           createEntity: { entityId: "test-slug" },
         },
@@ -89,10 +72,6 @@ Content`;
       mockContext.ai,
       "generate",
     ) as unknown as typeof generateSpy;
-    getEntitySpy = spyOn(
-      mockContext.entityService,
-      "getEntity",
-    ) as unknown as typeof getEntitySpy;
     listEntitiesSpy = spyOn(
       mockContext.entityService,
       "listEntities",
@@ -362,8 +341,10 @@ Content`;
   });
 
   describe("process - author extraction", () => {
-    it("should extract author from profile entity", async () => {
-      getEntitySpy.mockResolvedValue(createMockProfile("John Doe"));
+    it("should extract author from profile", async () => {
+      spyOn(mockContext.identity, "getProfile").mockReturnValue({
+        name: "John Doe",
+      } as ReturnType<typeof mockContext.identity.getProfile>);
 
       await handler.process(
         {
@@ -379,43 +360,6 @@ Content`;
       const entityData = createCall?.[0] as BlogPost;
 
       expect(entityData.content).toContain("author: John Doe");
-    });
-
-    it("should return error when profile not found", async () => {
-      getEntitySpy.mockResolvedValue(null);
-
-      const result = await handler.process(
-        {
-          title: "Test",
-          content: "Content",
-          excerpt: "Excerpt",
-        },
-        "job-123",
-        mockProgressReporter,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Profile entity not found");
-    });
-
-    it("should return error when profile has no content", async () => {
-      getEntitySpy.mockResolvedValue({
-        ...createMockProfile("Test"),
-        content: "",
-      });
-
-      const result = await handler.process(
-        {
-          title: "Test",
-          content: "Content",
-          excerpt: "Excerpt",
-        },
-        "job-123",
-        mockProgressReporter,
-      );
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
     });
   });
 

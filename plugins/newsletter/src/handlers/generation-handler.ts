@@ -1,4 +1,4 @@
-import { BaseJobHandler } from "@brains/plugins";
+import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
@@ -262,13 +262,30 @@ The newsletter should:
         message: "Saving newsletter to database",
       });
 
-      // Create entity with slugified subject as ID for human-readable filenames
-      const result = await this.context.entityService.createEntity({
-        id: slugify(subject),
+      // Ensure subject doesn't collide with an existing entity
+      const finalSubject = await ensureUniqueTitle({
         entityType: "newsletter",
-        content: markdownContent,
-        metadata,
+        title: subject,
+        deriveId: slugify,
+        regeneratePrompt:
+          "Generate a different newsletter subject line on the same topic.",
+        context: this.context,
       });
+
+      // Update metadata if subject changed
+      if (finalSubject !== subject) {
+        metadata.subject = finalSubject;
+      }
+
+      const result = await this.context.entityService.createEntity(
+        {
+          id: slugify(finalSubject),
+          entityType: "newsletter",
+          content: markdownContent,
+          metadata,
+        },
+        { deduplicateId: true },
+      );
 
       await progressReporter.report({
         progress: 100,
