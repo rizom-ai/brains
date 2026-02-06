@@ -1,0 +1,728 @@
+/* Editorial Theme - "The Literary Magazine"
+   High-end literary magazine aesthetic. Monocle meets The Paris Review.
+   Refined, confident, quietly luxurious.
+
+   Fonts: Instrument Serif (headings) + Inter Tight (body)
+   Palette: Cream, ink, terracotta, stone */
+
+/* Instrument Serif for elegant, high-contrast headings */
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+/* Inter Tight - crisp, modern complement for body text */
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&display=swap');
+
+/* Theme Layer - CSS Custom Properties for theming */
+@layer theme {
+  :root {
+    /* ============================================
+       BASE COLOR PALETTE - Cream & Terracotta
+       ============================================ */
+
+    /* Brand Colors - Terracotta */
+    --palette-brand-terracotta: #C2533A;         /* Terracotta - primary accent */
+    --palette-brand-terracotta-dark: #9E3E2A;    /* Dark terracotta - hover states */
+    --palette-brand-terracotta-light: #D4654E;   /* Light terracotta - subtle accents */
+
+    /* Neutrals - Light mode (warm cream/paper tones) */
+    --palette-cream: #FAF7F2;
+    --palette-cream-warm: #F5F0E8;
+    --palette-cream-deep: #EDE8DE;
+    --palette-parchment: #E6E0D4;
+    --palette-stone: #8C8377;
+    --palette-stone-light: #A69E93;
+    --palette-stone-dark: #6B6259;
+    --palette-ink: #1A1A1A;
+    --palette-ink-light: #2D2D2D;
+    --palette-ink-muted: #3D3D3D;
+    --palette-white: #FFFFFF;
+
+    /* Neutrals - Dark mode (warm charcoal) */
+    --palette-dark-bg: #141413;
+    --palette-dark-bg-subtle: #1E1E1C;
+    --palette-dark-bg-muted: #2A2A27;
+    --palette-dark-border: #3D3D38;
+
+    /* Dark mode text colors */
+    --palette-text-light: #EDEBE7;
+    --palette-text-muted-dark: #C4C0B8;
+    --palette-text-subtle-dark: #8C8377;
+
+    /* ============================================
+       SEMANTIC COLORS - Reference base palette
+       ============================================ */
+
+    /* Brand Colors - Terracotta for links and accents */
+    --color-brand: var(--palette-brand-terracotta);
+    --color-brand-dark: var(--palette-brand-terracotta-dark);
+    --color-brand-light: var(--palette-brand-terracotta-light);
+    --color-accent: var(--palette-brand-terracotta);
+    --color-accent-dark: var(--palette-brand-terracotta-dark);
+
+    /* Pattern Colors - Warm stone for editorial hairlines */
+    --color-pattern-dot: var(--palette-parchment);
+
+    /* Text Colors - Ink and stone */
+    --color-text: var(--palette-ink);
+    --color-text-muted: var(--palette-stone);
+    --color-text-light: var(--palette-stone-dark);
+    --color-text-inverse: var(--palette-cream);
+    --color-heading: var(--palette-ink);
+
+    /* Selection/Highlight Colors */
+    --color-selection: var(--palette-brand-terracotta);
+    --color-selection-bg: var(--palette-brand-terracotta);
+    --color-selection-text: var(--palette-cream);
+
+    /* Background Colors - Warm cream paper */
+    --color-bg: var(--palette-cream);
+    --color-bg-subtle: var(--palette-cream-warm);
+    --color-bg-muted: var(--palette-cream-deep);
+    --color-bg-dark: var(--palette-ink);
+
+    /* Gradient Colors - Subtle cream to warm */
+    --color-gradient-start: var(--palette-cream);
+    --color-gradient-end: var(--palette-cream-warm);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-cream) 0%,
+      var(--palette-cream-warm) 100%
+    );
+
+    /* Border Colors */
+    --color-border: var(--palette-parchment);
+    --color-border-light: var(--palette-cream-deep);
+
+    /* Footer - Same as page background */
+    --color-footer: var(--color-bg);
+    --color-footer-text: var(--color-text);
+
+    /* Typography */
+    --font-sans: 'Inter Tight', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-heading: 'Instrument Serif', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-serif: 'Instrument Serif', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Typography Scale - Presentation-scale for editorial impact */
+    --text-h1: 8rem;             /* 128px Desktop - commanding serif presence */
+    --text-h1-mobile: 3.75rem;   /* 60px Mobile */
+    --text-h2: 4.5rem;           /* 72px Desktop */
+    --text-h2-mobile: 3rem;      /* 48px Mobile */
+    --text-h3: 3rem;             /* 48px Desktop */
+    --text-h3-mobile: 2.25rem;   /* 36px Mobile */
+    --text-h4: 1.875rem;         /* 30px */
+    --text-body: 1.875rem;       /* 30px Desktop - generous magazine body */
+    --text-body-mobile: 1.5rem;  /* 24px Mobile */
+
+  }
+
+  /* Dark theme - Warm charcoal with terracotta accents */
+  [data-theme="dark"] {
+    /* Brand Colors - Lighter terracotta for dark backgrounds */
+    --color-brand: var(--palette-brand-terracotta-light);
+    --color-brand-dark: var(--palette-brand-terracotta);
+    --color-brand-light: var(--palette-brand-terracotta-light);
+    --color-accent: var(--palette-brand-terracotta-light);
+    --color-accent-dark: var(--palette-brand-terracotta);
+
+    /* Pattern Colors - Subtle warm gray */
+    --color-pattern-dot: var(--palette-dark-border);
+
+    /* Text Colors - Dark mode */
+    --color-text: var(--palette-text-light);
+    --color-text-muted: var(--palette-text-muted-dark);
+    --color-text-light: var(--palette-text-subtle-dark);
+    --color-text-inverse: var(--palette-ink);
+    --color-heading: var(--palette-text-light);
+
+    /* Selection/Highlight Colors - Dark mode */
+    --color-selection: var(--palette-brand-terracotta-light);
+    --color-selection-bg: var(--palette-brand-terracotta-light);
+    --color-selection-text: var(--palette-ink);
+
+    /* Background Colors - Warm dark charcoal */
+    --color-bg: var(--palette-dark-bg);
+    --color-bg-subtle: var(--palette-dark-bg-subtle);
+    --color-bg-muted: var(--palette-dark-bg-muted);
+    --color-bg-dark: #0A0A09;
+
+    /* Gradient Colors - Subtle dark gradient */
+    --color-gradient-start: var(--palette-dark-bg);
+    --color-gradient-end: var(--palette-dark-bg-subtle);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-dark-bg) 0%,
+      var(--palette-dark-bg-subtle) 100%
+    );
+
+    /* Border Colors - Dark mode */
+    --color-border: var(--palette-dark-border);
+    --color-border-light: rgba(237, 235, 231, 0.08);
+
+    /* Footer - Same as page background */
+    --color-footer: var(--color-bg);
+    --color-footer-text: var(--color-text);
+  }
+}
+
+/* ============================================
+   THEME TOKENS - Exposed to Tailwind v4
+
+   Uses @theme inline for RUNTIME CSS variable resolution.
+   The "inline" keyword is critical - it makes Tailwind use var(--color-brand)
+   in the generated CSS instead of resolving the value at build time.
+   This enables dark mode and multi-site theming to work correctly.
+
+   Auto-generates utilities like:
+   - bg-brand, text-brand, border-brand, ring-brand, fill-brand
+   - Plus all variants: hover:, focus:, dark:, etc.
+
+   Only include colors where bg/text/border all use the SAME variable.
+   For colors where bg and text need different values (like "theme"),
+   use manual utilities below in @layer utilities.
+   ============================================ */
+@theme inline {
+  /* Brand colors - same color for bg/text/border */
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-light: var(--color-brand-light);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+
+  /* Selection colors */
+  --color-selection: var(--color-selection);
+
+  /* Footer */
+  --color-footer: var(--color-footer);
+  --color-footer-text: var(--color-footer-text);
+
+  /* Gradient colors */
+  --color-gradient-start: var(--color-gradient-start);
+  --color-gradient-end: var(--color-gradient-end);
+
+  /* Pattern colors */
+  --color-pattern-dot: var(--color-pattern-dot);
+
+  /* Prose/Typography colors - for @tailwindcss/typography plugin */
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
+}
+
+/* ============================================
+   SPECIAL UTILITIES - Manual definitions needed
+
+   These utilities CAN'T be auto-generated by @theme inline because:
+   1. bg-theme and text-theme need DIFFERENT variables (bg uses --color-bg, text uses --color-text)
+   2. Some utilities use complete gradient values, not single colors
+   3. Some utilities are context-specific (conditional on parent class)
+
+   Why not auto-generate?
+   If we put --color-theme: var(--color-bg) in @theme inline,
+   then text-theme would also use --color-bg (wrong - text needs --color-text).
+   ============================================ */
+@layer utilities {
+  /* Theme utilities - bg uses --color-bg, text uses --color-text */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-theme-muted { background-color: var(--color-bg-muted); }
+  .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .text-theme { color: var(--color-text); }
+  .text-theme-muted { color: var(--color-text-muted); }
+  .text-theme-light { color: var(--color-text-light); }
+  .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-heading { color: var(--color-heading); }
+  .text-selection { color: var(--color-selection); }
+  .border-theme { border-color: var(--color-border); }
+  .border-theme-light { border-color: var(--color-border-light); }
+  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
+
+  /* Hover states for theme utilities */
+  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
+  .hover\:bg-brand:hover { background-color: var(--color-brand); }
+  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+
+  /* Complete gradient background - uses full gradient value */
+  .bg-theme-gradient { background: var(--color-bg-gradient); }
+
+  /* Footer text color override - make text-theme-inverse use footer text color in footer */
+  .bg-footer .text-theme-inverse {
+    color: var(--color-footer-text);
+  }
+
+  /* Text selection highlighting - terracotta on cream */
+  ::selection {
+    background-color: var(--color-selection-bg);
+    color: var(--color-selection-text);
+  }
+
+  /* Heading weight adjustments - editorial bold serif */
+  h1, .text-h1 {
+    font-weight: 700;
+    font-family: var(--font-heading);
+    letter-spacing: -0.03em;
+  }
+
+  h2, .text-h2 {
+    font-weight: 700;
+    font-family: var(--font-heading);
+    letter-spacing: -0.03em;
+  }
+
+  /* Subheadings - small-caps with wide letter-spacing */
+  h3, .text-h3 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+  }
+
+  h4, .text-h4,
+  h5, .text-h5,
+  h6, .text-h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+  }
+
+  .prose.prose h1 {
+    font-weight: 700;
+  }
+
+  /* Navigation text */
+  .text-nav { color: var(--color-text); }
+  [data-theme="dark"] .text-nav { color: var(--color-text); }
+
+  /* Logo text */
+  .text-logo { color: var(--color-heading); }
+  [data-theme="dark"] .text-logo { color: var(--color-heading); }
+
+  /* Logo color variable */
+  :root {
+    --color-logo: var(--color-heading);
+  }
+  [data-theme="dark"] {
+    --color-logo: var(--color-heading);
+  }
+
+  /* Header background - cream paper */
+  .bg-header { background-color: var(--color-bg); }
+  [data-theme="dark"] .bg-header { background-color: var(--color-bg); }
+
+  /* Theme toggle background - subtle warm */
+  .bg-theme-toggle { background-color: var(--color-bg-muted); }
+  [data-theme="dark"] .bg-theme-toggle { background-color: var(--color-bg-muted); }
+
+  /* Theme toggle hover - slightly deeper */
+  .bg-theme-toggle-hover { background-color: var(--palette-parchment); }
+  [data-theme="dark"] .bg-theme-toggle-hover { background-color: var(--palette-dark-border); }
+
+  /* Theme toggle icon color */
+  .text-theme-toggle-icon { color: var(--color-text); }
+  [data-theme="dark"] .text-theme-toggle-icon { color: var(--color-text); }
+
+  /* Theme toggle icon hover */
+  .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-text); }
+
+  /* Gradients - Tailwind v4 format */
+  .from-gradient-start {
+    --tw-gradient-from: var(--color-gradient-start);
+    --tw-gradient-to: rgb(from var(--color-gradient-start) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-gradient-end {
+    --tw-gradient-to: var(--color-gradient-end);
+  }
+  .from-accent {
+    --tw-gradient-from: var(--color-accent);
+    --tw-gradient-to: rgb(from var(--color-accent) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-accent-dark {
+    --tw-gradient-to: var(--color-accent-dark);
+  }
+  .from-brand-dark {
+    --tw-gradient-from: var(--color-brand-dark);
+    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-brand-light {
+    --tw-gradient-from: var(--color-brand-light);
+    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-brand {
+    --tw-gradient-to: var(--color-brand);
+  }
+  .to-theme {
+    --tw-gradient-to: var(--color-bg);
+  }
+}
+
+/* ============================================
+   PROSE STYLES - Magazine-quality typography
+   ============================================ */
+@layer utilities {
+  .prose {
+    color: var(--color-text);
+    line-height: 1.8;
+  }
+
+  /* Main headings - Instrument Serif, bold, tight tracking */
+  .prose h1 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+  }
+
+  .prose h2 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    border-bottom: none;
+    text-decoration: none;
+  }
+
+  /* Subheadings - Small-caps with wide tracking for editorial hierarchy */
+  .prose h3 {
+    color: var(--color-heading);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1.375rem;
+    line-height: 1.4;
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+  }
+
+  .prose h4 {
+    color: var(--color-heading);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+  }
+
+  .prose h5,
+  .prose h6 {
+    color: var(--color-heading);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: 1.125rem;
+    line-height: 1.5;
+    font-variant: small-caps;
+    letter-spacing: 0.05em;
+    text-transform: lowercase;
+  }
+
+  /* Body text - generous line-height for magazine readability */
+  .prose p {
+    color: var(--color-text);
+    line-height: 1.8;
+  }
+
+  .prose strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .prose em {
+    color: var(--color-text);
+    font-style: italic;
+    font-family: var(--font-serif);
+  }
+
+  /* Blockquote - thin terracotta left border, italic serif */
+  .prose blockquote {
+    border-left: 2px solid var(--color-brand);
+    padding-left: 1.5rem;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--color-text-muted);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .prose blockquote p {
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+
+  /* Blockquote attribution styling */
+  .prose cite.block-attribution {
+    display: block;
+    font-size: 1rem;
+    font-weight: 300;
+    font-style: normal;
+    font-family: var(--font-sans);
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    padding-left: 0;
+  }
+
+  .prose cite.block-attribution .emdash {
+    color: var(--color-brand);
+    margin-right: 0.125rem;
+  }
+
+  .prose cite.block-attribution a {
+    color: var(--color-text-muted);
+    text-decoration: underline;
+  }
+
+  .prose cite.block-attribution a:hover {
+    color: var(--color-brand);
+  }
+
+  /* Horizontal rules - thin decorative editorial dividers */
+  .prose hr {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+  }
+
+  .prose code {
+    color: var(--color-text);
+    background-color: var(--color-bg-muted);
+    font-size: 0.9em;
+    padding: 0.15em 0.4em;
+    border-radius: 0.2em;
+  }
+
+  .prose pre {
+    background-color: var(--color-bg-muted);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+  }
+
+  .prose a {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.15em;
+    transition: color 0.2s ease;
+  }
+
+  .prose a:hover {
+    color: var(--color-brand-dark);
+  }
+
+  /* Lists - editorial spacing */
+  .prose ul,
+  .prose ol {
+    padding-left: 1.25em;
+  }
+
+  .prose li {
+    margin-top: 0.375em;
+    margin-bottom: 0.375em;
+    line-height: 1.7;
+  }
+
+  /* Dark mode heading colors - warm white for contrast */
+  [data-theme="dark"] .prose h1,
+  [data-theme="dark"] .prose h2,
+  [data-theme="dark"] .prose h3,
+  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h5,
+  [data-theme="dark"] .prose h6 {
+    color: var(--color-heading);
+  }
+
+  /* Dark mode italic - keep serif styling */
+  [data-theme="dark"] .prose em {
+    color: var(--color-text);
+  }
+
+  /* Dark mode blockquote */
+  [data-theme="dark"] .prose blockquote {
+    border-left-color: var(--color-brand);
+  }
+
+  [data-theme="dark"] .prose blockquote p {
+    color: var(--color-text-muted);
+  }
+}
+
+/* ============================================
+   HERO & CTA BACKGROUND COMPONENTS
+
+   No patterns. No diagonal lines. No noise.
+   A literary magazine lets the paper speak. The cream
+   background IS the texture — warm, still, confident.
+   Typography does all the work.
+   ============================================ */
+@layer components {
+  /* Hero — pure restraint. The only embellishment is a barely-there
+     warm gradient at the bottom, like the way thick uncoated stock
+     catches afternoon light. Everything else is typography. */
+  .hero-bg-pattern {
+    background-image: none;
+    background-color: transparent;
+  }
+
+  .hero-bg-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 60%,
+      var(--color-bg-subtle) 100%
+    );
+    opacity: 0.04;
+    pointer-events: none;
+  }
+
+  /* Staggered text reveal — the headline appears first, slow and
+     graceful, then the subtitle follows a beat later. Like turning
+     to the opening spread of a feature article. */
+  .hero-bg-pattern h1 {
+    opacity: 0;
+    animation: fadeUp 600ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation-delay: 100ms;
+  }
+
+  .hero-bg-pattern p {
+    opacity: 0;
+    animation: fadeUp 600ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation-delay: 350ms;
+  }
+
+  /* CTA — same philosophy: no decoration. Just a whisper of warmth
+     from top to bottom to ground the section visually. */
+  .cta-bg-pattern {
+    background-image: none;
+    background-color: transparent;
+    position: relative;
+  }
+
+  .cta-bg-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      var(--color-bg-subtle) 100%
+    );
+    opacity: 0.05;
+    pointer-events: none;
+  }
+}
+
+/* ============================================
+   ANIMATIONS — Less is more
+
+   Editorial design is still. Confident things don't fidget.
+   Only two keyframes: a text reveal for the hero entrance,
+   and a quiet opacity pulse for blob compatibility.
+   ============================================ */
+
+/* Text reveal — translates 12px upward while fading in.
+   Tight distance, slow timing, ease-out. The feeling of
+   words settling into place on a freshly printed page. */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Subtle opacity pulse — kept only for IntroLayout blob compatibility.
+   No movement, no scale, no rotation. Just a gentle breathing. */
+@keyframes blob {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  /* Blob compatibility — gentle opacity pulse instead of movement */
+  .animate-blob {
+    animation: blob 10s ease-in-out infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  /* Fade-up reveal utility */
+  .animate-fade-up {
+    animation: fadeUp 600ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  }
+}
+
+/* ============================================
+   SCROLL-TRIGGERED CONTENT REVEALS
+   Uses animation-timeline: view() for progressive disclosure.
+   Graceful degradation: browsers without support show content immediately.
+   ============================================ */
+
+/* Editorial: gentle 12px fade-up, slow and graceful like turning a page */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .content-section-reveal {
+    animation: contentReveal 600ms ease-out both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
+/* ============================================
+   THEME TOGGLE ICON VISIBILITY
+   ============================================ */
+@layer utilities {
+  /* Show sun in dark mode, moon in light mode */
+  [data-theme="dark"] .sun-icon {
+    display: block;
+  }
+  [data-theme="dark"] .moon-icon {
+    display: none;
+  }
+  [data-theme="light"] .sun-icon {
+    display: none;
+  }
+  [data-theme="light"] .moon-icon {
+    display: block;
+  }
+}

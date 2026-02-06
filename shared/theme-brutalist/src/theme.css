@@ -1,0 +1,1023 @@
+/* Brutalist fonts - Space Mono for raw monospace headings, Work Sans for clean body */
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Work+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&display=swap');
+
+/* Theme Layer - CSS Custom Properties for theming */
+@layer theme {
+  :root {
+    /* ============================================
+       BASE COLOR PALETTE - Brutalist: Raw, High Contrast
+       Neon green on near-black. No compromise.
+       ============================================ */
+
+    /* Brand Colors - Neon Green */
+    --palette-neon-green: #00FF66;              /* Primary accent - electric, unavoidable (dark mode) */
+    --palette-neon-green-dark: #00CC52;          /* Darker green for hover/pressed states */
+    --palette-neon-green-light: #33FF85;         /* Lighter green for subtle emphasis */
+    --palette-green-readable: #007D38;           /* Readable on light backgrounds (~4.8:1 on #F0F0F0) */
+    --palette-green-readable-dark: #006B2E;      /* Hover state for readable green (~5.9:1) */
+
+    /* Neutrals - Light mode */
+    --palette-off-white: #F0F0F0;
+    --palette-white: #FFFFFF;
+    --palette-gray-100: #E0E0E0;
+    --palette-gray-200: #C0C0C0;
+    --palette-gray-300: #A0A0A0;
+    --palette-gray-400: #888888;
+    --palette-gray-500: #666666;
+    --palette-gray-600: #555555;
+    --palette-gray-700: #333333;
+    --palette-gray-800: #1A1A1A;
+    --palette-gray-900: #111111;
+    --palette-near-black: #0A0A0A;
+    --palette-black: #000000;
+
+    /* Neutrals - Dark mode */
+    --palette-dark-bg: #0A0A0A;                 /* Near-black background */
+    --palette-dark-bg-subtle: #111111;           /* Slightly lifted surface */
+    --palette-dark-bg-muted: #1A1A1A;            /* Muted surface */
+    --palette-dark-border: #333333;              /* Border on dark backgrounds */
+
+    /* Dark mode text colors */
+    --palette-text-light: #E0E0E0;              /* Primary text on dark */
+    --palette-text-muted-dark: #888888;          /* Muted text on dark */
+    --palette-text-subtle-dark: #666666;         /* Subtle text on dark */
+
+    /* ============================================
+       SEMANTIC COLORS - Light Mode (secondary mode)
+       Clean, industrial. Off-white bg, near-black text.
+       ============================================ */
+
+    /* Brand Colors - Readable green for light backgrounds */
+    --color-brand: var(--palette-green-readable);
+    --color-brand-dark: var(--palette-green-readable-dark);
+    --color-brand-light: var(--palette-neon-green);
+    --color-accent: var(--palette-green-readable);
+    --color-accent-dark: var(--palette-green-readable-dark);
+
+    /* Pattern Colors - Scan lines use muted gray */
+    --color-pattern-dot: var(--palette-gray-300);
+
+    /* Text Colors */
+    --color-text: var(--palette-near-black);
+    --color-text-muted: var(--palette-gray-600);
+    --color-text-light: var(--palette-gray-500);
+    --color-text-inverse: var(--palette-off-white);
+    --color-heading: var(--palette-near-black);
+
+    /* Selection/Highlight Colors - Neon green highlight */
+    --color-selection: var(--palette-neon-green);
+    --color-selection-bg: var(--palette-neon-green);
+    --color-selection-text: var(--palette-black);
+
+    /* Background Colors */
+    --color-bg: var(--palette-off-white);
+    --color-bg-subtle: var(--palette-gray-100);
+    --color-bg-muted: var(--palette-gray-200);
+    --color-bg-dark: var(--palette-near-black);
+
+    /* Gradient Colors - Flat, no-nonsense */
+    --color-gradient-start: var(--palette-off-white);
+    --color-gradient-end: var(--palette-gray-200);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-off-white) 0%,
+      var(--palette-gray-100) 100%
+    );
+
+    /* Border Colors */
+    --color-border: var(--palette-gray-300);
+    --color-border-light: var(--palette-gray-200);
+
+    /* Footer */
+    --color-footer: var(--palette-near-black);
+    --color-footer-text: var(--palette-text-light);
+
+    /* Typography - Space Mono for headings, Work Sans for body */
+    --font-sans: 'Work Sans', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-heading: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Typography Scale - Compact and dense. Impact through monospace, not size. */
+    --text-h1: 6rem;              /* 96px Desktop - monospace + uppercase = massive impact */
+    --text-h1-mobile: 3rem;       /* 48px Mobile */
+    --text-h2: 3.5rem;            /* 56px Desktop */
+    --text-h2-mobile: 2.25rem;    /* 36px Mobile */
+    --text-h3: 2.25rem;           /* 36px Desktop */
+    --text-h3-mobile: 1.75rem;    /* 28px Mobile */
+    --text-h4: 1.5rem;            /* 24px */
+    --text-body: 1.125rem;        /* 18px Desktop - readable body */
+    --text-body-mobile: 1rem;     /* 16px Mobile */
+  }
+
+  /* ============================================
+     DARK MODE (DEFAULT aesthetic for brutalist)
+     Near-black bg, off-white text, neon green accents.
+     ============================================ */
+  [data-theme="dark"] {
+    /* Brand Colors - Same neon green, uncompromising */
+    --color-brand: var(--palette-neon-green);
+    --color-brand-dark: var(--palette-neon-green-dark);
+    --color-brand-light: var(--palette-neon-green-light);
+    --color-accent: var(--palette-neon-green);
+    --color-accent-dark: var(--palette-neon-green-dark);
+
+    /* Pattern Colors - Subtle on dark */
+    --color-pattern-dot: var(--palette-gray-700);
+
+    /* Text Colors - Dark mode */
+    --color-text: var(--palette-text-light);
+    --color-text-muted: var(--palette-text-muted-dark);
+    --color-text-light: var(--palette-text-subtle-dark);
+    --color-text-inverse: var(--palette-near-black);
+    --color-heading: var(--palette-text-light);
+
+    /* Selection/Highlight Colors - Same neon green */
+    --color-selection: var(--palette-neon-green);
+    --color-selection-bg: var(--palette-neon-green);
+    --color-selection-text: var(--palette-black);
+
+    /* Background Colors - Dark mode */
+    --color-bg: var(--palette-dark-bg);
+    --color-bg-subtle: var(--palette-dark-bg-subtle);
+    --color-bg-muted: var(--palette-dark-bg-muted);
+    --color-bg-dark: var(--palette-black);
+
+    /* Gradient Colors - Flat dark, no softness */
+    --color-gradient-start: var(--palette-dark-bg);
+    --color-gradient-end: var(--palette-dark-bg-subtle);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-dark-bg) 0%,
+      var(--palette-dark-bg-subtle) 100%
+    );
+
+    /* Border Colors - Dark mode */
+    --color-border: var(--palette-dark-border);
+    --color-border-light: rgba(255, 255, 255, 0.08);
+
+    /* Footer */
+    --color-footer: var(--palette-black);
+    --color-footer-text: var(--palette-text-light);
+  }
+}
+
+/* ============================================
+   THEME TOKENS - Exposed to Tailwind v4
+
+   Uses @theme inline for RUNTIME CSS variable resolution.
+   The "inline" keyword is critical - it makes Tailwind use var(--color-brand)
+   in the generated CSS instead of resolving the value at build time.
+   This enables dark mode and multi-site theming to work correctly.
+
+   Auto-generates utilities like:
+   - bg-brand, text-brand, border-brand, ring-brand, fill-brand
+   - Plus all variants: hover:, focus:, dark:, etc.
+
+   Only include colors where bg/text/border all use the SAME variable.
+   For colors where bg and text need different values (like "theme"),
+   use manual utilities below in @layer utilities.
+   ============================================ */
+@theme inline {
+  /* Brand colors - same color for bg/text/border */
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-light: var(--color-brand-light);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+
+  /* Selection colors */
+  --color-selection: var(--color-selection);
+
+  /* Footer */
+  --color-footer: var(--color-footer);
+  --color-footer-text: var(--color-footer-text);
+
+  /* Gradient colors */
+  --color-gradient-start: var(--color-gradient-start);
+  --color-gradient-end: var(--color-gradient-end);
+
+  /* Pattern colors */
+  --color-pattern-dot: var(--color-pattern-dot);
+
+  /* Prose/Typography colors - for @tailwindcss/typography plugin */
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
+}
+
+/* ============================================
+   SPECIAL UTILITIES - Manual definitions needed
+
+   These utilities CAN'T be auto-generated by @theme inline because:
+   1. bg-theme and text-theme need DIFFERENT variables (bg uses --color-bg, text uses --color-text)
+   2. Some utilities use complete gradient values, not single colors
+   3. Some utilities are context-specific (conditional on parent class)
+
+   Why not auto-generate?
+   If we put --color-theme: var(--color-bg) in @theme inline,
+   then text-theme would also use --color-bg (wrong - text needs --color-text).
+   ============================================ */
+@layer utilities {
+  /* Theme utilities - bg uses --color-bg, text uses --color-text */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-theme-muted { background-color: var(--color-bg-muted); }
+  .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .text-theme { color: var(--color-text); }
+  .text-theme-muted { color: var(--color-text-muted); }
+  .text-theme-light { color: var(--color-text-light); }
+  .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-heading { color: var(--color-heading); }
+  .text-selection { color: var(--color-selection); }
+  .border-theme { border-color: var(--color-border); }
+  .border-theme-light { border-color: var(--color-border-light); }
+  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
+}
+
+/* Hover states, selection, heading weights */
+@layer utilities {
+  /* Hover states for theme utilities */
+  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
+  .hover\:bg-brand:hover { background-color: var(--color-brand); }
+  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+
+  /* Complete gradient background - uses full gradient value */
+  .bg-theme-gradient { background: var(--color-bg-gradient); }
+
+  /* Footer text color override */
+  .bg-footer .text-theme-inverse {
+    color: var(--color-footer-text);
+  }
+
+  /* Text selection highlighting - Neon green with black text */
+  ::selection {
+    background-color: var(--color-selection-bg);
+    color: var(--color-selection-text);
+  }
+
+  /* Heading weight and text-transform - ALL CAPS monospace brutalism */
+  h1, .text-h1 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  h2, .text-h2 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  h3, .text-h3,
+  h4, .text-h4,
+  h5, .text-h5,
+  h6, .text-h6 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .prose.prose h1 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+}
+
+/* Navigation, logo, header, theme toggle utilities */
+@layer utilities {
+  /* Navigation text - near-black in light, off-white in dark */
+  .text-nav { color: var(--color-text); }
+  [data-theme="dark"] .text-nav { color: var(--color-text); }
+
+  /* Logo text - near-black in light, neon green in dark */
+  .text-logo { color: var(--color-heading); }
+  [data-theme="dark"] .text-logo { color: var(--color-brand); }
+
+  /* Logo color variable */
+  :root {
+    --color-logo: var(--color-heading);
+  }
+  [data-theme="dark"] {
+    --color-logo: var(--color-brand);
+  }
+
+  /* Header background - raw, flat */
+  .bg-header { background-color: var(--color-bg); }
+  [data-theme="dark"] .bg-header { background-color: var(--color-bg); }
+
+  /* Theme toggle background - muted surface */
+  .bg-theme-toggle { background-color: var(--color-bg-muted); }
+  [data-theme="dark"] .bg-theme-toggle { background-color: var(--color-bg-muted); }
+
+  /* Theme toggle hover - neon green highlight */
+  .bg-theme-toggle-hover { background-color: var(--palette-gray-300); }
+  [data-theme="dark"] .bg-theme-toggle-hover { background-color: var(--palette-gray-700); }
+
+  /* Theme toggle icon color */
+  .text-theme-toggle-icon { color: var(--color-text); }
+  [data-theme="dark"] .text-theme-toggle-icon { color: var(--color-text); }
+
+  /* Theme toggle icon hover */
+  .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-text); }
+}
+
+/* Gradient utilities - Tailwind v4 format */
+@layer utilities {
+  .from-gradient-start {
+    --tw-gradient-from: var(--color-gradient-start);
+    --tw-gradient-to: rgb(from var(--color-gradient-start) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-gradient-end {
+    --tw-gradient-to: var(--color-gradient-end);
+  }
+  .from-accent {
+    --tw-gradient-from: var(--color-accent);
+    --tw-gradient-to: rgb(from var(--color-accent) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-accent-dark {
+    --tw-gradient-to: var(--color-accent-dark);
+  }
+  .from-brand-dark {
+    --tw-gradient-from: var(--color-brand-dark);
+    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-brand-light {
+    --tw-gradient-from: var(--color-brand-light);
+    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-brand {
+    --tw-gradient-to: var(--color-brand);
+  }
+  .to-theme {
+    --tw-gradient-to: var(--color-bg);
+  }
+}
+
+/* Prose styles - Dense, no-nonsense typography */
+@layer utilities {
+  .prose {
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+
+  /* Main headings - ALL CAPS monospace, raw industrial hierarchy */
+  .prose h1 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2.5rem;
+    line-height: 1.1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2em;
+    margin-bottom: 0.6em;
+  }
+
+  .prose h2 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: none;
+    text-decoration: none;
+    margin-top: 1.8em;
+    margin-bottom: 0.5em;
+  }
+
+  /* Subheadings - Still uppercase mono, tighter letter-spacing */
+  .prose h3 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 1.6em;
+    margin-bottom: 0.4em;
+  }
+
+  .prose h4 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.25rem;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 1.4em;
+    margin-bottom: 0.4em;
+  }
+
+  .prose h5,
+  .prose h6 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 1.2em;
+    margin-bottom: 0.3em;
+  }
+
+  /* Body text - Clean, dense, Work Sans */
+  .prose p {
+    color: var(--color-text);
+    margin-top: 0.8em;
+    margin-bottom: 0.8em;
+  }
+
+  .prose strong {
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  .prose em {
+    color: var(--color-text);
+    font-style: italic;
+  }
+
+  /* Blockquotes - Thick neon-green left border, no background. Raw. */
+  .prose blockquote {
+    border-left: 4px solid var(--color-brand);
+    padding-left: 1.25em;
+    padding-top: 0.25em;
+    padding-bottom: 0.25em;
+    margin-top: 1.2em;
+    margin-bottom: 1.2em;
+    background: none;
+    font-style: normal;
+    color: var(--color-text-muted);
+  }
+
+  .prose blockquote p {
+    color: var(--color-text-muted);
+  }
+
+  /* Blockquote attribution styling */
+  .prose cite.block-attribution {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 400;
+    font-style: normal;
+    font-family: var(--font-heading);
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    padding-left: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .prose cite.block-attribution .emdash {
+    color: var(--color-brand);
+    margin-right: 0.125rem;
+  }
+
+  .prose cite.block-attribution a {
+    color: var(--color-text-muted);
+    text-decoration: underline;
+    text-decoration-color: var(--color-brand);
+    text-underline-offset: 2px;
+  }
+
+  .prose cite.block-attribution a:hover {
+    color: var(--color-brand);
+  }
+
+  /* Code - Monospace feels native here. No rounded corners, raw borders. */
+  .prose code {
+    color: var(--color-brand);
+    background-color: var(--color-bg-muted);
+    padding: 0.15em 0.4em;
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+  }
+
+  .prose pre {
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-inverse);
+    border: 1px solid var(--color-border);
+    border-radius: 0;
+    padding: 1.25em;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .prose pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  /* Links - Neon green, underline on hover */
+  .prose a {
+    color: var(--color-brand);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 100ms ease;
+  }
+
+  .prose a:hover {
+    color: var(--color-brand-light);
+    border-bottom-color: var(--color-brand);
+  }
+
+  /* Lists - tighter spacing */
+  .prose ul,
+  .prose ol {
+    margin-top: 0.6em;
+    margin-bottom: 0.6em;
+  }
+
+  .prose li {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+  }
+
+  /* Horizontal rules - raw, thick */
+  .prose hr {
+    border: none;
+    border-top: 2px solid var(--color-border);
+    margin-top: 2em;
+    margin-bottom: 2em;
+  }
+
+  /* Dark mode prose overrides */
+  [data-theme="dark"] .prose h1,
+  [data-theme="dark"] .prose h2,
+  [data-theme="dark"] .prose h3,
+  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h5,
+  [data-theme="dark"] .prose h6 {
+    color: var(--color-heading);
+  }
+
+  /* Dark mode italic - keep normal styling */
+  [data-theme="dark"] .prose em {
+    color: var(--color-text);
+  }
+
+  /* Dark mode code blocks */
+  [data-theme="dark"] .prose code {
+    color: var(--color-brand);
+    background-color: var(--color-bg-muted);
+    border-color: var(--color-border);
+  }
+
+  [data-theme="dark"] .prose pre {
+    background-color: var(--palette-black);
+    border-color: var(--color-border);
+  }
+
+  /* Dark mode blockquotes */
+  [data-theme="dark"] .prose blockquote {
+    border-left-color: var(--color-brand);
+  }
+
+  /* Dark mode links */
+  [data-theme="dark"] .prose a {
+    color: var(--color-brand);
+  }
+
+  [data-theme="dark"] .prose a:hover {
+    color: var(--color-brand-light);
+  }
+}
+
+/* ============================================
+   Hero & CTA Background Components
+   Scan lines create CRT/terminal atmosphere.
+   Applied directly to the <header> element.
+   ============================================ */
+@layer components {
+  /* Hero background pattern - Refined CRT scan lines
+     1px lines at 3px intervals, barely visible. Atmosphere, not decoration.
+     The ::before creates scan lines, ::after adds a focusing vignette. */
+  .hero-bg-pattern {
+    position: relative;
+  }
+
+  .hero-bg-pattern::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.18) 2px,
+      rgba(255, 255, 255, 0.18) 3px
+    );
+    pointer-events: none;
+    animation: scanline-flicker 3s infinite;
+  }
+
+  /* Light mode: dark scan lines */
+  [data-theme="light"] .hero-bg-pattern::before {
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.15) 2px,
+      rgba(0, 0, 0, 0.15) 3px
+    );
+  }
+
+  /* Vignette - radial fade from transparent center to darker edges.
+     Focuses attention inward. Raw but intentional. */
+  .hero-bg-pattern::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 40%,
+      rgba(0, 0, 0, 0.12) 100%
+    );
+    pointer-events: none;
+  }
+
+  [data-theme="dark"] .hero-bg-pattern::after {
+    background: radial-gradient(
+      ellipse at center,
+      transparent 40%,
+      rgba(0, 0, 0, 0.25) 100%
+    );
+  }
+
+  /* No entrance animation. Things exist or they don't.
+     Brutalist text doesn't ask permission to appear. */
+
+  /* CTA background pattern - Denser scan lines (2px interval), low opacity.
+     No other decoration. */
+  .cta-bg-pattern {
+    position: relative;
+  }
+
+  .cta-bg-pattern::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(255, 255, 255, 0.14) 1px,
+      rgba(255, 255, 255, 0.14) 2px
+    );
+    pointer-events: none;
+  }
+
+  [data-theme="light"] .cta-bg-pattern::before {
+    background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.12) 1px,
+      rgba(0, 0, 0, 0.12) 2px
+    );
+  }
+}
+
+/* ============================================
+   KEYFRAMES
+   No organic motion. No easing. Things appear or disappear.
+   ============================================ */
+
+/* Glitch - CRT struggling, not a broken website.
+   Small 1-2px movements, fast 200ms cycle, slight opacity flicker. */
+@keyframes glitch {
+  0% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  10% {
+    transform: translate(-1px, 1px);
+    opacity: 0.95;
+  }
+  20% {
+    transform: translate(1px, -1px);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-1px, 0px);
+    opacity: 0.92;
+  }
+  40% {
+    transform: translate(1px, -1px);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-2px, 1px);
+    opacity: 0.96;
+  }
+  60% {
+    transform: translate(1px, 0px);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(0px, -1px);
+    opacity: 0.94;
+  }
+  80% {
+    transform: translate(-1px, 1px);
+    opacity: 1;
+  }
+  90% {
+    transform: translate(1px, 0px);
+    opacity: 0.97;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+}
+
+/* Scan line flicker - CRT monitor oscillation. Visible, not subtle. */
+@keyframes scanline-flicker {
+  0% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.85;
+  }
+}
+
+/* Blob - Fast, tight movement for compatibility. No organic feel. */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(15px, -25px) scale(1.05);
+  }
+  66% {
+    transform: translate(-10px, 10px) scale(0.95);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* Brutal Appear - Instant materialization. 0 to 1, one step, done. */
+@keyframes brutalAppear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  /* Glitch animation - refined CRT jitter, 200ms cycle */
+  .animate-glitch {
+    animation: glitch 200ms infinite;
+  }
+
+  /* Blob animation - tight and fast for brutalist feel */
+  .animate-blob {
+    animation: blob 4s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  /* Scan line flicker on hero patterns */
+  .animate-scanline {
+    animation: scanline-flicker 3s infinite;
+  }
+
+  /* Brutal appear - instant materialization */
+  .animate-brutal-appear {
+    animation: brutalAppear 50ms steps(1) both;
+  }
+
+  /* Instant transitions - no organic motion. 100ms. Done. */
+  .transition-brutal {
+    transition-duration: 100ms;
+    transition-timing-function: steps(1);
+  }
+}
+
+/* ============================================
+   SCROLL-TRIGGERED CONTENT REVEALS
+   Uses animation-timeline: view() for progressive disclosure.
+   Graceful degradation: browsers without support show content immediately.
+   ============================================ */
+
+/* Brutalist: instant appear. Things exist or they don't. */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer utilities {
+  .content-section-reveal {
+    animation: contentReveal 50ms steps(1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
+/* Theme toggle icon visibility */
+@layer utilities {
+  /* Show sun in dark mode, moon in light mode */
+  [data-theme="dark"] .sun-icon {
+    display: block;
+  }
+  [data-theme="dark"] .moon-icon {
+    display: none;
+  }
+  [data-theme="light"] .sun-icon {
+    display: none;
+  }
+  [data-theme="light"] .moon-icon {
+    display: block;
+  }
+}
+
+/* ============================================
+   CRT TERMINAL OVERRIDES
+   Everything below is unlayered CSS — it overrides
+   Tailwind utilities by cascade layer priority.
+   The interface is exposed infrastructure.
+   ============================================ */
+
+/* 1. Sharp Corners — Manufactured precision, no organic softness */
+a[class*="rounded-"],
+span[class*="rounded-"],
+button[class*="rounded-"],
+div[class*="rounded-"] {
+  border-radius: 0;
+}
+
+/* 2. Brutal Divider — Neon bar with white-hot scan beam,
+      chromatic aberration, glitch stutter, and neon pulse */
+.wave-divider {
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--color-brand) 0%,
+    var(--color-brand) 38%,
+    #FFD700 50%,
+    var(--color-brand) 62%,
+    var(--color-brand) 100%
+  );
+  background-size: 200% 100%;
+  animation:
+    scan-sweep 2s steps(8) infinite,
+    bar-glitch 4s steps(1) infinite,
+    neon-flicker 6s steps(1) infinite;
+  overflow: visible;
+  /* Chromatic aberration — CRT color fringe */
+  box-shadow:
+    0 -1px 0 rgba(0, 200, 255, 0.3),
+    0 1px 0 rgba(255, 0, 100, 0.3);
+}
+[data-theme="dark"] .wave-divider {
+  box-shadow:
+    0 -1px 0 rgba(0, 200, 255, 0.4),
+    0 1px 0 rgba(255, 0, 100, 0.4),
+    0 0 10px rgba(0, 255, 102, 0.5),
+    0 0 30px rgba(0, 255, 102, 0.2);
+}
+.wave-divider svg {
+  display: none;
+}
+
+@keyframes scan-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Brief horizontal displacement — signal disruption */
+@keyframes bar-glitch {
+  0%, 89% { transform: translateX(0); }
+  90% { transform: translateX(-3px); }
+  92% { transform: translateX(5px); }
+  94% { transform: translateX(-2px); }
+  96% { transform: translateX(4px); }
+  98%, 100% { transform: translateX(0); }
+}
+
+/* Unstable neon tube — occasional brightness dip */
+@keyframes neon-flicker {
+  0%, 84%, 88%, 92%, 100% { opacity: 1; }
+  85% { opacity: 0.5; }
+  87% { opacity: 0.9; }
+  89% { opacity: 0.6; }
+  91% { opacity: 1; }
+}
+
+/* 3. Phosphor Glow — CRT monitor persistence (dark mode only) */
+[data-theme="dark"] .hero-bg-pattern h1 {
+  text-shadow:
+    0 0 30px rgba(0, 255, 102, 0.25),
+    0 0 60px rgba(0, 255, 102, 0.08);
+}
+
+/* 4. Terminal Cursor — Blinking block after hero title */
+.hero-bg-pattern h1::after {
+  content: "\2588";
+  color: var(--color-brand);
+  animation: cursor-blink 1s steps(1) infinite;
+  margin-left: 0.1em;
+}
+
+@keyframes cursor-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+/* 5. Instant Transitions — CRT pixels flip, they don't fade */
+a, button, span {
+  transition-timing-function: steps(1);
+  transition-duration: 100ms;
+}
+
+/* 6. Structural Borders — Visible grid infrastructure */
+
+/* Borders between content list items */
+.homepage-list li + li,
+.about-page li + li {
+  border-top: 2px solid var(--color-border);
+  padding-top: 1.25rem;
+}
+
+/* Thicker, branded vertical divider in ContentSection */
+.homepage-list .md\:border-l,
+.about-page .md\:border-l {
+  border-left-width: 2px;
+  border-color: var(--color-brand);
+}
+
+/* CTA structural separator — reuses .wave-divider element */
+
+/* 7. Industrial Tags — Terminal badges, not friendly pills */
+span[class*="rounded-full"]:not([class*="bg-transparent"]) {
+  border: 1px solid var(--color-border);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* 8. Glitch-on-Hover — One-shot CRT distortion */
+.content-section-reveal a:hover,
+.cta-bg-pattern a:hover {
+  animation: glitch 200ms 1;
+}
+
+/* Prose links need calm readability, no glitch */
+.prose a:hover {
+  animation: none;
+}
+
+/* 9. Button Treatment — Industrial controls */
+a[class*="bg-brand"][class*="text-theme-inverse"] {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  border: 2px solid var(--color-brand);
+}
+
+[data-theme="dark"] a[class*="bg-brand"][class*="text-theme-inverse"]:hover {
+  background-color: transparent;
+  color: var(--color-brand);
+}

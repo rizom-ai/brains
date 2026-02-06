@@ -1,0 +1,730 @@
+/* Neo-Retro: "The Warm Analog"
+   Warm, analog, nostalgic but modern. Like a well-designed poster
+   from a studio that appreciates craft. Approachable without being childish.
+   Fonts: Bricolage Grotesque (headings) + Libre Franklin (body) */
+
+/* Font imports - Bricolage Grotesque for characterful headings, Libre Franklin for classic body */
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Libre+Franklin:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* Theme Layer - CSS Custom Properties for theming */
+@layer theme {
+  :root {
+    /* ============================================
+       BASE COLOR PALETTE - Warm Analog
+       Cream, espresso, coral, and dusty teal
+       ============================================ */
+
+    /* Brand Colors - Coral accent */
+    --palette-coral: #E8735A;                  /* Coral - primary accent */
+    --palette-coral-dark: #C95840;             /* Deep coral - hover states */
+    --palette-coral-light: #F09880;            /* Light coral - subtle accents */
+
+    /* Secondary - Dusty Teal */
+    --palette-teal: #5B8A8A;                   /* Dusty teal - secondary/muted */
+    --palette-teal-dark: #3D6B6B;              /* Dark teal */
+    --palette-teal-light: #7AABAB;             /* Light teal */
+
+    /* Neutrals - Light mode (warm cream family) */
+    --palette-cream: #FDF6EC;                  /* Warm cream - main bg */
+    --palette-cream-subtle: #FAF0E2;           /* Slightly deeper cream */
+    --palette-cream-muted: #F0E4D0;            /* Muted warm tan */
+    --palette-parchment: #E8DACA;              /* Parchment - borders */
+    --palette-espresso: #2C1810;               /* Espresso brown - primary text */
+    --palette-espresso-light: #4A3328;         /* Lighter espresso - headings */
+    --palette-cocoa: #6B4F3E;                  /* Cocoa - muted text */
+    --palette-latte: #8C7A6B;                  /* Latte - light text */
+    --palette-white: #FFFFFF;
+
+    /* Neutrals - Dark mode (deep brown-black family) */
+    --palette-dark-bg: #1A1210;                /* Deep brown-black - dark bg */
+    --palette-dark-bg-subtle: #261D19;         /* Slightly lighter brown */
+    --palette-dark-bg-muted: #3A2E28;          /* Muted brown surface */
+    --palette-dark-border: #4D3F37;            /* Dark mode border */
+    --palette-black: #0F0A08;                  /* Near-black with warmth */
+
+    /* Dark mode text colors */
+    --palette-text-light: #F5EDE0;             /* Warm cream text */
+    --palette-text-muted-dark: #C4B5A4;        /* Warm muted text */
+    --palette-text-subtle-dark: #9A8B7A;       /* Subtle warm text */
+
+    /* ============================================
+       SEMANTIC COLORS - Reference base palette
+       ============================================ */
+
+    /* Brand Colors - Coral for links and accents */
+    --color-brand: var(--palette-coral);
+    --color-brand-dark: var(--palette-coral-dark);
+    --color-brand-light: var(--palette-coral-light);
+    --color-accent: var(--palette-teal);
+    --color-accent-dark: var(--palette-teal-dark);
+
+    /* Pattern Colors - Subtle teal for grain overlay */
+    --color-pattern-dot: var(--palette-parchment);
+
+    /* Text Colors - Warm espresso tones */
+    --color-text: var(--palette-espresso);
+    --color-text-muted: var(--palette-cocoa);
+    --color-text-light: var(--palette-latte);
+    --color-text-inverse: var(--palette-cream);
+    --color-heading: var(--palette-espresso);
+
+    /* Selection/Highlight Colors - Coral highlight */
+    --color-selection: var(--palette-coral);
+    --color-selection-bg: var(--palette-coral);
+    --color-selection-text: var(--palette-cream);
+
+    /* Background Colors - Warm cream family */
+    --color-bg: var(--palette-cream);
+    --color-bg-subtle: var(--palette-cream-subtle);
+    --color-bg-muted: var(--palette-cream-muted);
+    --color-bg-dark: var(--palette-espresso);
+
+    /* Gradient Colors - Warm cream to parchment */
+    --color-gradient-start: var(--palette-cream);
+    --color-gradient-end: var(--palette-cream-muted);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-cream) 0%,
+      var(--palette-cream-subtle) 60%,
+      var(--palette-cream-muted) 100%
+    );
+
+    /* Border Colors - Warm parchment */
+    --color-border: var(--palette-parchment);
+    --color-border-light: var(--palette-cream-muted);
+
+    /* Footer - Espresso dark */
+    --color-footer: var(--palette-espresso);
+    --color-footer-text: var(--palette-cream);
+
+    /* Typography - Bricolage Grotesque for headings, Libre Franklin for body */
+    --font-sans: 'Libre Franklin', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-heading: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Libre Franklin', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Typography Scale - Friendly, slightly large. Presentation scale. */
+    --text-h1: 7.5rem;            /* 120px Desktop - bold but approachable */
+    --text-h1-mobile: 3.5rem;     /* 56px Mobile */
+    --text-h2: 4.25rem;           /* 68px Desktop */
+    --text-h2-mobile: 2.75rem;    /* 44px Mobile */
+    --text-h3: 2.75rem;           /* 44px Desktop */
+    --text-h3-mobile: 2rem;       /* 32px Mobile */
+    --text-h4: 1.75rem;           /* 28px */
+    --text-body: 1.75rem;         /* 28px Desktop - generous reading */
+    --text-body-mobile: 1.375rem; /* 22px Mobile */
+  }
+
+  /* Dark theme - Deep brown-black with warm coral accents */
+  [data-theme="dark"] {
+    /* Brand Colors - Lighter coral for dark backgrounds */
+    --color-brand: var(--palette-coral-light);
+    --color-brand-dark: var(--palette-coral);
+    --color-brand-light: var(--palette-coral-light);
+    --color-accent: var(--palette-teal-light);
+    --color-accent-dark: var(--palette-teal);
+
+    /* Pattern Colors - Subtle warm brown */
+    --color-pattern-dot: var(--palette-dark-border);
+
+    /* Text Colors - Dark mode warm tones */
+    --color-text: var(--palette-text-light);
+    --color-text-muted: var(--palette-text-muted-dark);
+    --color-text-light: var(--palette-text-subtle-dark);
+    --color-text-inverse: var(--palette-espresso);
+    --color-heading: var(--palette-text-light);
+
+    /* Selection/Highlight Colors - Dark mode */
+    --color-selection: var(--palette-coral-light);
+    --color-selection-bg: var(--palette-coral-light);
+    --color-selection-text: var(--palette-dark-bg);
+
+    /* Background Colors - Deep brown-black */
+    --color-bg: var(--palette-dark-bg);
+    --color-bg-subtle: var(--palette-dark-bg-subtle);
+    --color-bg-muted: var(--palette-dark-bg-muted);
+    --color-bg-dark: var(--palette-black);
+
+    /* Gradient Colors - Warm dark gradient */
+    --color-gradient-start: var(--palette-dark-bg);
+    --color-gradient-end: var(--palette-dark-bg-subtle);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-dark-bg) 0%,
+      var(--palette-dark-bg-subtle) 60%,
+      var(--palette-dark-bg-muted) 100%
+    );
+
+    /* Border Colors - Dark mode */
+    --color-border: var(--palette-dark-border);
+    --color-border-light: rgba(245, 237, 224, 0.1);
+
+    /* Footer - Dark mode */
+    --color-footer: var(--palette-black);
+    --color-footer-text: var(--palette-text-light);
+  }
+}
+
+/* ============================================
+   THEME TOKENS - Exposed to Tailwind v4
+
+   Uses @theme inline for RUNTIME CSS variable resolution.
+   The "inline" keyword is critical - it makes Tailwind use var(--color-brand)
+   in the generated CSS instead of resolving the value at build time.
+   This enables dark mode and multi-site theming to work correctly.
+
+   Auto-generates utilities like:
+   - bg-brand, text-brand, border-brand, ring-brand, fill-brand
+   - Plus all variants: hover:, focus:, dark:, etc.
+
+   Only include colors where bg/text/border all use the SAME variable.
+   For colors where bg and text need different values (like "theme"),
+   use manual utilities below in @layer utilities.
+   ============================================ */
+@theme inline {
+  /* Brand colors - same color for bg/text/border */
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-light: var(--color-brand-light);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+
+  /* Selection colors */
+  --color-selection: var(--color-selection);
+
+  /* Footer */
+  --color-footer: var(--color-footer);
+  --color-footer-text: var(--color-footer-text);
+
+  /* Gradient colors */
+  --color-gradient-start: var(--color-gradient-start);
+  --color-gradient-end: var(--color-gradient-end);
+
+  /* Pattern colors */
+  --color-pattern-dot: var(--color-pattern-dot);
+
+  /* Prose/Typography colors - for @tailwindcss/typography plugin */
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
+}
+
+/* ============================================
+   SPECIAL UTILITIES - Manual definitions needed
+
+   These utilities CAN'T be auto-generated by @theme inline because:
+   1. bg-theme and text-theme need DIFFERENT variables (bg uses --color-bg, text uses --color-text)
+   2. Some utilities use complete gradient values, not single colors
+   3. Some utilities are context-specific (conditional on parent class)
+
+   Why not auto-generate?
+   If we put --color-theme: var(--color-bg) in @theme inline,
+   then text-theme would also use --color-bg (wrong - text needs --color-text).
+   ============================================ */
+@layer utilities {
+  /* Theme utilities - bg uses --color-bg, text uses --color-text */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-theme-muted { background-color: var(--color-bg-muted); }
+  .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .text-theme { color: var(--color-text); }
+  .text-theme-muted { color: var(--color-text-muted); }
+  .text-theme-light { color: var(--color-text-light); }
+  .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-heading { color: var(--color-heading); }
+  .text-selection { color: var(--color-selection); }
+  .border-theme { border-color: var(--color-border); }
+  .border-theme-light { border-color: var(--color-border-light); }
+  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
+}
+
+/* Hover states, gradients, selection, heading weights */
+@layer utilities {
+  /* Hover states for theme utilities */
+  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
+  .hover\:bg-brand:hover { background-color: var(--color-brand); }
+  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+
+  /* Complete gradient background - uses full gradient value */
+  .bg-theme-gradient { background: var(--color-bg-gradient); }
+
+  /* Footer text color override - make text-theme-inverse use footer text color in footer */
+  .bg-footer .text-theme-inverse {
+    color: var(--color-footer-text);
+  }
+
+  /* Text selection highlighting - coral with cream text */
+  ::selection {
+    background-color: var(--color-selection-bg);
+    color: var(--color-selection-text);
+  }
+
+  /* Heading weight adjustments - bold but approachable, slight negative tracking */
+  h1, .text-h1 {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .prose.prose h1 {
+    font-weight: 700;
+  }
+}
+
+/* Navigation, logo, header, theme toggle utilities */
+@layer utilities {
+  /* Navigation text - espresso in light mode, warm cream in dark mode */
+  .text-nav { color: var(--color-text); }
+  [data-theme="dark"] .text-nav { color: var(--color-text); }
+
+  /* Logo text - espresso in light mode, warm cream in dark mode */
+  .text-logo { color: var(--color-heading); }
+  [data-theme="dark"] .text-logo { color: var(--color-heading); }
+
+  /* Logo color variable */
+  :root {
+    --color-logo: var(--color-heading);
+  }
+  [data-theme="dark"] {
+    --color-logo: var(--color-heading);
+  }
+
+  /* Header background - cream in light, deep brown in dark */
+  .bg-header { background-color: var(--color-bg); }
+  [data-theme="dark"] .bg-header { background-color: var(--color-bg); }
+
+  /* Theme toggle background - warm muted in light, brown surface in dark */
+  .bg-theme-toggle { background-color: var(--color-bg-muted); }
+  [data-theme="dark"] .bg-theme-toggle { background-color: var(--color-bg-muted); }
+
+  /* Theme toggle hover - slightly deeper */
+  .bg-theme-toggle-hover { background-color: var(--palette-parchment); }
+  [data-theme="dark"] .bg-theme-toggle-hover { background-color: var(--palette-dark-border); }
+
+  /* Theme toggle icon color - espresso in light, cream in dark */
+  .text-theme-toggle-icon { color: var(--color-text); }
+  [data-theme="dark"] .text-theme-toggle-icon { color: var(--color-text); }
+
+  /* Theme toggle icon hover */
+  .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-text); }
+}
+
+/* Gradient utilities - Tailwind v4 format */
+@layer utilities {
+  .from-gradient-start {
+    --tw-gradient-from: var(--color-gradient-start);
+    --tw-gradient-to: rgb(from var(--color-gradient-start) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-gradient-end {
+    --tw-gradient-to: var(--color-gradient-end);
+  }
+  .from-accent {
+    --tw-gradient-from: var(--color-accent);
+    --tw-gradient-to: rgb(from var(--color-accent) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-accent-dark {
+    --tw-gradient-to: var(--color-accent-dark);
+  }
+  .from-brand-dark {
+    --tw-gradient-from: var(--color-brand-dark);
+    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-brand-light {
+    --tw-gradient-from: var(--color-brand-light);
+    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-brand {
+    --tw-gradient-to: var(--color-brand);
+  }
+  .to-theme {
+    --tw-gradient-to: var(--color-bg);
+  }
+}
+
+/* Prose styles - warm, inviting reading experience */
+@layer utilities {
+  .prose {
+    color: var(--color-text);
+  }
+
+  /* Main headings - bold Bricolage Grotesque with slight negative tracking */
+  .prose h1 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .prose h2 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    border-bottom: none;
+    text-decoration: none;
+  }
+
+  /* Subheadings - regular weight with gentle letter-spacing, sentence case */
+  .prose h3 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 1.5rem;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+
+  .prose h4 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+  }
+
+  .prose h5,
+  .prose h6 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 1.125rem;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+  }
+
+  /* Body text - generous reading with 1.75 line-height */
+  .prose p {
+    color: var(--color-text);
+    line-height: 1.75;
+    margin-bottom: 1.5em;
+  }
+
+  .prose strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .prose em {
+    color: var(--color-text);
+    font-style: italic;
+  }
+
+  /* Blockquote - rounded left coral border with warm-tinted background */
+  .prose blockquote {
+    border-left: 4px solid var(--color-brand);
+    border-radius: 2px;
+    background-color: var(--color-bg-subtle);
+    padding: 1rem 1.25rem;
+    margin: 1.5em 0;
+    color: var(--color-text);
+    font-style: normal;
+  }
+
+  .prose blockquote p {
+    color: var(--color-text);
+    margin-bottom: 0.5em;
+  }
+
+  .prose blockquote p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Blockquote attribution styling */
+  .prose cite.block-attribution {
+    display: block;
+    font-size: 1rem;
+    font-weight: 300;
+    font-style: normal;
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    padding-left: 0;
+  }
+
+  .prose cite.block-attribution .emdash {
+    color: var(--color-brand);
+    margin-right: 0.125rem;
+  }
+
+  .prose cite.block-attribution a {
+    color: var(--color-text-muted);
+    text-decoration: underline;
+  }
+
+  .prose cite.block-attribution a:hover {
+    color: var(--color-brand);
+  }
+
+  /* Code - warm muted background */
+  .prose code {
+    color: var(--color-text);
+    background-color: var(--color-bg-muted);
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .prose pre {
+    background-color: var(--color-bg-muted);
+    color: var(--color-text);
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+
+  /* Links - coral accent */
+  .prose a {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: color 0.2s ease-in-out;
+  }
+
+  .prose a:hover {
+    color: var(--color-brand-dark);
+  }
+
+  /* Dark mode prose overrides */
+  [data-theme="dark"] .prose h1,
+  [data-theme="dark"] .prose h2,
+  [data-theme="dark"] .prose h3,
+  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h5,
+  [data-theme="dark"] .prose h6 {
+    color: var(--color-heading);
+  }
+
+  /* Dark mode italic - keep warm */
+  [data-theme="dark"] .prose em {
+    color: var(--color-text);
+  }
+
+  /* Dark mode blockquote - darker warm bg */
+  [data-theme="dark"] .prose blockquote {
+    background-color: var(--color-bg-subtle);
+    border-left-color: var(--color-brand);
+  }
+}
+
+/* Hero & CTA Background Components - warm analog light and texture */
+@layer components {
+  /* Hero background pattern - soft warm glow with barely-there grain
+     Creates the feeling of natural light falling on a page.
+     ::before = off-center warm radial glow (like sunlight on linen)
+     ::after  = near-imperceptible noise grain (a feeling, not a texture) */
+  .hero-bg-pattern {
+    position: relative;
+  }
+
+  /* Warm glow - soft, asymmetric radial gradient like sunlight on paper */
+  .hero-bg-pattern::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 80% 70% at 30% 40%,
+      rgba(248, 238, 220, 0.45) 0%,
+      rgba(248, 238, 220, 0.12) 40%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  [data-theme="dark"] .hero-bg-pattern::before {
+    background: radial-gradient(
+      ellipse 80% 70% at 30% 40%,
+      rgba(62, 46, 36, 0.4) 0%,
+      rgba(62, 46, 36, 0.1) 40%,
+      transparent 70%
+    );
+  }
+
+  /* Near-imperceptible grain - you feel the texture, not see pixels */
+  .hero-bg-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.08;
+    background-image:
+      repeating-conic-gradient(
+        var(--color-pattern-dot) 0% 25%,
+        transparent 0% 50%
+      );
+    background-size: 2px 2px;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+    z-index: 1;
+  }
+
+  [data-theme="dark"] .hero-bg-pattern::after {
+    opacity: 0.06;
+    mix-blend-mode: soft-light;
+  }
+
+  /* Hero text reveal - gentle, unhurried fade-up */
+  .hero-bg-pattern h1 {
+    animation: gentleFadeUp 500ms ease-out both;
+  }
+
+  .hero-bg-pattern p {
+    animation: gentleFadeUp 500ms ease-out 200ms both;
+  }
+
+  /* CTA background pattern - subtle warm gradient, no grain
+     Slightly warmer than the main background to draw quiet attention */
+  .cta-bg-pattern {
+    position: relative;
+  }
+
+  .cta-bg-pattern::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      165deg,
+      rgba(248, 238, 220, 0.3) 0%,
+      rgba(240, 228, 208, 0.15) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  [data-theme="dark"] .cta-bg-pattern::before {
+    background: linear-gradient(
+      165deg,
+      rgba(62, 46, 36, 0.25) 0%,
+      rgba(38, 29, 25, 0.1) 50%,
+      transparent 100%
+    );
+  }
+}
+
+/* Animations - Gentle, warm, organic motion
+   Everything moves like it has nowhere to be. Breathing, not bouncing. */
+
+/* Gentle drift - barely perceptible organic breathing */
+@keyframes drift {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  25% {
+    transform: translate(3px, -4px) scale(1.005);
+  }
+  50% {
+    transform: translate(-2px, 6px) scale(1.01);
+  }
+  75% {
+    transform: translate(5px, -2px) scale(1.005);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* Gentle fade-up - content arriving unhurried */
+@keyframes gentleFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in - for other components */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  /* Slow organic drift - 16s, barely there. Breathing, not movement. */
+  .animate-blob {
+    animation: drift 16s ease-in-out infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  /* Soft fade-in for content */
+  .animate-fade-in {
+    animation: fadeIn 500ms ease-out forwards;
+  }
+
+  .animate-fade-in-delay {
+    animation: fadeIn 500ms ease-out 200ms forwards;
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   SCROLL-TRIGGERED CONTENT REVEALS
+   Uses animation-timeline: view() for progressive disclosure.
+   Graceful degradation: browsers without support show content immediately.
+   ============================================ */
+
+/* Neo-Retro: gentle 8px fade-up, unhurried and warm */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .content-section-reveal {
+    animation: contentReveal 500ms ease-out both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
+/* Theme toggle icon visibility */
+@layer utilities {
+  /* Show sun in dark mode, moon in light mode */
+  [data-theme="dark"] .sun-icon {
+    display: block;
+  }
+  [data-theme="dark"] .moon-icon {
+    display: none;
+  }
+  [data-theme="light"] .sun-icon {
+    display: none;
+  }
+  [data-theme="light"] .moon-icon {
+    display: block;
+  }
+}

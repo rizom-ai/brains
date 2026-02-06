@@ -62,7 +62,12 @@
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/system": "workspace:*",
+        "@brains/theme-brutalist": "workspace:*",
         "@brains/theme-default": "workspace:*",
+        "@brains/theme-editorial": "workspace:*",
+        "@brains/theme-geometric": "workspace:*",
+        "@brains/theme-neo-retro": "workspace:*",
+        "@brains/theme-swiss": "workspace:*",
         "@brains/theme-yeehaa": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
@@ -589,8 +594,58 @@
         "typescript": "^5.3.3",
       },
     },
+    "shared/theme-brutalist": {
+      "name": "@brains/theme-brutalist",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/theme-default": {
       "name": "@brains/theme-default",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/theme-editorial": {
+      "name": "@brains/theme-editorial",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/theme-geometric": {
+      "name": "@brains/theme-geometric",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/theme-neo-retro": {
+      "name": "@brains/theme-neo-retro",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/theme-swiss": {
+      "name": "@brains/theme-swiss",
       "version": "0.1.0",
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1164,7 +1219,17 @@
 
     "@brains/test-utils": ["@brains/test-utils@workspace:shared/test-utils"],
 
+    "@brains/theme-brutalist": ["@brains/theme-brutalist@workspace:shared/theme-brutalist"],
+
     "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
+
+    "@brains/theme-editorial": ["@brains/theme-editorial@workspace:shared/theme-editorial"],
+
+    "@brains/theme-geometric": ["@brains/theme-geometric@workspace:shared/theme-geometric"],
+
+    "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
+
+    "@brains/theme-swiss": ["@brains/theme-swiss@workspace:shared/theme-swiss"],
 
     "@brains/theme-yeehaa": ["@brains/theme-yeehaa@workspace:shared/theme-yeehaa"],
 

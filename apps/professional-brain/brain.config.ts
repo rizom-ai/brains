@@ -22,7 +22,7 @@ import {
   routes,
 } from "@brains/professional-site";
 import { MinimalLayout } from "@brains/default-site-content";
-import yeehaaTheme from "@brains/theme-yeehaa";
+import yeehaaTheme from "@brains/theme-brutalist";
 import { analyticsPlugin } from "@brains/analytics";
 import { DashboardPlugin } from "@brains/dashboard";
 import { createNewsletterPlugin } from "@brains/newsletter";

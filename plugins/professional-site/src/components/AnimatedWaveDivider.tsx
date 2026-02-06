@@ -13,7 +13,7 @@ export const AnimatedWaveDivider = ({
 }: AnimatedWaveDividerProps): JSX.Element => {
   return (
     <div
-      className={`w-full h-16 md:h-20 bg-theme overflow-hidden relative ${mirror ? "rotate-180" : ""}`}
+      className={`wave-divider w-full h-16 md:h-20 bg-theme overflow-hidden relative ${mirror ? "rotate-180" : ""}`}
     >
       <style>{`
         @keyframes wave-flow-1 {

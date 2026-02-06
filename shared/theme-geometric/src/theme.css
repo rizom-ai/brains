@@ -1,0 +1,778 @@
+/* Geometric theme fonts — Syne (headings) + DM Sans (body) */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+/* Theme Layer - CSS Custom Properties for theming */
+@layer theme {
+  :root {
+    /* ============================================
+       BASE COLOR PALETTE - Electric Indigo & Zinc
+       Sharp, engineered, precision-driven
+       ============================================ */
+
+    /* Brand Colors - Electric Indigo */
+    --palette-brand-indigo: #4F39F6;             /* Electric indigo - primary */
+    --palette-brand-indigo-dark: #3B27C7;        /* Deep indigo - hover states */
+    --palette-brand-indigo-light: #6366F1;       /* Light indigo - subtle accents */
+
+    /* Neutrals - Light mode (zinc scale) */
+    --palette-white: #FFFFFF;
+    --palette-zinc-50: #FAFAFA;
+    --palette-zinc-100: #F4F4F5;
+    --palette-zinc-200: #E4E4E7;
+    --palette-zinc-300: #D4D4D8;
+    --palette-zinc-400: #A1A1AA;
+    --palette-zinc-500: #71717A;
+    --palette-zinc-600: #52525B;
+    --palette-zinc-700: #3F3F46;
+    --palette-zinc-800: #27272A;
+    --palette-zinc-900: #18181B;
+    --palette-zinc-950: #09090B;
+    --palette-black: #0C0C0C;
+
+    /* Neutrals - Dark mode */
+    --palette-dark-bg: #09090B;                  /* zinc-950 — true black */
+    --palette-dark-bg-subtle: #18181B;           /* zinc-900 */
+    --palette-dark-bg-muted: #27272A;            /* zinc-800 */
+    --palette-dark-border: #3F3F46;              /* zinc-700 */
+
+    /* Dark mode text colors */
+    --palette-text-light: #F4F4F5;               /* zinc-100 */
+    --palette-text-muted-dark: #A1A1AA;          /* zinc-400 */
+    --palette-text-subtle-dark: #71717A;         /* zinc-500 */
+
+    /* ============================================
+       SEMANTIC COLORS - Reference base palette
+       ============================================ */
+
+    /* Brand Colors - Electric indigo for links and accents */
+    --color-brand: var(--palette-brand-indigo);
+    --color-brand-dark: var(--palette-brand-indigo-dark);
+    --color-brand-light: var(--palette-brand-indigo-light);
+    --color-accent: var(--palette-brand-indigo);
+    --color-accent-dark: var(--palette-brand-indigo-dark);
+
+    /* Pattern Colors - Subtle zinc grid lines */
+    --color-pattern-dot: var(--palette-zinc-200);
+
+    /* Text Colors - Near-black on cool white */
+    --color-text: var(--palette-black);
+    --color-text-muted: var(--palette-zinc-500);
+    --color-text-light: var(--palette-zinc-600);
+    --color-text-inverse: var(--palette-white);
+    --color-heading: var(--palette-black);
+
+    /* Selection/Highlight Colors */
+    --color-selection: var(--palette-brand-indigo);
+    --color-selection-bg: var(--palette-brand-indigo);
+    --color-selection-text: var(--palette-white);
+
+    /* Background Colors - Cool white and zinc */
+    --color-bg: var(--palette-zinc-50);
+    --color-bg-subtle: var(--palette-white);
+    --color-bg-muted: var(--palette-zinc-100);
+    --color-bg-dark: var(--palette-zinc-900);
+
+    /* Gradient Colors - Clean zinc gradient */
+    --color-gradient-start: var(--palette-zinc-50);
+    --color-gradient-end: var(--palette-zinc-200);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-zinc-50) 0%,
+      var(--palette-white) 40%,
+      var(--palette-zinc-100) 100%
+    );
+
+    /* Border Colors */
+    --color-border: var(--palette-zinc-200);
+    --color-border-light: var(--palette-zinc-100);
+
+    /* Footer - Matches page background */
+    --color-footer: var(--color-bg);
+    --color-footer-text: var(--color-text);
+
+    /* Typography */
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-heading: 'Syne', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Typography Scale - Compact, precise, engineered */
+    --text-h1: 7rem;             /* 112px Desktop - heavy geometric */
+    --text-h1-mobile: 3.5rem;    /* 56px Mobile */
+    --text-h2: 4rem;             /* 64px Desktop */
+    --text-h2-mobile: 2.75rem;   /* 44px Mobile */
+    --text-h3: 2.5rem;           /* 40px Desktop */
+    --text-h3-mobile: 2rem;      /* 32px Mobile */
+    --text-h4: 1.75rem;          /* 28px */
+    --text-body: 1.75rem;        /* 28px Desktop - presentations */
+    --text-body-mobile: 1.375rem; /* 22px Mobile */
+  }
+
+  /* Dark theme - True black with brighter indigo */
+  [data-theme="dark"] {
+    /* Brand Colors - Brighter indigo for dark backgrounds */
+    --color-brand: var(--palette-brand-indigo-light);
+    --color-brand-dark: var(--palette-brand-indigo);
+    --color-brand-light: var(--palette-brand-indigo-light);
+    --color-accent: var(--palette-brand-indigo-light);
+    --color-accent-dark: var(--palette-brand-indigo);
+
+    /* Pattern Colors - Subtle zinc grid */
+    --color-pattern-dot: var(--palette-zinc-800);
+
+    /* Text Colors - Dark mode */
+    --color-text: var(--palette-text-light);
+    --color-text-muted: var(--palette-text-muted-dark);
+    --color-text-light: var(--palette-text-subtle-dark);
+    --color-text-inverse: var(--palette-zinc-900);
+    --color-heading: var(--palette-text-light);
+
+    /* Selection/Highlight Colors - Dark mode */
+    --color-selection: var(--palette-brand-indigo-light);
+    --color-selection-bg: var(--palette-brand-indigo-light);
+    --color-selection-text: var(--palette-zinc-950);
+
+    /* Background Colors - True black */
+    --color-bg: var(--palette-dark-bg);
+    --color-bg-subtle: var(--palette-dark-bg-subtle);
+    --color-bg-muted: var(--palette-dark-bg-muted);
+    --color-bg-dark: var(--palette-black);
+
+    /* Gradient Colors - Dark zinc gradient */
+    --color-gradient-start: var(--palette-dark-bg);
+    --color-gradient-end: var(--palette-dark-bg-subtle);
+    --color-bg-gradient: linear-gradient(
+      180deg,
+      var(--palette-dark-bg) 0%,
+      var(--palette-dark-bg-subtle) 100%
+    );
+
+    /* Border Colors - Dark mode */
+    --color-border: var(--palette-dark-border);
+    --color-border-light: rgba(255, 255, 255, 0.08);
+
+    /* Footer - Matches dark page background */
+    --color-footer: var(--color-bg);
+    --color-footer-text: var(--color-text);
+  }
+}
+
+/* ============================================
+   THEME TOKENS - Exposed to Tailwind v4
+
+   Uses @theme inline for RUNTIME CSS variable resolution.
+   The "inline" keyword is critical - it makes Tailwind use var(--color-brand)
+   in the generated CSS instead of resolving the value at build time.
+   This enables dark mode and multi-site theming to work correctly.
+
+   Auto-generates utilities like:
+   - bg-brand, text-brand, border-brand, ring-brand, fill-brand
+   - Plus all variants: hover:, focus:, dark:, etc.
+
+   Only include colors where bg/text/border all use the SAME variable.
+   For colors where bg and text need different values (like "theme"),
+   use manual utilities below in @layer utilities.
+   ============================================ */
+@theme inline {
+  /* Brand colors - same color for bg/text/border */
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+  --color-brand-light: var(--color-brand-light);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+
+  /* Selection colors */
+  --color-selection: var(--color-selection);
+
+  /* Footer */
+  --color-footer: var(--color-footer);
+  --color-footer-text: var(--color-footer-text);
+
+  /* Gradient colors */
+  --color-gradient-start: var(--color-gradient-start);
+  --color-gradient-end: var(--color-gradient-end);
+
+  /* Pattern colors */
+  --color-pattern-dot: var(--color-pattern-dot);
+
+  /* Prose/Typography colors - for @tailwindcss/typography plugin */
+  --tw-prose-body: var(--color-text);
+  --tw-prose-headings: var(--color-heading);
+  --tw-prose-links: var(--color-brand);
+  --tw-prose-bold: var(--color-text);
+  --tw-prose-code: var(--color-text);
+  --tw-prose-quotes: var(--color-text-muted);
+  --tw-prose-counters: var(--color-text-muted);
+  --tw-prose-bullets: var(--color-text-muted);
+}
+
+/* ============================================
+   SPECIAL UTILITIES - Manual definitions needed
+
+   These utilities CAN'T be auto-generated by @theme inline because:
+   1. bg-theme and text-theme need DIFFERENT variables (bg uses --color-bg, text uses --color-text)
+   2. Some utilities use complete gradient values, not single colors
+   3. Some utilities are context-specific (conditional on parent class)
+
+   Why not auto-generate?
+   If we put --color-theme: var(--color-bg) in @theme inline,
+   then text-theme would also use --color-bg (wrong - text needs --color-text).
+   ============================================ */
+@layer utilities {
+  /* Theme utilities - bg uses --color-bg, text uses --color-text */
+  .bg-theme { background-color: var(--color-bg); }
+  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
+  .bg-theme-muted { background-color: var(--color-bg-muted); }
+  .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .text-theme { color: var(--color-text); }
+  .text-theme-muted { color: var(--color-text-muted); }
+  .text-theme-light { color: var(--color-text-light); }
+  .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-heading { color: var(--color-heading); }
+  .text-selection { color: var(--color-selection); }
+  .border-theme { border-color: var(--color-border); }
+  .border-theme-light { border-color: var(--color-border-light); }
+  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
+
+  /* Hover states for theme utilities */
+  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
+  .hover\:bg-brand:hover { background-color: var(--color-brand); }
+  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
+
+  /* Complete gradient background - uses full gradient value */
+  .bg-theme-gradient { background: var(--color-bg-gradient); }
+
+  /* Footer text color override */
+  .bg-footer .text-theme-inverse {
+    color: var(--color-footer-text);
+  }
+
+  /* Text selection highlighting - electric indigo */
+  ::selection {
+    background-color: var(--color-selection-bg);
+    color: var(--color-selection-text);
+  }
+
+  /* Heading weight adjustments - heavy geometric weight */
+  h1, .text-h1 {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+  }
+
+  h2, .text-h2 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+  }
+
+  .prose.prose h1 {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+  }
+
+  .prose.prose h2 {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+  }
+
+  /* Navigation text - near-black in light, zinc-100 in dark */
+  .text-nav { color: var(--color-text); }
+  [data-theme="dark"] .text-nav { color: var(--color-text); }
+
+  /* Logo text - near-black in light, zinc-100 in dark */
+  .text-logo { color: var(--color-heading); }
+  [data-theme="dark"] .text-logo { color: var(--color-heading); }
+
+  /* Logo color variable */
+  :root {
+    --color-logo: var(--color-heading);
+  }
+  [data-theme="dark"] {
+    --color-logo: var(--color-heading);
+  }
+
+  /* Header background - clean zinc-50 / true black */
+  .bg-header { background-color: var(--color-bg); }
+  [data-theme="dark"] .bg-header { background-color: var(--color-bg); }
+
+  /* Theme toggle background - zinc muted */
+  .bg-theme-toggle { background-color: var(--color-bg-muted); }
+  [data-theme="dark"] .bg-theme-toggle { background-color: var(--color-bg-muted); }
+
+  /* Theme toggle hover - slightly darker */
+  .bg-theme-toggle-hover { background-color: var(--palette-zinc-300); }
+  [data-theme="dark"] .bg-theme-toggle-hover { background-color: var(--palette-zinc-600); }
+
+  /* Theme toggle icon color */
+  .text-theme-toggle-icon { color: var(--color-text); }
+  [data-theme="dark"] .text-theme-toggle-icon { color: var(--color-text); }
+
+  /* Theme toggle icon hover */
+  .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-text); }
+
+  /* Gradients - Tailwind v4 format */
+  .from-gradient-start {
+    --tw-gradient-from: var(--color-gradient-start);
+    --tw-gradient-to: rgb(from var(--color-gradient-start) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-gradient-end {
+    --tw-gradient-to: var(--color-gradient-end);
+  }
+  .from-accent {
+    --tw-gradient-from: var(--color-accent);
+    --tw-gradient-to: rgb(from var(--color-accent) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-accent-dark {
+    --tw-gradient-to: var(--color-accent-dark);
+  }
+  .from-brand-dark {
+    --tw-gradient-from: var(--color-brand-dark);
+    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .from-brand-light {
+    --tw-gradient-from: var(--color-brand-light);
+    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  .to-brand {
+    --tw-gradient-to: var(--color-brand);
+  }
+  .to-theme {
+    --tw-gradient-to: var(--color-bg);
+  }
+}
+
+/* Prose styles - Technical documentation feel */
+@layer utilities {
+  .prose {
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+
+  /* Main headings - All-caps, heavy weight, extreme tight tracking */
+  .prose h1 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 2.5rem;
+    line-height: 1.1;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+  }
+
+  .prose h2 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    border-bottom: none;
+    text-decoration: none;
+  }
+
+  /* Subheadings - Medium weight, sentence case, precision */
+  .prose h3 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1.5rem;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  .prose h4 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+  }
+
+  .prose h5,
+  .prose h6 {
+    color: var(--color-heading);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 1.125rem;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  /* Body text - Clean geometric sans */
+  .prose p {
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+
+  .prose strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .prose em {
+    color: var(--color-text);
+    font-style: italic;
+  }
+
+  /* Blockquote - Sharp left border, indigo accent */
+  .prose blockquote {
+    border-left: 3px solid var(--color-brand);
+    padding-left: 1.25rem;
+    color: var(--color-text-muted);
+    font-style: normal;
+  }
+
+  /* Blockquote attribution styling */
+  .prose cite.block-attribution {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 400;
+    font-style: normal;
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+    margin-bottom: 2rem;
+    padding-left: 0;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .prose cite.block-attribution .emdash {
+    color: var(--color-brand);
+    margin-right: 0.125rem;
+  }
+
+  .prose cite.block-attribution a {
+    color: var(--color-text-muted);
+    text-decoration: underline;
+    text-decoration-color: var(--color-brand);
+    text-underline-offset: 2px;
+  }
+
+  .prose cite.block-attribution a:hover {
+    color: var(--color-brand);
+  }
+
+  /* Code - Indigo-tinted backgrounds, monospace precision */
+  .prose code {
+    color: var(--color-brand);
+    background-color: rgba(79, 57, 246, 0.06);
+    padding: 0.125rem 0.375rem;
+    border-radius: 2px;
+    font-size: 0.875em;
+    font-family: var(--font-mono);
+  }
+
+  .prose pre {
+    background-color: var(--palette-zinc-900);
+    color: var(--palette-zinc-100);
+    border: 1px solid var(--palette-zinc-800);
+    border-radius: 2px;
+    padding: 1.25rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .prose pre code {
+    color: inherit;
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+  }
+
+  .prose a {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-decoration-color: var(--color-brand);
+    text-underline-offset: 2px;
+    transition: color 200ms ease;
+  }
+
+  .prose a:hover {
+    color: var(--color-brand-dark);
+  }
+
+  /* Lists - Tighter spacing */
+  .prose ul,
+  .prose ol {
+    padding-left: 1.25rem;
+  }
+
+  .prose li {
+    margin-top: 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* Horizontal rule - Sharp, thin */
+  .prose hr {
+    border-color: var(--color-border);
+    border-top-width: 1px;
+  }
+
+  /* Dark mode heading colors */
+  [data-theme="dark"] .prose h1,
+  [data-theme="dark"] .prose h2,
+  [data-theme="dark"] .prose h3,
+  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h5,
+  [data-theme="dark"] .prose h6 {
+    color: var(--color-heading);
+  }
+
+  /* Dark mode code blocks */
+  [data-theme="dark"] .prose code {
+    color: var(--palette-brand-indigo-light);
+    background-color: rgba(99, 102, 241, 0.12);
+  }
+
+  [data-theme="dark"] .prose pre {
+    background-color: var(--palette-zinc-950);
+    border-color: var(--palette-zinc-800);
+    color: var(--palette-zinc-200);
+  }
+
+  /* Dark mode blockquote */
+  [data-theme="dark"] .prose blockquote {
+    border-left-color: var(--palette-brand-indigo-light);
+  }
+
+  /* Dark mode italic */
+  [data-theme="dark"] .prose em {
+    color: var(--color-text);
+  }
+}
+
+/* Hero & CTA Background Components */
+@layer components {
+  /* Hero background pattern — Refined cross-hatch grid
+     Barely perceptible precision lines that create a sense of engineered
+     structure without competing with content. Architectural, not decorative. */
+  .hero-bg-pattern {
+    position: relative;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        var(--color-pattern-dot) 0px,
+        var(--color-pattern-dot) 1px,
+        transparent 1px,
+        transparent 48px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        var(--color-pattern-dot) 0px,
+        var(--color-pattern-dot) 1px,
+        transparent 1px,
+        transparent 48px
+      );
+    background-size: 48px 48px;
+    opacity: 1;
+  }
+
+  /* Grid overlay — extremely subtle, felt more than seen */
+  .hero-bg-pattern::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        var(--color-pattern-dot) 0px,
+        var(--color-pattern-dot) 1px,
+        transparent 1px,
+        transparent 48px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        var(--color-pattern-dot) 0px,
+        var(--color-pattern-dot) 1px,
+        transparent 1px,
+        transparent 48px
+      );
+    background-size: 48px 48px;
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  /* Vignette overlay — subtle radial gradient focusing attention center */
+  .hero-bg-pattern::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.04) 100%
+    );
+    pointer-events: none;
+  }
+
+  [data-theme="dark"] .hero-bg-pattern::after {
+    background: radial-gradient(
+      ellipse at 50% 50%,
+      transparent 0%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.05) 100%
+    );
+  }
+
+  /* Hero text reveal — snappy engineered slide-in from left */
+  .hero-bg-pattern h1 {
+    animation: slideInLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .hero-bg-pattern p {
+    animation: slideInLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) 150ms both;
+  }
+
+  /* CTA background pattern — Even more subtle grid on dark backgrounds */
+  .cta-bg-pattern {
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px,
+        transparent 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.04) 0px,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px,
+        transparent 40px
+      );
+    background-size: 40px 40px;
+  }
+}
+
+/* ============================================
+   KEYFRAMES — Precision-engineered motion
+   All motion is mechanical, deliberate, fast.
+   ============================================ */
+
+/* slideInLeft — Text reveal for hero content */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* geometric-rotate — Clean, mechanical 360deg rotation */
+@keyframes geometric-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* blob — Tighter, faster positional drift */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(20px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-15px, 15px) scale(0.95);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* Animation utilities */
+@layer utilities {
+  .animate-blob {
+    animation: blob 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .animate-geometric {
+    animation: geometric-rotate 20s linear infinite;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  /* Engineering easing curve — all transitions use the precision curve */
+  * {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Scale-up on hover - sharp, precise */
+  .hover\:scale-geometric:hover {
+    transform: scale(1.03);
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* ============================================
+   SCROLL-TRIGGERED CONTENT REVEALS
+   Uses animation-timeline: view() for progressive disclosure.
+   Graceful degradation: browsers without support show content immediately.
+   ============================================ */
+
+/* Geometric: engineered slide-in from left, precision motion */
+@keyframes contentReveal {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@layer utilities {
+  .content-section-reveal {
+    animation: contentReveal 500ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+}
+
+/* Theme toggle icon visibility */
+@layer utilities {
+  /* Show sun in dark mode, moon in light mode */
+  [data-theme="dark"] .sun-icon {
+    display: block;
+  }
+  [data-theme="dark"] .moon-icon {
+    display: none;
+  }
+  [data-theme="light"] .sun-icon {
+    display: none;
+  }
+  [data-theme="light"] .moon-icon {
+    display: block;
+  }
+}

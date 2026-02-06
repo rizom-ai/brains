@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "./lib/utils";
 
 export interface SeriesInfo {
   name: string;
@@ -11,6 +12,7 @@ export interface ContentListItemProps {
   date: string;
   description?: string | undefined;
   series?: SeriesInfo | undefined;
+  featured?: boolean | undefined;
 }
 
 /**
@@ -23,6 +25,7 @@ export const ContentListItem = ({
   date,
   description,
   series,
+  featured,
 }: ContentListItemProps): JSX.Element => {
   return (
     <li>
@@ -32,7 +35,12 @@ export const ContentListItem = ({
             {String(series.index).padStart(3, "0")} {series.name}
           </span>
         )}
-        <h3 className="text-lg font-medium text-heading group-hover:underline mb-2">
+        <h3
+          className={cn(
+            "font-medium text-heading group-hover:underline mb-2",
+            featured ? "text-2xl md:text-3xl" : "text-lg",
+          )}
+        >
           {title}
         </h3>
         <time className="text-sm text-theme-muted block mb-3">

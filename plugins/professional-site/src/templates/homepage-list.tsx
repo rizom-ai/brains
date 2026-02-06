@@ -27,7 +27,7 @@ export interface HomepageListData {
 
 /**
  * Minimal, clean homepage layout
- * Displays profile intro, essays list, and presentations list in separate sections
+ * Two-zone hero with asymmetric composition, varied section widths
  */
 export const HomepageListLayout = ({
   profile,
@@ -73,28 +73,31 @@ export const HomepageListLayout = ({
     <>
       <Head title={title} description={description} ogType="website" />
       <div className="homepage-list bg-theme">
-        {/* Full-width Hero Section */}
-        <header className="w-full py-24 md:py-40 px-6 md:px-12 bg-theme">
-          <div className="max-w-6xl mx-auto">
+        {/* Hero Section — tall, spacious, asymmetric */}
+        <header className="hero-bg-pattern relative w-full min-h-[70vh] flex items-end px-6 md:px-12 bg-theme overflow-hidden">
+          <div className="relative z-10 max-w-6xl mx-auto w-full pb-16 md:pb-24">
             {tagline && (
-              <h1 className="text-6xl md:text-7xl font-semibold mb-4 text-heading leading-tight max-w-4xl">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-heading leading-[1.08] tracking-tight">
                 {tagline}
               </h1>
             )}
             {profile.intro && (
-              <p className="text-xl md:text-2xl text-theme-muted leading-relaxed max-w-3xl">
-                {profile.intro}
-              </p>
+              <>
+                <div className="w-12 border-t border-theme mt-8 mb-6 md:mt-10 md:mb-8"></div>
+                <p className="text-lg md:text-xl text-theme-muted leading-relaxed max-w-xl md:max-w-lg">
+                  {profile.intro}
+                </p>
+              </>
             )}
           </div>
         </header>
 
         <AnimatedWaveDivider />
 
-        {/* Main Content - Single Column with Header-Left Layout */}
-        <div className="container mx-auto px-6 md:px-12 max-w-4xl py-16 md:py-24">
+        {/* Main Content — Single shared container */}
+        <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-24">
           {/* Essays Section */}
-          <div className="mb-20 md:mb-32">
+          <div className="content-section-reveal mb-20 md:mb-32">
             <ContentSection
               title="Essays"
               items={postItems}
@@ -104,7 +107,7 @@ export const HomepageListLayout = ({
 
           {/* Presentations Section */}
           {deckItems.length > 0 && (
-            <div className="mb-20 md:mb-32">
+            <div className="content-section-reveal mb-20 md:mb-32">
               <ContentSection
                 title="Presentations"
                 items={deckItems}
@@ -113,11 +116,15 @@ export const HomepageListLayout = ({
             </div>
           )}
 
-          {/* About Section */}
+          {/* About Section — Stacked variant */}
           {(profile.description ||
             (profile.expertise && profile.expertise.length > 0)) && (
-            <div className="mb-20 md:mb-32">
-              <ContentSection title="About" viewAllUrl="/about">
+            <div className="content-section-reveal mb-20 md:mb-32">
+              <ContentSection
+                title="About"
+                viewAllUrl="/about"
+                variant="stacked"
+              >
                 <div className="space-y-6">
                   {profile.description && (
                     <p className="text-lg text-theme leading-relaxed">
@@ -135,10 +142,10 @@ export const HomepageListLayout = ({
               </ContentSection>
             </div>
           )}
-
-          {/* CTA Section */}
-          <CTASection cta={cta} socialLinks={profile.socialLinks} />
         </div>
+
+        {/* CTA Section — Full-width */}
+        <CTASection cta={cta} socialLinks={profile.socialLinks} />
       </div>
     </>
   );

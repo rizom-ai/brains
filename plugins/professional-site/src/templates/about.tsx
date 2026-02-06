@@ -17,19 +17,27 @@ export interface AboutPageData {
 
 /**
  * About page layout
- * Displays full profile information including story, expertise, and availability
+ * Two-zone design: full-width story prose, then structured metadata grid
  */
 export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
   const title = `About ${profile.name || "Me"}`;
   const description = profile.description || profile.intro || "About page";
+
+  const hasStructuredContent =
+    (profile.expertise && profile.expertise.length > 0) ||
+    profile.currentFocus ||
+    profile.availability ||
+    profile.email ||
+    profile.website ||
+    (profile.socialLinks && profile.socialLinks.length > 0);
 
   return (
     <>
       <Head title={title} description={description} ogType="profile" />
       <div className="about-page bg-theme">
         {/* Hero Section */}
-        <header className="w-full py-16 md:py-24 px-6 md:px-12 bg-theme">
-          <div className="max-w-4xl mx-auto">
+        <header className="hero-bg-pattern relative w-full py-16 md:py-24 px-6 md:px-12 bg-theme overflow-hidden">
+          <div className="relative z-10 max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-6xl font-semibold mb-6 text-heading">
               About {profile.name || "Me"}
             </h1>
@@ -43,109 +51,112 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
 
         {/* Main Content */}
         <div className="container mx-auto px-6 md:px-12 max-w-4xl py-12 md:py-16">
-          {/* Story Section */}
+          {/* Zone 1: Story — Full-width prose, no section heading */}
           {profile.story && (
-            <section className="mb-16">
-              <h2 className="text-2xl font-semibold mb-6 text-heading">
-                Story
-              </h2>
+            <section className="content-section-reveal mb-20 md:mb-28">
               <ProseContent html={markdownToHtml(profile.story)} />
             </section>
           )}
 
-          {/* Expertise Section */}
-          {profile.expertise && profile.expertise.length > 0 && (
-            <section className="mb-16">
-              <h2 className="text-2xl font-semibold mb-6 text-heading">
-                Expertise
-              </h2>
-              <ul className="flex flex-wrap gap-3">
-                {profile.expertise.map((skill, i) => (
-                  <li
-                    key={i}
-                    className={tagVariants({ variant: "accent", size: "lg" })}
-                  >
-                    {skill}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* Current Focus Section */}
-          {profile.currentFocus && (
-            <section className="mb-16">
-              <h2 className="text-2xl font-semibold mb-6 text-heading">
-                Current Focus
-              </h2>
-              <p className="text-lg text-theme leading-relaxed">
-                {profile.currentFocus}
-              </p>
-            </section>
-          )}
-
-          {/* Availability Section */}
-          {profile.availability && (
-            <section className="mb-16">
-              <h2 className="text-2xl font-semibold mb-6 text-heading">
-                Availability
-              </h2>
-              <p className="text-lg text-theme leading-relaxed">
-                {profile.availability}
-              </p>
-            </section>
-          )}
-
-          {/* Contact Section */}
-          {(profile.email ||
-            profile.website ||
-            (profile.socialLinks && profile.socialLinks.length > 0)) && (
-            <section className="mb-16">
-              <h2 className="text-2xl font-semibold mb-6 text-heading">
-                Get in Touch
-              </h2>
-              <div className="space-y-4">
-                {profile.email && (
-                  <p className="text-lg">
-                    <span className="text-theme-muted">Email: </span>
-                    <a
-                      href={`mailto:${profile.email}`}
-                      className="text-brand hover:text-brand-dark transition-colors"
-                    >
-                      {profile.email}
-                    </a>
-                  </p>
-                )}
-                {profile.website && (
-                  <p className="text-lg">
-                    <span className="text-theme-muted">Website: </span>
-                    <a
-                      href={profile.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand hover:text-brand-dark transition-colors"
-                    >
-                      {profile.website}
-                    </a>
-                  </p>
-                )}
-                {profile.socialLinks && profile.socialLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-4 mt-4">
-                    {profile.socialLinks.map((link, i) => (
-                      <LinkButton
+          {/* Zone 2: Structured grid */}
+          {hasStructuredContent && (
+            <div className="content-section-reveal grid md:grid-cols-2 gap-x-16 gap-y-12">
+              {/* Expertise */}
+              {profile.expertise && profile.expertise.length > 0 && (
+                <section>
+                  <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
+                    Expertise
+                  </h2>
+                  <ul className="flex flex-wrap gap-3">
+                    {profile.expertise.map((skill, i) => (
+                      <li
                         key={i}
-                        href={link.url}
-                        external
-                        variant="secondary"
-                        size="md"
+                        className={tagVariants({
+                          variant: "accent",
+                          size: "lg",
+                        })}
                       >
-                        {link.label || link.platform}
-                      </LinkButton>
+                        {skill}
+                      </li>
                     ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* Current Focus */}
+              {profile.currentFocus && (
+                <section>
+                  <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
+                    Current Focus
+                  </h2>
+                  <p className="text-lg text-theme leading-relaxed">
+                    {profile.currentFocus}
+                  </p>
+                </section>
+              )}
+
+              {/* Availability */}
+              {profile.availability && (
+                <section>
+                  <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
+                    Availability
+                  </h2>
+                  <p className="text-lg text-theme leading-relaxed">
+                    {profile.availability}
+                  </p>
+                </section>
+              )}
+
+              {/* Contact */}
+              {(profile.email ||
+                profile.website ||
+                (profile.socialLinks && profile.socialLinks.length > 0)) && (
+                <section>
+                  <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
+                    Contact
+                  </h2>
+                  <div className="space-y-4">
+                    {profile.email && (
+                      <p className="text-lg">
+                        <a
+                          href={`mailto:${profile.email}`}
+                          className="text-brand hover:text-brand-dark transition-colors"
+                        >
+                          {profile.email}
+                        </a>
+                      </p>
+                    )}
+                    {profile.website && (
+                      <p className="text-lg">
+                        <a
+                          href={profile.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand hover:text-brand-dark transition-colors"
+                        >
+                          {profile.website}
+                        </a>
+                      </p>
+                    )}
+                    {profile.socialLinks && profile.socialLinks.length > 0 && (
+                      <div className="flex flex-wrap gap-4 mt-4">
+                        {profile.socialLinks.map((link, i) => (
+                          <LinkButton
+                            key={i}
+                            href={link.url}
+                            external
+                            variant="secondary"
+                            size="md"
+                          >
+                            {link.label || link.platform}
+                          </LinkButton>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </section>
+                </section>
+              )}
+            </div>
           )}
         </div>
       </div>
