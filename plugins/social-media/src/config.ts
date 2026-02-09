@@ -6,6 +6,8 @@ import { z } from "zod";
 export const linkedinConfigSchema = z.object({
   accessToken: z.string().optional(),
   refreshToken: z.string().optional(),
+  /** LinkedIn organization ID for posting as an organization (requires w_organization_social scope) */
+  organizationId: z.string().optional(),
 });
 
 /**

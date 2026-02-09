@@ -24,6 +24,7 @@
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/social-media": "workspace:*",
     "@brains/system": "workspace:*",
     "@brains/theme-default": "workspace:*",
     "@brains/webserver": "workspace:*",

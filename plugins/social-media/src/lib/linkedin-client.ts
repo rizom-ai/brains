@@ -30,7 +30,8 @@ interface LinkedInUploadResponse {
 /**
  * LinkedIn provider for posting content via the Share API v2
  *
- * Requires OAuth2 access token with `w_member_social` scope.
+ * Requires OAuth2 access token with `w_member_social` scope for personal posting,
+ * or `w_organization_social` scope for organization posting (set `organizationId` in config).
  * Access tokens expire after 60 days, refresh tokens after 1 year.
  *
  * @see https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api
@@ -57,13 +58,13 @@ export class LinkedInClient implements PublishProvider {
       throw new Error("LinkedIn access token not configured");
     }
 
-    // Get user ID (author URN)
-    const userId = await this.getUserId();
+    // Get author URN (organization or personal)
+    const author = await this.getAuthor();
 
     // Upload image if provided
     let assetUrn: string | null = null;
     if (imageData) {
-      assetUrn = await this.uploadImage(userId, imageData);
+      assetUrn = await this.uploadImage(author, imageData);
     }
 
     // Create the post using UGC Posts API
@@ -90,7 +91,7 @@ export class LinkedInClient implements PublishProvider {
         "X-Restli-Protocol-Version": "2.0.0",
       },
       body: JSON.stringify({
-        author: userId,
+        author,
         lifecycleState: "PUBLISHED",
         specificContent: {
           "com.linkedin.ugc.ShareContent": shareContent,
@@ -127,7 +128,7 @@ export class LinkedInClient implements PublishProvider {
    * Returns null if upload fails (allows graceful fallback to text-only)
    */
   private async uploadImage(
-    userId: string,
+    author: string,
     imageData: PublishImageData,
   ): Promise<string | null> {
     try {
@@ -144,7 +145,7 @@ export class LinkedInClient implements PublishProvider {
           body: JSON.stringify({
             registerUploadRequest: {
               recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-              owner: userId,
+              owner: author,
               serviceRelationships: [
                 {
                   relationshipType: "OWNER",
@@ -208,11 +209,34 @@ export class LinkedInClient implements PublishProvider {
     }
 
     try {
+      if (this.config.organizationId) {
+        const response = await fetch(
+          `${this.apiBaseUrl}/organizations/${this.config.organizationId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${this.config.accessToken}`,
+            },
+          },
+        );
+        return response.ok;
+      }
+
       await this.getUserId();
       return true;
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Get the author URN for posting.
+   * Returns organization URN if organizationId is configured, otherwise personal URN.
+   */
+  private async getAuthor(): Promise<string> {
+    if (this.config.organizationId) {
+      return `urn:li:organization:${this.config.organizationId}`;
+    }
+    return this.getUserId();
   }
 
   /**

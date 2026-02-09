@@ -189,6 +189,85 @@ describe("LinkedInClient", () => {
     });
   });
 
+  describe("organization mode", () => {
+    let orgClient: LinkedInClient;
+
+    beforeEach(() => {
+      const orgConfig: LinkedinConfig = {
+        accessToken: "test-token",
+        organizationId: "12345",
+      };
+      orgClient = new LinkedInClient(orgConfig, logger as never);
+    });
+
+    it("should use organization URN as author", async () => {
+      const result = await orgClient.publish("Hello org!", {});
+
+      // Only 1 fetch call — no getUserId needed
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toContain("/ugcPosts");
+      const body = JSON.parse(options.body as string);
+      expect(body.author).toBe("urn:li:organization:12345");
+      expect(result.id).toBe("urn:li:share:123");
+    });
+
+    it("should use organization URN as owner in image upload", async () => {
+      let callCount = 0;
+      fetchMock = mock(() => {
+        callCount++;
+        if (callCount === 1) {
+          // registerUpload (no getUserId — org mode skips it)
+          return Promise.resolve({
+            ok: true,
+            json: () =>
+              Promise.resolve({
+                value: {
+                  uploadMechanism: {
+                    "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest":
+                      {
+                        uploadUrl: "https://api.linkedin.com/upload/123",
+                      },
+                  },
+                  asset: "urn:li:digitalmediaAsset:abc123",
+                },
+              }),
+          });
+        } else if (callCount === 2) {
+          // uploadBinary
+          return Promise.resolve({ ok: true });
+        } else {
+          // publishPost
+          return Promise.resolve({
+            ok: true,
+            headers: new Headers({ "X-RestLi-Id": "urn:li:share:org456" }),
+          });
+        }
+      });
+      globalThis.fetch = fetchMock as never;
+
+      const imageData: PublishImageData = {
+        data: Buffer.from(TINY_PNG_BASE64, "base64"),
+        mimeType: "image/png",
+      };
+
+      await orgClient.publish("Org post with image!", {}, imageData);
+
+      // 3 calls: registerUpload, uploadBinary, publishPost (no getUserId)
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+
+      // Verify register upload has org URN as owner
+      const [, registerOptions] = fetchMock.mock.calls[0] as [
+        string,
+        RequestInit,
+      ];
+      const registerBody = JSON.parse(registerOptions.body as string);
+      expect(registerBody.registerUploadRequest.owner).toBe(
+        "urn:li:organization:12345",
+      );
+    });
+  });
+
   describe("validateCredentials", () => {
     it("should return true when token is valid", async () => {
       const result = await client.validateCredentials();
@@ -201,6 +280,48 @@ describe("LinkedInClient", () => {
         logger as never,
       );
       const result = await clientNoToken.validateCredentials();
+      expect(result).toBe(false);
+    });
+
+    it("should validate org credentials by fetching organization endpoint", async () => {
+      const orgConfig: LinkedinConfig = {
+        accessToken: "test-token",
+        organizationId: "12345",
+      };
+      const orgClient = new LinkedInClient(orgConfig, logger as never);
+
+      fetchMock = mock(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ id: 12345 }),
+        }),
+      );
+      globalThis.fetch = fetchMock as never;
+
+      const result = await orgClient.validateCredentials();
+      expect(result).toBe(true);
+
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toContain("/organizations/12345");
+    });
+
+    it("should return false when org validation fails", async () => {
+      const orgConfig: LinkedinConfig = {
+        accessToken: "test-token",
+        organizationId: "12345",
+      };
+      const orgClient = new LinkedInClient(orgConfig, logger as never);
+
+      fetchMock = mock(() =>
+        Promise.resolve({
+          ok: false,
+          status: 403,
+          text: () => Promise.resolve("Forbidden"),
+        }),
+      );
+      globalThis.fetch = fetchMock as never;
+
+      const result = await orgClient.validateCredentials();
       expect(result).toBe(false);
     });
   });

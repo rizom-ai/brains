@@ -7,6 +7,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { GitSyncPlugin } from "@brains/git-sync";
 import { notePlugin } from "@brains/note";
+import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { routes as defaultRoutes } from "@brains/default-site-content";
 
@@ -80,6 +81,12 @@ const config = defineConfig({
       userId: process.env["MATRIX_USER_ID"] || "@ranger-local:rizom.ai",
     }),
     notePlugin({}),
+    socialMediaPlugin({
+      linkedin: {
+        accessToken: process.env["LINKEDIN_ACCESS_TOKEN"],
+        organizationId: process.env["LINKEDIN_ORGANIZATION_ID"],
+      },
+    }),
     directorySync(),
     new GitSyncPlugin({
       gitUrl: process.env["GIT_SYNC_URL"] || "",
