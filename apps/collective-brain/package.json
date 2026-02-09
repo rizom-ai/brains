@@ -19,6 +19,7 @@
     "@brains/app": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/git-sync": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",

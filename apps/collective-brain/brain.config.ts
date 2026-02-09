@@ -5,6 +5,7 @@ import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
+import { GitSyncPlugin } from "@brains/git-sync";
 import { notePlugin } from "@brains/note";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { routes as defaultRoutes } from "@brains/default-site-content";
@@ -80,6 +81,13 @@ const config = defineConfig({
     }),
     notePlugin({}),
     directorySync(),
+    new GitSyncPlugin({
+      gitUrl: process.env["GIT_SYNC_URL"] || "",
+      authToken: process.env["GIT_SYNC_TOKEN"],
+      authorName: "Rizom",
+      authorEmail: "collective@rizom.ai",
+      autoPush: true,
+    }),
     new WebserverInterface({
       productionDomain: process.env["DOMAIN"]
         ? `https://${process.env["DOMAIN"]}`
