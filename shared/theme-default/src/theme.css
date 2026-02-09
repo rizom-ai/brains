@@ -538,28 +538,58 @@
 @layer utilities {
   /* Widget containers - standardized with rounded-lg */
   .widget-container {
-    @apply bg-theme-subtle rounded-lg p-4;
+    background-color: var(--color-bg-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
   }
 
   /* Form inputs - consistent styling */
   .form-input {
-    @apply px-4 py-2 rounded-lg border border-theme-muted bg-theme text-theme
-           placeholder:text-theme-muted focus:outline-none focus:ring-2
-           focus:ring-brand disabled:opacity-50 transition-colors;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-text-muted);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
   }
+  .form-input::placeholder { color: var(--color-text-muted); }
+  .form-input:focus { outline: none; box-shadow: 0 0 0 2px var(--color-brand); }
+  .form-input:disabled { opacity: 0.5; }
 
   /* Primary button - consistent styling */
   .btn-primary {
-    @apply px-4 py-2 rounded-lg bg-brand hover:bg-brand-dark text-theme-inverse
-           font-medium transition-colors disabled:opacity-50;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-brand);
+    color: var(--color-text-inverse);
+    font-weight: 500;
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
   }
+  .btn-primary:hover { background-color: var(--color-brand-dark); }
+  .btn-primary:disabled { opacity: 0.5; }
 
   /* Pagination controls */
   .pagination-btn {
-    @apply px-3 py-2 text-sm font-medium text-theme hover:text-brand
-           hover:bg-surface rounded-lg transition-colors;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    border-radius: var(--radius-lg);
+    transition-property: color, background-color, border-color;
+    transition-duration: 150ms;
+  }
+  .pagination-btn:hover {
+    color: var(--color-brand);
+    background-color: var(--color-bg-subtle);
   }
   .pagination-btn-active {
-    @apply px-3 py-2 text-sm font-semibold text-brand bg-surface rounded-lg;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-brand);
+    background-color: var(--color-bg-subtle);
+    border-radius: var(--radius-lg);
   }
 }

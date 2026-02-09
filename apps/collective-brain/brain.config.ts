@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { defineConfig, handleCLI } from "@brains/app";
 import { SystemPlugin } from "@brains/system";
+import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
@@ -57,18 +58,25 @@ const config = defineConfig({
 
   // Configure centralized permissions
   permissions: {
-    anchors: [],
+    anchors: ["matrix:@yeehaa:rizom.ai"],
     rules: [
       // MCP stdio transport gets anchor permissions (local access)
       { pattern: "mcp:stdio", level: "anchor" },
       // MCP http transport gets public permissions (remote access)
       { pattern: "mcp:http", level: "public" },
+      // Matrix gets public permissions (chat access)
+      { pattern: "matrix:*", level: "public" },
     ],
   },
 
   plugins: [
     new SystemPlugin({}),
     new MCPInterface({}),
+    new MatrixInterface({
+      homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
+      accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
+      userId: process.env["MATRIX_USER_ID"] || "@ranger-local:rizom.ai",
+    }),
     directorySync(),
     new WebserverInterface({
       productionDomain: process.env["DOMAIN"]

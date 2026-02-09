@@ -19,6 +19,7 @@
     "@brains/app": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/system": "workspace:*",
