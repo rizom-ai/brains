@@ -1050,10 +1050,19 @@ footer.bg-footer a {
 footer.bg-footer a:hover {
   color: var(--palette-neon-green);
 }
-/* Button text must be black on neon green bg */
-footer.bg-footer button {
+/* Button text must be black on neon green bg (exclude theme toggle) */
+footer.bg-footer button:not(.bg-theme-toggle) {
   color: var(--palette-black);
 }
-footer.bg-footer button:hover {
+footer.bg-footer button:not(.bg-theme-toggle):hover {
+  color: var(--palette-neon-green);
+}
+/* Theme toggle: no background, just the icon */
+footer.bg-footer .bg-theme-toggle {
+  background-color: transparent;
+  color: var(--color-footer-text);
+}
+footer.bg-footer .bg-theme-toggle:hover {
+  background-color: transparent;
   color: var(--palette-neon-green);
 }
