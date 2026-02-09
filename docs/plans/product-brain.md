@@ -1,184 +1,401 @@
-# Products Plugin — Product Showcase for the Collective Brain
+# Products Plugin — Brain Model Showcase for the Collective Brain
 
 ## Context
 
-The collective brain needs a products overview page at `/products` to showcase what Rizom builds. Instead of creating a separate brain app (over-engineered for a single page), we create a **products plugin** that manages Product entities and registers its own route with the existing site-builder — following the same pattern as the blog plugin.
+The collective brain needs a products overview page at `/products` to showcase the different brain models that Rizom builds. Each brain is a **model for a specific use case** — it has an identity (name, role, purpose, values), an audience, and capabilities (features/plugins). The overview page presents these brain models as products.
 
-The overview is a **showcase page**, not a listing. Products are few (3-6), curated, and each gets visual weight with rendered markdown body content. The overview template will be designed with the **frontend-design skill**.
+Instead of creating a separate brain app, we create a **products plugin** that manages Product entities and registers its own route with the existing site-builder.
 
-## Architecture
+## What is a Product?
 
-Follows the blog plugin pattern (`plugins/blog/`):
+A product is a **brain model** — a configuration of the Brains platform tailored to a use case. It mirrors the brain's own identity structure:
 
-- **ServicePlugin** managing a "product" entity type
-- 3-tier schema: frontmatter → metadata → entity
-- EntityAdapter for markdown serialization
-- DataSource for querying products
-- Template registered with site-builder
-- Route registered dynamically via `plugin:site-builder:route:register` messaging
-- No AI generation, no publish pipeline — products are manually curated markdown files
+- **Identity**: name, role, purpose, values
+- **Positioning**: tagline, audience
+- **Capabilities**: features (the plugins/integrations it uses)
+- **Maturity**: status (live/beta/alpha/concept)
+- **Story**: rich markdown body — the narrative of what this brain enables
 
-## Files to Create
+Example brain models:
 
-### 1. Plugin: `plugins/products/`
+- **Professional Brain** ("Rover") — personal knowledge manager for creators
+- **Collective Brain** ("Rizom") — collective knowledge coordinator for organizations
 
-| File                                     | Purpose                   | Based on                                          |
-| ---------------------------------------- | ------------------------- | ------------------------------------------------- |
-| `package.json`                           | Dependencies              | `plugins/blog/package.json` (fewer deps)          |
-| `tsconfig.json`                          | TS config with Preact JSX | `plugins/blog/tsconfig.json`                      |
-| `src/index.ts`                           | Public exports            | `plugins/blog/src/index.ts`                       |
-| `src/plugin.ts`                          | ProductsPlugin class      | `plugins/blog/src/plugin.ts` (simplified)         |
-| `src/config.ts`                          | Config schema             | —                                                 |
-| `src/schemas/product.ts`                 | 3-tier entity schema      | `plugins/blog/src/schemas/blog-post.ts`           |
-| `src/adapters/product-adapter.ts`        | Markdown adapter          | `plugins/blog/src/adapters/blog-post-adapter.ts`  |
-| `src/datasources/products-datasource.ts` | Fetch & sort products     | `plugins/blog/src/datasources/blog-datasource.ts` |
-| `src/templates/products-overview.tsx`    | Overview page component   | **frontend-design skill**                         |
+## Content Format Principle
 
-### 2. Product Entity
+Both entity types use **frontmatter + markdown body** — consistent with all other plugin entities (blog posts, series, etc.). The split follows a simple rule:
 
-**Frontmatter** (stored in markdown YAML):
+- **Frontmatter**: compact structured data (simple strings, flat arrays, small object arrays)
+- **Body**: free-form prose OR structured content sections (parsed by `StructuredContentFormatter`) for complex multi-section content
+
+No icon fields in content — icons are a presentation concern handled by templates.
+
+## Product Entity Schema
+
+A product is a brain model. Compact structured data lives in frontmatter, the narrative story is the markdown body.
+
+**Frontmatter** (structured data in YAML):
 
 ```yaml
-name: Brains
-tagline: Your personal knowledge operating system
-status: live # live | beta | alpha | concept
-icon: Brain # Lucide icon name
-link: https://... # optional
-order: 1 # display order on overview
+name: Rover
+tagline: Your AI-powered personal knowledge hub
+role: Personal knowledge manager and professional content curator
+purpose: Organize thoughts, capture knowledge, and showcase professional work
+audience: Creators, writers, and independent professionals
+values:
+  - clarity
+  - organization
+  - professionalism
+  - continuous learning
+features:
+  - title: AI Blogging
+    description: Generate blog posts from your knowledge base
+  - title: Social Publishing
+    description: Share content across LinkedIn and other platforms
+  - title: Matrix Chat
+    description: Interact with your brain through Matrix messaging
+  - title: Slide Decks
+    description: Create presentations from your knowledge
+status: live
+order: 1
 ```
 
-**Body**: Rich markdown content — the full product story. Rendered on the overview page via `markdownToHtml()` + `ProseContent`.
+**Body** (free-form markdown): The story — why this brain exists, who it's for, what makes it different.
 
-**Metadata** (for DB queries): `name`, `slug` (auto-generated), `status`, `order`
+**Metadata** (for DB queries): `name`, `slug`, `status`, `order`
 
-### 3. Plugin Config
+## Products Overview Entity
+
+A dedicated `products-overview` entity provides the platform introduction for the `/products` page. It has multiple structured sections with no single narrative body, so the body uses **structured content format** (parsed by `StructuredContentFormatter`).
+
+**Frontmatter** (compact identity):
+
+```yaml
+headline: What We Build
+tagline: Brain models for every use case
+```
+
+**Body** (structured content sections):
+
+```markdown
+## Vision
+
+We believe knowledge work deserves better tools...
+
+## Pillars
+
+### Pillar 1
+
+#### Title
+
+AI-Native
+
+#### Description
+
+Built from the ground up with AI at the core
+
+### Pillar 2
+
+#### Title
+
+Plugin-Based
+
+#### Description
+
+Extensible architecture that adapts to your workflow
+
+## Technologies
+
+- TypeScript
+- Preact
+- Drizzle ORM
+- Matrix Protocol
+- MCP
+
+## Benefits
+
+### Benefit 1
+
+#### Title
+
+Own Your Data
+
+#### Description
+
+All content stored as markdown — portable, readable, yours
+
+### Benefit 2
+
+#### Title
+
+Extend Everything
+
+#### Description
+
+Plugin system makes every brain customizable
+
+## CTA
+
+### Text
+
+Get Started
+
+### Link
+
+/docs/getting-started
+```
+
+**Schema:** `ProductsOverview` with headline, tagline (frontmatter) + vision, pillars (array of {title, description}), technologies (string array), benefits (array of {title, description}), CTA ({text, link}) parsed from body via `StructuredContentFormatter`.
+
+## Overview Page
+
+The `/products` page has two parts:
+
+1. **Platform overview** — Vision, pillars, technologies, benefits, CTA (from overview entity)
+2. **Brain model sections** — For each product entity:
+   - **Identity**: Name + status badge + tagline
+   - **What & why**: Role + purpose
+   - **Audience**: Who this brain is for
+   - **Values**: Displayed as tags/badges
+   - **Features**: Capability cards (title + description) — the plugins it uses
+   - **Story**: Rendered markdown body (`ProseContent`)
+   - Visual breathing room between brain models
+
+Designed with **frontend-design skill**.
+
+**Reused components**: `StatusBadge`, `ProseContent`, `LinkButton`, `Head`, `Card`, `TagsList` from `@brains/ui-library`
+
+## Generate Tools
+
+Following the blog plugin pattern: tools enqueue async jobs, job handlers use AI templates for generation.
+
+### `products:generate` — Generate a product entity
+
+Generates a brain model product description using AI.
+
+**Input schema:**
 
 ```typescript
-productsPlugin({
-  headline: "What We Build",
-  description: "Tools for knowledge workers, educators, and communities",
-  route: "/products", // default
+z.object({
+  prompt: z.string().optional(), // Topic/guidance for AI generation
+  name: z.string().optional(), // Brain model name (AI-generated if not provided)
+  role: z.string().optional(), // Brain model role
+  purpose: z.string().optional(), // Brain model purpose
+  skipAi: z.boolean().optional(), // Create skeleton with placeholders
 });
 ```
 
-### 4. Overview Template
+**Three modes** (same as blog):
 
-Designed with **frontend-design skill**. The page structure:
+1. **Full AI generation** — provide a prompt, AI generates all fields (name, tagline, role, purpose, audience, values, features, story)
+2. **Partial** — provide some fields (e.g. name + role), AI fills the rest
+3. **Skip AI** — create a skeleton product with placeholder content (requires name)
 
-1. **Header** — Headline + description (from plugin config)
-2. **Product sections** — Each product as a substantial `<section>`:
-   - Icon + name + StatusBadge
-   - Tagline as subtitle
-   - Rendered markdown body (`ProseContent`)
-   - Link button (if product has a link)
-   - Generous spacing between products (`space-y-20 md:space-y-28`)
+**Job handler:** `ProductGenerationJobHandler` enqueues via `context.jobs.enqueue("product-generation", ...)`
 
-**Reused components**: `StatusBadge`, `ProseContent`, `LinkButton`, `Head` from `@brains/ui-library`
+**AI template:** `products:generation` — generates structured product data matching the frontmatter schema + story body
 
-### 5. Route Registration
+### `products:generate-overview` — Generate the overview entity
 
-Via messaging in `onRegister()` (same as dashboard plugin):
+Generates the platform overview content using AI.
+
+**Input schema:**
 
 ```typescript
-await context.messaging.send("plugin:site-builder:route:register", {
-  pluginId: this.id,
-  routes: [
-    {
-      id: "products-overview",
-      path: "/products",
-      title: "Our Products",
-      navigation: {
-        show: true,
-        label: "Products",
-        slot: "primary",
-        priority: 30,
-      },
-      sections: [
-        {
-          id: "products",
-          template: "products-overview",
-          dataQuery: { entityType: "product" },
-        },
-      ],
-    },
-  ],
+z.object({
+  prompt: z.string().optional(), // Guidance for AI generation
+  headline: z.string().optional(), // Override headline
+  tagline: z.string().optional(), // Override tagline
+  skipAi: z.boolean().optional(), // Create skeleton with placeholders
 });
 ```
 
-### 6. Seed Content: `apps/collective-brain/seed-content/product/`
+**Job handler:** `OverviewGenerationJobHandler` — generates vision, pillars, technologies, benefits, CTA as structured content
 
-| File           | Product                                                         |
-| -------------- | --------------------------------------------------------------- |
-| `brains.md`    | Brains — personal knowledge OS (status: live, order: 1)         |
-| `offcourse.md` | Offcourse — open source learning paths (status: beta, order: 2) |
-| `rizom.md`     | Rizom — collective knowledge networks (status: alpha, order: 3) |
+**AI template:** `products:overview-generation` — generates overview data, serialized to frontmatter + structured content body
 
-Each file has YAML frontmatter + rich markdown body describing the product.
+## Files Created
 
-### 7. Collective Brain Integration
+### Plugin: `plugins/products/src/`
 
-**`apps/collective-brain/brain.config.ts`** — add import + plugin:
+| File                                 | Purpose                                                |
+| ------------------------------------ | ------------------------------------------------------ |
+| `index.ts`                           | Public exports                                         |
+| `plugin.ts`                          | ProductsPlugin class (follows portfolio pattern)       |
+| `config.ts`                          | Config schema with optional route override             |
+| `schemas/product.ts`                 | 3-tier entity schema with enriched variant             |
+| `schemas/overview.ts`                | Overview entity schema (frontmatter + structured body) |
+| `adapters/product-adapter.ts`        | Markdown adapter (frontmatter + body)                  |
+| `adapters/overview-adapter.ts`       | Overview adapter (frontmatter + structured content)    |
+| `formatters/overview-formatter.ts`   | StructuredContentFormatter for overview body           |
+| `datasources/products-datasource.ts` | Fetch + sort products, combined with overview          |
+| `templates/products-page.tsx`        | Combined page component (overview + brain models)      |
 
-```typescript
-import { productsPlugin } from "@brains/products";
-// ...
-plugins: [
-  // ... existing plugins ...
-  productsPlugin({
-    headline: "What We Build",
-    description: "Tools for knowledge workers, educators, and communities",
-  }),
-];
-```
+### Seed Content
 
-**`apps/collective-brain/package.json`** — add dependency:
+| File                                                               | Content            |
+| ------------------------------------------------------------------ | ------------------ |
+| `apps/collective-brain/seed-content/product/rover.md`              | Professional Brain |
+| `apps/collective-brain/seed-content/product/rizom.md`              | Collective Brain   |
+| `apps/collective-brain/seed-content/products-overview/overview.md` | Platform overview  |
 
-```json
-"@brains/products": "workspace:*"
-```
+### Tests: `plugins/products/test/`
 
-## Data Flow
+| File                          | Purpose                   |
+| ----------------------------- | ------------------------- |
+| `product-adapter.test.ts`     | Adapter tests             |
+| `plugin-registration.test.ts` | Plugin registration tests |
 
-```
-seed-content/product/*.md
-  → directory-sync → ProductAdapter.fromMarkdown()
-  → Product entity in DB (metadata: name, slug, status, order)
-  → site build triggers route "/products"
-  → ProductsDataSource.fetch() queries entities sorted by order
-  → parses frontmatter + body from each entity
-  → ProductsOverviewTemplate renders sections
-  → markdownToHtml() converts body → ProseContent
-  → static HTML at /products/index.html
-```
+### Integration
 
-## What Stays Unchanged
+- `apps/collective-brain/brain.config.ts` — `productsPlugin()` added
+- `apps/collective-brain/package.json` — `"@brains/products": "workspace:*"` added
 
-- `shared/product-site-content/` — remains available for landing pages, not used by this plugin
-- Collective brain's existing site-builder config — products plugin adds its route via messaging
-- No new theme needed — uses the collective brain's existing theme
+### Pending Files (generate tools — future work)
+
+| File                                            | Purpose                             |
+| ----------------------------------------------- | ----------------------------------- |
+| `src/tools/generate.ts`                         | Product generate tool               |
+| `src/tools/generate-overview.ts`                | Overview generate tool              |
+| `src/handlers/product-generation-handler.ts`    | Product generation job handler      |
+| `src/handlers/overview-generation-handler.ts`   | Overview generation job handler     |
+| `src/templates/generation-template.ts`          | AI template for product generation  |
+| `src/templates/overview-generation-template.ts` | AI template for overview generation |
 
 ## Implementation Order
 
-1. Create `plugins/products/` scaffold (package.json, tsconfig, config)
-2. Define product schema (3-tier: frontmatter → metadata → entity)
-3. Implement ProductAdapter (markdown serialization)
-4. Implement ProductsDataSource (fetch + sort by order)
-5. Design overview template with **frontend-design skill**
-6. Implement ProductsPlugin class (entity registration, template, route, datasource)
-7. Wire into collective brain (brain.config.ts, package.json)
-8. Create seed content (3 product markdown files)
-9. `bun install` + `bun run typecheck` + `bun run lint`
+1. Create `plugins/products/` scaffold (package.json, tsconfig, config) ✅
+2. Write tests for schema, adapter, plugin registration ✅
+3. Define product schema (frontmatter with identity/purpose/values/features) ✅
+4. Implement ProductAdapter ✅
+5. Implement ProductsPlugin class ✅
+6. Define overview schema + StructuredContentFormatter ✅
+7. Implement OverviewAdapter (frontmatter + structured content body) ✅
+8. Implement ProductsDataSource (fetch + sort by order) ✅
+9. Wire into collective brain (brain.config.ts, package.json) ✅
+10. Create seed content (product + overview markdown files) ✅
+11. Design overview template with **frontend-design skill** ✅ (v1 done, v2 below)
+12. **Redesign products page template (v2)** ← current
+13. Implement generate tools + job handlers + AI templates
+14. `bun install` + `bun run typecheck` + `bun run lint`
 
-## Verification
+---
+
+## Products Page Template — Visual Improvements (v2)
+
+### Context
+
+The current template (`plugins/products/src/templates/products-page.tsx`) renders correctly but looks generic. It doesn't follow the established design patterns of the codebase (homepage, about page). This plan brings the products page in line with those patterns and improves its visual quality.
+
+### Inventory of Issues
+
+#### 1. Hero — wrong layout pattern
+
+- Uses fixed padding (`py-24 md:py-36`) instead of the signature `min-h-[70vh]` + `flex items-end` hero
+- Content vertically centered instead of bottom-aligned
+- Missing decorative horizontal divider (`w-12 border-t border-theme`) between headline and tagline
+
+#### 2. Redundant inline font styles (7 occurrences)
+
+- `style={{ fontFamily: "var(--font-heading)" }}` on every heading
+- Theme CSS already applies `--font-heading` to h1-h6 globally — pure noise
+
+#### 3. Vision section — disconnected
+
+- Plain paragraph, no visual relationship to surrounding content
+- Could benefit from larger typography or the stacked ContentSection pattern
+
+#### 4. Pillars — washed out numbers
+
+- `opacity-20` on large numbers makes them barely visible
+- Predictable zebra stripe (`bg-theme-subtle`) across sections
+
+#### 5. Brain Models — broken class + missing component reuse
+
+- `md:direction-rtl` is NOT a valid Tailwind class — dead code
+- Feature cards manually recreate `Card` component instead of reusing it
+- Values use custom `<span>` tags instead of `TagsList`
+- No visual separator between products
+
+#### 6. Technologies — should use TagsList
+
+- Manual tag rendering instead of `TagsList` with `variant="accent"`
+
+#### 7. CTA — weaker than design system supports
+
+- Missing `cta-bg-pattern` dot overlay (available in theme CSS)
+- Just a centered button — no heading, no context
+- Compare to `CTASection`: overline label, heading, social links
+
+#### 8. Spacing — monotonous
+
+- Every section uses `py-20 md:py-28` — no variation in rhythm
+
+### Implementation Plan
+
+**File to modify**: `plugins/products/src/templates/products-page.tsx`
+
+**Reference files**:
+
+- `plugins/professional-site/src/templates/homepage-list.tsx` — hero pattern
+- `plugins/professional-site/src/components/CTASection.tsx` — CTA pattern
+- `shared/ui-library/src/Card.tsx` — Card component
+- `shared/ui-library/src/TagsList.tsx` — TagsList component
+- `shared/theme-default/src/theme.css` — `cta-bg-pattern` class
+
+#### Step 1: Fix hero layout
+
+- Change to `min-h-[70vh] flex items-end` (from `homepage-list.tsx:77`)
+- Bottom-align content with `pb-16 md:pb-24`
+- Add horizontal divider between headline and tagline
+- Keep `hero-bg-pattern` and `max-w-4xl`
+
+#### Step 2: Remove inline font styles
+
+- Delete all 7 occurrences of `style={{ fontFamily: "var(--font-heading)" }}`
+
+#### Step 3: Improve vision section
+
+- Larger typography (`text-2xl md:text-3xl font-light`)
+- Add structure with stacked ContentSection pattern or top border
+
+#### Step 4: Fix pillars
+
+- Increase number opacity from `opacity-20` to `opacity-30`
+- Remove zebra `bg-theme-subtle`, keep uniform `bg-theme`
+
+#### Step 5: Fix brain models
+
+- Remove dead `md:direction-rtl` class
+- Replace custom cards with `Card` from `@brains/ui-library`
+- Replace custom value tags with `TagsList` (variant `"muted"`, size `"sm"`)
+- Add `border-t border-theme` separator between products
+
+#### Step 6: Use TagsList for technologies
+
+- Replace manual tag rendering with `TagsList` (variant `"accent"`, size `"md"`)
+
+#### Step 7: Upgrade CTA
+
+- Add `cta-bg-pattern` class alongside `bg-brand`
+- Add overline label + heading above the button
+
+#### Step 8: Update imports
+
+- Add `TagsList`, `Card` to imports from `@brains/ui-library`
+
+### Verification
 
 ```bash
-bun install                                    # register new package
-cd plugins/products && bun run typecheck       # plugin compiles
+cd plugins/products && bun run typecheck       # template compiles
+cd plugins/products && bun test                # tests still pass
 bun run typecheck                              # all packages pass
-bun run lint                                   # no errors
+bun run lint                                   # no lint errors
 cd apps/collective-brain && bun run dev        # start brain
-# Verify: product entities synced from seed content
 # Trigger site build, check /products/index.html
-# Verify: Products link in site navigation
+# Verify: hero matches homepage pattern (tall, bottom-aligned)
+# Verify: no broken classes (direction-rtl gone)
+# Verify: TagsList and Card components render correctly
+# Verify: CTA has dot pattern and heading
 # Verify: both light and dark mode
 ```
