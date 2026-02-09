@@ -5,6 +5,7 @@ import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
+import { notePlugin } from "@brains/note";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { routes as defaultRoutes } from "@brains/default-site-content";
 
@@ -77,6 +78,7 @@ const config = defineConfig({
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@ranger-local:rizom.ai",
     }),
+    notePlugin({}),
     directorySync(),
     new WebserverInterface({
       productionDomain: process.env["DOMAIN"]

@@ -21,6 +21,7 @@
     "@brains/directory-sync": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
+    "@brains/note": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/system": "workspace:*",
     "@brains/theme-default": "workspace:*",
