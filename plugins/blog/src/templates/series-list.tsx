@@ -55,6 +55,7 @@ export const SeriesListTemplate = ({
             title="Series"
             count={series.length}
             singularLabel="series"
+            pluralLabel="series"
             className="mb-8"
           />
 
@@ -73,7 +74,9 @@ export const SeriesListTemplate = ({
                     {item.title}
                   </CardTitle>
                   <CardMetadata>
-                    {item.postCount} {item.postCount === 1 ? "post" : "posts"}
+                    <span className="text-sm text-theme-muted">
+                      {item.postCount} {item.postCount === 1 ? "post" : "posts"}
+                    </span>
                   </CardMetadata>
                   {item.description && (
                     <p className="text-theme-muted">{item.description}</p>
