@@ -108,6 +108,16 @@ const config = defineConfig({
     siteBuilderPlugin({
       routes, // Custom routes with Rizom branding
       previewOutputDir: "./dist/site-preview", // Build to preview by default
+      entityRouteConfig: {
+        "social-post": {
+          label: "Social Post",
+          navigation: {
+            show: true,
+            slot: "secondary",
+            priority: 40,
+          },
+        },
+      },
     }),
   ],
 });
