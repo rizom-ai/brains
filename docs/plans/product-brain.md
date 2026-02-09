@@ -1,131 +1,184 @@
-# Product Brain — Marketing Site for the Brains Platform
+# Products Plugin — Product Showcase for the Collective Brain
 
 ## Context
 
-The Brains platform needs a marketing site at `brains.rizom.ai` to showcase the product. A `shared/product-site-content/` package already exists with purpose-built marketing templates (hero, features, products, CTA) but no brain app wires it up. This plan creates a minimal product brain app + a new theme with its own visual identity.
+The collective brain needs a products overview page at `/products` to showcase what Rizom builds. Instead of creating a separate brain app (over-engineered for a single page), we create a **products plugin** that manages Product entities and registers its own route with the existing site-builder — following the same pattern as the blog plugin.
 
-## What Already Exists (reuse, don't rebuild)
+The overview is a **showcase page**, not a listing. Products are few (3-6), curated, and each gets visual weight with rendered markdown body content. The overview template will be designed with the **frontend-design skill**.
 
-| Package                        | What it provides                                                                                            |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `shared/product-site-content/` | Templates (hero, features, products, CTA, footer, metadata), routes, DefaultLayout — **will be redesigned** |
-| `plugins/site-builder/`        | Site generation — accepts `templates`, `routes`, `layouts`, `themeCSS` in config                            |
-| `shared/theme-default/`        | Reference theme to fork for `theme-product`                                                                 |
+## Architecture
+
+Follows the blog plugin pattern (`plugins/blog/`):
+
+- **ServicePlugin** managing a "product" entity type
+- 3-tier schema: frontmatter → metadata → entity
+- EntityAdapter for markdown serialization
+- DataSource for querying products
+- Template registered with site-builder
+- Route registered dynamically via `plugin:site-builder:route:register` messaging
+- No AI generation, no publish pipeline — products are manually curated markdown files
 
 ## Files to Create
 
-### 1. Theme: `shared/theme-product/`
+### 1. Plugin: `plugins/products/`
 
-Fork of `theme-default` with a teal/orange palette (instead of blue/orange). Same fonts (Plus Jakarta Sans + Space Grotesk) for brand consistency.
+| File                                     | Purpose                   | Based on                                          |
+| ---------------------------------------- | ------------------------- | ------------------------------------------------- |
+| `package.json`                           | Dependencies              | `plugins/blog/package.json` (fewer deps)          |
+| `tsconfig.json`                          | TS config with Preact JSX | `plugins/blog/tsconfig.json`                      |
+| `src/index.ts`                           | Public exports            | `plugins/blog/src/index.ts`                       |
+| `src/plugin.ts`                          | ProductsPlugin class      | `plugins/blog/src/plugin.ts` (simplified)         |
+| `src/config.ts`                          | Config schema             | —                                                 |
+| `src/schemas/product.ts`                 | 3-tier entity schema      | `plugins/blog/src/schemas/blog-post.ts`           |
+| `src/adapters/product-adapter.ts`        | Markdown adapter          | `plugins/blog/src/adapters/blog-post-adapter.ts`  |
+| `src/datasources/products-datasource.ts` | Fetch & sort products     | `plugins/blog/src/datasources/blog-datasource.ts` |
+| `src/templates/products-overview.tsx`    | Overview page component   | **frontend-design skill**                         |
 
-| File                                  | Based on                                               |
-| ------------------------------------- | ------------------------------------------------------ |
-| `shared/theme-product/package.json`   | `shared/theme-default/package.json`                    |
-| `shared/theme-product/tsconfig.json`  | `shared/theme-default/tsconfig.json`                   |
-| `shared/theme-product/src/index.ts`   | `shared/theme-default/src/index.ts`                    |
-| `shared/theme-product/src/types.d.ts` | `shared/theme-default/src/types.d.ts`                  |
-| `shared/theme-product/src/theme.css`  | `shared/theme-default/src/theme.css` with palette swap |
+### 2. Product Entity
 
-**Palette changes** (structural CSS stays identical):
+**Frontmatter** (stored in markdown YAML):
 
-| Token         | Default            | Product                 |
-| ------------- | ------------------ | ----------------------- |
-| Brand primary | `#3921D7` (blue)   | `#0d9488` (teal)        |
-| Brand dark    | `#2E007D`          | `#134e4a`               |
-| Brand darkest | `#0E0027`          | `#042f2e`               |
-| Pattern dot   | `#6366f1`          | `#2dd4bf`               |
-| Accent        | `#E7640A` (orange) | `#f97316` (warm orange) |
-| Accent dark   | `#c2410c`          | `#ea580c`               |
-| Light tint    | `#A8C4FF`          | `#99f6e4`               |
-| Warm bg       | `#FFEFDA`          | `#f0fdfa`               |
-
-### 2. Redesign: `shared/product-site-content/` templates
-
-The existing templates are generic and outdated. Each layout component will be redesigned using the **frontend-design skill** for a distinctive, polished marketing aesthetic. Schemas, formatters, and template wiring stay as-is — only the visual layouts change.
-
-**Files to redesign** (using frontend-design skill for each):
-
-| File                             | Current state                                          | Redesign focus                                             |
-| -------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------- |
-| `src/hero/layout.tsx`            | Generic gradient + animated blobs                      | Bold, modern hero with strong visual hierarchy             |
-| `src/features/layout.tsx`        | Standard 3-column card grid                            | Distinctive feature showcase, avoid generic SaaS look      |
-| `src/products/layout.tsx`        | Basic card grid with status badges                     | Product cards with personality and clear differentiation   |
-| `src/cta/layout.tsx`             | Dark gradient background CTA                           | Compelling, high-converting CTA section                    |
-| `src/footer/layout.tsx`          | Minimal nav links + hardcoded "Rizom Brains" copyright | Clean footer, remove hardcoded company name (use siteInfo) |
-| `src/layouts/default-layout.tsx` | Flex column wrapper                                    | Review for proper section flow/spacing                     |
-
-**What stays unchanged**:
-
-- All `schema.ts` files (data structures are fine)
-- All `formatter.ts` files (content formatting is fine)
-- All `index.ts` template definitions
-- `routes.ts` (single landing page route)
-- All `prompt.txt` files (AI prompts)
-
-**Constraints for redesign**:
-
-- Must use **theme tokens** (`bg-theme`, `text-brand`, etc.) — no hardcoded colors
-- Must use **Preact JSX** (not React)
-- Must use **Tailwind CSS v4** utility classes
-- Must accept the same props (schema-driven data)
-- Icons from **lucide-preact** library
-- Buttons from **@brains/ui-library** (`LinkButton`, `Card`, `StatusBadge`)
-
-### 3. App: `apps/product-brain/`
-
-| File                                 | Purpose                                                                                                      |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `apps/product-brain/package.json`    | Dependencies: app, system, mcp, webserver, directory-sync, site-builder, product-site-content, theme-product |
-| `apps/product-brain/tsconfig.json`   | Standard brain tsconfig                                                                                      |
-| `apps/product-brain/brain.config.ts` | Brain config (see below)                                                                                     |
-| `apps/product-brain/.env`            | ANTHROPIC_API_KEY, DOMAIN, PREVIEW_DOMAIN                                                                    |
-
-**brain.config.ts** — 5 plugins only:
-
-```typescript
-plugins: [
-  new SystemPlugin({}),
-  new MCPInterface({}),
-  directorySync({ seedContent: true, initialSync: true }),
-  new WebserverInterface({ ... }),
-  siteBuilderPlugin({
-    templates,        // from @brains/product-site-content
-    routes,           // from @brains/product-site-content
-    layouts: { default: DefaultLayout },
-    themeCSS: productTheme,  // from @brains/theme-product
-  }),
-]
+```yaml
+name: Brains
+tagline: Your personal knowledge operating system
+status: live # live | beta | alpha | concept
+icon: Brain # Lucide icon name
+link: https://... # optional
+order: 1 # display order on overview
 ```
 
-**Deployment**: `brains.rizom.ai` / `preview.brains.rizom.ai`, Bunny CDN.
+**Body**: Rich markdown content — the full product story. Rendered on the overview page via `markdownToHtml()` + `ProseContent`.
 
-### 4. Seed Content: `apps/product-brain/seed-content/`
+**Metadata** (for DB queries): `name`, `slug` (auto-generated), `status`, `order`
 
-Three markdown entities for AI content generation:
+### 3. Plugin Config
 
-| File                     | Content                                                                        |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| `identity/identity.md`   | Name: Brains, Role: Product platform, Purpose: AI-powered knowledge management |
-| `profile/profile.md`     | Description of Brains platform, links to GitHub/LinkedIn/email                 |
-| `site-info/site-info.md` | Title, description, CTA heading/button for the landing page                    |
+```typescript
+productsPlugin({
+  headline: "What We Build",
+  description: "Tools for knowledge workers, educators, and communities",
+  route: "/products", // default
+});
+```
 
-The site-builder's AI generates hero/features/products/CTA content from these seed entities at build time.
+### 4. Overview Template
+
+Designed with **frontend-design skill**. The page structure:
+
+1. **Header** — Headline + description (from plugin config)
+2. **Product sections** — Each product as a substantial `<section>`:
+   - Icon + name + StatusBadge
+   - Tagline as subtitle
+   - Rendered markdown body (`ProseContent`)
+   - Link button (if product has a link)
+   - Generous spacing between products (`space-y-20 md:space-y-28`)
+
+**Reused components**: `StatusBadge`, `ProseContent`, `LinkButton`, `Head` from `@brains/ui-library`
+
+### 5. Route Registration
+
+Via messaging in `onRegister()` (same as dashboard plugin):
+
+```typescript
+await context.messaging.send("plugin:site-builder:route:register", {
+  pluginId: this.id,
+  routes: [
+    {
+      id: "products-overview",
+      path: "/products",
+      title: "Our Products",
+      navigation: {
+        show: true,
+        label: "Products",
+        slot: "primary",
+        priority: 30,
+      },
+      sections: [
+        {
+          id: "products",
+          template: "products-overview",
+          dataQuery: { entityType: "product" },
+        },
+      ],
+    },
+  ],
+});
+```
+
+### 6. Seed Content: `apps/collective-brain/seed-content/product/`
+
+| File           | Product                                                         |
+| -------------- | --------------------------------------------------------------- |
+| `brains.md`    | Brains — personal knowledge OS (status: live, order: 1)         |
+| `offcourse.md` | Offcourse — open source learning paths (status: beta, order: 2) |
+| `rizom.md`     | Rizom — collective knowledge networks (status: alpha, order: 3) |
+
+Each file has YAML frontmatter + rich markdown body describing the product.
+
+### 7. Collective Brain Integration
+
+**`apps/collective-brain/brain.config.ts`** — add import + plugin:
+
+```typescript
+import { productsPlugin } from "@brains/products";
+// ...
+plugins: [
+  // ... existing plugins ...
+  productsPlugin({
+    headline: "What We Build",
+    description: "Tools for knowledge workers, educators, and communities",
+  }),
+];
+```
+
+**`apps/collective-brain/package.json`** — add dependency:
+
+```json
+"@brains/products": "workspace:*"
+```
+
+## Data Flow
+
+```
+seed-content/product/*.md
+  → directory-sync → ProductAdapter.fromMarkdown()
+  → Product entity in DB (metadata: name, slug, status, order)
+  → site build triggers route "/products"
+  → ProductsDataSource.fetch() queries entities sorted by order
+  → parses frontmatter + body from each entity
+  → ProductsOverviewTemplate renders sections
+  → markdownToHtml() converts body → ProseContent
+  → static HTML at /products/index.html
+```
+
+## What Stays Unchanged
+
+- `shared/product-site-content/` — remains available for landing pages, not used by this plugin
+- Collective brain's existing site-builder config — products plugin adds its route via messaging
+- No new theme needed — uses the collective brain's existing theme
 
 ## Implementation Order
 
-1. Create `shared/theme-product/` (5 files — fork of theme-default with palette swap)
-2. Redesign `shared/product-site-content/` templates (6 layout files — using frontend-design skill)
-3. Create `apps/product-brain/` (4 files — brain.config, package.json, tsconfig, .env)
-4. Create `apps/product-brain/seed-content/` (3 markdown files)
-5. `bun install` to register new workspace packages
-6. `bun run typecheck` to verify
+1. Create `plugins/products/` scaffold (package.json, tsconfig, config)
+2. Define product schema (3-tier: frontmatter → metadata → entity)
+3. Implement ProductAdapter (markdown serialization)
+4. Implement ProductsDataSource (fetch + sort by order)
+5. Design overview template with **frontend-design skill**
+6. Implement ProductsPlugin class (entity registration, template, route, datasource)
+7. Wire into collective brain (brain.config.ts, package.json)
+8. Create seed content (3 product markdown files)
+9. `bun install` + `bun run typecheck` + `bun run lint`
 
 ## Verification
 
 ```bash
-bun install                           # register new packages
-bun run typecheck                     # all 62+ packages pass
-bun run lint                          # no new errors
-cd apps/product-brain && bun run dev  # start the brain
-# Trigger site build via MCP or CLI, preview at localhost:4321
+bun install                                    # register new package
+cd plugins/products && bun run typecheck       # plugin compiles
+bun run typecheck                              # all packages pass
+bun run lint                                   # no errors
+cd apps/collective-brain && bun run dev        # start brain
+# Verify: product entities synced from seed content
+# Trigger site build, check /products/index.html
+# Verify: Products link in site navigation
+# Verify: both light and dark mode
 ```
