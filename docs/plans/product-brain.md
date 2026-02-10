@@ -19,7 +19,8 @@ A product is a **brain model** — a configuration of the Brains platform tailor
 Example brain models:
 
 - **Professional Brain** ("Rover") — personal knowledge manager for creators
-- **Collective Brain** ("Rizom") — collective knowledge coordinator for organizations
+- **Team Brain** ("Recall") — shared memory and collaboration hub for teams
+- **Collective Brain** ("Ranger") — knowledge coordinator for organizations and collectives
 
 ## Content Format Principle
 
@@ -32,35 +33,70 @@ No icon fields in content — icons are a presentation concern handled by templa
 
 ## Product Entity Schema
 
-A product is a brain model. Compact structured data lives in frontmatter, the narrative story is the markdown body.
+A product is a brain model. Only identity + metadata lives in frontmatter. All descriptive content is structured body content parsed by `ProductBodyFormatter` (extends `StructuredContentFormatter`).
 
-**Frontmatter** (structured data in YAML):
+**Frontmatter** (minimal — identity + metadata only):
 
 ```yaml
 name: Rover
-tagline: Your AI-powered personal knowledge hub
-role: Personal knowledge manager and professional content curator
-purpose: Organize thoughts, capture knowledge, and showcase professional work
-audience: Creators, writers, and independent professionals
-values:
-  - clarity
-  - organization
-  - professionalism
-  - continuous learning
-features:
-  - title: AI Blogging
-    description: Generate blog posts from your knowledge base
-  - title: Social Publishing
-    description: Share content across LinkedIn and other platforms
-  - title: Matrix Chat
-    description: Interact with your brain through Matrix messaging
-  - title: Slide Decks
-    description: Create presentations from your knowledge
 status: live
 order: 1
 ```
 
-**Body** (free-form markdown): The story — why this brain exists, who it's for, what makes it different.
+**Body** (structured content sections):
+
+```markdown
+## Tagline
+
+Your AI-powered personal knowledge hub
+
+## Role
+
+Personal knowledge manager and professional content curator
+
+## Purpose
+
+Help organize thoughts, capture knowledge, and showcase professional work
+
+## Audience
+
+Creators, writers, and independent professionals
+
+## Values
+
+- clarity
+- organization
+- professionalism
+- continuous learning
+
+## Features
+
+### Feature 1
+
+#### Title
+
+AI Blogging
+
+#### Description
+
+Generate and publish blog posts from your knowledge base
+
+### Feature 2
+
+#### Title
+
+Social Publishing
+
+#### Description
+
+Share content across LinkedIn and other platforms
+
+## Story
+
+Rover is the professional brain — a personal knowledge operating system...
+```
+
+**Parsed body schema**: `{ tagline, role, purpose, audience, values[], features[{title, description}], story }`
 
 **Metadata** (for DB queries): `name`, `slug`, `status`, `order`
 
@@ -225,8 +261,9 @@ z.object({
 | `config.ts`                          | Config schema with optional route override             |
 | `schemas/product.ts`                 | 3-tier entity schema with enriched variant             |
 | `schemas/overview.ts`                | Overview entity schema (frontmatter + structured body) |
-| `adapters/product-adapter.ts`        | Markdown adapter (frontmatter + body)                  |
+| `adapters/product-adapter.ts`        | Markdown adapter (minimal frontmatter + body)          |
 | `adapters/overview-adapter.ts`       | Overview adapter (frontmatter + structured content)    |
+| `formatters/product-formatter.ts`    | StructuredContentFormatter for product body            |
 | `formatters/overview-formatter.ts`   | StructuredContentFormatter for overview body           |
 | `datasources/products-datasource.ts` | Fetch + sort products, combined with overview          |
 | `templates/products-page.tsx`        | Combined page component (overview + brain models)      |
@@ -236,7 +273,8 @@ z.object({
 | File                                                               | Content            |
 | ------------------------------------------------------------------ | ------------------ |
 | `apps/collective-brain/seed-content/product/rover.md`              | Professional Brain |
-| `apps/collective-brain/seed-content/product/rizom.md`              | Collective Brain   |
+| `apps/collective-brain/seed-content/product/recall.md`             | Team Brain         |
+| `apps/collective-brain/seed-content/product/ranger.md`             | Collective Brain   |
 | `apps/collective-brain/seed-content/products-overview/overview.md` | Platform overview  |
 
 ### Tests: `plugins/products/test/`
@@ -275,9 +313,10 @@ z.object({
 9. Wire into collective brain (brain.config.ts, package.json) ✅
 10. Create seed content (product + overview markdown files) ✅
 11. Design overview template with **frontend-design skill** ✅ (v1 done, v2 below)
-12. **Redesign products page template (v2)** ← current
-13. Implement generate tools + job handlers + AI templates
-14. `bun install` + `bun run typecheck` + `bun run lint`
+12. **Redesign products page template (v2)** ✅
+13. **Refactor product entities to structured content** ✅
+14. Implement generate tools + job handlers + AI templates
+15. `bun install` + `bun run typecheck` + `bun run lint`
 
 ---
 

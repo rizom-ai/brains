@@ -23,6 +23,7 @@
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
+    "@brains/products": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/system": "workspace:*",

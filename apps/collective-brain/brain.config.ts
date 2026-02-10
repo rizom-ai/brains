@@ -9,6 +9,7 @@ import { GitSyncPlugin } from "@brains/git-sync";
 import { notePlugin } from "@brains/note";
 import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { productsPlugin } from "@brains/products";
 import { routes as defaultRoutes } from "@brains/default-site-content";
 
 // Customize routes for Rizom collective
@@ -105,6 +106,7 @@ const config = defineConfig({
       previewDistDir: "./dist/site-preview",
       previewPort: 4321,
     }),
+    productsPlugin(),
     siteBuilderPlugin({
       routes, // Custom routes with Rizom branding
       previewOutputDir: "./dist/site-preview", // Build to preview by default
