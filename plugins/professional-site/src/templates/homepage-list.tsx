@@ -9,7 +9,7 @@ import {
   Head,
   TagsList,
 } from "@brains/ui-library";
-import { AnimatedWaveDivider } from "../components/AnimatedWaveDivider";
+import { AnimatedWaveDivider } from "@brains/ui-library";
 import { CTASection } from "../components/CTASection";
 
 /**

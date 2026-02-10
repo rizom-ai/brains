@@ -24,6 +24,8 @@ export type { NavLinksProps, NavigationItem } from "./NavLinks";
 // Layout
 export { WavyDivider } from "./WavyDivider";
 export type { WavyDividerProps } from "./WavyDivider";
+export { AnimatedWaveDivider } from "./AnimatedWaveDivider";
+export type { AnimatedWaveDividerProps } from "./AnimatedWaveDivider";
 export { PresentationLayout } from "./PresentationLayout";
 export type { PresentationLayoutProps } from "./PresentationLayout";
 

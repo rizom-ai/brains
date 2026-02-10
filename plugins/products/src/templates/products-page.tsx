@@ -1,14 +1,13 @@
 import type { JSX } from "preact";
 import type { OverviewWithData } from "../schemas/overview";
 import type { EnrichedProduct } from "../schemas/product";
-import { markdownToHtml } from "@brains/utils";
 import {
   Head,
   LinkButton,
   StatusBadge,
-  ProseContent,
   Card,
   TagsList,
+  WavyDivider,
 } from "@brains/ui-library";
 
 export interface ProductsPageProps {
@@ -18,6 +17,12 @@ export interface ProductsPageProps {
 
 /**
  * Products page template — editorial showcase of brain models
+ *
+ * Visual rhythm: dramatic hero → quiet vision → structured pillars →
+ * dark approach break → asymmetric products → accented benefits → dark CTA
+ *
+ * Each section has its own visual identity — numbered pillars, accent-bar
+ * approach markers, gradient-strip product cards, accent-dot benefits.
  */
 export const ProductsPageTemplate = ({
   overview,
@@ -29,45 +34,137 @@ export const ProductsPageTemplate = ({
     <>
       <Head title={frontmatter.headline} description={frontmatter.tagline} />
 
-      {/* Hero — tall, bottom-aligned, matching homepage pattern */}
-      <header className="hero-bg-pattern relative w-full min-h-[70vh] flex items-end px-6 md:px-12 bg-theme overflow-hidden">
-        <div className="relative z-10 max-w-4xl mx-auto w-full pb-16 md:pb-24">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-heading tracking-tight leading-[1.08]">
+      {/* Hero — dark ground with layered drifting waves */}
+      <header className="relative w-full min-h-[80vh] flex items-end px-6 md:px-12 bg-brand-dark overflow-hidden">
+        <style>{`
+          @keyframes wave-drift {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          @keyframes wave-drift-reverse {
+            from { transform: translateX(-50%); }
+            to { transform: translateX(0); }
+          }
+          .wave-layer-1 { animation: wave-drift 30s linear infinite; }
+          .wave-layer-2 { animation: wave-drift-reverse 40s linear infinite; }
+          .wave-layer-3 { animation: wave-drift 22s linear infinite; }
+          @media (prefers-reduced-motion: reduce) {
+            .wave-layer-1, .wave-layer-2, .wave-layer-3 { animation: none; }
+          }
+        `}</style>
+
+        {/* Wave 1 — deep atmospheric swell, accent glow fading down */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg
+            preserveAspectRatio="none"
+            width="200%"
+            height="100%"
+            viewBox="0 0 1600 800"
+            className="block absolute inset-0 wave-layer-1"
+          >
+            <defs>
+              <linearGradient id="hero-wg-1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#E7640A" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#E7640A" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M0,250 C133,100 267,100 400,250 C533,400 667,400 800,250 C933,100 1067,100 1200,250 C1333,400 1467,400 1600,250 V800 H0 Z"
+              fill="url(#hero-wg-1)"
+            />
+          </svg>
+        </div>
+
+        {/* Wave 2 — counter-swell, brand glow, phase-shifted */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <svg
+            preserveAspectRatio="none"
+            width="200%"
+            height="100%"
+            viewBox="0 0 1600 800"
+            className="block absolute inset-0 wave-layer-2"
+          >
+            <defs>
+              <linearGradient id="hero-wg-2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#E7640A" stopOpacity="0.08" />
+                <stop offset="100%" stopColor="#3921D7" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M0,350 C133,470 267,470 400,350 C533,230 667,230 800,350 C933,470 1067,470 1200,350 C1333,230 1467,230 1600,350 V800 H0 Z"
+              fill="url(#hero-wg-2)"
+            />
+          </svg>
+        </div>
+
+        {/* Wave 3 — paired accent stroke lines (detail layer) */}
+        <div className="absolute top-0 left-0 w-full h-[60%] overflow-hidden pointer-events-none">
+          <svg
+            preserveAspectRatio="none"
+            width="200%"
+            height="100%"
+            viewBox="0 0 1600 400"
+            className="block absolute inset-0 wave-layer-3"
+          >
+            <path
+              d="M0,200 C67,140 133,140 200,200 C267,260 333,260 400,200 C467,140 533,140 600,200 C667,260 733,260 800,200 C867,140 933,140 1000,200 C1067,260 1133,260 1200,200 C1267,140 1333,140 1400,200 C1467,260 1533,260 1600,200"
+              className="stroke-accent"
+              strokeWidth="2"
+              strokeMiterlimit="10"
+              fill="none"
+              opacity="0.2"
+            />
+            <path
+              d="M0,230 C67,170 133,170 200,230 C267,290 333,290 400,230 C467,170 533,170 600,230 C667,290 733,290 800,230 C867,170 933,170 1000,230 C1067,290 1133,290 1200,230 C1267,170 1333,170 1400,230 C1467,290 1533,290 1600,230"
+              className="stroke-accent"
+              strokeWidth="1.5"
+              strokeMiterlimit="10"
+              fill="none"
+              opacity="0.08"
+            />
+          </svg>
+        </div>
+
+        {/* Dot texture */}
+        <div className="absolute inset-0 cta-bg-pattern pointer-events-none" />
+
+        {/* Content — staggered entrance */}
+        <div className="relative z-10 max-w-5xl mx-auto w-full pb-16 md:pb-24">
+          <h1 className="text-6xl md:text-7xl lg:text-[8.5rem] font-bold text-white tracking-tighter leading-[0.95] hero-stagger-1">
             {frontmatter.headline}
           </h1>
-          <div className="w-12 border-t border-theme mt-8 mb-6 md:mt-10 md:mb-8" />
-          <p className="text-lg md:text-xl text-theme-muted leading-relaxed max-w-xl md:max-w-lg">
+          <div className="w-24 h-1.5 bg-accent mt-8 mb-6 md:mt-10 md:mb-8 hero-stagger-2" />
+          <p className="text-lg md:text-xl text-white/70 leading-relaxed max-w-lg hero-stagger-3">
             {frontmatter.tagline}
           </p>
         </div>
       </header>
 
-      {/* Main Content — shared container */}
-      <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-24">
-        {/* Vision — impactful statement */}
-        <section className="mb-20 md:mb-32">
-          <div className="border-t border-theme pt-8">
-            <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-8">
-              {labels["vision"]}
-            </h2>
-            <p className="text-2xl md:text-3xl leading-relaxed text-theme font-light max-w-3xl">
-              {body.vision}
-            </p>
-          </div>
-        </section>
+      {/* Vision — full-bleed quiet section, oversized type */}
+      <section className="bg-theme-subtle py-20 md:py-32 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-10">
+            {labels["vision"]}
+          </h2>
+          <p className="text-2xl md:text-3xl lg:text-4xl leading-relaxed text-heading font-light">
+            {body.vision}
+          </p>
+        </div>
+      </section>
 
-        {/* Pillars — numbered with strong vertical rhythm */}
-        <section className="mb-20 md:mb-32">
-          <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
+      {/* Pillars — numbered grid with scale */}
+      <div className="container mx-auto px-6 md:px-12 max-w-5xl py-20 md:py-32">
+        <section>
+          <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-16">
             {labels["pillars"]}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
             {body.pillars.map((pillar, i) => (
               <div key={pillar.title}>
-                <span className="text-6xl font-bold text-brand/30 leading-none block mb-4">
+                <span className="text-7xl md:text-8xl font-black text-brand/15 leading-none block mb-4">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <h3 className="text-xl font-semibold text-heading mb-3">
+                <h3 className="text-xl font-bold text-heading mb-3">
                   {pillar.title}
                 </h3>
                 <p className="text-theme-muted leading-relaxed">
@@ -77,39 +174,74 @@ export const ProductsPageTemplate = ({
             ))}
           </div>
         </section>
+      </div>
 
-        {/* Brain Models — magazine-style feature spreads */}
+      {/* Approach — full-bleed dark, accent markers + vertical dividers */}
+      <section className="cta-bg-pattern bg-brand py-20 md:py-32 px-6 md:px-12">
+        <div className="container mx-auto max-w-5xl">
+          <h2 className="text-sm tracking-widest uppercase text-white/50 mb-16">
+            {labels["approach"]}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0">
+            {body.approach.map((step, i) => (
+              <div
+                key={step.title}
+                className={
+                  i > 0 ? "md:border-l md:border-white/10 md:pl-12" : ""
+                }
+              >
+                <div className="w-10 h-1 bg-accent mb-6" />
+                <h3 className="text-xl font-bold text-white mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-white/70 leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Products + Benefits + Tech container */}
+      <div className="container mx-auto px-6 md:px-12 max-w-5xl py-20 md:py-32">
+        {/* Brain Models — asymmetric showcase */}
         {products.length > 0 && (
           <section className="mb-20 md:mb-32">
             <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
               {labels["productsIntro"]}
             </h2>
             {body.productsIntro && (
-              <p className="text-lg text-theme-muted leading-relaxed max-w-3xl mb-16">
+              <p className="text-lg text-theme-muted leading-relaxed max-w-3xl mb-12">
                 {body.productsIntro}
               </p>
             )}
-            {!body.productsIntro && <div className="mb-16" />}
-            <div className="space-y-24">
-              {products.map((product, i) => (
-                <div key={product.id}>
-                  {i > 0 && <div className="border-t border-theme mb-24" />}
-                  <ProductFeature product={product} />
-                </div>
-              ))}
-            </div>
+            {!body.productsIntro && <div className="mb-12" />}
+
+            {/* Featured product — full width with gradient strip */}
+            {products[0] && <FeaturedProductCard product={products[0]} />}
+
+            {/* Secondary products — 2-column grid */}
+            {products.length > 1 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                {products.slice(1).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
-        {/* Benefits — accent border grid */}
+        {/* Benefits — accent bar markers */}
         <section className="mb-20 md:mb-32">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["benefits"]}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {body.benefits.map((benefit) => (
-              <div key={benefit.title} className="border-l-2 border-brand pl-6">
-                <h3 className="text-lg font-semibold text-heading mb-2">
+              <div key={benefit.title}>
+                <div className="w-8 h-1 bg-accent mb-6" />
+                <h3 className="text-lg font-bold text-heading mb-2">
                   {benefit.title}
                 </h3>
                 <p className="text-theme-muted leading-relaxed">
@@ -121,7 +253,7 @@ export const ProductsPageTemplate = ({
         </section>
 
         {/* Technologies — minimal strip */}
-        <section className="mb-20 md:mb-32">
+        <section className="mb-8 md:mb-12">
           <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
             <h2 className="text-sm tracking-widest uppercase text-theme-muted whitespace-nowrap">
               {labels["technologies"]}
@@ -131,13 +263,16 @@ export const ProductsPageTemplate = ({
         </section>
       </div>
 
-      {/* CTA — brand-colored with dot pattern */}
+      {/* Wavy divider — organic wave transition before CTA */}
+      <WavyDivider />
+
+      {/* CTA — dark, dramatic scale */}
       <section className="cta-bg-pattern bg-brand py-24 md:py-32 px-6 md:px-12">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm tracking-widest uppercase text-white/60 mb-4">
             {labels["cta"]}
           </p>
-          <h2 className="text-3xl md:text-4xl font-semibold text-white max-w-2xl mb-10">
+          <h2 className="text-3xl md:text-5xl font-bold text-white max-w-2xl mb-10">
             {body.cta.text}
           </h2>
           <LinkButton href={body.cta.link} variant="outline-light" size="lg">
@@ -150,85 +285,72 @@ export const ProductsPageTemplate = ({
 };
 
 /**
- * Product feature spread — magazine-style layout for a single brain model
+ * Featured product card — full-width with gradient top strip and
+ * horizontal layout on desktop
  */
-function ProductFeature({
+function FeaturedProductCard({
   product,
 }: {
   product: EnrichedProduct;
 }): JSX.Element {
-  const { frontmatter, body, labels } = product;
-  const htmlContent = body.story.trim() ? markdownToHtml(body.story) : null;
+  const { frontmatter, body } = product;
+  const featureNames = body.features.map((f) => f.title);
 
   return (
-    <article>
-      {/* Product header — name, badge, tagline */}
-      <div className="mb-10">
-        <div className="flex items-baseline gap-4 mb-3">
-          <h3 className="text-4xl md:text-5xl font-bold text-heading leading-none">
+    <Card
+      className="overflow-hidden rounded-2xl p-0 hover:-translate-y-1 transition-all duration-300 hover:border-brand/30 group"
+      href={product.url}
+    >
+      <div className="h-2 bg-gradient-to-r from-brand to-accent" />
+      <div className="p-8 md:p-10 md:flex md:gap-12 md:items-start">
+        <div className="md:flex-1">
+          <div className="mb-4">
+            <StatusBadge status={frontmatter.status} />
+          </div>
+          <h3 className="text-3xl md:text-4xl font-bold text-heading mb-3 group-hover:text-brand transition-colors">
             {frontmatter.name}
           </h3>
+          <p className="text-sm font-semibold text-brand mb-4">
+            {body.tagline}
+          </p>
+          <p className="text-theme-muted leading-relaxed text-lg">
+            {body.purpose}
+          </p>
+        </div>
+        <div className="mt-6 md:mt-0 md:w-56 md:pt-12">
+          <TagsList tags={featureNames} variant="muted" size="sm" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/**
+ * Product card — compact with brand top strip
+ */
+function ProductCard({ product }: { product: EnrichedProduct }): JSX.Element {
+  const { frontmatter, body } = product;
+  const featureNames = body.features.map((f) => f.title);
+
+  return (
+    <Card
+      className="overflow-hidden rounded-2xl p-0 hover:-translate-y-1 transition-all duration-300 hover:border-brand/30 group"
+      href={product.url}
+    >
+      <div className="h-1.5 bg-brand" />
+      <div className="p-8">
+        <div className="mb-4">
           <StatusBadge status={frontmatter.status} />
         </div>
-        <p className="text-xl text-theme-muted">{body.tagline}</p>
-      </div>
-
-      {/* Two-column: metadata + features */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-12">
-        {/* Left column — role, purpose, audience, values */}
-        <div className="md:col-span-2 space-y-8">
-          <div>
-            <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              {labels["role"]}
-            </h4>
-            <p className="text-theme leading-relaxed">{body.role}</p>
-          </div>
-          <div>
-            <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              {labels["purpose"]}
-            </h4>
-            <p className="text-theme leading-relaxed">{body.purpose}</p>
-          </div>
-          <div>
-            <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              {labels["audience"]}
-            </h4>
-            <p className="text-theme leading-relaxed">{body.audience}</p>
-          </div>
-          <div>
-            <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              {labels["values"]}
-            </h4>
-            <TagsList tags={body.values} variant="muted" size="sm" />
-          </div>
-        </div>
-
-        {/* Right column — feature cards */}
-        <div className="md:col-span-3">
-          <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
-            {labels["features"]}
-          </h4>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {body.features.map((feature) => (
-              <Card key={feature.title} variant="compact">
-                <h5 className="font-semibold text-heading mb-1.5">
-                  {feature.title}
-                </h5>
-                <p className="text-sm text-theme-muted leading-relaxed">
-                  {feature.description}
-                </p>
-              </Card>
-            ))}
-          </div>
+        <h3 className="text-2xl font-bold text-heading mb-2 group-hover:text-brand transition-colors">
+          {frontmatter.name}
+        </h3>
+        <p className="text-sm font-semibold text-brand mb-3">{body.tagline}</p>
+        <p className="text-theme-muted leading-relaxed mb-6">{body.purpose}</p>
+        <div className="mt-auto pt-4 border-t border-theme">
+          <TagsList tags={featureNames} variant="muted" size="sm" />
         </div>
       </div>
-
-      {/* Story */}
-      {htmlContent && (
-        <div className="mt-12 max-w-3xl">
-          <ProseContent html={htmlContent} />
-        </div>
-      )}
-    </article>
+    </Card>
   );
 }

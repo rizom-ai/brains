@@ -21,6 +21,20 @@ const sampleBody: OverviewBody = {
       description: "Extensible architecture that adapts to your workflow",
     },
   ],
+  approach: [
+    {
+      title: "Pick Your Brain",
+      description: "Choose a brain model matched to your context",
+    },
+    {
+      title: "Add What You Need",
+      description: "Every brain is built from plugins",
+    },
+    {
+      title: "Own Everything",
+      description: "All your content lives as plain markdown files",
+    },
+  ],
   productsIntro: "Each brain model is tailored for a specific use case.",
   technologies: ["TypeScript", "Preact", "Drizzle ORM", "Matrix Protocol"],
   benefits: [
@@ -64,6 +78,7 @@ describe("Overview Schemas", () => {
       const result = overviewBodySchema.parse(sampleBody);
       expect(result.vision).toContain("knowledge work");
       expect(result.pillars).toHaveLength(2);
+      expect(result.approach).toHaveLength(3);
       expect(result.technologies).toHaveLength(4);
       expect(result.benefits).toHaveLength(2);
       expect(result.cta.text).toBe("Get Started");
@@ -114,6 +129,8 @@ describe("OverviewBodyFormatter", () => {
     expect(markdown).toContain("## Core Principles");
     expect(markdown).toContain("AI-Native");
     expect(markdown).toContain("Plugin-Based");
+    expect(markdown).toContain("## How It Works");
+    expect(markdown).toContain("Pick Your Brain");
     expect(markdown).toContain("## Brain Models");
     expect(markdown).toContain("tailored for a specific use case");
     expect(markdown).toContain("## Built With");
@@ -132,6 +149,8 @@ describe("OverviewBodyFormatter", () => {
     expect(parsed.pillars).toHaveLength(2);
     expect(parsed.pillars[0]?.title).toBe("AI-Native");
     expect(parsed.pillars[1]?.title).toBe("Plugin-Based");
+    expect(parsed.approach).toHaveLength(3);
+    expect(parsed.approach[0]?.title).toBe("Pick Your Brain");
     expect(parsed.technologies).toContain("TypeScript");
     expect(parsed.technologies).toContain("Drizzle ORM");
     expect(parsed.benefits[0]?.title).toBe("Own Your Data");

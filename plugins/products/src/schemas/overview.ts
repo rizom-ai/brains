@@ -43,12 +43,23 @@ export const overviewFrontmatterSchema = z.object({
 export type OverviewFrontmatter = z.infer<typeof overviewFrontmatterSchema>;
 
 /**
+ * Approach step schema — a how-it-works step
+ */
+export const approachStepSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
+export type ApproachStep = z.infer<typeof approachStepSchema>;
+
+/**
  * Overview body schema (parsed from structured content sections)
- * Rich multi-section content: vision, pillars, technologies, benefits, CTA
+ * Rich multi-section content: vision, pillars, approach, technologies, benefits, CTA
  */
 export const overviewBodySchema = z.object({
   vision: z.string(),
   pillars: z.array(pillarSchema).min(1).max(6),
+  approach: z.array(approachStepSchema).min(1).max(6),
   productsIntro: z.string(),
   technologies: z.array(z.string()).min(1),
   benefits: z.array(benefitSchema).min(1).max(6),

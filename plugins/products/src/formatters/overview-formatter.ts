@@ -25,6 +25,16 @@ export class OverviewBodyFormatter extends StructuredContentFormatter<OverviewBo
             { key: "description", label: "Description", type: "string" },
           ],
         },
+        {
+          key: "approach",
+          label: "How It Works",
+          type: "array",
+          itemType: "object",
+          itemMappings: [
+            { key: "title", label: "Title", type: "string" },
+            { key: "description", label: "Description", type: "string" },
+          ],
+        },
         { key: "productsIntro", label: "Brain Models", type: "string" },
         {
           key: "technologies",

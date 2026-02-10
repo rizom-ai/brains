@@ -1,12 +1,12 @@
 import type { JSX } from "preact";
 
-interface AnimatedWaveDividerProps {
+export interface AnimatedWaveDividerProps {
   mirror?: boolean;
 }
 
 /**
  * Animated wave divider with flowing line animation
- * Used as a decorative section separator (different from ui-library's WavyDivider which is a filled footer transition)
+ * Used as a decorative section separator (different from WavyDivider which is a filled footer transition)
  */
 export const AnimatedWaveDivider = ({
   mirror = false,
