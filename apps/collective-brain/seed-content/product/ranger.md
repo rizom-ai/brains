@@ -27,7 +27,7 @@ Organizations, collectives, and communities
 - community
 - autonomy
 
-## Features
+## Capabilities
 
 ### Feature 1
 

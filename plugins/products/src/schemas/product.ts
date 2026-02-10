@@ -78,6 +78,7 @@ export type Product = z.infer<typeof productSchema>;
 export const productWithDataSchema = productSchema.extend({
   frontmatter: productFrontmatterSchema,
   body: productBodySchema,
+  labels: z.record(z.string(), z.string()),
 });
 
 export type ProductWithData = z.infer<typeof productWithDataSchema>;

@@ -49,6 +49,7 @@ export type OverviewFrontmatter = z.infer<typeof overviewFrontmatterSchema>;
 export const overviewBodySchema = z.object({
   vision: z.string(),
   pillars: z.array(pillarSchema).min(1).max(6),
+  productsIntro: z.string(),
   technologies: z.array(z.string()).min(1),
   benefits: z.array(benefitSchema).min(1).max(6),
   cta: ctaSchema,
@@ -86,6 +87,7 @@ export type Overview = z.infer<typeof overviewSchema>;
 export const overviewWithDataSchema = overviewSchema.extend({
   frontmatter: overviewFrontmatterSchema,
   body: overviewBodySchema,
+  labels: z.record(z.string(), z.string()),
 });
 
 export type OverviewWithData = z.infer<typeof overviewWithDataSchema>;

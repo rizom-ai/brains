@@ -27,7 +27,7 @@ Small teams, startups, and project groups
 - shared context
 - simplicity
 
-## Features
+## Capabilities
 
 ### Feature 1
 

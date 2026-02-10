@@ -27,7 +27,7 @@ Creators, writers, and independent professionals
 - professionalism
 - continuous learning
 
-## Features
+## Capabilities
 
 ### Feature 1
 

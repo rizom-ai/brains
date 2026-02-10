@@ -21,6 +21,7 @@ const sampleBody: OverviewBody = {
       description: "Extensible architecture that adapts to your workflow",
     },
   ],
+  productsIntro: "Each brain model is tailored for a specific use case.",
   technologies: ["TypeScript", "Preact", "Drizzle ORM", "Matrix Protocol"],
   benefits: [
     {
@@ -110,14 +111,16 @@ describe("OverviewBodyFormatter", () => {
 
     expect(markdown).toContain("## Vision");
     expect(markdown).toContain("knowledge work");
-    expect(markdown).toContain("## Pillars");
+    expect(markdown).toContain("## Core Principles");
     expect(markdown).toContain("AI-Native");
     expect(markdown).toContain("Plugin-Based");
-    expect(markdown).toContain("## Technologies");
+    expect(markdown).toContain("## Brain Models");
+    expect(markdown).toContain("tailored for a specific use case");
+    expect(markdown).toContain("## Built With");
     expect(markdown).toContain("TypeScript");
-    expect(markdown).toContain("## Benefits");
+    expect(markdown).toContain("## Why Brains");
     expect(markdown).toContain("Own Your Data");
-    expect(markdown).toContain("## CTA");
+    expect(markdown).toContain("## Ready to Build");
     expect(markdown).toContain("Get Started");
   });
 

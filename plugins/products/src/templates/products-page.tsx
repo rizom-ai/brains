@@ -23,7 +23,7 @@ export const ProductsPageTemplate = ({
   overview,
   products,
 }: ProductsPageProps): JSX.Element => {
-  const { frontmatter, body } = overview;
+  const { frontmatter, body, labels } = overview;
 
   return (
     <>
@@ -48,7 +48,7 @@ export const ProductsPageTemplate = ({
         <section className="mb-20 md:mb-32">
           <div className="border-t border-theme pt-8">
             <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-8">
-              Vision
+              {labels["vision"]}
             </h2>
             <p className="text-2xl md:text-3xl leading-relaxed text-theme font-light max-w-3xl">
               {body.vision}
@@ -59,7 +59,7 @@ export const ProductsPageTemplate = ({
         {/* Pillars — numbered with strong vertical rhythm */}
         <section className="mb-20 md:mb-32">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
-            Core Principles
+            {labels["pillars"]}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
             {body.pillars.map((pillar, i) => (
@@ -81,9 +81,15 @@ export const ProductsPageTemplate = ({
         {/* Brain Models — magazine-style feature spreads */}
         {products.length > 0 && (
           <section className="mb-20 md:mb-32">
-            <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-16">
-              Brain Models
+            <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
+              {labels["productsIntro"]}
             </h2>
+            {body.productsIntro && (
+              <p className="text-lg text-theme-muted leading-relaxed max-w-3xl mb-16">
+                {body.productsIntro}
+              </p>
+            )}
+            {!body.productsIntro && <div className="mb-16" />}
             <div className="space-y-24">
               {products.map((product, i) => (
                 <div key={product.id}>
@@ -98,7 +104,7 @@ export const ProductsPageTemplate = ({
         {/* Benefits — accent border grid */}
         <section className="mb-20 md:mb-32">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
-            Why Brains
+            {labels["benefits"]}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             {body.benefits.map((benefit) => (
@@ -118,7 +124,7 @@ export const ProductsPageTemplate = ({
         <section className="mb-20 md:mb-32">
           <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
             <h2 className="text-sm tracking-widest uppercase text-theme-muted whitespace-nowrap">
-              Built With
+              {labels["technologies"]}
             </h2>
             <TagsList tags={body.technologies} variant="accent" size="md" />
           </div>
@@ -129,7 +135,7 @@ export const ProductsPageTemplate = ({
       <section className="cta-bg-pattern bg-brand py-24 md:py-32 px-6 md:px-12">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm tracking-widest uppercase text-white/60 mb-4">
-            Ready to Build
+            {labels["cta"]}
           </p>
           <h2 className="text-3xl md:text-4xl font-semibold text-white max-w-2xl mb-10">
             {body.cta.text}
@@ -151,7 +157,7 @@ function ProductFeature({
 }: {
   product: EnrichedProduct;
 }): JSX.Element {
-  const { frontmatter, body } = product;
+  const { frontmatter, body, labels } = product;
   const htmlContent = body.story.trim() ? markdownToHtml(body.story) : null;
 
   return (
@@ -173,25 +179,25 @@ function ProductFeature({
         <div className="md:col-span-2 space-y-8">
           <div>
             <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              Role
+              {labels["role"]}
             </h4>
             <p className="text-theme leading-relaxed">{body.role}</p>
           </div>
           <div>
             <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              Purpose
+              {labels["purpose"]}
             </h4>
             <p className="text-theme leading-relaxed">{body.purpose}</p>
           </div>
           <div>
             <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              Audience
+              {labels["audience"]}
             </h4>
             <p className="text-theme leading-relaxed">{body.audience}</p>
           </div>
           <div>
             <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-2">
-              Values
+              {labels["values"]}
             </h4>
             <TagsList tags={body.values} variant="muted" size="sm" />
           </div>
@@ -200,7 +206,7 @@ function ProductFeature({
         {/* Right column — feature cards */}
         <div className="md:col-span-3">
           <h4 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
-            Capabilities
+            {labels["features"]}
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {body.features.map((feature) => (

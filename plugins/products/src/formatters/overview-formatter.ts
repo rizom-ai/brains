@@ -17,7 +17,7 @@ export class OverviewBodyFormatter extends StructuredContentFormatter<OverviewBo
         { key: "vision", label: "Vision", type: "string" },
         {
           key: "pillars",
-          label: "Pillars",
+          label: "Core Principles",
           type: "array",
           itemType: "object",
           itemMappings: [
@@ -25,15 +25,16 @@ export class OverviewBodyFormatter extends StructuredContentFormatter<OverviewBo
             { key: "description", label: "Description", type: "string" },
           ],
         },
+        { key: "productsIntro", label: "Brain Models", type: "string" },
         {
           key: "technologies",
-          label: "Technologies",
+          label: "Built With",
           type: "array",
           itemType: "string",
         },
         {
           key: "benefits",
-          label: "Benefits",
+          label: "Why Brains",
           type: "array",
           itemType: "object",
           itemMappings: [
@@ -43,7 +44,7 @@ export class OverviewBodyFormatter extends StructuredContentFormatter<OverviewBo
         },
         {
           key: "cta",
-          label: "CTA",
+          label: "Ready to Build",
           type: "object",
           children: [
             { key: "text", label: "Text", type: "string" },

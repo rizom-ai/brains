@@ -40,11 +40,13 @@ function parseProductData(
   );
 
   const body = formatter.parse(parsed.content);
+  const labels = formatter.getLabels();
 
   return productWithDataSchema.parse({
     ...entity,
     frontmatter: parsed.metadata,
     body,
+    labels,
   });
 }
 
@@ -62,11 +64,13 @@ function parseOverviewData(
   );
 
   const body = formatter.parse(parsed.content);
+  const labels = formatter.getLabels();
 
   return overviewWithDataSchema.parse({
     ...entity,
     frontmatter: parsed.metadata,
     body,
+    labels,
   });
 }
 

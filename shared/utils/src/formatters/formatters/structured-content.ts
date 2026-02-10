@@ -48,6 +48,18 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   ) {}
 
   /**
+   * Get section labels from the formatter configuration.
+   * Returns a record mapping field keys to their heading labels.
+   */
+  public getLabels(): Record<string, string> {
+    const labels: Record<string, string> = {};
+    for (const mapping of this.config.mappings) {
+      labels[mapping.key] = mapping.label;
+    }
+    return labels;
+  }
+
+  /**
    * Format structured data into human-readable markdown
    */
   public format(data: T): string {

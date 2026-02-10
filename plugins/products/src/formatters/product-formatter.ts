@@ -26,7 +26,7 @@ export class ProductBodyFormatter extends StructuredContentFormatter<ProductBody
         },
         {
           key: "features",
-          label: "Features",
+          label: "Capabilities",
           type: "array",
           itemType: "object",
           itemMappings: [

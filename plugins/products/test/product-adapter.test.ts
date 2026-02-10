@@ -31,7 +31,7 @@ Creators, writers, and independent professionals
 - organization
 - professionalism
 
-## Features
+## Capabilities
 
 ### Feature 1
 
@@ -128,7 +128,7 @@ describe("ProductAdapter", () => {
       expect(markdown).toContain("AI-powered personal knowledge hub");
       expect(markdown).toContain("## Role");
       expect(markdown).toContain("Personal knowledge manager");
-      expect(markdown).toContain("## Features");
+      expect(markdown).toContain("## Capabilities");
       expect(markdown).toContain("AI Blogging");
       expect(markdown).toContain("## Story");
       expect(markdown).toContain("personal knowledge operating system");
