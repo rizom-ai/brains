@@ -69,7 +69,7 @@ Creators, writers, and independent professionals
 - professionalism
 - continuous learning
 
-## Features
+## Capabilities
 
 ### Feature 1
 
@@ -96,7 +96,7 @@ Share content across LinkedIn and other platforms
 Rover is the professional brain — a personal knowledge operating system...
 ```
 
-**Parsed body schema**: `{ tagline, role, purpose, audience, values[], features[{title, description}], story }`
+**Parsed body schema**: `{ tagline, role, purpose, audience, values[], features[{title, description}], story }` — headings are content-driven via `getLabels()` on formatter
 
 **Metadata** (for DB queries): `name`, `slug`, `status`, `order`
 
@@ -111,14 +111,14 @@ headline: What We Build
 tagline: Brain models for every use case
 ```
 
-**Body** (structured content sections):
+**Body** (structured content sections — headings are the display labels, driven by `getLabels()`):
 
 ```markdown
 ## Vision
 
 We believe knowledge work deserves better tools...
 
-## Pillars
+## Core Principles
 
 ### Pillar 1
 
@@ -128,19 +128,25 @@ AI-Native
 
 #### Description
 
-Built from the ground up with AI at the core
+Built from the ground up with AI at the core...
 
-### Pillar 2
+## How It Works
+
+### Step 1
 
 #### Title
 
-Plugin-Based
+Pick Your Brain
 
 #### Description
 
-Extensible architecture that adapts to your workflow
+Choose a brain model matched to your context...
 
-## Technologies
+## Brain Models
+
+Each brain model is a configuration of the Brains platform tailored to a specific use case...
+
+## Built With
 
 - TypeScript
 - Preact
@@ -148,7 +154,7 @@ Extensible architecture that adapts to your workflow
 - Matrix Protocol
 - MCP
 
-## Benefits
+## Why Brains
 
 ### Benefit 1
 
@@ -158,19 +164,9 @@ Own Your Data
 
 #### Description
 
-All content stored as markdown — portable, readable, yours
+All content is markdown files on disk...
 
-### Benefit 2
-
-#### Title
-
-Extend Everything
-
-#### Description
-
-Plugin system makes every brain customizable
-
-## CTA
+## Ready to Build
 
 ### Text
 
@@ -178,28 +174,26 @@ Get Started
 
 ### Link
 
-/docs/getting-started
+/about
 ```
 
-**Schema:** `ProductsOverview` with headline, tagline (frontmatter) + vision, pillars (array of {title, description}), technologies (string array), benefits (array of {title, description}), CTA ({text, link}) parsed from body via `StructuredContentFormatter`.
+**Schema:** `ProductsOverview` with headline, tagline (frontmatter) + vision, pillars, approach (NEW — how-it-works steps), productsIntro, technologies, benefits, CTA, and labels (Record<string, string> from formatter) parsed from body via `StructuredContentFormatter`. All section headings are content-driven — the formatter's `label` field serves as both markdown heading text and template display label via `getLabels()`.
 
 ## Overview Page
 
 The `/products` page has two parts:
 
-1. **Platform overview** — Vision, pillars, technologies, benefits, CTA (from overview entity)
-2. **Brain model sections** — For each product entity:
-   - **Identity**: Name + status badge + tagline
-   - **What & why**: Role + purpose
-   - **Audience**: Who this brain is for
-   - **Values**: Displayed as tags/badges
-   - **Features**: Capability cards (title + description) — the plugins it uses
-   - **Story**: Rendered markdown body (`ProseContent`)
-   - Visual breathing room between brain models
+1. **Platform overview** — Hero (gradient + animated blobs), vision, core principles, how it works, technologies, benefits, CTA (from overview entity). All section headings content-driven via `labels["key"]`.
+2. **Brain model cards** — 3-column card grid, each product showing:
+   - **Identity**: Name + status badge
+   - **Pitch**: Tagline (in brand color)
+   - **Purpose**: What it does for you (1 sentence)
+   - Hover lift effect (`-translate-y-1`) with border accent
+   - Detailed fields (role, audience, values, features, story) available for future detail pages
 
 Designed with **frontend-design skill**.
 
-**Reused components**: `StatusBadge`, `ProseContent`, `LinkButton`, `Head`, `Card`, `TagsList` from `@brains/ui-library`
+**Reused components**: `StatusBadge`, `LinkButton`, `Head`, `Card`, `TagsList` from `@brains/ui-library`
 
 ## Generate Tools
 
@@ -312,129 +306,64 @@ z.object({
 8. Implement ProductsDataSource (fetch + sort by order) ✅
 9. Wire into collective brain (brain.config.ts, package.json) ✅
 10. Create seed content (product + overview markdown files) ✅
-11. Design overview template with **frontend-design skill** ✅ (v1 done, v2 below)
+11. Design overview template with **frontend-design skill** ✅
 12. **Redesign products page template (v2)** ✅
 13. **Refactor product entities to structured content** ✅
-14. Implement generate tools + job handlers + AI templates
-15. `bun install` + `bun run typecheck` + `bun run lint`
+14. **Content-driven labels** — `getLabels()` on StructuredContentFormatter, headings renamed, labels passed through datasource to template ✅
+15. **Products page redesign (v3)** — hero gradient+blobs, "How It Works" section, compact product cards, deeper overview content
+16. Implement generate tools + job handlers + AI templates
+17. `bun install` + `bun run typecheck` + `bun run lint`
 
 ---
 
-## Products Page Template — Visual Improvements (v2)
+## Products Page Redesign (v3)
 
 ### Context
 
-The current template (`plugins/products/src/templates/products-page.tsx`) renders correctly but looks generic. It doesn't follow the established design patterns of the codebase (homepage, about page). This plan brings the products page in line with those patterns and improves its visual quality.
+The v2 template is structurally sound but has three remaining issues:
 
-### Inventory of Issues
+1. **Too much detail per product**: Each product renders 7 body sections as a "magazine spread" — information overload
+2. **Too little visual interest**: Flat hero, no gradients/blobs/hover effects despite theme support
+3. **Overview content is too thin**: Vision is one paragraph, pillar/benefit descriptions are one-liners, no section explaining how the platform works
 
-#### 1. Hero — wrong layout pattern
+### Approach
 
-- Uses fixed padding (`py-24 md:py-36`) instead of the signature `min-h-[70vh]` + `flex items-end` hero
-- Content vertically centered instead of bottom-aligned
-- Missing decorative horizontal divider (`w-12 border-t border-theme`) between headline and tagline
+Three parallel improvements:
 
-#### 2. Redundant inline font styles (7 occurrences)
+1. **Visual**: Hero gradient + animated blobs, product cards with hover effects
+2. **Content**: Deepen existing sections, add new "How It Works" section (`approach` field)
+3. **Information architecture**: Simplify product display to name + status + tagline + purpose as compact cards
 
-- `style={{ fontFamily: "var(--font-heading)" }}` on every heading
-- Theme CSS already applies `--font-heading` to h1-h6 globally — pure noise
+### Page Structure (before → after)
 
-#### 3. Vision section — disconnected
+| #   | Before                          | After                                 |
+| --- | ------------------------------- | ------------------------------------- |
+| 1   | Hero (flat bg)                  | Hero (gradient + blobs)               |
+| 2   | Vision (1 paragraph)            | Vision (richer, problem-framing)      |
+| 3   | Core Principles (thin)          | Core Principles (deeper descriptions) |
+| 4   | —                               | **How It Works** (NEW — 3 steps)      |
+| 5   | Brain Models (magazine spreads) | Brain Models (compact 3-col cards)    |
+| 6   | Why Brains (thin)               | Why Brains (richer descriptions)      |
+| 7   | Built With                      | Built With (unchanged)                |
+| 8   | CTA                             | CTA (unchanged)                       |
 
-- Plain paragraph, no visual relationship to surrounding content
-- Could benefit from larger typography or the stacked ContentSection pattern
+### Implementation
 
-#### 4. Pillars — washed out numbers
+1. Add `approach` field to `overviewBodySchema` — `z.array({title, description}).min(1).max(6)`
+2. Add `approach` mapping to `OverviewBodyFormatter` — label "How It Works"
+3. Enhance hero with gradient background + 3 animated blobs (pattern from `shared/product-site-content/src/hero/layout.tsx`)
+4. Add "How It Works" section to template — numbered 3-column grid with accent-colored numbers
+5. Replace `ProductFeature` magazine spread with `ProductCard` — compact card showing name, status, tagline, purpose only
+6. Update overview content — deepen vision/pillars/benefits descriptions, add "How It Works" steps
+7. Update tests
 
-- `opacity-20` on large numbers makes them barely visible
-- Predictable zebra stripe (`bg-theme-subtle`) across sections
+### Files Modified
 
-#### 5. Brain Models — broken class + missing component reuse
-
-- `md:direction-rtl` is NOT a valid Tailwind class — dead code
-- Feature cards manually recreate `Card` component instead of reusing it
-- Values use custom `<span>` tags instead of `TagsList`
-- No visual separator between products
-
-#### 6. Technologies — should use TagsList
-
-- Manual tag rendering instead of `TagsList` with `variant="accent"`
-
-#### 7. CTA — weaker than design system supports
-
-- Missing `cta-bg-pattern` dot overlay (available in theme CSS)
-- Just a centered button — no heading, no context
-- Compare to `CTASection`: overline label, heading, social links
-
-#### 8. Spacing — monotonous
-
-- Every section uses `py-20 md:py-28` — no variation in rhythm
-
-### Implementation Plan
-
-**File to modify**: `plugins/products/src/templates/products-page.tsx`
-
-**Reference files**:
-
-- `plugins/professional-site/src/templates/homepage-list.tsx` — hero pattern
-- `plugins/professional-site/src/components/CTASection.tsx` — CTA pattern
-- `shared/ui-library/src/Card.tsx` — Card component
-- `shared/ui-library/src/TagsList.tsx` — TagsList component
-- `shared/theme-default/src/theme.css` — `cta-bg-pattern` class
-
-#### Step 1: Fix hero layout
-
-- Change to `min-h-[70vh] flex items-end` (from `homepage-list.tsx:77`)
-- Bottom-align content with `pb-16 md:pb-24`
-- Add horizontal divider between headline and tagline
-- Keep `hero-bg-pattern` and `max-w-4xl`
-
-#### Step 2: Remove inline font styles
-
-- Delete all 7 occurrences of `style={{ fontFamily: "var(--font-heading)" }}`
-
-#### Step 3: Improve vision section
-
-- Larger typography (`text-2xl md:text-3xl font-light`)
-- Add structure with stacked ContentSection pattern or top border
-
-#### Step 4: Fix pillars
-
-- Increase number opacity from `opacity-20` to `opacity-30`
-- Remove zebra `bg-theme-subtle`, keep uniform `bg-theme`
-
-#### Step 5: Fix brain models
-
-- Remove dead `md:direction-rtl` class
-- Replace custom cards with `Card` from `@brains/ui-library`
-- Replace custom value tags with `TagsList` (variant `"muted"`, size `"sm"`)
-- Add `border-t border-theme` separator between products
-
-#### Step 6: Use TagsList for technologies
-
-- Replace manual tag rendering with `TagsList` (variant `"accent"`, size `"md"`)
-
-#### Step 7: Upgrade CTA
-
-- Add `cta-bg-pattern` class alongside `bg-brand`
-- Add overline label + heading above the button
-
-#### Step 8: Update imports
-
-- Add `TagsList`, `Card` to imports from `@brains/ui-library`
-
-### Verification
-
-```bash
-cd plugins/products && bun run typecheck       # template compiles
-cd plugins/products && bun test                # tests still pass
-bun run typecheck                              # all packages pass
-bun run lint                                   # no lint errors
-cd apps/collective-brain && bun run dev        # start brain
-# Trigger site build, check /products/index.html
-# Verify: hero matches homepage pattern (tall, bottom-aligned)
-# Verify: no broken classes (direction-rtl gone)
-# Verify: TagsList and Card components render correctly
-# Verify: CTA has dot pattern and heading
-# Verify: both light and dark mode
-```
+| File                                                               | Change                          |
+| ------------------------------------------------------------------ | ------------------------------- |
+| `plugins/products/src/schemas/overview.ts`                         | Add `approach` field            |
+| `plugins/products/src/formatters/overview-formatter.ts`            | Add `approach` mapping          |
+| `plugins/products/src/templates/products-page.tsx`                 | Hero, How It Works, ProductCard |
+| `apps/collective-brain/seed-content/products-overview/overview.md` | Deepen + add content            |
+| `apps/collective-brain/brain-data/products-overview/overview.md`   | Sync                            |
+| `plugins/products/test/overview-schema.test.ts`                    | Add approach test data          |
