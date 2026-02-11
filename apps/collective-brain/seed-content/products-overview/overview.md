@@ -1,15 +1,15 @@
 ---
 headline: What We Build
-tagline: Brain models for every use case
+tagline: Your knowledge, your rules
 ---
 
 # Products Overview
 
 ## Vision
 
-We believe knowledge work deserves better tools. Not more tools — better ones.
+We believe knowledge work deserves better tools. Not more tools. Better ones.
 
-Most platforms lock your thinking into someone else's structure. Your notes live in proprietary formats, your content is scattered across disconnected apps, and your workflow adapts to the tool instead of the other way around. The Brains platform changes this: AI-native models that adapt to how you think and work — whether you're an individual creator, a fast-moving team, or a coordinated collective.
+Most platforms lock your thinking into someone else's structure. Your notes live in proprietary formats, your content is scattered across disconnected apps, and your workflow adapts to the tool instead of the other way around. We built something different: AI-native models that work the way you do, whether you're an individual creator, a fast-moving team, or a coordinated collective.
 
 ## Core Principles
 
@@ -21,7 +21,7 @@ AI-Native
 
 #### Description
 
-Built from the ground up with AI at the core, not bolted on as an afterthought. Your brain learns your voice, understands your domain, and actively helps you create — from drafting blog posts to summarizing meetings.
+Built from the ground up with AI at the core, not bolted on as an afterthought. Your brain learns your voice, understands your domain, and actively helps you create. From drafting blog posts to summarizing meetings.
 
 ### Pillar 2
 
@@ -31,17 +31,17 @@ Plugin-Based
 
 #### Description
 
-Every capability is a plugin — add what you need, skip what you don't. Blogging, chat, social publishing, slide decks: compose your brain from building blocks that work together.
+Every capability is a plugin. Add what you need, skip what you don't. Blogging, chat, social publishing, slide decks: compose your brain from building blocks that work together.
 
 ### Pillar 3
 
 #### Title
 
-Markdown-First
+Fully Yours
 
 #### Description
 
-All content stored as portable, human-readable markdown files. No database lock-in, no proprietary formats. Your data is plain text on disk — readable, versionable, and yours to move anywhere.
+Your data belongs to you. Not to us, not to a platform, not to a proprietary format. Everything you put in, you can take out. No lock-in, no export fees, no fine print. It's yours, period.
 
 ## How It Works
 
@@ -49,43 +49,67 @@ All content stored as portable, human-readable markdown files. No database lock-
 
 #### Title
 
-Pick Your Brain
+Capture
 
 #### Description
 
-Choose a brain model matched to your context — personal knowledge management, team collaboration, or collective coordination. Each one comes pre-configured for its use case, ready to go out of the box.
+Write notes, save links, log meeting decisions. Everything goes into your brain as plain text. No special syntax, no learning curve. If you can write a sentence, you can feed your brain.
 
 ### Step 2
 
 #### Title
 
-Add What You Need
+Connect
 
 #### Description
 
-Every brain is built from plugins. Blogging, chat, social publishing, slide decks — compose exactly the capabilities you want. Remove what you don't need. Your brain, your rules.
+Your brain links related ideas automatically. It understands context, surfaces forgotten notes when they're relevant, and builds a knowledge graph that grows smarter the more you use it.
 
 ### Step 3
 
 #### Title
 
-Own Everything
+Create
 
 #### Description
 
-All your content lives as plain markdown files. No vendor lock-in, no proprietary formats. Export, migrate, or read your data directly — it's always yours.
+Turn captured knowledge into published content. A note becomes a blog post. Meeting notes become action items. Research becomes a slide deck. Your brain handles the transformation. You keep the credit.
 
 ## Brain Models
 
-Each brain model is a configuration of the Brains platform tailored to a specific use case — from personal knowledge management to collective coordination.
+Three brain models, each built for a different scale of thinking. From solo creators to coordinated collectives.
 
 ## Built With
 
-- TypeScript
-- Preact
-- Drizzle ORM
-- Matrix Protocol
-- MCP
+### Technology 1
+
+#### Title
+
+Plain Text Storage
+
+#### Description
+
+All content lives as plain text files on disk. No proprietary database, no binary formats. Your data is readable, versionable, and portable. Move it anywhere, read it with any editor.
+
+### Technology 2
+
+#### Title
+
+MCP Protocol
+
+#### Description
+
+Your brain speaks the Model Context Protocol, the open standard for AI tool integration. Connect any MCP-compatible service, build custom tools, or let your brain work with other AI systems natively.
+
+### Technology 3
+
+#### Title
+
+Open Messaging
+
+#### Description
+
+Communicate through any messaging platform you already use. Your brain interfaces with existing tools rather than replacing them, keeping conversations where your team already works.
 
 ## Why Brains
 
@@ -93,38 +117,42 @@ Each brain model is a configuration of the Brains platform tailored to a specifi
 
 #### Title
 
-Own Your Data
+Write Once, Use Everywhere
 
 #### Description
 
-All content is markdown files on disk — portable, readable, and yours forever. Export your entire brain in seconds. Switch tools without losing a single thought.
+A single idea can become a blog post, a social update, a slide deck, or a team brief. Your brain adapts your content to any format without starting from scratch.
 
 ### Benefit 2
 
 #### Title
 
-Extend Everything
+Zero Lock-In
 
 #### Description
 
-The plugin system makes every brain customizable to your exact workflow. Build new capabilities, connect external services, or reshape existing features to match how you work.
+Every piece of content is a plain text file you can read, move, or delete. No proprietary formats, no export wizards, no hostage negotiations. Leave anytime and take everything with you.
 
 ### Benefit 3
 
 #### Title
 
-AI That Learns You
+Grows With You
 
 #### Description
 
-Your brain adapts to your voice and style the more you use it. It doesn't replace your thinking — it amplifies it by handling the mechanical parts so you can focus on ideas.
+Start with a personal brain. Add team members and it becomes a shared memory. Connect multiple brains and you have a collective. The platform scales from solo to organization without switching tools.
 
 ## Ready to Build
 
-### Text
+### Heading
 
-Get Started
+Ready to think better?
+
+### Button Text
+
+Learn More
 
 ### Link
 
-/about
+https://github.com/rizom-ai/brains

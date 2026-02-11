@@ -36,7 +36,20 @@ const sampleBody: OverviewBody = {
     },
   ],
   productsIntro: "Each brain model is tailored for a specific use case.",
-  technologies: ["TypeScript", "Preact", "Drizzle ORM", "Matrix Protocol"],
+  technologies: [
+    {
+      title: "Plain Text Storage",
+      description: "Plain text files you can read, move, and version",
+    },
+    {
+      title: "AI-Native",
+      description: "Built from the ground up with AI at the core",
+    },
+    {
+      title: "Matrix Protocol",
+      description: "Decentralized real-time communication",
+    },
+  ],
   benefits: [
     {
       title: "Own Your Data",
@@ -48,8 +61,9 @@ const sampleBody: OverviewBody = {
     },
   ],
   cta: {
-    text: "Get Started",
-    link: "/docs/getting-started",
+    heading: "Ready to think better?",
+    buttonText: "Learn More",
+    link: "/about",
   },
 };
 
@@ -79,9 +93,10 @@ describe("Overview Schemas", () => {
       expect(result.vision).toContain("knowledge work");
       expect(result.pillars).toHaveLength(2);
       expect(result.approach).toHaveLength(3);
-      expect(result.technologies).toHaveLength(4);
+      expect(result.technologies).toHaveLength(3);
       expect(result.benefits).toHaveLength(2);
-      expect(result.cta.text).toBe("Get Started");
+      expect(result.cta.heading).toBe("Ready to think better?");
+      expect(result.cta.buttonText).toBe("Learn More");
     });
 
     it("should require at least one pillar", () => {
@@ -134,11 +149,12 @@ describe("OverviewBodyFormatter", () => {
     expect(markdown).toContain("## Brain Models");
     expect(markdown).toContain("tailored for a specific use case");
     expect(markdown).toContain("## Built With");
-    expect(markdown).toContain("TypeScript");
+    expect(markdown).toContain("Plain Text Storage");
     expect(markdown).toContain("## Why Brains");
     expect(markdown).toContain("Own Your Data");
     expect(markdown).toContain("## Ready to Build");
-    expect(markdown).toContain("Get Started");
+    expect(markdown).toContain("Ready to think better?");
+    expect(markdown).toContain("Learn More");
   });
 
   it("should parse markdown back to body data", () => {
@@ -151,11 +167,12 @@ describe("OverviewBodyFormatter", () => {
     expect(parsed.pillars[1]?.title).toBe("Plugin-Based");
     expect(parsed.approach).toHaveLength(3);
     expect(parsed.approach[0]?.title).toBe("Pick Your Brain");
-    expect(parsed.technologies).toContain("TypeScript");
-    expect(parsed.technologies).toContain("Drizzle ORM");
+    expect(parsed.technologies).toHaveLength(3);
+    expect(parsed.technologies[0]?.title).toBe("Plain Text Storage");
     expect(parsed.benefits[0]?.title).toBe("Own Your Data");
-    expect(parsed.cta.text).toBe("Get Started");
-    expect(parsed.cta.link).toBe("/docs/getting-started");
+    expect(parsed.cta.heading).toBe("Ready to think better?");
+    expect(parsed.cta.buttonText).toBe("Learn More");
+    expect(parsed.cta.link).toBe("/about");
   });
 
   it("should roundtrip format → parse → format", () => {

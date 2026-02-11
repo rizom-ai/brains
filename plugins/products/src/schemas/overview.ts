@@ -22,10 +22,21 @@ export const benefitSchema = z.object({
 export type Benefit = z.infer<typeof benefitSchema>;
 
 /**
- * CTA schema — call to action
+ * Technology choice schema — a technical decision and its rationale
+ */
+export const technologySchema = z.object({
+  title: z.string(),
+  description: z.string(),
+});
+
+export type Technology = z.infer<typeof technologySchema>;
+
+/**
+ * CTA schema — call to action with separate heading and button text
  */
 export const ctaSchema = z.object({
-  text: z.string(),
+  heading: z.string(),
+  buttonText: z.string(),
   link: z.string(),
 });
 
@@ -61,7 +72,7 @@ export const overviewBodySchema = z.object({
   pillars: z.array(pillarSchema).min(1).max(6),
   approach: z.array(approachStepSchema).min(1).max(6),
   productsIntro: z.string(),
-  technologies: z.array(z.string()).min(1),
+  technologies: z.array(technologySchema).min(1).max(6),
   benefits: z.array(benefitSchema).min(1).max(6),
   cta: ctaSchema,
 });

@@ -231,16 +231,39 @@ export const ProductsPageTemplate = ({
           </section>
         )}
 
-        {/* Benefits — accent bar markers */}
-        <section className="mb-20 md:mb-32">
+        {/* Technologies — left border accent */}
+        <section className="mb-8 md:mb-12">
+          <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
+            {labels["technologies"]}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            {body.technologies.map((tech) => (
+              <div key={tech.title} className="border-l-2 border-accent pl-6">
+                <h3 className="text-lg font-bold text-heading mb-2">
+                  {tech.title}
+                </h3>
+                <p className="text-theme-muted leading-relaxed">
+                  {tech.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {/* Benefits — definition list on subtle background */}
+      <section className="bg-theme-subtle py-20 md:py-28 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["benefits"]}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="divide-y divide-theme">
             {body.benefits.map((benefit) => (
-              <div key={benefit.title}>
-                <div className="w-8 h-1 bg-accent mb-6" />
-                <h3 className="text-lg font-bold text-heading mb-2">
+              <div
+                key={benefit.title}
+                className="py-8 first:pt-0 last:pb-0 md:flex md:gap-16"
+              >
+                <h3 className="text-lg font-bold text-heading mb-2 md:mb-0 md:w-48 md:shrink-0">
                   {benefit.title}
                 </h3>
                 <p className="text-theme-muted leading-relaxed">
@@ -249,18 +272,8 @@ export const ProductsPageTemplate = ({
               </div>
             ))}
           </div>
-        </section>
-
-        {/* Technologies — minimal strip */}
-        <section className="mb-8 md:mb-12">
-          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
-            <h2 className="text-sm tracking-widest uppercase text-theme-muted whitespace-nowrap">
-              {labels["technologies"]}
-            </h2>
-            <TagsList tags={body.technologies} variant="accent" size="md" />
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       {/* CTA — deep blue, product-specific call to action */}
       {/* Extra bottom padding + negative margin so the layout's WavyDivider overlaps the blue */}
@@ -270,10 +283,10 @@ export const ProductsPageTemplate = ({
             {labels["cta"]}
           </p>
           <h2 className="text-3xl md:text-5xl font-bold text-white max-w-2xl mb-10">
-            {body.cta.text}
+            {body.cta.heading}
           </h2>
           <LinkButton href={body.cta.link} variant="outline-light" size="lg">
-            {body.cta.text}
+            {body.cta.buttonText}
           </LinkButton>
         </div>
       </section>

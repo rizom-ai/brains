@@ -40,7 +40,11 @@ export class OverviewBodyFormatter extends StructuredContentFormatter<OverviewBo
           key: "technologies",
           label: "Built With",
           type: "array",
-          itemType: "string",
+          itemType: "object",
+          itemMappings: [
+            { key: "title", label: "Title", type: "string" },
+            { key: "description", label: "Description", type: "string" },
+          ],
         },
         {
           key: "benefits",
@@ -57,7 +61,8 @@ export class OverviewBodyFormatter extends StructuredContentFormatter<OverviewBo
           label: "Ready to Build",
           type: "object",
           children: [
-            { key: "text", label: "Text", type: "string" },
+            { key: "heading", label: "Heading", type: "string" },
+            { key: "buttonText", label: "Button Text", type: "string" },
             { key: "link", label: "Link", type: "string" },
           ],
         },

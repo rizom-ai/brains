@@ -4,7 +4,12 @@ import { baseEntitySchema } from "@brains/plugins";
 /**
  * Product status
  */
-export const productStatusSchema = z.enum(["live", "beta", "alpha", "concept"]);
+export const productStatusSchema = z.enum([
+  "available",
+  "early access",
+  "coming soon",
+  "planned",
+]);
 export type ProductStatus = z.infer<typeof productStatusSchema>;
 
 /**

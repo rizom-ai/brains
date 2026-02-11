@@ -1,6 +1,6 @@
 ---
 name: Rover
-status: live
+status: early access
 order: 1
 ---
 
@@ -18,7 +18,7 @@ Personal knowledge manager and professional content curator
 
 ## Purpose
 
-Turn scattered notes and ideas into polished professional content — blog posts, social updates, slide decks — without losing your voice or leaving markdown
+Turn scattered notes and ideas into polished professional content. Blog posts, social updates, slide decks. Without losing your voice or leaving plain text.
 
 ## Audience
 
@@ -51,7 +51,7 @@ Social Publishing
 
 #### Description
 
-Share content across LinkedIn and other platforms from a single source. One idea becomes a blog post, a thread, and a caption — adapted to each format automatically.
+Share content across LinkedIn and other platforms from a single source. One idea becomes a blog post, a thread, and a caption, adapted to each format automatically.
 
 ### Feature 3
 
@@ -61,7 +61,7 @@ Conversational Interface
 
 #### Description
 
-Talk to your brain through natural chat. Ask questions, explore connections between your notes, or draft new ideas — your brain responds with the full context it has built up over time.
+Talk to your brain through natural chat. Ask questions, explore connections between your notes, or draft new ideas. Your brain responds with the full context it has built up over time.
 
 ### Feature 4
 
@@ -77,8 +77,8 @@ Create presentations from your knowledge in minutes. Rover pulls from your notes
 
 Most knowledge tools make you choose: capture or create. Note apps are great at storing thoughts but terrible at doing anything with them. Publishing tools are great at output but start from a blank page every time. Rover refuses to split the difference.
 
-It turns scattered notes, ideas, and drafts into polished content. Write a thought, and Rover can shape it into a blog post, a social update, or a slide deck. Everything stays in markdown, portable and yours. Nothing is locked in a proprietary format, nothing lives on someone else's server.
+It turns scattered notes, ideas, and drafts into polished content. Write a thought, and Rover can shape it into a blog post, a social update, or a slide deck. Everything stays in plain text, portable and yours. Nothing is locked in a proprietary format, nothing lives on someone else's server.
 
-Rover learns your voice. The more you write, the better it understands how you think and communicate. It doesn't replace your creativity — it amplifies it by handling the mechanical parts of content creation so you can focus on what actually matters: the ideas themselves.
+Rover learns your voice. The more you write, the better it understands how you think and communicate. It doesn't replace your creativity. It amplifies it by handling the mechanical parts of content creation so you can focus on what actually matters: the ideas themselves.
 
 Built for people who think by writing.

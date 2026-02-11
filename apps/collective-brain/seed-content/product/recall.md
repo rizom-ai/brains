@@ -1,6 +1,6 @@
 ---
 name: Recall
-status: beta
+status: coming soon
 order: 2
 ---
 
@@ -10,7 +10,7 @@ Shared memory for teams that move fast
 
 ## Promise
 
-The team's memory — so nothing falls through the cracks and no one asks the same question twice
+The team's memory, so nothing falls through the cracks and no one asks the same question twice
 
 ## Role
 
@@ -18,7 +18,7 @@ Team knowledge manager and collaboration hub
 
 ## Purpose
 
-Keep team knowledge accessible, searchable, and always current — without adding another tool to manage
+Keep team knowledge accessible, searchable, and always current. Without adding another tool to manage.
 
 ## Audience
 
@@ -41,7 +41,7 @@ Shared Notes
 
 #### Description
 
-Collaborative markdown notes synced across the team in real time. Everyone writes in the same format, changes flow instantly, and there are no version conflicts or stale copies to untangle.
+Collaborative notes synced across the team in real time. Everyone writes in the same format, changes flow instantly, and there are no version conflicts or stale copies to untangle.
 
 ### Feature 2
 
@@ -51,7 +51,7 @@ Team Chat
 
 #### Description
 
-Real-time team communication with built-in knowledge capture. Conversations don't just disappear — key decisions and context get saved to the team's shared memory automatically.
+Real-time team communication with built-in knowledge capture. Conversations don't just disappear. Key decisions and context get saved to the team's shared memory automatically.
 
 ### Feature 3
 
@@ -71,13 +71,13 @@ Quick Search
 
 #### Description
 
-Find any piece of team knowledge in seconds. Recall understands your team's vocabulary and surfaces related context alongside results — not just keyword matches, but actual understanding.
+Find any piece of team knowledge in seconds. Recall understands your team's vocabulary and surfaces related context alongside results. Not just keyword matches, but actual understanding.
 
 ## Story
 
-Teams lose knowledge every day. Decisions made in chat vanish into scroll history. Meeting notes rot in shared drives nobody opens. Onboarding means asking the same questions again and again, hoping someone remembers the answer. The problem isn't that teams don't document — it's that documentation never keeps up with the speed of work.
+Teams lose knowledge every day. Decisions made in chat vanish into scroll history. Meeting notes rot in shared drives nobody opens. Onboarding means asking the same questions again and again, hoping someone remembers the answer. The problem isn't that teams don't document. It's that documentation never keeps up with the speed of work.
 
-Recall fixes this by giving the team a single, searchable brain that everyone contributes to and draws from. Write it once, find it always. Notes, decisions, and context live in plain markdown that Recall indexes and connects automatically. When someone asks "what did we decide about X?" — the answer is already there.
+Recall fixes this by giving the team a single, searchable brain that everyone contributes to and draws from. Write it once, find it always. Notes, decisions, and context live in plain text that Recall indexes and connects automatically. When someone asks "what did we decide about X?" the answer is already there.
 
 The best part: Recall captures knowledge from the work itself. Chat threads surface decisions. Meeting transcripts become structured notes. The team's memory grows as a byproduct of doing the work, not as a separate chore that everyone avoids.
 

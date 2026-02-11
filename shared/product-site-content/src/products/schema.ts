@@ -6,7 +6,7 @@ export const productSchema = z.object({
   tagline: z.string().describe("Short memorable tagline"),
   description: z.string().describe("Brief description"),
   status: z
-    .enum(["live", "beta", "alpha", "concept"])
+    .enum(["available", "early access", "coming soon", "planned"])
     .describe("Development status"),
   link: z.string().optional().describe("Link to product or docs"),
   icon: z.string().describe("Icon identifier"),
