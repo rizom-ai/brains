@@ -2,15 +2,15 @@ import { z } from "zod";
 import { baseEntitySchema } from "@brains/plugins";
 
 /**
- * Product status
+ * Product availability — maturity stage, not a publish workflow status
  */
-export const productStatusSchema = z.enum([
+export const productAvailabilitySchema = z.enum([
   "available",
   "early access",
   "coming soon",
   "planned",
 ]);
-export type ProductStatus = z.infer<typeof productStatusSchema>;
+export type ProductAvailability = z.infer<typeof productAvailabilitySchema>;
 
 /**
  * Product feature/capability schema
@@ -28,7 +28,7 @@ export type ProductFeature = z.infer<typeof productFeatureSchema>;
  */
 export const productFrontmatterSchema = z.object({
   name: z.string(),
-  status: productStatusSchema,
+  availability: productAvailabilitySchema,
   order: z.number(),
 });
 
@@ -58,7 +58,7 @@ export type ProductBody = z.infer<typeof productBodySchema>;
 export const productMetadataSchema = productFrontmatterSchema
   .pick({
     name: true,
-    status: true,
+    availability: true,
     order: true,
   })
   .extend({

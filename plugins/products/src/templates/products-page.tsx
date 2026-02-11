@@ -7,7 +7,9 @@ import {
   StatusBadge,
   Card,
   TagsList,
+  ProseContent,
 } from "@brains/ui-library";
+import { markdownToHtml } from "@brains/utils";
 
 export interface ProductsPageProps {
   overview: OverviewWithData;
@@ -139,15 +141,16 @@ export const ProductsPageTemplate = ({
         </div>
       </header>
 
-      {/* Vision — full-bleed quiet section, oversized type */}
+      {/* Vision — full-bleed quiet section, punchy lead + supporting context */}
       <section className="bg-theme-subtle py-20 md:py-32 px-6 md:px-12">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-10">
             {labels["vision"]}
           </h2>
-          <p className="text-2xl md:text-3xl lg:text-4xl leading-relaxed text-heading font-light">
-            {body.vision}
-          </p>
+          <ProseContent
+            html={markdownToHtml(body.vision.replace(/\n/g, "\n\n"))}
+            className="prose-p:text-2xl prose-p:md:text-3xl prose-p:lg:text-4xl prose-p:leading-relaxed prose-p:text-heading prose-p:font-light"
+          />
         </div>
       </section>
 
@@ -181,14 +184,9 @@ export const ProductsPageTemplate = ({
           <h2 className="text-sm tracking-widest uppercase text-white/50 mb-16">
             {labels["approach"]}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0">
-            {body.approach.map((step, i) => (
-              <div
-                key={step.title}
-                className={
-                  i > 0 ? "md:border-l md:border-white/10 md:pl-12" : ""
-                }
-              >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {body.approach.map((step) => (
+              <div key={step.title}>
                 <div className="w-10 h-1 bg-accent mb-6" />
                 <h3 className="text-xl font-bold text-white mb-3">
                   {step.title}
@@ -232,7 +230,7 @@ export const ProductsPageTemplate = ({
         )}
 
         {/* Technologies — left border accent */}
-        <section className="mb-8 md:mb-12">
+        <section className="mb-20 md:mb-32">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["technologies"]}
           </h2>
@@ -315,7 +313,7 @@ function FeaturedProductCard({
       <div className="p-8 md:p-10 md:flex md:gap-12 md:items-start">
         <div className="md:flex-1">
           <div className="mb-4">
-            <StatusBadge status={frontmatter.status} />
+            <StatusBadge status={frontmatter.availability} />
           </div>
           <h3 className="text-3xl md:text-4xl font-bold text-heading mb-3 group-hover:text-brand transition-colors">
             {frontmatter.name}
@@ -350,7 +348,7 @@ function ProductCard({ product }: { product: EnrichedProduct }): JSX.Element {
       <div className="h-1.5 bg-brand" />
       <div className="p-8">
         <div className="mb-4">
-          <StatusBadge status={frontmatter.status} />
+          <StatusBadge status={frontmatter.availability} />
         </div>
         <h3 className="text-2xl font-bold text-heading mb-2 group-hover:text-brand transition-colors">
           {frontmatter.name}

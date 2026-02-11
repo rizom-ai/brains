@@ -41,7 +41,7 @@ export const ProductsLayout = ({
                   <div className="text-brand">
                     <IconComponent size={48} />
                   </div>
-                  <StatusBadge status={product.status} />
+                  <StatusBadge status={product.availability} />
                 </div>
 
                 <h3 className="text-2xl font-bold text-theme mb-2">

@@ -1,6 +1,6 @@
 ---
 name: Ranger
-status: coming soon
+availability: coming soon
 order: 3
 ---
 

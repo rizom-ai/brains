@@ -5,9 +5,9 @@ export const productSchema = z.object({
   name: z.string().describe("Product name"),
   tagline: z.string().describe("Short memorable tagline"),
   description: z.string().describe("Brief description"),
-  status: z
+  availability: z
     .enum(["available", "early access", "coming soon", "planned"])
-    .describe("Development status"),
+    .describe("Product availability stage"),
   link: z.string().optional().describe("Link to product or docs"),
   icon: z.string().describe("Icon identifier"),
 });

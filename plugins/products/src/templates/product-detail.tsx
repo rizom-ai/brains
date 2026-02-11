@@ -111,7 +111,7 @@ export const ProductDetailTemplate = ({
           </nav>
 
           <div className="mb-6 hero-stagger-1">
-            <StatusBadge status={frontmatter.status} />
+            <StatusBadge status={frontmatter.availability} />
           </div>
 
           <h1 className="text-5xl md:text-6xl lg:text-[7rem] font-bold text-white tracking-tighter leading-[0.95] mb-6 md:mb-8 hero-stagger-1">
@@ -242,9 +242,7 @@ export const ProductDetailTemplate = ({
           <h2 className="text-3xl md:text-5xl font-bold text-white max-w-2xl mb-4">
             {body.tagline}
           </h2>
-          <p className="text-lg text-white/60 mb-10 max-w-xl">
-            Explore the full lineup of brain models built for every use case.
-          </p>
+          <p className="text-lg text-white/60 mb-10 max-w-xl">{body.promise}</p>
           <LinkButton href={productsUrl} variant="outline-light" size="lg">
             {productsLabel}
           </LinkButton>

@@ -14,7 +14,7 @@ import {
 
 /**
  * Entity adapter for product entities
- * Frontmatter holds only identity + metadata (name, status, order).
+ * Frontmatter holds only identity + metadata (name, availability, order).
  * Descriptive content (tagline, role, purpose, audience, values, features, story)
  * lives in the structured body — parsed by ProductBodyFormatter in the datasource.
  */
@@ -57,7 +57,7 @@ export class ProductAdapter implements EntityAdapter<Product, ProductMetadata> {
       metadata: {
         name: frontmatter.name,
         slug,
-        status: frontmatter.status,
+        availability: frontmatter.availability,
         order: frontmatter.order,
       },
     };

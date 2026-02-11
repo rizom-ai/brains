@@ -9,7 +9,7 @@ tagline: Your knowledge, your rules
 
 We believe knowledge work deserves better tools. Not more tools. Better ones.
 
-Most platforms lock your thinking into someone else's structure. Your notes live in proprietary formats, your content is scattered across disconnected apps, and your workflow adapts to the tool instead of the other way around. We built something different: AI-native models that work the way you do, whether you're an individual creator, a fast-moving team, or a coordinated collective.
+Most platforms lock your thinking into someone else's structure. We built something different: tools that work the way you do, whether you're a solo creator, a fast-moving team, or an entire organization.
 
 ## Core Principles
 
@@ -75,9 +75,9 @@ Create
 
 Turn captured knowledge into published content. A note becomes a blog post. Meeting notes become action items. Research becomes a slide deck. Your brain handles the transformation. You keep the credit.
 
-## Brain Models
+## Products
 
-Three brain models, each built for a different scale of thinking. From solo creators to coordinated collectives.
+Three brains, each built for a different scale of thinking. One for you, one for your team, and one for the whole organization.
 
 ## Built With
 

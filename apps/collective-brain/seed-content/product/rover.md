@@ -1,6 +1,6 @@
 ---
 name: Rover
-status: early access
+availability: early access
 order: 1
 ---
 

@@ -146,7 +146,7 @@ describe("OverviewBodyFormatter", () => {
     expect(markdown).toContain("Plugin-Based");
     expect(markdown).toContain("## How It Works");
     expect(markdown).toContain("Pick Your Brain");
-    expect(markdown).toContain("## Brain Models");
+    expect(markdown).toContain("## Products");
     expect(markdown).toContain("tailored for a specific use case");
     expect(markdown).toContain("## Built With");
     expect(markdown).toContain("Plain Text Storage");

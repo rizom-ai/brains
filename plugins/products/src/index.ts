@@ -7,14 +7,14 @@ export {
   productFrontmatterSchema,
   productBodySchema,
   productFeatureSchema,
-  productStatusSchema,
+  productAvailabilitySchema,
   type Product,
   type ProductWithData,
   type EnrichedProduct,
   type ProductFrontmatter,
   type ProductBody,
   type ProductFeature,
-  type ProductStatus,
+  type ProductAvailability,
 } from "./schemas/product";
 export { ProductBodyFormatter } from "./formatters/product-formatter";
 export { productAdapter, ProductAdapter } from "./adapters/product-adapter";

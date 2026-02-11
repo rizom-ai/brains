@@ -1,6 +1,6 @@
 ---
 name: Recall
-status: coming soon
+availability: coming soon
 order: 2
 ---
 

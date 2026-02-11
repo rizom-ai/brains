@@ -5,7 +5,7 @@ import { createTestEntity } from "@brains/test-utils";
 
 const sampleMarkdown = `---
 name: Rover
-status: early access
+availability: early access
 order: 1
 ---
 
@@ -63,7 +63,7 @@ function createMockProduct(overrides: Partial<Product> = {}): Product {
     metadata: {
       name: "Rover",
       slug: "rover",
-      status: "early access",
+      availability: "early access",
       order: 1,
       ...overrides.metadata,
     },
@@ -89,7 +89,7 @@ describe("ProductAdapter", () => {
       expect(result.entityType).toBe("product");
       expect(result.metadata?.name).toBe("Rover");
       expect(result.metadata?.slug).toBe("rover");
-      expect(result.metadata?.status).toBe("early access");
+      expect(result.metadata?.availability).toBe("early access");
       expect(result.metadata?.order).toBe(1);
     });
 
@@ -116,7 +116,7 @@ describe("ProductAdapter", () => {
       const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("name: Rover");
-      expect(markdown).toContain("status: early access");
+      expect(markdown).toContain("availability: early access");
       expect(markdown).toContain("order: 1");
     });
 
@@ -158,7 +158,7 @@ describe("ProductAdapter", () => {
 
       expect(metadata.name).toBe("Rover");
       expect(metadata.slug).toBe("rover");
-      expect(metadata.status).toBe("early access");
+      expect(metadata.availability).toBe("early access");
       expect(metadata.order).toBe(1);
     });
   });

@@ -7,7 +7,7 @@ import { productBodySchema, type ProductBody } from "../schemas/product";
  *
  * Product bodies use structured content (## headings) for descriptive fields
  * (tagline, role, purpose, audience, values, features) plus a free-form story.
- * Only identity + metadata (name, status, order) stays in frontmatter.
+ * Only identity + metadata (name, availability, order) stays in frontmatter.
  */
 export class ProductBodyFormatter extends StructuredContentFormatter<ProductBody> {
   constructor() {
