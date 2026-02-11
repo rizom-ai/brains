@@ -236,7 +236,7 @@ export const ProductsPageTemplate = ({
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["technologies"]}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {body.technologies.map((tech) => (
               <div key={tech.title} className="border-l-2 border-accent pl-6">
                 <h3 className="text-lg font-bold text-heading mb-2">

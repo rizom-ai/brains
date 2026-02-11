@@ -111,6 +111,16 @@ Open Messaging
 
 Communicate through any messaging platform you already use. Your brain interfaces with existing tools rather than replacing them, keeping conversations where your team already works.
 
+### Technology 4
+
+#### Title
+
+AI Model Agnostic
+
+#### Description
+
+Not tied to any single AI provider. Swap models, combine them, or bring your own. Your brain works with the best AI available today and adapts as better options emerge tomorrow.
+
 ## Why Brains
 
 ### Benefit 1
