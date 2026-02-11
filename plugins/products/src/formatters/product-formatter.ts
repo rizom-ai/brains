@@ -15,6 +15,7 @@ export class ProductBodyFormatter extends StructuredContentFormatter<ProductBody
       title: "Product",
       mappings: [
         { key: "tagline", label: "Tagline", type: "string" },
+        { key: "promise", label: "Promise", type: "string" },
         { key: "role", label: "Role", type: "string" },
         { key: "purpose", label: "Purpose", type: "string" },
         { key: "audience", label: "Audience", type: "string" },

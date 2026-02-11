@@ -35,6 +35,7 @@ export type ProductFrontmatter = z.infer<typeof productFrontmatterSchema>;
  */
 export const productBodySchema = z.object({
   tagline: z.string(),
+  promise: z.string(),
   role: z.string(),
   purpose: z.string(),
   audience: z.string(),

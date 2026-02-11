@@ -1,13 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedProduct } from "../schemas/product";
-import {
-  Head,
-  StatusBadge,
-  TagsList,
-  Breadcrumb,
-  LinkButton,
-  type BreadcrumbItem,
-} from "@brains/ui-library";
+import { Head, StatusBadge, TagsList, LinkButton } from "@brains/ui-library";
 
 export interface ProductDetailProps {
   product: EnrichedProduct;
@@ -17,7 +10,7 @@ export interface ProductDetailProps {
  * Product detail page template — editorial deep-dive into a single brain model
  *
  * Visual rhythm: dark hero with floating accent strokes → quiet role/purpose/audience trio →
- * values strip → dark capabilities break with numbered grid → editorial story → dark CTA
+ * dark capabilities break with numbered grid → editorial story → dark CTA
  *
  * Mirrors the products list page aesthetic: uppercase tracking-widest labels,
  * accent-bar markers, alternating light/dark sections, dot-texture dark panels.
@@ -27,14 +20,13 @@ export const ProductDetailTemplate = ({
 }: ProductDetailProps): JSX.Element => {
   const { frontmatter, body, labels } = product;
 
-  const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "Home", href: "/" },
-    {
-      label: product.listLabel ?? "Products",
-      href: product.listUrl ?? "/products",
-    },
-    { label: frontmatter.name },
-  ];
+  const productsUrl = product.listUrl ?? "/products";
+  const productsLabel = product.listLabel ?? "Products";
+
+  // Story paragraphs — formatter joins with \n, split to render individually
+  const storyParagraphs = body.story
+    .split("\n")
+    .filter((p) => p.trim().length > 0);
 
   return (
     <>
@@ -85,74 +77,108 @@ export const ProductDetailTemplate = ({
         <div className="absolute inset-0 cta-bg-pattern pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto w-full px-6 md:px-12 pt-12 md:pt-20 pb-16 md:pb-24">
-          <div className="mb-8">
-            <Breadcrumb items={breadcrumbItems} />
-          </div>
+          {/* Breadcrumb — inline for dark background contrast */}
+          <nav
+            aria-label="Breadcrumb"
+            className="text-sm text-white/50 mb-8 hero-stagger-1"
+          >
+            <ol className="flex flex-wrap items-center gap-1">
+              <li className="flex items-center gap-1">
+                <a href="/" className="hover:text-white transition-colors">
+                  Home
+                </a>
+              </li>
+              <li className="flex items-center gap-1">
+                <span className="mx-1" aria-hidden="true">
+                  /
+                </span>
+                <a
+                  href={productsUrl}
+                  className="hover:text-white transition-colors"
+                >
+                  {productsLabel}
+                </a>
+              </li>
+              <li className="flex items-center gap-1">
+                <span className="mx-1" aria-hidden="true">
+                  /
+                </span>
+                <span className="text-white font-medium">
+                  {frontmatter.name}
+                </span>
+              </li>
+            </ol>
+          </nav>
 
-          <div className="mb-6">
+          <div className="mb-6 hero-stagger-1">
             <StatusBadge status={frontmatter.status} />
           </div>
 
-          <h1 className="text-5xl md:text-6xl lg:text-[7rem] font-bold text-white tracking-tighter leading-[0.95] mb-6 md:mb-8">
+          <h1 className="text-5xl md:text-6xl lg:text-[7rem] font-bold text-white tracking-tighter leading-[0.95] mb-6 md:mb-8 hero-stagger-1">
             {frontmatter.name}
           </h1>
 
-          <div className="w-20 h-1.5 bg-accent mb-6 md:mb-8" />
+          <div className="w-20 h-1.5 bg-accent mb-6 md:mb-8 hero-stagger-2" />
 
-          <p className="text-lg md:text-xl text-white/70 leading-relaxed max-w-xl">
+          <p className="text-lg md:text-xl text-white/70 leading-relaxed max-w-xl hero-stagger-3">
             {body.tagline}
           </p>
         </div>
       </header>
 
-      {/* Role / Purpose / Audience — quiet trio with dividers */}
+      {/* Identity — promise, role, purpose, audience as stacked editorial blocks */}
       <section className="bg-theme-subtle py-20 md:py-28 px-6 md:px-12">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0">
-            {/* Role */}
-            <div className="md:pr-12">
+        <div className="max-w-4xl mx-auto space-y-16">
+          {/* Promise — lead statement */}
+          <div>
+            <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-6">
+              {labels["promise"]}
+            </h2>
+            <p className="text-2xl md:text-3xl lg:text-4xl leading-relaxed text-heading font-light">
+              {body.promise}
+            </p>
+          </div>
+
+          {/* Role + Purpose + Audience — side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
+            <div>
+              <div className="w-8 h-1 bg-accent mb-6" />
               <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
                 {labels["role"]}
               </h2>
-              <p className="text-xl md:text-2xl leading-relaxed text-heading font-light">
+              <p className="text-lg leading-relaxed text-theme-muted">
                 {body.role}
               </p>
             </div>
-
-            {/* Purpose */}
-            <div className="md:border-l md:border-theme md:px-12">
+            <div>
+              <div className="w-8 h-1 bg-accent mb-6" />
               <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
                 {labels["purpose"]}
               </h2>
-              <p className="text-xl md:text-2xl leading-relaxed text-heading font-light">
+              <p className="text-lg leading-relaxed text-theme-muted">
                 {body.purpose}
               </p>
             </div>
-
-            {/* Audience */}
-            <div className="md:border-l md:border-theme md:pl-12">
+            <div>
+              <div className="w-8 h-1 bg-accent mb-6" />
               <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
                 {labels["audience"]}
               </h2>
-              <p className="text-xl md:text-2xl leading-relaxed text-heading font-light">
+              <p className="text-lg leading-relaxed text-theme-muted">
                 {body.audience}
               </p>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Values — horizontal strip with accent tags */}
-      <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-20">
-        <section>
+          {/* Values — tag strip */}
           <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-12">
             <h2 className="text-sm tracking-widest uppercase text-theme-muted whitespace-nowrap">
               {labels["values"]}
             </h2>
             <TagsList tags={body.values} variant="accent" size="md" />
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       {/* Capabilities — dark panel with numbered grid */}
       <section className="cta-bg-pattern bg-brand py-20 md:py-32 px-6 md:px-12">
@@ -190,7 +216,7 @@ export const ProductDetailTemplate = ({
             {labels["story"]}
           </h2>
           <div className="space-y-6">
-            {body.story.split("\n\n").map((paragraph, i) => (
+            {storyParagraphs.map((paragraph, i) => (
               <p
                 key={i}
                 className={
@@ -213,15 +239,14 @@ export const ProductDetailTemplate = ({
           <p className="text-sm tracking-widest uppercase text-white/60 mb-4">
             {frontmatter.name}
           </p>
-          <h2 className="text-3xl md:text-5xl font-bold text-white max-w-2xl mb-10">
-            Interested in {frontmatter.name}?
+          <h2 className="text-3xl md:text-5xl font-bold text-white max-w-2xl mb-4">
+            {body.tagline}
           </h2>
-          <LinkButton
-            href={product.listUrl ?? "/products"}
-            variant="outline-light"
-            size="lg"
-          >
-            View all products
+          <p className="text-lg text-white/60 mb-10 max-w-xl">
+            Explore the full lineup of brain models built for every use case.
+          </p>
+          <LinkButton href={productsUrl} variant="outline-light" size="lg">
+            {productsLabel}
           </LinkButton>
         </div>
       </section>
