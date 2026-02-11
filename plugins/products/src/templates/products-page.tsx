@@ -7,7 +7,6 @@ import {
   StatusBadge,
   Card,
   TagsList,
-  WavyDivider,
 } from "@brains/ui-library";
 
 export interface ProductsPageProps {
@@ -263,11 +262,9 @@ export const ProductsPageTemplate = ({
         </section>
       </div>
 
-      {/* Wavy divider — organic wave transition before CTA */}
-      <WavyDivider />
-
-      {/* CTA — dark, dramatic scale */}
-      <section className="cta-bg-pattern bg-brand py-24 md:py-32 px-6 md:px-12">
+      {/* CTA — deep blue, product-specific call to action */}
+      {/* Extra bottom padding + negative margin so the layout's WavyDivider overlaps the blue */}
+      <section className="cta-bg-pattern bg-brand-dark pt-24 md:pt-32 pb-40 md:pb-48 -mb-[60px] px-6 md:px-12">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm tracking-widest uppercase text-white/60 mb-4">
             {labels["cta"]}

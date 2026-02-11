@@ -16,6 +16,10 @@ import {
   ProductsPageTemplate,
   type ProductsPageProps,
 } from "./templates/products-page";
+import {
+  ProductDetailTemplate,
+  type ProductDetailProps,
+} from "./templates/product-detail";
 import type { ProductsConfig, ProductsConfigInput } from "./config";
 import { productsConfigSchema } from "./config";
 import packageJson from "../package.json";
@@ -53,6 +57,10 @@ export class ProductsPlugin extends ServicePlugin<ProductsConfig> {
       products: z.array(enrichedProductSchema),
     });
 
+    const productDetailSchema = z.object({
+      product: enrichedProductSchema,
+    });
+
     context.templates.register({
       "product-list": createTemplate<
         z.infer<typeof productsPageSchema>,
@@ -66,6 +74,22 @@ export class ProductsPlugin extends ServicePlugin<ProductsConfig> {
         layout: {
           component: ProductsPageTemplate,
           interactive: false,
+          routeLayout: "default-cta",
+        },
+      }),
+      "product-detail": createTemplate<
+        z.infer<typeof productDetailSchema>,
+        ProductDetailProps
+      >({
+        name: "product-detail",
+        description: "Individual product detail page",
+        schema: productDetailSchema,
+        dataSourceId: "products:entities",
+        requiredPermission: "public",
+        layout: {
+          component: ProductDetailTemplate,
+          interactive: false,
+          routeLayout: "default-cta",
         },
       }),
     });

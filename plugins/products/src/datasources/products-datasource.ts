@@ -127,9 +127,9 @@ export class ProductsDataSource implements DataSource {
         throw new Error(`Product not found: ${params.query.id}`);
       }
 
-      return outputSchema.parse(
-        parseProductData(product, this.productFormatter),
-      );
+      return outputSchema.parse({
+        product: parseProductData(product, this.productFormatter),
+      });
     }
 
     // Fetch all products sorted by order + overview for list page

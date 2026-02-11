@@ -31,6 +31,7 @@ import {
   templates as defaultTemplates,
   routes as defaultRoutes,
   DefaultLayout,
+  DefaultCTALayout,
   MinimalLayout,
   CTAFooterLayout,
 } from "@brains/default-site-content";
@@ -79,6 +80,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         default: DefaultLayout,
         minimal: MinimalLayout,
         "cta-footer": CTAFooterLayout,
+        "default-cta": DefaultCTALayout,
       },
       themeCSS: config.themeCSS ?? defaultTheme,
     } as SiteBuilderConfig;

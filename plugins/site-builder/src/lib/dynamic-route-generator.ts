@@ -87,12 +87,17 @@ export class DynamicRouteGenerator {
         );
       } else {
         // Generate a single index route (original behavior)
+        // Check list template for route layout preference
+        const templates = this.context.views.list();
+        const listTemplate = templates.find((t) => t.name === listTemplateName);
+        const listLayout = listTemplate?.routeLayout ?? "default";
+
         const indexRoute: RouteDefinition = {
           id: `${entityType}-index`,
           path: `/${pluralName}`,
           title: label,
           description: `Browse all ${pluralName}`,
-          layout: "default",
+          layout: listLayout,
           navigation: {
             show: navigation.show,
             label,
@@ -224,6 +229,11 @@ export class DynamicRouteGenerator {
       },
     );
 
+    // Check list template for route layout preference
+    const templates = this.context.views.list();
+    const listTemplate = templates.find((t) => t.name === listTemplateName);
+    const listLayout = listTemplate?.routeLayout ?? "default";
+
     // Generate route for each page
     for (let page = 1; page <= totalPages; page++) {
       const isFirstPage = page === 1;
@@ -236,7 +246,7 @@ export class DynamicRouteGenerator {
         path,
         title: isFirstPage ? label : `${label} - Page ${page}`,
         description: `Browse all ${pluralName}${isFirstPage ? "" : ` - Page ${page}`}`,
-        layout: "default",
+        layout: listLayout,
         navigation: isFirstPage
           ? {
               show: navigation.show,
