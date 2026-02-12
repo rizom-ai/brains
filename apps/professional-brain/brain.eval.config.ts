@@ -5,6 +5,7 @@
  */
 import { defineConfig } from "@brains/app";
 import { SystemPlugin } from "@brains/system";
+import { ImagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
@@ -59,6 +60,7 @@ const config = defineConfig({
 
   plugins: [
     new SystemPlugin({}),
+    new ImagePlugin(),
     new MCPInterface({}),
     // No MatrixInterface - not needed for evals
     directorySync(),

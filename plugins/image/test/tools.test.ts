@@ -145,7 +145,7 @@ describe("Image Tools", () => {
       const tool = tools.find((t) => t.name === "image_generate");
 
       expect(tool).toBeDefined();
-      expect(tool?.description).toContain("Queue");
+      expect(tool?.description).toContain("Generate");
       expect(tool?.description).toContain("DALL-E");
     });
 

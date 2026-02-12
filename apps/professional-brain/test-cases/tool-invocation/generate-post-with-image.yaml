@@ -1,0 +1,28 @@
+id: social-media-generate-post-with-image
+name: Generate social post with cover image in single step
+description: Tests that the agent uses generateImage:true when asked to create a post with a cover image, rather than chaining separate tool calls
+type: tool_invocation
+tags:
+  - social-media
+  - image
+  - cover
+  - core
+
+turns:
+  - userMessage: "Generate a LinkedIn post with a cover image about continuous learning in tech"
+
+successCriteria:
+  expectedTools:
+    - toolName: social-media_generate
+      shouldBeCalled: true
+      argsContain:
+        generateImage: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minHelpfulnessScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

@@ -45,7 +45,8 @@ function createMockContext(
   };
 }
 
-const deriveId = (title: string) => title.toLowerCase().replace(/\s+/g, "-");
+const deriveId = (title: string): string =>
+  title.toLowerCase().replace(/\s+/g, "-");
 
 describe("ensureUniqueTitle", () => {
   test("no collision — returns original title", async () => {

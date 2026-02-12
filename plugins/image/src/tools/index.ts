@@ -154,12 +154,14 @@ const generateInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "Entity type to set as cover image after generation (e.g., 'series', 'post')",
+      "Entity type to auto-attach image to as cover (e.g., 'social-post', 'post', 'project'). When set, prompt and title are auto-generated from entity content.",
     ),
   targetEntityId: z
     .string()
     .optional()
-    .describe("Entity ID to set as cover image after generation"),
+    .describe(
+      "Entity ID to auto-attach image to. Required when targetEntityType is set.",
+    ),
 });
 
 /**
@@ -173,7 +175,7 @@ function createImageGenerateTool(
   return createTool(
     pluginId,
     "generate",
-    "Queue a job to generate an image from a text prompt using DALL-E 3. Requires OPENAI_API_KEY to be configured.",
+    "Generate an image using DALL-E 3. IMPORTANT: When generating an image for an existing entity (post, project, etc.), ALWAYS provide targetEntityType and targetEntityId — the image will be auto-attached as cover image and the prompt will be auto-generated from the entity content. Only provide a manual prompt for standalone images.",
     generateInputSchema.shape,
     async (input: unknown, toolContext: ToolContext) => {
       try {

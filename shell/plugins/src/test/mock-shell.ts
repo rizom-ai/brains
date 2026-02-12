@@ -262,16 +262,14 @@ export class MockShell implements IShell {
 
         // Apply publishedOnly filter
         if (options?.publishedOnly) {
-          results = results.filter(
-            (e) => e.metadata?.["status"] === "published",
-          );
+          results = results.filter((e) => e.metadata["status"] === "published");
         }
 
         // Apply metadata filter
         if (options?.filter?.metadata) {
           const filterEntries = Object.entries(options.filter.metadata);
           results = results.filter((e) =>
-            filterEntries.every(([key, value]) => e.metadata?.[key] === value),
+            filterEntries.every(([key, value]) => e.metadata[key] === value),
           );
         }
 

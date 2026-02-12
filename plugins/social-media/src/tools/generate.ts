@@ -38,7 +38,9 @@ export const generateInputSchema = z.object({
   generateImage: z
     .boolean()
     .optional()
-    .describe("Auto-generate cover image for post"),
+    .describe(
+      "Auto-generate and attach a cover image for the post in a single step. Use this instead of calling image_generate separately.",
+    ),
 });
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;

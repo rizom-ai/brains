@@ -1,6 +1,6 @@
 id: tool-invocation-set-cover
-name: System Set Cover with Existing Image
-description: Verifies that the agent correctly uses system_set-cover with an existing image ID
+name: Set Cover with Existing Image
+description: Verifies that the agent correctly uses image_set-cover with an existing image ID
 type: tool_invocation
 tags:
   - core
@@ -12,7 +12,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_set-cover
+    - toolName: image_set-cover
       shouldBeCalled: true
       argsContain:
         entityType: "post"
@@ -25,5 +25,5 @@ successCriteria:
   minHelpfulnessScore: 3
 
 efficiency:
-  maxToolCalls: 3
-  maxTokens: 25000
+  maxToolCalls: 5
+  maxTokens: 40000

@@ -1,6 +1,6 @@
 id: tool-invocation-set-cover-generate
-name: System Set Cover with Generate Flag
-description: Verifies that the agent correctly uses system_set-cover with generate:true when asked to create a cover image
+name: Generate Cover Image for Entity
+description: Verifies that the agent uses image_generate with targetEntityType and targetEntityId when asked to generate a cover image for an entity
 type: tool_invocation
 tags:
   - core
@@ -12,12 +12,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_set-cover
+    - toolName: image_generate
       shouldBeCalled: true
       argsContain:
-        entityType: "post"
-        entityId: "introduction-to-typescript"
-        generate: true
+        targetEntityType: "post"
+        targetEntityId: "introduction-to-typescript"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
