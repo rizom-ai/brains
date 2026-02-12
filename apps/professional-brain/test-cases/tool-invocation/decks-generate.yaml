@@ -17,7 +17,7 @@ successCriteria:
   toolCountRange:
     min: 1
   responseContains:
-    - "job"
+    - "queued"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

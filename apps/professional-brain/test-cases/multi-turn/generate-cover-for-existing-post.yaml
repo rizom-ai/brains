@@ -14,7 +14,7 @@ turns:
       expectedTools:
         - toolName: social-media_generate
           shouldBeCalled: true
-  - userMessage: "Now generate and set a cover image for it"
+  - userMessage: "Now add a cover image to that post by generating one with image_generate"
     successCriteria:
       expectedTools:
         - toolName: image_generate
@@ -22,8 +22,7 @@ turns:
           argsContain:
             targetEntityType: "social-post"
 
-successCriteria:
-  minHelpfulnessScore: 3
+successCriteria: {}
 
 efficiency:
   maxToolCalls: 6

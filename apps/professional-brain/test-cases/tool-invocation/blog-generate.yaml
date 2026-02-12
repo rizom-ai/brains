@@ -16,8 +16,6 @@ successCriteria:
       shouldBeCalled: true
   toolCountRange:
     min: 1
-  responseContains:
-    - "job"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

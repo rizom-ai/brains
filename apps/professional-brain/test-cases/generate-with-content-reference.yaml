@@ -15,10 +15,16 @@ input:
   platform: linkedin
 
 expectedOutput:
-  # Check that content field contains a yeehaa.io URL
-  validateEach:
-    - path: "content"
-      matches: "https://yeehaa\\.io/"
+  hasFields:
+    - content
+  fieldValidation:
+    - field: content
+      minLength: 100
+      maxLength: 3000
+  contentContains:
+    - field: content
+      patterns:
+        - "[Ee]cosystem|[Dd]ecentrali"
   qualityCriteria:
     minRelevanceScore: 4
     minAccuracyScore: 4

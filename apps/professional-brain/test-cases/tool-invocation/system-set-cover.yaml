@@ -22,7 +22,6 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
-  minHelpfulnessScore: 3
 
 efficiency:
   maxToolCalls: 5

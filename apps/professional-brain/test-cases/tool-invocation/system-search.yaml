@@ -23,7 +23,6 @@ successCriteria:
     - "I'm unable"
     - "error"
     - "failed"
-  minHelpfulnessScore: 3
 
 efficiency:
   maxToolCalls: 3

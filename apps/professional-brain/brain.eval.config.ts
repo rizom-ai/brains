@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
 /**
  * Eval-specific brain config
- * Excludes git-sync to prevent syncing with real remote during evaluations
+ * Git-sync included with empty URL and no auto-sync to register tools without syncing
  */
 import { defineConfig } from "@brains/app";
 import { SystemPlugin } from "@brains/system";
 import { ImagePlugin } from "@brains/image-plugin";
+import { GitSyncPlugin } from "@brains/git-sync";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
@@ -64,7 +65,11 @@ const config = defineConfig({
     new MCPInterface({}),
     // No MatrixInterface - not needed for evals
     directorySync(),
-    // No GitSyncPlugin - prevents syncing with real remote
+    new GitSyncPlugin({
+      gitUrl: "file:///tmp/brain-eval-git-remote",
+      autoSync: false,
+      autoPush: false,
+    }),
     new WebserverInterface({
       previewPort: 4321,
       previewDistDir: "./dist/site-preview",

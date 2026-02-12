@@ -1,6 +1,6 @@
 id: social-media-queue-list-agent
 name: List social media publish queue
-description: Tests that the agent correctly invokes the queue tool with list action when asked about scheduled posts
+description: Tests that the agent lists queued social posts when asked about the publish queue
 type: tool_invocation
 tags:
   - social-media
@@ -12,7 +12,15 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: social-media_queue
-      argsContain:
-        action: list
+    - toolName: system_list
       shouldBeCalled: true
+      argsContain:
+        entityType: "social-post"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000
