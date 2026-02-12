@@ -19,11 +19,12 @@ export interface ProductsPageProps {
 /**
  * Products page template — editorial showcase of brain models
  *
- * Visual rhythm: dramatic hero → quiet vision → structured pillars →
- * dark approach break → asymmetric products → accented benefits → dark CTA
+ * Visual rhythm: dramatic hero → warm vision+principles → dark approach →
+ * clean product showcase → warm platform details → layout FooterCTA
  *
- * Each section has its own visual identity — numbered pillars, accent-bar
- * approach markers, gradient-strip product cards, accent-dot benefits.
+ * Consistent vocabulary: accent bars (w-10 h-1 bg-accent) mark every content
+ * item, uppercase tracking-widest labels organize every section, dark/light
+ * alternation (dark → subtle → dark → default → subtle) creates rhythm.
  */
 export const ProductsPageTemplate = ({
   overview,
@@ -35,7 +36,7 @@ export const ProductsPageTemplate = ({
     <>
       <Head title={frontmatter.headline} description={frontmatter.tagline} />
 
-      {/* Hero — dark ground with layered drifting waves */}
+      {/* ── Hero — dark ground with layered drifting waves ── */}
       <header className="relative w-full min-h-[80vh] flex items-end px-6 md:px-12 bg-brand-dark overflow-hidden">
         <style>{`
           @keyframes wave-drift {
@@ -54,7 +55,7 @@ export const ProductsPageTemplate = ({
           }
         `}</style>
 
-        {/* Wave 1 — deep atmospheric swell, accent glow fading down */}
+        {/* Wave 1 — atmospheric swell with accent glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <svg
             preserveAspectRatio="none"
@@ -76,7 +77,7 @@ export const ProductsPageTemplate = ({
           </svg>
         </div>
 
-        {/* Wave 2 — counter-swell, brand glow, phase-shifted */}
+        {/* Wave 2 — counter-swell, brand glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <svg
             preserveAspectRatio="none"
@@ -98,7 +99,7 @@ export const ProductsPageTemplate = ({
           </svg>
         </div>
 
-        {/* Wave 3 — paired accent stroke lines (detail layer) */}
+        {/* Wave 3 — accent stroke lines */}
         <div className="absolute top-0 left-0 w-full h-[60%] overflow-hidden pointer-events-none">
           <svg
             preserveAspectRatio="none"
@@ -141,9 +142,9 @@ export const ProductsPageTemplate = ({
         </div>
       </header>
 
-      {/* Vision — full-bleed quiet section, punchy lead + supporting context */}
-      <section className="bg-theme-subtle py-20 md:py-32 px-6 md:px-12">
-        <div className="max-w-4xl mx-auto">
+      {/* ── Vision + Principles — the belief and the pillars that support it ── */}
+      <section className="bg-theme-subtle py-20 md:py-28 px-6 md:px-12">
+        <div className="max-w-4xl mx-auto mb-20">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-10">
             {labels["vision"]}
           </h2>
@@ -152,20 +153,14 @@ export const ProductsPageTemplate = ({
             className="prose-p:text-2xl prose-p:md:text-3xl prose-p:lg:text-4xl prose-p:leading-relaxed prose-p:text-heading prose-p:font-light"
           />
         </div>
-      </section>
-
-      {/* Pillars — numbered grid with scale */}
-      <div className="container mx-auto px-6 md:px-12 max-w-5xl py-20 md:py-32">
-        <section>
-          <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-16">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["pillars"]}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
-            {body.pillars.map((pillar, i) => (
+            {body.pillars.map((pillar) => (
               <div key={pillar.title}>
-                <span className="text-7xl md:text-8xl font-black text-brand/15 leading-none block mb-4">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                <div className="w-10 h-1 bg-accent mb-4" />
                 <h3 className="text-xl font-bold text-heading mb-3">
                   {pillar.title}
                 </h3>
@@ -175,19 +170,19 @@ export const ProductsPageTemplate = ({
               </div>
             ))}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
-      {/* Approach — full-bleed dark, accent markers + vertical dividers */}
-      <section className="cta-bg-pattern bg-brand py-20 md:py-32 px-6 md:px-12">
-        <div className="container mx-auto max-w-5xl">
-          <h2 className="text-sm tracking-widest uppercase text-white/50 mb-16">
+      {/* ── Approach — dark panel, same accent-bar vocabulary ── */}
+      <section className="cta-bg-pattern bg-brand py-20 md:py-28 px-6 md:px-12">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-sm tracking-widest uppercase text-white/50 mb-12">
             {labels["approach"]}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
             {body.approach.map((step) => (
               <div key={step.title}>
-                <div className="w-10 h-1 bg-accent mb-6" />
+                <div className="w-10 h-1 bg-accent mb-4" />
                 <h3 className="text-xl font-bold text-white mb-3">
                   {step.title}
                 </h3>
@@ -200,11 +195,10 @@ export const ProductsPageTemplate = ({
         </div>
       </section>
 
-      {/* Products + Benefits + Tech container */}
-      <div className="container mx-auto px-6 md:px-12 max-w-5xl py-20 md:py-32">
-        {/* Brain Models — asymmetric showcase */}
-        {products.length > 0 && (
-          <section className="mb-20 md:mb-32">
+      {/* ── Products — showcase ── */}
+      {products.length > 0 && (
+        <section className="py-20 md:py-28 px-6 md:px-12">
+          <div className="max-w-5xl mx-auto">
             <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-4">
               {labels["productsIntro"]}
             </h2>
@@ -215,10 +209,8 @@ export const ProductsPageTemplate = ({
             )}
             {!body.productsIntro && <div className="mb-12" />}
 
-            {/* Featured product — full width with gradient strip */}
             {products[0] && <FeaturedProductCard product={products[0]} />}
 
-            {/* Secondary products — 2-column grid */}
             {products.length > 1 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                 {products.slice(1).map((product) => (
@@ -226,17 +218,20 @@ export const ProductsPageTemplate = ({
                 ))}
               </div>
             )}
-          </section>
-        )}
+          </div>
+        </section>
+      )}
 
-        {/* Technologies — left border accent */}
-        <section className="mb-20 md:mb-32">
+      {/* ── Platform — technologies + benefits, unified on subtle background ── */}
+      <section className="bg-theme-subtle py-20 md:py-28 px-6 md:px-12">
+        <div className="max-w-5xl mx-auto">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["technologies"]}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-20 md:mb-28">
             {body.technologies.map((tech) => (
-              <div key={tech.title} className="border-l-2 border-accent pl-6">
+              <div key={tech.title}>
+                <div className="w-10 h-1 bg-accent mb-4" />
                 <h3 className="text-lg font-bold text-heading mb-2">
                   {tech.title}
                 </h3>
@@ -246,22 +241,15 @@ export const ProductsPageTemplate = ({
               </div>
             ))}
           </div>
-        </section>
-      </div>
 
-      {/* Benefits — definition list on subtle background */}
-      <section className="bg-theme-subtle py-20 md:py-28 px-6 md:px-12">
-        <div className="max-w-4xl mx-auto">
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-12">
             {labels["benefits"]}
           </h2>
-          <div className="divide-y divide-theme">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
             {body.benefits.map((benefit) => (
-              <div
-                key={benefit.title}
-                className="py-8 first:pt-0 last:pb-0 md:flex md:gap-16"
-              >
-                <h3 className="text-lg font-bold text-heading mb-2 md:mb-0 md:w-48 md:shrink-0">
+              <div key={benefit.title}>
+                <div className="w-10 h-1 bg-accent mb-4" />
+                <h3 className="text-lg font-bold text-heading mb-2">
                   {benefit.title}
                 </h3>
                 <p className="text-theme-muted leading-relaxed">
@@ -273,16 +261,49 @@ export const ProductsPageTemplate = ({
         </div>
       </section>
 
-      {/* CTA — deep blue, product-specific call to action */}
-      {/* Extra bottom padding + negative margin so the layout's WavyDivider overlaps the blue */}
-      <section className="cta-bg-pattern bg-brand-dark pt-24 md:pt-32 pb-40 md:pb-48 -mb-[60px] px-6 md:px-12">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-sm tracking-widest uppercase text-white/60 mb-4">
+      {/* ── CTA — dark panel with wave echo and product-specific call to action ── */}
+      <section className="relative bg-brand-dark overflow-hidden pt-24 md:pt-32 pb-40 md:pb-48 -mb-[60px] px-6 md:px-12">
+        {/* Subtle wave echo — mirrors hero but quieter */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+          <svg
+            preserveAspectRatio="none"
+            width="200%"
+            height="100%"
+            viewBox="0 0 1600 400"
+            className="block absolute inset-0"
+          >
+            <path
+              d="M0,200 C67,140 133,140 200,200 C267,260 333,260 400,200 C467,140 533,140 600,200 C667,260 733,260 800,200 C867,140 933,140 1000,200 C1067,260 1133,260 1200,200 C1267,140 1333,140 1400,200 C1467,260 1533,260 1600,200"
+              className="stroke-accent"
+              strokeWidth="1.5"
+              strokeMiterlimit="10"
+              fill="none"
+              opacity="0.3"
+            />
+            <path
+              d="M0,240 C67,180 133,180 200,240 C267,300 333,300 400,240 C467,180 533,180 600,240 C667,300 733,300 800,240 C867,180 933,180 1000,240 C1067,300 1133,300 1200,240 C1267,180 1333,180 1400,240 C1467,300 1533,300 1600,240"
+              className="stroke-accent"
+              strokeWidth="1"
+              strokeMiterlimit="10"
+              fill="none"
+              opacity="0.15"
+            />
+          </svg>
+        </div>
+
+        <div className="absolute inset-0 cta-bg-pattern pointer-events-none" />
+
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          <div className="w-10 h-1 bg-accent mx-auto mb-6" />
+          <p className="text-sm tracking-widest uppercase text-white/50 mb-6">
             {labels["cta"]}
           </p>
-          <h2 className="text-3xl md:text-5xl font-bold text-white max-w-2xl mb-10">
+          <h2 className="text-4xl md:text-6xl font-bold text-white max-w-2xl mx-auto mb-6 tracking-tight">
             {body.cta.heading}
           </h2>
+          <p className="text-lg text-white/60 max-w-lg mx-auto mb-10 leading-relaxed">
+            {body.vision.split("\n")[0]}
+          </p>
           <LinkButton href={body.cta.link} variant="outline-light" size="lg">
             {body.cta.buttonText}
           </LinkButton>
@@ -293,7 +314,7 @@ export const ProductsPageTemplate = ({
 };
 
 /**
- * Featured product card — full-width with gradient top strip and
+ * Featured product card — full-width with gradient accent strip,
  * horizontal layout on desktop
  */
 function FeaturedProductCard({
@@ -309,7 +330,7 @@ function FeaturedProductCard({
       className="overflow-hidden rounded-2xl p-0 hover:-translate-y-1 transition-all duration-300 hover:border-brand/30 group"
       href={product.url}
     >
-      <div className="h-2 bg-gradient-to-r from-brand to-accent" />
+      <div className="h-1.5 bg-gradient-to-r from-brand to-accent" />
       <div className="p-8 md:p-10 md:flex md:gap-12 md:items-start">
         <div className="md:flex-1">
           <div className="mb-4">
@@ -334,7 +355,7 @@ function FeaturedProductCard({
 }
 
 /**
- * Product card — compact with brand top strip
+ * Product card — compact with gradient accent strip
  */
 function ProductCard({ product }: { product: EnrichedProduct }): JSX.Element {
   const { frontmatter, body } = product;
@@ -345,7 +366,7 @@ function ProductCard({ product }: { product: EnrichedProduct }): JSX.Element {
       className="overflow-hidden rounded-2xl p-0 hover:-translate-y-1 transition-all duration-300 hover:border-brand/30 group"
       href={product.url}
     >
-      <div className="h-1.5 bg-brand" />
+      <div className="h-1.5 bg-gradient-to-r from-brand to-accent" />
       <div className="p-8">
         <div className="mb-4">
           <StatusBadge status={frontmatter.availability} />
