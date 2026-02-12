@@ -100,7 +100,7 @@ export function createSystemTools(
     createTool(
       pluginId,
       "list",
-      "List entities by type with optional filters.",
+      "List entities by type with optional filters. Returns metadata only (id, type, metadata, dates) — use system_get to retrieve full content for a specific entity.",
       {
         entityType: z.string().describe("Entity type to list"),
         status: z
@@ -138,11 +138,14 @@ export function createSystemTools(
         }
 
         const entities = await plugin.listEntities(parsed.entityType, options);
-        const sanitized = entities.map(sanitizeEntity);
+        // Return metadata only — strip content to reduce token usage
+        const items = entities.map(
+          ({ content: _, contentHash: __, ...rest }) => rest,
+        );
 
         return {
           success: true,
-          data: { entities: sanitized, count: sanitized.length },
+          data: { entities: items, count: items.length },
         };
       },
       { visibility: "public" },

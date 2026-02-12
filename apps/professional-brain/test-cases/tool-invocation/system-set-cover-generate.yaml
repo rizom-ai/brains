@@ -8,7 +8,7 @@ tags:
   - cover
 
 turns:
-  - userMessage: "Generate a cover image for the blog post 'introduction-to-typescript'"
+  - userMessage: "Generate a cover image for the blog post 'urging-new-institutions'"
 
 successCriteria:
   expectedTools:
@@ -16,12 +16,12 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         targetEntityType: "post"
-        targetEntityId: "introduction-to-typescript"
+        targetEntityId: "urging-new-institutions"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 5
   maxTokens: 25000

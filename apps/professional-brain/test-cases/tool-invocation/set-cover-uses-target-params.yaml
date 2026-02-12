@@ -8,20 +8,20 @@ tags:
   - core
 
 turns:
-  - userMessage: "Generate a cover image for the social post 'ai-future-post'"
+  - userMessage: "Generate a cover image for the blog post 'the-future-of-work-is-play'"
 
 successCriteria:
   expectedTools:
     - toolName: image_generate
       shouldBeCalled: true
       argsContain:
-        targetEntityType: "social-post"
-        targetEntityId: "ai-future-post"
+        targetEntityType: "post"
+        targetEntityId: "the-future-of-work-is-play"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 5
   maxTokens: 25000

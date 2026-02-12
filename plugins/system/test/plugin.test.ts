@@ -320,22 +320,6 @@ describe("SystemPlugin", () => {
       expect(entity.metadata).toHaveProperty("title", "Test Image");
     });
 
-    it("system_list should strip base64 content from image entities", async () => {
-      harness.getShell().addEntities([mockImageEntity]);
-
-      const result = await harness.executeTool("system_list", {
-        entityType: "image",
-      });
-
-      expect(result.success).toBe(true);
-      const entities = (result.data as { entities: BaseEntity[] }).entities;
-      expect(entities).toHaveLength(1);
-      const image = entities[0];
-      expect(image).toBeDefined();
-      expect(image?.content).not.toContain("base64");
-      expect(image?.metadata).toHaveProperty("title", "Test Image");
-    });
-
     it("system_get should preserve content for non-image entities", async () => {
       harness.getShell().addEntities([mockPostEntity]);
 
@@ -347,6 +331,94 @@ describe("SystemPlugin", () => {
       expect(result.success).toBe(true);
       const entity = (result.data as { entity: BaseEntity }).entity;
       expect(entity.content).toBe("---\ntitle: Test Post\n---\nHello world");
+    });
+  });
+
+  describe("system_list returns metadata only", () => {
+    const mockPostA = createTestEntity<BaseEntity>("post", {
+      id: "post-a",
+      content: "---\ntitle: Post A\n---\nLong content here...",
+      metadata: { title: "Post A", slug: "post-a", status: "published" },
+    });
+
+    const mockPostB = createTestEntity<BaseEntity>("post", {
+      id: "post-b",
+      content: "---\ntitle: Post B\n---\nMore long content...",
+      metadata: { title: "Post B", slug: "post-b", status: "draft" },
+    });
+
+    it("should not include content field in list results", async () => {
+      harness.getShell().addEntities([mockPostA]);
+
+      const result = await harness.executeTool("system_list", {
+        entityType: "post",
+      });
+
+      expect(result.success).toBe(true);
+      const entities = (result.data as { entities: Record<string, unknown>[] })
+        .entities;
+      expect(entities).toHaveLength(1);
+      expect(entities[0]).not.toHaveProperty("content");
+    });
+
+    it("should not include contentHash field in list results", async () => {
+      harness.getShell().addEntities([mockPostA]);
+
+      const result = await harness.executeTool("system_list", {
+        entityType: "post",
+      });
+
+      expect(result.success).toBe(true);
+      const entities = (result.data as { entities: Record<string, unknown>[] })
+        .entities;
+      expect(entities[0]).not.toHaveProperty("contentHash");
+    });
+
+    it("should include metadata in list results", async () => {
+      harness.getShell().addEntities([mockPostA]);
+
+      const result = await harness.executeTool("system_list", {
+        entityType: "post",
+      });
+
+      expect(result.success).toBe(true);
+      const entities = (result.data as { entities: Record<string, unknown>[] })
+        .entities;
+      expect(entities[0]).toHaveProperty("id", "post-a");
+      expect(entities[0]).toHaveProperty("entityType", "post");
+      expect(entities[0]).toHaveProperty("metadata");
+      expect(entities[0]?.metadata).toHaveProperty("title", "Post A");
+      expect(entities[0]?.metadata).toHaveProperty("status", "published");
+    });
+
+    it("should include dates in list results", async () => {
+      harness.getShell().addEntities([mockPostA]);
+
+      const result = await harness.executeTool("system_list", {
+        entityType: "post",
+      });
+
+      expect(result.success).toBe(true);
+      const entities = (result.data as { entities: Record<string, unknown>[] })
+        .entities;
+      expect(entities[0]).toHaveProperty("created");
+      expect(entities[0]).toHaveProperty("updated");
+    });
+
+    it("should return correct count", async () => {
+      harness.getShell().addEntities([mockPostA, mockPostB]);
+
+      const result = await harness.executeTool("system_list", {
+        entityType: "post",
+      });
+
+      expect(result.success).toBe(true);
+      const data = result.data as {
+        entities: Record<string, unknown>[];
+        count: number;
+      };
+      expect(data.count).toBe(2);
+      expect(data.entities).toHaveLength(2);
     });
   });
 });

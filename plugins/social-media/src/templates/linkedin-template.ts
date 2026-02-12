@@ -59,6 +59,7 @@ LinkedIn-specific guidelines:
 8. TONE: Professional but personable. Thought leadership, not sales pitch
 9. AVOID: Corporate buzzwords, excessive emojis, "I'm excited to announce"
 10. AUTHENTICITY: Share genuine insights, lessons learned, or unique perspectives
+11. RELEVANCE: Stay strictly on-topic. Every sentence should directly address the given prompt topic. Don't drift into tangential themes or generic advice
 
 The goal is to provide value first - build trust through useful content, not self-promotion.`,
 });
