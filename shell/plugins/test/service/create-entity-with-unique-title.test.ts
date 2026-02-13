@@ -12,7 +12,10 @@ type MockContext = Pick<
 function createMockContext(
   existingIds: Set<string>,
   aiTitle: string,
-): { context: MockContext; mocks: { query: ReturnType<typeof mock> } } {
+): {
+  context: MockContext;
+  mocks: { generateObject: ReturnType<typeof mock> };
+} {
   const getEntity = mock(async (_entityType: string, id: string) => {
     if (existingIds.has(id)) {
       return {
@@ -28,9 +31,8 @@ function createMockContext(
     return null;
   });
 
-  const query = mock(async () => ({
-    message: aiTitle,
-    sources: [],
+  const generateObject = mock(async () => ({
+    object: { title: aiTitle },
   }));
 
   return {
@@ -38,10 +40,10 @@ function createMockContext(
       entityService: {
         getEntity,
       } as unknown as ServicePluginContext["entityService"],
-      ai: { query } as unknown as ServicePluginContext["ai"],
+      ai: { generateObject } as unknown as ServicePluginContext["ai"],
       logger: createSilentLogger(),
     },
-    mocks: { query },
+    mocks: { generateObject },
   };
 }
 
@@ -61,7 +63,7 @@ describe("ensureUniqueTitle", () => {
     });
 
     expect(result).toBe("My Post");
-    expect(mocks.query).not.toHaveBeenCalled();
+    expect(mocks.generateObject).not.toHaveBeenCalled();
   });
 
   test("collision — asks AI and returns new title", async () => {
@@ -79,24 +81,7 @@ describe("ensureUniqueTitle", () => {
     });
 
     expect(result).toBe("A Fresh Perspective");
-    expect(mocks.query).toHaveBeenCalledTimes(1);
-  });
-
-  test("strips quotes from AI response", async () => {
-    const { context } = createMockContext(
-      new Set(["my-post"]),
-      '"A Quoted Title"',
-    );
-
-    const result = await ensureUniqueTitle({
-      entityType: "post",
-      title: "My Post",
-      deriveId,
-      regeneratePrompt: "Generate a different title",
-      context,
-    });
-
-    expect(result).toBe("A Quoted Title");
+    expect(mocks.generateObject).toHaveBeenCalledTimes(1);
   });
 
   test("includes original title and regeneratePrompt in AI prompt", async () => {
@@ -113,7 +98,7 @@ describe("ensureUniqueTitle", () => {
       context,
     });
 
-    const prompt = mocks.query.mock.calls[0]?.[0] as string;
+    const prompt = mocks.generateObject.mock.calls[0]?.[0] as string;
     expect(prompt).toContain("My Post");
     expect(prompt).toContain(
       "Generate a unique blog post title about TypeScript",
@@ -136,6 +121,6 @@ describe("ensureUniqueTitle", () => {
     });
 
     expect(result).toBe("New Title");
-    expect(mocks.query).toHaveBeenCalledTimes(1);
+    expect(mocks.generateObject).toHaveBeenCalledTimes(1);
   });
 });

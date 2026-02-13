@@ -7,6 +7,7 @@ import { createTemplate } from "@brains/plugins";
 export const projectGenerationSchema = z.object({
   title: z
     .string()
+    .max(80)
     .describe(
       "A clear, compelling project title (3-8 words). Should capture the essence of the project.",
     ),

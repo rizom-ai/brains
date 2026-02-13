@@ -105,6 +105,12 @@ export interface IServiceAINamespace extends IAINamespace {
   /** Generate content using AI with template */
   generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
 
+  /** Generate a structured object using AI with a Zod schema */
+  generateObject: <T>(
+    prompt: string,
+    schema: z.ZodType<T>,
+  ) => Promise<{ object: T }>;
+
   /** Generate an image using AI (requires OPENAI_API_KEY) */
   generateImage: (
     prompt: string,
@@ -289,6 +295,14 @@ export function createServicePluginContext(
         config: ContentGenerationConfig,
       ): Promise<T> => {
         return shell.generateContent(config);
+      },
+
+      // Structured object generation
+      generateObject: async <T>(
+        prompt: string,
+        schema: z.ZodType<T>,
+      ): Promise<{ object: T }> => {
+        return shell.generateObject(prompt, schema);
       },
 
       // Image generation

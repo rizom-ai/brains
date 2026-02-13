@@ -139,6 +139,10 @@ export interface IShell {
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;
+  generateObject<T>(
+    prompt: string,
+    schema: z.ZodType<T>,
+  ): Promise<{ object: T }>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
   // Image generation (requires OPENAI_API_KEY)

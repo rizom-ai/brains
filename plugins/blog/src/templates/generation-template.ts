@@ -7,6 +7,7 @@ import { createTemplate } from "@brains/plugins";
 export const blogGenerationSchema = z.object({
   title: z
     .string()
+    .max(80)
     .describe(
       "A short, punchy title (2-4 words) that's memorable and evocative",
     ),

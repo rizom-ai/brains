@@ -16,6 +16,7 @@ const linkExtractionSchema = z.object({
     ),
   title: z
     .string()
+    .max(80)
     .describe(
       "The page title - extract from the content or create a descriptive one. Leave empty string if success is false.",
     ),

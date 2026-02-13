@@ -201,6 +201,10 @@ export async function main(): Promise<void> {
     // Get the eval handler registry - plugins will register their handlers here
     const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
 
+    const { existsSync, mkdirSync, rmSync, copyFileSync, cpSync } =
+      await import("fs");
+    const { execSync } = await import("child_process");
+
     // Check if we should clone existing data (--clone-data flag)
     const cloneData = process.argv.includes("--clone-data");
 
@@ -208,9 +212,6 @@ export async function main(): Promise<void> {
       // Copy existing brain.db and brain-data to temp location
       // This allows evals to use existing indexed content without re-syncing
       // Note: jobs and conversations are NOT cloned (fresh for each eval run)
-      const { copyFileSync, cpSync, existsSync, mkdirSync } = await import(
-        "fs"
-      );
       const sourceDataDir = resolve(process.cwd(), "data");
       const sourceBrainData = resolve(process.cwd(), "brain-data");
 
@@ -227,6 +228,23 @@ export async function main(): Promise<void> {
         console.log("Cloned brain-data for eval");
       }
     }
+
+    // Copy seed content into eval data dir so directory-sync picks it up
+    const seedContentDir = resolve(process.cwd(), "seed-content");
+    const evalDataDir = `${evalDbBase}-data`;
+    if (existsSync(seedContentDir)) {
+      mkdirSync(evalDataDir, { recursive: true });
+      cpSync(seedContentDir, evalDataDir, { recursive: true });
+      console.log("Copied seed-content into eval data dir");
+    }
+
+    // Recreate bare git repo fresh each run to avoid stale data from previous evals
+    const gitRemotePath = "/tmp/brain-eval-git-remote";
+    if (existsSync(gitRemotePath)) {
+      rmSync(gitRemotePath, { recursive: true, force: true });
+    }
+    mkdirSync(gitRemotePath, { recursive: true });
+    execSync("git init --bare", { cwd: gitRemotePath, stdio: "ignore" });
 
     const evalConfig = {
       ...config,

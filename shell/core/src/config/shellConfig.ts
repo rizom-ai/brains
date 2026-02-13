@@ -200,6 +200,7 @@ export function createShellConfig(
     features: {},
     plugins: overrides.plugins ?? [],
     permissions: overrides.permissions ?? {}, // Default to empty permissions
+    ...(overrides.dataDir && { dataDir: overrides.dataDir }),
   };
 
   // Validate schema and return with plugins

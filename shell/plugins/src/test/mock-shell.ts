@@ -441,6 +441,13 @@ export class MockShell implements IShell {
     } as unknown as DataSourceRegistry;
   }
 
+  async generateObject<T>(
+    _prompt: string,
+    _schema: unknown,
+  ): Promise<{ object: T }> {
+    return { object: {} as T };
+  }
+
   async generateContent<T = unknown>(
     config: ContentGenerationConfig,
   ): Promise<T> {

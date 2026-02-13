@@ -7,6 +7,7 @@ import { createTemplate } from "@brains/plugins";
 export const linkedinPostSchema = z.object({
   title: z
     .string()
+    .max(80)
     .describe(
       "A short descriptive title (3-6 words) summarizing the post topic. Used for file naming, not displayed on LinkedIn. Examples: 'Plugin System Launch', 'TypeScript Best Practices', 'Q4 Results Summary'",
     ),

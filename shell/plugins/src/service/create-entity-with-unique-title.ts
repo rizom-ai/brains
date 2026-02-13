@@ -1,4 +1,5 @@
 import type { ServicePluginContext } from "./context";
+import { z } from "@brains/utils";
 
 /**
  * Parameters for resolving a unique title before entity creation.
@@ -47,11 +48,16 @@ export async function ensureUniqueTitle(
     `Entity ID collision: ${entityType}/${proposedId}, asking AI for a new title`,
   );
 
-  const response = await context.ai.query(
-    `The title "${title}" is already taken. ${regeneratePrompt}\n\nRespond with ONLY the new title, nothing else.`,
+  const titleSchema = z.object({
+    title: z.string().max(80).describe("A short, unique title (2-6 words)"),
+  });
+
+  const { object } = await context.ai.generateObject(
+    `The title "${title}" is already taken. ${regeneratePrompt}`,
+    titleSchema,
   );
 
-  const newTitle = response.message.trim().replace(/^["']|["']$/g, "");
+  const newTitle = object.title;
   context.logger.debug(`AI suggested new title: "${newTitle}"`);
 
   return newTitle;

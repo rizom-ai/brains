@@ -7,6 +7,7 @@ import { createTemplate } from "@brains/plugins";
 export const noteGenerationSchema = z.object({
   title: z
     .string()
+    .max(80)
     .describe("A clear, descriptive title for the note (3-8 words)"),
   body: z
     .string()

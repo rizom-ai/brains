@@ -35,7 +35,7 @@ import type {
   ImageGenerationResult,
 } from "@brains/ai-service";
 import type { PermissionService } from "@brains/permission-service";
-import { Logger } from "@brains/utils";
+import { Logger, type z } from "@brains/utils";
 import { type IJobProgressMonitor } from "@brains/utils";
 import type { Plugin } from "@brains/plugins";
 import type { ShellConfig, ShellConfigInput } from "./config";
@@ -412,6 +412,19 @@ export class Shell implements IShell {
 
   public getEntityRegistry(): IEntityRegistry {
     return this.entityRegistry;
+  }
+
+  public async generateObject<T>(
+    prompt: string,
+    schema: z.ZodType<T>,
+  ): Promise<{ object: T }> {
+    this.requireInitialized("Shell generateObject");
+    const { object } = await this.aiService.generateObject(
+      "You are a helpful assistant. Respond with the requested structured data.",
+      prompt,
+      schema,
+    );
+    return { object };
   }
 
   public getAIService(): IAIService {
