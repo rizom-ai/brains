@@ -1,377 +1,258 @@
-# Discord Interface
+# Plan: Discord Interface
 
-## Overview
+## Context
 
-A Discord bot interface for interacting with the brain via chat. Extends `MessageInterfacePlugin` like CLI and Matrix interfaces.
+The roadmap lists Discord as the first Phase 1 feature. A draft plan exists at `docs/plans/discord-interface.md` but has several issues compared to the actual Matrix implementation. This plan fixes those issues, incorporates Discord-specific improvements, and adds thread support and file/attachment handling.
 
-## Features
+### Issues in the existing plan
 
-- Multi-channel support (DMs and server channels)
-- Message editing for progress updates
-- Slash commands for common operations
-- Mention detection (@bot)
-- Permission levels per user
-- Typing indicators during processing
+1. **No message chunking** — Discord has a 2000 char limit; the plan ignores this
+2. **Sloppy type casts** — `(channel as any).send()` instead of discord.js type guards
+3. **Typing indicator expires** — single `sendTyping()` call; Discord typing auto-expires after ~10s
+4. **Rate limit config without implementation** — config exists, logic doesn't; removed (discord.js handles API rate limits)
+5. **Wrong import** — `import { z } from "zod"` instead of `@brains/utils`
+6. **Missing `@brains/agent-service` dependency**
+7. **No tests provided**
+8. **No thread support** — conversations not threaded
+9. **No file/attachment handling** — can't receive or send files
 
----
+### Improvements over Matrix
 
-## Architecture
+- **No client wrapper needed** — discord.js has excellent TS types (Matrix needed 337-line `MatrixClientWrapper`)
+- **No HTML conversion** — Discord renders markdown natively (Matrix needs `markdownToHtml()`)
+- **Simpler DM detection** — `!message.guild` vs Matrix's `m.direct` account data loading
+- **Thread-per-conversation** — auto-create threads for bot replies to keep channels clean
+- **File handling** — receive user attachments, send generated images
+
+## Files
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Discord Server                           │
-│   ┌──────────┐   ┌──────────┐   ┌──────────┐               │
-│   │ Channel  │   │   DM     │   │ Channel  │               │
-│   └────┬─────┘   └────┬─────┘   └────┬─────┘               │
-└────────┼──────────────┼──────────────┼──────────────────────┘
-         │              │              │
-         ▼              ▼              ▼
-┌─────────────────────────────────────────────────────────────┐
-│              DiscordInterface (MessageInterfacePlugin)       │
-│   - Discord.js Client                                        │
-│   - Message routing                                          │
-│   - Progress updates                                         │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     AgentService                             │
-│   - Natural language processing                              │
-│   - Tool execution                                           │
-│   - Conversation management                                  │
-└─────────────────────────────────────────────────────────────┘
+interfaces/discord/
+├── src/
+│   ├── index.ts                 # Exports
+│   ├── config.ts                # Zod config schema
+│   ├── discord-interface.ts     # Main implementation
+│   └── chunker.ts               # Message chunking (pure function)
+├── test/
+│   ├── types/global.d.ts        # Mock type declarations
+│   ├── mocks/setup.ts           # discord.js module mock
+│   ├── config.test.ts           # Config validation tests
+│   ├── chunker.test.ts          # Chunking unit tests
+│   └── discord-interface.test.ts # Interface tests
+├── package.json
+├── tsconfig.json
+└── .eslintrc.cjs
 ```
 
----
+## Implementation Details
 
-## 1. Configuration Schema
-
-**File**: `interfaces/discord/src/config.ts` (NEW)
+### 1. `src/config.ts` — Configuration
 
 ```typescript
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 export const discordConfigSchema = z.object({
-  /** Discord bot token (from environment) */
-  botToken: z.string(),
-
-  /** Application ID for slash commands */
-  applicationId: z.string().optional(),
-
-  /** Guild/Server ID (optional - for server-specific commands) */
-  guildId: z.string().optional(),
-
+  /** Discord bot token */
+  botToken: z.string().min(1),
   /** Allowed channel IDs (empty = all channels) */
   allowedChannels: z.array(z.string()).default([]),
-
-  /** Whether to respond only when mentioned */
+  /** Whether to respond only when mentioned in server channels */
   requireMention: z.boolean().default(true),
-
   /** Whether to respond to DMs */
   allowDMs: z.boolean().default(true),
-
-  /** Rate limiting */
-  rateLimit: z
-    .object({
-      /** Max messages per user per minute */
-      messagesPerMinute: z.number().default(10),
-      /** Cooldown message */
-      cooldownMessage: z
-        .string()
-        .default("Please wait a moment before sending another message."),
-    })
-    .default({}),
-
-  /** Status message for the bot */
-  statusMessage: z.string().default("Use /help for commands"),
-
-  /** Typing indicator during processing */
+  /** Show typing indicator during processing */
   showTypingIndicator: z.boolean().default(true),
+  /** Status message displayed on bot's profile */
+  statusMessage: z.string().default("Mention me to chat"),
+  /** Auto-create threads for bot replies in server channels */
+  useThreads: z.boolean().default(true),
+  /** Thread auto-archive duration in minutes */
+  threadAutoArchive: z.number().default(1440), // 1 day
 });
-
-export type DiscordConfig = z.infer<typeof discordConfigSchema>;
 ```
 
----
+### 2. `src/chunker.ts` — Message chunking
 
-## 2. Discord Interface Implementation
+Pure function, no discord.js dependency. Algorithm:
 
-**File**: `interfaces/discord/src/discord-interface.ts` (NEW)
+1. If message <= 2000 chars, return as-is
+2. Parse into blocks (split on `\n\n`), treating code blocks (```) as atomic
+3. Greedily accumulate blocks into chunks
+4. If a single block > 2000: split at line boundaries, then word boundaries
+5. Code blocks preserve opening/closing ``` markers when split
+
+```typescript
+export const DISCORD_MAX_MESSAGE_LENGTH = 2000;
+export function chunkMessage(message: string, maxLength?: number): string[];
+```
+
+### 3. `src/discord-interface.ts` — Main implementation
+
+Extends `MessageInterfacePlugin<DiscordConfig>`.
+
+#### Type-safe discord.js usage (no `as any`)
 
 ```typescript
 import {
-  MessageInterfacePlugin,
-  type InterfacePluginContext,
-  type Daemon,
-  type DaemonHealth,
-} from "@brains/plugins";
-import { Client, GatewayIntentBits, Events, Message } from "discord.js";
-import { discordConfigSchema, type DiscordConfig } from "./config";
-import packageJson from "../package.json";
+  Client,
+  GatewayIntentBits,
+  Events,
+  Partials,
+  type Message,
+  type TextBasedChannel,
+  ChannelType,
+  ThreadAutoArchiveDuration,
+  AttachmentBuilder,
+} from "discord.js";
 
-interface DiscordJobTrackingInfo {
-  messageId?: string;
-  channelId?: string;
+// Use discord.js type guards
+if (channel?.isSendable()) {
+  await channel.send(content);
 }
-
-export class DiscordInterface extends MessageInterfacePlugin<
-  DiscordConfig,
-  DiscordJobTrackingInfo
-> {
-  private client: Client | null = null;
-  private context?: InterfacePluginContext;
-
-  constructor(config: Partial<DiscordConfig> = {}) {
-    super("discord", packageJson, config, discordConfigSchema);
-  }
-
-  /**
-   * Register the interface
-   */
-  protected override async onRegister(
-    context: InterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    this.context = context;
-    this.logger.info("Discord interface registered");
-  }
-
-  /**
-   * Create daemon for Discord bot lifecycle
-   */
-  protected override createDaemon(): Daemon | undefined {
-    return {
-      start: async (): Promise<void> => {
-        await this.startBot();
-      },
-      stop: async (): Promise<void> => {
-        await this.stopBot();
-      },
-      healthCheck: async (): Promise<DaemonHealth> => {
-        const isConnected = this.client?.isReady() ?? false;
-        return {
-          status: isConnected ? "healthy" : "error",
-          message: isConnected ? "Discord bot connected" : "Bot disconnected",
-          lastCheck: new Date(),
-          details: {
-            guilds: this.client?.guilds.cache.size ?? 0,
-          },
-        };
-      },
-    };
-  }
-
-  /**
-   * Start the Discord bot
-   */
-  private async startBot(): Promise<void> {
-    this.client = new Client({
-      intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.DirectMessages,
-      ],
-    });
-
-    // Handle ready event
-    this.client.once(Events.ClientReady, (readyClient) => {
-      this.logger.info(`Discord bot ready as ${readyClient.user.tag}`);
-
-      // Set status
-      readyClient.user.setActivity(this.config.statusMessage);
-    });
-
-    // Handle messages
-    this.client.on(Events.MessageCreate, (message) => {
-      void this.handleMessage(message);
-    });
-
-    // Login
-    await this.client.login(this.config.botToken);
-  }
-
-  /**
-   * Stop the Discord bot
-   */
-  private async stopBot(): Promise<void> {
-    if (this.client) {
-      this.client.destroy();
-      this.client = null;
-      this.logger.info("Discord bot stopped");
-    }
-  }
-
-  /**
-   * Handle incoming Discord message
-   */
-  private async handleMessage(message: Message): Promise<void> {
-    // Ignore bot messages
-    if (message.author.bot) return;
-
-    // Check if it's a DM
-    const isDM = !message.guild;
-    if (isDM && !this.config.allowDMs) return;
-
-    // Check allowed channels
-    if (!isDM && this.config.allowedChannels.length > 0) {
-      if (!this.config.allowedChannels.includes(message.channel.id)) return;
-    }
-
-    // Check mention requirement
-    const isMentioned = message.mentions.has(this.client!.user!);
-    if (this.config.requireMention && !isDM && !isMentioned) return;
-
-    // Extract message content (remove bot mention)
-    let content = message.content;
-    if (isMentioned) {
-      content = content.replace(/<@!?\d+>/g, "").trim();
-    }
-
-    if (!content) return;
-
-    const channelId = message.channel.id;
-    const userId = message.author.id;
-
-    // Check permissions
-    const permissionLevel =
-      this.context?.permissions.getUserLevel("discord", userId) ?? "public";
-
-    // Show typing indicator
-    if (this.config.showTypingIndicator) {
-      void message.channel.sendTyping();
-    }
-
-    // Start processing
-    this.startProcessingInput(channelId);
-
-    try {
-      // Route to agent service
-      const response = await this.context?.agentService.chat(
-        content,
-        `discord-${channelId}`, // conversationId
-        {
-          userPermissionLevel: permissionLevel,
-          interfaceType: "discord",
-          channelId,
-          channelName: isDM
-            ? "DM"
-            : ((message.channel as any).name ?? channelId),
-        },
-      );
-
-      if (response?.text) {
-        const sentMessage = await this.sendMessageWithId(
-          channelId,
-          response.text,
-        );
-
-        // Track jobs for completion updates
-        if (response.toolResults && sentMessage) {
-          for (const toolResult of response.toolResults) {
-            if (toolResult.jobId) {
-              this.trackAgentResponseForJob(
-                toolResult.jobId,
-                sentMessage,
-                channelId,
-              );
-            }
-          }
-        }
-      }
-    } catch (error) {
-      this.logger.error("Error handling Discord message", { error });
-      await this.sendMessageToChannel(
-        channelId,
-        "Sorry, I encountered an error processing your message.",
-      );
-    } finally {
-      this.endProcessingInput();
-    }
-  }
-
-  /**
-   * Send message to Discord channel
-   */
-  protected sendMessageToChannel(
-    channelId: string | null,
-    message: string,
-  ): void {
-    if (!channelId || !this.client) return;
-
-    const channel = this.client.channels.cache.get(channelId);
-    if (channel?.isTextBased()) {
-      void (channel as any).send(message);
-    }
-  }
-
-  /**
-   * Send message and return message ID for editing
-   */
-  protected override async sendMessageWithId(
-    channelId: string | null,
-    message: string,
-  ): Promise<string | undefined> {
-    if (!channelId || !this.client) return undefined;
-
-    const channel = this.client.channels.cache.get(channelId);
-    if (channel?.isTextBased()) {
-      const sentMessage = await (channel as any).send(message);
-      return sentMessage.id;
-    }
-    return undefined;
-  }
-
-  /**
-   * Edit existing message
-   */
-  protected override async editMessage(
-    channelId: string,
-    messageId: string,
-    newMessage: string,
-  ): Promise<boolean> {
-    if (!this.client) return false;
-
-    try {
-      const channel = this.client.channels.cache.get(channelId);
-      if (channel?.isTextBased()) {
-        const message = await (channel as any).messages.fetch(messageId);
-        if (message?.editable) {
-          await message.edit(newMessage);
-          return true;
-        }
-      }
-    } catch (error) {
-      this.logger.warn("Failed to edit Discord message", { error });
-    }
-    return false;
-  }
-
-  /**
-   * Discord supports message editing
-   */
-  protected override supportsMessageEditing(): boolean {
-    return true;
-  }
+if (message.channel.isThread()) {
+  /* in thread */
 }
 ```
 
----
+#### Periodic typing indicator (Discord-specific)
 
-## 3. Main Export
-
-**File**: `interfaces/discord/src/index.ts` (NEW)
+Discord typing expires after ~10s. Refresh every 8s with `setInterval`.
 
 ```typescript
-export { DiscordInterface } from "./discord-interface";
-export { discordConfigSchema, type DiscordConfig } from "./config";
+private typingIntervals = new Map<string, ReturnType<typeof setInterval>>();
+
+private startTypingIndicator(channel: TextBasedChannel): void {
+  channel.sendTyping().catch(/* log */);
+  const interval = setInterval(() => {
+    channel.sendTyping().catch(/* log */);
+  }, 8000);
+  this.typingIntervals.set(channel.id, interval);
+}
+
+private stopTypingIndicator(channelId: string): void {
+  const interval = this.typingIntervals.get(channelId);
+  if (interval) { clearInterval(interval); this.typingIntervals.delete(channelId); }
+}
 ```
 
----
+#### Thread support
 
-## 4. Package Configuration
+When `config.useThreads` is true and the message is in a server channel (not DM, not already a thread), the bot creates a thread from its reply message. Subsequent messages in that thread are part of the same conversation.
 
-**File**: `interfaces/discord/package.json` (NEW)
+```typescript
+// In handleMessage, after sending the response:
+if (config.useThreads && message.guild && !message.channel.isThread()) {
+  const reply = await message.reply(responseText);
+  const thread = await reply.startThread({
+    name: truncateThreadName(responseText), // First ~100 chars of response
+    autoArchiveDuration: config.threadAutoArchive,
+  });
+  // conversationId maps to thread: `discord-${thread.id}`
+}
+
+// When receiving a message in a thread:
+if (message.channel.isThread()) {
+  // Use thread ID as conversation, respond directly in thread (no new thread)
+  const conversationId = `discord-${message.channel.id}`;
+}
+```
+
+Conversation mapping:
+
+- **DM**: `discord-${channelId}` (same DM channel = same conversation)
+- **Thread**: `discord-${threadId}` (thread = conversation)
+- **Server channel (no threads)**: `discord-${channelId}`
+- **Server channel (with threads)**: first message creates thread, subsequent use thread ID
+
+#### File/attachment handling
+
+**Receiving attachments**: Extract URLs from `message.attachments` and include them in the agent context so the brain can process images/files.
+
+```typescript
+// In handleMessage:
+const attachmentUrls = message.attachments.map((a) => ({
+  url: a.url,
+  name: a.name,
+  contentType: a.contentType,
+  size: a.size,
+}));
+
+// Pass to agent as part of the message
+const content =
+  attachmentUrls.length > 0
+    ? `${messageText}\n\n[Attachments: ${attachmentUrls.map((a) => `${a.name} (${a.url})`).join(", ")}]`
+    : messageText;
+```
+
+**Sending attachments**: When the agent generates an image (via `image_generate` tool), send it as a Discord attachment.
+
+```typescript
+// Check agent response for image results
+if (response.toolResults) {
+  for (const result of response.toolResults) {
+    if (result.type === "image" && result.data) {
+      const buffer = Buffer.from(result.data, "base64");
+      const attachment = new AttachmentBuilder(buffer, {
+        name: "generated-image.png",
+      });
+      await channel.send({ files: [attachment] });
+    }
+  }
+}
+```
+
+File size limit: 8 MB for bot uploads. Validate before sending.
+
+#### Message handling flow (mention-based, mirrors Matrix)
+
+1. Ignore bot messages
+2. DM check (`!message.guild`)
+3. Channel allowlist check
+4. Mention check (`message.mentions.has(client.user)`) — or always respond in threads
+5. Strip mention from content
+6. Extract attachment URLs
+7. Permission check via `context.permissions.getUserLevel("discord", userId)`
+8. `startProcessingInput(channelId)` + start typing
+9. Check `pendingConfirmations` map
+10. Route to `agentService.chat(content, conversationId, context)`
+11. Send response (create thread if enabled), send attachments, track jobs
+12. `endProcessingInput()` + stop typing in `finally`
+
+#### Chunked message sending
+
+- `sendMessageToChannel`: chunks + fire-and-forget (matching abstract signature)
+- `sendMessageWithId`: chunks + returns last message ID for progress editing
+- `editMessage`: truncates to 2000 chars (can only edit one message)
+
+#### Client setup
+
+```typescript
+new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+  ],
+  partials: [Partials.Channel], // Required for DM events
+});
+```
+
+#### Methods to implement
+
+| Method                   | Notes                                               |
+| ------------------------ | --------------------------------------------------- |
+| `sendMessageToChannel`   | Abstract, required. Chunks + fire-and-forget        |
+| `sendMessageWithId`      | Override. Chunks + returns last msg ID              |
+| `editMessage`            | Override. Truncates to 2000 chars                   |
+| `supportsMessageEditing` | Override. Returns `true`                            |
+| `createDaemon`           | Override. Start/stop/healthCheck for bot            |
+| `onRegister`             | Override. Store context, call `super.onRegister()`  |
+| `handleMessage`          | Private. Mention/DM flow with threads + attachments |
+| `startTypingIndicator`   | Private. Periodic refresh every 8s                  |
+| `stopTypingIndicator`    | Private. Clear interval                             |
+
+### 4. `package.json`
 
 ```json
 {
@@ -382,105 +263,111 @@ export { discordConfigSchema, type DiscordConfig } from "./config";
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "eslint --max-warnings 0 .",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "test": "bun test"
   },
   "dependencies": {
+    "@brains/agent-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
     "discord.js": "^14.14.1"
   },
   "devDependencies": {
-    "@brains/test-utils": "workspace:*",
-    "@types/bun": "latest",
-    "typescript": "5.7.2"
+    "@brains/core": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest"
   }
 }
 ```
 
----
+### 5. Tests
 
-## 5. Usage in brain.config.ts
+**`test/mocks/setup.ts`**: Mock `discord.js` module using `mock.module()` (same pattern as Matrix's `matrix-bot-sdk` mock at `interfaces/matrix/test/mocks/setup.ts`). Mock `Client`, `GatewayIntentBits`, `Events`, `Partials`, `AttachmentBuilder`, `ChannelType`, `ThreadAutoArchiveDuration`.
+
+**`test/config.test.ts`**: Valid/invalid config, defaults.
+
+**`test/chunker.test.ts`**: Under limit, paragraph split, code block preservation, line/word fallback, edge cases.
+
+**`test/discord-interface.test.ts`**: Using `createInterfacePluginHarness`. Tests:
+
+- Message routing to agent
+- Bot message filtering
+- DM handling
+- Mention detection + channel allowlist
+- Typing indicator refresh + cleanup
+- Chunked responses (multiple sends)
+- Confirmation flow
+- Error handling
+- Thread creation from reply (when `useThreads: true`)
+- Thread conversation continuity (respond in thread without creating new one)
+- Attachment URL extraction from incoming messages
+- Attachment sending for image generation results
+
+### 6. Integration
+
+**brain.config.ts**:
 
 ```typescript
-import { DiscordInterface } from "@brains/discord";
-
-// Add to interfaces array:
 new DiscordInterface({
   botToken: process.env["DISCORD_BOT_TOKEN"] || "",
-  applicationId: process.env["DISCORD_APP_ID"],
-  guildId: process.env["DISCORD_GUILD_ID"], // Optional
-  requireMention: true,
-  allowDMs: true,
-  showTypingIndicator: true,
-}),
+  useThreads: true,
+});
 ```
 
----
+**Permissions**:
 
-## Files Summary
+```typescript
+permissions: {
+  anchors: ["discord:YOUR_DISCORD_USER_ID"],
+  rules: [{ pattern: "discord:*", level: "public" }],
+}
+```
 
-| File                                                | Action |
-| --------------------------------------------------- | ------ |
-| `interfaces/discord/src/config.ts`                  | NEW    |
-| `interfaces/discord/src/discord-interface.ts`       | NEW    |
-| `interfaces/discord/src/index.ts`                   | NEW    |
-| `interfaces/discord/package.json`                   | NEW    |
-| `interfaces/discord/tsconfig.json`                  | NEW    |
-| `interfaces/discord/test/discord-interface.test.ts` | NEW    |
+**Environment variables**:
 
----
+```bash
+DISCORD_BOT_TOKEN=your-bot-token
+```
+
+**Discord Developer Portal setup**:
+
+1. Create application at discord.com/developers
+2. Create bot, copy token → `DISCORD_BOT_TOKEN`
+3. Enable MESSAGE CONTENT intent
+4. OAuth2 → URL Generator → scopes: `bot`
+5. Permissions: Send Messages, Read Message History, Create Public Threads, Send Messages in Threads, Attach Files
+6. Invite bot to server
 
 ## Implementation Order
 
-1. Create package structure (`interfaces/discord/`)
-2. Implement config schema
-3. Implement DiscordInterface class
-4. Add to turbo.json / workspace
-5. Write tests
-6. Add to professional-brain config
-
----
-
-## Environment Variables
-
-```bash
-# .env
-DISCORD_BOT_TOKEN=your-bot-token-here
-DISCORD_APP_ID=your-app-id-here
-DISCORD_GUILD_ID=your-server-id-here  # Optional
-```
-
----
-
-## Discord Bot Setup
-
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create new application
-3. Go to Bot section, create bot
-4. Copy token → `DISCORD_BOT_TOKEN`
-5. Enable MESSAGE CONTENT INTENT
-6. Go to OAuth2 → URL Generator
-7. Select scopes: `bot`, `applications.commands`
-8. Select permissions: Send Messages, Read Message History, Add Reactions
-9. Copy invite URL and add bot to server
-
----
+1. Package scaffold (`package.json`, `tsconfig.json`, `.eslintrc.cjs`)
+2. `src/config.ts` + `test/config.test.ts` → typecheck + test
+3. `src/chunker.ts` + `test/chunker.test.ts` → typecheck + test
+4. `test/mocks/setup.ts` + `test/types/global.d.ts`
+5. `src/discord-interface.ts` + `test/discord-interface.test.ts` → typecheck + test
+6. `src/index.ts`
+7. `bun install` + full typecheck + lint
 
 ## Verification
 
-1. **Unit tests**:
-   - Config validation
-   - Message handling (mock discord.js)
-   - Permission checking
+1. `bun run typecheck` in `interfaces/discord` — no errors
+2. `bun test` in `interfaces/discord` — all tests pass
+3. `bun run lint` in `interfaces/discord` — clean
+4. Manual end-to-end:
+   - Add to brain config with env vars
+   - Start app, verify bot comes online
+   - `@bot summarize my latest post` — verify mention flow
+   - Send message in server channel → verify thread created
+   - Reply in thread → verify response stays in thread
+   - Send image attachment → verify URL passed to agent
+   - Trigger image generation → verify image sent as attachment
 
-2. **Integration test**:
-   - Bot connects to Discord
-   - Responds to mentions
-   - Handles DMs
+## Key Reference Files
 
-3. **E2E test**:
-   - Start brain with Discord interface
-   - Send message in Discord server
-   - Verify response from brain
-   - Check job progress updates edit message
+- `interfaces/matrix/src/lib/matrix-interface.ts` — primary reference (542 lines)
+- `interfaces/matrix/test/mocks/setup.ts` — mock pattern to replicate
+- `shell/plugins/src/message-interface/message-interface-plugin.ts` — base class contract
+- `shell/plugins/src/interface/interface-plugin.ts` — daemon + job tracking
+- `interfaces/matrix/package.json` — dependency pattern
