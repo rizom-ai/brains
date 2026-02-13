@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-02-01
+Last Updated: 2025-02-13
 
 ---
 
@@ -48,15 +48,20 @@ Last Updated: 2025-02-01
 
 ## Phase 1: Post-v1.0 Improvements
 
+### Git Sync — Event-Driven Commit/Push
+
+- [ ] Subscribe to entity events (`entity:created`/`updated`/`deleted`) with debounced commit+push (see `docs/plans/git-sync-event-driven.md`)
+
 ### Discord Interface
 
-- [ ] Implement Discord bot (see `docs/plans/discord-interface.md`)
+- [ ] Implement Discord bot with threads, attachments, and message chunking (see `docs/plans/discord-interface.md`)
 
-### Image Generation Provider
+### Image Generation — Multi-Provider
 
-- [ ] Add Nano Banana Pro (Google Gemini) as alternative to DALL-E
-- [ ] Make provider configurable: `IMAGE_PROVIDER=google|openai`
-- [ ] Better text rendering for cover images with titles
+- [ ] Add Nano Banana Pro (Gemini 3 Pro Image) alongside DALL-E 3 (see `docs/plans/image-multi-provider.md`)
+- [ ] Switch from pixel sizes to aspect ratios (`1:1`, `16:9`, `9:16`, `4:3`, `3:4`)
+- [ ] Global provider config (`defaultImageProvider` in brain.config.ts)
+- [ ] Better text rendering for cover images via Nano Banana Pro's native capabilities
 
 ---
 
