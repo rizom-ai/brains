@@ -27,6 +27,11 @@ export const gitSyncConfigSchema = basePluginConfigSchema
       .boolean()
       .describe("Automatically push after commits")
       .default(true),
+    commitDebounce: z
+      .number()
+      .min(100)
+      .describe("Debounce time in ms before committing entity changes")
+      .default(5000),
   })
   .describe("Configuration for the git-sync plugin");
 

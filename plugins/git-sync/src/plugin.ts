@@ -14,6 +14,8 @@ import packageJson from "../package.json";
 
 export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
+  private commitTimeout?: Timer;
+  private syncing = false;
 
   constructor(config: Partial<GitSyncConfig>) {
     super("git-sync", packageJson, config, gitSyncConfigSchema);
@@ -126,6 +128,51 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
       return { success: true };
     });
+
+    // Debounced commit+push on entity changes
+    const debouncedCommitAndPush = (): void => {
+      if (this.commitTimeout) clearTimeout(this.commitTimeout);
+      this.commitTimeout = setTimeout((): void => {
+        void (async (): Promise<void> => {
+          if (this.syncing) return;
+          this.syncing = true;
+          try {
+            const git = this.getGitSync();
+            const status = await git.getStatus();
+            if (status.hasChanges) {
+              await git.commit();
+              this.logger.info("Auto-committed entity changes");
+            }
+            if (status.remote) {
+              const freshStatus = await git.getStatus();
+              if (freshStatus.ahead > 0 || freshStatus.lastCommit) {
+                await git.push();
+                this.logger.info("Auto-pushed entity changes");
+              }
+            }
+          } catch (error) {
+            this.logger.warn("Failed to auto-commit/push", { error });
+          } finally {
+            this.syncing = false;
+          }
+        })();
+      }, this.config.commitDebounce);
+    };
+
+    context.messaging.subscribe("entity:created", async () => {
+      debouncedCommitAndPush();
+      return { success: true };
+    });
+
+    context.messaging.subscribe("entity:updated", async () => {
+      debouncedCommitAndPush();
+      return { success: true };
+    });
+
+    context.messaging.subscribe("entity:deleted", async () => {
+      debouncedCommitAndPush();
+      return { success: true };
+    });
   }
 
   /**
@@ -139,6 +186,9 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
    * Cleanup when plugin is unregistered
    */
   protected async onUnregister(): Promise<void> {
+    if (this.commitTimeout) {
+      clearTimeout(this.commitTimeout);
+    }
     if (this.gitSync) {
       await this.gitSync.cleanup();
     }

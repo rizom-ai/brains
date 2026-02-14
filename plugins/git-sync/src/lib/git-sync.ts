@@ -542,9 +542,9 @@ export class GitSync {
     this.syncTimer = setInterval((): void => {
       void (async (): Promise<void> => {
         try {
-          await this.sync();
+          await this.pull();
         } catch (error) {
-          this.logger.error("Auto-sync failed", { error });
+          this.logger.error("Auto-pull failed", { error });
         }
       })();
     }, this.syncInterval * 1000);
