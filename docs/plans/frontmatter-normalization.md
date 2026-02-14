@@ -2,7 +2,7 @@
 
 ## Context
 
-The CMS plan (`docs/plans/sveltia-cms.md`) requires every entity adapter to expose a `frontmatterSchema` property. An audit of all 9 adapters found 4 inconsistencies in how frontmatter schemas are defined. This plan normalizes them before CMS work begins.
+The CMS plan (`docs/plans/sveltia-cms.md`) requires every entity adapter to expose a `frontmatterSchema` property. An audit of all 9 adapters found 4 inconsistencies in how frontmatter schemas are defined. This plan normalizes 3 of them (deck, project, link). Newsletter is handled separately in `docs/plans/newsletter-cleanup.md`.
 
 ### Target pattern
 
@@ -18,12 +18,13 @@ schemas/foo.ts:
 
 ### Issues found
 
-| Plugin     | Issue                                                       | Risk           |
-| ---------- | ----------------------------------------------------------- | -------------- |
-| Deck       | Frontmatter schema local to formatter, status enum mismatch | Low            |
-| Newsletter | No frontmatter schema, metadata used as frontmatter         | Low (cosmetic) |
-| Project    | Status enum inline, no reusable `projectStatusSchema`       | Very low       |
-| Link       | Entity schema doesn't extend `baseEntitySchema`             | Very low       |
+| Plugin  | Issue                                                       | Risk     |
+| ------- | ----------------------------------------------------------- | -------- |
+| Deck    | Frontmatter schema local to formatter, status enum mismatch | Low      |
+| Project | Status enum inline, no reusable `projectStatusSchema`       | Very low |
+| Link    | Entity schema doesn't extend `baseEntitySchema`             | Very low |
+
+Newsletter normalization is handled in `docs/plans/newsletter-cleanup.md`.
 
 ## Changes
 
@@ -72,46 +73,7 @@ export const deckMetadataSchema = deckFrontmatterSchema
 
 **Blast radius**: Low. All code uses only `"draft"` and `"published"` values today. Adding `"queued"` to the allowed set doesn't break anything — it just becomes parseable. The `.pick()` derivation preserves all 4 metadata fields currently in use (`slug`, `title`, `status`, `publishedAt`, `coverImageId`).
 
-### 2. Newsletter — Add frontmatter schema (cosmetic)
-
-**Problem**: `newsletterMetadataSchema` is used directly as the frontmatter schema in the adapter. There's no separate `newsletterFrontmatterSchema`. All 6 metadata fields (`subject`, `status`, `entityIds`, `scheduledFor`, `sentAt`, `buttondownId`) are actively read across datasource, templates, handlers, and tests.
-
-**Fix**: Establish the pattern without changing behavior — metadata picks all fields.
-
-**File**: `plugins/newsletter/src/schemas/newsletter.ts`
-
-- Rename current `newsletterMetadataSchema` to `newsletterFrontmatterSchema`
-- Derive `newsletterMetadataSchema` from it via `.pick()` (all fields):
-
-```typescript
-export const newsletterFrontmatterSchema = z.object({
-  subject: z.string(),
-  status: newsletterStatusSchema,
-  entityIds: z.array(z.string()).optional(),
-  scheduledFor: z.string().datetime().optional(),
-  sentAt: z.string().datetime().optional(),
-  buttondownId: z.string().optional(),
-});
-
-export const newsletterMetadataSchema = newsletterFrontmatterSchema.pick({
-  subject: true,
-  status: true,
-  entityIds: true,
-  scheduledFor: true,
-  sentAt: true,
-  buttondownId: true,
-});
-```
-
-**File**: `plugins/newsletter/src/adapters/newsletter-adapter.ts`
-
-- Import `newsletterFrontmatterSchema` from schemas
-- Use `newsletterFrontmatterSchema` in `parseMarkdownWithFrontmatter()` calls (lines 34, 50)
-- Keep `newsletterMetadataSchema` for type usage (unchanged shape)
-
-**Blast radius**: None. The `.pick()` selects all fields, so `newsletterMetadataSchema` has the exact same shape as before. The only visible change is the adapter parsing with `newsletterFrontmatterSchema` instead of `newsletterMetadataSchema`.
-
-### 3. Project — Extract status enum
+### 2. Project — Extract status enum
 
 **Problem**: `projectFrontmatterSchema` has `status: z.enum(["draft", "published"])` inline. Other plugins extract this to a named schema (`blogPostStatusSchema`, `linkStatusSchema`, etc.).
 
@@ -134,7 +96,7 @@ export const projectFrontmatterSchema = z.object({
 
 **Blast radius**: None. Pure refactor — same enum values, just named.
 
-### 4. Link — Extend `baseEntitySchema`
+### 3. Link — Extend `baseEntitySchema`
 
 **Problem**: `linkSchema` defines `id`, `entityType`, `content`, `contentHash`, `created`, `updated`, `metadata` manually instead of using `baseEntitySchema.extend()`. Field-by-field comparison shows they're identical (link just uses more specific types like `z.literal("link")` and typed metadata).
 
@@ -159,25 +121,21 @@ export const linkSchema = baseEntitySchema.extend({
 1. Deck (most impactful — actual bug fix)
 2. Project (trivial extraction)
 3. Link (trivial switch to baseEntitySchema)
-4. Newsletter (cosmetic rename + derivation)
-5. Run `bun run typecheck` + `bun test` across all affected plugins
+4. Run `bun run typecheck` + `bun test` across all affected plugins
 
 ## Key files
 
-| File                                                    | Change                                                     |
-| ------------------------------------------------------- | ---------------------------------------------------------- |
-| `plugins/decks/src/schemas/deck.ts`                     | Add `deckFrontmatterSchema`, derive metadata via `.pick()` |
-| `plugins/decks/src/formatters/deck-formatter.ts`        | Remove local schema, import from schemas                   |
-| `plugins/newsletter/src/schemas/newsletter.ts`          | Add `newsletterFrontmatterSchema`, derive metadata         |
-| `plugins/newsletter/src/adapters/newsletter-adapter.ts` | Use `newsletterFrontmatterSchema` for parsing              |
-| `plugins/portfolio/src/schemas/project.ts`              | Extract `projectStatusSchema`                              |
-| `plugins/link/src/schemas/link.ts`                      | Switch to `baseEntitySchema.extend()`                      |
+| File                                             | Change                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------- |
+| `plugins/decks/src/schemas/deck.ts`              | Add `deckFrontmatterSchema`, derive metadata via `.pick()` |
+| `plugins/decks/src/formatters/deck-formatter.ts` | Remove local schema, import from schemas                   |
+| `plugins/portfolio/src/schemas/project.ts`       | Extract `projectStatusSchema`                              |
+| `plugins/link/src/schemas/link.ts`               | Switch to `baseEntitySchema.extend()`                      |
 
 ## Verification
 
 1. `bun run typecheck` — no errors
 2. `bun test` in `plugins/decks` — all tests pass
-3. `bun test` in `plugins/newsletter` — all tests pass
-4. `bun test` in `plugins/portfolio` — all tests pass
-5. `bun test` in `plugins/link` — all tests pass
-6. `bun test` across all plugins — no regressions
+3. `bun test` in `plugins/portfolio` — all tests pass
+4. `bun test` in `plugins/link` — all tests pass
+5. `bun test` across all plugins — no regressions

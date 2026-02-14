@@ -11,7 +11,7 @@ import {
 import { z } from "@brains/utils";
 import {
   type Newsletter,
-  newsletterMetadataSchema,
+  newsletterFrontmatterSchema,
 } from "../schemas/newsletter";
 
 // Schema for fetch query parameters
@@ -36,7 +36,7 @@ function getNewsletterBody(newsletter: Newsletter): string {
   try {
     const { content } = parseMarkdownWithFrontmatter(
       newsletter.content,
-      newsletterMetadataSchema,
+      newsletterFrontmatterSchema,
     );
     return content;
   } catch {
@@ -144,10 +144,10 @@ export class NewsletterDataSource implements DataSource {
     // Resolve source entities if present
     let sourceEntities: Array<{ id: string; title: string; url: string }> = [];
     if (newsletter.metadata.entityIds?.length) {
+      const entityType = newsletter.metadata.sourceEntityType ?? "post";
       const resolvedEntities = await Promise.all(
         newsletter.metadata.entityIds.map(async (entityId) => {
-          // Try to fetch as post first (most common case)
-          const entity = await entityService.getEntity("post", entityId);
+          const entity = await entityService.getEntity(entityType, entityId);
           if (entity) {
             const metadata = entity.metadata as {
               title?: string;
@@ -156,7 +156,7 @@ export class NewsletterDataSource implements DataSource {
             return {
               id: entityId,
               title: metadata.title ?? entityId,
-              url: `/posts/${metadata.slug ?? entityId}`,
+              url: `/${entityType}s/${metadata.slug ?? entityId}`,
             };
           }
           return null;

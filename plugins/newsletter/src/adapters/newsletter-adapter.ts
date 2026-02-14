@@ -7,7 +7,7 @@ import {
 import type { z } from "@brains/utils";
 import {
   newsletterSchema,
-  newsletterMetadataSchema,
+  newsletterFrontmatterSchema,
   type Newsletter,
   type NewsletterMetadata,
 } from "../schemas/newsletter";
@@ -31,7 +31,7 @@ export class NewsletterAdapter
     try {
       const { content } = parseMarkdownWithFrontmatter(
         entity.content,
-        newsletterMetadataSchema,
+        newsletterFrontmatterSchema,
       );
       contentBody = content;
     } catch {
@@ -47,7 +47,7 @@ export class NewsletterAdapter
   public fromMarkdown(markdown: string): Partial<Newsletter> {
     const { metadata } = parseMarkdownWithFrontmatter(
       markdown,
-      newsletterMetadataSchema,
+      newsletterFrontmatterSchema,
     );
 
     return {

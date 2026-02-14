@@ -13,15 +13,33 @@ export const newsletterStatusSchema = z.enum([
 export type NewsletterStatus = z.infer<typeof newsletterStatusSchema>;
 
 /**
- * Newsletter metadata schema
+ * Newsletter frontmatter schema (stored in content as YAML frontmatter)
+ * Contains all structured data — the body is the newsletter content
  */
-export const newsletterMetadataSchema = z.object({
+export const newsletterFrontmatterSchema = z.object({
   subject: z.string(),
   status: newsletterStatusSchema,
   entityIds: z.array(z.string()).optional(),
   scheduledFor: z.string().datetime().optional(),
   sentAt: z.string().datetime().optional(),
   buttondownId: z.string().optional(),
+  sourceEntityType: z.string().optional(),
+});
+
+export type NewsletterFrontmatter = z.infer<typeof newsletterFrontmatterSchema>;
+
+/**
+ * Newsletter metadata schema - derived from frontmatter
+ * Using .pick() ensures metadata stays in sync with frontmatter
+ */
+export const newsletterMetadataSchema = newsletterFrontmatterSchema.pick({
+  subject: true,
+  status: true,
+  entityIds: true,
+  scheduledFor: true,
+  sentAt: true,
+  buttondownId: true,
+  sourceEntityType: true,
 });
 
 export type NewsletterMetadata = z.infer<typeof newsletterMetadataSchema>;

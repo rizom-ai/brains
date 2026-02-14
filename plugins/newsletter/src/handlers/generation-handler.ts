@@ -1,8 +1,11 @@
-import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
+import {
+  BaseJobHandler,
+  ensureUniqueTitle,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import { newsletterAdapter } from "../adapters/newsletter-adapter";
 import type { NewsletterConfig } from "../config";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
@@ -243,18 +246,14 @@ The newsletter should:
         subject,
         status,
         ...(sourceEntityIds && { entityIds: sourceEntityIds }),
+        ...(sourceEntityType && { sourceEntityType }),
       };
 
       // Generate markdown with frontmatter
-      const markdownContent = newsletterAdapter.toMarkdown({
-        id: "", // Will be set by entity service
-        entityType: "newsletter",
+      const markdownContent = generateMarkdownWithFrontmatter(
         content,
-        contentHash: "",
-        created: "",
-        updated: "",
         metadata,
-      });
+      );
 
       await progressReporter.report({
         progress: 80,

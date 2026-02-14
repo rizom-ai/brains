@@ -430,6 +430,93 @@ describe("NewsletterDataSource", () => {
       expect(result.sourceEntities?.[1].id).toBe("post-2");
     });
 
+    it("should use sourceEntityType from metadata when present", async () => {
+      const newsletter = createTestEntity<Newsletter>("newsletter", {
+        id: "nl-1",
+        content: "Content",
+        metadata: {
+          subject: "Newsletter with deck sources",
+          status: "published",
+          sentAt: "2025-01-01T10:00:00.000Z",
+          entityIds: ["deck-1"],
+          sourceEntityType: "deck",
+        },
+      });
+
+      const mockDeck = createTestEntity("deck", {
+        id: "deck-1",
+        content: "Deck content",
+        metadata: { title: "My Deck", slug: "my-deck" },
+      });
+
+      getEntitySpy
+        .mockResolvedValueOnce(newsletter) // Newsletter fetch
+        .mockResolvedValueOnce(mockDeck); // Source entity
+
+      listEntitiesSpy.mockResolvedValueOnce([]); // For navigation
+
+      const schema = z.object({
+        id: z.string(),
+        subject: z.string(),
+        prevNewsletter: z.any().nullable(),
+        nextNewsletter: z.any().nullable(),
+        sourceEntities: z.array(z.any()).optional(),
+      });
+
+      const result = await datasource.fetch(
+        { entityType: "newsletter", query: { id: "nl-1" } },
+        schema,
+        mockContext,
+      );
+
+      // Should have fetched as "deck" type, not "post"
+      expect(getEntitySpy).toHaveBeenCalledWith("deck", "deck-1");
+      expect(result.sourceEntities).toHaveLength(1);
+      expect(result.sourceEntities?.[0].title).toBe("My Deck");
+      expect(result.sourceEntities?.[0].url).toBe("/decks/my-deck");
+    });
+
+    it("should default to 'post' when sourceEntityType is not set", async () => {
+      const newsletter = createMockNewsletter(
+        "nl-1",
+        "Newsletter",
+        "published",
+        "Content",
+        "2025-01-01T10:00:00.000Z",
+        ["post-1"],
+      );
+
+      const mockPost = createTestEntity("post", {
+        id: "post-1",
+        content: "Post content",
+        metadata: { title: "Blog Post", slug: "blog-post" },
+      });
+
+      getEntitySpy
+        .mockResolvedValueOnce(newsletter)
+        .mockResolvedValueOnce(mockPost);
+
+      listEntitiesSpy.mockResolvedValueOnce([]);
+
+      const schema = z.object({
+        id: z.string(),
+        subject: z.string(),
+        prevNewsletter: z.any().nullable(),
+        nextNewsletter: z.any().nullable(),
+        sourceEntities: z.array(z.any()).optional(),
+      });
+
+      const result = await datasource.fetch(
+        { entityType: "newsletter", query: { id: "nl-1" } },
+        schema,
+        mockContext,
+      );
+
+      // Should have fetched as "post" (default)
+      expect(getEntitySpy).toHaveBeenCalledWith("post", "post-1");
+      expect(result.sourceEntities?.[0].url).toBe("/posts/blog-post");
+    });
+
     it("should handle missing source entities gracefully", async () => {
       const newsletter = createMockNewsletter(
         "nl-1",
