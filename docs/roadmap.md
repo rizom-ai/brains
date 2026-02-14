@@ -50,7 +50,7 @@ Last Updated: 2025-02-13
 
 ### Git Sync — Event-Driven Commit/Push
 
-- [ ] Subscribe to entity events (`entity:created`/`updated`/`deleted`) with debounced commit+push (see `docs/plans/git-sync-event-driven.md`)
+- [x] Subscribe to entity events (`entity:created`/`updated`/`deleted`) with debounced commit+push (see `docs/plans/git-sync-event-driven.md`)
 
 ### Discord Interface
 
