@@ -97,6 +97,9 @@ export interface EntityAdapter<
   // Generate frontmatter for markdown
   generateFrontMatter(entity: TEntity): string;
 
+  /** Optional: Zod schema for frontmatter fields. Used by CMS config generation. */
+  frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
+
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
 

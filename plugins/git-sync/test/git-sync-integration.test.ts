@@ -58,6 +58,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     // Install git-sync plugin
     gitPlugin = new GitSyncPlugin({
       enabled: true,
+      repo: "test/integration",
       gitUrl: remoteDir,
       branch: "main",
       autoSync: false,

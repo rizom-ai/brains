@@ -104,7 +104,7 @@ MATRIX_USER_ID=@recall:matrix.org
 MATRIX_ANCHOR_USER_ID=@youruser:matrix.org
 
 # Git Sync Configuration (optional - for backup)
-GIT_SYNC_URL=https://github.com/your-org/recall-content
+GIT_SYNC_REPO=your-org/recall-content
 GIT_SYNC_TOKEN=ghp_your_github_token
 
 # MCP Configuration (optional - for remote access)

@@ -46,7 +46,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     plugin = new GitSyncPlugin({
       enabled: true,
       debug: false,
-      gitUrl: "https://github.com/test/repo.git",
+      repo: "test/repo",
       branch: "main",
       autoSync: false,
       syncInterval: 30,

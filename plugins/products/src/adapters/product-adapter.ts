@@ -21,6 +21,7 @@ import {
 export class ProductAdapter implements EntityAdapter<Product, ProductMetadata> {
   public readonly entityType = "product" as const;
   public readonly schema = productSchema;
+  public readonly frontmatterSchema = productFrontmatterSchema;
 
   public toMarkdown(entity: Product): string {
     let contentBody = entity.content;

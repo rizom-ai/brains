@@ -9,7 +9,8 @@ import type { CorePluginContext } from "@brains/plugins";
  * GitSync options schema
  */
 export const gitSyncOptionsSchema = z.object({
-  gitUrl: z.string(),
+  repo: z.string().optional(),
+  gitUrl: z.string().optional(),
   branch: z.string().default("main"),
   autoSync: z.boolean().default(false),
   syncInterval: z.number().default(300),
@@ -47,7 +48,7 @@ export class GitSync {
   private _git: SimpleGit | null = null;
   private sendMessage: CorePluginContext["messaging"]["send"];
   private logger: CorePluginContext["logger"];
-  private gitUrl: string;
+  private remoteUrl: string;
   private branch: string;
   private autoSync: boolean;
   private syncInterval: number;
@@ -66,7 +67,9 @@ export class GitSync {
 
     this.sendMessage = messaging.send;
     this.logger = logger;
-    this.gitUrl = options.gitUrl;
+    this.remoteUrl =
+      options.gitUrl ??
+      (options.repo ? `https://github.com/${options.repo}.git` : "");
     this.branch = options.branch;
     this.autoSync = options.autoSync;
     this.syncInterval = options.syncInterval;
@@ -90,12 +93,12 @@ export class GitSync {
    * Get authenticated git URL
    */
   private getAuthenticatedUrl(): string {
-    if (!this.authToken || !this.gitUrl.startsWith("https://")) {
-      return this.gitUrl;
+    if (!this.authToken || !this.remoteUrl.startsWith("https://")) {
+      return this.remoteUrl;
     }
 
     // Parse the URL and insert authentication
-    const url = new URL(this.gitUrl);
+    const url = new URL(this.remoteUrl);
     // GitHub PATs should be used as the username with empty password
     // Format: https://TOKEN@github.com/user/repo.git (no colon after token)
     url.username = this.authToken;
@@ -107,7 +110,9 @@ export class GitSync {
    * Initialize git repository
    */
   async initialize(): Promise<void> {
-    this.logger.debug("Initializing git repository", { gitUrl: this.gitUrl });
+    this.logger.debug("Initializing git repository", {
+      gitUrl: this.remoteUrl,
+    });
 
     // Use the centralized data directory from context
     this.repoPath = this.dataDir;
@@ -125,7 +130,7 @@ export class GitSync {
 
       // Clone the repository
       this.logger.info("Cloning repository", {
-        gitUrl: this.gitUrl,
+        gitUrl: this.remoteUrl,
         path: this.repoPath,
       });
       const parentDir = join(this.repoPath, "..");
@@ -139,7 +144,7 @@ export class GitSync {
       await this.git.init();
 
       // Add remote if URL provided
-      if (this.gitUrl) {
+      if (this.remoteUrl) {
         await this.git.addRemote("origin", this.getAuthenticatedUrl());
       }
     } else {
@@ -154,7 +159,7 @@ export class GitSync {
         // Always update to ensure we have the authenticated URL
         this.logger.debug("Updating remote URL with authentication");
         await this.git.remote(["set-url", "origin", authUrl]);
-      } else if (this.gitUrl) {
+      } else if (this.remoteUrl) {
         // No origin, add it with authentication
         this.logger.debug("Adding remote with authentication");
         await this.git.addRemote("origin", authUrl);

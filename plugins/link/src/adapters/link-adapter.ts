@@ -20,6 +20,7 @@ import {
 export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
   public readonly entityType = "link" as const;
   public readonly schema = linkSchema;
+  public readonly frontmatterSchema = linkFrontmatterSchema;
 
   /**
    * Create link content with frontmatter and summary body

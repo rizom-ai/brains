@@ -18,6 +18,7 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
   public readonly entityType = "deck" as const;
   public readonly schema = deckSchema;
   public readonly supportsCoverImage = true;
+  public readonly frontmatterSchema = deckFrontmatterSchema;
 
   /**
    * Validate that content has proper slide structure

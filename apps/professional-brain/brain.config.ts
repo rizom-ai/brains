@@ -101,11 +101,13 @@ const config = defineConfig({
     }),
     directorySync(),
     new GitSyncPlugin({
-      gitUrl: process.env["GIT_SYNC_URL"] || "",
+      repo: process.env["GIT_SYNC_REPO"] || "",
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Yeehaa",
       authorEmail: "yeehaa@rizom.ai",
       autoPush: true,
+      autoSync: true,
+      syncInterval: 1,
     }),
     new WebserverInterface({
       previewPort: 4321,
@@ -172,6 +174,7 @@ const config = defineConfig({
       productionOutputDir: "./dist/site-production",
       previewUrl: process.env["PREVIEW_DOMAIN"],
       productionUrl: process.env["DOMAIN"],
+      cms: {},
     }),
   ],
 });

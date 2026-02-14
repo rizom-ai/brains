@@ -73,6 +73,7 @@ export class ProjectAdapter implements EntityAdapter<Project, ProjectMetadata> {
   public readonly entityType = "project" as const;
   public readonly schema = projectSchema;
   public readonly supportsCoverImage = true;
+  public readonly frontmatterSchema = projectFrontmatterSchema;
 
   /**
    * Convert project entity to markdown with frontmatter

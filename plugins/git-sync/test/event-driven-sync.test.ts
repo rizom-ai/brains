@@ -35,6 +35,7 @@ describe("Event-Driven Commit/Push", () => {
 
     plugin = new GitSyncPlugin({
       enabled: true,
+      repo: "test/event-sync",
       gitUrl: remoteDir,
       branch: "main",
       autoSync: false,

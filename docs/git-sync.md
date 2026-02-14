@@ -17,7 +17,7 @@ import { gitSync } from "@brains/git-sync";
 export default defineConfig({
   plugins: [
     gitSync({
-      gitUrl: "https://github.com/username/brain-data.git",
+      repo: "username/brain-data",
       branch: "main",
       autoSync: true,
       syncInterval: 5, // minutes
@@ -32,17 +32,18 @@ export default defineConfig({
 
 ## Configuration Options
 
-| Option          | Type    | Default               | Description                                         |
-| --------------- | ------- | --------------------- | --------------------------------------------------- |
-| `gitUrl`        | string  | **required**          | Git repository URL (https or ssh)                   |
-| `branch`        | string  | `"main"`              | Git branch to sync                                  |
-| `autoSync`      | boolean | `false`               | Enable automatic syncing on interval                |
-| `syncInterval`  | number  | `5`                   | Sync interval in minutes (when autoSync is enabled) |
-| `autoPush`      | boolean | `true`                | Automatically push after commits                    |
-| `authToken`     | string  | -                     | Authentication token for private repositories       |
-| `authorName`    | string  | -                     | Git author name for commits                         |
-| `authorEmail`   | string  | -                     | Git author email for commits                        |
-| `commitMessage` | string  | `"Auto-sync: {date}"` | Commit message template                             |
+| Option          | Type    | Default               | Description                                              |
+| --------------- | ------- | --------------------- | -------------------------------------------------------- |
+| `repo`          | string  | -                     | GitHub repository in owner/name format                   |
+| `gitUrl`        | string  | -                     | Git remote URL override (derived from `repo` if omitted) |
+| `branch`        | string  | `"main"`              | Git branch to sync                                       |
+| `autoSync`      | boolean | `false`               | Enable automatic syncing on interval                     |
+| `syncInterval`  | number  | `5`                   | Sync interval in minutes (when autoSync is enabled)      |
+| `autoPush`      | boolean | `true`                | Automatically push after commits                         |
+| `authToken`     | string  | -                     | Authentication token for private repositories            |
+| `authorName`    | string  | -                     | Git author name for commits                              |
+| `authorEmail`   | string  | -                     | Git author email for commits                             |
+| `commitMessage` | string  | `"Auto-sync: {date}"` | Commit message template                                  |
 
 ## Commands
 
@@ -135,17 +136,18 @@ For GitHub repositories, create a Personal Access Token with `repo` scope:
 
 ```typescript
 gitSync({
-  gitUrl: "https://github.com/username/brain-data.git",
+  repo: "username/brain-data",
   authToken: process.env.GITHUB_TOKEN,
 });
 ```
 
 ### SSH Authentication
 
-For SSH URLs, ensure your SSH key is configured:
+For SSH URLs, use the `gitUrl` override:
 
 ```typescript
 gitSync({
+  repo: "username/brain-data",
   gitUrl: "git@github.com:username/brain-data.git",
   // No authToken needed for SSH
 });

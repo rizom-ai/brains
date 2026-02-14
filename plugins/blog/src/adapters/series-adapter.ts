@@ -23,6 +23,7 @@ export class SeriesAdapter implements EntityAdapter<Series, SeriesMetadata> {
   public readonly entityType = "series" as const;
   public readonly schema = seriesSchema;
   public readonly supportsCoverImage = true;
+  public readonly frontmatterSchema = seriesFrontmatterSchema;
 
   /**
    * Convert series entity to markdown with frontmatter

@@ -21,6 +21,7 @@ export class NewsletterAdapter
 {
   public readonly entityType = "newsletter";
   public readonly schema = newsletterSchema;
+  public readonly frontmatterSchema = newsletterFrontmatterSchema;
 
   /**
    * Convert entity to markdown with frontmatter

@@ -39,7 +39,9 @@ import defaultTheme from "@brains/theme-default";
 import packageJson from "../package.json";
 import { generateRobotsTxt } from "./lib/robots-generator";
 import { generateSitemap } from "./lib/sitemap-generator";
+import { generateCmsConfig, CMS_ADMIN_HTML } from "./lib/cms-config";
 import type { SiteBuildCompletedPayload } from "./types/job-types";
+import { toYaml } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
 
@@ -277,6 +279,49 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           "utf-8",
         );
         this.logger.info(`Generated sitemap.xml with ${routes.length} URLs`);
+
+        // Generate CMS config if cms is configured
+        if (this.config.cms && this.pluginContext) {
+          const repoInfo = await this.pluginContext.messaging.send<
+            Record<string, never>,
+            { repo: string; branch: string }
+          >("git-sync:get-repo-info", {});
+
+          if ("noop" in repoInfo || !repoInfo.success || !repoInfo.data?.repo) {
+            this.logger.warn(
+              "CMS enabled but git-sync repo info unavailable — skipping CMS generation",
+            );
+          } else {
+            const entityTypes =
+              this.pluginContext.entityService.getEntityTypes();
+            const cmsConfig = generateCmsConfig({
+              repo: repoInfo.data.repo,
+              branch: repoInfo.data.branch,
+              ...(this.config.cms.baseUrl && {
+                baseUrl: this.config.cms.baseUrl,
+              }),
+              entityTypes,
+              getAdapter: (type) =>
+                this.pluginContext?.entities.getAdapter(type),
+              ...(this.config.entityRouteConfig && {
+                entityRouteConfig: this.config.entityRouteConfig,
+              }),
+            });
+            const adminDir = join(payload.outputDir, "admin");
+            await fs.mkdir(adminDir, { recursive: true });
+            await fs.writeFile(
+              join(adminDir, "config.yml"),
+              toYaml(cmsConfig),
+              "utf-8",
+            );
+            await fs.writeFile(
+              join(adminDir, "index.html"),
+              CMS_ADMIN_HTML,
+              "utf-8",
+            );
+            this.logger.info("Generated CMS admin page and config.yml");
+          }
+        }
 
         return { success: true };
       } catch (error) {

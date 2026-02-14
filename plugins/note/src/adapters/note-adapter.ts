@@ -47,6 +47,7 @@ function extractTitleFromContent(markdown: string): string | null {
 export class NoteAdapter implements EntityAdapter<Note, NoteMetadata> {
   public readonly entityType = "note" as const;
   public readonly schema = noteSchema;
+  public readonly frontmatterSchema = noteFrontmatterSchema;
 
   /**
    * Convert note entity to markdown

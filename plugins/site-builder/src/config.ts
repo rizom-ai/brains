@@ -142,6 +142,18 @@ export const siteBuilderConfigSchema = z.object({
     .describe(
       "Custom route configuration for entity types (overrides auto-generated paths and labels)",
     ),
+  cms: z
+    .object({
+      baseUrl: z
+        .string()
+        .url()
+        .optional()
+        .describe("OAuth proxy URL for GitHub auth"),
+    })
+    .optional()
+    .describe(
+      "Sveltia CMS configuration (enables /admin/ CMS, requires git-sync plugin)",
+    ),
 });
 
 export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {

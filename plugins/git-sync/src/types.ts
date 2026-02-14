@@ -5,7 +5,18 @@ export const gitSyncConfigSchema = basePluginConfigSchema
   .extend({
     enabled: z.boolean().default(true),
     debug: z.boolean().default(false),
-    gitUrl: z.string().describe("Git repository URL (https or ssh)"),
+    repo: z
+      .string()
+      .optional()
+      .describe(
+        "GitHub repository in owner/name format (e.g., 'acme/brain-data')",
+      ),
+    gitUrl: z
+      .string()
+      .optional()
+      .describe(
+        "Git remote URL (defaults to https://github.com/{repo}.git when repo is set)",
+      ),
     branch: z.string().describe("Git branch to sync").default("main"),
     autoSync: z.boolean().describe("Enable automatic syncing").default(false),
     syncInterval: z

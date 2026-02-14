@@ -48,7 +48,8 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
     // Create GitSync instance
     this.gitSync = new GitSync({
-      gitUrl: this.config.gitUrl,
+      ...(this.config.repo && { repo: this.config.repo }),
+      ...(this.config.gitUrl && { gitUrl: this.config.gitUrl }),
       branch: this.config.branch,
       autoSync: this.config.autoSync,
       syncInterval: this.config.syncInterval * 60, // Convert minutes to seconds
@@ -70,6 +71,17 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
       { pluginId: this.id },
       { broadcast: true },
     );
+
+    // Respond to repo info requests (used by site-builder for CMS config)
+    context.messaging.subscribe("git-sync:get-repo-info", async () => {
+      return {
+        success: true,
+        data: {
+          repo: this.config.repo,
+          branch: this.config.branch,
+        },
+      };
+    });
 
     // Pull from remote when plugins are ready, BEFORE directory-sync runs
     // This ensures remote data is available before directory-sync imports to DB

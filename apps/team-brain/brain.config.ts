@@ -70,9 +70,7 @@ const config = defineConfig({
       initialSync: true, // Export all entities on startup
     }),
     new GitSyncPlugin({
-      gitUrl:
-        process.env["GIT_SYNC_URL"] ||
-        "https://github.com/username/recall-backup",
+      repo: process.env["GIT_SYNC_REPO"] || "username/recall-backup",
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Recall",
       authorEmail: "yeehaa@rizom.ai",

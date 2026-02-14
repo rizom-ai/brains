@@ -24,6 +24,7 @@ export class SocialPostAdapter
   public readonly entityType = "social-post" as const;
   public readonly schema = socialPostSchema;
   public readonly supportsCoverImage = true;
+  public readonly frontmatterSchema = socialPostFrontmatterSchema;
 
   /**
    * Convert social post entity to markdown with frontmatter
