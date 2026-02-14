@@ -95,63 +95,101 @@ Agent creates entity → entity DB updated
 
 ## Changes
 
-### 0. Prerequisite: Normalize frontmatter schemas
+### 0. ~~Prerequisite: Normalize frontmatter schemas~~ Done
 
-Normalize all 9 adapter frontmatter schemas to follow a consistent pattern before adding `frontmatterSchema` to the EntityAdapter interface. See `docs/plans/frontmatter-normalization.md` for details. Covers: deck (status enum fix + move schema), newsletter (add frontmatter schema), project (extract status enum), link (extend baseEntitySchema).
+All 9 adapters now follow the consistent frontmatter schema pattern. See `docs/plans/frontmatter-normalization.md` and `docs/plans/newsletter-cleanup.md`.
 
 ### 1. Add `frontmatterSchema` to EntityAdapter interface
 
-**File**: `shell/entity-service/src/types.ts` (line ~98)
+**File**: `shell/entity-service/src/types.ts` (line ~104, before closing `}`)
 
 ```typescript
 /** Optional: Zod schema for frontmatter fields. Used by CMS config generation. */
 frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 ```
 
-Optional = backward-compatible. Adapters without it are skipped by the CMS generator.
+Uses `z.ZodObject<z.ZodRawShape>` (not `z.ZodSchema`) because the CMS generator needs `.shape` to iterate over fields and inspect each field's type. Optional = backward-compatible.
 
 ### 2. Expose `frontmatterSchema` on 9 adapters
 
-One line each — `public readonly frontmatterSchema = theSchema;`:
+One line each — all already import their frontmatter schema but don't expose it as a property:
 
-| Adapter file                                               | Schema                                           |
-| ---------------------------------------------------------- | ------------------------------------------------ |
-| `plugins/blog/src/adapters/blog-post-adapter.ts`           | `blogPostFrontmatterSchema` (already imported)   |
-| `plugins/blog/src/adapters/series-adapter.ts`              | `seriesFrontmatterSchema`                        |
-| `plugins/note/src/adapters/note-adapter.ts`                | `noteFrontmatterSchema`                          |
-| `plugins/link/src/adapters/link-adapter.ts`                | `linkFrontmatterSchema`                          |
-| `plugins/portfolio/src/adapters/project-adapter.ts`        | `projectFrontmatterSchema`                       |
-| `plugins/decks/src/formatters/deck-formatter.ts`           | `deckFrontmatterSchema` (after prerequisite fix) |
-| `plugins/social-media/src/adapters/social-post-adapter.ts` | `socialPostFrontmatterSchema`                    |
-| `plugins/newsletter/src/adapters/newsletter-adapter.ts`    | `newsletterMetadataSchema` (used as frontmatter) |
-| `plugins/products/src/adapters/product-adapter.ts`         | `productFrontmatterSchema`                       |
+| Adapter file                                               | Property to add                                                    |
+| ---------------------------------------------------------- | ------------------------------------------------------------------ |
+| `plugins/blog/src/adapters/blog-post-adapter.ts`           | `public readonly frontmatterSchema = blogPostFrontmatterSchema;`   |
+| `plugins/blog/src/adapters/series-adapter.ts`              | `public readonly frontmatterSchema = seriesFrontmatterSchema;`     |
+| `plugins/note/src/adapters/note-adapter.ts`                | `public readonly frontmatterSchema = noteFrontmatterSchema;`       |
+| `plugins/link/src/adapters/link-adapter.ts`                | `public readonly frontmatterSchema = linkFrontmatterSchema;`       |
+| `plugins/portfolio/src/adapters/project-adapter.ts`        | `public readonly frontmatterSchema = projectFrontmatterSchema;`    |
+| `plugins/decks/src/formatters/deck-formatter.ts`           | `public readonly frontmatterSchema = deckFrontmatterSchema;`       |
+| `plugins/social-media/src/adapters/social-post-adapter.ts` | `public readonly frontmatterSchema = socialPostFrontmatterSchema;` |
+| `plugins/newsletter/src/adapters/newsletter-adapter.ts`    | `public readonly frontmatterSchema = newsletterFrontmatterSchema;` |
+| `plugins/products/src/adapters/product-adapter.ts`         | `public readonly frontmatterSchema = productFrontmatterSchema;`    |
 
-**Skipped** (no CMS collection): image, topic, site-info, site-content, summary, overview.
+**Skipped** (no CMS collection): image, topic, site-info, site-content, summary, overview, base.
 
-### 3. CMS config generator (new file)
+### 3. CMS config generator (test-first)
 
-**File**: `plugins/site-builder/src/lib/cms-config.ts`
+**Test file**: `plugins/site-builder/test/lib/cms-config.test.ts`
 
-Two main functions:
+Tests for `zodFieldToCmsWidget`:
 
-**`zodFieldToCmsWidget(name, fieldSchema)`** — Maps a single Zod field to a Sveltia CMS widget descriptor. Unwraps `.optional()` / `.default()` wrappers, then maps based on inner type.
+- `z.string()` → `{ widget: "string" }`
+- `z.string().datetime()` → `{ widget: "datetime" }` (via `_def.checks`)
+- `z.number()` → `{ widget: "number" }`
+- `z.boolean()` → `{ widget: "boolean" }`
+- `z.enum([...])` → `{ widget: "select", options: [...] }` (via `_def.values`)
+- `z.array(z.string())` → `{ widget: "list" }`
+- `z.object({...})` → `{ widget: "object", fields: [...] }` (recursive)
+- `.optional()` unwraps → `required: false`
+- `.default(val)` unwraps → `default: val`
+- Named long-text fields (`description`, `excerpt`) → `{ widget: "text" }`
 
-**`generateCmsConfig(options)`** — Iterates entity types, skips adapters without `frontmatterSchema`, maps fields, appends body field, builds collections. Uses `entityRouteConfig` for labels when available.
+Tests for `generateCmsConfig`:
+
+- Generates correct backend config (`name: "github"`, repo, branch)
+- One collection per entity type with `frontmatterSchema`
+- Skips adapters without `frontmatterSchema`
+- Uses `entityRouteConfig` labels when available
+- Sets folder to `entities/{entityType}`, `extension: "md"`, `format: "frontmatter"`
+- Adds body field as `{ widget: "markdown" }` at end
+
+**Implementation file**: `plugins/site-builder/src/lib/cms-config.ts`
+
+Zod introspection approach — unwrap `.optional()`/`.default()` wrappers via `_def.typeName`, then map inner type:
 
 ```typescript
-interface CmsConfigOptions {
-  repo: string;
-  branch: string;
-  baseUrl?: string;
-  entityTypes: string[];
-  getAdapter: (type: string) => EntityAdapter<BaseEntity>;
-  entityRouteConfig?: EntityRouteConfig;
+function unwrapZodType(schema: z.ZodTypeAny): {
+  inner: z.ZodTypeAny;
+  isOptional: boolean;
+  defaultValue?: unknown;
+} {
+  // Loop unwrapping ZodOptional, ZodDefault, ZodNullable layers
+}
+
+function zodFieldToCmsWidget(
+  name: string,
+  field: z.ZodTypeAny,
+): CmsFieldWidget {
+  // Unwrap → switch on inner._def.typeName → map to widget
+  // ZodString: check _def.checks for { kind: "datetime" }
+  // ZodEnum: read _def.values as string[]
+  // ZodArray: recurse on _def.type (element schema)
+  // ZodObject: recurse on .shape entries
+  // Long text heuristic: field names like "description", "excerpt" → text widget
+}
+
+function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
+  // Iterate entity types → skip if no frontmatterSchema
+  // → map .shape entries to widgets → append body field → build collections
 }
 ```
 
+Exports: `zodFieldToCmsWidget` (for testing), `generateCmsConfig`.
+
 ### 4. Add `cms` config to site-builder schema
 
-**File**: `plugins/site-builder/src/config.ts`
+**File**: `plugins/site-builder/src/config.ts` (after `entityRouteConfig`)
 
 ```typescript
 cms: z.object({
@@ -169,20 +207,23 @@ Opt-in: brains without `cms` config get no CMS files generated.
 
 ```typescript
 if (this.config.cms) {
-  const entityTypes = context.entityService.getEntityTypes();
+  const entityTypes = this.pluginContext!.entityService.getEntityTypes();
   const cmsConfig = generateCmsConfig({
     repo: this.config.cms.repo,
     branch: this.config.cms.branch,
     baseUrl: this.config.cms.baseUrl,
     entityTypes,
-    getAdapter: (type) => context.entities.getAdapter(type),
+    getAdapter: (type) => this.pluginContext!.entities.getAdapter(type),
     entityRouteConfig: this.config.entityRouteConfig,
   });
   const adminDir = join(payload.outputDir, "admin");
   await fs.mkdir(adminDir, { recursive: true });
-  await fs.writeFile(join(adminDir, "config.yml"), toYaml(cmsConfig));
+  await fs.writeFile(join(adminDir, "config.yml"), toYaml(cmsConfig), "utf-8");
+  this.logger.info("Generated CMS config.yml");
 }
 ```
+
+Imports: `generateCmsConfig` from `./lib/cms-config`, `toYaml` from `@brains/utils`.
 
 ### 6. Static admin page (new file)
 
@@ -202,6 +243,8 @@ if (this.config.cms) {
 </html>
 ```
 
+Copied to output by existing `copyStaticAssets()`. The `config.yml` is generated post-copy in `site:build:completed`.
+
 ### 7. Update brain.config.ts
 
 **File**: `apps/professional-brain/brain.config.ts`
@@ -209,36 +252,23 @@ if (this.config.cms) {
 Add CMS config to site-builder:
 
 ```typescript
-siteBuilderPlugin({
-  // ...existing config...
-  cms: {
-    repo: "rizom-ai/brain-data",
-    branch: "main",
-    baseUrl: process.env["CMS_AUTH_URL"],
-  },
-}),
+cms: {
+  repo: "rizom-ai/brain-data",
+  branch: "main",
+  baseUrl: process.env["CMS_AUTH_URL"],
+},
 ```
 
 Enable autoSync on git-sync (for CMS → brain pull):
 
 ```typescript
-new GitSyncPlugin({
-  // ...existing config...
-  autoSync: true,
-  syncInterval: 1,
-}),
+autoSync: true,
+syncInterval: 1,
 ```
 
-### 8. Cloudflare Workers OAuth (deployment task)
+### 8. Cloudflare Workers OAuth (deployment, out of scope for this PR)
 
-Deploy [sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) to Cloudflare Workers:
-
-- Create GitHub OAuth App (Settings → Developer settings → OAuth Apps)
-  - Callback URL: `https://cms-auth.yeehaa.workers.dev/callback`
-- Deploy the Worker with `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` secrets
-- Set `CMS_AUTH_URL` environment variable to the Worker URL
-
-Single users can also use a GitHub PAT directly in the Sveltia login screen — both options available simultaneously.
+Deploy [sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) to Cloudflare Workers with GitHub OAuth App credentials. Single users can use GitHub PAT directly without this.
 
 ## Interaction with other plans
 
@@ -250,30 +280,28 @@ Single users can also use a GitHub PAT directly in the Sveltia login screen — 
 
 ## Implementation order
 
-1. Normalize frontmatter schemas (see `docs/plans/frontmatter-normalization.md`)
-2. Write tests (`plugins/site-builder/test/cms-config.test.ts`)
-3. Create CMS config generator (`plugins/site-builder/src/lib/cms-config.ts`)
-4. Add `frontmatterSchema` to EntityAdapter interface
-5. Add `frontmatterSchema` to 9 adapters
-6. Add `cms` to site-builder config schema
-7. Integrate into build pipeline (`plugin.ts`)
-8. Create `admin/index.html`
-9. Update `brain.config.ts`
-10. Full typecheck + tests
+1. ~~Normalize frontmatter schemas~~ Done
+2. Add `frontmatterSchema` to EntityAdapter interface + 9 adapters (typecheck after)
+3. Write CMS config generator tests
+4. Implement CMS config generator
+5. Add `cms` to site-builder config schema
+6. Integrate into build pipeline
+7. Create `admin/index.html`
+8. Update `brain.config.ts`
+9. Full typecheck + tests
 
 ## Key files
 
-| File                                              | Change                                        |
-| ------------------------------------------------- | --------------------------------------------- |
-| `shell/entity-service/src/types.ts`               | Add `frontmatterSchema?` to EntityAdapter     |
-| `plugins/site-builder/src/lib/cms-config.ts`      | New: Zod→widget mapping + config generator    |
-| `plugins/site-builder/test/cms-config.test.ts`    | New: unit tests                               |
-| `plugins/site-builder/src/config.ts`              | Add optional `cms` field                      |
-| `plugins/site-builder/src/plugin.ts`              | Generate config.yml in `site:build:completed` |
-| `apps/professional-brain/public/admin/index.html` | New: Sveltia CMS loader                       |
-| `apps/professional-brain/brain.config.ts`         | Add cms config + enable autoSync              |
-| See `docs/plans/frontmatter-normalization.md`     | Deck, newsletter, project, link schema fixes  |
-| 9 adapter files                                   | Add `frontmatterSchema` property              |
+| File                                               | Change                                        |
+| -------------------------------------------------- | --------------------------------------------- |
+| `shell/entity-service/src/types.ts`                | Add `frontmatterSchema?` to EntityAdapter     |
+| 9 adapter files                                    | Add `frontmatterSchema` property (one line)   |
+| `plugins/site-builder/src/lib/cms-config.ts`       | New: Zod→widget mapping + config generator    |
+| `plugins/site-builder/test/lib/cms-config.test.ts` | New: unit tests                               |
+| `plugins/site-builder/src/config.ts`               | Add optional `cms` field                      |
+| `plugins/site-builder/src/plugin.ts`               | Generate config.yml in `site:build:completed` |
+| `apps/professional-brain/public/admin/index.html`  | New: Sveltia CMS loader                       |
+| `apps/professional-brain/brain.config.ts`          | Add cms config + enable autoSync              |
 
 ## Verification
 
