@@ -65,7 +65,15 @@ Last Updated: 2025-02-13
 
 ### Frontmatter Schema Normalization
 
-- [ ] Normalize all adapter frontmatter schemas to consistent pattern (see `docs/plans/frontmatter-normalization.md`)
+- [ ] Normalize deck, project, link adapter schemas to consistent pattern (see `docs/plans/frontmatter-normalization.md`)
+
+### Newsletter Plugin Cleanup
+
+- [ ] Frontmatter schema normalization, fix partial entity hack, fix hard-coded entity type, add missing tests (see `docs/plans/newsletter-cleanup.md`)
+
+### Job Monitoring Memory Leak
+
+- [ ] Replace per-job subscriptions with centralized handler in newsletter and social-media plugins
 
 ### Sveltia CMS — Git-Based Content Management
 
