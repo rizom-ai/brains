@@ -195,7 +195,7 @@ describe("generateCmsConfig", () => {
       getAdapter: () => adapter,
     });
 
-    expect(config.collections[0]?.folder).toBe("entities/post");
+    expect(config.collections[0]?.folder).toBe("post");
   });
 
   it("should set extension and format", () => {

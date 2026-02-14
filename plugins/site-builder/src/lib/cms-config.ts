@@ -203,7 +203,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
     collections.push({
       name: entityType,
       label: pluralizeLabel(label),
-      folder: `entities/${entityType}`,
+      folder: entityType,
       create: true,
       extension: "md",
       format: "frontmatter",
@@ -218,7 +218,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
       branch: options.branch,
       ...(options.baseUrl && { base_url: options.baseUrl }),
     },
-    media_folder: "entities/image",
+    media_folder: "image",
     public_folder: "/images",
     collections,
   };

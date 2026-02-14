@@ -101,7 +101,7 @@ const config = defineConfig({
     }),
     directorySync(),
     new GitSyncPlugin({
-      repo: process.env["GIT_SYNC_REPO"] || "",
+      repo: process.env["GIT_SYNC_REPO"],
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Yeehaa",
       authorEmail: "yeehaa@rizom.ai",

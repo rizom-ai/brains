@@ -137,16 +137,20 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             : `https://${configUrl}`
           : undefined;
 
-        await this.context.messaging.send("site:build:completed", {
-          outputDir: data.outputDir,
-          environment,
-          routesBuilt: result.routesBuilt,
-          siteConfig: {
-            ...(data.siteConfig ?? this.defaultSiteConfig),
-            url,
+        await this.context.messaging.send(
+          "site:build:completed",
+          {
+            outputDir: data.outputDir,
+            environment,
+            routesBuilt: result.routesBuilt,
+            siteConfig: {
+              ...(data.siteConfig ?? this.defaultSiteConfig),
+              url,
+            },
+            generateEntityUrl: this.generateEntityUrl.bind(this),
           },
-          generateEntityUrl: this.generateEntityUrl.bind(this),
-        });
+          { broadcast: true },
+        );
       }
 
       return {

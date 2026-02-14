@@ -65,6 +65,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
           url: "https://example.com",
         }),
       }),
+      { broadcast: true },
     );
   });
 
@@ -100,6 +101,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
           url: "https://preview.example.com",
         }),
       }),
+      { broadcast: true },
     );
   });
 
@@ -134,6 +136,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
           url: "https://example.com",
         }),
       }),
+      { broadcast: true },
     );
   });
 
@@ -168,6 +171,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
           url: "https://example.com",
         }),
       }),
+      { broadcast: true },
     );
   });
 
@@ -202,6 +206,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
           url: "http://localhost:4321",
         }),
       }),
+      { broadcast: true },
     );
   });
 
@@ -236,6 +241,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
           url: undefined,
         }),
       }),
+      { broadcast: true },
     );
   });
 });
