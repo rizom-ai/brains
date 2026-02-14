@@ -145,9 +145,32 @@ commitDebounce: z
   .default(5000),
 ```
 
-#### 4. Keep `autoSync` for periodic pull (optional)
+#### 4. Change `autoSync` timer to pull-only
 
-The existing `autoSync` timer is still useful for one thing: periodic pulls from remote (when another instance pushes changes). But it's orthogonal to the event-driven commit/push. Leave it as-is — the user can enable it if they want periodic pulls.
+The existing `autoSync` timer calls `sync()` which does pull + commit + push. With event-driven commit/push handling outbound changes, the timer should only pull. Change `startAutoSync()` in `git-sync.ts`:
+
+```typescript
+// Before: full sync (pull + commit + push)
+this.syncTimer = setInterval(() => {
+  void this.sync();
+}, this.syncInterval * 1000);
+
+// After: pull only (inbound changes from CMS or other instances)
+this.syncTimer = setInterval(() => {
+  void (async () => {
+    try {
+      await this.pull();
+    } catch (error) {
+      this.logger.error("Auto-pull failed", { error });
+    }
+  })();
+}, this.syncInterval * 1000);
+```
+
+This gives a clean separation:
+
+- **Event-driven**: commit + push (outbound, triggered by entity changes)
+- **Timer-based**: pull only (inbound, for remote changes from CMS or other instances)
 
 ## What This Fixes
 
@@ -162,14 +185,15 @@ The existing `autoSync` timer is still useful for one thing: periodic pulls from
 
 ## What About the `autoSync` Config?
 
-The `autoSync: false` default remains correct. Auto-sync is a polling mechanism for pulling remote changes — separate from the new event-driven commit/push. The event-driven approach replaces the need for auto-sync's commit/push behavior entirely.
+The `autoSync: false` default remains correct for standalone use. When a CMS or second brain instance is involved, enable it for periodic pulls. The event-driven approach handles all commit/push — the timer never commits or pushes.
 
 ## Key Files
 
-| File                             | Change                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------- |
-| `plugins/git-sync/src/plugin.ts` | Subscribe to entity events, debounced commit+push with concurrency guard, cleanup |
-| `plugins/git-sync/src/types.ts`  | Add `commitDebounce` config option                                                |
+| File                                   | Change                                                                            |
+| -------------------------------------- | --------------------------------------------------------------------------------- |
+| `plugins/git-sync/src/plugin.ts`       | Subscribe to entity events, debounced commit+push with concurrency guard, cleanup |
+| `plugins/git-sync/src/types.ts`        | Add `commitDebounce` config option                                                |
+| `plugins/git-sync/src/lib/git-sync.ts` | Change `startAutoSync()` from full `sync()` to `pull()` only                      |
 
 ## Verification
 
