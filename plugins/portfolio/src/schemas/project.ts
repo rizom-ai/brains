@@ -2,13 +2,19 @@ import { z } from "zod";
 import { baseEntitySchema } from "@brains/plugins";
 
 /**
+ * Project status
+ */
+export const projectStatusSchema = z.enum(["draft", "published"]);
+export type ProjectStatus = z.infer<typeof projectStatusSchema>;
+
+/**
  * Project frontmatter schema (stored in content as YAML frontmatter)
  * Contains all project data for human editing
  */
 export const projectFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(), // Auto-generated from title if not provided
-  status: z.enum(["draft", "published"]),
+  status: projectStatusSchema,
   publishedAt: z.string().datetime().optional(),
   description: z.string(), // 1-2 sentence summary for cards
   year: z.number(), // Year project began, used for ordering

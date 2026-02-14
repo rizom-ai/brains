@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Source reference for links (where the link was captured from)
@@ -46,13 +47,8 @@ export const linkMetadataSchema = linkFrontmatterSchema.pick({
 /**
  * Link entity schema
  */
-export const linkSchema = z.object({
-  id: z.string(),
+export const linkSchema = baseEntitySchema.extend({
   entityType: z.literal("link"),
-  content: z.string(),
-  contentHash: z.string(), // SHA256 hash of content for change detection
-  created: z.string().datetime(),
-  updated: z.string().datetime(),
   metadata: linkMetadataSchema,
 });
 

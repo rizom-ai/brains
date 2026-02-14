@@ -1,6 +1,7 @@
 export { DecksPlugin, decksPlugin, default } from "./plugin";
 export {
   deckSchema,
+  deckFrontmatterSchema,
   type DeckEntity,
   enrichedDeckSchema,
   type EnrichedDeck,

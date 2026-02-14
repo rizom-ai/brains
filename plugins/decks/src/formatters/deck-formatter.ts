@@ -4,21 +4,11 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import { z, slugify } from "@brains/utils";
-import { deckSchema, type DeckEntity } from "../schemas/deck";
-
-/**
- * Frontmatter schema for deck markdown files
- */
-const deckFrontmatterSchema = z.object({
-  title: z.string(),
-  slug: z.string().optional(), // Optional - auto-generated from title if not provided
-  description: z.string().optional(),
-  author: z.string().optional(),
-  status: z.enum(["draft", "published"]).default("draft"),
-  publishedAt: z.string().datetime().optional(),
-  event: z.string().optional(),
-  coverImageId: z.string().optional(), // References an image entity by ID
-});
+import {
+  deckSchema,
+  deckFrontmatterSchema,
+  type DeckEntity,
+} from "../schemas/deck";
 
 /**
  * Deck formatter for managing presentation deck entities

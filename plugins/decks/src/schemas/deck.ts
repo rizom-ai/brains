@@ -7,16 +7,36 @@ export const deckStatusSchema = z.enum(["draft", "queued", "published"]);
 export type DeckStatus = z.infer<typeof deckStatusSchema>;
 
 /**
- * Deck metadata schema
- * Key fields stored in metadata for fast queries and URL generation
+ * Deck frontmatter schema (stored in content as YAML frontmatter)
+ * Contains all presentation data for human editing
  */
-export const deckMetadataSchema = z.object({
-  slug: z.string(), // Generated from title if not provided, used for URLs
+export const deckFrontmatterSchema = z.object({
   title: z.string(),
-  status: deckStatusSchema,
+  slug: z.string().optional(), // Auto-generated from title if not provided
+  description: z.string().optional(),
+  author: z.string().optional(),
+  status: deckStatusSchema.default("draft"),
   publishedAt: z.string().datetime().optional(),
+  event: z.string().optional(),
   coverImageId: z.string().optional(), // References an image entity by ID
 });
+
+/**
+ * Deck metadata schema - derived from frontmatter
+ * Only includes fields needed for fast DB queries/filtering
+ * Using .pick() ensures metadata stays in sync with frontmatter
+ */
+export const deckMetadataSchema = deckFrontmatterSchema
+  .pick({
+    title: true,
+    status: true,
+    publishedAt: true,
+    coverImageId: true,
+  })
+  .extend({
+    slug: z.string(), // Required in metadata (auto-generated from title)
+    status: deckStatusSchema, // Override to remove .default() from frontmatter
+  });
 
 export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
 

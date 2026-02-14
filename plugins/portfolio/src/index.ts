@@ -8,6 +8,7 @@ export { portfolioConfigSchema } from "./config";
 // Schemas
 export type {
   Project,
+  ProjectStatus,
   ProjectFrontmatter,
   ProjectMetadata,
   ProjectContent,
@@ -16,6 +17,7 @@ export type {
 } from "./schemas/project";
 export {
   projectSchema,
+  projectStatusSchema,
   projectFrontmatterSchema,
   projectMetadataSchema,
   projectContentSchema,
