@@ -1,5 +1,7 @@
 # Plan: Frontmatter Schema Normalization
 
+**Status: Done** — Implemented in `d6526b99` (deck, project, link) and `2b095a8f` (newsletter).
+
 ## Context
 
 The CMS plan (`docs/plans/sveltia-cms.md`) requires every entity adapter to expose a `frontmatterSchema` property. An audit of all 9 adapters found 4 inconsistencies in how frontmatter schemas are defined. This plan normalizes 3 of them (deck, project, link). Newsletter is handled separately in `docs/plans/newsletter-cleanup.md`.

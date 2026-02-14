@@ -1,5 +1,7 @@
 # Plan: Newsletter Plugin Cleanup
 
+**Status: Done** — Implemented in `2b095a8f`.
+
 ## Context
 
 The newsletter plugin hasn't been actively used yet. An audit found several design issues alongside the frontmatter schema normalization needed for CMS. Since we're touching newsletter anyway for the frontmatter work, now is the right time to clean up all issues in one pass.
