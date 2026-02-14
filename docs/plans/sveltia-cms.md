@@ -95,9 +95,9 @@ Agent creates entity → entity DB updated
 
 ## Changes
 
-### 0. Prerequisite: Fix deck frontmatter schema
+### 0. Prerequisite: Normalize frontmatter schemas
 
-Move `deckFrontmatterSchema` from local const in `plugins/decks/src/formatters/deck-formatter.ts` to `plugins/decks/src/schemas/deck.ts`, following the pattern of all other plugins. Fix status enum inconsistency (formatter uses `["draft", "published"]` but schema has `deckStatusSchema = ["draft", "queued", "published"]`).
+Normalize all 9 adapter frontmatter schemas to follow a consistent pattern before adding `frontmatterSchema` to the EntityAdapter interface. See `docs/plans/frontmatter-normalization.md` for details. Covers: deck (status enum fix + move schema), newsletter (add frontmatter schema), project (extract status enum), link (extend baseEntitySchema).
 
 ### 1. Add `frontmatterSchema` to EntityAdapter interface
 
@@ -250,7 +250,7 @@ Single users can also use a GitHub PAT directly in the Sveltia login screen — 
 
 ## Implementation order
 
-1. Fix deck frontmatter schema (prerequisite)
+1. Normalize frontmatter schemas (see `docs/plans/frontmatter-normalization.md`)
 2. Write tests (`plugins/site-builder/test/cms-config.test.ts`)
 3. Create CMS config generator (`plugins/site-builder/src/lib/cms-config.ts`)
 4. Add `frontmatterSchema` to EntityAdapter interface
@@ -272,8 +272,7 @@ Single users can also use a GitHub PAT directly in the Sveltia login screen — 
 | `plugins/site-builder/src/plugin.ts`              | Generate config.yml in `site:build:completed` |
 | `apps/professional-brain/public/admin/index.html` | New: Sveltia CMS loader                       |
 | `apps/professional-brain/brain.config.ts`         | Add cms config + enable autoSync              |
-| `plugins/decks/src/schemas/deck.ts`               | Add `deckFrontmatterSchema`                   |
-| `plugins/decks/src/formatters/deck-formatter.ts`  | Import schema from schemas file               |
+| See `docs/plans/frontmatter-normalization.md`     | Deck, newsletter, project, link schema fixes  |
 | 9 adapter files                                   | Add `frontmatterSchema` property              |
 
 ## Verification

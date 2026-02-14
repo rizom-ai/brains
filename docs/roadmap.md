@@ -63,6 +63,10 @@ Last Updated: 2025-02-13
 - [ ] Global provider config (`defaultImageProvider` in brain.config.ts)
 - [ ] Better text rendering for cover images via Nano Banana Pro's native capabilities
 
+### Frontmatter Schema Normalization
+
+- [ ] Normalize all adapter frontmatter schemas to consistent pattern (see `docs/plans/frontmatter-normalization.md`)
+
 ### Sveltia CMS — Git-Based Content Management
 
 - [ ] Add Sveltia CMS at `/admin/` for web-based editing of all entity types (see `docs/plans/sveltia-cms.md`)
