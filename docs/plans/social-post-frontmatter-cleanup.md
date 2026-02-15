@@ -9,7 +9,9 @@ Social post frontmatter contains operational/queue fields that don't belong in c
 
 Additionally, the in-memory QueueManager loses all queued posts on restart. Posts stay `status: "queued"` in the DB but are never picked up again.
 
-Goal: delete `platformPostId` and all operational fields from both frontmatter and metadata. Queue and retry state lives in memory only (QueueManager + RetryTracker). Rebuild the in-memory queue from `status: "queued"` entities on startup.
+Goal: delete operational fields (`queueOrder`, `retryCount`, `lastError`) from both frontmatter and metadata. Keep `platformPostId` in frontmatter and metadata with proper syncing. Queue and retry state lives in memory only (QueueManager + RetryTracker). Rebuild the in-memory queue from `status: "queued"` entities on startup.
+
+**Status: DONE**
 
 ## Changes
 

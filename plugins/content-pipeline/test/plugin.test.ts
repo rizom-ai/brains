@@ -99,6 +99,81 @@ describe("ContentPipelinePlugin", () => {
     });
   });
 
+  describe("queue rebuild on startup", () => {
+    it("should rebuild queue from queued entities after sync:initial:completed", async () => {
+      // Pre-populate with queued entities (addEntities registers the entity type)
+      mockShell.addEntities([
+        {
+          id: "post-1",
+          entityType: "social-post",
+          content: "queued post 1",
+          metadata: { status: "queued", title: "Post 1" },
+          contentHash: "h1",
+          created: "2024-01-01T00:00:00Z",
+          updated: "2024-01-01T00:00:00Z",
+        },
+        {
+          id: "post-2",
+          entityType: "social-post",
+          content: "queued post 2",
+          metadata: { status: "queued", title: "Post 2" },
+          contentHash: "h2",
+          created: "2024-01-01T00:00:00Z",
+          updated: "2024-01-01T00:00:00Z",
+        },
+        {
+          id: "post-3",
+          entityType: "social-post",
+          content: "draft post",
+          metadata: { status: "draft", title: "Post 3" },
+          contentHash: "h3",
+          created: "2024-01-01T00:00:00Z",
+          updated: "2024-01-01T00:00:00Z",
+        },
+      ]);
+
+      // Simulate sync completion
+      const messageBus = mockShell.getMessageBus();
+      await messageBus.send("sync:initial:completed", {}, "test");
+
+      // Queue should contain only the queued entities
+      const queue = await plugin.getQueueManager().list("social-post");
+      expect(queue.length).toBe(2);
+      const queuedIds = queue.map((e) => e.entityId);
+      expect(queuedIds).toContain("post-1");
+      expect(queuedIds).toContain("post-2");
+    });
+
+    it("should not add non-queued entities to queue", async () => {
+      mockShell.addEntities([
+        {
+          id: "post-1",
+          entityType: "social-post",
+          content: "published post",
+          metadata: { status: "published", title: "Post 1" },
+          contentHash: "h1",
+          created: "2024-01-01T00:00:00Z",
+          updated: "2024-01-01T00:00:00Z",
+        },
+      ]);
+
+      const messageBus = mockShell.getMessageBus();
+      await messageBus.send("sync:initial:completed", {}, "test");
+
+      const queue = await plugin.getQueueManager().list("social-post");
+      expect(queue.length).toBe(0);
+    });
+
+    it("should handle no queued entities gracefully", async () => {
+      const messageBus = mockShell.getMessageBus();
+      await messageBus.send("sync:initial:completed", {}, "test");
+
+      // No crash, empty queue
+      const queue = await plugin.getQueueManager().list("social-post");
+      expect(queue.length).toBe(0);
+    });
+  });
+
   describe("provider registration", () => {
     it("should register provider for entity type", async () => {
       const messageBus = mockShell.getMessageBus();

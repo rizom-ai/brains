@@ -22,7 +22,6 @@ describe("SocialPostAdapter - Metadata/Frontmatter Sync", () => {
 title: Test Post
 platform: linkedin
 status: draft
-retryCount: 0
 ---
 This is the post content.`,
     contentHash: "abc123",
@@ -74,9 +73,7 @@ This is the post content.`,
       expect(markdown).toMatch(/publishedAt:.*2024-01-15T10:00:00Z/);
     });
 
-    it("should preserve platformPostId from frontmatter (frontmatter-only field)", () => {
-      // platformPostId is frontmatter-only, not in metadata
-      // It should be preserved from the original content
+    it("should sync platformPostId from metadata to frontmatter", () => {
       const entity: SocialPost = {
         id: "test-post-123",
         entityType: "social-post",
@@ -84,8 +81,6 @@ This is the post content.`,
 title: Test Post
 platform: linkedin
 status: draft
-platformPostId: urn:li:share:123456789
-retryCount: 0
 ---
 This is the post content.`,
         contentHash: "abc123",
@@ -95,15 +90,15 @@ This is the post content.`,
           title: "Test Post",
           slug: "linkedin-test-post-20240101",
           platform: "linkedin",
-          status: "published", // Updated in metadata
+          status: "published",
+          platformPostId: "urn:li:share:123456789",
         },
       };
 
       const markdown = socialPostAdapter.toMarkdown(entity);
 
-      // platformPostId should be preserved from content (may be quoted in YAML)
+      // platformPostId should come from metadata
       expect(markdown).toMatch(/platformPostId:.*urn:li:share:123456789/);
-      // status should come from metadata
       expect(markdown).toContain("status: published");
     });
 
@@ -123,17 +118,14 @@ This is the post content.`,
       expect(markdown).not.toContain("title: Test Post");
     });
 
-    it("should remove queueOrder when undefined in metadata", () => {
-      // Content has queueOrder but metadata doesn't
+    it("should not include removed operational fields in output", () => {
       const entity: SocialPost = {
         id: "test-post-123",
         entityType: "social-post",
         content: `---
 title: Test Post
 platform: linkedin
-status: queued
-queueOrder: 5
-retryCount: 0
+status: published
 ---
 This is the post content.`,
         contentHash: "abc123",
@@ -143,8 +135,7 @@ This is the post content.`,
           title: "Test Post",
           slug: "linkedin-test-post-20240101",
           platform: "linkedin",
-          status: "published", // Changed from queued
-          // queueOrder intentionally omitted
+          status: "published",
         },
       };
 
@@ -152,6 +143,8 @@ This is the post content.`,
 
       expect(markdown).toContain("status: published");
       expect(markdown).not.toContain("queueOrder:");
+      expect(markdown).not.toContain("retryCount:");
+      expect(markdown).not.toContain("lastError:");
     });
 
     it("should preserve coverImageId from frontmatter (frontmatter-only field)", () => {
@@ -164,7 +157,6 @@ title: Test Post
 platform: linkedin
 status: draft
 coverImageId: image-abc123
-retryCount: 0
 ---
 This is the post content.`,
         contentHash: "abc123",
@@ -201,21 +193,33 @@ This is the post content.`,
       expect(markdown).toContain("This is the post content.");
     });
 
-    it("should preserve non-metadata frontmatter fields like retryCount", () => {
-      const entity = createTestEntity({
+    it("should preserve sourceEntityId from frontmatter (frontmatter-only field)", () => {
+      const entity: SocialPost = {
+        id: "test-post-123",
+        entityType: "social-post",
+        content: `---
+title: Test Post
+platform: linkedin
+status: draft
+sourceEntityId: post-abc123
+sourceEntityType: post
+---
+This is the post content.`,
+        contentHash: "abc123",
+        created: "2024-01-01T00:00:00Z",
+        updated: "2024-01-01T00:00:00Z",
         metadata: {
           title: "Test Post",
           slug: "linkedin-test-post-20240101",
           platform: "linkedin",
           status: "published",
         },
-      });
+      };
 
       const markdown = socialPostAdapter.toMarkdown(entity);
 
-      // retryCount is in content frontmatter but not in metadata
-      // It should be preserved from the original content
-      expect(markdown).toContain("retryCount: 0");
+      expect(markdown).toContain("sourceEntityId: post-abc123");
+      expect(markdown).toContain("sourceEntityType: post");
     });
   });
 
@@ -226,7 +230,6 @@ This is the post content.`,
 title: Original Title
 platform: linkedin
 status: draft
-retryCount: 0
 ---
 Post body here.`;
 
@@ -237,7 +240,6 @@ Post body here.`;
       expect(parsed.metadata?.slug).toBeDefined();
 
       // Step 2: Create entity and update metadata (simulating what entity service does)
-      // Note: platformPostId is frontmatter-only, not in metadata schema
       const entity: SocialPost = {
         id: "test-123",
         entityType: "social-post",

@@ -58,8 +58,6 @@ describe("Social Post Schemas", () => {
         title: "Plugin System Announcement",
         platform: "linkedin",
         status: "draft",
-        queueOrder: 1,
-        retryCount: 0,
       };
       const result = socialPostFrontmatterSchema.safeParse(validFrontmatter);
       expect(result.success).toBe(true);
@@ -108,13 +106,11 @@ describe("Social Post Schemas", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should validate frontmatter with error state", () => {
+    it("should validate frontmatter with failed status", () => {
       const failedPost = {
         title: "Failed Post",
         platform: "linkedin",
         status: "failed",
-        retryCount: 3,
-        lastError: "API rate limit exceeded",
       };
       const result = socialPostFrontmatterSchema.safeParse(failedPost);
       expect(result.success).toBe(true);
@@ -143,14 +139,14 @@ describe("Social Post Schemas", () => {
       expect(result.success).toBe(false);
     });
 
-    it("should accept missing retryCount as optional", () => {
-      const noRetryCount = {
+    it("should accept missing platformPostId as optional", () => {
+      const noPlatformPostId = {
         title: "Weekly Team Update",
         platform: "linkedin",
         status: "draft",
       };
-      const result = socialPostFrontmatterSchema.parse(noRetryCount);
-      expect(result.retryCount).toBeUndefined();
+      const result = socialPostFrontmatterSchema.parse(noPlatformPostId);
+      expect(result.platformPostId).toBeUndefined();
     });
 
     it("should validate frontmatter with coverImageId", () => {
@@ -185,7 +181,6 @@ describe("Social Post Schemas", () => {
         slug: "linkedin-product-launch-update",
         platform: "linkedin",
         status: "queued",
-        queueOrder: 5,
       };
       const result = socialPostMetadataSchema.safeParse(validMetadata);
       expect(result.success).toBe(true);

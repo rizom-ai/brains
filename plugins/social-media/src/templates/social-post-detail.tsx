@@ -37,10 +37,6 @@ export const SocialPostDetailTemplate = ({
     { label: post.frontmatter.platform },
   ];
 
-  const linkedInUrl = post.frontmatter.platformPostId
-    ? `https://www.linkedin.com/feed/update/${post.frontmatter.platformPostId}`
-    : null;
-
   return (
     <>
       <Head title={title} description={description} />
@@ -63,11 +59,6 @@ export const SocialPostDetailTemplate = ({
               <span className="text-sm text-theme-muted font-mono">
                 {post.id}
               </span>
-              {post.frontmatter.queueOrder !== undefined && (
-                <span className="text-sm text-theme-muted">
-                  Queue position: #{post.frontmatter.queueOrder}
-                </span>
-              )}
             </div>
 
             {/* Cover image */}
@@ -100,22 +91,16 @@ export const SocialPostDetailTemplate = ({
                   {formatDate(post.frontmatter.publishedAt)}
                 </div>
               )}
-              {linkedInUrl && (
+              {post.frontmatter.platformPostId && (
                 <div>
                   <a
-                    href={linkedInUrl}
+                    href={`https://www.linkedin.com/feed/update/${post.frontmatter.platformPostId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-brand hover:underline"
                   >
                     View on LinkedIn →
                   </a>
-                </div>
-              )}
-              {post.frontmatter.lastError && (
-                <div className="text-red-600">
-                  <span className="font-medium">Last error:</span>{" "}
-                  {post.frontmatter.lastError}
                 </div>
               )}
             </div>

@@ -42,10 +42,6 @@ export const socialPostFrontmatterSchema = z.object({
     .string()
     .optional()
     .describe("Image entity ID for post image"),
-  queueOrder: z
-    .number()
-    .optional()
-    .describe("Position in publish queue (lower = sooner)"),
   publishedAt: z.string().datetime().optional(),
   platformPostId: z
     .string()
@@ -58,8 +54,6 @@ export const socialPostFrontmatterSchema = z.object({
   sourceEntityType: sourceEntityTypeSchema
     .optional()
     .describe("Source entity type (post, deck)"),
-  retryCount: z.number().optional().describe("Number of publish attempts"),
-  lastError: z.string().optional().describe("Last publish error if failed"),
 });
 
 export type SocialPostFrontmatter = z.infer<typeof socialPostFrontmatterSchema>;
@@ -74,11 +68,10 @@ export const socialPostMetadataSchema = socialPostFrontmatterSchema
     title: true,
     platform: true,
     status: true,
-    queueOrder: true,
     publishedAt: true,
+    platformPostId: true,
   })
   .extend({
-    // slug is auto-generated from platform + title (e.g., "linkedin-product-launch")
     slug: z.string().describe("URL-friendly identifier: {platform}-{title}"),
   });
 

@@ -101,6 +101,28 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     // Subscribe to message bus events
     this.subscribeToMessages(context);
 
+    // Rebuild queue from DB after initial sync completes
+    context.messaging.subscribe("sync:initial:completed", async () => {
+      const entityTypes = context.entityService.getEntityTypes();
+      for (const entityType of entityTypes) {
+        const entities = await context.entityService.listEntities(entityType, {
+          filter: { metadata: { status: "queued" } },
+        });
+        for (const entity of entities) {
+          await this.queueManager.add(entity.entityType, entity.id);
+        }
+      }
+      let totalQueued = 0;
+      for (const type of entityTypes) {
+        const queued = await this.queueManager.list(type);
+        totalQueued += queued.length;
+      }
+      if (totalQueued > 0) {
+        this.logger.info(`Rebuilt queue with ${totalQueued} queued entities`);
+      }
+      return { success: true };
+    });
+
     // Start the scheduler
     await this.scheduler.start();
 

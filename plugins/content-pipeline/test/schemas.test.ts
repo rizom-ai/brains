@@ -35,7 +35,6 @@ describe("publishableMetadataSchema", () => {
 
     expect(result).toEqual({
       status: "draft",
-      retryCount: 0,
     });
   });
 
@@ -44,8 +43,6 @@ describe("publishableMetadataSchema", () => {
       status: "queued",
       queueOrder: 5,
       publishedAt: "2024-01-15T10:30:00.000Z",
-      retryCount: 2,
-      lastError: "Connection timeout",
     };
 
     const result = publishableMetadataSchema.parse(input);
@@ -96,14 +93,5 @@ describe("publishableMetadataSchema", () => {
       queueOrder: -1,
     });
     expect(result.queueOrder).toBe(-1);
-  });
-
-  it("should default retryCount to 0", () => {
-    const result = publishableMetadataSchema.parse({
-      status: "failed",
-      lastError: "Some error",
-    });
-
-    expect(result.retryCount).toBe(0);
   });
 });

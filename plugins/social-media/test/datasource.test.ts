@@ -24,14 +24,11 @@ describe("SocialPostDataSource", () => {
     slug: string,
     status: "draft" | "queued" | "published" | "failed",
     body: string,
-    queueOrder?: number,
   ): SocialPost => {
     const content = `---
 title: ${title}
 platform: linkedin
 status: ${status}
-${queueOrder !== undefined ? `queueOrder: ${queueOrder}` : ""}
-retryCount: 0
 ---
 
 ${body}`;
@@ -43,7 +40,6 @@ ${body}`;
         slug,
         platform: "linkedin",
         status,
-        queueOrder,
       },
     });
   };
@@ -166,7 +162,6 @@ ${body}`;
           "linkedin-queued-post-20260114",
           "queued",
           "Queued post content",
-          1,
         ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);
@@ -199,7 +194,6 @@ ${body}`;
           "linkedin-post-one-20260114",
           "queued",
           "Post 1 content",
-          1,
         ),
         createMockSocialPost(
           "post-2",
@@ -207,7 +201,6 @@ ${body}`;
           "linkedin-post-two-20260114",
           "queued",
           "Post 2 content",
-          2,
         ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);
@@ -303,7 +296,6 @@ ${body}`;
           "linkedin-next-post-20260114",
           "queued",
           "Next post content",
-          1,
         ),
       ];
       listEntitiesSpy.mockResolvedValue(posts);

@@ -27,8 +27,6 @@ export const publishableMetadataSchema = z.object({
     .optional()
     .describe("Position in publish queue (lower = sooner)"),
   publishedAt: z.string().datetime().optional(),
-  retryCount: z.number().default(0).describe("Number of publish attempts"),
-  lastError: z.string().optional().describe("Last publish error if failed"),
 });
 
 export type PublishableMetadata = z.infer<typeof publishableMetadataSchema>;

@@ -19,7 +19,6 @@ export interface PublishExecuteHandlerConfig {
   logger: Logger;
   entityService: IEntityService;
   providers: Map<string, PublishProvider>;
-  maxRetries: number;
 }
 
 /**
@@ -31,14 +30,12 @@ export class PublishExecuteHandler {
   private logger: Logger;
   private entityService: IEntityService;
   private providers: Map<string, PublishProvider>;
-  private maxRetries: number;
 
   constructor(config: PublishExecuteHandlerConfig) {
     this.sendMessage = config.sendMessage;
     this.logger = config.logger;
     this.entityService = config.entityService;
     this.providers = config.providers;
-    this.maxRetries = config.maxRetries;
   }
 
   /**
@@ -111,14 +108,12 @@ export class PublishExecuteHandler {
 
         // Update entity as published
         const publishedAt = new Date().toISOString();
-        const { queueOrder: _queueOrder, ...metadataWithoutQueue } =
-          parsed.metadata;
+        const platformPostId = result.id || undefined;
         const updatedFrontmatter = {
-          ...metadataWithoutQueue,
+          ...parsed.metadata,
           status: "published" as const,
           publishedAt,
-          platformPostId: result.id,
-          retryCount: parsed.metadata.retryCount ?? 0,
+          ...(platformPostId && { platformPostId }),
         };
         const updatedContent = socialPostAdapter.createPostContent(
           updatedFrontmatter,
@@ -132,7 +127,7 @@ export class PublishExecuteHandler {
             ...post.metadata,
             status: "published",
             publishedAt,
-            queueOrder: undefined,
+            platformPostId,
           },
         });
 
@@ -141,7 +136,7 @@ export class PublishExecuteHandler {
 
         this.logger.info(`Post published successfully: ${entityId}`, {
           platform,
-          platformPostId: result.id,
+          platformPostId,
         });
       } catch (publishError) {
         const errorMessage =
@@ -149,16 +144,10 @@ export class PublishExecuteHandler {
             ? publishError.message
             : String(publishError);
 
-        // Update entity with error info
-        const retryCount = (parsed.metadata.retryCount ?? 0) + 1;
+        // Update entity with error status (retry tracking is handled by RetryTracker)
         const updatedFrontmatter = {
           ...parsed.metadata,
-          retryCount,
-          lastError: errorMessage,
-          status:
-            retryCount >= this.maxRetries
-              ? ("failed" as const)
-              : parsed.metadata.status,
+          status: "failed" as const,
         };
         const updatedContent = socialPostAdapter.createPostContent(
           updatedFrontmatter,
@@ -170,9 +159,7 @@ export class PublishExecuteHandler {
           content: updatedContent,
           metadata: {
             ...post.metadata,
-            lastError: errorMessage,
-            status:
-              retryCount >= this.maxRetries ? "failed" : post.metadata.status,
+            status: "failed",
           },
         });
 
@@ -182,7 +169,6 @@ export class PublishExecuteHandler {
         this.logger.error(`Post publish failed: ${entityId}`, {
           platform,
           error: errorMessage,
-          retryCount,
         });
       }
     } catch (error) {

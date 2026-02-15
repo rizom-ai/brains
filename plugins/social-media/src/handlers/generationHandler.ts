@@ -210,13 +210,11 @@ ${sourceEntity.content}`,
         };
       }
 
-      // Create frontmatter (metadata only, content goes in body)
+      // Create frontmatter (content fields only, operational state lives in memory)
       const frontmatter: SocialPostFrontmatter = {
         title,
         platform,
         status,
-        retryCount: 0,
-        ...(queueOrder !== undefined && { queueOrder }),
         ...(sourceEntityId && { sourceEntityId }),
         ...(sourceEntityType && { sourceEntityType }),
       };

@@ -141,7 +141,6 @@ describe("PublishExecuteHandler", () => {
       logger: logger as never,
       entityService: entityService as never,
       providers,
-      maxRetries: 3,
     };
 
     handler = new PublishExecuteHandler(config);
@@ -277,7 +276,7 @@ describe("PublishExecuteHandler", () => {
         expect.objectContaining({
           id: "post-1",
           metadata: expect.objectContaining({
-            lastError: "API error",
+            status: "failed",
           }),
         }),
       );

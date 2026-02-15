@@ -52,8 +52,6 @@ export class SocialPostAdapter
     // Build frontmatter: metadata fields from entity.metadata (authoritative),
     // frontmatter-only fields from existingFrontmatter (preserved)
     const frontmatter: SocialPostFrontmatter = {
-      // Start with existing frontmatter (preserves frontmatter-only fields like
-      // retryCount, lastError, platformPostId, coverImageId, sourceEntityId, etc.)
       ...existingFrontmatter,
 
       // Override with entity.metadata (authoritative source for these fields)
@@ -65,16 +63,10 @@ export class SocialPostAdapter
       ...(entity.metadata.publishedAt !== undefined && {
         publishedAt: entity.metadata.publishedAt,
       }),
-      // Only include queueOrder if defined in metadata (allows removal)
-      ...(entity.metadata.queueOrder !== undefined && {
-        queueOrder: entity.metadata.queueOrder,
+      ...(entity.metadata.platformPostId !== undefined && {
+        platformPostId: entity.metadata.platformPostId,
       }),
     };
-
-    // Remove queueOrder if not in metadata (was removed during publish)
-    if (entity.metadata.queueOrder === undefined) {
-      delete frontmatter.queueOrder;
-    }
 
     return generateMarkdownWithFrontmatter(contentBody, frontmatter);
   }
@@ -103,8 +95,8 @@ export class SocialPostAdapter
         slug,
         platform: frontmatter.platform,
         status: frontmatter.status,
-        queueOrder: frontmatter.queueOrder,
         publishedAt: frontmatter.publishedAt,
+        platformPostId: frontmatter.platformPostId,
       },
     };
   }
@@ -144,18 +136,13 @@ export class SocialPostAdapter
 
   /**
    * Parse social post frontmatter from entity content
-   * Ensures all defaults are applied (e.g., retryCount)
    */
   public parsePostFrontmatter(entity: SocialPost): SocialPostFrontmatter {
     const { metadata } = parseMarkdownWithFrontmatter(
       entity.content,
       socialPostFrontmatterSchema,
     );
-    // Ensure retryCount has the default value applied
-    return {
-      ...metadata,
-      retryCount: metadata.retryCount ?? 0,
-    };
+    return metadata;
   }
 
   /**

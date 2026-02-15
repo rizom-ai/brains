@@ -222,7 +222,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       logger: this.logger.child("PublishExecuteHandler"),
       entityService: context.entityService,
       providers: this.providers,
-      maxRetries: this.config.maxRetries,
     });
 
     context.messaging.subscribe<PublishExecutePayload, { success: boolean }>(

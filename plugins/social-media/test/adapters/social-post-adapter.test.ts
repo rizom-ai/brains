@@ -57,19 +57,17 @@ This is a test post for LinkedIn`;
       expect(result.metadata?.slug).toBe("linkedin-product-launch-update");
     });
 
-    it("should parse queued post with queueOrder", () => {
+    it("should parse queued post", () => {
       const markdown = `---
 title: Weekly Newsletter
 platform: linkedin
 status: queued
-queueOrder: 5
 ---
 Queued post ready to publish`;
 
       const result = socialPostAdapter.fromMarkdown(markdown);
 
       expect(result.metadata?.status).toBe("queued");
-      expect(result.metadata?.queueOrder).toBe(5);
     });
 
     it("should parse published post with timestamps", () => {
@@ -78,7 +76,6 @@ title: Q4 Results Summary
 platform: linkedin
 status: published
 publishedAt: "2024-01-15T10:30:00Z"
-platformPostId: "urn:li:share:123456789"
 ---
 Successfully published!`;
 
@@ -105,13 +102,11 @@ Check out my blog post`;
       expect(result.content).toContain("sourceEntityType: post");
     });
 
-    it("should parse failed post with error info", () => {
+    it("should parse failed post", () => {
       const markdown = `---
 title: Failed Announcement
 platform: linkedin
 status: failed
-retryCount: 3
-lastError: "API rate limit exceeded"
 ---
 This post failed`;
 
@@ -169,7 +164,6 @@ Hello world`,
 title: Roundtrip Test
 platform: linkedin
 status: queued
-queueOrder: 1
 ---
 Test roundtrip content`;
 
@@ -192,7 +186,6 @@ Test roundtrip content`;
       expect(resultMarkdown).toContain("Test roundtrip content");
       expect(resultMarkdown).toContain("title: Roundtrip Test");
       expect(resultMarkdown).toContain("platform: linkedin");
-      expect(resultMarkdown).toContain("queueOrder: 1");
     });
   });
 
@@ -207,7 +200,6 @@ Test roundtrip content`;
           slug: "linkedin-test-post-title",
           platform: "linkedin",
           status: "queued",
-          queueOrder: 3,
         },
         contentHash: "abc",
         created: "2024-01-15T10:00:00Z",
@@ -219,7 +211,6 @@ Test roundtrip content`;
       expect(metadata.title).toBe("Test Post Title");
       expect(metadata.slug).toBe("linkedin-test-post-title");
       expect(metadata.platform).toBe("linkedin");
-      expect(metadata.queueOrder).toBe(3);
     });
   });
 
@@ -229,7 +220,6 @@ Test roundtrip content`;
         title: "New Social Post",
         platform: "linkedin" as const,
         status: "draft" as const,
-        retryCount: 0,
       };
       const body = "New social post content";
 
@@ -246,17 +236,14 @@ Test roundtrip content`;
         title: "Queued Post Title",
         platform: "linkedin" as const,
         status: "queued" as const,
-        queueOrder: 5,
         sourceEntityId: "post-123",
         sourceEntityType: "post" as const,
-        retryCount: 0,
       };
       const body = "Queued post content";
 
       const markdown = socialPostAdapter.createPostContent(frontmatter, body);
 
       expect(markdown).toContain("title: Queued Post Title");
-      expect(markdown).toContain("queueOrder: 5");
       expect(markdown).toContain("sourceEntityId: post-123");
     });
   });
