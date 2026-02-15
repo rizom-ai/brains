@@ -25,6 +25,7 @@ export class SiteContentAdapter
 {
   public readonly entityType = "site-content";
   public readonly schema = siteContentSchema;
+  public readonly frontmatterSchema = frontmatterSchema;
 
   constructor() {
     // No initialization needed

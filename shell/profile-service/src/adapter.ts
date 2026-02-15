@@ -1,4 +1,8 @@
 import type { EntityAdapter } from "@brains/entity-service";
+import {
+  FrontmatterContentHelper,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
 import { StructuredContentFormatter, type z } from "@brains/utils";
 import {
   profileSchema,
@@ -9,64 +13,64 @@ import {
 
 /**
  * Entity adapter for Profile entities
- * Uses structured content formatting - all data in markdown body, no frontmatter
+ * Uses frontmatter format for CMS compatibility
+ * Supports reading legacy structured content format for backward compatibility
  */
 export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
   public readonly entityType = "profile";
   public readonly schema = profileSchema;
+  public readonly frontmatterSchema = profileBodySchema;
+  public readonly isSingleton = true;
+  public readonly hasBody = true;
+
+  // TODO: Remove legacy StructuredContentFormatter support once all sites are converted to frontmatter
+  private readonly contentHelper = new FrontmatterContentHelper(
+    profileBodySchema,
+    () =>
+      new StructuredContentFormatter(profileBodySchema, {
+        title: "Profile",
+        mappings: [
+          { key: "name", label: "Name", type: "string" },
+          { key: "description", label: "Description", type: "string" },
+          { key: "avatar", label: "Avatar", type: "string" },
+          { key: "website", label: "Website", type: "string" },
+          { key: "email", label: "Email", type: "string" },
+          {
+            key: "socialLinks",
+            label: "Social Links",
+            type: "array",
+            itemType: "object",
+            itemMappings: [
+              { key: "platform", label: "Platform", type: "string" },
+              { key: "url", label: "URL", type: "string" },
+              { key: "label", label: "Label", type: "string" },
+            ],
+          },
+        ],
+      }),
+  );
 
   /**
-   * Create formatter for profile content
-   */
-  private createFormatter(): StructuredContentFormatter<ProfileBody> {
-    return new StructuredContentFormatter(profileBodySchema, {
-      title: "Profile",
-      mappings: [
-        { key: "name", label: "Name", type: "string" },
-        { key: "description", label: "Description", type: "string" },
-        { key: "avatar", label: "Avatar", type: "string" },
-        { key: "website", label: "Website", type: "string" },
-        { key: "email", label: "Email", type: "string" },
-        {
-          key: "socialLinks",
-          label: "Social Links",
-          type: "array",
-          itemType: "object",
-          itemMappings: [
-            { key: "platform", label: "Platform", type: "string" },
-            { key: "url", label: "URL", type: "string" },
-            { key: "label", label: "Label", type: "string" },
-          ],
-        },
-      ],
-    });
-  }
-
-  /**
-   * Create profile content from components
+   * Create profile content in frontmatter format
    * Validates input data through Zod schema
    */
   public createProfileContent(
     params: z.input<typeof profileBodySchema>,
   ): string {
-    // Validate and normalize through Zod schema
     const validatedData = profileBodySchema.parse(params);
-    const formatter = this.createFormatter();
-    return formatter.format(validatedData);
+    return this.contentHelper.format(validatedData);
   }
 
   /**
-   * Parse profile body from content
+   * Parse profile body from content (handles both frontmatter and legacy formats)
    */
   public parseProfileBody(content: string): ProfileBody {
-    const formatter = this.createFormatter();
-    return formatter.parse(content);
+    return this.contentHelper.parse(content);
   }
 
   /**
    * Convert profile entity to markdown
-   * Profile doesn't use frontmatter or need metadata sync - passthrough content as-is
-   * This preserves extended fields added by plugins (e.g., professional-site)
+   * Content is already stored in frontmatter format — pass through as-is
    */
   public toMarkdown(entity: ProfileEntity): string {
     return entity.content;
@@ -74,10 +78,14 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
 
   /**
    * Create partial entity from markdown content
+   * Preserves frontmatter as-is to avoid stripping extension fields (e.g., tagline, expertise)
+   * Only converts legacy structured content format
    */
   public fromMarkdown(markdown: string): Partial<ProfileEntity> {
     return {
-      content: markdown,
+      content: markdown.startsWith("---")
+        ? markdown
+        : this.contentHelper.convertToFrontmatter(markdown),
       entityType: "profile",
     };
   }
@@ -86,30 +94,30 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
    * Extract metadata for search/filtering
    */
   public extractMetadata(entity: ProfileEntity): Record<string, unknown> {
-    const profileData = this.parseProfileBody(entity.content);
+    const data = this.contentHelper.parse(entity.content);
     return {
-      name: profileData.name,
-      email: profileData.email,
-      website: profileData.website,
+      name: data.name,
+      email: data.email,
+      website: data.website,
     };
   }
 
   /**
-   * Parse frontmatter - not used for profile (returns empty object)
+   * Parse frontmatter from markdown
    */
   public parseFrontMatter<TFrontmatter>(
-    _markdown: string,
-    _schema: z.ZodSchema<TFrontmatter>,
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
-    // Profile doesn't use frontmatter
-    return {} as TFrontmatter;
+    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
+    return metadata;
   }
 
   /**
-   * Generate frontmatter - not used for profile (returns empty string)
+   * Generate frontmatter for the entity
    */
-  public generateFrontMatter(_entity: ProfileEntity): string {
-    // Profile doesn't use frontmatter
-    return "";
+  public generateFrontMatter(entity: ProfileEntity): string {
+    const data = this.contentHelper.parse(entity.content);
+    return this.contentHelper.toFrontmatterString(data);
   }
 }

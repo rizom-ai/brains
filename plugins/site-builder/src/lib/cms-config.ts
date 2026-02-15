@@ -16,16 +16,31 @@ export interface CmsFieldWidget {
 }
 
 /**
+ * CMS file entry for singleton entities within a files collection
+ */
+export interface CmsFileEntry {
+  name: string;
+  label: string;
+  file: string;
+  fields: CmsFieldWidget[];
+}
+
+/**
  * CMS collection descriptor
+ * Folder collections have: folder, create, extension, format, fields
+ * Files collections have: files (array of CmsFileEntry)
  */
 interface CmsCollection {
   name: string;
   label: string;
-  folder: string;
-  create: boolean;
-  extension: string;
-  format: string;
-  fields: CmsFieldWidget[];
+  // Folder collection properties (multi-file entities)
+  folder?: string;
+  create?: boolean;
+  extension?: string;
+  format?: string;
+  fields?: CmsFieldWidget[];
+  // Files collection properties (singleton entities)
+  files?: CmsFileEntry[];
 }
 
 /**
@@ -51,9 +66,17 @@ export interface CmsConfigOptions {
   branch: string;
   baseUrl?: string;
   entityTypes: string[];
-  getAdapter: (
+  /** Get effective frontmatter schema for an entity type (base + any extensions) */
+  getFrontmatterSchema: (
     type: string,
-  ) => { frontmatterSchema?: z.ZodObject<z.ZodRawShape> } | undefined;
+  ) => z.ZodObject<z.ZodRawShape> | undefined;
+  /** Get adapter flags for an entity type */
+  getAdapter: (type: string) =>
+    | {
+        isSingleton?: boolean;
+        hasBody?: boolean;
+      }
+    | undefined;
   entityRouteConfig?: EntityRouteConfig;
 }
 
@@ -176,38 +199,71 @@ export function zodFieldToCmsWidget(
 }
 
 /**
- * Generate Sveltia CMS config from entity adapter schemas
+ * Build CMS field widgets from a frontmatter schema, optionally adding body widget
  */
-export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
-  const collections: CmsCollection[] = [];
+function buildFields(
+  schema: z.ZodObject<z.ZodRawShape>,
+  hasBody: boolean,
+): CmsFieldWidget[] {
+  const fields: CmsFieldWidget[] = Object.entries(schema.shape).map(
+    ([key, value]) => zodFieldToCmsWidget(key, value as z.ZodTypeAny),
+  );
 
-  for (const entityType of options.entityTypes) {
-    const adapter = options.getAdapter(entityType);
-    if (!adapter?.frontmatterSchema) continue;
-
-    const shape = adapter.frontmatterSchema.shape;
-    const fields: CmsFieldWidget[] = Object.entries(shape).map(([key, value]) =>
-      zodFieldToCmsWidget(key, value as z.ZodTypeAny),
-    );
-
-    // Add body field for markdown content below frontmatter
+  if (hasBody) {
     fields.push({
       name: "body",
       label: "Body",
       widget: "markdown",
     });
+  }
 
+  return fields;
+}
+
+/**
+ * Generate Sveltia CMS config from entity adapter schemas
+ *
+ * Multi-file entities get individual folder collections.
+ * Singleton entities are grouped into a single "Settings" files collection.
+ */
+export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
+  const collections: CmsCollection[] = [];
+  const singletonFiles: CmsFileEntry[] = [];
+
+  for (const entityType of options.entityTypes) {
+    const frontmatterSchema = options.getFrontmatterSchema(entityType);
+    if (!frontmatterSchema) continue;
+
+    const adapter = options.getAdapter(entityType);
+    const hasBody = adapter?.hasBody !== false;
     const routeConfig = options.entityRouteConfig?.[entityType];
     const label = routeConfig?.label ?? formatLabel(entityType);
 
+    if (adapter?.isSingleton) {
+      singletonFiles.push({
+        name: entityType,
+        label,
+        file: `${entityType}/${entityType}.md`,
+        fields: buildFields(frontmatterSchema, hasBody),
+      });
+    } else {
+      collections.push({
+        name: entityType,
+        label: pluralizeLabel(label),
+        folder: entityType,
+        create: true,
+        extension: "md",
+        format: "frontmatter",
+        fields: buildFields(frontmatterSchema, hasBody),
+      });
+    }
+  }
+
+  if (singletonFiles.length > 0) {
     collections.push({
-      name: entityType,
-      label: pluralizeLabel(label),
-      folder: entityType,
-      create: true,
-      extension: "md",
-      format: "frontmatter",
-      fields,
+      name: "settings",
+      label: "Settings",
+      files: singletonFiles,
     });
   }
 

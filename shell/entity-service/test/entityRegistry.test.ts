@@ -376,4 +376,180 @@ This note has frontmatter metadata.`;
       expect(weightMap).toEqual({});
     });
   });
+
+  describe("extendFrontmatterSchema", () => {
+    const baseFrontmatterSchema = z.object({
+      name: z.string(),
+      description: z.string().optional(),
+    });
+
+    class AdapterWithFrontmatter implements EntityAdapter<Note> {
+      entityType = "profile";
+      schema = noteSchema;
+      frontmatterSchema = baseFrontmatterSchema;
+      isSingleton = true;
+      hasBody = false;
+
+      fromMarkdown(markdown: string): Partial<Note> {
+        return { content: markdown };
+      }
+      extractMetadata(_entity: Note): Record<string, unknown> {
+        return {};
+      }
+      parseFrontMatter<TFrontmatter>(
+        _markdown: string,
+        schema: z.ZodSchema<TFrontmatter>,
+      ): TFrontmatter {
+        return schema.parse({});
+      }
+      generateFrontMatter(_entity: Note): string {
+        return "---\n---";
+      }
+      toMarkdown(entity: Note): string {
+        return entity.content;
+      }
+    }
+
+    test("should merge extension fields into effective schema", () => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      const adapterWithSchema = new AdapterWithFrontmatter();
+      freshRegistry.registerEntityType(
+        "profile",
+        noteSchema,
+        adapterWithSchema,
+      );
+
+      freshRegistry.extendFrontmatterSchema(
+        "profile",
+        z.object({
+          tagline: z.string().optional(),
+          expertise: z.array(z.string()).optional(),
+        }),
+      );
+
+      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      expect(effective).toBeDefined();
+      if (!effective) return;
+
+      const shape = effective.shape;
+      expect(shape).toHaveProperty("name");
+      expect(shape).toHaveProperty("description");
+      expect(shape).toHaveProperty("tagline");
+      expect(shape).toHaveProperty("expertise");
+    });
+
+    test("should handle multiple extensions", () => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      const adapterWithSchema = new AdapterWithFrontmatter();
+      freshRegistry.registerEntityType(
+        "profile",
+        noteSchema,
+        adapterWithSchema,
+      );
+
+      freshRegistry.extendFrontmatterSchema(
+        "profile",
+        z.object({ tagline: z.string().optional() }),
+      );
+      freshRegistry.extendFrontmatterSchema(
+        "profile",
+        z.object({ expertise: z.array(z.string()).optional() }),
+      );
+
+      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      expect(effective).toBeDefined();
+      if (!effective) return;
+      const shape = effective.shape;
+      expect(shape).toHaveProperty("name");
+      expect(shape).toHaveProperty("tagline");
+      expect(shape).toHaveProperty("expertise");
+    });
+
+    test("should throw when extending non-existent entity type", () => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      expect(() => {
+        freshRegistry.extendFrontmatterSchema(
+          "nonexistent",
+          z.object({ extra: z.string() }),
+        );
+      }).toThrow();
+    });
+
+    test("should throw when extending entity type without frontmatterSchema", () => {
+      // The NoteAdapter from beforeEach doesn't have frontmatterSchema
+      expect(() => {
+        registry.extendFrontmatterSchema(
+          "note",
+          z.object({ extra: z.string() }),
+        );
+      }).toThrow();
+    });
+
+    test("should not mutate original adapter's frontmatterSchema", () => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      const adapterWithSchema = new AdapterWithFrontmatter();
+      freshRegistry.registerEntityType(
+        "profile",
+        noteSchema,
+        adapterWithSchema,
+      );
+
+      freshRegistry.extendFrontmatterSchema(
+        "profile",
+        z.object({ tagline: z.string().optional() }),
+      );
+
+      // Original adapter's schema unchanged
+      expect(adapterWithSchema.frontmatterSchema.shape).not.toHaveProperty(
+        "tagline",
+      );
+
+      // Effective schema has the extension
+      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      expect(effective).toBeDefined();
+      expect(effective?.shape).toHaveProperty("tagline");
+    });
+
+    test("effective schema should validate data with extension fields", () => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      const adapterWithSchema = new AdapterWithFrontmatter();
+      freshRegistry.registerEntityType(
+        "profile",
+        noteSchema,
+        adapterWithSchema,
+      );
+
+      freshRegistry.extendFrontmatterSchema(
+        "profile",
+        z.object({ tagline: z.string().optional() }),
+      );
+
+      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      expect(effective).toBeDefined();
+      if (!effective) return;
+      const result = effective.safeParse({
+        name: "Test",
+        tagline: "Building what comes next",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("should return base schema when no extensions registered", () => {
+      const freshRegistry = EntityRegistry.createFresh(logger);
+      const adapterWithSchema = new AdapterWithFrontmatter();
+      freshRegistry.registerEntityType(
+        "profile",
+        noteSchema,
+        adapterWithSchema,
+      );
+
+      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      expect(effective).toBe(adapterWithSchema.frontmatterSchema);
+    });
+
+    test("should return undefined for type without frontmatterSchema", () => {
+      const effective = registry.getEffectiveFrontmatterSchema("note");
+      expect(effective).toBeUndefined();
+    });
+  });
 });

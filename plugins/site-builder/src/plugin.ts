@@ -301,6 +301,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
                 baseUrl: this.config.cms.baseUrl,
               }),
               entityTypes,
+              getFrontmatterSchema: (type) =>
+                this.pluginContext?.entities.getEffectiveFrontmatterSchema(
+                  type,
+                ),
               getAdapter: (type) =>
                 this.pluginContext?.entities.getAdapter(type),
               ...(this.config.entityRouteConfig && {

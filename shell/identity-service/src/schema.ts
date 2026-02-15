@@ -30,3 +30,9 @@ export const identityBodySchema = z.object({
  * Identity body type
  */
 export type IdentityBody = z.infer<typeof identityBodySchema>;
+
+/**
+ * Identity frontmatter schema for CMS editing
+ * Same shape as body schema — all identity data is structured fields
+ */
+export const identityFrontmatterSchema = identityBodySchema;

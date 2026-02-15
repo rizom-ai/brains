@@ -3,6 +3,7 @@ import { z } from "@brains/utils";
 import {
   zodFieldToCmsWidget,
   generateCmsConfig,
+  type CmsConfigOptions,
 } from "../../src/lib/cms-config";
 
 describe("zodFieldToCmsWidget", () => {
@@ -112,23 +113,37 @@ describe("generateCmsConfig", () => {
     title: z.string().optional(),
   });
 
-  function createMockAdapter(
-    entityType: string,
-    frontmatterSchema?: z.ZodObject<z.ZodRawShape>,
-  ): { entityType: string; frontmatterSchema?: z.ZodObject<z.ZodRawShape> } {
+  /** Schema registry for tests — maps entity type to its frontmatter schema */
+  interface SchemaMap {
+    [key: string]: z.ZodObject<z.ZodRawShape>;
+  }
+
+  /** Adapter flags for tests */
+  interface AdapterFlags {
+    isSingleton?: boolean;
+    hasBody?: boolean;
+  }
+  interface AdapterMap {
+    [key: string]: AdapterFlags;
+  }
+
+  function cmsOpts(
+    schemas: SchemaMap,
+    adapters: AdapterMap = {},
+  ): CmsConfigOptions {
     return {
-      entityType,
-      ...(frontmatterSchema && { frontmatterSchema }),
+      repo: "owner/repo",
+      branch: "main",
+      entityTypes: Object.keys(schemas),
+      getFrontmatterSchema: (
+        type: string,
+      ): z.ZodObject<z.ZodRawShape> | undefined => schemas[type],
+      getAdapter: (type: string): AdapterFlags | undefined => adapters[type],
     };
   }
 
   it("should generate correct backend config", () => {
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: [],
-      getAdapter: () => undefined,
-    });
+    const config = generateCmsConfig(cmsOpts({}));
 
     expect(config.backend.name).toBe("github");
     expect(config.backend.repo).toBe("owner/repo");
@@ -137,88 +152,52 @@ describe("generateCmsConfig", () => {
 
   it("should include baseUrl when provided", () => {
     const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
+      ...cmsOpts({}),
       baseUrl: "https://auth.example.com",
-      entityTypes: [],
-      getAdapter: () => undefined,
     });
 
     expect(config.backend.base_url).toBe("https://auth.example.com");
   });
 
-  it("should generate one collection per entity type with frontmatterSchema", () => {
-    const postAdapter = createMockAdapter("post", postFrontmatterSchema);
-    const noteAdapter = createMockAdapter("note", noteFrontmatterSchema);
-
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post", "note"],
-      getAdapter: (type) => {
-        if (type === "post") return postAdapter;
-        if (type === "note") return noteAdapter;
-        return undefined;
-      },
-    });
+  it("should generate one collection per entity type with schema", () => {
+    const config = generateCmsConfig(
+      cmsOpts({
+        post: postFrontmatterSchema,
+        note: noteFrontmatterSchema,
+      }),
+    );
 
     expect(config.collections).toHaveLength(2);
     expect(config.collections[0]?.name).toBe("post");
     expect(config.collections[1]?.name).toBe("note");
   });
 
-  it("should skip adapters without frontmatterSchema", () => {
-    const postAdapter = createMockAdapter("post", postFrontmatterSchema);
-    const imageAdapter = createMockAdapter("image"); // No frontmatterSchema
-
+  it("should skip entity types without schema", () => {
+    const schemas: SchemaMap = { post: postFrontmatterSchema };
     const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
+      ...cmsOpts(schemas),
       entityTypes: ["post", "image"],
-      getAdapter: (type) => {
-        if (type === "post") return postAdapter;
-        if (type === "image") return imageAdapter;
-        return undefined;
-      },
     });
 
     expect(config.collections).toHaveLength(1);
     expect(config.collections[0]?.name).toBe("post");
   });
 
-  it("should set folder to entities/{entityType}", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-    });
+  it("should set folder to entity type name", () => {
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     expect(config.collections[0]?.folder).toBe("post");
   });
 
   it("should set extension and format", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-    });
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     expect(config.collections[0]?.extension).toBe("md");
     expect(config.collections[0]?.format).toBe("frontmatter");
   });
 
   it("should add body field as markdown widget at end", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-    });
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     const fields = config.collections[0]?.fields ?? [];
     const lastField = fields[fields.length - 1];
@@ -227,40 +206,22 @@ describe("generateCmsConfig", () => {
   });
 
   it("should use entityRouteConfig labels when available", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
     const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-      entityRouteConfig: {
-        post: { label: "Essay" },
-      },
+      ...cmsOpts({ post: postFrontmatterSchema }),
+      entityRouteConfig: { post: { label: "Essay" } },
     });
 
     expect(config.collections[0]?.label).toBe("Essays");
   });
 
   it("should fall back to entity type name for labels", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-    });
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     expect(config.collections[0]?.label).toBe("Posts");
   });
 
   it("should map frontmatter fields to CMS widgets", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-    });
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     const fields = config.collections[0]?.fields ?? [];
     // title, status, publishedAt, + body
@@ -273,15 +234,157 @@ describe("generateCmsConfig", () => {
     expect(fields[2]?.widget).toBe("datetime");
   });
 
-  it("should set create: true on collections", () => {
-    const adapter = createMockAdapter("post", postFrontmatterSchema);
-    const config = generateCmsConfig({
-      repo: "owner/repo",
-      branch: "main",
-      entityTypes: ["post"],
-      getAdapter: () => adapter,
-    });
+  it("should set create: true on folder collections", () => {
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     expect(config.collections[0]?.create).toBe(true);
+  });
+
+  describe("singleton entities", () => {
+    const identitySchema = z.object({
+      name: z.string(),
+      role: z.string(),
+      purpose: z.string(),
+      values: z.array(z.string()),
+    });
+
+    const profileSchema = z.object({
+      name: z.string(),
+      description: z.string().optional(),
+    });
+
+    it("should group singletons into a Settings files collection", () => {
+      const config = generateCmsConfig(
+        cmsOpts(
+          { identity: identitySchema, profile: profileSchema },
+          {
+            identity: { isSingleton: true, hasBody: false },
+            profile: { isSingleton: true, hasBody: false },
+          },
+        ),
+      );
+
+      expect(config.collections).toHaveLength(1);
+      expect(config.collections[0]?.name).toBe("settings");
+      expect(config.collections[0]?.label).toBe("Settings");
+      expect(config.collections[0]?.files).toHaveLength(2);
+    });
+
+    it("should set file path to {entityType}/{entityType}.md", () => {
+      const config = generateCmsConfig(
+        cmsOpts(
+          { identity: identitySchema },
+          { identity: { isSingleton: true, hasBody: false } },
+        ),
+      );
+
+      const file = config.collections[0]?.files?.[0];
+      expect(file?.file).toBe("identity/identity.md");
+    });
+
+    it("should use singular label for singleton file entries", () => {
+      const config = generateCmsConfig(
+        cmsOpts(
+          { identity: identitySchema },
+          { identity: { isSingleton: true, hasBody: false } },
+        ),
+      );
+
+      const file = config.collections[0]?.files?.[0];
+      expect(file?.label).toBe("Identity");
+    });
+
+    it("should include fields from schema on singleton file entries", () => {
+      const config = generateCmsConfig(
+        cmsOpts(
+          { identity: identitySchema },
+          { identity: { isSingleton: true, hasBody: false } },
+        ),
+      );
+
+      const fields = config.collections[0]?.files?.[0]?.fields ?? [];
+      expect(fields.map((f) => f.name)).toEqual([
+        "name",
+        "role",
+        "purpose",
+        "values",
+      ]);
+    });
+
+    it("should not have folder or create on the Settings collection", () => {
+      const config = generateCmsConfig(
+        cmsOpts(
+          { identity: identitySchema },
+          { identity: { isSingleton: true, hasBody: false } },
+        ),
+      );
+
+      expect(config.collections[0]?.folder).toBeUndefined();
+      expect(config.collections[0]?.create).toBeUndefined();
+    });
+  });
+
+  describe("hasBody", () => {
+    it("should skip body widget when hasBody is false", () => {
+      const schema = z.object({ name: z.string() });
+      const config = generateCmsConfig(
+        cmsOpts(
+          { identity: schema },
+          { identity: { isSingleton: true, hasBody: false } },
+        ),
+      );
+
+      const fields = config.collections[0]?.files?.[0]?.fields ?? [];
+      expect(fields.map((f) => f.name)).toEqual(["name"]);
+      expect(fields.find((f) => f.name === "body")).toBeUndefined();
+    });
+
+    it("should include body widget when hasBody is not set (defaults to true)", () => {
+      const config = generateCmsConfig(
+        cmsOpts({ post: postFrontmatterSchema }),
+      );
+
+      const fields = config.collections[0]?.fields ?? [];
+      expect(fields[fields.length - 1]?.name).toBe("body");
+    });
+
+    it("should include body widget on non-singleton with hasBody true", () => {
+      const topicSchema = z.object({
+        title: z.string(),
+        keywords: z.array(z.string()).optional(),
+      });
+      const config = generateCmsConfig(cmsOpts({ topic: topicSchema }));
+
+      const fields = config.collections[0]?.fields ?? [];
+      expect(fields[fields.length - 1]?.name).toBe("body");
+    });
+  });
+
+  describe("mixed collections", () => {
+    it("should handle both singletons and multi-file entities", () => {
+      const identitySchema = z.object({
+        name: z.string(),
+        role: z.string(),
+      });
+
+      const config = generateCmsConfig(
+        cmsOpts(
+          { post: postFrontmatterSchema, identity: identitySchema },
+          { identity: { isSingleton: true, hasBody: false } },
+        ),
+      );
+
+      // post as folder collection + settings as files collection
+      expect(config.collections).toHaveLength(2);
+
+      const postCollection = config.collections[0];
+      expect(postCollection?.name).toBe("post");
+      expect(postCollection?.folder).toBe("post");
+
+      const settingsCollection = config.collections[1];
+      expect(settingsCollection?.name).toBe("settings");
+      expect(settingsCollection?.files).toHaveLength(1);
+      expect(settingsCollection?.files?.[0]?.name).toBe("identity");
+    });
   });
 });

@@ -1,4 +1,8 @@
 import type { EntityAdapter } from "@brains/entity-service";
+import {
+  FrontmatterContentHelper,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
 import { StructuredContentFormatter, type z } from "@brains/utils";
 import {
   identitySchema,
@@ -9,34 +13,37 @@ import {
 
 /**
  * Entity adapter for Identity entities
- * Uses structured content formatting - all data in markdown body, no frontmatter
+ * Uses frontmatter format for CMS compatibility
+ * Supports reading legacy structured content format for backward compatibility
  */
 export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
   public readonly entityType = "identity";
   public readonly schema = identitySchema;
+  public readonly frontmatterSchema = identityBodySchema;
+  public readonly isSingleton = true;
+  public readonly hasBody = false;
+
+  private readonly contentHelper = new FrontmatterContentHelper(
+    identityBodySchema,
+    () =>
+      new StructuredContentFormatter(identityBodySchema, {
+        title: "Brain Identity",
+        mappings: [
+          { key: "name", label: "Name", type: "string" },
+          { key: "role", label: "Role", type: "string" },
+          { key: "purpose", label: "Purpose", type: "string" },
+          {
+            key: "values",
+            label: "Values",
+            type: "array",
+            itemType: "string",
+          },
+        ],
+      }),
+  );
 
   /**
-   * Create formatter for identity content
-   */
-  private createFormatter(): StructuredContentFormatter<IdentityBody> {
-    return new StructuredContentFormatter(identityBodySchema, {
-      title: "Brain Identity",
-      mappings: [
-        { key: "name", label: "Name", type: "string" },
-        { key: "role", label: "Role", type: "string" },
-        { key: "purpose", label: "Purpose", type: "string" },
-        {
-          key: "values",
-          label: "Values",
-          type: "array",
-          itemType: "string",
-        },
-      ],
-    });
-  }
-
-  /**
-   * Create identity content from components
+   * Create identity content in frontmatter format
    */
   public createIdentityContent(params: {
     name: string;
@@ -44,40 +51,31 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
     purpose: string;
     values: string[];
   }): string {
-    const formatter = this.createFormatter();
-    return formatter.format({
-      name: params.name,
-      role: params.role,
-      purpose: params.purpose,
-      values: params.values,
-    });
+    return this.contentHelper.format(params);
   }
 
   /**
-   * Parse identity body from content
+   * Parse identity body from content (handles both frontmatter and legacy formats)
    */
   public parseIdentityBody(content: string): IdentityBody {
-    const formatter = this.createFormatter();
-    return formatter.parse(content);
+    return this.contentHelper.parse(content);
   }
 
   /**
-   * Convert identity entity to markdown with structured content
+   * Convert identity entity to frontmatter markdown
    */
   public toMarkdown(entity: IdentityEntity): string {
-    // Parse existing content to get identity data
-    const identityData = this.parseIdentityBody(entity.content);
-
-    const formatter = this.createFormatter();
-    return formatter.format(identityData);
+    const data = this.contentHelper.parse(entity.content);
+    return this.contentHelper.format(data);
   }
 
   /**
    * Create partial entity from markdown content
+   * Auto-converts legacy structured content to frontmatter format
    */
   public fromMarkdown(markdown: string): Partial<IdentityEntity> {
     return {
-      content: markdown,
+      content: this.contentHelper.convertToFrontmatter(markdown),
       entityType: "identity",
     };
   }
@@ -86,29 +84,29 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
    * Extract metadata for search/filtering
    */
   public extractMetadata(entity: IdentityEntity): Record<string, unknown> {
-    const identityData = this.parseIdentityBody(entity.content);
+    const data = this.contentHelper.parse(entity.content);
     return {
-      role: identityData.role,
-      values: identityData.values,
+      role: data.role,
+      values: data.values,
     };
   }
 
   /**
-   * Parse frontmatter - not used for identity (returns empty object)
+   * Parse frontmatter from markdown
    */
   public parseFrontMatter<TFrontmatter>(
-    _markdown: string,
-    _schema: z.ZodSchema<TFrontmatter>,
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
-    // Identity doesn't use frontmatter
-    return {} as TFrontmatter;
+    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
+    return metadata;
   }
 
   /**
-   * Generate frontmatter - not used for identity (returns empty string)
+   * Generate frontmatter for the entity
    */
-  public generateFrontMatter(_entity: IdentityEntity): string {
-    // Identity doesn't use frontmatter
-    return "";
+  public generateFrontMatter(entity: IdentityEntity): string {
+    const data = this.contentHelper.parse(entity.content);
+    return this.contentHelper.toFrontmatterString(data);
   }
 }

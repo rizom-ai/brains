@@ -311,9 +311,14 @@ export class MockShell implements IShell {
         throw new Error("Not implemented");
       },
       hasEntityType: (type: string) => this.entityTypes.has(type),
-      validateEntity: (_type: string, entity: BaseEntity) => entity,
+      validateEntity: <TData>(_type: string, entity: unknown) =>
+        entity as TData,
       getAllEntityTypes: () => Array.from(this.entityTypes),
-    } as unknown as IEntityRegistry;
+      getEntityTypeConfig: () => ({}),
+      getWeightMap: () => ({}),
+      extendFrontmatterSchema: () => {},
+      getEffectiveFrontmatterSchema: () => undefined,
+    };
   }
 
   getConversationService(): IConversationService {

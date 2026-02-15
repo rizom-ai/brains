@@ -100,6 +100,12 @@ export interface EntityAdapter<
   /** Optional: Zod schema for frontmatter fields. Used by CMS config generation. */
   frontmatterSchema?: z.ZodObject<z.ZodRawShape>;
 
+  /** Optional: Declares this entity type is a singleton (one file, e.g., identity/identity.md). Used by CMS to generate files collection. */
+  isSingleton?: boolean;
+
+  /** Optional: Whether this entity has a free-form markdown body below frontmatter. Defaults to true. When false, CMS omits the body widget. */
+  hasBody?: boolean;
+
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
 
@@ -298,6 +304,25 @@ export interface EntityRegistry {
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;
+
+  /**
+   * Extend an adapter's frontmatterSchema with additional fields.
+   * Used by plugins to add domain-specific fields (e.g., professional-site adds tagline to profile).
+   * Extensions are merged into the effective schema returned by getEffectiveFrontmatterSchema().
+   */
+  extendFrontmatterSchema(
+    type: string,
+    extension: z.ZodObject<z.ZodRawShape>,
+  ): void;
+
+  /**
+   * Get the effective frontmatter schema for an entity type,
+   * with all registered extensions merged in.
+   * Returns undefined if the adapter has no frontmatterSchema.
+   */
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): z.ZodObject<z.ZodRawShape> | undefined;
 }
 
 /**

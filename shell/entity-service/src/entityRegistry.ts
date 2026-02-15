@@ -17,6 +17,10 @@ export class EntityRegistry implements IEntityRegistry {
   private entitySchemas = new Map<string, z.ZodType<unknown>>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
+  private frontmatterExtensions = new Map<
+    string,
+    z.ZodObject<z.ZodRawShape>[]
+  >();
   private logger: Logger;
 
   /**
@@ -98,7 +102,8 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   /**
-   * Get adapter for a specific entity type
+   * Get adapter for a specific entity type.
+   * If frontmatter extensions have been registered, returns a wrapper with the effective merged schema.
    */
   getAdapter<
     TEntity extends BaseEntity<TMetadata>,
@@ -110,7 +115,22 @@ export class EntityRegistry implements IEntityRegistry {
         `Entity type registration failed for ${type}: No adapter registered for entity type`,
       );
     }
-    return adapter as EntityAdapter<TEntity, TMetadata>;
+
+    const extensions = this.frontmatterExtensions.get(type);
+    if (!extensions?.length || !adapter.frontmatterSchema) {
+      return adapter as EntityAdapter<TEntity, TMetadata>;
+    }
+
+    // Merge all extensions into the base frontmatterSchema
+    let effectiveSchema = adapter.frontmatterSchema;
+    for (const ext of extensions) {
+      effectiveSchema = effectiveSchema.extend(ext.shape);
+    }
+
+    // Return a prototype-delegating wrapper that overrides only frontmatterSchema
+    return Object.create(adapter, {
+      frontmatterSchema: { value: effectiveSchema, enumerable: true },
+    }) as EntityAdapter<TEntity, TMetadata>;
   }
 
   /**
@@ -153,5 +173,53 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
     return weightMap;
+  }
+
+  /**
+   * Extend an adapter's frontmatterSchema with additional fields.
+   * Extensions are merged into the effective schema returned by getEffectiveFrontmatterSchema().
+   */
+  extendFrontmatterSchema(
+    type: string,
+    extension: z.ZodObject<z.ZodRawShape>,
+  ): void {
+    const adapter = this.entityAdapters.get(type);
+    if (!adapter) {
+      throw new Error(
+        `Cannot extend frontmatter schema for ${type}: entity type is not registered`,
+      );
+    }
+    if (!adapter.frontmatterSchema) {
+      throw new Error(
+        `Cannot extend frontmatter schema for ${type}: adapter has no frontmatterSchema`,
+      );
+    }
+
+    const existing = this.frontmatterExtensions.get(type) ?? [];
+    existing.push(extension);
+    this.frontmatterExtensions.set(type, existing);
+
+    this.logger.debug(`Extended frontmatter schema for entity type: ${type}`);
+  }
+
+  /**
+   * Get the effective frontmatter schema for an entity type,
+   * with all registered extensions merged in.
+   * Returns undefined if the adapter has no frontmatterSchema.
+   */
+  getEffectiveFrontmatterSchema(
+    type: string,
+  ): z.ZodObject<z.ZodRawShape> | undefined {
+    const adapter = this.entityAdapters.get(type);
+    if (!adapter?.frontmatterSchema) return undefined;
+
+    const extensions = this.frontmatterExtensions.get(type);
+    if (!extensions?.length) return adapter.frontmatterSchema;
+
+    let schema = adapter.frontmatterSchema;
+    for (const ext of extensions) {
+      schema = schema.extend(ext.shape);
+    }
+    return schema;
   }
 }

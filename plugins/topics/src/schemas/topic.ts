@@ -55,6 +55,15 @@ export const topicBodySchema = z.object({
   sources: z.array(topicSourceSchema), // Rich source objects with metadata
 });
 
+/**
+ * Topic frontmatter schema - fields editable via CMS
+ * Sources are excluded because they are auto-generated
+ */
+export const topicFrontmatterSchema = z.object({
+  title: z.string().describe("Topic title"),
+  keywords: z.array(z.string()).optional().describe("Topic keywords"),
+});
+
 export type TopicBody = z.infer<typeof topicBodySchema>;
 
 /**

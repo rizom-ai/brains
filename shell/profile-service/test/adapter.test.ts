@@ -26,14 +26,13 @@ describe("ProfileAdapter", () => {
     it("should reject invalid profile entity type", () => {
       const schema = adapter.schema;
 
-      // Create base entity with wrong type - use spread to override
       const base = createTestEntity("profile", {
         id: "profile",
         content: "",
       });
       const invalidProfile = {
         ...base,
-        entityType: "other", // Wrong type
+        entityType: "other",
       };
 
       expect(() => schema.parse(invalidProfile)).toThrow();
@@ -42,22 +41,34 @@ describe("ProfileAdapter", () => {
     it("should reject invalid profile ID", () => {
       const schema = adapter.schema;
 
-      // Create base entity with wrong id - use spread to override
       const base = createTestEntity("profile", {
-        id: "wrong:id", // Must be "profile"
+        id: "wrong:id",
         content: "",
       });
-      const invalidProfile = {
-        ...base,
-      };
 
-      expect(() => schema.parse(invalidProfile)).toThrow();
+      expect(() => schema.parse(base)).toThrow();
+    });
+  });
+
+  describe("frontmatterSchema", () => {
+    it("should expose frontmatterSchema for CMS", () => {
+      expect(adapter.frontmatterSchema).toBeDefined();
+      expect(adapter.frontmatterSchema.shape).toHaveProperty("name");
+      expect(adapter.frontmatterSchema.shape).toHaveProperty("description");
+      expect(adapter.frontmatterSchema.shape).toHaveProperty("socialLinks");
+    });
+
+    it("should be a singleton", () => {
+      expect(adapter.isSingleton).toBe(true);
+    });
+
+    it("should have a body (story)", () => {
+      expect(adapter.hasBody).toBe(true);
     });
   });
 
   describe("toMarkdown", () => {
-    it("should convert profile entity to structured markdown", () => {
-      // Create profile content
+    it("should convert profile entity to frontmatter format", () => {
       const content = adapter.createProfileContent({
         name: "Rizom",
         description: "Open-source collective building privacy-first tools",
@@ -79,23 +90,17 @@ describe("ProfileAdapter", () => {
 
       const markdown = adapter.toMarkdown(entity);
 
-      // Should contain structured content
-      expect(markdown).toContain("# Profile");
-      expect(markdown).toContain("## Name");
-      expect(markdown).toContain("Rizom");
-      expect(markdown).toContain("## Description");
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("name: Rizom");
+      expect(markdown).toContain("description:");
       expect(markdown).toContain("privacy-first tools");
-      expect(markdown).toContain("## Website");
-      expect(markdown).toContain("https://rizom.ai");
-      expect(markdown).toContain("## Email");
-      expect(markdown).toContain("contact@rizom.ai");
-      expect(markdown).toContain("## Social Links");
+      expect(markdown).toMatch(/website:.*https:\/\/rizom\.ai/);
+      expect(markdown).toContain("email: contact@rizom.ai");
       expect(markdown).toContain("github");
       expect(markdown).toContain("linkedin");
     });
 
     it("should handle optional fields correctly", () => {
-      // Create profile with only required fields
       const content = adapter.createProfileContent({
         name: "John Doe",
       });
@@ -107,22 +112,40 @@ describe("ProfileAdapter", () => {
 
       const markdown = adapter.toMarkdown(entity);
 
-      // Should contain name
-      expect(markdown).toContain("# Profile");
-      expect(markdown).toContain("## Name");
-      expect(markdown).toContain("John Doe");
-
-      // StructuredContentFormatter includes all field headers even when optional
-      // This is expected behavior - it creates a consistent structure
-      expect(markdown).toContain("## Description");
-      expect(markdown).toContain("## Website");
-      expect(markdown).toContain("## Email");
-      expect(markdown).toContain("## Social Links");
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("name: John Doe");
     });
   });
 
   describe("parseProfileBody", () => {
-    it("should parse structured markdown to profile body", () => {
+    it("should parse frontmatter format to profile body", () => {
+      const markdown = `---
+name: Rizom
+description: Open-source collective
+website: https://rizom.ai
+email: contact@rizom.ai
+socialLinks:
+  - platform: github
+    url: https://github.com/rizom-ai
+  - platform: linkedin
+    url: https://linkedin.com/company/rizom-collective
+---
+`;
+
+      const result = adapter.parseProfileBody(markdown);
+
+      expect(result.name).toBe("Rizom");
+      expect(result.description).toBe("Open-source collective");
+      expect(result.website).toBe("https://rizom.ai");
+      expect(result.email).toBe("contact@rizom.ai");
+      expect(result.socialLinks).toHaveLength(2);
+      expect(result.socialLinks?.[0]).toMatchObject({
+        platform: "github",
+        url: "https://github.com/rizom-ai",
+      });
+    });
+
+    it("should parse legacy structured markdown to profile body", () => {
       const markdown = `# Profile
 
 ## Name
@@ -168,47 +191,37 @@ https://linkedin.com/company/rizom-collective`;
         platform: "github",
         url: "https://github.com/rizom-ai",
       });
-      expect(result.socialLinks?.[1]).toMatchObject({
-        platform: "linkedin",
-        url: "https://linkedin.com/company/rizom-collective",
-      });
-    });
-
-    it("should parse profile with only required fields", () => {
-      const markdown = `# Profile
-
-## Name
-John Doe`;
-
-      const result = adapter.parseProfileBody(markdown);
-
-      expect(result.name).toBe("John Doe");
-      // When field headers are completely missing from markdown, returns undefined
-      expect(result.description).toBeUndefined();
-      expect(result.website).toBeUndefined();
-      expect(result.email).toBeUndefined();
-      expect(result.socialLinks).toBeUndefined();
     });
 
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
-      expect(() => adapter.parseProfileBody(markdown)).toThrow(
-        "Failed to parse structured content",
-      );
+      expect(() => adapter.parseProfileBody(markdown)).toThrow();
     });
 
     it("should throw error for empty markdown", () => {
       const markdown = "";
 
-      expect(() => adapter.parseProfileBody(markdown)).toThrow(
-        "Failed to parse structured content",
-      );
+      expect(() => adapter.parseProfileBody(markdown)).toThrow();
     });
   });
 
   describe("fromMarkdown", () => {
-    it("should create partial entity from markdown", () => {
+    it("should parse frontmatter format", () => {
+      const markdown = `---
+name: Rizom
+description: Open-source collective
+---
+`;
+
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.entityType).toBe("profile");
+      expect(result.content).toContain("---");
+      expect(result.content).toContain("name: Rizom");
+    });
+
+    it("should auto-convert legacy structured markdown to frontmatter", () => {
       const markdown = `# Profile
 
 ## Name
@@ -220,7 +233,8 @@ Open-source collective building privacy-first tools`;
       const result = adapter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("profile");
-      expect(result.content).toBe(markdown);
+      expect(result.content).toContain("---");
+      expect(result.content).toContain("name: Rizom");
     });
   });
 
@@ -252,29 +266,38 @@ Open-source collective building privacy-first tools`;
   });
 
   describe("generateFrontMatter", () => {
-    it("should return empty string (profile uses structured content, not frontmatter)", () => {
+    it("should generate frontmatter string from entity", () => {
+      const content = adapter.createProfileContent({
+        name: "Test",
+        website: "https://test.com",
+      });
+
       const entity = createTestEntity<ProfileEntity>("profile", {
         id: "profile",
-        content: "",
+        content,
       });
 
       const result = adapter.generateFrontMatter(entity);
 
-      expect(result).toBe("");
+      expect(result).toContain("name: Test");
+      expect(result).toMatch(/website:.*https:\/\/test\.com/);
     });
   });
 
   describe("parseFrontMatter", () => {
-    it("should return empty object (profile doesn't use frontmatter)", () => {
+    it("should parse frontmatter from markdown", () => {
       const markdown = `---
 name: Rizom
+website: https://rizom.ai
 ---
+`;
 
-Content`;
+      const result = adapter.parseFrontMatter(
+        markdown,
+        z.object({ name: z.string() }),
+      );
 
-      const result = adapter.parseFrontMatter(markdown, z.object({}));
-
-      expect(result).toEqual({});
+      expect(result).toEqual({ name: "Rizom" });
     });
   });
 
@@ -298,13 +321,9 @@ Content`;
         ],
       };
 
-      // Create content
       const content = adapter.createProfileContent(originalData);
-
-      // Parse it back
       const parsed = adapter.parseProfileBody(content);
 
-      // Should preserve all fields
       expect(parsed.name).toBe(originalData.name);
       expect(parsed.description).toBe(originalData.description);
       expect(parsed.website).toBe(originalData.website);
@@ -315,31 +334,15 @@ Content`;
         url: "https://github.com/rizom-ai",
         label: "GitHub",
       });
-      expect(parsed.socialLinks?.[1]).toMatchObject({
-        platform: "linkedin",
-        url: "https://linkedin.com/company/rizom-collective",
-      });
     });
 
     it("should preserve data with only required fields", () => {
-      const originalData = {
-        name: "John Doe",
-      };
+      const originalData = { name: "John Doe" };
 
-      // Create content
       const content = adapter.createProfileContent(originalData);
-
-      // Parse it back
       const parsed = adapter.parseProfileBody(content);
 
-      // Should preserve name
       expect(parsed.name).toBe(originalData.name);
-      // StructuredContentFormatter returns empty strings for optional fields
-      expect(parsed.description).toBe("");
-      expect(parsed.website).toBe("");
-      expect(parsed.email).toBe("");
-      // Empty array for optional array fields
-      expect(parsed.socialLinks).toEqual([]);
     });
   });
 });

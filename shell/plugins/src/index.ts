@@ -148,6 +148,7 @@ export {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
+  FrontmatterContentHelper,
 } from "@brains/entity-service";
 
 // From @brains/conversation-service

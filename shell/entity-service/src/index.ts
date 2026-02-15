@@ -30,3 +30,6 @@ export {
   generateFrontmatter,
   type FrontmatterConfig,
 } from "./frontmatter";
+
+// Export frontmatter content helper
+export { FrontmatterContentHelper } from "./frontmatter-content-helper";

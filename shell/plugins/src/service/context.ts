@@ -47,6 +47,17 @@ export interface IEntitiesNamespace {
     entityType: string,
   ) => EntityAdapter<T> | undefined;
 
+  /** Extend an adapter's frontmatterSchema with additional fields */
+  extendFrontmatterSchema: (
+    type: string,
+    extension: z.ZodObject<z.ZodRawShape>,
+  ) => void;
+
+  /** Get effective frontmatter schema (base + extensions) for an entity type */
+  getEffectiveFrontmatterSchema: (
+    type: string,
+  ) => z.ZodObject<z.ZodRawShape> | undefined;
+
   /** Update an existing entity */
   update: <T extends BaseEntity>(
     entity: T,
@@ -273,6 +284,17 @@ export function createServicePluginContext(
         } catch {
           return undefined;
         }
+      },
+      extendFrontmatterSchema: (
+        type: string,
+        extension: z.ZodObject<z.ZodRawShape>,
+      ): void => {
+        entityRegistry.extendFrontmatterSchema(type, extension);
+      },
+      getEffectiveFrontmatterSchema: (
+        type: string,
+      ): z.ZodObject<z.ZodRawShape> | undefined => {
+        return entityRegistry.getEffectiveFrontmatterSchema(type);
       },
       update: async <T extends BaseEntity>(
         entity: T,

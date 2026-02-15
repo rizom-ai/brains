@@ -60,8 +60,25 @@ describe("SiteInfoAdapter", () => {
     });
   });
 
+  describe("frontmatterSchema", () => {
+    it("should expose frontmatterSchema for CMS", () => {
+      expect(adapter.frontmatterSchema).toBeDefined();
+      expect(adapter.frontmatterSchema.shape).toHaveProperty("title");
+      expect(adapter.frontmatterSchema.shape).toHaveProperty("description");
+      expect(adapter.frontmatterSchema.shape).toHaveProperty("cta");
+    });
+
+    it("should be a singleton", () => {
+      expect(adapter.isSingleton).toBe(true);
+    });
+
+    it("should not have a body", () => {
+      expect(adapter.hasBody).toBe(false);
+    });
+  });
+
   describe("toMarkdown", () => {
-    it("should convert site info entity to structured markdown with CTA", () => {
+    it("should convert site info entity to frontmatter format with CTA", () => {
       const content = adapter.createSiteInfoContent({
         title: "Rizom",
         description: "The Rizom collective's knowledge hub",
@@ -78,21 +95,15 @@ describe("SiteInfoAdapter", () => {
 
       const markdown = adapter.toMarkdown(entity);
 
-      expect(markdown).toContain("# Site Information");
-      expect(markdown).toContain("## Title");
-      expect(markdown).toContain("Rizom");
-      expect(markdown).toContain("## Description");
-      expect(markdown).toContain("The Rizom collective's knowledge hub");
-      expect(markdown).toContain("## Theme Mode");
-      expect(markdown).toContain("dark");
-      expect(markdown).toContain("## CTA");
-      expect(markdown).toContain("### Heading");
-      expect(markdown).toContain("Unlock your full potential");
-      expect(markdown).toContain("### Button Text");
-      expect(markdown).toContain("Join Rizom");
-      expect(markdown).toContain("### Button Link");
-      expect(markdown).toContain(
-        "https://www.linkedin.com/company/rizom-collective",
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("title: Rizom");
+      expect(markdown).toContain("description:");
+      expect(markdown).toContain("knowledge hub");
+      expect(markdown).toContain("themeMode: dark");
+      expect(markdown).toContain("heading: Unlock your full potential");
+      expect(markdown).toContain("buttonText: Join Rizom");
+      expect(markdown).toMatch(
+        /buttonLink:.*linkedin\.com\/company\/rizom-collective/,
       );
     });
 
@@ -106,16 +117,54 @@ describe("SiteInfoAdapter", () => {
 
       const markdown = adapter.toMarkdown(entity);
 
-      expect(markdown).toContain("# Site Information");
-      expect(markdown).toContain("## Title");
-      expect(markdown).toContain("My Site");
-      expect(markdown).toContain("## Description");
-      expect(markdown).toContain("A simple website");
+      expect(markdown).toContain("---");
+      expect(markdown).toContain("title: My Site");
+      expect(markdown).toContain("description: A simple website");
     });
   });
 
   describe("parseSiteInfoBody", () => {
-    it("should parse structured markdown with all fields", () => {
+    it("should parse frontmatter format with all fields", () => {
+      const markdown = `---
+title: Rizom
+description: The Rizom collective's knowledge hub
+copyright: © 2025 Rizom
+themeMode: dark
+cta:
+  heading: Unlock your full potential
+  buttonText: Join Rizom
+  buttonLink: https://www.linkedin.com/company/rizom-collective
+---
+`;
+
+      const result = adapter.parseSiteInfoBody(markdown);
+
+      expect(result.title).toBe("Rizom");
+      expect(result.description).toBe("The Rizom collective's knowledge hub");
+      expect(result.copyright).toBe("© 2025 Rizom");
+      expect(result.themeMode).toBe("dark");
+      expect(result.cta).toEqual({
+        heading: "Unlock your full potential",
+        buttonText: "Join Rizom",
+        buttonLink: "https://www.linkedin.com/company/rizom-collective",
+      });
+    });
+
+    it("should parse frontmatter format without CTA", () => {
+      const markdown = `---
+title: My Site
+description: A simple website
+---
+`;
+
+      const result = adapter.parseSiteInfoBody(markdown);
+
+      expect(result.title).toBe("My Site");
+      expect(result.description).toBe("A simple website");
+      expect(result.cta).toBeUndefined();
+    });
+
+    it("should parse legacy structured markdown with all fields", () => {
       const markdown = `# Site Information
 
 ## Title
@@ -154,7 +203,7 @@ https://www.linkedin.com/company/rizom-collective`;
       });
     });
 
-    it("should parse structured markdown without CTA", () => {
+    it("should parse legacy structured markdown without CTA", () => {
       const markdown = `# Site Information
 
 ## Title
@@ -173,22 +222,32 @@ A simple website`;
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
-      expect(() => adapter.parseSiteInfoBody(markdown)).toThrow(
-        "Failed to parse structured content",
-      );
+      expect(() => adapter.parseSiteInfoBody(markdown)).toThrow();
     });
 
     it("should throw error for empty markdown", () => {
       const markdown = "";
 
-      expect(() => adapter.parseSiteInfoBody(markdown)).toThrow(
-        "Failed to parse structured content",
-      );
+      expect(() => adapter.parseSiteInfoBody(markdown)).toThrow();
     });
   });
 
   describe("fromMarkdown", () => {
-    it("should create partial entity from markdown", () => {
+    it("should pass through frontmatter format", () => {
+      const markdown = `---
+title: My Site
+description: A simple website
+---
+`;
+
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.entityType).toBe("site-info");
+      expect(result.content).toContain("---");
+      expect(result.content).toContain("title: My Site");
+    });
+
+    it("should auto-convert legacy structured markdown to frontmatter", () => {
       const markdown = `# Site Information
 
 ## Title
@@ -200,7 +259,8 @@ A simple website`;
       const result = adapter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("site-info");
-      expect(result.content).toBe(markdown);
+      expect(result.content).toContain("---");
+      expect(result.content).toContain("title: My Site");
     });
   });
 
@@ -221,26 +281,37 @@ A simple website`;
   });
 
   describe("generateFrontMatter", () => {
-    it("should return empty string (site-info uses structured content, not frontmatter)", () => {
-      const entity = createMockSiteInfo({ content: "" });
+    it("should generate frontmatter string from entity", () => {
+      const content = adapter.createSiteInfoContent({
+        title: "Test",
+        description: "A test site",
+        themeMode: "dark",
+      });
+
+      const entity = createMockSiteInfo({ content });
 
       const result = adapter.generateFrontMatter(entity);
 
-      expect(result).toBe("");
+      expect(result).toContain("title: Test");
+      expect(result).toContain("description: A test site");
+      expect(result).toContain("themeMode: dark");
     });
   });
 
   describe("parseFrontMatter", () => {
-    it("should return empty object (site-info doesn't use frontmatter)", () => {
+    it("should parse frontmatter from markdown", () => {
       const markdown = `---
-title: Site
+title: Rizom
+description: A knowledge hub
 ---
+`;
 
-Content`;
+      const result = adapter.parseFrontMatter(
+        markdown,
+        z.object({ title: z.string() }),
+      );
 
-      const result = adapter.parseFrontMatter(markdown, z.object({}));
-
-      expect(result).toEqual({});
+      expect(result).toEqual({ title: "Rizom" });
     });
   });
 
@@ -258,13 +329,9 @@ Content`;
         },
       };
 
-      // Create content
       const content = adapter.createSiteInfoContent(originalData);
-
-      // Parse it back
       const parsed = adapter.parseSiteInfoBody(content);
 
-      // Should preserve all data
       expect(parsed.title).toBe(originalData.title);
       expect(parsed.description).toBe(originalData.description);
       expect(parsed.copyright).toBe(originalData.copyright);
@@ -278,13 +345,9 @@ Content`;
         description: "A simple website",
       };
 
-      // Create content
       const content = adapter.createSiteInfoContent(originalData);
-
-      // Parse it back
       const parsed = adapter.parseSiteInfoBody(content);
 
-      // Should preserve required data
       expect(parsed.title).toBe(originalData.title);
       expect(parsed.description).toBe(originalData.description);
       expect(parsed.cta).toBeUndefined();

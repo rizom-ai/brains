@@ -10,7 +10,10 @@ import { createTemplate } from "@brains/templates";
 import { enrichedBlogPostSchema } from "@brains/blog";
 import { enrichedDeckSchema } from "@brains/decks";
 import { siteInfoCTASchema } from "@brains/site-builder-plugin";
-import { professionalProfileSchema } from "./schemas";
+import {
+  professionalProfileSchema,
+  professionalProfileExtension,
+} from "./schemas";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";
 import {
@@ -50,6 +53,12 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    // Extend profile frontmatter schema with professional fields for CMS
+    context.entities.extendFrontmatterSchema(
+      "profile",
+      professionalProfileExtension,
+    );
+
     // Compute entity list URLs from config
     const postsConfig = this.config.entityRouteConfig.post;
     const decksConfig = this.config.entityRouteConfig.deck;
