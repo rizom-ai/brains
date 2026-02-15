@@ -9,111 +9,93 @@ Social post frontmatter contains operational/queue fields that don't belong in c
 
 Additionally, the in-memory QueueManager loses all queued posts on restart. Posts stay `status: "queued"` in the DB but are never picked up again.
 
-Goal: delete `platformPostId` and all operational fields from frontmatter entirely, and rebuild the in-memory queue from DB on startup so queued posts survive restarts.
+Goal: delete `platformPostId` and all operational fields from both frontmatter and metadata. Queue and retry state lives in memory only (QueueManager + RetryTracker). Rebuild the in-memory queue from `status: "queued"` entities on startup.
 
 ## Changes
 
 ### 1. Schema: `plugins/social-media/src/schemas/social-post.ts`
 
-**Frontmatter schema** — remove 4 fields:
+**Frontmatter schema** — remove 4 fields: `queueOrder`, `platformPostId`, `retryCount`, `lastError`.
 
-- `platformPostId` (lines 50-53)
-- `queueOrder` (lines 45-48)
-- `retryCount` (line 61)
-- `lastError` (line 62)
-
-**Metadata schema** — stop picking removed fields, define operational fields directly in `.extend()`:
+**Metadata schema** — stop picking `queueOrder`, remove from `.extend()`. Metadata only has: `title`, `platform`, `status`, `publishedAt`, `slug`.
 
 ```typescript
 export const socialPostMetadataSchema = socialPostFrontmatterSchema
   .pick({ title: true, platform: true, status: true, publishedAt: true })
   .extend({
     slug: z.string(),
-    queueOrder: z.number().optional(),
-    retryCount: z.number().default(0),
-    lastError: z.string().optional(),
   });
 ```
 
 ### 2. Schema: `plugins/content-pipeline/src/schemas/publishable.ts`
 
-Remove `retryCount` and `lastError` from `publishableMetadataSchema`. These are plugin-specific operational concerns, not base publishable fields. Keep `status`, `queueOrder`, `publishedAt`.
+Remove `retryCount` and `lastError` from `publishableMetadataSchema`. Keep `status`, `queueOrder`, `publishedAt`. (`queueOrder` stays in base schema — other entity types may use it differently.)
 
 ### 3. Adapter: `plugins/social-media/src/adapters/social-post-adapter.ts`
 
-**`toMarkdown()`**: Remove all operational field handling — no `queueOrder` conditional, no `platformPostId` spread, no `queueOrder` deletion logic. Frontmatter is content-only (title, platform, status, publishedAt, coverImageId, sourceEntityId, sourceEntityType).
+**`toMarkdown()`**: Remove all operational field handling — no `queueOrder` conditional, no `platformPostId` in spread comment, no `queueOrder` delete block. Frontmatter is content-only.
 
-**`fromMarkdown()`**: Remove `queueOrder` from returned metadata. Operational fields are DB-only, not parsed from frontmatter.
+**`fromMarkdown()`**: Remove `queueOrder` from returned metadata.
 
-**`parsePostFrontmatter()`**: Remove `retryCount` default logic.
+**`parsePostFrontmatter()`**: Remove `retryCount` default logic. Just return parsed result directly.
 
 ### 4. Publish handler: `plugins/social-media/src/handlers/publishExecuteHandler.ts`
 
 **On success** (lines 112-137):
 
-- Build `updatedFrontmatter` from content fields only
-- Remove `platformPostId` and `retryCount` from frontmatter
-- Metadata update: `status: "published"`, `publishedAt`, `queueOrder: undefined`, `retryCount: 0`
+- Build `updatedFrontmatter` from content fields only (no `platformPostId`, no `retryCount`, no `queueOrder` destructuring)
+- Metadata update: `status: "published"`, `publishedAt` only (no `queueOrder`, no `retryCount`)
 
-**On failure** (lines 147-188):
+**On failure** (lines 146-187):
 
-- Build `updatedFrontmatter` from content fields only (no retryCount/lastError)
-- Metadata update: increment `retryCount`, set `lastError`, conditionally set `status: "failed"`
+- Build `updatedFrontmatter` from content fields only (no `retryCount`, no `lastError`)
+- Metadata update: `status: "failed"` when max retries reached (no `retryCount`, no `lastError` in metadata — RetryTracker handles this)
 
-**Delete `reportSuccess` platformPostId parameter** (lines 205-211).
+**`reportSuccess`** (lines 202-211): Remove `platformPostId` parameter — just report entityType + entityId.
 
 ### 5. Generation handler: `plugins/social-media/src/handlers/generationHandler.ts`
 
-- Remove `retryCount: 0` and `queueOrder` from initial frontmatter
-- Add `queueOrder` and `retryCount: 0` to entity metadata instead
+- Remove `retryCount: 0` from initial frontmatter (line 218)
+- Remove `queueOrder` from initial frontmatter (line 219)
+- No need to set them on metadata either — they don't exist there anymore
 
 ### 6. Template: `plugins/social-media/src/templates/social-post-detail.tsx`
 
-- Delete LinkedIn URL logic and "View on LinkedIn" link (lines 40-42, 103-114)
-- Change `post.frontmatter.queueOrder` → `post.metadata.queueOrder` (line 66)
-- Change `post.frontmatter.lastError` → `post.metadata.lastError` (line 115)
+- Delete LinkedIn URL variable and "View on LinkedIn" link (lines 40-42, 103-114)
+- Delete queue position display (lines 66-70) — queueOrder no longer available
+- Delete last error display (lines 115-120) — lastError no longer available
 
 ### 7. Queue rebuild on startup: `plugins/content-pipeline/src/plugin.ts`
 
-After `this.queueManager = QueueManager.createFresh()` (line 63), subscribe to `sync:initial:completed` to rebuild:
+In `onRegister()`, after `subscribeToMessages()`, subscribe to `sync:initial:completed` to rebuild the queue from entities with `status: "queued"`:
 
 ```typescript
 context.messaging.subscribe("sync:initial:completed", async () => {
-  // Rebuild queue from entities with status "queued"
   const entities = await context.entityService.queryEntities({
     filters: { status: "queued" },
   });
-  // Sort by queueOrder (if available) then by updated timestamp
-  const sorted = entities.sort(
-    (a, b) =>
-      (a.metadata.queueOrder ?? Infinity) - (b.metadata.queueOrder ?? Infinity),
-  );
-  for (const entity of sorted) {
+  for (const entity of entities) {
     await this.queueManager.add(entity.entityType, entity.id);
   }
-  if (sorted.length > 0) {
-    this.logger.info(`Rebuilt queue with ${sorted.length} queued entities`);
+  if (entities.length > 0) {
+    this.logger.info(`Rebuilt queue with ${entities.length} queued entities`);
   }
   return { success: true };
 });
 ```
 
-This runs after initial sync so all entity data is loaded before queue rebuild.
+No sorting by `queueOrder` — order is not preserved across restarts.
 
-### 8. Revert earlier changes from this session
+### 8. Tests
 
-The `platformPostId` additions made earlier (schema pick, adapter `fromMarkdown`/`toMarkdown`, publish handler metadata) are superseded by this refactor.
-
-### 9. Tests
-
-| Test file                                                  | Changes                                                                                |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `social-media/test/schemas/social-post.test.ts`            | Remove operational fields from frontmatter tests; verify they exist in metadata schema |
-| `social-media/test/adapters/social-post-adapter.test.ts`   | Update roundtrip tests — frontmatter has no operational fields                         |
-| `social-media/test/adapter-metadata-sync.test.ts`          | Remove `platformPostId` preservation test                                              |
-| `social-media/test/handlers/publishExecuteHandler.test.ts` | Remove `platformPostId` assertions; move retry/error to metadata assertions            |
-| `social-media/test/datasource.test.ts`                     | Update if referencing frontmatter operational fields                                   |
-| `content-pipeline/test/`                                   | Update `publishableMetadataSchema` tests; add queue rebuild test                       |
+| Test file                                                  | Changes                                                                          |
+| ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `social-media/test/schemas/social-post.test.ts`            | Remove operational fields from frontmatter and metadata tests                    |
+| `social-media/test/adapters/social-post-adapter.test.ts`   | Update roundtrip tests — frontmatter has no operational fields                   |
+| `social-media/test/adapter-metadata-sync.test.ts`          | Remove `platformPostId` preservation test                                        |
+| `social-media/test/handlers/publishExecuteHandler.test.ts` | Remove `platformPostId` assertions; remove retry/error from frontmatter+metadata |
+| `social-media/test/datasource.test.ts`                     | Update if referencing frontmatter operational fields                             |
+| `content-pipeline/test/`                                   | Update `publishableMetadataSchema` tests; add queue rebuild test                 |
 
 ## Verification
 
