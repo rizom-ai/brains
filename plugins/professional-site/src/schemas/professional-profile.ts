@@ -98,10 +98,14 @@ export class ProfessionalProfileParser {
    */
   public parse(content: string): ProfessionalProfile {
     if (content.startsWith("---")) {
-      const { metadata } = parseMarkdownWithFrontmatter(
+      const { metadata, content: body } = parseMarkdownWithFrontmatter(
         content,
         professionalProfileSchema,
       );
+      // Story lives in the markdown body, not in frontmatter
+      if (body) {
+        return { ...metadata, story: body };
+      }
       return metadata;
     }
     // Legacy: structured content format
