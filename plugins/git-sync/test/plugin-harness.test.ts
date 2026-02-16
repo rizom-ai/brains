@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync, mkdirSync } from "fs";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
-describe("GitSyncPlugin with CorePluginTestHarness", () => {
-  let harness: ReturnType<typeof createCorePluginHarness<GitSyncPlugin>>;
+describe("GitSyncPlugin with ServicePluginTestHarness", () => {
+  let harness: ReturnType<typeof createServicePluginHarness>;
   let testRepoPath: string;
   let plugin: GitSyncPlugin;
   let capabilities: PluginCapabilities;
@@ -18,7 +18,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     mkdirSync(testRepoPath, { recursive: true });
 
     // Create test harness with dataDir pointing to test directory
-    harness = createCorePluginHarness<GitSyncPlugin>({ dataDir: testRepoPath });
+    harness = createServicePluginHarness({ dataDir: testRepoPath });
 
     // Set up message subscriptions for mocking dependencies
     harness.subscribe("sync:status:request", async () => {
@@ -117,7 +117,7 @@ describe("GitSyncPlugin with CorePluginTestHarness", () => {
     it("should configure plugin with correct settings", () => {
       // Verify plugin was configured correctly
       expect(plugin.id).toBe("git-sync");
-      expect(plugin.type).toBe("core");
+      expect(plugin.type).toBe("service");
       expect(plugin.version).toBeDefined();
     });
   });

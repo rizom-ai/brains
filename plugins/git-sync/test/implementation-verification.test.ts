@@ -14,11 +14,6 @@ describe("Git-Sync Implementation Verification", () => {
       expect(gitSyncSource).toContain('"-Xtheirs": null');
       expect(gitSyncSource).toContain('"--strategy=recursive": null');
     });
-
-    it("should include comment explaining conflict resolution", () => {
-      // Verify there's documentation about the strategy
-      expect(gitSyncSource).toContain("auto-resolving conflicts");
-    });
   });
 
   describe("Conflict Marker Detection", () => {

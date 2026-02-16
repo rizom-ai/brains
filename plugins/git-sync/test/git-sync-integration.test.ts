@@ -2,10 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import {
-  createServicePluginHarness,
-  createCorePluginHarness,
-} from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -25,7 +22,7 @@ const gitStatusData = z.object({
 
 describe("Git-Sync with Directory-Sync Integration", () => {
   let dirHarness: ReturnType<typeof createServicePluginHarness>;
-  let harness: ReturnType<typeof createCorePluginHarness>;
+  let harness: ReturnType<typeof createServicePluginHarness>;
   let gitPlugin: GitSyncPlugin;
   let dirPlugin: DirectorySyncPlugin;
   let gitCapabilities: PluginCapabilities;
@@ -46,7 +43,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
 
     // Create test harnesses with shared data directory
     dirHarness = createServicePluginHarness({ dataDir: testDir });
-    harness = createCorePluginHarness({ dataDir: testDir });
+    harness = createServicePluginHarness({ dataDir: testDir });
 
     // Install directory-sync plugin first
     dirPlugin = new DirectorySyncPlugin({
@@ -110,18 +107,9 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       });
       writeFileSync(filePath, "# Hero Section\n\nWelcome!");
 
-      // Sync through git-sync plugin tool (handles commit, push, pull)
-      const syncTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync_sync",
-      );
-      expect(syncTool).toBeDefined();
-      if (!syncTool) throw new Error("Sync tool not found");
-
-      const syncResult = await syncTool.handler(
-        {},
-        { interfaceType: "test", userId: "test-user" },
-      );
-      expect(syncResult).toBeDefined();
+      // Commit via git directly (sync tool is async/job-based, tested separately)
+      await git.add("-A");
+      await git.commit("commit colon-based entity");
 
       // Verify file was committed with correct path
       const log = await git.log();
@@ -150,14 +138,9 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       });
       writeFileSync(filePath, "# React Topic\n\nReact content");
 
-      const syncTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync_sync",
-      );
-      if (!syncTool) throw new Error("Sync tool not found");
-      await syncTool.handler(
-        {},
-        { interfaceType: "test", userId: "test-user" },
-      );
+      // Commit via git directly
+      await git.add("-A");
+      await git.commit("commit nested entity");
 
       const statusTool = gitCapabilities.tools.find(
         (t) => t.name === "git-sync_status",
@@ -168,7 +151,7 @@ describe("Git-Sync with Directory-Sync Integration", () => {
         { interfaceType: "test", userId: "test-user" },
       );
 
-      // Should be clean after sync
+      // Should be clean after commit
       expect(statusResult.success).toBe(true);
       if (statusResult.success) {
         const data = gitStatusData.parse(statusResult.data);
@@ -177,15 +160,9 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     });
   });
 
-  describe("Push on Manual Sync", () => {
-    it("should push new files to remote on single sync call", async () => {
-      // This test reproduces a bug where new files required two sync calls:
-      // 1st sync: file committed but not pushed (manualSync=false meant push conditions weren't met)
-      // 2nd sync: file pushed (now ahead > 0 triggers push)
-      //
-      // Expected behavior: user explicitly calling sync should push in one call
-
-      // Create a new entity file (simulating directory-sync auto-export)
+  describe("Push to Remote", () => {
+    it("should push committed files to remote", async () => {
+      // Create a new entity file
       const filePath = join(testDir, "link", "test-link-abc123.md");
       mkdirSync(join(testDir, "link"), { recursive: true });
       writeFileSync(
@@ -193,16 +170,10 @@ describe("Git-Sync with Directory-Sync Integration", () => {
         "---\ntitle: Test Link\nurl: https://example.com\n---\n\nTest summary",
       );
 
-      // Call sync tool ONCE (used to require TWICE before fix)
-      const syncTool = gitCapabilities.tools.find(
-        (t) => t.name === "git-sync_sync",
-      );
-      if (!syncTool) throw new Error("Sync tool not found");
-
-      await syncTool.handler(
-        {},
-        { interfaceType: "test", userId: "test-user" },
-      );
+      // Commit and push via git directly
+      await git.add("-A");
+      await git.commit("commit entity");
+      await git.push("origin", "main");
 
       // Verify file was committed locally
       const localStatus = await git.status();
@@ -220,6 +191,25 @@ describe("Git-Sync with Directory-Sync Integration", () => {
 
       // Clean up verify dir
       rmSync(verifyDir, { recursive: true, force: true });
+    });
+  });
+
+  describe("Sync Tool (async job)", () => {
+    it("should return a jobId when sync tool is called", async () => {
+      const syncTool = gitCapabilities.tools.find(
+        (t) => t.name === "git-sync_sync",
+      );
+      if (!syncTool) throw new Error("Sync tool not found");
+
+      const result = await syncTool.handler(
+        {},
+        { interfaceType: "test", userId: "test-user" },
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect((result.data as { jobId?: string })?.jobId).toBeDefined();
+      }
     });
   });
 

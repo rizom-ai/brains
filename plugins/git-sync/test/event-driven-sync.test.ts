@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -13,7 +13,7 @@ import simpleGit from "simple-git";
  * git-sync should debounce and then commit + push changes automatically.
  */
 describe("Event-Driven Commit/Push", () => {
-  let harness: ReturnType<typeof createCorePluginHarness<GitSyncPlugin>>;
+  let harness: ReturnType<typeof createServicePluginHarness>;
   let testDir: string;
   let remoteDir: string;
   let plugin: GitSyncPlugin;
@@ -26,7 +26,7 @@ describe("Event-Driven Commit/Push", () => {
     // Initialize bare remote
     await simpleGit(remoteDir).init(true);
 
-    harness = createCorePluginHarness<GitSyncPlugin>({ dataDir: testDir });
+    harness = createServicePluginHarness({ dataDir: testDir });
 
     // Mock directory-sync responses
     harness.subscribe("entity:import:request", async () => {

@@ -1,18 +1,19 @@
-import type { Plugin, PluginTool, CorePluginContext } from "@brains/plugins";
-import { CorePlugin } from "@brains/plugins";
+import type { Plugin, PluginTool, ServicePluginContext } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import { GitSync } from "./lib/git-sync";
 import { gitSyncConfigSchema, type GitSyncConfig } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
 import { gitSyncStatusSchema } from "./schemas";
 import { createGitSyncTools } from "./tools";
+import { SyncJobHandler } from "./handlers/sync-handler";
 import packageJson from "../package.json";
 
 /**
- * Git Sync plugin that extends CorePlugin
+ * Git Sync plugin that extends ServicePlugin
  * Adds git version control to directory-sync
  */
 
-export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
+export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
   private commitTimeout?: Timer;
   private syncing = false;
@@ -32,7 +33,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
    * Initialize the plugin
    */
   protected override async onRegister(
-    context: CorePluginContext,
+    context: ServicePluginContext,
   ): Promise<void> {
     // Register our template for git sync status
     context.templates.register({
@@ -42,7 +43,7 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         schema: gitSyncStatusSchema,
         basePrompt: "",
         requiredPermission: "public",
-        formatter: new GitSyncStatusFormatter(), // Use status formatter for template
+        formatter: new GitSyncStatusFormatter(),
       },
     });
 
@@ -64,6 +65,12 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
     // Initialize repository
     await this.gitSync.initialize();
 
+    // Register sync job handler
+    context.jobs.registerHandler(
+      "sync",
+      new SyncJobHandler(this.logger.child("SyncJobHandler"), this.gitSync),
+    );
+
     // Signal that git-sync is installed - directory-sync uses this to know
     // it should wait for git:pull:completed before starting its sync
     await context.messaging.send(
@@ -84,17 +91,15 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
     });
 
     // Pull from remote when plugins are ready, BEFORE directory-sync runs
-    // This ensures remote data is available before directory-sync imports to DB
     context.messaging.subscribe("system:plugins:ready", async () => {
       this.logger.debug(
         "Plugins ready, pulling from remote before directory-sync",
       );
 
       const git = this.getGitSync();
-      const status = await git.getStatus();
+      const hasRemote = git.hasRemote();
 
-      // Only pull if we have a remote
-      if (status.remote) {
+      if (hasRemote) {
         try {
           await git.pull();
           this.logger.info("Pulled from remote, ready for directory-sync");
@@ -103,12 +108,9 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
         }
       }
 
-      // Emit event so directory-sync knows it can proceed
-      // This event is emitted even if there's no remote, so directory-sync
-      // can proceed in standalone mode
       await context.messaging.send(
         "git:pull:completed",
-        { success: true, hasRemote: !!status.remote },
+        { success: true, hasRemote },
         { broadcast: true },
       );
 
@@ -116,7 +118,6 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
     });
 
     // Commit and push after directory-sync completes its initial import
-    // This ensures any imported entities are committed to git
     context.messaging.subscribe("sync:initial:completed", async () => {
       this.logger.debug(
         "Initial sync completed by directory-sync, committing and pushing",
@@ -124,13 +125,12 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
 
       const git = this.getGitSync();
       try {
-        // Just commit and push - don't pull again (already done above)
         const status = await git.getStatus();
         if (status.hasChanges) {
           await git.commit();
           this.logger.info("Committed changes after initial sync");
         }
-        if (status.remote && status.ahead > 0) {
+        if (git.hasRemote() && status.ahead > 0) {
           await git.push();
           this.logger.info("Pushed changes after initial sync");
         }
@@ -154,10 +154,9 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
             if (status.hasChanges) {
               await git.commit();
               this.logger.info("Auto-committed entity changes");
-            }
-            if (status.remote) {
-              const freshStatus = await git.getStatus();
-              if (freshStatus.ahead > 0 || freshStatus.lastCommit) {
+
+              // We just committed, push if remote exists
+              if (git.hasRemote()) {
                 await git.push();
                 this.logger.info("Auto-pushed entity changes");
               }
@@ -191,7 +190,8 @@ export class GitSyncPlugin extends CorePlugin<GitSyncConfig> {
    * Define the tools provided by this plugin
    */
   override async getTools(): Promise<PluginTool[]> {
-    return createGitSyncTools(this.getGitSync(), this.id);
+    if (!this.context) throw new Error("Plugin context not available");
+    return createGitSyncTools(this.getGitSync(), this.id, this.context);
   }
 
   /**

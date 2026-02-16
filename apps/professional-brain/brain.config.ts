@@ -106,7 +106,8 @@ const config = defineConfig({
       authorName: "Yeehaa",
       authorEmail: "yeehaa@rizom.ai",
       autoPush: true,
-      autoSync: false,
+      autoSync: true,
+      syncInterval: 5,
     }),
     new WebserverInterface({
       previewPort: 4321,

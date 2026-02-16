@@ -215,39 +215,19 @@ export class GitSync {
   }
 
   /**
+   * Check if a remote URL is configured (no subprocess call)
+   */
+  hasRemote(): boolean {
+    return !!this.remoteUrl;
+  }
+
+  /**
    * Get current git status
+   * Uses git.status() for most info (1 subprocess) + git.log() for last commit (1 subprocess)
    */
   async getStatus(): Promise<GitSyncStatus> {
     try {
       const status = await this.git.status();
-      const isRepo = await this.git.checkIsRepo();
-
-      // Get ahead/behind count
-      let ahead = 0;
-      let behind = 0;
-
-      try {
-        const branchStatus = await this.git.branch();
-        const currentBranch = branchStatus.branches[branchStatus.current];
-        if (
-          currentBranch &&
-          "tracking" in currentBranch &&
-          "label" in currentBranch
-        ) {
-          // Parse ahead/behind from label (e.g., "ahead 1, behind 2")
-          const match = currentBranch.label.match(/ahead (\d+)|behind (\d+)/g);
-          if (match) {
-            match.forEach((m) => {
-              if (m.startsWith("ahead"))
-                ahead = parseInt(m.split(" ")[1] ?? "0");
-              if (m.startsWith("behind"))
-                behind = parseInt(m.split(" ")[1] ?? "0");
-            });
-          }
-        }
-      } catch {
-        // Ignore errors getting branch status
-      }
 
       // Get last commit
       let lastCommit: string | undefined;
@@ -258,23 +238,14 @@ export class GitSync {
         // No commits yet
       }
 
-      // Get remote URL
-      let remote: string | undefined;
-      try {
-        const remotes = await this.git.getRemotes(true);
-        remote = remotes.find((r) => r.name === "origin")?.refs.fetch;
-      } catch {
-        // No remotes
-      }
-
       return {
-        isRepo,
+        isRepo: true,
         hasChanges: !status.isClean(),
-        ahead,
-        behind,
+        ahead: status.ahead,
+        behind: status.behind,
         branch: status.current ?? this.branch,
         lastCommit,
-        remote,
+        remote: this.remoteUrl || undefined,
         files: status.files.map((f) => ({
           path: f.path,
           status: f.working_dir + f.index,
@@ -392,53 +363,42 @@ export class GitSync {
    */
   async pull(): Promise<boolean> {
     try {
-      // Origin is already configured with authentication
       this.logger.debug("Pulling from origin", { branch: this.branch });
 
-      // First check if the remote branch exists
-      try {
-        await this.git.fetch("origin", this.branch);
-      } catch (fetchError) {
-        const errorMessage =
-          fetchError instanceof Error ? fetchError.message : String(fetchError);
-        if (errorMessage.includes("couldn't find remote ref")) {
-          this.logger.info("Remote branch doesn't exist yet, skipping pull");
-          return false; // Return false to indicate branch doesn't exist
-        }
-        throw fetchError;
-      }
-
-      // Check for local changes before pulling - this should not happen if called from sync()
-      // but might happen if pull() is called directly
+      // Commit local changes before pulling to prevent conflicts
       const status = await this.git.status();
       if (!status.isClean()) {
         this.logger.warn(
-          "Found uncommitted changes before pull - this may cause conflicts",
-          {
-            files: status.files.map((f) => f.path),
-          },
+          "Found uncommitted changes before pull - committing first",
+          { files: status.files.map((f) => f.path) },
         );
-        // Commit them to prevent pull from failing
         await this.commit("Pre-pull commit: preserving local changes");
       }
 
-      // Pull with merge strategy, auto-resolving conflicts using remote version
-      // We use -Xtheirs because remote is the source of truth. Local premature
-      // commits (e.g., stale DB exports) should not override remote content.
-      // This ensures coverImageId and other remote changes are preserved.
-      await this.git.pull("origin", this.branch, {
+      // Pull (includes fetch + merge). Fast when nothing to merge.
+      const pullResult = await this.git.pull("origin", this.branch, {
         "--no-rebase": null,
         "--allow-unrelated-histories": null,
         "--strategy=recursive": null,
-        "-Xtheirs": null, // Automatically resolve conflicts using remote version
+        "-Xtheirs": null,
       });
-      this.logger.info("Pulled changes from remote");
 
-      // After pull, import entities via message bus
-      const importResponse = await this.sendMessage(
-        "entity:import:request",
-        {},
-      );
+      // Skip import if nothing changed
+      if (pullResult.files.length === 0) {
+        this.logger.debug(
+          "Pull completed with no file changes, skipping import",
+        );
+        return true;
+      }
+
+      this.logger.info("Pulled changes from remote", {
+        filesChanged: pullResult.files.length,
+      });
+
+      // Only import the files that actually changed
+      const importResponse = await this.sendMessage("entity:import:request", {
+        paths: pullResult.files,
+      });
 
       if ("noop" in importResponse || !importResponse.success) {
         this.logger.warn("No directory sync plugin available for import");
@@ -448,11 +408,17 @@ export class GitSync {
         });
       }
 
-      return true; // Return true for successful pull
+      return true;
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("couldn't find remote ref")) {
+        this.logger.info("Remote branch doesn't exist yet, skipping pull");
+        return false;
+      }
       this.logger.error("Failed to pull changes", { error });
       throw new Error(
-        `Failed to pull changes from remote repository: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to pull changes from remote repository: ${errorMessage}`,
       );
     }
   }
@@ -465,12 +431,9 @@ export class GitSync {
     this.logger.debug("Starting sync", { manual: manualSync });
 
     try {
-      // Get initial status to check for remote
-      const initialStatus = await this.getStatus();
-
-      // STEP 1: Pull from remote if it exists (get latest changes)
+      // STEP 1: Pull from remote if configured
       let remoteBranchExists = true;
-      if (initialStatus.remote) {
+      if (this.remoteUrl) {
         try {
           remoteBranchExists = await this.pull();
         } catch (error) {
@@ -480,49 +443,27 @@ export class GitSync {
       }
 
       // STEP 2: Commit any local changes (after pulling)
-      const currentStatus = await this.getStatus();
-      if (currentStatus.hasChanges) {
+      const status = await this.git.status();
+      if (!status.isClean()) {
         await this.commit();
         this.logger.info("Committed local changes");
       }
 
-      // STEP 3: Check if we need to push
-      const finalStatus = await this.getStatus();
+      // STEP 3: Push if needed
+      if (this.remoteUrl) {
+        const postCommitStatus = await this.git.status();
+        const shouldPush =
+          manualSync ||
+          (this.autoPush && postCommitStatus.ahead > 0) ||
+          !remoteBranchExists;
 
-      // Check if branch is tracking remote by getting branch info
-      const branchInfo = await this.git.branch();
-      const currentBranch = branchInfo.branches[branchInfo.current];
-      const isTrackingRemote =
-        currentBranch && "tracking" in currentBranch && currentBranch.tracking;
-
-      // Push if:
-      // 1. Manual sync and we have commits
-      // 2. AutoPush enabled and we're ahead of remote
-      // 3. AutoPush enabled and branch isn't tracking (can't determine ahead count)
-      // 4. Remote branch doesn't exist and we have commits
-      const shouldPush =
-        (manualSync && Boolean(finalStatus.lastCommit)) ||
-        (this.autoPush && finalStatus.ahead > 0) ||
-        (this.autoPush &&
-          !isTrackingRemote &&
-          Boolean(finalStatus.lastCommit)) ||
-        (!remoteBranchExists && Boolean(finalStatus.lastCommit));
-
-      if (shouldPush) {
-        await this.push();
-        this.logger.info("Pushed changes to remote", {
-          manual: manualSync,
-          ahead: finalStatus.ahead,
-          tracking: isTrackingRemote,
-          createBranch: !remoteBranchExists,
-        });
-      } else {
-        this.logger.debug("No push needed", {
-          ahead: finalStatus.ahead,
-          tracking: isTrackingRemote,
-          autoPush: this.autoPush,
-          remoteBranchExists,
-        });
+        if (shouldPush) {
+          await this.push();
+          this.logger.info("Pushed changes to remote", {
+            manual: manualSync,
+            ahead: postCommitStatus.ahead,
+          });
+        }
       }
 
       this.logger.info("Sync completed successfully");

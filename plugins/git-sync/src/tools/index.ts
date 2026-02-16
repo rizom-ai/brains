@@ -1,10 +1,11 @@
-import type { PluginTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type { GitSync } from "../lib/git-sync";
 
 export function createGitSyncTools(
   gitSync: GitSync,
   pluginId: string,
+  context: ServicePluginContext,
 ): PluginTool[] {
   return [
     createTool(
@@ -12,13 +13,24 @@ export function createGitSyncTools(
       "sync",
       "Sync brain data with git repository (commit, push, pull). Use when users want to backup or sync their data.",
       {},
-      async () => {
-        // Pass manualSync = true since user explicitly requested sync
-        // This ensures changes are pushed to remote in a single call
-        await gitSync.sync(true);
+      async (_input, toolContext) => {
+        const jobId = await context.jobs.enqueue(
+          "sync",
+          { manualSync: true },
+          toolContext,
+          {
+            source: `${pluginId}_sync`,
+            metadata: {
+              operationType: "file_operations",
+              operationTarget: "sync",
+            },
+          },
+        );
+
         return {
           success: true,
-          message: "Git sync completed successfully",
+          data: { jobId },
+          message: `Git sync started (jobId: ${jobId})`,
         };
       },
     ),
