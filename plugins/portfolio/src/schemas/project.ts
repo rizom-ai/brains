@@ -90,6 +90,9 @@ export type ProjectWithData = z.infer<typeof projectWithDataSchema>;
 export const enrichedProjectSchema = projectWithDataSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**
@@ -99,6 +102,9 @@ export const enrichedProjectSchema = projectWithDataSchema.extend({
 export const templateProjectSchema = projectWithDataSchema.extend({
   url: z.string(),
   typeLabel: z.string(),
+  coverImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**

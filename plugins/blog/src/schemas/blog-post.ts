@@ -89,6 +89,9 @@ export const enrichedBlogPostSchema = blogPostWithDataSchema.extend({
   listUrl: z.string().optional(),
   listLabel: z.string().optional(),
   seriesUrl: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**
@@ -101,6 +104,9 @@ export const templateBlogPostSchema = blogPostWithDataSchema.extend({
   listUrl: z.string(),
   listLabel: z.string(),
   seriesUrl: z.string().optional(), // URL to series detail page (if post is in a series)
+  coverImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**

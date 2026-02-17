@@ -6,6 +6,7 @@ import {
   CardImage,
   CardTitle,
   CardMetadata,
+  CoverImage,
   ListPageHeader,
   EmptyState,
   Head,
@@ -65,15 +66,17 @@ export const SeriesDetailTemplate = ({
         <div className="container mx-auto px-6 md:px-8 max-w-4xl py-20">
           <Breadcrumb items={breadcrumbItems} />
 
-          {coverImageUrl && (
-            <div className="mb-8 rounded-lg overflow-hidden">
-              <img
+          {coverImageUrl &&
+            series.coverImageWidth &&
+            series.coverImageHeight && (
+              <CoverImage
                 src={coverImageUrl}
                 alt={`Cover image for ${seriesName} series`}
-                className="w-full h-48 md:h-64 object-cover"
+                width={series.coverImageWidth}
+                height={series.coverImageHeight}
+                className="mb-8"
               />
-            </div>
-          )}
+            )}
 
           <ListPageHeader
             title={`Series: ${seriesName}`}

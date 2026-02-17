@@ -4,6 +4,7 @@ import {
   ProseContent,
   Head,
   Breadcrumb,
+  CoverImage,
   type BreadcrumbItem,
 } from "@brains/ui-library";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
@@ -66,13 +67,17 @@ export const BlogPostTemplate = ({
               <Breadcrumb items={breadcrumbItems} />
 
               {/* Cover Image */}
-              {post.coverImageUrl && (
-                <img
-                  src={post.coverImageUrl}
-                  alt={post.frontmatter.title}
-                  className="w-full h-80 md:h-96 object-cover rounded-lg mb-8 shadow-lg"
-                />
-              )}
+              {post.coverImageUrl &&
+                post.coverImageWidth &&
+                post.coverImageHeight && (
+                  <CoverImage
+                    src={post.coverImageUrl}
+                    alt={post.frontmatter.title}
+                    width={post.coverImageWidth}
+                    height={post.coverImageHeight}
+                    className="mb-8 shadow-lg"
+                  />
+                )}
 
               {/* Title */}
               <h1 className="text-4xl md:text-5xl font-bold text-heading leading-tight tracking-tight mb-4">

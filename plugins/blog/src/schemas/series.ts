@@ -48,6 +48,8 @@ export const seriesListItemSchema = seriesWithDataSchema.extend({
   description: z.string().optional(),
   postCount: z.number(),
   coverImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 export type Series = z.infer<typeof seriesSchema>;

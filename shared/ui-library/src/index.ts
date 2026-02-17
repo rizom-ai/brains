@@ -54,6 +54,10 @@ export { Card, cardVariants } from "./Card";
 export type { CardProps, CardVariant } from "./Card";
 export { CardImage, cardImageVariants } from "./CardImage";
 export type { CardImageProps, CardImageSize } from "./CardImage";
+
+// Cover image
+export { CoverImage } from "./CoverImage";
+export type { CoverImageProps } from "./CoverImage";
 export { CardTitle } from "./CardTitle";
 export type { CardTitleProps } from "./CardTitle";
 export { CardMetadata } from "./CardMetadata";

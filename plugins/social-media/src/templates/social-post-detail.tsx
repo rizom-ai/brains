@@ -4,6 +4,7 @@ import {
   Breadcrumb,
   StatusBadge,
   Card,
+  CoverImage,
   type BreadcrumbItem,
 } from "@brains/ui-library";
 import type { EnrichedSocialPost } from "../schemas/social-post";
@@ -62,15 +63,17 @@ export const SocialPostDetailTemplate = ({
             </div>
 
             {/* Cover image */}
-            {post.coverImageUrl && (
-              <div className="mb-8">
-                <img
+            {post.coverImageUrl &&
+              post.coverImageWidth &&
+              post.coverImageHeight && (
+                <CoverImage
                   src={post.coverImageUrl}
                   alt={post.frontmatter.title}
-                  className="w-full rounded-lg object-cover"
+                  width={post.coverImageWidth}
+                  height={post.coverImageHeight}
+                  className="mb-8"
                 />
-              </div>
-            )}
+              )}
 
             {/* Post content */}
             <Card className="p-8 mb-8">

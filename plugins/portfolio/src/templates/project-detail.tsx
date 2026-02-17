@@ -1,5 +1,11 @@
 import type { JSX } from "preact";
-import { Head, ProseContent, TagsList, Card } from "@brains/ui-library";
+import {
+  Head,
+  ProseContent,
+  TagsList,
+  Card,
+  CoverImage,
+} from "@brains/ui-library";
 import { markdownToHtml } from "@brains/utils";
 import type { EnrichedProject } from "../schemas/project";
 
@@ -101,13 +107,17 @@ export const ProjectDetailTemplate = ({
       <article className="project-detail">
         <div className="container mx-auto px-6 md:px-8 py-12 md:py-20">
           <div className="max-w-3xl mx-auto">
-            {coverImageUrl && (
-              <img
-                src={coverImageUrl}
-                alt={frontmatter.title}
-                className="w-full h-80 md:h-96 object-cover rounded-lg mb-8 shadow-lg"
-              />
-            )}
+            {coverImageUrl &&
+              project.coverImageWidth &&
+              project.coverImageHeight && (
+                <CoverImage
+                  src={coverImageUrl}
+                  alt={frontmatter.title}
+                  width={project.coverImageWidth}
+                  height={project.coverImageHeight}
+                  className="mb-8 shadow-lg"
+                />
+              )}
 
             {/* Title */}
             <h1 className="text-4xl md:text-5xl font-bold text-heading leading-tight tracking-tight mb-4">
