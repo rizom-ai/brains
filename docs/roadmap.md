@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2025-02-13
+Last Updated: 2026-02-17
 
 ---
 
@@ -51,6 +51,9 @@ Last Updated: 2025-02-13
 ### Git Sync — Event-Driven Commit/Push
 
 - [x] Subscribe to entity events (`entity:created`/`updated`/`deleted`) with debounced commit+push (see `docs/plans/git-sync-event-driven.md`)
+- [x] Optimize subprocess count: `getStatus()` 5→2, `pull()` selective import, `sync()` 23→4-10 subprocesses (see `docs/plans/git-sync-subprocess-optimization.md`)
+- [x] Convert to ServicePlugin with async job queue (non-blocking MCP sync tool)
+- [x] Re-enable autoSync (5-minute interval)
 
 ### Discord Interface
 
@@ -77,9 +80,9 @@ Last Updated: 2025-02-13
 
 ### Sveltia CMS — Git-Based Content Management
 
-- [ ] Add Sveltia CMS at `/admin/` for web-based editing of all entity types (see `docs/plans/sveltia-cms.md`)
+- [x] Add Sveltia CMS at `/admin/` for web-based editing of all entity types (see `docs/plans/sveltia-cms.md`)
 - [ ] Cloudflare Workers OAuth for multi-user GitHub auth
-- [ ] Enable `autoSync` in git-sync for CMS→brain data flow
+- [x] Enable `autoSync` in git-sync for CMS→brain data flow
 
 ---
 
