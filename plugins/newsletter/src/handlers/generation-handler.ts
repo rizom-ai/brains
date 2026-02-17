@@ -292,18 +292,30 @@ The newsletter should:
         message: `Newsletter created${addToQueue ? " and queued" : " as draft"}`,
       });
 
+      await this.context.messaging.send("generate:report:success", {
+        entityType: "newsletter",
+        entityId: result.entityId,
+      });
+
       return {
         success: true,
         entityId: result.entityId,
       };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error("Newsletter generation job failed", {
         error,
       });
 
+      await this.context.messaging.send("generate:report:failure", {
+        entityType: "newsletter",
+        error: errorMessage,
+      });
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       };
     }
   }

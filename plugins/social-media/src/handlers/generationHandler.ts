@@ -295,21 +295,33 @@ ${sourceEntity.content}`,
         message: `Social post created${addToQueue ? ` at queue position ${queueOrder}` : " as draft"}${data.generateImage ? " (image generation queued)" : ""}`,
       });
 
+      await this.context.messaging.send("generate:report:success", {
+        entityType: "social-post",
+        entityId: result.entityId,
+      });
+
       return {
         success: true,
         entityId: result.entityId,
         slug: metadata.slug,
       };
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error("Social post generation job failed", {
         error,
         jobId,
         data,
       });
 
+      await this.context.messaging.send("generate:report:failure", {
+        entityType: "social-post",
+        error: errorMessage,
+      });
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       };
     }
   }

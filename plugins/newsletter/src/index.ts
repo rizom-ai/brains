@@ -14,7 +14,6 @@ import {
   handlePublishCompleted,
   type PublishCompletedPayload,
 } from "./handlers/publish-handler";
-import type { GenerationResult } from "./handlers/generation-handler";
 import { GenerationJobHandler } from "./handlers/generation-handler";
 import { generationTemplate } from "./templates/generation-template";
 import { newsletterListTemplate } from "./templates/newsletter-list";
@@ -357,9 +356,6 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
 
           this.logger.info("Newsletter generation job queued", { jobId });
 
-          // Monitor job completion to report back to content-pipeline
-          this.monitorGenerationJob(context, jobId);
-
           return { success: true };
         } catch (error) {
           const errorMessage =
@@ -375,48 +371,6 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
         }
       },
     );
-  }
-
-  /**
-   * Monitor a generation job and report completion to content-pipeline
-   */
-  private monitorGenerationJob(
-    context: ServicePluginContext,
-    jobId: string,
-  ): void {
-    // Subscribe to job completion for this specific job
-    const unsubscribe = context.messaging.subscribe<
-      { jobId: string; result: GenerationResult },
-      { success: boolean }
-    >("job:completed", async (msg) => {
-      if (msg.payload.jobId !== jobId) {
-        return { success: true };
-      }
-
-      const result = msg.payload.result;
-
-      if (result.success && result.entityId) {
-        await context.messaging.send("generate:report:success", {
-          entityType: "newsletter",
-          entityId: result.entityId,
-        });
-        this.logger.info("Newsletter generation completed", {
-          entityId: result.entityId,
-        });
-      } else {
-        await context.messaging.send("generate:report:failure", {
-          entityType: "newsletter",
-          error: result.error ?? "Unknown error",
-        });
-        this.logger.error("Newsletter generation failed", {
-          error: result.error,
-        });
-      }
-
-      // Unsubscribe after handling
-      unsubscribe();
-      return { success: true };
-    });
   }
 }
 

@@ -24,6 +24,8 @@ import type {
   PublishListPayload,
   PublishReportSuccessPayload,
   PublishReportFailurePayload,
+  GenerateCompletedPayload,
+  GenerateFailedPayload,
 } from "./types/messages";
 import type { GenerationCondition } from "./types/config";
 import type { GenerationConditionResult } from "./scheduler";
@@ -175,6 +177,29 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     );
 
     this.logger.debug("Subscribed to publish messages");
+
+    // Generation completion reporting (from job handlers in newsletter/social-media)
+    context.messaging.subscribe<GenerateCompletedPayload, { success: boolean }>(
+      GENERATE_MESSAGES.REPORT_SUCCESS,
+      async (msg) => {
+        const { entityType, entityId } = msg.payload;
+        this.scheduler?.completeGeneration(entityType, entityId);
+        this.logger.info("Generation completed", { entityType, entityId });
+        return { success: true };
+      },
+    );
+
+    context.messaging.subscribe<GenerateFailedPayload, { success: boolean }>(
+      GENERATE_MESSAGES.REPORT_FAILURE,
+      async (msg) => {
+        const { entityType, error } = msg.payload;
+        this.scheduler?.failGeneration(entityType, error);
+        this.logger.warn("Generation failed", { entityType, error });
+        return { success: true };
+      },
+    );
+
+    this.logger.debug("Subscribed to generation messages");
   }
 
   private async handleRegister(

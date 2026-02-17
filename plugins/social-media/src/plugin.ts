@@ -438,9 +438,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
             sourcePostId: sourcePost.id,
           });
 
-          // Monitor job completion to report back to content-pipeline
-          this.monitorGenerationJob(context, jobId);
-
           return { success: true };
         } catch (error) {
           const errorMessage =
@@ -458,49 +455,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     );
 
     this.logger.debug("Subscribed to generate:execute messages");
-  }
-
-  /**
-   * Monitor a generation job and report completion to content-pipeline
-   */
-  private monitorGenerationJob(
-    context: ServicePluginContext,
-    jobId: string,
-  ): void {
-    const unsubscribe = context.messaging.subscribe<
-      {
-        jobId: string;
-        result: { success: boolean; entityId?: string; error?: string };
-      },
-      { success: boolean }
-    >("job:completed", async (msg) => {
-      if (msg.payload.jobId !== jobId) {
-        return { success: true };
-      }
-
-      const result = msg.payload.result;
-
-      if (result.success && result.entityId) {
-        await context.messaging.send("generate:report:success", {
-          entityType: "social-post",
-          entityId: result.entityId,
-        });
-        this.logger.info("Social post generation completed", {
-          entityId: result.entityId,
-        });
-      } else {
-        await context.messaging.send("generate:report:failure", {
-          entityType: "social-post",
-          error: result.error ?? "Unknown error",
-        });
-        this.logger.error("Social post generation failed", {
-          error: result.error,
-        });
-      }
-
-      unsubscribe();
-      return { success: true };
-    });
   }
 
   /**
