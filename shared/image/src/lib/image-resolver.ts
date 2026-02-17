@@ -58,7 +58,7 @@ export function extractCoverImageId(entity: BaseEntity): string | undefined {
 }
 
 /**
- * Resolve cover image URL for any entity with coverImageId in frontmatter
+ * Resolve cover image for any entity with coverImageId in frontmatter
  *
  * This utility provides a unified way to resolve cover images for any entity type.
  * It extracts coverImageId from the entity's YAML frontmatter and resolves it.
@@ -66,17 +66,17 @@ export function extractCoverImageId(entity: BaseEntity): string | undefined {
  *
  * @param entity - The entity to resolve cover image for
  * @param entityService - Entity service for fetching the image
- * @returns The cover image URL, or undefined if not found
+ * @returns ResolvedImage with url, alt, title, width, height - or undefined if not found
  */
 export async function resolveEntityCoverImage(
   entity: BaseEntity,
   entityService: ICoreEntityService,
-): Promise<string | undefined> {
+): Promise<ResolvedImage | undefined> {
   const coverImageId = extractCoverImageId(entity);
   if (!coverImageId) {
     return undefined;
   }
 
   const resolved = await resolveImage(coverImageId, entityService);
-  return resolved?.url;
+  return resolved ?? undefined;
 }

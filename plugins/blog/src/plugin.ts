@@ -150,7 +150,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     const seriesDetailSchema = z.object({
       seriesName: z.string(),
       posts: z.array(enrichedBlogPostSchema),
-      coverImageUrl: z.string().optional(),
+      series: seriesListItemSchema,
       description: z.string().optional(),
     });
 

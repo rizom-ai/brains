@@ -5,7 +5,6 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { resolveEntityCoverImage } from "@brains/image";
 import { z } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";
@@ -14,7 +13,11 @@ import {
   blogPostWithDataSchema,
   type BlogPostWithData,
 } from "../schemas/blog-post";
-import { seriesFrontmatterSchema } from "../schemas/series";
+import {
+  seriesFrontmatterSchema,
+  seriesWithDataSchema,
+  type SeriesWithData,
+} from "../schemas/series";
 import { seriesAdapter } from "../adapters/series-adapter";
 
 // Custom query format (used by SeriesRouteGenerator)
@@ -73,7 +76,7 @@ function normalizeQuery(query: unknown): {
 }
 
 /**
- * Parse frontmatter and extract body from entity
+ * Parse frontmatter and extract body from blog post entity
  */
 function parsePostData(entity: BlogPost): BlogPostWithData {
   const parsed = parseMarkdownWithFrontmatter(
@@ -84,6 +87,20 @@ function parsePostData(entity: BlogPost): BlogPostWithData {
     ...entity,
     frontmatter: parsed.metadata,
     body: parsed.content,
+  });
+}
+
+/**
+ * Parse frontmatter from series entity
+ */
+function parseSeriesData(entity: Series): SeriesWithData {
+  const parsed = parseMarkdownWithFrontmatter(
+    entity.content,
+    seriesFrontmatterSchema,
+  );
+  return seriesWithDataSchema.parse({
+    ...entity,
+    frontmatter: parsed.metadata,
   });
 }
 
@@ -163,28 +180,17 @@ export class SeriesDataSource implements DataSource {
       }
     }
 
-    // Build series list with resolved cover images using shared utility
-    const series = await Promise.all(
-      seriesEntities.map(async (entity) => {
-        const parsed = parseMarkdownWithFrontmatter(
-          entity.content,
-          seriesFrontmatterSchema,
-        );
-        const coverImageUrl = await resolveEntityCoverImage(
-          entity,
-          entityService,
-        );
-
-        const body = seriesAdapter.parseBody(entity.content);
-        return {
-          title: parsed.metadata.title,
-          slug: parsed.metadata.slug,
-          description: body.description,
-          postCount: postCounts.get(parsed.metadata.title) ?? 0,
-          coverImageUrl,
-        };
-      }),
-    );
+    // Return parsed series with computed fields
+    // Cover images resolved by site-builder enrichWithUrls
+    const series = seriesEntities.map((entity) => {
+      const parsed = parseSeriesData(entity);
+      const body = seriesAdapter.parseBody(entity.content);
+      return {
+        ...parsed,
+        description: body.description,
+        postCount: postCounts.get(entity.metadata.title) ?? 0,
+      };
+    });
 
     this.logger.debug(`Found ${series.length} series entities`);
 
@@ -209,17 +215,12 @@ export class SeriesDataSource implements DataSource {
       seriesEntity = seriesEntities[0];
     }
 
-    let description: string | undefined;
-    let coverImageUrl: string | undefined;
-
-    if (seriesEntity) {
-      const body = seriesAdapter.parseBody(seriesEntity.content);
-      description = body.description;
-      coverImageUrl = await resolveEntityCoverImage(
-        seriesEntity,
-        entityService,
-      );
+    if (!seriesEntity) {
+      throw new Error(`Series not found: ${seriesName}`);
     }
+
+    const series = parseSeriesData(seriesEntity);
+    const body = seriesAdapter.parseBody(seriesEntity.content);
 
     // publishedOnly filtering is handled by the scoped entityService
     const posts = await entityService.listEntities<BlogPost>("post", {
@@ -231,11 +232,12 @@ export class SeriesDataSource implements DataSource {
 
     this.logger.debug(`Found ${posts.length} posts in series "${seriesName}"`);
 
+    // Cover images resolved by site-builder enrichWithUrls
     return outputSchema.parse({
       seriesName,
       posts: postsWithData,
-      coverImageUrl,
-      description,
+      series,
+      description: body.description,
     });
   }
 

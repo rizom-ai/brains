@@ -140,7 +140,10 @@ coverImageId: hero-image
 
     const result = await resolveEntityCoverImage(entity, entityService);
 
-    expect(result).toBe(TINY_PNG_DATA_URL);
+    expect(result).not.toBeUndefined();
+    expect(result?.url).toBe(TINY_PNG_DATA_URL);
+    expect(result?.width).toBe(1);
+    expect(result?.height).toBe(1);
   });
 
   it("should return undefined when no coverImageId in frontmatter", async () => {

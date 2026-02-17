@@ -61,17 +61,17 @@ export const SeriesListTemplate = ({
 
           <div className="space-y-4">
             {series.map((item) => (
-              <Card key={item.slug} variant="horizontal">
+              <Card key={item.frontmatter.slug} variant="horizontal">
                 {item.coverImageUrl && (
                   <CardImage
                     src={item.coverImageUrl}
-                    alt={item.title}
+                    alt={item.frontmatter.title}
                     size="small"
                   />
                 )}
                 <div className="flex-grow">
-                  <CardTitle href={`/series/${item.slug}`}>
-                    {item.title}
+                  <CardTitle href={`/series/${item.frontmatter.slug}`}>
+                    {item.frontmatter.title}
                   </CardTitle>
                   <CardMetadata>
                     <span className="text-sm text-theme-muted">

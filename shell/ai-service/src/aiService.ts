@@ -278,12 +278,9 @@ export class AIService implements IAIService {
       throw new Error("OpenAI provider not configured");
     }
     return generateImage({
-      model: this.openaiProvider.image("dall-e-3"),
+      model: this.openaiProvider.image("gpt-image-1.5"),
       prompt,
-      size: ASPECT_RATIO_TO_DALLE_SIZE[aspectRatio],
-      providerOptions: {
-        openai: { style: "vivid" },
-      },
+      size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
     });
   }
 
@@ -305,15 +302,15 @@ export class AIService implements IAIService {
 }
 
 /**
- * Mapping from aspect ratio to DALL-E 3 pixel sizes
+ * Mapping from aspect ratio to OpenAI GPT Image pixel sizes
  */
-const ASPECT_RATIO_TO_DALLE_SIZE: Record<
+const ASPECT_RATIO_TO_OPENAI_SIZE: Record<
   AspectRatio,
-  "1024x1024" | "1792x1024" | "1024x1792"
+  "1024x1024" | "1536x1024" | "1024x1536"
 > = {
   "1:1": "1024x1024",
-  "16:9": "1792x1024",
-  "9:16": "1024x1792",
-  "4:3": "1792x1024",
-  "3:4": "1024x1792",
+  "16:9": "1536x1024",
+  "9:16": "1024x1536",
+  "4:3": "1536x1024",
+  "3:4": "1024x1536",
 };

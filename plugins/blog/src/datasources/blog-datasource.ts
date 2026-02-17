@@ -64,43 +64,6 @@ function parsePostData(
 }
 
 /**
- * Resolve cover image for a single post
- * Fetches the image entity and returns its data URL
- */
-async function resolvePostCoverImage<T extends BlogPostWithData>(
-  post: T,
-  entityService: IEntityService,
-): Promise<T> {
-  const coverImageId = post.frontmatter.coverImageId;
-  if (!coverImageId) {
-    return post;
-  }
-
-  // Image entities store the data URL in their content field
-  const image = await entityService.getEntity("image", coverImageId);
-  if (!image) {
-    return post;
-  }
-
-  return {
-    ...post,
-    coverImageUrl: image.content,
-  };
-}
-
-/**
- * Resolve cover images for multiple posts
- */
-async function resolvePostsCoverImages<T extends BlogPostWithData>(
-  posts: T[],
-  entityService: IEntityService,
-): Promise<T[]> {
-  return Promise.all(
-    posts.map((post) => resolvePostCoverImage(post, entityService)),
-  );
-}
-
-/**
  * DataSource for fetching and transforming blog post entities
  * Handles list views, detail views, and series views for blog posts
  */
@@ -184,9 +147,7 @@ export class BlogDataSource implements DataSource {
       throw new Error("Failed to retrieve latest blog post");
     }
 
-    let post = parsePostData(latestEntity);
-    // Resolve cover image (inline images resolved by site-builder)
-    post = await resolvePostCoverImage(post, entityService);
+    const post = parsePostData(latestEntity);
 
     // For home page, we don't need prev/next navigation
     // But include series posts if this is part of a series
@@ -199,11 +160,7 @@ export class BlogDataSource implements DataSource {
           filter: { metadata: { seriesName } },
           sortFields: [{ field: "seriesIndex", direction: "asc" }],
         });
-      const parsedSeriesPosts = seriesEntities.map(parsePostData);
-      seriesPosts = await resolvePostsCoverImages(
-        parsedSeriesPosts,
-        entityService,
-      );
+      seriesPosts = seriesEntities.map(parsePostData);
     }
 
     const detailData = {
@@ -242,10 +199,9 @@ export class BlogDataSource implements DataSource {
       throw new Error(`Blog post not found with slug: ${slug}`);
     }
 
-    // Parse frontmatter for full post data and resolve cover image
-    // (inline images resolved by site-builder)
-    let post = parsePostData(entity);
-    post = await resolvePostCoverImage(post, entityService);
+    // Parse frontmatter for full post data
+    // Cover images resolved by site-builder enrichWithUrls
+    const post = parsePostData(entity);
 
     // For detail view, fetch posts sorted for prev/next navigation
     const sortedPosts: BlogPost[] = await entityService.listEntities<BlogPost>(
@@ -262,15 +218,8 @@ export class BlogDataSource implements DataSource {
       currentIndex < sortedPosts.length - 1
         ? sortedPosts[currentIndex + 1]
         : null;
-    let prevPost = prevEntity ? parsePostData(prevEntity) : null;
-    let nextPost = nextEntity ? parsePostData(nextEntity) : null;
-    // Resolve cover images for prev/next posts
-    if (prevPost) {
-      prevPost = await resolvePostCoverImage(prevPost, entityService);
-    }
-    if (nextPost) {
-      nextPost = await resolvePostCoverImage(nextPost, entityService);
-    }
+    const prevPost = prevEntity ? parsePostData(prevEntity) : null;
+    const nextPost = nextEntity ? parsePostData(nextEntity) : null;
 
     // Get series posts if this is part of a series
     let seriesPosts = null;
@@ -282,11 +231,7 @@ export class BlogDataSource implements DataSource {
           filter: { metadata: { seriesName } },
           sortFields: [{ field: "seriesIndex", direction: "asc" }],
         });
-      const parsedSeriesPosts = seriesEntities.map(parsePostData);
-      seriesPosts = await resolvePostsCoverImages(
-        parsedSeriesPosts,
-        entityService,
-      );
+      seriesPosts = seriesEntities.map(parsePostData);
     }
 
     const detailData = {
@@ -314,11 +259,7 @@ export class BlogDataSource implements DataSource {
         sortFields: [{ field: "seriesIndex", direction: "asc" }],
       });
 
-    const parsedPosts = seriesEntities.map(parsePostData);
-    const seriesPosts = await resolvePostsCoverImages(
-      parsedPosts,
-      entityService,
-    );
+    const seriesPosts = seriesEntities.map(parsePostData);
 
     const seriesData = {
       seriesName,
@@ -361,12 +302,9 @@ export class BlogDataSource implements DataSource {
       pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
     }
 
-    // Parse frontmatter for full data and resolve cover images
-    const parsedPosts = entities.map(parsePostData);
-    const postsWithData = await resolvePostsCoverImages(
-      parsedPosts,
-      entityService,
-    );
+    // Parse frontmatter for full data
+    // Cover images resolved by site-builder enrichWithUrls
+    const postsWithData = entities.map(parsePostData);
 
     const listData = {
       posts: postsWithData,

@@ -1,5 +1,6 @@
 import type { JSX } from "preact";
 import type { EnrichedBlogPost } from "../schemas/blog-post";
+import type { SeriesListItem } from "../schemas/series";
 import {
   Card,
   CardImage,
@@ -17,7 +18,7 @@ import { PostMetadata } from "./PostMetadata";
 export interface SeriesDetailProps {
   seriesName: string;
   posts: EnrichedBlogPost[];
-  coverImageUrl?: string;
+  series: SeriesListItem;
   description?: string;
 }
 
@@ -27,9 +28,10 @@ export interface SeriesDetailProps {
 export const SeriesDetailTemplate = ({
   seriesName,
   posts,
-  coverImageUrl,
+  series,
   description: seriesDescription,
 }: SeriesDetailProps): JSX.Element => {
+  const coverImageUrl = series.coverImageUrl;
   const title = `Series: ${seriesName}`;
   const description =
     seriesDescription ??

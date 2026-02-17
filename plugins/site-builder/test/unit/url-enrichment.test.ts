@@ -366,10 +366,14 @@ coverImageId: project-cover-image
         generateEntityUrl,
       );
 
-      // Result is enriched with coverImageUrl and url
-      const enriched = result as { coverImageUrl?: string; url?: string };
-      expect(enriched.coverImageUrl).toBe("data:image/png;base64,abc123");
-      expect(enriched.url).toBe("/projects/test-project");
+      // Result is enriched with cover image data and url
+      expect(result).toHaveProperty(
+        "coverImageUrl",
+        "data:image/png;base64,abc123",
+      );
+      expect(result).toHaveProperty("coverImageWidth", 800);
+      expect(result).toHaveProperty("coverImageHeight", 600);
+      expect(result).toHaveProperty("url", "/projects/test-project");
     });
 
     it("should not add coverImageUrl when entity has no coverImageId", async () => {
@@ -393,9 +397,8 @@ slug: test-project
       );
 
       // Result is enriched - coverImageUrl should not be present
-      const enriched = result as { coverImageUrl?: string; url?: string };
-      expect(enriched.coverImageUrl).toBeUndefined();
-      expect(enriched.url).toBe("/projects/test-project");
+      expect(result).not.toHaveProperty("coverImageUrl");
+      expect(result).toHaveProperty("url", "/projects/test-project");
     });
   });
 });

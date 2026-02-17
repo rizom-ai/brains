@@ -14,7 +14,6 @@ import {
   socialPostFrontmatterSchema,
   socialPostWithDataSchema,
   type SocialPostWithData,
-  type EnrichedSocialPost,
 } from "../schemas/social-post";
 
 // Schema for fetch query parameters
@@ -49,43 +48,6 @@ function parsePostData(entity: SocialPost): SocialPostWithData {
     frontmatter: parsed.metadata,
     body: parsed.content,
   });
-}
-
-/**
- * Resolve cover image for a single post
- * Fetches the image entity and returns its data URL
- */
-async function resolvePostCoverImage<T extends SocialPostWithData>(
-  post: T,
-  entityService: IEntityService,
-): Promise<T & Partial<EnrichedSocialPost>> {
-  const coverImageId = post.frontmatter.coverImageId;
-  if (!coverImageId) {
-    return post;
-  }
-
-  // Image entities store the data URL in their content field
-  const image = await entityService.getEntity("image", coverImageId);
-  if (!image) {
-    return post;
-  }
-
-  return {
-    ...post,
-    coverImageUrl: image.content,
-  };
-}
-
-/**
- * Resolve cover images for multiple posts
- */
-async function resolvePostsCoverImages<T extends SocialPostWithData>(
-  posts: T[],
-  entityService: IEntityService,
-): Promise<(T & Partial<EnrichedSocialPost>)[]> {
-  return Promise.all(
-    posts.map((post) => resolvePostCoverImage(post, entityService)),
-  );
 }
 
 /**
@@ -155,10 +117,7 @@ export class SocialPostDataSource implements DataSource {
     );
 
     const entity = entities[0];
-    let post = entity ? parsePostData(entity) : null;
-    if (post) {
-      post = await resolvePostCoverImage(post, entityService);
-    }
+    const post = entity ? parsePostData(entity) : null;
 
     return outputSchema.parse({ post });
   }
@@ -184,8 +143,7 @@ export class SocialPostDataSource implements DataSource {
       throw new Error(`Social post not found with slug: ${slug}`);
     }
 
-    let post = parsePostData(entity);
-    post = await resolvePostCoverImage(post, entityService);
+    const post = parsePostData(entity);
     return outputSchema.parse({ post });
   }
 
@@ -234,8 +192,7 @@ export class SocialPostDataSource implements DataSource {
       pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
     }
 
-    const parsedPosts = entities.map(parsePostData);
-    const posts = await resolvePostsCoverImages(parsedPosts, entityService);
+    const posts = entities.map(parsePostData);
 
     return outputSchema.parse({
       posts,

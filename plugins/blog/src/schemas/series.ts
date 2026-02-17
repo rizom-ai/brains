@@ -42,11 +42,9 @@ export type SeriesWithData = z.infer<typeof seriesWithDataSchema>;
 
 /**
  * Series list item schema (for templates)
- * Includes resolved coverImageUrl from coverImageId
+ * Extends SeriesWithData with computed fields from datasource
  */
-export const seriesListItemSchema = z.object({
-  title: z.string(),
-  slug: z.string(),
+export const seriesListItemSchema = seriesWithDataSchema.extend({
   description: z.string().optional(),
   postCount: z.number(),
   coverImageUrl: z.string().optional(),

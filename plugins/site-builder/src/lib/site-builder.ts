@@ -40,11 +40,14 @@ const entityWithSlugSchema = baseEntitySchema.extend({
 });
 
 // Type for enriched entity with url, typeLabel, listUrl, and listLabel
-type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
+export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
   url: string;
   typeLabel: string;
   listUrl: string;
   listLabel: string;
+  coverImageUrl?: string;
+  coverImageWidth?: number;
+  coverImageHeight?: number;
 };
 
 export class SiteBuilder implements ISiteBuilder {
@@ -476,20 +479,24 @@ export class SiteBuilder implements ISiteBuilder {
         const listLabel =
           pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
 
-        // Resolve cover image URL if entity has coverImageId in frontmatter
-        const coverImageUrl = await resolveEntityCoverImage(
+        // Resolve cover image with dimensions if entity has coverImageId in frontmatter
+        const coverImage = await resolveEntityCoverImage(
           entity,
           this.context.entityService,
         );
 
-        const enrichedEntity: EnrichedEntity & { coverImageUrl?: string } = {
+        const enrichedEntity: EnrichedEntity = {
           ...enriched,
           ...entity,
           url: generateEntityUrl(entityType, slug),
           typeLabel,
           listUrl,
           listLabel,
-          ...(coverImageUrl && { coverImageUrl }),
+          ...(coverImage && {
+            coverImageUrl: coverImage.url,
+            coverImageWidth: coverImage.width,
+            coverImageHeight: coverImage.height,
+          }),
         };
 
         return enrichedEntity;

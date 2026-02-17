@@ -422,7 +422,7 @@ describe("AIService", () => {
         );
       });
 
-      it("should map 16:9 to 1792x1024", async () => {
+      it("should map 16:9 to 1536x1024", async () => {
         const service = AIService.createFresh(
           { openaiApiKey: "sk-test" },
           logger,
@@ -432,12 +432,12 @@ describe("AIService", () => {
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            size: "1792x1024",
+            size: "1536x1024",
           }),
         );
       });
 
-      it("should map 9:16 to 1024x1792", async () => {
+      it("should map 9:16 to 1024x1536", async () => {
         const service = AIService.createFresh(
           { openaiApiKey: "sk-test" },
           logger,
@@ -447,12 +447,12 @@ describe("AIService", () => {
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            size: "1024x1792",
+            size: "1024x1536",
           }),
         );
       });
 
-      it("should default to 16:9 (1792x1024) when no aspectRatio given", async () => {
+      it("should default to 16:9 (1536x1024) when no aspectRatio given", async () => {
         const service = AIService.createFresh(
           { openaiApiKey: "sk-test" },
           logger,
@@ -462,7 +462,7 @@ describe("AIService", () => {
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            size: "1792x1024",
+            size: "1536x1024",
           }),
         );
       });
@@ -537,7 +537,7 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockOpenAIImage).toHaveBeenCalledWith("dall-e-3");
+        expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
       });
 
       it("should auto-detect Google when only googleApiKey is set", async () => {
@@ -559,7 +559,7 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset");
 
-        expect(mockOpenAIImage).toHaveBeenCalledWith("dall-e-3");
+        expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
       });
 
       it("should use Nano Banana Pro when googleImageModel is set", async () => {

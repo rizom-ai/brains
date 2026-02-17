@@ -96,11 +96,15 @@ slug: ${slug}
 
       const schema = z.object({
         series: z.array(
-          z.object({
-            title: z.string(),
-            slug: z.string(),
-            postCount: z.number(),
-          }),
+          z
+            .object({
+              frontmatter: z.object({
+                title: z.string(),
+                slug: z.string(),
+              }),
+              postCount: z.number(),
+            })
+            .passthrough(),
         ),
       });
 
@@ -111,16 +115,20 @@ slug: ${slug}
       );
 
       expect(result.series).toHaveLength(2);
-      expect(result.series).toContainEqual({
-        title: "New Institutions",
-        slug: "new-institutions",
-        postCount: 2,
-      });
-      expect(result.series).toContainEqual({
-        title: "Other Series",
-        slug: "other-series",
-        postCount: 1,
-      });
+
+      const ni = result.series.find(
+        (s) => s.frontmatter.title === "New Institutions",
+      );
+      expect(ni).toBeDefined();
+      expect(ni?.frontmatter.slug).toBe("new-institutions");
+      expect(ni?.postCount).toBe(2);
+
+      const os = result.series.find(
+        (s) => s.frontmatter.title === "Other Series",
+      );
+      expect(os).toBeDefined();
+      expect(os?.frontmatter.slug).toBe("other-series");
+      expect(os?.postCount).toBe(1);
     });
 
     it("should return empty array when no series exist", async () => {
@@ -131,11 +139,15 @@ slug: ${slug}
 
       const schema = z.object({
         series: z.array(
-          z.object({
-            title: z.string(),
-            slug: z.string(),
-            postCount: z.number(),
-          }),
+          z
+            .object({
+              frontmatter: z.object({
+                title: z.string(),
+                slug: z.string(),
+              }),
+              postCount: z.number(),
+            })
+            .passthrough(),
         ),
       });
 
@@ -151,17 +163,25 @@ slug: ${slug}
 
   describe("fetchSeriesDetail", () => {
     it("should return posts for a specific series", async () => {
+      const seriesEntity = createMockSeries(
+        "New Institutions",
+        "new-institutions",
+      );
       const posts = [
         createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
         createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
       ];
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
+      const listSpy = spyOn(mockEntityService, "listEntities");
+      listSpy.mockResolvedValueOnce([seriesEntity]); // series lookup
+      listSpy.mockResolvedValueOnce(posts); // posts lookup
 
-      const schema = z.object({
-        seriesName: z.string(),
-        posts: z.array(z.object({ id: z.string() })),
-      });
+      const schema = z
+        .object({
+          seriesName: z.string(),
+          posts: z.array(z.object({ id: z.string() })),
+        })
+        .passthrough();
 
       const result = await datasource.fetch(
         { type: "detail", seriesName: "New Institutions" },
@@ -196,11 +216,15 @@ slug: ${slug}
 
       const schema = z.object({
         series: z.array(
-          z.object({
-            title: z.string(),
-            slug: z.string(),
-            postCount: z.number(),
-          }),
+          z
+            .object({
+              frontmatter: z.object({
+                title: z.string(),
+                slug: z.string(),
+              }),
+              postCount: z.number(),
+            })
+            .passthrough(),
         ),
       });
 
@@ -212,11 +236,12 @@ slug: ${slug}
       );
 
       expect(result.series).toHaveLength(2);
-      expect(result.series).toContainEqual({
-        title: "New Institutions",
-        slug: "new-institutions",
-        postCount: 2,
-      });
+      const ni = result.series.find(
+        (s) => s.frontmatter.title === "New Institutions",
+      );
+      expect(ni).toBeDefined();
+      expect(ni?.frontmatter.slug).toBe("new-institutions");
+      expect(ni?.postCount).toBe(2);
     });
 
     it("should handle detail query with entityType format using id as slug", async () => {
@@ -234,10 +259,12 @@ slug: ${slug}
       // Second call returns posts for that series
       listSpy.mockResolvedValueOnce(posts);
 
-      const schema = z.object({
-        seriesName: z.string(),
-        posts: z.array(z.object({ id: z.string() })),
-      });
+      const schema = z
+        .object({
+          seriesName: z.string(),
+          posts: z.array(z.object({ id: z.string() })),
+        })
+        .passthrough();
 
       // DynamicRouteGenerator query format for detail (id = slug)
       const result = await datasource.fetch(
@@ -273,11 +300,15 @@ slug: ${slug}
 
       const schema = z.object({
         series: z.array(
-          z.object({
-            title: z.string(),
-            slug: z.string(),
-            postCount: z.number(),
-          }),
+          z
+            .object({
+              frontmatter: z.object({
+                title: z.string(),
+                slug: z.string(),
+              }),
+              postCount: z.number(),
+            })
+            .passthrough(),
         ),
       });
 
