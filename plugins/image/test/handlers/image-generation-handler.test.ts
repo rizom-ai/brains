@@ -76,19 +76,17 @@ describe("ImageGenerationJobHandler", () => {
       expect(result?.title).toBe("Sunset Image");
     });
 
-    it("should validate job data with optional size and style", () => {
+    it("should validate job data with optional aspectRatio", () => {
       const validData = {
         prompt: "A beautiful sunset",
         title: "Sunset",
-        size: "1024x1024",
-        style: "natural",
+        aspectRatio: "1:1",
       };
 
       const result = handler.validateAndParse(validData);
 
       expect(result).not.toBeNull();
-      expect(result?.size).toBe("1024x1024");
-      expect(result?.style).toBe("natural");
+      expect(result?.aspectRatio).toBe("1:1");
     });
 
     it("should validate job data with target entity info", () => {
@@ -126,23 +124,11 @@ describe("ImageGenerationJobHandler", () => {
       expect(result).toBeNull();
     });
 
-    it("should reject invalid size", () => {
+    it("should reject invalid aspectRatio", () => {
       const invalidData = {
         prompt: "A beautiful sunset",
         title: "Sunset",
-        size: "invalid-size",
-      };
-
-      const result = handler.validateAndParse(invalidData);
-
-      expect(result).toBeNull();
-    });
-
-    it("should reject invalid style", () => {
-      const invalidData = {
-        prompt: "A beautiful sunset",
-        title: "Sunset",
-        style: "invalid-style",
+        aspectRatio: "invalid-ratio",
       };
 
       const result = handler.validateAndParse(invalidData);
@@ -231,17 +217,16 @@ describe("ImageGenerationJobHandler", () => {
       expect(regenContext.entityService.createEntity).toHaveBeenCalled();
     });
 
-    it("should pass size and style options to AI service", async () => {
+    it("should pass aspectRatio option to AI service", async () => {
       const jobData = createValidJobData({
-        size: "1024x1024",
-        style: "natural",
+        aspectRatio: "1:1",
       });
 
       await handler.process(jobData, "job-123", progressReporter);
 
       expect(context.ai.generateImage).toHaveBeenCalledWith(
         "A beautiful sunset over mountains",
-        { size: "1024x1024", style: "natural" },
+        { aspectRatio: "1:1" },
       );
     });
 

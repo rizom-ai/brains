@@ -146,7 +146,7 @@ describe("Image Tools", () => {
 
       expect(tool).toBeDefined();
       expect(tool?.description).toContain("Generate");
-      expect(tool?.description).toContain("DALL-E");
+      expect(tool?.description).toContain("image");
     });
 
     it("should queue job when API is available", async () => {
@@ -211,7 +211,7 @@ describe("Image Tools", () => {
       }
     });
 
-    it("should pass size and style options to job", async () => {
+    it("should pass aspectRatio option to job", async () => {
       const plugin = createMockImagePlugin({
         canGenerateImages: true,
       });
@@ -228,8 +228,7 @@ describe("Image Tools", () => {
         {
           prompt: "A test image",
           title: "Test",
-          size: "1024x1024",
-          style: "natural",
+          aspectRatio: "1:1",
         },
         mockToolContext,
       );
@@ -237,8 +236,7 @@ describe("Image Tools", () => {
       expect(context.jobs.enqueue).toHaveBeenCalledWith(
         "image-generate",
         expect.objectContaining({
-          size: "1024x1024",
-          style: "natural",
+          aspectRatio: "1:1",
         }),
         mockToolContext,
         expect.any(Object),

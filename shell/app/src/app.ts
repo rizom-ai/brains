@@ -69,11 +69,23 @@ export class App {
       // Set feature flags (none currently)
       shellConfig.features = {};
 
-      if (this.config.aiApiKey) {
+      if (
+        this.config.aiApiKey ||
+        this.config.openaiApiKey ||
+        this.config.googleApiKey
+      ) {
         shellConfig.ai = {
-          apiKey: this.config.aiApiKey,
-          provider: "anthropic",
-          // model defaults to AIService.DEFAULT_MODEL (claude-haiku-4-5-20251001)
+          ...shellConfig.ai,
+          ...(this.config.aiApiKey && {
+            apiKey: this.config.aiApiKey,
+            provider: "anthropic" as const,
+          }),
+          ...(this.config.openaiApiKey && {
+            openaiApiKey: this.config.openaiApiKey,
+          }),
+          ...(this.config.googleApiKey && {
+            googleApiKey: this.config.googleApiKey,
+          }),
         };
       }
 

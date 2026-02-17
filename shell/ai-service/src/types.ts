@@ -2,6 +2,18 @@ import type { z } from "@brains/utils";
 import type { LanguageModel } from "ai";
 
 /**
+ * Image provider for generation
+ */
+export type ImageProvider = "openai" | "google";
+
+/**
+ * Google image model for generation
+ */
+export type GoogleImageModel =
+  | "gemini-2.5-flash-image"
+  | "gemini-3-pro-image-preview";
+
+/**
  * AI model configuration
  */
 export interface AIModelConfig {
@@ -12,6 +24,12 @@ export interface AIModelConfig {
   webSearch?: boolean;
   /** OpenAI API key for image generation */
   openaiApiKey?: string | undefined;
+  /** Google Generative AI API key for image generation */
+  googleApiKey?: string | undefined;
+  /** Default image provider (auto-detected from available keys if not set) */
+  defaultImageProvider?: ImageProvider;
+  /** Google image model: "gemini-3-pro-image-preview" (default) or "gemini-2.5-flash-image" (free) */
+  googleImageModel?: GoogleImageModel;
 }
 
 /**
@@ -50,7 +68,7 @@ export interface IAIService {
   getModel(): LanguageModel;
 
   /**
-   * Generate an image from a text prompt using DALL-E 3
+   * Generate an image from a text prompt
    */
   generateImage(
     prompt: string,
@@ -58,19 +76,22 @@ export interface IAIService {
   ): Promise<ImageGenerationResult>;
 
   /**
-   * Check if image generation is available (OpenAI API key configured)
+   * Check if image generation is available (OpenAI or Google API key configured)
    */
   canGenerateImages(): boolean;
 }
 
 /**
+ * Aspect ratio for image generation
+ */
+export type AspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+/**
  * Options for image generation
  */
 export interface ImageGenerationOptions {
-  /** Image size - DALL-E 3 only supports these three sizes (default: landscape 1792x1024) */
-  size?: "1024x1024" | "1792x1024" | "1024x1792";
-  /** Style: vivid (hyper-real, dramatic) or natural (less hyper-real) */
-  style?: "vivid" | "natural";
+  /** Aspect ratio for the generated image (default: "16:9") */
+  aspectRatio?: AspectRatio;
 }
 
 /**

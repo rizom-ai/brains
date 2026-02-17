@@ -15,6 +15,8 @@ export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 export type {
   AIModelConfig,
   IAIService,
+  ImageProvider,
+  AspectRatio,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";

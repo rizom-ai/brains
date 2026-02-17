@@ -80,12 +80,7 @@ export interface IImagePlugin {
  */
 export interface ImageConfig {
   /**
-   * Default style for generated images
+   * Default aspect ratio for generated images
    */
-  defaultStyle: "vivid" | "natural";
-
-  /**
-   * Default size for generated images
-   */
-  defaultSize: "1024x1024" | "1792x1024" | "1024x1792";
+  defaultAspectRatio: "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 }

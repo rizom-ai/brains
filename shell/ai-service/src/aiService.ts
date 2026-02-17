@@ -1,16 +1,15 @@
-import {
-  generateText,
-  generateObject,
-  experimental_generateImage as generateImage,
-} from "ai";
+import { generateText, generateObject, generateImage } from "ai";
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type {
   AIModelConfig,
   IAIService,
+  ImageProvider,
+  AspectRatio,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
@@ -29,6 +28,8 @@ export class AIService implements IAIService {
   private logger: Logger;
   private anthropicProvider;
   private openaiProvider: ReturnType<typeof createOpenAI> | null = null;
+  private googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null =
+    null;
 
   /**
    * Get the singleton instance
@@ -73,6 +74,13 @@ export class AIService implements IAIService {
     // Create OpenAI provider for image generation if key provided
     if (config.openaiApiKey) {
       this.openaiProvider = createOpenAI({ apiKey: config.openaiApiKey });
+    }
+
+    // Create Google provider for image generation if key provided
+    if (config.googleApiKey) {
+      this.googleProvider = createGoogleGenerativeAI({
+        apiKey: config.googleApiKey,
+      });
     }
   }
 
@@ -167,6 +175,9 @@ export class AIService implements IAIService {
         ...(this.config.webSearch && {
           webSearch: true,
         }),
+        providerOptions: {
+          anthropic: { structuredOutputMode: "jsonTool" },
+        },
       });
 
       return {
@@ -204,40 +215,53 @@ export class AIService implements IAIService {
    * Check if image generation is available
    */
   public canGenerateImages(): boolean {
-    return this.openaiProvider !== null;
+    return this.openaiProvider !== null || this.googleProvider !== null;
   }
 
   /**
-   * Generate an image from a text prompt using DALL-E 3
+   * Get the active image provider based on config or auto-detection.
+   * Prefers Google when both providers are available (better text rendering).
+   */
+  private get imageProvider(): ImageProvider | null {
+    if (this.config.defaultImageProvider) {
+      const preferred = this.config.defaultImageProvider;
+      if (preferred === "google" && this.googleProvider) return "google";
+      if (preferred === "openai" && this.openaiProvider) return "openai";
+    }
+    // Auto-detect: prefer OpenAI until Google provider issues are resolved
+    if (this.openaiProvider) return "openai";
+    if (this.googleProvider) return "google";
+    return null;
+  }
+
+  /**
+   * Generate an image from a text prompt
    */
   public async generateImage(
     prompt: string,
     options?: ImageGenerationOptions,
   ): Promise<ImageGenerationResult> {
-    if (!this.openaiProvider) {
-      throw new Error(
-        "Image generation not available: OPENAI_API_KEY not configured",
-      );
+    const provider = this.imageProvider;
+    if (!provider) {
+      throw new Error("Image generation not available: no API key configured");
     }
 
-    this.logger.debug("Generating image", { prompt: prompt.slice(0, 100) });
+    this.logger.debug("Generating image", {
+      prompt: prompt.slice(0, 100),
+      provider,
+    });
 
     try {
-      const result = await generateImage({
-        model: this.openaiProvider.image("dall-e-3"),
-        prompt,
-        size: options?.size ?? "1792x1024", // Landscape default for cover images
-        providerOptions: {
-          openai: {
-            style: options?.style ?? "vivid",
-          },
-        },
-      });
+      const aspectRatio: AspectRatio = options?.aspectRatio ?? "16:9";
+      const result =
+        provider === "google"
+          ? await this.generateImageWithGoogle(prompt, aspectRatio)
+          : await this.generateImageWithOpenAI(prompt, aspectRatio);
 
       const base64 = result.image.base64;
       const dataUrl = `data:image/png;base64,${base64}`;
 
-      this.logger.debug("Image generated successfully");
+      this.logger.debug("Image generated successfully", { provider });
 
       return { base64, dataUrl };
     } catch (error) {
@@ -245,4 +269,51 @@ export class AIService implements IAIService {
       throw new Error("Image generation failed");
     }
   }
+
+  private async generateImageWithOpenAI(
+    prompt: string,
+    aspectRatio: AspectRatio,
+  ): Promise<{ image: { base64: string } }> {
+    if (!this.openaiProvider) {
+      throw new Error("OpenAI provider not configured");
+    }
+    return generateImage({
+      model: this.openaiProvider.image("dall-e-3"),
+      prompt,
+      size: ASPECT_RATIO_TO_DALLE_SIZE[aspectRatio],
+      providerOptions: {
+        openai: { style: "vivid" },
+      },
+    });
+  }
+
+  private async generateImageWithGoogle(
+    prompt: string,
+    aspectRatio: AspectRatio,
+  ): Promise<{ image: { base64: string } }> {
+    if (!this.googleProvider) {
+      throw new Error("Google provider not configured");
+    }
+    return generateImage({
+      model: this.googleProvider.image(
+        this.config.googleImageModel ?? "gemini-3-pro-image-preview",
+      ),
+      prompt,
+      aspectRatio,
+    });
+  }
 }
+
+/**
+ * Mapping from aspect ratio to DALL-E 3 pixel sizes
+ */
+const ASPECT_RATIO_TO_DALLE_SIZE: Record<
+  AspectRatio,
+  "1024x1024" | "1792x1024" | "1024x1792"
+> = {
+  "1:1": "1024x1024",
+  "16:9": "1792x1024",
+  "9:16": "1024x1792",
+  "4:3": "1792x1024",
+  "3:4": "1024x1792",
+};

@@ -14,6 +14,10 @@ import { z } from "@brains/utils";
 import * as ai from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";
 
+// Valid 1x1 PNG image as base64
+const VALID_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 // Mock the ai SDK modules
 void mock.module("ai", () => ({
   generateText: mock(() =>
@@ -36,6 +40,11 @@ void mock.module("ai", () => ({
       },
     }),
   ),
+  generateImage: mock(() =>
+    Promise.resolve({
+      image: { base64: VALID_PNG_BASE64 },
+    }),
+  ),
 }));
 
 void mock.module("@ai-sdk/anthropic", () => ({
@@ -43,10 +52,25 @@ void mock.module("@ai-sdk/anthropic", () => ({
   createAnthropic: mock(() => mock(() => "mock-model-with-key")),
 }));
 
+const mockOpenAIImage = mock(() => "mock-openai-image-model");
+void mock.module("@ai-sdk/openai", () => ({
+  createOpenAI: mock(() => ({
+    image: mockOpenAIImage,
+  })),
+}));
+
+const mockGoogleImage = mock(() => "mock-google-image-model");
+void mock.module("@ai-sdk/google", () => ({
+  createGoogleGenerativeAI: mock(() => ({
+    image: mockGoogleImage,
+  })),
+}));
+
 describe("AIService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
   let generateTextSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let generateObjectSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
+  let generateImageSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     AIService.resetInstance();
@@ -61,10 +85,15 @@ describe("AIService", () => {
       ai,
       "generateObject",
     ) as unknown as typeof generateObjectSpy;
+    generateImageSpy = spyOn(
+      ai,
+      "generateImage",
+    ) as unknown as typeof generateImageSpy;
 
     // Reset mocks
     generateTextSpy.mockClear();
     generateObjectSpy.mockClear();
+    generateImageSpy.mockClear();
   });
 
   afterEach(() => {
@@ -257,6 +286,9 @@ describe("AIService", () => {
         temperature: 0.7,
         maxTokens: 1000,
         webSearch: true,
+        providerOptions: {
+          anthropic: { structuredOutputMode: "jsonTool" },
+        },
       });
     });
 
@@ -325,6 +357,251 @@ describe("AIService", () => {
       void expect(service.generateText("System", "User")).rejects.toThrow(
         "AI text generation failed",
       );
+    });
+  });
+
+  describe("Image Generation", () => {
+    describe("canGenerateImages", () => {
+      it("should return false when no image provider keys are set", () => {
+        const service = AIService.createFresh({}, logger);
+        expect(service.canGenerateImages()).toBe(false);
+      });
+
+      it("should return true when openaiApiKey is set", () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+        expect(service.canGenerateImages()).toBe(true);
+      });
+
+      it("should return true when googleApiKey is set", () => {
+        const service = AIService.createFresh(
+          { googleApiKey: "goog-test" },
+          logger,
+        );
+        expect(service.canGenerateImages()).toBe(true);
+      });
+
+      it("should return true when both keys are set", () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test", googleApiKey: "goog-test" },
+          logger,
+        );
+        expect(service.canGenerateImages()).toBe(true);
+      });
+    });
+
+    describe("generateImage with OpenAI", () => {
+      it("should generate image with default options", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        const result = await service.generateImage("A sunset");
+
+        expect(result.base64).toBe(VALID_PNG_BASE64);
+        expect(result.dataUrl).toBe(
+          `data:image/png;base64,${VALID_PNG_BASE64}`,
+        );
+      });
+
+      it("should map aspectRatio to DALL-E size for OpenAI provider", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset", { aspectRatio: "1:1" });
+
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            size: "1024x1024",
+          }),
+        );
+      });
+
+      it("should map 16:9 to 1792x1024", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset", { aspectRatio: "16:9" });
+
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            size: "1792x1024",
+          }),
+        );
+      });
+
+      it("should map 9:16 to 1024x1792", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset", { aspectRatio: "9:16" });
+
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            size: "1024x1792",
+          }),
+        );
+      });
+
+      it("should default to 16:9 (1792x1024) when no aspectRatio given", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset");
+
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            size: "1792x1024",
+          }),
+        );
+      });
+    });
+
+    describe("generateImage with Google", () => {
+      it("should use Google provider when only googleApiKey is set", async () => {
+        const service = AIService.createFresh(
+          { googleApiKey: "goog-test" },
+          logger,
+        );
+
+        const result = await service.generateImage("A sunset");
+
+        expect(result.base64).toBe(VALID_PNG_BASE64);
+        expect(mockGoogleImage).toHaveBeenCalledWith(
+          "gemini-3-pro-image-preview",
+        );
+      });
+
+      it("should pass aspectRatio directly to Google provider", async () => {
+        const service = AIService.createFresh(
+          { googleApiKey: "goog-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset", { aspectRatio: "16:9" });
+
+        expect(generateImageSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            aspectRatio: "16:9",
+          }),
+        );
+      });
+
+      it("should not pass size to Google provider", async () => {
+        const service = AIService.createFresh(
+          { googleApiKey: "goog-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset", { aspectRatio: "1:1" });
+
+        const call = generateImageSpy.mock.calls[0]?.[0] as
+          | Record<string, unknown>
+          | undefined;
+        expect(call?.size).toBeUndefined();
+      });
+    });
+
+    describe("provider selection", () => {
+      it("should use defaultImageProvider when set", async () => {
+        const service = AIService.createFresh(
+          {
+            openaiApiKey: "sk-test",
+            googleApiKey: "goog-test",
+            defaultImageProvider: "google",
+          },
+          logger,
+        );
+
+        await service.generateImage("A sunset");
+
+        expect(mockGoogleImage).toHaveBeenCalled();
+      });
+
+      it("should auto-detect OpenAI when only openaiApiKey is set", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset");
+
+        expect(mockOpenAIImage).toHaveBeenCalledWith("dall-e-3");
+      });
+
+      it("should auto-detect Google when only googleApiKey is set", async () => {
+        const service = AIService.createFresh(
+          { googleApiKey: "goog-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset");
+
+        expect(mockGoogleImage).toHaveBeenCalled();
+      });
+
+      it("should prefer OpenAI when both keys are set and no default", async () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test", googleApiKey: "goog-test" },
+          logger,
+        );
+
+        await service.generateImage("A sunset");
+
+        expect(mockOpenAIImage).toHaveBeenCalledWith("dall-e-3");
+      });
+
+      it("should use Nano Banana Pro when googleImageModel is set", async () => {
+        const service = AIService.createFresh(
+          {
+            googleApiKey: "goog-test",
+            googleImageModel: "gemini-3-pro-image-preview",
+          },
+          logger,
+        );
+
+        await service.generateImage("A sunset");
+
+        expect(mockGoogleImage).toHaveBeenCalledWith(
+          "gemini-3-pro-image-preview",
+        );
+      });
+    });
+
+    describe("error handling", () => {
+      it("should throw when no image provider is available", () => {
+        const service = AIService.createFresh({}, logger);
+
+        void expect(service.generateImage("A sunset")).rejects.toThrow(
+          "Image generation not available",
+        );
+      });
+
+      it("should handle generation API errors", () => {
+        const service = AIService.createFresh(
+          { openaiApiKey: "sk-test" },
+          logger,
+        );
+
+        generateImageSpy.mockRejectedValueOnce(
+          new Error("Rate limit exceeded"),
+        );
+
+        void expect(service.generateImage("A sunset")).rejects.toThrow(
+          "Image generation failed",
+        );
+      });
     });
   });
 });

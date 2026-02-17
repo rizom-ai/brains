@@ -281,7 +281,7 @@ ${sourceEntity.content}`,
           {
             prompt: `Social media graphic for: ${title}`,
             title: `${title} Image`,
-            size: "1792x1024", // Landscape for social
+            aspectRatio: "16:9",
             targetEntityType: "social-post",
             targetEntityId: result.entityId,
           },

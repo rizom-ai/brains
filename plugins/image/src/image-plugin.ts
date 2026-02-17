@@ -18,14 +18,10 @@ import packageJson from "../package.json";
  * Schema for image plugin configuration
  */
 const imageConfigSchema = z.object({
-  defaultStyle: z
-    .enum(["vivid", "natural"])
-    .default("vivid")
-    .describe("Default style for generated images"),
-  defaultSize: z
-    .enum(["1024x1024", "1792x1024", "1024x1792"])
-    .default("1792x1024")
-    .describe("Default size for generated images"),
+  defaultAspectRatio: z
+    .enum(["1:1", "16:9", "9:16", "4:3", "3:4"])
+    .default("16:9")
+    .describe("Default aspect ratio for generated images"),
 });
 
 /**
@@ -34,7 +30,7 @@ const imageConfigSchema = z.object({
  * This plugin provides tools for:
  * - Uploading images from URLs or data URLs
  * - Retrieving and listing images
- * - Generating images with DALL-E 3
+ * - Generating images with AI (DALL-E 3 or Gemini)
  * - Setting cover images on entities
  */
 export class ImagePlugin

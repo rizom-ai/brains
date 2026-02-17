@@ -19,10 +19,8 @@ export const imageGenerationJobDataSchema = z.object({
   prompt: z.string(),
   /** Title for the generated image (used to generate ID) */
   title: z.string(),
-  /** Image size */
-  size: z.enum(["1024x1024", "1792x1024", "1024x1792"]).optional(),
-  /** Image style */
-  style: z.enum(["vivid", "natural"]).optional(),
+  /** Aspect ratio for the generated image */
+  aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
   /** Target entity type to update with coverImageId (optional) */
   targetEntityType: z.string().optional(),
   /** Target entity ID to update with coverImageId (required if targetEntityType is set) */
@@ -42,7 +40,7 @@ interface ImageGenerationResult {
 /**
  * Job handler for AI image generation
  *
- * This runs asynchronously so tool calls aren't blocked by DALL-E API latency.
+ * This runs asynchronously so tool calls aren't blocked by image API latency.
  * The handler:
  * 1. Checks if image generation is available
  * 2. Generates image via AI service
@@ -69,7 +67,7 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<ImageGenerationResult> {
-    const { prompt, title, size, style, targetEntityType, targetEntityId } =
+    const { prompt, title, aspectRatio, targetEntityType, targetEntityId } =
       data;
 
     this.logger.debug("Starting image generation job", {
@@ -87,23 +85,20 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
       // Step 1: Check if image generation is available
       if (!this.context.ai.canGenerateImages()) {
         return JobResult.failure(
-          new Error(
-            "Image generation not available: OPENAI_API_KEY not configured",
-          ),
+          new Error("Image generation not available: no API key configured"),
         );
       }
 
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.PROCESS,
-        message: "Generating image with DALL-E",
+        message: "Generating image",
       });
 
       // Step 2: Generate image
       let generationResult;
       try {
         generationResult = await this.context.ai.generateImage(prompt, {
-          ...(size && { size }),
-          ...(style && { style }),
+          ...(aspectRatio && { aspectRatio }),
         });
       } catch (error) {
         this.logger.error("Image generation failed", {
@@ -202,8 +197,7 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
     return {
       title: data.title,
       promptLength: data.prompt.length,
-      size: data.size,
-      style: data.style,
+      aspectRatio: data.aspectRatio,
       targetEntityType: data.targetEntityType,
       targetEntityId: data.targetEntityId,
     };

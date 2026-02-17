@@ -63,6 +63,8 @@ const config = defineConfig({
   name: "professional-brain",
   version: "0.1.0",
   aiApiKey: process.env["ANTHROPIC_API_KEY"],
+  openaiApiKey: process.env["OPENAI_API_KEY"],
+  googleApiKey: process.env["GOOGLE_GENERATIVE_AI_API_KEY"],
 
   // Deployment configuration (most values use sensible defaults)
   deployment: {

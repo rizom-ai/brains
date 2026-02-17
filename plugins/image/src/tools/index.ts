@@ -142,14 +142,12 @@ const generateInputSchema = z.object({
     .describe(
       "Title for the generated image (used as ID). If not provided, derives from target entity title.",
     ),
-  size: z
-    .enum(["1024x1024", "1792x1024", "1024x1792"])
+  aspectRatio: z
+    .enum(["1:1", "16:9", "9:16", "4:3", "3:4"])
     .optional()
-    .describe("Image size: square, landscape (default), or portrait"),
-  style: z
-    .enum(["vivid", "natural"])
-    .optional()
-    .describe("Style: vivid (dramatic, default) or natural (less hyper-real)"),
+    .describe(
+      "Aspect ratio: 1:1 (square), 16:9 (landscape, default), 9:16 (portrait), 4:3, 3:4",
+    ),
   targetEntityType: z
     .string()
     .optional()
@@ -175,7 +173,7 @@ function createImageGenerateTool(
   return createTool(
     pluginId,
     "generate",
-    "Generate an image using DALL-E 3. IMPORTANT: When generating an image for an existing entity (post, project, etc.), ALWAYS provide targetEntityType and targetEntityId — the image will be auto-attached as cover image and the prompt will be auto-generated from the entity content. Only provide a manual prompt for standalone images.",
+    "Generate an image using AI. IMPORTANT: When generating an image for an existing entity (post, project, etc.), ALWAYS provide targetEntityType and targetEntityId — the image will be auto-attached as cover image and the prompt will be auto-generated from the entity content. Only provide a manual prompt for standalone images.",
     generateInputSchema.shape,
     async (input: unknown, toolContext: ToolContext) => {
       try {
@@ -183,13 +181,12 @@ function createImageGenerateTool(
         if (!plugin.canGenerateImages()) {
           return {
             success: false,
-            error:
-              "Image generation not available: OPENAI_API_KEY not configured",
+            error: "Image generation not available: no API key configured",
           };
         }
 
         const parsed = generateInputSchema.parse(input);
-        const { size, style, targetEntityType, targetEntityId } = parsed;
+        const { aspectRatio, targetEntityType, targetEntityId } = parsed;
         let { prompt, title } = parsed;
 
         // If no prompt provided but target entity specified, auto-generate from entity content
@@ -240,8 +237,7 @@ function createImageGenerateTool(
           {
             prompt: fullPrompt,
             title,
-            ...(size && { size }),
-            ...(style && { style }),
+            ...(aspectRatio && { aspectRatio }),
             ...(targetEntityType && { targetEntityType }),
             ...(targetEntityId && { targetEntityId }),
           },

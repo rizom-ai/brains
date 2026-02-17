@@ -1,4 +1,5 @@
-import type { IAIService, AIModelConfig } from "../src";
+import type { IAIService, AIModelConfig, ImageGenerationResult } from "../src";
+import type { LanguageModel } from "ai";
 import type { z } from "@brains/utils";
 
 /**
@@ -107,6 +108,23 @@ export function createMockAIService(): IAIService {
         temperature: 0.7,
         maxTokens: 1000,
       };
+    },
+
+    getModel: (): LanguageModel => {
+      return "mock-language-model" as unknown as LanguageModel;
+    },
+
+    generateImage: async (): Promise<ImageGenerationResult> => {
+      const base64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+      return {
+        base64,
+        dataUrl: `data:image/png;base64,${base64}`,
+      };
+    },
+
+    canGenerateImages: (): boolean => {
+      return false;
     },
   };
 

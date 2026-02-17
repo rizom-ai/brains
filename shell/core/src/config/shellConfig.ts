@@ -109,6 +109,8 @@ export const shellConfigSchema = z.object({
     webSearch: z.boolean().default(true),
     // OpenAI API key for image generation (optional)
     openaiApiKey: z.string().optional(),
+    // Google Generative AI API key for image generation (optional)
+    googleApiKey: z.string().optional(),
   }),
 
   // Embedding configuration (required - no defaults)
@@ -185,12 +187,13 @@ export function createShellConfig(
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
     ai: {
       provider: "anthropic" as const,
-      apiKey: process.env["ANTHROPIC_API_KEY"] ?? overrides.ai?.apiKey ?? "",
+      apiKey: overrides.ai?.apiKey ?? "",
       model: overrides.ai?.model ?? "claude-haiku-4-5-20251001",
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
       webSearch: overrides.ai?.webSearch ?? true,
-      openaiApiKey: process.env["OPENAI_API_KEY"] ?? overrides.ai?.openaiApiKey,
+      openaiApiKey: overrides.ai?.openaiApiKey,
+      googleApiKey: overrides.ai?.googleApiKey,
     },
     embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {

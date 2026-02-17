@@ -36,21 +36,18 @@ describe("ImagePlugin", () => {
       await plugin.register(mockShell);
 
       const config = plugin.getConfig();
-      expect(config.defaultStyle).toBe("vivid");
-      expect(config.defaultSize).toBe("1792x1024");
+      expect(config.defaultAspectRatio).toBe("16:9");
     });
 
     it("should initialize with custom config", async () => {
       const customPlugin = new ImagePlugin({
-        defaultStyle: "natural",
-        defaultSize: "1024x1024",
+        defaultAspectRatio: "1:1",
       });
 
       await customPlugin.register(mockShell);
 
       const config = customPlugin.getConfig();
-      expect(config.defaultStyle).toBe("natural");
-      expect(config.defaultSize).toBe("1024x1024");
+      expect(config.defaultAspectRatio).toBe("1:1");
     });
   });
 

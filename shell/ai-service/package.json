@@ -11,10 +11,11 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.15",
-    "@ai-sdk/openai": "^3.0.12",
+    "@ai-sdk/anthropic": "^3.0.44",
+    "@ai-sdk/google": "^3.0.29",
+    "@ai-sdk/openai": "^3.0.29",
     "@brains/utils": "workspace:*",
-    "ai": "^6.0.42"
+    "ai": "^6.0.86"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
