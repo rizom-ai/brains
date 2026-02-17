@@ -76,7 +76,7 @@ Last Updated: 2026-02-17
 
 ### Job Monitoring Memory Leak
 
-- [ ] Replace per-job subscriptions with centralized handler in newsletter and social-media plugins
+- [x] Replace per-job subscriptions with centralized handler in newsletter and social-media plugins
 
 ### Sveltia CMS — Git-Based Content Management
 
