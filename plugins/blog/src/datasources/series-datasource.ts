@@ -236,7 +236,11 @@ export class SeriesDataSource implements DataSource {
     return outputSchema.parse({
       seriesName,
       posts: postsWithData,
-      series,
+      series: {
+        ...series,
+        description: body.description,
+        postCount: postsWithData.length,
+      },
       description: body.description,
     });
   }
