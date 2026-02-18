@@ -152,10 +152,15 @@ export class ServerManager {
     // Add middleware
     app.use("/*", etag());
 
-    // No caching for preview
+    // Preview caching: images/fonts cached (immutable), code/HTML revalidates via ETag
     app.use("/*", async (c, next) => {
       await next();
-      c.header("Cache-Control", "no-cache, no-store, must-revalidate");
+      const path = c.req.path;
+      if (path.match(/\.(jpg|jpeg|png|gif|ico|woff|woff2)$/)) {
+        c.header("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        c.header("Cache-Control", "no-cache");
+      }
     });
 
     // Mount API routes before static files
