@@ -25,7 +25,7 @@ export function ProfessionalLayout({
   slots,
 }: ProfessionalLayoutProps): JSX.Element {
   return (
-    <div className="flex flex-col min-h-screen bg-theme">
+    <div className="flex flex-col min-h-screen bg-theme overflow-x-clip">
       <CompactHeader
         title={siteInfo.title}
         navigation={siteInfo.navigation.primary}

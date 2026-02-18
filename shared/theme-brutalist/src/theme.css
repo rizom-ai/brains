@@ -898,11 +898,11 @@
     var(--color-brand) 100%
   );
   background-size: 200% 100%;
+  overflow: clip;
   animation:
     scan-sweep 2s steps(8) infinite,
     bar-glitch 4s steps(1) infinite,
     neon-flicker 6s steps(1) infinite;
-  overflow: visible;
   /* Chromatic aberration — CRT color fringe */
   box-shadow:
     0 -1px 0 rgba(0, 200, 255, 0.3),
@@ -995,7 +995,7 @@ a, button, span {
 /* CTA structural separator — reuses .wave-divider element */
 
 /* 7. Industrial Tags — Terminal badges, not friendly pills */
-[class*="rounded-full"]:not([class*="bg-transparent"]) {
+[class*="rounded-full"]:not([class*="bg-transparent"]):not([class*="bg-green"]):not([class*="bg-red"]):not([class*="bg-blue"]):not([class*="bg-yellow"]):not([class*="bg-gray-1"]) {
   border: 1px solid var(--color-border);
   font-family: var(--font-mono);
   text-transform: uppercase;
