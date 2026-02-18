@@ -49,12 +49,12 @@ export const SocialPostListTemplate = ({
               {posts.map((post) => (
                 <li key={post.id}>
                   <Card href={post.url} variant="horizontal">
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
                       {post.coverImageUrl && (
                         <img
                           src={post.coverImageUrl}
                           alt={post.frontmatter.title}
-                          className="w-24 h-24 object-cover rounded-lg shrink-0"
+                          className="w-full sm:w-24 h-48 sm:h-24 object-cover rounded-lg shrink-0"
                         />
                       )}
                       <div className="flex-1 min-w-0">

@@ -8,7 +8,7 @@ const cardVariants = cva(
     variants: {
       variant: {
         vertical: "flex flex-col p-6",
-        horizontal: "flex items-start gap-4 p-6",
+        horizontal: "flex flex-col sm:flex-row items-start gap-4 p-6",
         compact: "flex flex-col p-4",
       },
     },

@@ -5,8 +5,8 @@ import { cn } from "./lib/utils";
 const cardImageVariants = cva("object-cover rounded-lg", {
   variants: {
     size: {
-      small: "w-32 h-32 flex-shrink-0",
-      medium: "w-48 h-48",
+      small: "w-full sm:w-32 h-48 sm:h-32 flex-shrink-0",
+      medium: "w-full sm:w-48 h-48",
       large: "w-full h-48",
     },
   },
