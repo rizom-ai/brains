@@ -12,10 +12,21 @@ import {
 import { imageAdapter } from "@brains/image";
 
 /**
+ * Schema for AI-distilled image prompt
+ */
+const imagePromptSchema = z.object({
+  imagePrompt: z
+    .string()
+    .describe(
+      "A concise, vivid image prompt capturing the core visual concept",
+    ),
+});
+
+/**
  * Schema for image generation job data
  */
 export const imageGenerationJobDataSchema = z.object({
-  /** Text prompt for image generation */
+  /** Text prompt for image generation (used directly when provided without entityContent) */
   prompt: z.string(),
   /** Title for the generated image (used to generate ID) */
   title: z.string(),
@@ -25,6 +36,10 @@ export const imageGenerationJobDataSchema = z.object({
   targetEntityType: z.string().optional(),
   /** Target entity ID to update with coverImageId (required if targetEntityType is set) */
   targetEntityId: z.string().optional(),
+  /** Entity title for AI prompt distillation (optional) */
+  entityTitle: z.string().optional(),
+  /** Entity content for AI prompt distillation (optional, triggers AI prompt generation) */
+  entityContent: z.string().optional(),
 });
 
 export type ImageGenerationJobData = z.infer<
@@ -89,6 +104,43 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
         );
       }
 
+      // Step 1.5: Distill prompt using AI when entity content is provided
+      let finalPrompt = prompt;
+      if (data.entityContent) {
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.FETCH,
+          message: "Distilling image prompt from content",
+        });
+
+        try {
+          const { object } = await this.context.ai.generateObject(
+            `You are an editorial illustration art director for a design magazine. Given an article, describe WHAT TO DEPICT — not how to render it. The rendering style is already defined separately.
+
+Rules:
+- NEVER depict the topic literally (no laptops for tech, no books for education, no globes for international topics)
+- Find a single strong visual METAPHOR using everyday physical objects in unexpected arrangements
+- Describe ONLY the objects and their spatial relationships — no style, no colors, no lighting, no materials, no rendering instructions
+- Keep it to 1-2 sentences describing the scene
+- Think conceptual, like a New Yorker cover illustration concept
+
+Example good output: "A giant pair of scissors cutting through a tangled ball of red tape, with tiny office workers climbing the loose strands like ropes"
+Example bad output: "A dreamlike crystal formation glowing with ethereal light in soft watercolor tones"
+
+Title: "${data.entityTitle ?? title}"
+
+Content:
+${data.entityContent}`,
+            imagePromptSchema,
+          );
+          finalPrompt = prompt + object.imagePrompt;
+        } catch (error) {
+          this.logger.warn("AI prompt distillation failed, using fallback", {
+            error: error instanceof Error ? error.message : String(error),
+          });
+          // Fall back to using the raw prompt
+        }
+      }
+
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.PROCESS,
         message: "Generating image",
@@ -97,7 +149,7 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
       // Step 2: Generate image
       let generationResult;
       try {
-        generationResult = await this.context.ai.generateImage(prompt, {
+        generationResult = await this.context.ai.generateImage(finalPrompt, {
           ...(aspectRatio && { aspectRatio }),
         });
       } catch (error) {

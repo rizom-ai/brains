@@ -12,9 +12,9 @@ export interface CoverImageProps {
 /**
  * Full-width cover image that renders at its natural aspect ratio.
  *
- * Uses CSS `aspect-ratio` for the correct proportions, `max-h-96`
- * to cap height for square/portrait images, and `object-cover` to
- * crop gracefully when the cap kicks in.
+ * Wrapped in `w-full overflow-hidden` to create a block formatting context
+ * that constrains the image in flex containers (prevents the image's
+ * intrinsic width from bubbling up through the flex min-width chain).
  *
  * For card/list thumbnails, use `CardImage` instead.
  */
@@ -26,12 +26,12 @@ export const CoverImage = ({
   className,
 }: CoverImageProps): JSX.Element => {
   return (
-    <div className={cn("max-h-96 overflow-hidden rounded-lg", className)}>
+    <div className={cn("w-full overflow-hidden", className)}>
       <img
         src={src}
         alt={alt}
         style={{ aspectRatio: `${width}/${height}` }}
-        className="w-full"
+        className="w-full h-auto rounded-lg"
       />
     </div>
   );

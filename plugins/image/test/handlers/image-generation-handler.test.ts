@@ -365,5 +365,67 @@ describe("ImageGenerationJobHandler", () => {
       expect(result.success).toBe(true);
       expect(result.imageId).toBe("my-amazing-blog-post-cover");
     });
+
+    it("should call AI to distill prompt when entityContent is provided", async () => {
+      const distillContext = createMockServicePluginContext({
+        returns: {
+          entityService: {
+            createEntity: { entityId: "test-image", jobId: "job-123" },
+            getEntity: null,
+          },
+          ai: {
+            canGenerateImages: true,
+            generateImage: {
+              base64: VALID_PNG_BASE64,
+              dataUrl: VALID_PNG_DATA_URL,
+            },
+            generateObject: {
+              imagePrompt: "A glowing coral reef floating in amber light",
+            },
+          },
+        },
+      });
+      const distillHandler = new ImageGenerationJobHandler(
+        distillContext,
+        logger,
+      );
+
+      const jobData = createValidJobData({
+        entityTitle: "The Future of Coral Reefs",
+        entityContent:
+          "Coral reefs are among the most biodiverse ecosystems...",
+      });
+
+      const result = await distillHandler.process(
+        jobData,
+        "job-123",
+        createProgressReporter(),
+      );
+
+      expect(result.success).toBe(true);
+      // Should have called generateObject to distill the prompt
+      expect(distillContext.ai.generateObject).toHaveBeenCalled();
+      // The distilled prompt should be used for image generation, not the raw content
+      expect(distillContext.ai.generateImage).toHaveBeenCalledWith(
+        expect.stringContaining("A glowing coral reef floating in amber light"),
+        expect.any(Object),
+      );
+    });
+
+    it("should use prompt directly when entityContent is not provided", async () => {
+      const jobData = createValidJobData({
+        prompt: "A beautiful sunset over mountains",
+      });
+
+      await handler.process(jobData, "job-123", progressReporter);
+
+      // Should NOT call generateObject
+      expect(context.ai.generateObject).not.toHaveBeenCalled();
+      // Should use the prompt directly
+      expect(context.ai.generateImage).toHaveBeenCalledWith(
+        "A beautiful sunset over mountains",
+        expect.any(Object),
+      );
+    });
   });
 });

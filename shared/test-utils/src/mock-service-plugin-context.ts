@@ -23,6 +23,8 @@ export interface MockAIReturns {
   generateImageError?: Error;
   /** Return value for generate */
   generate?: Record<string, unknown>;
+  /** Return value for generateObject (the object field) */
+  generateObject?: unknown;
 }
 
 /**
@@ -142,6 +144,9 @@ export function createMockServicePluginContext(
         );
       }),
       canGenerateImages: mock(() => returns.ai?.canGenerateImages ?? false),
+      generateObject: mock(() =>
+        Promise.resolve({ object: returns.ai?.generateObject ?? {} }),
+      ),
     },
 
     // Identity namespace

@@ -281,6 +281,9 @@ export class AIService implements IAIService {
       model: this.openaiProvider.image("gpt-image-1.5"),
       prompt,
       size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
+      providerOptions: {
+        openai: { quality: "medium" },
+      },
     });
   }
 

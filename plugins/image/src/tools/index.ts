@@ -111,19 +111,15 @@ function buildImageBasePrompt(plugin: IImagePlugin): string {
 
   const brandContext =
     contextParts.length > 0
-      ? `\nBrand context:\n${contextParts.map((p) => `- ${p}`).join("\n")}\n`
+      ? `Brand context: ${contextParts.join(". ")}.\n`
       : "";
 
-  return `Create an illustrative, artistic image.
-
-Style guidelines:
-- Modern, clean aesthetic with bold colors and clear composition
-- Illustrative and conceptual, NOT photorealistic
-- Visually striking with good contrast (works well with text overlays)
-- Abstract or stylized representations of concepts
-- Professional and polished look
-${brandContext}
-Image subject: `;
+  return `${brandContext}Medium: Dense contemporary editorial illustration rendered in clean digital linework with bold filled shapes, halftone dot textures, and screenprint-style color separations. Multiple overlapping visual planes create depth through layering, not perspective. Crisp edges, no gradients within shapes — color is applied in confident opaque blocks with occasional knockout overlaps where two colors intersect to reveal a third.
+Palette: Deep electric indigo (#3921D7), burnt sienna (#E7640A), cadmium vermillion (#DC2626), warm ivory (#FFFCF6), charcoal black (#0E0027). Colors collide at full saturation — no pastels, no safe neutrals. Where indigo overlaps orange, a rich burgundy emerges. Where vermillion meets ivory, a hot coral appears. Every color earns its place.
+Composition: Horror vacui — the frame is packed with interconnected visual elements at wildly different scales. A central metaphorical object anchors the scene while dozens of smaller symbolic elements orbit, overlap, and interlock around it like a visual encyclopedia entry. Diagonal flow breaks any grid. Elements bleed off all four edges suggesting the scene continues beyond the frame.
+Mood: Intellectual maximalism. The density rewards close inspection — every corner contains a deliberate visual surprise. The overall feeling is of a brilliant mind mapping connections between disparate ideas. Playful but rigorous, like a PhD thesis illustrated by a street artist.
+Avoid: Photorealism, photography, oil paint texture, watercolor bleed, visible brushstrokes, flat minimal vector, sparse compositions with negative space, dark fantasy, gothic imagery, medieval elements, sci-fi chrome, glass or crystal materials, lens flare, soft dreamy fog, any text or words or lettering or typography.
+Subject: `;
 }
 
 /**
@@ -188,6 +184,8 @@ function createImageGenerateTool(
         const parsed = generateInputSchema.parse(input);
         const { aspectRatio, targetEntityType, targetEntityId } = parsed;
         let { prompt, title } = parsed;
+        let entityTitle: string | undefined;
+        let entityContent: string | undefined;
 
         // If no prompt provided but target entity specified, auto-generate from entity content
         if (!prompt && targetEntityType && targetEntityId) {
@@ -202,13 +200,14 @@ function createImageGenerateTool(
             };
           }
 
-          // Extract title from metadata if not provided
-          const entityTitle =
+          // Extract title and content for AI prompt distillation in the job handler
+          entityTitle =
             (entity.metadata as { title?: string }).title ?? targetEntityId;
+          entityContent = entity.content;
           title ??= `${entityTitle} Cover Image`;
 
-          // Generate prompt from entity content
-          prompt = `Professional cover image for: "${entityTitle}". Content theme: ${entity.content.slice(0, 500)}`;
+          // Use entity title as fallback prompt subject
+          prompt = entityTitle;
         }
 
         // Validate we have required fields
@@ -240,6 +239,8 @@ function createImageGenerateTool(
             ...(aspectRatio && { aspectRatio }),
             ...(targetEntityType && { targetEntityType }),
             ...(targetEntityId && { targetEntityId }),
+            ...(entityTitle && { entityTitle }),
+            ...(entityContent && { entityContent: entityContent }),
           },
           toolContext,
           {
