@@ -28,6 +28,7 @@ RUN mkdir -p /app/data /app/cache /app/brain-data && \
 # Layer 6: Copy pre-built bundle (changes frequently - last layer)
 COPY dist ./dist
 COPY seed-content ./seed-content
+COPY public ./public
 
 # Layer 7: Create writable directories for site builder output
 RUN mkdir -p /app/dist/site-production /app/dist/site-preview && \

@@ -62,6 +62,13 @@ else
     mkdir -p "$BUILD_DIR/seed-content"
 fi
 
+# Copy public/ directory if it exists (favicon, static assets needed at runtime)
+if [ -d "$APP_DIR/public" ]; then
+    cp -r "$APP_DIR/public" "$BUILD_DIR/"
+else
+    mkdir -p "$BUILD_DIR/public"
+fi
+
 # Copy Dockerfile and package.json
 cp deploy/docker/Dockerfile.prod "$BUILD_DIR/Dockerfile"
 cp deploy/docker/package.prod.json "$BUILD_DIR/package.json"
