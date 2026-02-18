@@ -621,26 +621,4 @@
   .btn-primary:hover { background-color: var(--color-brand-dark); }
   .btn-primary:disabled { opacity: 0.5; }
 
-  /* Pagination controls */
-  .pagination-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-text);
-    border-radius: var(--radius-lg);
-    transition-property: color, background-color, border-color;
-    transition-duration: 150ms;
-  }
-  .pagination-btn:hover {
-    color: var(--color-brand);
-    background-color: var(--color-bg-subtle);
-  }
-  .pagination-btn-active {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--color-brand);
-    background-color: var(--color-bg-subtle);
-    border-radius: var(--radius-lg);
-  }
 }

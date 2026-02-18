@@ -60,6 +60,13 @@ function getPageNumbers(
   return pages;
 }
 
+const btnClass =
+  "px-3 py-2 text-sm font-medium text-theme rounded-lg hover:text-brand hover:bg-theme-subtle transition-colors";
+const btnActiveClass =
+  "px-3 py-2 text-sm font-semibold text-brand bg-theme-subtle rounded-lg";
+const btnDisabledClass =
+  "px-3 py-2 text-sm font-medium text-theme-muted cursor-not-allowed";
+
 /**
  * Pagination component for navigating through pages of content
  */
@@ -87,15 +94,13 @@ export const Pagination = ({
       {hasPrevPage ? (
         <a
           href={getPageUrl(baseUrl, currentPage - 1)}
-          className="pagination-btn"
+          className={btnClass}
           aria-label="Previous page"
         >
           ← Prev
         </a>
       ) : (
-        <span className="px-3 py-2 text-sm font-medium text-theme-muted cursor-not-allowed">
-          ← Prev
-        </span>
+        <span className={btnDisabledClass}>← Prev</span>
       )}
 
       {/* Page numbers */}
@@ -109,19 +114,11 @@ export const Pagination = ({
               …
             </span>
           ) : page === currentPage ? (
-            <span
-              key={page}
-              className="pagination-btn-active"
-              aria-current="page"
-            >
+            <span key={page} className={btnActiveClass} aria-current="page">
               {page}
             </span>
           ) : (
-            <a
-              key={page}
-              href={getPageUrl(baseUrl, page)}
-              className="pagination-btn"
-            >
+            <a key={page} href={getPageUrl(baseUrl, page)} className={btnClass}>
               {page}
             </a>
           ),
@@ -132,15 +129,13 @@ export const Pagination = ({
       {hasNextPage ? (
         <a
           href={getPageUrl(baseUrl, currentPage + 1)}
-          className="pagination-btn"
+          className={btnClass}
           aria-label="Next page"
         >
           Next →
         </a>
       ) : (
-        <span className="px-3 py-2 text-sm font-medium text-theme-muted cursor-not-allowed">
-          Next →
-        </span>
+        <span className={btnDisabledClass}>Next →</span>
       )}
     </nav>
   );
