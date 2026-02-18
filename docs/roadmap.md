@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-02-17
+Last Updated: 2026-02-18
 
 ---
 
@@ -48,41 +48,13 @@ Last Updated: 2026-02-17
 
 ## Phase 1: Post-v1.0 Improvements
 
-### Git Sync — Event-Driven Commit/Push
-
-- [x] Subscribe to entity events (`entity:created`/`updated`/`deleted`) with debounced commit+push (see `docs/plans/git-sync-event-driven.md`)
-- [x] Optimize subprocess count: `getStatus()` 5→2, `pull()` selective import, `sync()` 23→4-10 subprocesses (see `docs/plans/git-sync-subprocess-optimization.md`)
-- [x] Convert to ServicePlugin with async job queue (non-blocking MCP sync tool)
-- [x] Re-enable autoSync (5-minute interval)
-
 ### Discord Interface
 
 - [ ] Implement Discord bot with threads, attachments, and message chunking (see `docs/plans/discord-interface.md`)
 
-### Image Generation — Multi-Provider
+### Sveltia CMS
 
-- [ ] Add Nano Banana Pro (Gemini 3 Pro Image) alongside DALL-E 3 (see `docs/plans/image-multi-provider.md`)
-- [ ] Switch from pixel sizes to aspect ratios (`1:1`, `16:9`, `9:16`, `4:3`, `3:4`)
-- [ ] Global provider config (`defaultImageProvider` in brain.config.ts)
-- [ ] Better text rendering for cover images via Nano Banana Pro's native capabilities
-
-### Frontmatter Schema Normalization
-
-- [x] Normalize deck, project, link adapter schemas to consistent pattern (see `docs/plans/frontmatter-normalization.md`)
-
-### Newsletter Plugin Cleanup
-
-- [x] Frontmatter schema normalization, fix partial entity hack, fix hard-coded entity type, add missing tests (see `docs/plans/newsletter-cleanup.md`)
-
-### Job Monitoring Memory Leak
-
-- [x] Replace per-job subscriptions with centralized handler in newsletter and social-media plugins
-
-### Sveltia CMS — Git-Based Content Management
-
-- [x] Add Sveltia CMS at `/admin/` for web-based editing of all entity types (see `docs/plans/sveltia-cms.md`)
 - [ ] Cloudflare Workers OAuth for multi-user GitHub auth
-- [x] Enable `autoSync` in git-sync for CMS→brain data flow
 
 ---
 
@@ -94,6 +66,17 @@ Last Updated: 2026-02-17
 - Accessibility audit
 
 ---
+
+## Completed (2026-02)
+
+- ✅ Image generation: GPT Image 1.5 + Gemini multi-provider, aspect ratios, AI prompt distillation, editorial illustration style
+- ✅ CoverImage component with aspect-ratio-aware rendering and dimension propagation
+- ✅ Embeddable flag to skip embeddings for image entities
+- ✅ Global image provider config (`defaultImageProvider` with auto-detection)
+- ✅ Git sync: event-driven commit/push, subprocess optimization, ServicePlugin conversion
+- ✅ Sveltia CMS at `/admin/` with autoSync
+- ✅ Frontmatter schema normalization (deck, project, link, newsletter, social post)
+- ✅ Job monitoring memory leak fix (newsletter, social-media)
 
 ## Completed (2025-01)
 
