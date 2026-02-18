@@ -281,6 +281,7 @@ export class ShellInitializer {
         SHELL_ENTITY_TYPES.IMAGE,
         imageSchema,
         imageAdapter,
+        { embeddable: false },
       );
 
       this.logger.debug("Image entity support registered successfully");

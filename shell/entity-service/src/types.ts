@@ -159,6 +159,9 @@ export interface SearchOptions {
 export interface EntityTypeConfig {
   /** Score multiplier for search results (default: 1.0) */
   weight?: number;
+  /** Whether to generate embeddings for this entity type (default: true).
+   *  Set to false for entity types with non-textual content (e.g., images). */
+  embeddable?: boolean;
 }
 
 /**

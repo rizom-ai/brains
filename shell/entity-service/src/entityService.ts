@@ -240,10 +240,21 @@ export class EntityService implements IEntityService {
       );
     }
 
+    // Skip embedding for non-embeddable entity types (e.g., images with base64 content)
+    const entityConfig = this.entityRegistry.getEntityTypeConfig(
+      validatedEntity.entityType,
+    );
+    if (entityConfig.embeddable === false) {
+      this.logger.debug(
+        `Skipping embedding for non-embeddable entity type: ${validatedEntity.entityType}:${finalId}`,
+      );
+      return { entityId: finalId, jobId: "" };
+    }
+
     // Prepare job data for embedding generation
     // Include contentHash instead of content to:
     // 1. Enable staleness detection (compare hashes)
-    // 2. Avoid large base64 data (images) bloating job queue and dashboard hydration
+    // 2. Avoid large base64 data bloating job queue and dashboard hydration
     const entityForQueue: EmbeddingJobData = {
       id: finalId,
       entityType: validatedEntity.entityType,
@@ -434,6 +445,17 @@ export class EntityService implements IEntityService {
         undefined,
         true,
       );
+    }
+
+    // Skip embedding for non-embeddable entity types (e.g., images with base64 content)
+    const entityConfig = this.entityRegistry.getEntityTypeConfig(
+      validatedEntity.entityType,
+    );
+    if (entityConfig.embeddable === false) {
+      this.logger.debug(
+        `Skipping embedding for non-embeddable entity type: ${validatedEntity.entityType}:${validatedEntity.id}`,
+      );
+      return { entityId: validatedEntity.id, jobId: "" };
     }
 
     // Queue embedding generation for the updated entity
