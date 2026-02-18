@@ -1,13 +1,7 @@
 import type { JSX } from "preact";
 import type { EnrichedProject } from "../schemas/project";
 import type { PaginationInfo } from "@brains/plugins";
-import {
-  Card,
-  CardTitle,
-  Head,
-  Pagination,
-  TagsList,
-} from "@brains/ui-library";
+import { Card, CardTitle, Head, Pagination } from "@brains/ui-library";
 
 export interface ProjectListProps {
   projects: EnrichedProject[];
@@ -36,14 +30,6 @@ const ProjectCard = ({
         />
       )}
       <CardTitle>{frontmatter.title}</CardTitle>
-      {frontmatter.technologies && frontmatter.technologies.length > 0 && (
-        <TagsList
-          tags={frontmatter.technologies}
-          maxVisible={4}
-          size="sm"
-          className="mb-3"
-        />
-      )}
       <p className="text-theme leading-relaxed">{frontmatter.description}</p>
     </Card>
   );

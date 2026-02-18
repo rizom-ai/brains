@@ -1,11 +1,5 @@
 import type { JSX } from "preact";
-import {
-  Head,
-  ProseContent,
-  TagsList,
-  Card,
-  CoverImage,
-} from "@brains/ui-library";
+import { Head, ProseContent, Card, CoverImage } from "@brains/ui-library";
 import { markdownToHtml } from "@brains/utils";
 import type { EnrichedProject } from "../schemas/project";
 
@@ -124,16 +118,9 @@ export const ProjectDetailTemplate = ({
               {frontmatter.title}
             </h1>
 
-            {/* Metadata: Year + Technologies */}
+            {/* Metadata: Year + Link */}
             <div className="flex flex-wrap items-center gap-4 text-theme-muted mb-8">
               <span className="text-sm">{metadata.year}</span>
-              {frontmatter.technologies &&
-                frontmatter.technologies.length > 0 && (
-                  <>
-                    <span className="text-theme-muted">|</span>
-                    <TagsList tags={frontmatter.technologies} />
-                  </>
-                )}
               {frontmatter.url && (
                 <>
                   <span className="text-theme-muted">|</span>

@@ -19,7 +19,6 @@ export const projectFrontmatterSchema = z.object({
   description: z.string(), // 1-2 sentence summary for cards
   year: z.number(), // Year project began, used for ordering
   coverImageId: z.string().optional(), // References an image entity by ID
-  technologies: z.array(z.string()).optional(),
   url: z.string().url().optional(), // Link to live project
 });
 

@@ -64,9 +64,6 @@ status: published
 description: A cool project I built
 year: 2023
 coverImageId: hero-image
-technologies:
-  - TypeScript
-  - React
 url: https://example.com
 ---
 
@@ -187,9 +184,6 @@ title: Parsed Project
 status: published
 description: A parsed description
 year: 2022
-technologies:
-  - Node.js
-  - PostgreSQL
 url: https://example.com/project
 ---
 
@@ -202,7 +196,6 @@ Body content`;
       expect(frontmatter.status).toBe("published");
       expect(frontmatter.description).toBe("A parsed description");
       expect(frontmatter.year).toBe(2022);
-      expect(frontmatter.technologies).toEqual(["Node.js", "PostgreSQL"]);
       expect(frontmatter.url).toBe("https://example.com/project");
     });
   });
@@ -270,7 +263,6 @@ Just context, no other sections.`;
         status: "draft" as const,
         description: "Project description",
         year: 2024,
-        technologies: ["TypeScript"],
       };
 
       const body = {
