@@ -156,7 +156,7 @@ export class ServerManager {
     app.use("/*", async (c, next) => {
       await next();
       const path = c.req.path;
-      if (path.match(/\.(jpg|jpeg|png|gif|ico|woff|woff2)$/)) {
+      if (path.match(/\.(jpg|jpeg|png|gif|ico|webp|svg|woff|woff2)$/)) {
         c.header("Cache-Control", "public, max-age=31536000, immutable");
       } else {
         c.header("Cache-Control", "no-cache");
