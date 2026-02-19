@@ -13,6 +13,7 @@
 
 import type { IMessageBus, ICoreEntityService } from "@brains/plugins";
 import type { PublishResult } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "./queue-manager";
 import type { ProviderRegistry } from "./provider-registry";
 import type { RetryTracker } from "./retry-tracker";
@@ -38,6 +39,8 @@ export interface SchedulerConfig {
   queueManager: QueueManager;
   providerRegistry: ProviderRegistry;
   retryTracker: RetryTracker;
+  /** Logger for structured error reporting */
+  logger: Logger;
   /**
    * Scheduler backend for cron/interval scheduling.
    * Use CronerBackend for production, TestSchedulerBackend for tests.
@@ -99,6 +102,7 @@ export class ContentScheduler {
   private queueManager: QueueManager;
   private providerRegistry: ProviderRegistry;
   private retryTracker: RetryTracker;
+  private logger: Logger;
   private backend: SchedulerBackend;
   private entitySchedules: Record<string, string>;
   private generationSchedules: Record<string, string>;
@@ -153,6 +157,7 @@ export class ContentScheduler {
     this.queueManager = config.queueManager;
     this.providerRegistry = config.providerRegistry;
     this.retryTracker = config.retryTracker;
+    this.logger = config.logger;
     this.backend = config.backend;
     this.entitySchedules = config.entitySchedules ?? {};
     this.generationSchedules = config.generationSchedules ?? {};
@@ -284,7 +289,7 @@ export class ContentScheduler {
         await this.processEntry(next);
       }
     } catch (error) {
-      console.error(`Scheduler error for ${entityType}:`, error);
+      this.logger.error(`Scheduler error for ${entityType}:`, error);
     }
   }
 
@@ -308,7 +313,7 @@ export class ContentScheduler {
         }
       }
     } catch (error) {
-      console.error("Scheduler error for unscheduled types:", error);
+      this.logger.error("Scheduler error for unscheduled types:", error);
     }
   }
 
@@ -533,7 +538,7 @@ export class ContentScheduler {
       // Call callback
       this.onGenerate?.(event);
     } catch (error) {
-      console.error(`Generation trigger error for ${entityType}:`, error);
+      this.logger.error(`Generation trigger error for ${entityType}:`, error);
     }
   }
 

@@ -8,8 +8,7 @@
 import type { Plugin, PluginTool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
-import { createQueueTool } from "./tools/queue";
-import { createPublishTool } from "./tools/publish";
+import { createQueueTool, createPublishTool } from "./tools";
 import { ProviderRegistry } from "./provider-registry";
 import { RetryTracker } from "./retry-tracker";
 import { ContentScheduler } from "./scheduler";
@@ -81,6 +80,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       queueManager: this.queueManager,
       providerRegistry: this.providerRegistry,
       retryTracker: this.retryTracker,
+      logger: this.logger,
       backend: new CronerBackend(),
       ...(this.config.entitySchedules && {
         entitySchedules: this.config.entitySchedules,

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProductsSection } from "./schema";
-import * as LucideIcons from "lucide-preact";
+import { ChevronRight } from "lucide-preact";
 import { StatusBadge, Card, LinkButton } from "@brains/ui-library";
 import { getIcon } from "../lib/get-icon";
 
@@ -53,7 +53,7 @@ export const ProductsLayout = ({
                     className="text-brand font-semibold hover:text-brand-dark"
                   >
                     Learn more
-                    <LucideIcons.ChevronRight className="ml-1 w-4 h-4" />
+                    <ChevronRight className="ml-1 w-4 h-4" />
                   </LinkButton>
                 )}
               </Card>

@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentScheduler } from "../src/scheduler";
+import type { SchedulerConfig } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
 import type { PublishProvider } from "@brains/utils";
-import { createMockEntityService } from "@brains/test-utils";
+import { createMockEntityService, createMockLogger } from "@brains/test-utils";
 
 describe("ContentScheduler", () => {
   let scheduler: ContentScheduler;
@@ -14,8 +15,20 @@ describe("ContentScheduler", () => {
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
   let mockEntityService: ReturnType<typeof createMockEntityService>;
+  let mockLogger: ReturnType<typeof createMockLogger>;
   let mockOnPublish: ReturnType<typeof mock>;
   let mockOnFailed: ReturnType<typeof mock>;
+
+  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+    return {
+      queueManager,
+      providerRegistry,
+      retryTracker,
+      logger: mockLogger,
+      backend,
+      ...overrides,
+    };
+  }
 
   beforeEach(() => {
     backend = new TestSchedulerBackend();
@@ -36,18 +49,17 @@ describe("ContentScheduler", () => {
       },
     });
 
+    mockLogger = createMockLogger();
     mockOnPublish = mock(() => {});
     mockOnFailed = mock(() => {});
 
-    scheduler = ContentScheduler.createFresh({
-      queueManager,
-      providerRegistry,
-      retryTracker,
-      backend,
-      entityService: mockEntityService,
-      onPublish: mockOnPublish,
-      onFailed: mockOnFailed,
-    });
+    scheduler = ContentScheduler.createFresh(
+      baseConfig({
+        entityService: mockEntityService,
+        onPublish: mockOnPublish,
+        onFailed: mockOnFailed,
+      }),
+    );
   });
 
   afterEach(async () => {
@@ -199,18 +211,8 @@ describe("ContentScheduler", () => {
 
   describe("singleton pattern", () => {
     it("should return same instance from getInstance", () => {
-      const instance1 = ContentScheduler.getInstance({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-      });
-      const instance2 = ContentScheduler.getInstance({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-      });
+      const instance1 = ContentScheduler.getInstance(baseConfig());
+      const instance2 = ContentScheduler.getInstance(baseConfig());
 
       expect(instance1).toBe(instance2);
     });
@@ -228,17 +230,14 @@ describe("ContentScheduler", () => {
         publish: blogPublishMock,
       });
 
-      const schedulerWithCron = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend: cronBackend,
-        entityService: mockEntityService,
-        entitySchedules: {
-          "blog-post": "* * * * * *",
-        },
-        onPublish: mockOnPublish,
-      });
+      const schedulerWithCron = ContentScheduler.createFresh(
+        baseConfig({
+          backend: cronBackend,
+          entityService: mockEntityService,
+          entitySchedules: { "blog-post": "* * * * * *" },
+          onPublish: mockOnPublish,
+        }),
+      );
 
       await queueManager.add("blog-post", "post-1");
       await schedulerWithCron.start();
@@ -269,18 +268,17 @@ describe("ContentScheduler", () => {
         publish: socialPublishMock,
       });
 
-      const schedulerWithCron = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend: cronBackend,
-        entityService: mockEntityService,
-        entitySchedules: {
-          "blog-post": "0 0 1 1 *", // Jan 1st at midnight only
-          "social-post": "* * * * * *", // Every second
-        },
-        onPublish: mockOnPublish,
-      });
+      const schedulerWithCron = ContentScheduler.createFresh(
+        baseConfig({
+          backend: cronBackend,
+          entityService: mockEntityService,
+          entitySchedules: {
+            "blog-post": "0 0 1 1 *", // Jan 1st at midnight only
+            "social-post": "* * * * * *", // Every second
+          },
+          onPublish: mockOnPublish,
+        }),
+      );
 
       await queueManager.add("blog-post", "post-1");
       await queueManager.add("social-post", "social-1");
@@ -307,17 +305,14 @@ describe("ContentScheduler", () => {
         publish: deckPublishMock,
       });
 
-      const schedulerWithCron = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend: cronBackend,
-        entityService: mockEntityService,
-        entitySchedules: {
-          "blog-post": "0 0 1 1 *", // Only blog has cron
-        },
-        onPublish: mockOnPublish,
-      });
+      const schedulerWithCron = ContentScheduler.createFresh(
+        baseConfig({
+          backend: cronBackend,
+          entityService: mockEntityService,
+          entitySchedules: { "blog-post": "0 0 1 1 *" },
+          onPublish: mockOnPublish,
+        }),
+      );
 
       await queueManager.add("deck", "deck-1");
       await schedulerWithCron.start();
@@ -341,17 +336,14 @@ describe("ContentScheduler", () => {
         publish: blogPublishMock,
       });
 
-      const schedulerWithCron = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend: cronBackend,
-        entityService: mockEntityService,
-        entitySchedules: {
-          "blog-post": "* * * * * *",
-        },
-        onPublish: mockOnPublish,
-      });
+      const schedulerWithCron = ContentScheduler.createFresh(
+        baseConfig({
+          backend: cronBackend,
+          entityService: mockEntityService,
+          entitySchedules: { "blog-post": "* * * * * *" },
+          onPublish: mockOnPublish,
+        }),
+      );
 
       // Add 3 items
       await queueManager.add("blog-post", "post-1");
@@ -369,15 +361,11 @@ describe("ContentScheduler", () => {
 
     it("should validate cron expression format", () => {
       expect(() =>
-        ContentScheduler.createFresh({
-          queueManager,
-          providerRegistry,
-          retryTracker,
-          backend,
-          entitySchedules: {
-            "blog-post": "invalid cron",
-          },
-        }),
+        ContentScheduler.createFresh(
+          baseConfig({
+            entitySchedules: { "blog-post": "invalid cron" },
+          }),
+        ),
       ).toThrow();
     });
   });

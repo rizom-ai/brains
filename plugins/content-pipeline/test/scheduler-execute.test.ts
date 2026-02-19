@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentScheduler } from "../src/scheduler";
+import type { SchedulerConfig } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
+import { createMockLogger } from "@brains/test-utils";
 
 // Mock message bus
 function createMockMessageBus(): IMessageBus & {
@@ -34,6 +36,18 @@ describe("ContentScheduler - Execute Message Mode", () => {
   let messageBus: ReturnType<typeof createMockMessageBus>;
   let onExecuteMock: ReturnType<typeof mock>;
 
+  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+    return {
+      queueManager,
+      providerRegistry,
+      retryTracker,
+      logger: createMockLogger(),
+      backend,
+      messageBus,
+      ...overrides,
+    };
+  }
+
   beforeEach(() => {
     backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
@@ -42,14 +56,9 @@ describe("ContentScheduler - Execute Message Mode", () => {
     messageBus = createMockMessageBus();
     onExecuteMock = mock(() => {});
 
-    scheduler = ContentScheduler.createFresh({
-      queueManager,
-      providerRegistry,
-      retryTracker,
-      backend,
-      messageBus,
-      onExecute: onExecuteMock,
-    });
+    scheduler = ContentScheduler.createFresh(
+      baseConfig({ onExecute: onExecuteMock }),
+    );
   });
 
   afterEach(async () => {

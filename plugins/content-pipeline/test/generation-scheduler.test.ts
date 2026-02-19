@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentScheduler } from "../src/scheduler";
+import type { SchedulerConfig } from "../src/scheduler";
 import { QueueManager } from "../src/queue-manager";
 import { ProviderRegistry } from "../src/provider-registry";
 import { RetryTracker } from "../src/retry-tracker";
 import { TestSchedulerBackend } from "../src/scheduler-backend";
 import { GENERATE_MESSAGES } from "../src/types/messages";
 import type { IMessageBus } from "@brains/plugins";
+import { createMockLogger } from "@brains/test-utils";
 
 // Mock message bus
 function createMockMessageBus(): IMessageBus & {
@@ -31,14 +33,28 @@ describe("ContentScheduler - Generation Scheduling", () => {
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let retryTracker: RetryTracker;
+  let mockLogger: ReturnType<typeof createMockLogger>;
   let messageBus: ReturnType<typeof createMockMessageBus>;
   let onGenerateMock: ReturnType<typeof mock>;
+
+  function baseConfig(overrides?: Partial<SchedulerConfig>): SchedulerConfig {
+    return {
+      queueManager,
+      providerRegistry,
+      retryTracker,
+      logger: mockLogger,
+      backend,
+      messageBus,
+      ...overrides,
+    };
+  }
 
   beforeEach(() => {
     backend = new TestSchedulerBackend();
     queueManager = QueueManager.createFresh();
     providerRegistry = ProviderRegistry.createFresh();
     retryTracker = RetryTracker.createFresh({ maxRetries: 3, baseDelayMs: 10 });
+    mockLogger = createMockLogger();
     messageBus = createMockMessageBus();
     onGenerateMock = mock(() => {});
   });
@@ -50,46 +66,32 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
   describe("generation schedule configuration", () => {
     it("should accept generationSchedules config", () => {
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "0 9 * * 1", // Monday 9am
-        },
-      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "0 9 * * 1" },
+        }),
+      );
 
       expect(scheduler).toBeDefined();
     });
 
     it("should validate generation cron expressions", () => {
       expect(() =>
-        ContentScheduler.createFresh({
-          queueManager,
-          providerRegistry,
-          retryTracker,
-          backend,
-          generationSchedules: {
-            newsletter: "invalid cron",
-          },
-        }),
+        ContentScheduler.createFresh(
+          baseConfig({
+            generationSchedules: { newsletter: "invalid cron" },
+          }),
+        ),
       ).toThrow();
     });
 
     it("should start generation cron jobs", async () => {
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "* * * * * *",
-        },
-        onGenerate: onGenerateMock,
-      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "* * * * * *" },
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
       expect(scheduler.isRunning()).toBe(true);
@@ -110,23 +112,16 @@ describe("ContentScheduler - Generation Scheduling", () => {
         }),
       );
 
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "* * * * * *",
-        },
-        generationConditions: {
-          newsletter: {
-            skipIfDraftExists: true,
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "* * * * * *" },
+          generationConditions: {
+            newsletter: { skipIfDraftExists: true },
           },
-        },
-        onCheckGenerationConditions: checkConditionsMock,
-        onGenerate: onGenerateMock,
-      });
+          onCheckGenerationConditions: checkConditionsMock,
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
 
@@ -142,24 +137,19 @@ describe("ContentScheduler - Generation Scheduling", () => {
         Promise.resolve({ shouldGenerate: true }),
       );
 
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "* * * * * *",
-        },
-        generationConditions: {
-          newsletter: {
-            skipIfDraftExists: true,
-            minSourceEntities: 1,
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "* * * * * *" },
+          generationConditions: {
+            newsletter: {
+              skipIfDraftExists: true,
+              minSourceEntities: 1,
+            },
           },
-        },
-        onCheckGenerationConditions: checkConditionsMock,
-        onGenerate: onGenerateMock,
-      });
+          onCheckGenerationConditions: checkConditionsMock,
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
 
@@ -181,23 +171,16 @@ describe("ContentScheduler - Generation Scheduling", () => {
         }),
       );
 
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "* * * * * *",
-        },
-        generationConditions: {
-          newsletter: {
-            maxUnpublishedDrafts: 5,
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "* * * * * *" },
+          generationConditions: {
+            newsletter: { maxUnpublishedDrafts: 5 },
           },
-        },
-        onCheckGenerationConditions: checkConditionsMock,
-        onGenerate: onGenerateMock,
-      });
+          onCheckGenerationConditions: checkConditionsMock,
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
 
@@ -221,19 +204,14 @@ describe("ContentScheduler - Generation Scheduling", () => {
         },
       };
 
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "* * * * * *",
-        },
-        generationConditions: conditions,
-        onCheckGenerationConditions: checkConditionsMock,
-        onGenerate: onGenerateMock,
-      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "* * * * * *" },
+          generationConditions: conditions,
+          onCheckGenerationConditions: checkConditionsMock,
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
 
@@ -248,17 +226,12 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
   describe("generate:execute message", () => {
     it("should emit generate:execute message when triggering generation", async () => {
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "* * * * * *",
-        },
-        onGenerate: onGenerateMock,
-      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { newsletter: "* * * * * *" },
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
 
@@ -274,17 +247,12 @@ describe("ContentScheduler - Generation Scheduling", () => {
     });
 
     it("should call onGenerate callback when triggering generation", async () => {
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          "social-post": "* * * * * *",
-        },
-        onGenerate: onGenerateMock,
-      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: { "social-post": "* * * * * *" },
+          onGenerate: onGenerateMock,
+        }),
+      );
 
       await scheduler.start();
 
@@ -300,13 +268,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
   describe("completeGeneration", () => {
     it("should emit generate:completed message", async () => {
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-      });
+      scheduler = ContentScheduler.createFresh(baseConfig());
 
       messageBus._sentMessages.length = 0;
 
@@ -325,13 +287,7 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
   describe("failGeneration", () => {
     it("should emit generate:failed message", async () => {
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-      });
+      scheduler = ContentScheduler.createFresh(baseConfig());
 
       messageBus._sentMessages.length = 0;
 
@@ -353,24 +309,21 @@ describe("ContentScheduler - Generation Scheduling", () => {
       const newsletterGenMock = mock(() => {});
       const socialGenMock = mock(() => {});
 
-      scheduler = ContentScheduler.createFresh({
-        queueManager,
-        providerRegistry,
-        retryTracker,
-        backend,
-        messageBus,
-        generationSchedules: {
-          newsletter: "0 0 1 1 *", // Far future - won't trigger
-          "social-post": "* * * * * *", // Every second
-        },
-        onGenerate: (event) => {
-          if (event.entityType === "newsletter") {
-            newsletterGenMock();
-          } else if (event.entityType === "social-post") {
-            socialGenMock();
-          }
-        },
-      });
+      scheduler = ContentScheduler.createFresh(
+        baseConfig({
+          generationSchedules: {
+            newsletter: "0 0 1 1 *", // Far future - won't trigger
+            "social-post": "* * * * * *", // Every second
+          },
+          onGenerate: (event) => {
+            if (event.entityType === "newsletter") {
+              newsletterGenMock();
+            } else if (event.entityType === "social-post") {
+              socialGenMock();
+            }
+          },
+        }),
+      );
 
       await scheduler.start();
 
