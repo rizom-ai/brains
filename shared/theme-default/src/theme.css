@@ -103,6 +103,18 @@
     --color-warning-text: var(--palette-warning-text);
     --color-warning-text-emphasis: #92400e;
 
+    /* Status Badge Colors */
+    --color-status-neutral-bg: #f3f4f6;
+    --color-status-neutral-text: #374151;
+    --color-status-info-bg: #dbeafe;
+    --color-status-info-text: #1d4ed8;
+    --color-status-success-bg: #dcfce7;
+    --color-status-success-text: #15803d;
+    --color-status-danger-bg: #fee2e2;
+    --color-status-danger-text: #b91c1c;
+    --color-status-warning-bg: #fef9c3;
+    --color-status-warning-text: #a16207;
+
     /* Typography */
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-heading: 'Space Grotesk', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -169,6 +181,18 @@
     --color-warning-border: rgba(202, 138, 4, 0.5);
     --color-warning-text: #fde047;
     --color-warning-text-emphasis: #fef08a;
+
+    /* Status Badge Colors - Dark mode */
+    --color-status-neutral-bg: #374151;
+    --color-status-neutral-text: #e5e7eb;
+    --color-status-info-bg: #1e3a5f;
+    --color-status-info-text: #93c5fd;
+    --color-status-success-bg: #14532d;
+    --color-status-success-text: #86efac;
+    --color-status-danger-bg: #7f1d1d;
+    --color-status-danger-text: #fca5a5;
+    --color-status-warning-bg: #713f12;
+    --color-status-warning-text: #fde68a;
   }
 }
 
@@ -250,6 +274,18 @@
   .border-warning { border-color: var(--color-warning-border); }
   .text-warning { color: var(--color-warning-text); }
   .text-warning-emphasis { color: var(--color-warning-text-emphasis); }
+
+  /* Status badge utilities */
+  .bg-status-neutral { background-color: var(--color-status-neutral-bg); }
+  .text-status-neutral { color: var(--color-status-neutral-text); }
+  .bg-status-info { background-color: var(--color-status-info-bg); }
+  .text-status-info { color: var(--color-status-info-text); }
+  .bg-status-success { background-color: var(--color-status-success-bg); }
+  .text-status-success { color: var(--color-status-success-text); }
+  .bg-status-danger { background-color: var(--color-status-danger-bg); }
+  .text-status-danger { color: var(--color-status-danger-text); }
+  .bg-status-warning { background-color: var(--color-status-warning-bg); }
+  .text-status-warning { color: var(--color-status-warning-text); }
 
   /* Hover states for theme utilities */
   .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }

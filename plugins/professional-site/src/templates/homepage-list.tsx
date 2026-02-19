@@ -4,12 +4,12 @@ import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 import {
+  AnimatedWaveDivider,
   ContentSection,
   type ContentItem,
   Head,
   TagsList,
 } from "@brains/ui-library";
-import { AnimatedWaveDivider } from "@brains/ui-library";
 import { CTASection } from "../components/CTASection";
 
 /**

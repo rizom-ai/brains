@@ -10,7 +10,7 @@ import { join } from "path";
 import * as esbuild from "esbuild";
 
 async function buildHydrationScripts() {
-  console.log("Building hydration scripts...");
+  console.log("[hydration] Building hydration scripts...");
 
   try {
     // Ensure dist directory exists
@@ -26,7 +26,7 @@ async function buildHydrationScripts() {
         const hydrationFile = join(templatesDir, templateName, "hydration.tsx");
         const outputFile = join("dist/templates", templateName, "hydration.js");
 
-        console.log(`Compiling ${templateName} hydration script...`);
+        console.log(`[hydration] Compiling ${templateName}...`);
 
         // Ensure output directory exists
         await mkdir(join("dist/templates", templateName), { recursive: true });
@@ -64,7 +64,7 @@ const { h, hydrate, useState, useMemo, jsx, jsxs } = window.preact;
             minify: false,
           });
 
-          console.log(`✓ Compiled ${templateName} hydration script`);
+          console.log(`[hydration] ✓ ${templateName}`);
 
           // Post-process to fix any remaining import statements and hook usage
           let outputCode = await Bun.file(outputFile).text();
@@ -96,7 +96,7 @@ const { h, hydrate, useState, useMemo, jsx, jsxs } = window.preact;
       }
     }
 
-    console.log("Hydration scripts build complete!");
+    console.log("[hydration] Build complete.");
   } catch (error) {
     console.error("Build failed:", error);
     process.exit(1);
