@@ -1,16 +1,8 @@
 import type { JSX } from "preact";
 import type { ProductsSection } from "./schema";
 import * as LucideIcons from "lucide-preact";
-import type { LucideIcon } from "lucide-preact";
 import { StatusBadge, Card, LinkButton } from "@brains/ui-library";
-
-const getIcon = (iconName: string): LucideIcon => {
-  // Get the icon component from Lucide, fallback to HelpCircle if not found
-  const IconComponent =
-    (LucideIcons as unknown as Record<string, LucideIcon>)[iconName] ??
-    LucideIcons.HelpCircle;
-  return IconComponent;
-};
+import { getIcon } from "../lib/get-icon";
 
 export const ProductsLayout = ({
   headline,
