@@ -4,9 +4,7 @@ import type {
   JobContext,
 } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
-import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
-import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "@brains/utils";
 import { GenerateOptionsSchema } from "../types/content-schemas";
@@ -18,23 +16,14 @@ const buildSiteInputSchema = z.object({
     .describe(
       "Build environment (defaults to production, or preview if configured)",
     ),
-  clean: z
-    .boolean()
-    .default(true)
-    .describe("Clean output directory before building"),
-  includeAssets: z
-    .boolean()
-    .default(true)
-    .describe("Include static assets in build"),
 });
 
 export function createSiteBuilderTools(
-  getSiteBuilder: () => SiteBuilder | undefined,
   getSiteContentService: () => SiteContentService | undefined,
   pluginContext: ServicePluginContext,
   pluginId: string,
-  config: SiteBuilderConfig,
   routeRegistry: RouteRegistry,
+  requestBuild: (environment?: "preview" | "production") => void,
 ): PluginTool[] {
   return [
     createTypedTool(
@@ -96,68 +85,13 @@ export function createSiteBuilderTools(
       "build-site",
       "Build a static site from registered routes",
       buildSiteInputSchema,
-      async (input, context) => {
-        const siteBuilder = getSiteBuilder();
-        if (!siteBuilder) {
-          return {
-            success: false,
-            error: "Site builder not initialized",
-          };
-        }
+      async (input) => {
+        requestBuild(input.environment);
 
-        // Determine default environment based on config
-        const defaultEnv = config.previewOutputDir ? "preview" : "production";
-        const environment = input.environment ?? defaultEnv;
-
-        // Validate environment is available
-        if (environment === "preview" && !config.previewOutputDir) {
-          return {
-            success: false,
-            error: "Preview environment not configured",
-          };
-        }
-
-        // Determine output directory based on environment
-        const outputDir =
-          environment === "production"
-            ? config.productionOutputDir
-            : (config.previewOutputDir ?? config.productionOutputDir); // Fallback to production (guard above ensures this exists for preview)
-
-        // Enqueue the build job - pass toolContext for progress routing
-        const jobId = await pluginContext.jobs.enqueue(
-          "site-build",
-          {
-            environment,
-            outputDir,
-            workingDir: config.workingDir,
-            enableContentGeneration: false,
-            siteConfig: {
-              ...config.siteInfo,
-              ...(config.analyticsScript && {
-                analyticsScript: config.analyticsScript,
-              }),
-            },
-          },
-          context,
-          {
-            source: `plugin:${pluginId}`,
-            metadata: {
-              progressToken: context.progressToken,
-              operationType: "content_operations",
-              pluginId,
-            },
-          },
-        );
-
-        // Note: Omit 'formatted' for async jobs - progress events will show actual status
-        // This prevents showing stale "Status: queued" in the agent response
         return {
           success: true,
-          message: `Site build job queued for ${environment} environment`,
-          data: {
-            jobId,
-            environment,
-          },
+          message: `Site build requested${input.environment ? ` for ${input.environment}` : ""} (debounced)`,
+          data: {},
         };
       },
     ),

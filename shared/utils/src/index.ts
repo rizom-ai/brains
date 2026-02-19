@@ -105,3 +105,6 @@ export type {
 // Job handler utilities
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export { JobResult } from "./job-result";
+
+// Debounce utilities
+export { LeadingTrailingDebounce } from "./debounce";

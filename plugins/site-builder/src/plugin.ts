@@ -41,7 +41,7 @@ import { generateRobotsTxt } from "./lib/robots-generator";
 import { generateSitemap } from "./lib/sitemap-generator";
 import { generateCmsConfig, CMS_ADMIN_HTML } from "./lib/cms-config";
 import type { SiteBuildCompletedPayload } from "./types/job-types";
-import { toYaml } from "@brains/utils";
+import { toYaml, LeadingTrailingDebounce } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
 
@@ -59,7 +59,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private profileService?: ProfileService;
   private layouts: Record<string, LayoutComponent>;
   private unsubscribeFunctions: Array<() => void> = [];
-  private rebuildTimeout?: Timer;
+  private rebuildDebounces = new Map<string, LeadingTrailingDebounce>();
 
   /**
    * Get the route registry, throwing if not initialized
@@ -339,6 +339,68 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   /**
+   * Request a site rebuild through the shared debounce.
+   * Both auto-rebuild (entity events) and the build-site tool use this.
+   * Separate debounces per environment so preview and production don't interfere.
+   */
+  public requestBuild(environment?: "preview" | "production"): void {
+    const env =
+      environment ?? (this.config.previewOutputDir ? "preview" : "production");
+
+    let debounce = this.rebuildDebounces.get(env);
+    if (!debounce) {
+      debounce = new LeadingTrailingDebounce(() => {
+        void this.enqueueBuild(env);
+      }, this.config.rebuildDebounce);
+      this.rebuildDebounces.set(env, debounce);
+    }
+
+    debounce.trigger();
+  }
+
+  private async enqueueBuild(
+    environment: "preview" | "production",
+  ): Promise<void> {
+    const context = this.pluginContext;
+    if (!context) return;
+
+    const outputDir =
+      environment === "production"
+        ? this.config.productionOutputDir
+        : (this.config.previewOutputDir ?? this.config.productionOutputDir);
+
+    this.logger.debug(`Triggering ${environment} site rebuild`);
+
+    try {
+      await context.jobs.enqueue(
+        "site-build",
+        {
+          environment,
+          outputDir,
+          workingDir: this.config.workingDir,
+          enableContentGeneration: true,
+          metadata: {
+            trigger: "debounced-rebuild",
+            timestamp: new Date().toISOString(),
+          },
+        },
+        null,
+        {
+          priority: 0,
+          source: this.id,
+          metadata: {
+            operationType: "content_operations" as const,
+          },
+          deduplication: "skip",
+        },
+      );
+      this.logger.debug("Site rebuild enqueued");
+    } catch (error) {
+      this.logger.error("Failed to enqueue site rebuild", { error });
+    }
+  }
+
+  /**
    * Get the tools provided by this plugin
    */
   protected override async getTools(): Promise<PluginTool[]> {
@@ -347,12 +409,11 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     }
 
     return createSiteBuilderTools(
-      () => this.siteBuilder,
       () => this.siteContentService,
       this.pluginContext,
       this.id,
-      this.config,
       this.routeRegistry,
+      (env) => this.requestBuild(env),
     );
   }
 
@@ -484,58 +545,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Entity types to exclude from auto-rebuild
     const excludedTypes = ["base"];
 
-    const scheduleRebuild = async (): Promise<void> => {
-      // Determine target environment based on config
-      const environment = this.config.previewOutputDir
-        ? "preview"
-        : "production";
-      const outputDir =
-        environment === "production"
-          ? this.config.productionOutputDir
-          : (this.config.previewOutputDir ?? this.config.productionOutputDir);
-
-      this.logger.debug(
-        `Auto-triggering ${environment} site rebuild after content changes`,
-      );
-
-      try {
-        // Background auto-trigger - pass null for toolContext
-        await context.jobs.enqueue(
-          "site-build",
-          {
-            environment,
-            outputDir,
-            workingDir: this.config.workingDir,
-            enableContentGeneration: true,
-            metadata: {
-              trigger: "auto-rebuild",
-              timestamp: new Date().toISOString(),
-            },
-          },
-          null,
-          {
-            priority: 0,
-            source: this.id,
-            metadata: {
-              operationType: "content_operations" as const,
-            },
-            deduplication: "skip", // Skip if rebuild already PENDING
-          },
-        );
-        this.logger.debug("Site rebuild enqueued (with deduplication)");
-      } catch (error) {
-        this.logger.error("Failed to enqueue auto-rebuild", { error });
-      }
-    };
-
-    // Debounce wrapper — batches rapid entity changes into one rebuild
-    const debouncedRebuild = (): void => {
-      if (this.rebuildTimeout) clearTimeout(this.rebuildTimeout);
-      this.rebuildTimeout = setTimeout((): void => {
-        void scheduleRebuild();
-      }, this.config.rebuildDebounce);
-    };
-
     // Subscribe to entity events and store unsubscribe functions
     const unsubscribeCreated = context.messaging.subscribe<
       { entityType: string },
@@ -547,7 +556,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        debouncedRebuild();
+        this.requestBuild();
       }
       return { success: true };
     });
@@ -562,7 +571,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        debouncedRebuild();
+        this.requestBuild();
       }
       return { success: true };
     });
@@ -577,7 +586,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        debouncedRebuild();
+        this.requestBuild();
       }
       return { success: true };
     });
@@ -603,10 +612,11 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
 
-    // Clear any pending rebuild timer
-    if (this.rebuildTimeout) {
-      clearTimeout(this.rebuildTimeout);
+    // Cancel any pending rebuilds
+    for (const debounce of this.rebuildDebounces.values()) {
+      debounce.dispose();
     }
+    this.rebuildDebounces.clear();
 
     // Unsubscribe from all event subscriptions
     for (const unsubscribe of this.unsubscribeFunctions) {
