@@ -26,6 +26,7 @@ export function createTestConfig(
       default: TestLayout,
     },
     autoRebuild: false, // Disabled for tests
+    rebuildDebounce: 5000,
   };
 
   return {

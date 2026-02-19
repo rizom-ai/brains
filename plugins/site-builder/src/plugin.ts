@@ -59,6 +59,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private profileService?: ProfileService;
   private layouts: Record<string, LayoutComponent>;
   private unsubscribeFunctions: Array<() => void> = [];
+  private rebuildTimeout?: Timer;
 
   /**
    * Get the route registry, throwing if not initialized
@@ -477,7 +478,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
   /**
    * Set up automatic site rebuilding when content changes
-   * Uses job queue deduplication instead of timers for debouncing
+   * Uses timer-based debounce plus job queue deduplication as safety net
    */
   private setupAutoRebuild(context: ServicePluginContext): void {
     // Entity types to exclude from auto-rebuild
@@ -527,6 +528,14 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       }
     };
 
+    // Debounce wrapper — batches rapid entity changes into one rebuild
+    const debouncedRebuild = (): void => {
+      if (this.rebuildTimeout) clearTimeout(this.rebuildTimeout);
+      this.rebuildTimeout = setTimeout((): void => {
+        void scheduleRebuild();
+      }, this.config.rebuildDebounce);
+    };
+
     // Subscribe to entity events and store unsubscribe functions
     const unsubscribeCreated = context.messaging.subscribe<
       { entityType: string },
@@ -538,7 +547,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        await scheduleRebuild();
+        debouncedRebuild();
       }
       return { success: true };
     });
@@ -553,7 +562,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        await scheduleRebuild();
+        debouncedRebuild();
       }
       return { success: true };
     });
@@ -568,7 +577,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       );
       if (!excludedTypes.includes(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        await scheduleRebuild();
+        debouncedRebuild();
       }
       return { success: true };
     });
@@ -583,7 +592,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     this.logger.debug("Auto-rebuild enabled for all entity types except", {
       excludedTypes,
     });
-    this.logger.debug("Using job queue deduplication for rebuild debouncing");
+    this.logger.debug(
+      `Using ${this.config.rebuildDebounce}ms debounce + job queue deduplication for rebuild`,
+    );
   }
 
   /**
@@ -591,6 +602,11 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    */
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
+
+    // Clear any pending rebuild timer
+    if (this.rebuildTimeout) {
+      clearTimeout(this.rebuildTimeout);
+    }
 
     // Unsubscribe from all event subscriptions
     for (const unsubscribe of this.unsubscribeFunctions) {

@@ -102,6 +102,13 @@ export const siteBuilderConfigSchema = z.object({
     .boolean()
     .default(true)
     .describe("Automatically rebuild site when content changes"),
+  rebuildDebounce: z
+    .number()
+    .min(100)
+    .describe(
+      "Debounce time in ms before triggering site rebuild after content changes",
+    )
+    .default(5000),
   entityRouteConfig: z
     .record(
       z.object({
