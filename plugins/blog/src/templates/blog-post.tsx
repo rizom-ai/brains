@@ -62,7 +62,7 @@ export const BlogPostTemplate = ({
             className={`flex gap-12 ${hasSeries ? "max-w-5xl" : "max-w-3xl"} mx-auto`}
           >
             {/* Main content column */}
-            <div className="flex-1 max-w-3xl">
+            <div className="flex-1 min-w-0 max-w-3xl">
               {/* Breadcrumb navigation */}
               <Breadcrumb items={breadcrumbItems} />
 
