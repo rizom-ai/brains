@@ -1,9 +1,5 @@
-import type {
-  PluginTool,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { SocialMediaConfig } from "../config";
 
@@ -53,59 +49,49 @@ export function createGenerateTool(
   _config: SocialMediaConfig,
   pluginId: string,
 ): PluginTool {
-  return createTool(
+  return createTypedTool(
     pluginId,
     "generate",
     "Generate a new social media post from a prompt, source content, or direct text",
-    generateInputSchema.shape,
-    async (input: unknown, toolContext: ToolContext) => {
-      try {
-        const parsed = generateInputSchema.parse(input);
-
-        // Validate input: need at least one of prompt, sourceEntityId, or content
-        if (!parsed.prompt && !parsed.sourceEntityId && !parsed.content) {
-          return {
-            success: false,
-            error:
-              "At least one of 'prompt', 'sourceEntityId', or 'content' must be provided",
-          };
-        }
-
-        // If sourceEntityId is provided, sourceEntityType is required
-        if (parsed.sourceEntityId && !parsed.sourceEntityType) {
-          return {
-            success: false,
-            error:
-              "'sourceEntityType' is required when 'sourceEntityId' is provided",
-          };
-        }
-
-        // Enqueue the generation job
-        const jobId = await context.jobs.enqueue(
-          "generation",
-          parsed,
-          toolContext,
-          {
-            source: `${pluginId}_generate`,
-            metadata: {
-              operationType: "content_operations",
-              operationTarget: "social-post",
-            },
-          },
-        );
-
-        return {
-          success: true,
-          data: { jobId },
-          message: `Social post generation job queued (jobId: ${jobId})`,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+    generateInputSchema,
+    async (input, toolContext) => {
+      // Validate input: need at least one of prompt, sourceEntityId, or content
+      if (!input.prompt && !input.sourceEntityId && !input.content) {
         return {
           success: false,
-          error: msg,
+          error:
+            "At least one of 'prompt', 'sourceEntityId', or 'content' must be provided",
         };
       }
+
+      // If sourceEntityId is provided, sourceEntityType is required
+      if (input.sourceEntityId && !input.sourceEntityType) {
+        return {
+          success: false,
+          error:
+            "'sourceEntityType' is required when 'sourceEntityId' is provided",
+        };
+      }
+
+      // Enqueue the generation job
+      const jobId = await context.jobs.enqueue(
+        "generation",
+        input,
+        toolContext,
+        {
+          source: `${pluginId}_generate`,
+          metadata: {
+            operationType: "content_operations",
+            operationTarget: "social-post",
+          },
+        },
+      );
+
+      return {
+        success: true,
+        data: { jobId },
+        message: `Social post generation job queued (jobId: ${jobId})`,
+      };
     },
   );
 }

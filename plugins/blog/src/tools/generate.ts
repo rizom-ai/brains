@@ -1,9 +1,5 @@
-import type {
-  PluginTool,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { BlogConfig } from "../config";
 
@@ -55,43 +51,33 @@ export function createGenerateTool(
   _config: BlogConfig,
   pluginId: string,
 ): PluginTool {
-  return createTool(
+  return createTypedTool(
     pluginId,
     "generate",
     "Queue a job to create a new blog post draft (provide title and content, or just a prompt for AI generation)",
-    generateInputSchema.shape,
-    async (input: unknown, toolContext: ToolContext) => {
-      try {
-        const parsed = generateInputSchema.parse(input);
-
-        // Enqueue the blog generation job
-        // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
-        // Setting a different rootJobId would cause progress events to be skipped
-        const jobId = await context.jobs.enqueue(
-          "generation",
-          parsed,
-          toolContext,
-          {
-            source: `${pluginId}_generate`,
-            metadata: {
-              operationType: "content_operations",
-              operationTarget: "blog-post",
-            },
+    generateInputSchema,
+    async (input, toolContext) => {
+      // Enqueue the blog generation job
+      // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
+      // Setting a different rootJobId would cause progress events to be skipped
+      const jobId = await context.jobs.enqueue(
+        "generation",
+        input,
+        toolContext,
+        {
+          source: `${pluginId}_generate`,
+          metadata: {
+            operationType: "content_operations",
+            operationTarget: "blog-post",
           },
-        );
+        },
+      );
 
-        return {
-          success: true,
-          data: { jobId },
-          message: `Blog post generation job queued (jobId: ${jobId})`,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          success: false,
-          error: msg,
-        };
-      }
+      return {
+        success: true,
+        data: { jobId },
+        message: `Blog post generation job queued (jobId: ${jobId})`,
+      };
     },
   );
 }

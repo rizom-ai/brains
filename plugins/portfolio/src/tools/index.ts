@@ -1,9 +1,5 @@
-import type {
-  PluginTool,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 /**
@@ -33,70 +29,60 @@ export function createPortfolioTools(
 ): PluginTool[] {
   return [
     // portfolio_create - Create project case study from existing knowledge
-    createTool(
+    createTypedTool(
       pluginId,
       "create",
       "Create a portfolio project case study by searching for related content in the brain. Searches notes, links, and posts about the topic, then generates a structured case study with context, problem, solution, and outcome. IMPORTANT: If the search finds insufficient content, ask the user for a project URL and use link_capture to capture it first before creating the project.",
-      createInputSchema.shape,
-      async (input: unknown, toolContext: ToolContext) => {
-        try {
-          const parsed = createInputSchema.parse(input);
+      createInputSchema,
+      async (input, toolContext) => {
+        // Search for related content across entity types
+        const entityTypes = ["note", "link", "post", "topic"];
+        const relatedContent: string[] = [];
 
-          // Search for related content across entity types
-          const entityTypes = ["note", "link", "post", "topic"];
-          const relatedContent: string[] = [];
+        // Search across all types at once
+        const results = await context.entityService.search(input.topic, {
+          types: entityTypes,
+          limit: 10,
+        });
 
-          // Search across all types at once
-          const results = await context.entityService.search(parsed.topic, {
-            types: entityTypes,
-            limit: 10,
-          });
-
-          for (const result of results) {
-            const entity = result.entity;
-            relatedContent.push(
-              `[${entity.entityType}: ${entity.metadata["title"] ?? entity.id}]\n${entity.content}`,
-            );
-          }
-
-          // Build enriched prompt with found context
-          const contextSection =
-            relatedContent.length > 0
-              ? `\n\nRelated content found in the brain:\n\n${relatedContent.join("\n\n---\n\n")}`
-              : "";
-
-          const enrichedPrompt = `Create a case study for: ${parsed.topic}${contextSection}`;
-
-          // Enqueue the project generation job with enriched context
-          const jobId = await context.jobs.enqueue(
-            "generation",
-            {
-              prompt: enrichedPrompt,
-              year: parsed.year,
-              title: parsed.title,
-            },
-            toolContext,
-            {
-              source: `${pluginId}_create`,
-              metadata: {
-                operationType: "content_operations",
-                operationTarget: "project",
-              },
-            },
+        for (const result of results) {
+          const entity = result.entity;
+          relatedContent.push(
+            `[${entity.entityType}: ${entity.metadata["title"] ?? entity.id}]\n${entity.content}`,
           );
-
-          return {
-            success: true,
-            data: { jobId, relatedEntitiesFound: relatedContent.length },
-            message: `Project creation job queued. Found ${relatedContent.length} related entities.`,
-          };
-        } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          return {
-            success: false,
-            error: msg,
-          };
         }
+
+        // Build enriched prompt with found context
+        const contextSection =
+          relatedContent.length > 0
+            ? `\n\nRelated content found in the brain:\n\n${relatedContent.join("\n\n---\n\n")}`
+            : "";
+
+        const enrichedPrompt = `Create a case study for: ${input.topic}${contextSection}`;
+
+        // Enqueue the project generation job with enriched context
+        const jobId = await context.jobs.enqueue(
+          "generation",
+          {
+            prompt: enrichedPrompt,
+            year: input.year,
+            title: input.title,
+          },
+          toolContext,
+          {
+            source: `${pluginId}_create`,
+            metadata: {
+              operationType: "content_operations",
+              operationTarget: "project",
+            },
+          },
+        );
+
+        return {
+          success: true,
+          data: { jobId, relatedEntitiesFound: relatedContent.length },
+          message: `Project creation job queued. Found ${relatedContent.length} related entities.`,
+        };
       },
     ),
     // Publish tool removed - use publish-pipeline_publish instead

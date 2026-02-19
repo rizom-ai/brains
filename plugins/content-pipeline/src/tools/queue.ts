@@ -1,5 +1,9 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type {
+  PluginTool,
+  ServicePluginContext,
+  ToolResult,
+} from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
@@ -79,42 +83,28 @@ export function createQueueTool(
   pluginId: string,
   queueManager: QueueManager,
 ): PluginTool<QueueOutput> {
-  const tool = createTool(
+  const tool = createTypedTool(
     pluginId,
     "queue",
     "Manage the publish queue for all entity types (list, add, remove, reorder)",
-    queueInputSchema.shape,
-    async (input: unknown): Promise<QueueOutput> => {
-      try {
-        const { action, entityType, entityId, position } =
-          queueInputSchema.parse(input);
+    queueInputSchema,
+    async (input): Promise<ToolResult> => {
+      const { action, entityType, entityId, position } = input;
 
-        switch (action) {
-          case "list":
-            return await handleList(queueManager, entityType);
-          case "add":
-            return await handleAdd(queueManager, entityType, entityId);
-          case "remove":
-            return await handleRemove(queueManager, entityType, entityId);
-          case "reorder":
-            return await handleReorder(
-              queueManager,
-              entityType,
-              entityId,
-              position,
-            );
-          default:
-            return {
-              success: false,
-              error: `Unknown action: ${action}`,
-            };
-        }
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          success: false,
-          error: msg,
-        };
+      switch (action) {
+        case "list":
+          return handleList(queueManager, entityType);
+        case "add":
+          return handleAdd(queueManager, entityType, entityId);
+        case "remove":
+          return handleRemove(queueManager, entityType, entityId);
+        case "reorder":
+          return handleReorder(queueManager, entityType, entityId, position);
+        default:
+          return {
+            success: false,
+            error: `Unknown action: ${action}`,
+          };
       }
     },
   );
@@ -131,7 +121,7 @@ export function createQueueTool(
 async function handleList(
   queueManager: QueueManager,
   entityType?: string,
-): Promise<QueueOutput> {
+): Promise<ToolResult> {
   let queue: QueueEntry[] = [];
 
   if (entityType) {
@@ -152,13 +142,13 @@ async function handleList(
 
   if (queue.length === 0) {
     return {
-      success: true,
-      data: { queue: [] },
+      success: true as const,
+      data: { queue: [] as QueueItem[] },
       message: "No items in queue",
     };
   }
 
-  const items = queue.map((entry, index) => ({
+  const items: QueueItem[] = queue.map((entry, index) => ({
     position: index + 1,
     entityType: entry.entityType,
     entityId: entry.entityId,
@@ -166,7 +156,7 @@ async function handleList(
   }));
 
   return {
-    success: true,
+    success: true as const,
     data: { queue: items },
     message: `${queue.length} items in queue`,
   };
@@ -179,17 +169,17 @@ async function handleAdd(
   queueManager: QueueManager,
   entityType?: string,
   entityId?: string,
-): Promise<QueueOutput> {
+): Promise<ToolResult> {
   if (!entityType) {
     return {
-      success: false,
+      success: false as const,
       error: "entityType is required for add action",
     };
   }
 
   if (!entityId) {
     return {
-      success: false,
+      success: false as const,
       error: "entityId is required for add action",
     };
   }
@@ -197,7 +187,7 @@ async function handleAdd(
   const result = await queueManager.add(entityType, entityId);
 
   return {
-    success: true,
+    success: true as const,
     data: { entityType, entityId, position: result.position },
     message: `Added to queue at position ${result.position}`,
   };
@@ -210,17 +200,17 @@ async function handleRemove(
   queueManager: QueueManager,
   entityType?: string,
   entityId?: string,
-): Promise<QueueOutput> {
+): Promise<ToolResult> {
   if (!entityType) {
     return {
-      success: false,
+      success: false as const,
       error: "entityType is required for remove action",
     };
   }
 
   if (!entityId) {
     return {
-      success: false,
+      success: false as const,
       error: "entityId is required for remove action",
     };
   }
@@ -228,7 +218,7 @@ async function handleRemove(
   await queueManager.remove(entityType, entityId);
 
   return {
-    success: true,
+    success: true as const,
     data: { entityType, entityId },
     message: "Removed from queue",
   };
@@ -242,31 +232,31 @@ async function handleReorder(
   entityType?: string,
   entityId?: string,
   position?: number,
-): Promise<QueueOutput> {
+): Promise<ToolResult> {
   if (!entityType) {
     return {
-      success: false,
+      success: false as const,
       error: "entityType is required for reorder action",
     };
   }
 
   if (!entityId) {
     return {
-      success: false,
+      success: false as const,
       error: "entityId is required for reorder action",
     };
   }
 
   if (position === undefined) {
     return {
-      success: false,
+      success: false as const,
       error: "position is required for reorder action",
     };
   }
 
   if (position < 1) {
     return {
-      success: false,
+      success: false as const,
       error: "position must be a positive number",
     };
   }
@@ -274,7 +264,7 @@ async function handleReorder(
   await queueManager.reorder(entityType, entityId, position);
 
   return {
-    success: true,
+    success: true as const,
     data: { entityType, entityId, position },
     message: `Moved to position ${position}`,
   };

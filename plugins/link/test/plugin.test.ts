@@ -202,13 +202,13 @@ describe("LinkPlugin with Harness", () => {
   });
 
   describe("Tool Execution", () => {
-    it("link_capture should throw ZodError for invalid URL format", async () => {
-      // Zod validation happens before try/catch in handler
-      expect(
-        harness.executeTool("link_capture", {
-          url: "not-a-valid-url",
-        }),
-      ).rejects.toThrow();
+    it("link_capture should return error for invalid URL format", async () => {
+      // createTypedTool auto-validates input and returns error result
+      const result = await harness.executeTool("link_capture", {
+        url: "not-a-valid-url",
+      });
+
+      expect(result.success).toBe(false);
     });
 
     it("link_capture should reject invalid domains", async () => {

@@ -1,16 +1,32 @@
 import type {
   PluginTool,
-  ToolContext,
   ServicePluginContext,
   JobContext,
 } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import type { SiteBuilder } from "../lib/site-builder";
 import type { SiteContentService } from "../lib/site-content-service";
 import type { SiteBuilderConfig } from "../config";
 import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "@brains/utils";
 import { GenerateOptionsSchema } from "../types/content-schemas";
+
+const buildSiteInputSchema = z.object({
+  environment: z
+    .enum(["preview", "production"])
+    .optional()
+    .describe(
+      "Build environment (defaults to production, or preview if configured)",
+    ),
+  clean: z
+    .boolean()
+    .default(true)
+    .describe("Clean output directory before building"),
+  includeAssets: z
+    .boolean()
+    .default(true)
+    .describe("Include static assets in build"),
+});
 
 export function createSiteBuilderTools(
   getSiteBuilder: () => SiteBuilder | undefined,
@@ -21,139 +37,84 @@ export function createSiteBuilderTools(
   routeRegistry: RouteRegistry,
 ): PluginTool[] {
   return [
-    createTool(
+    createTypedTool(
       pluginId,
       "generate",
       "Generate content for all routes, a specific route, or a specific section",
-      {
-        routeId: z
-          .string()
-          .optional()
-          .describe(
-            "Optional: specific route ID (generates all sections for this route)",
-          ),
-        sectionId: z
-          .string()
-          .optional()
-          .describe("Optional: specific section ID (requires routeId)"),
-        force: z
-          .boolean()
-          .default(false)
-          .describe("Optional: regenerate existing content"),
-        dryRun: z
-          .boolean()
-          .default(false)
-          .describe("Optional: preview changes without executing"),
-      },
-      async (input: unknown, context: ToolContext) => {
-        try {
-          const siteContentService = getSiteContentService();
-          if (!siteContentService) {
-            return {
-              success: false,
-              error: "Site content service not initialized",
-            };
-          }
-
-          // Parse and validate input using the schema
-          let options;
-          try {
-            options = GenerateOptionsSchema.parse(input);
-          } catch (error) {
-            const msg = `Invalid input parameters: ${error instanceof Error ? error.message : String(error)}`;
-            return {
-              success: false,
-              error: msg,
-            };
-          }
-
-          // Validate that sectionId is only used with routeId
-          if (options.sectionId && !options.routeId) {
-            return {
-              success: false,
-              error: "sectionId requires routeId to be specified",
-            };
-          }
-
-          // Create job metadata
-          const metadata: JobContext = {
-            rootJobId: `generate-${Date.now()}`,
-            progressToken: context.progressToken,
-            pluginId,
-            operationType: "content_operations",
-            // Routing context for progress messages
-            interfaceType: context.interfaceType,
-            channelId: context.channelId,
-          };
-
-          const result = await siteContentService.generateContent(
-            options,
-            metadata,
-          );
-
-          const message = `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`;
-
-          // Note: Omit 'formatted' for async jobs - progress events will show actual status
-          // This prevents showing stale status in the agent response
-          return {
-            success: true,
-            message,
-            data: {
-              batchId: result.batchId,
-              jobsQueued: result.queuedSections,
-              totalSections: result.totalSections,
-              jobs: result.jobs,
-            },
-          };
-        } catch (error) {
-          const msg = `Tool execution failed: ${error instanceof Error ? error.message : String(error)}`;
+      GenerateOptionsSchema,
+      async (input, context) => {
+        const siteContentService = getSiteContentService();
+        if (!siteContentService) {
           return {
             success: false,
-            error: msg,
+            error: "Site content service not initialized",
           };
         }
+
+        // Validate that sectionId is only used with routeId
+        if (input.sectionId && !input.routeId) {
+          return {
+            success: false,
+            error: "sectionId requires routeId to be specified",
+          };
+        }
+
+        // Create job metadata
+        const metadata: JobContext = {
+          rootJobId: `generate-${Date.now()}`,
+          progressToken: context.progressToken,
+          pluginId,
+          operationType: "content_operations",
+          // Routing context for progress messages
+          interfaceType: context.interfaceType,
+          channelId: context.channelId,
+        };
+
+        const result = await siteContentService.generateContent(
+          input,
+          metadata,
+        );
+
+        const message = `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`;
+
+        // Note: Omit 'formatted' for async jobs - progress events will show actual status
+        // This prevents showing stale status in the agent response
+        return {
+          success: true,
+          message,
+          data: {
+            batchId: result.batchId,
+            jobsQueued: result.queuedSections,
+            totalSections: result.totalSections,
+            jobs: result.jobs,
+          },
+        };
       },
     ),
-    createTool(
+    createTypedTool(
       pluginId,
       "build-site",
       "Build a static site from registered routes",
-      {
-        environment: z
-          .enum(["preview", "production"])
-          .optional()
-          .describe(
-            "Build environment (defaults to production, or preview if configured)",
-          ),
-        clean: z
-          .boolean()
-          .default(true)
-          .describe("Clean output directory before building"),
-        includeAssets: z
-          .boolean()
-          .default(true)
-          .describe("Include static assets in build"),
-      },
-      async (input: unknown, context: ToolContext) => {
-        const buildSchema = z.object({
-          environment: z.enum(["preview", "production"]).optional(),
-          clean: z.boolean().default(true),
-          includeAssets: z.boolean().default(true),
-        });
-        const params = buildSchema.parse(input);
-
+      buildSiteInputSchema,
+      async (input, context) => {
         const siteBuilder = getSiteBuilder();
         if (!siteBuilder) {
-          throw new Error("Site builder not initialized");
+          return {
+            success: false,
+            error: "Site builder not initialized",
+          };
         }
 
         // Determine default environment based on config
         const defaultEnv = config.previewOutputDir ? "preview" : "production";
-        const environment = params.environment ?? defaultEnv;
+        const environment = input.environment ?? defaultEnv;
 
         // Validate environment is available
         if (environment === "preview" && !config.previewOutputDir) {
-          throw new Error("Preview environment not configured");
+          return {
+            success: false,
+            error: "Preview environment not configured",
+          };
         }
 
         // Determine output directory based on environment
@@ -200,11 +161,11 @@ export function createSiteBuilderTools(
         };
       },
     ),
-    createTool(
+    createTypedTool(
       pluginId,
       "list_routes",
       "List all registered routes",
-      {},
+      z.object({}),
       async () => {
         const routes = routeRegistry.list();
 
@@ -228,11 +189,11 @@ export function createSiteBuilderTools(
       },
       { visibility: "public" },
     ),
-    createTool(
+    createTypedTool(
       pluginId,
       "list_templates",
       "List all registered view templates",
-      {},
+      z.object({}),
       async () => {
         const templates = pluginContext.views.list();
 

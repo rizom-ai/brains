@@ -334,22 +334,22 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     }
   }
 
-  private handlePublishSuccess(
+  private async handlePublishSuccess(
     context: ServicePluginContext,
     event: {
       entityType: string;
       entityId: string;
       result: { id: string; url?: string };
     },
-  ): void {
-    void context.messaging.send(PUBLISH_MESSAGES.COMPLETED, {
+  ): Promise<void> {
+    await context.messaging.send(PUBLISH_MESSAGES.COMPLETED, {
       entityType: event.entityType,
       entityId: event.entityId,
       result: event.result,
     });
   }
 
-  private handlePublishFailed(
+  private async handlePublishFailed(
     context: ServicePluginContext,
     event: {
       entityType: string;
@@ -358,8 +358,8 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       retryCount: number;
       willRetry: boolean;
     },
-  ): void {
-    void context.messaging.send(PUBLISH_MESSAGES.FAILED, {
+  ): Promise<void> {
+    await context.messaging.send(PUBLISH_MESSAGES.FAILED, {
       entityType: event.entityType,
       entityId: event.entityId,
       error: event.error,

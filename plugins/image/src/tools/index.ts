@@ -1,9 +1,5 @@
-import type {
-  PluginTool,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import { z, slugify, setCoverImageId } from "@brains/utils";
 import {
   imageAdapter,
@@ -32,55 +28,45 @@ function createImageUploadTool(
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
-  return createTool(
+  return createTypedTool(
     pluginId,
     "upload",
     "Upload an image from a base64 data URL or fetch from HTTP URL",
-    uploadInputSchema.shape,
-    async (input: unknown, _toolContext: ToolContext) => {
-      try {
-        const { title, source } = uploadInputSchema.parse(input);
-
-        // Determine source type and get data URL
-        let dataUrl: string;
-        if (isValidDataUrl(source)) {
-          dataUrl = source;
-        } else if (isHttpUrl(source)) {
-          dataUrl = await fetchImageAsBase64(source);
-        } else {
-          return {
-            success: false,
-            error: "Invalid source: must be a base64 data URL or HTTP URL",
-          };
-        }
-
-        // Create image entity data (alt defaults to title)
-        const entityData = imageAdapter.createImageEntity({
-          dataUrl,
-          title,
-        });
-
-        // Generate slug from title
-        const slug = slugify(title);
-
-        // Create entity in database
-        const result = await plugin.createEntity({
-          ...entityData,
-          id: slug,
-        });
-
-        return {
-          success: true,
-          data: { imageId: slug, jobId: result.jobId },
-          message: `Image uploaded: ${title} (${entityData.metadata.width}x${entityData.metadata.height})`,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+    uploadInputSchema,
+    async (input) => {
+      // Determine source type and get data URL
+      let dataUrl: string;
+      if (isValidDataUrl(input.source)) {
+        dataUrl = input.source;
+      } else if (isHttpUrl(input.source)) {
+        dataUrl = await fetchImageAsBase64(input.source);
+      } else {
         return {
           success: false,
-          error: msg,
+          error: "Invalid source: must be a base64 data URL or HTTP URL",
         };
       }
+
+      // Create image entity data (alt defaults to title)
+      const entityData = imageAdapter.createImageEntity({
+        dataUrl,
+        title: input.title,
+      });
+
+      // Generate slug from title
+      const slug = slugify(input.title);
+
+      // Create entity in database
+      const result = await plugin.createEntity({
+        ...entityData,
+        id: slug,
+      });
+
+      return {
+        success: true,
+        data: { imageId: slug, jobId: result.jobId },
+        message: `Image uploaded: ${input.title} (${entityData.metadata.width}x${entityData.metadata.height})`,
+      };
     },
   );
 }
@@ -166,104 +152,95 @@ function createImageGenerateTool(
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
-  return createTool(
+  return createTypedTool(
     pluginId,
     "generate",
     "Generate an image using AI. IMPORTANT: When generating an image for an existing entity (post, project, etc.), ALWAYS provide targetEntityType and targetEntityId — the image will be auto-attached as cover image and the prompt will be auto-generated from the entity content. Only provide a manual prompt for standalone images.",
-    generateInputSchema.shape,
-    async (input: unknown, toolContext: ToolContext) => {
-      try {
-        // Check if image generation is available
-        if (!plugin.canGenerateImages()) {
-          return {
-            success: false,
-            error: "Image generation not available: no API key configured",
-          };
-        }
-
-        const parsed = generateInputSchema.parse(input);
-        const { aspectRatio, targetEntityType, targetEntityId } = parsed;
-        let { prompt, title } = parsed;
-        let entityTitle: string | undefined;
-        let entityContent: string | undefined;
-
-        // If no prompt provided but target entity specified, auto-generate from entity content
-        if (!prompt && targetEntityType && targetEntityId) {
-          const entity = await context.entityService.getEntity(
-            targetEntityType,
-            targetEntityId,
-          );
-          if (!entity) {
-            return {
-              success: false,
-              error: `Target entity not found: ${targetEntityType}/${targetEntityId}`,
-            };
-          }
-
-          // Extract title and content for AI prompt distillation in the job handler
-          entityTitle =
-            (entity.metadata as { title?: string }).title ?? targetEntityId;
-          entityContent = entity.content;
-          title ??= `${entityTitle} Cover Image`;
-
-          // Use entity title as fallback prompt subject
-          prompt = entityTitle;
-        }
-
-        // Validate we have required fields
-        if (!prompt) {
-          return {
-            success: false,
-            error:
-              "Either prompt or targetEntityId must be provided to generate an image",
-          };
-        }
-        if (!title) {
-          return {
-            success: false,
-            error:
-              "Either title or targetEntityId must be provided to name the image",
-          };
-        }
-
-        // Build full prompt with base context
-        const basePrompt = buildImageBasePrompt(plugin);
-        const fullPrompt = basePrompt + prompt;
-
-        // Queue the image generation job
-        const jobId = await context.jobs.enqueue(
-          "image-generate",
-          {
-            prompt: fullPrompt,
-            title,
-            ...(aspectRatio && { aspectRatio }),
-            ...(targetEntityType && { targetEntityType }),
-            ...(targetEntityId && { targetEntityId }),
-            ...(entityTitle && { entityTitle }),
-            ...(entityContent && { entityContent: entityContent }),
-          },
-          toolContext,
-          {
-            source: `${pluginId}_generate`,
-            metadata: {
-              operationType: "content_operations",
-              operationTarget: "image",
-            },
-          },
-        );
-
-        return {
-          success: true,
-          data: { jobId },
-          message: `Image generation job queued (jobId: ${jobId})`,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+    generateInputSchema,
+    async (input, toolContext) => {
+      // Check if image generation is available
+      if (!plugin.canGenerateImages()) {
         return {
           success: false,
-          error: msg,
+          error: "Image generation not available: no API key configured",
         };
       }
+
+      const { aspectRatio, targetEntityType, targetEntityId } = input;
+      let { prompt, title } = input;
+      let entityTitle: string | undefined;
+      let entityContent: string | undefined;
+
+      // If no prompt provided but target entity specified, auto-generate from entity content
+      if (!prompt && targetEntityType && targetEntityId) {
+        const entity = await context.entityService.getEntity(
+          targetEntityType,
+          targetEntityId,
+        );
+        if (!entity) {
+          return {
+            success: false,
+            error: `Target entity not found: ${targetEntityType}/${targetEntityId}`,
+          };
+        }
+
+        // Extract title and content for AI prompt distillation in the job handler
+        entityTitle =
+          (entity.metadata as { title?: string }).title ?? targetEntityId;
+        entityContent = entity.content;
+        title ??= `${entityTitle} Cover Image`;
+
+        // Use entity title as fallback prompt subject
+        prompt = entityTitle;
+      }
+
+      // Validate we have required fields
+      if (!prompt) {
+        return {
+          success: false,
+          error:
+            "Either prompt or targetEntityId must be provided to generate an image",
+        };
+      }
+      if (!title) {
+        return {
+          success: false,
+          error:
+            "Either title or targetEntityId must be provided to name the image",
+        };
+      }
+
+      // Build full prompt with base context
+      const basePrompt = buildImageBasePrompt(plugin);
+      const fullPrompt = basePrompt + prompt;
+
+      // Queue the image generation job
+      const jobId = await context.jobs.enqueue(
+        "image-generate",
+        {
+          prompt: fullPrompt,
+          title,
+          ...(aspectRatio && { aspectRatio }),
+          ...(targetEntityType && { targetEntityType }),
+          ...(targetEntityId && { targetEntityId }),
+          ...(entityTitle && { entityTitle }),
+          ...(entityContent && { entityContent: entityContent }),
+        },
+        toolContext,
+        {
+          source: `${pluginId}_generate`,
+          metadata: {
+            operationType: "content_operations",
+            operationTarget: "image",
+          },
+        },
+      );
+
+      return {
+        success: true,
+        data: { jobId },
+        message: `Image generation job queued (jobId: ${jobId})`,
+      };
     },
   );
 }
@@ -288,70 +265,61 @@ function createSetCoverTool(
   plugin: IImagePlugin,
   pluginId: string,
 ): PluginTool {
-  return createTool(
+  return createTypedTool(
     pluginId,
     "set-cover",
     "Set or remove cover image on an entity. Use imageId to set an existing image, or null to remove.",
-    setCoverInputSchema.shape,
-    async (input: unknown, _toolContext: ToolContext) => {
-      try {
-        const { entityType, entityId, imageId } =
-          setCoverInputSchema.parse(input);
+    setCoverInputSchema,
+    async (input) => {
+      const { entityType, entityId, imageId } = input;
 
-        // Get adapter and check capability
-        const adapter = plugin.getAdapter(entityType);
-        if (!adapter?.supportsCoverImage) {
-          return {
-            success: false,
-            error: `Entity type '${entityType}' doesn't support cover images`,
-          };
-        }
-
-        // Get entity - cast to EntityWithCoverImage since adapter.supportsCoverImage is true
-        const baseEntity = await plugin.findEntity(entityType, entityId);
-        if (!baseEntity) {
-          return {
-            success: false,
-            error: `Entity not found: ${entityId}`,
-          };
-        }
-        const entity = baseEntity as EntityWithCoverImage;
-
-        if (imageId) {
-          // Validate existing image exists
-          const image = await plugin.getEntity("image", imageId);
-          if (!image) {
-            return {
-              success: false,
-              error: `Image not found: ${imageId}`,
-            };
-          }
-        }
-
-        // Update entity using shared utility
-        const updated = setCoverImageId(entity, imageId);
-        await plugin.updateEntity(updated);
-
-        const message = imageId
-          ? `Cover image set to '${imageId}' on ${entityType}/${entityId}`
-          : `Cover image removed from ${entityType}/${entityId}`;
-
-        return {
-          success: true,
-          data: {
-            entityType,
-            entityId,
-            imageId,
-          },
-          message,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+      // Get adapter and check capability
+      const adapter = plugin.getAdapter(entityType);
+      if (!adapter?.supportsCoverImage) {
         return {
           success: false,
-          error: msg,
+          error: `Entity type '${entityType}' doesn't support cover images`,
         };
       }
+
+      // Get entity - cast to EntityWithCoverImage since adapter.supportsCoverImage is true
+      const baseEntity = await plugin.findEntity(entityType, entityId);
+      if (!baseEntity) {
+        return {
+          success: false,
+          error: `Entity not found: ${entityId}`,
+        };
+      }
+      const entity = baseEntity as EntityWithCoverImage;
+
+      if (imageId) {
+        // Validate existing image exists
+        const image = await plugin.getEntity("image", imageId);
+        if (!image) {
+          return {
+            success: false,
+            error: `Image not found: ${imageId}`,
+          };
+        }
+      }
+
+      // Update entity using shared utility
+      const updated = setCoverImageId(entity, imageId);
+      await plugin.updateEntity(updated);
+
+      const message = imageId
+        ? `Cover image set to '${imageId}' on ${entityType}/${entityId}`
+        : `Cover image removed from ${entityType}/${entityId}`;
+
+      return {
+        success: true,
+        data: {
+          entityType,
+          entityId,
+          imageId,
+        },
+        message,
+      };
     },
   );
 }

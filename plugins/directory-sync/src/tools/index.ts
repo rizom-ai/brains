@@ -1,9 +1,6 @@
-import type {
-  PluginTool,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
+import { z } from "@brains/utils";
 import type { DirectorySync } from "../lib/directory-sync";
 
 export function createDirectorySyncTools(
@@ -12,12 +9,12 @@ export function createDirectorySyncTools(
   pluginId: string,
 ): PluginTool[] {
   return [
-    createTool(
+    createTypedTool(
       pluginId,
       "sync",
       "Sync brain entities with the filesystem. Use when users want to refresh content from files or save changes to disk.",
-      {},
-      async (_input: unknown, context: ToolContext) => {
+      z.object({}),
+      async (_input, context) => {
         const source = context.channelId
           ? `${context.interfaceType}:${context.channelId}`
           : `plugin:${pluginId}`;
@@ -52,6 +49,13 @@ export function createDirectorySyncTools(
         if (!result) {
           return {
             success: true,
+            data: {
+              jobId: "",
+              batchId: "",
+              exportOperations: 0,
+              importOperations: 0,
+              totalFiles: 0,
+            },
             message: "No operations needed - no entity types or files to sync",
           };
         }
@@ -59,7 +63,6 @@ export function createDirectorySyncTools(
         // Include batchId as jobId for agent response tracking
         return {
           success: true,
-          message: `Sync batch operation queued: ${result.exportOperationsCount} export jobs, ${result.importOperationsCount} import jobs for ${result.totalFiles} files`,
           data: {
             jobId: result.batchId,
             batchId: result.batchId,
@@ -67,6 +70,7 @@ export function createDirectorySyncTools(
             importOperations: result.importOperationsCount,
             totalFiles: result.totalFiles,
           },
+          message: `Sync batch operation queued: ${result.exportOperationsCount} export jobs, ${result.importOperationsCount} import jobs for ${result.totalFiles} files`,
         };
       },
     ),

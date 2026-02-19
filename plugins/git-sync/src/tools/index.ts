@@ -1,5 +1,6 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
+import { z } from "@brains/utils";
 import type { GitSync } from "../lib/git-sync";
 
 export function createGitSyncTools(
@@ -8,11 +9,11 @@ export function createGitSyncTools(
   context: ServicePluginContext,
 ): PluginTool[] {
   return [
-    createTool(
+    createTypedTool(
       pluginId,
       "sync",
       "Sync brain data with git repository (commit, push, pull). Use when users want to backup or sync their data.",
-      {},
+      z.object({}),
       async (_input, toolContext) => {
         const jobId = await context.jobs.enqueue(
           "sync",
@@ -34,11 +35,11 @@ export function createGitSyncTools(
         };
       },
     ),
-    createTool(
+    createTypedTool(
       pluginId,
       "status",
       "Get git repository status. Use when users ask about sync status, pending changes, or version control state.",
-      {},
+      z.object({}),
       async () => {
         const status = await gitSync.getStatus();
 

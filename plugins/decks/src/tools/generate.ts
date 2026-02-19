@@ -1,9 +1,5 @@
-import type {
-  PluginTool,
-  ToolContext,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 /**
@@ -52,43 +48,33 @@ export function createGenerateTool(
   context: ServicePluginContext,
   pluginId: string,
 ): PluginTool {
-  return createTool(
+  return createTypedTool(
     pluginId,
     "generate",
     "Queue a job to create a new slide deck draft (provide title and content, or just a prompt for AI generation)",
-    generateInputSchema.shape,
-    async (input: unknown, toolContext: ToolContext) => {
-      try {
-        const parsed = generateInputSchema.parse(input);
-
-        // Enqueue the deck generation job
-        // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
-        // Setting a different rootJobId would cause progress events to be skipped
-        const jobId = await context.jobs.enqueue(
-          "generation",
-          parsed,
-          toolContext,
-          {
-            source: `${pluginId}_generate`,
-            metadata: {
-              operationType: "content_operations",
-              operationTarget: "deck",
-            },
+    generateInputSchema,
+    async (input, toolContext) => {
+      // Enqueue the deck generation job
+      // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
+      // Setting a different rootJobId would cause progress events to be skipped
+      const jobId = await context.jobs.enqueue(
+        "generation",
+        input,
+        toolContext,
+        {
+          source: `${pluginId}_generate`,
+          metadata: {
+            operationType: "content_operations",
+            operationTarget: "deck",
           },
-        );
+        },
+      );
 
-        return {
-          success: true,
-          data: { jobId },
-          message: `Deck generation job queued (jobId: ${jobId})`,
-        };
-      } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        return {
-          success: false,
-          error: msg,
-        };
-      }
+      return {
+        success: true,
+        data: { jobId },
+        message: `Deck generation job queued (jobId: ${jobId})`,
+      };
     },
   );
 }
