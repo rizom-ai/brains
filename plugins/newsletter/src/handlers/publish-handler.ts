@@ -23,22 +23,7 @@ export type PublishHandlerResult =
   | { success: true; skipped: true; reason: string }
   | { success: false; error: string };
 
-/**
- * Blog post entity shape (minimal fields needed)
- */
-interface BlogPost {
-  id: string;
-  entityType: string;
-  content: string;
-  contentHash: string;
-  created: string;
-  updated: string;
-  metadata: {
-    title: string;
-    slug: string;
-    status: string;
-  };
-}
+import type { BlogPost } from "./types";
 
 /**
  * Handle publish:completed message to auto-send newsletter

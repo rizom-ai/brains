@@ -245,6 +245,7 @@
   .bg-theme-subtle { background-color: var(--color-bg-subtle); }
   .bg-theme-muted { background-color: var(--color-bg-muted); }
   .bg-theme-dark { background-color: var(--color-bg-dark); }
+  .bg-surface { background-color: var(--color-bg-subtle); }
   .text-theme { color: var(--color-text); }
   .text-theme-muted { color: var(--color-text-muted); }
   .text-theme-light { color: var(--color-text-light); }
@@ -553,5 +554,16 @@
   }
   [data-theme="light"] .moon-icon {
     display: block;
+  }
+}
+
+/* Focus ring utilities for accessibility */
+@layer utilities {
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
+  }
+
+  .focus-ring-light {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand;
   }
 }

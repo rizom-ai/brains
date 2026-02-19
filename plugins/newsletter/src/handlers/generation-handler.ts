@@ -46,23 +46,7 @@ export const generationResultSchema = z.object({
 
 export type GenerationResult = z.infer<typeof generationResultSchema>;
 
-/**
- * Blog post entity shape (minimal fields needed for aggregation)
- */
-interface BlogPost {
-  id: string;
-  entityType: string;
-  content: string;
-  contentHash: string;
-  created: string;
-  updated: string;
-  metadata: {
-    title: string;
-    slug: string;
-    status: string;
-    excerpt?: string;
-  };
-}
+import type { BlogPost } from "./types";
 
 /**
  * Job handler for newsletter generation
