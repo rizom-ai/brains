@@ -1,22 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
 import { createServicePluginHarness } from "@brains/plugins/test";
-import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
+import { mkdirSync, rmSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import simpleGit from "simple-git";
 
 /**
- * Tests for event-driven commit/push behavior.
+ * Tests for event-driven sync behavior.
  *
  * When entity events (entity:created, entity:updated, entity:deleted) fire,
- * git-sync should debounce and then commit + push changes automatically.
+ * git-sync should debounce and then enqueue a sync job.
  */
 describe("Event-Driven Commit/Push", () => {
   let harness: ReturnType<typeof createServicePluginHarness>;
   let testDir: string;
   let remoteDir: string;
   let plugin: GitSyncPlugin;
+
   beforeEach(async () => {
     testDir = join(tmpdir(), `test-event-sync-${Date.now()}`);
     remoteDir = join(tmpdir(), `test-event-remote-${Date.now()}`);
@@ -66,186 +67,96 @@ describe("Event-Driven Commit/Push", () => {
     });
   });
 
-  describe("Debounced commit on entity:created", () => {
-    it("should commit changes after debounce when entity:created fires", async () => {
-      const git = simpleGit(testDir);
+  describe("Debounced sync on entity:created", () => {
+    it("should trigger requestSync when entity:created fires", async () => {
+      const spy = mock(() => {});
+      const original = plugin.requestSync.bind(plugin);
+      plugin.requestSync = (): void => {
+        original();
+        spy();
+      };
 
-      // Create a file (simulating directory-sync writing an entity)
-      mkdirSync(join(testDir, "post"), { recursive: true });
-      writeFileSync(
-        join(testDir, "post", "test-post.md"),
-        "---\ntitle: Test Post\n---\n\nContent",
-      );
-
-      // Fire entity:created event
       await harness.sendMessage("entity:created", {
         entityType: "post",
         entityId: "test-post",
       });
 
-      // Wait for debounce (100ms) + processing time
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Verify file was committed
-      const status = await git.status();
-      expect(status.isClean()).toBe(true);
-
-      // Verify commit exists
-      const log = await git.log();
-      expect(log.all.length).toBeGreaterThan(1); // Initial commit + auto-commit
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("Debounced commit on entity:updated", () => {
-    it("should commit changes after debounce when entity:updated fires", async () => {
-      const git = simpleGit(testDir);
+  describe("Debounced sync on entity:updated", () => {
+    it("should trigger requestSync when entity:updated fires", async () => {
+      const spy = mock(() => {});
+      const original = plugin.requestSync.bind(plugin);
+      plugin.requestSync = (): void => {
+        original();
+        spy();
+      };
 
-      // Create and commit a file first
-      mkdirSync(join(testDir, "post"), { recursive: true });
-      writeFileSync(
-        join(testDir, "post", "existing.md"),
-        "---\ntitle: Old\n---\n\nOld content",
-      );
-      await git.add("-A");
-      await git.commit("seed file");
-
-      // Modify the file (simulating directory-sync updating an entity)
-      writeFileSync(
-        join(testDir, "post", "existing.md"),
-        "---\ntitle: Updated\n---\n\nNew content",
-      );
-
-      // Fire entity:updated event
       await harness.sendMessage("entity:updated", {
         entityType: "post",
         entityId: "existing",
       });
 
-      // Wait for debounce + processing
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Verify file was committed
-      const status = await git.status();
-      expect(status.isClean()).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("Debounced commit on entity:deleted", () => {
-    it("should commit deletions after debounce when entity:deleted fires", async () => {
-      const git = simpleGit(testDir);
+  describe("Debounced sync on entity:deleted", () => {
+    it("should trigger requestSync when entity:deleted fires", async () => {
+      const spy = mock(() => {});
+      const original = plugin.requestSync.bind(plugin);
+      plugin.requestSync = (): void => {
+        original();
+        spy();
+      };
 
-      // Create and commit a file first
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      writeFileSync(
-        join(testDir, "note", "to-delete.md"),
-        "---\ntitle: Delete Me\n---\n",
-      );
-      await git.add("-A");
-      await git.commit("seed file for deletion");
-
-      // Delete the file (simulating directory-sync deleting an entity)
-      rmSync(join(testDir, "note", "to-delete.md"));
-
-      // Fire entity:deleted event
       await harness.sendMessage("entity:deleted", {
         entityType: "note",
         entityId: "to-delete",
       });
 
-      // Wait for debounce + processing
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Verify deletion was committed
-      const status = await git.status();
-      expect(status.isClean()).toBe(true);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("Debounce batching", () => {
-    it("should batch multiple entity events into a single commit", async () => {
-      const git = simpleGit(testDir);
+    it("should batch multiple entity events through the same debounce", async () => {
+      const spy = mock(() => {});
+      const original = plugin.requestSync.bind(plugin);
+      plugin.requestSync = (): void => {
+        original();
+        spy();
+      };
 
-      // Get commit count before
-      const logBefore = await git.log();
-      const commitCountBefore = logBefore.all.length;
-
-      // Create multiple files rapidly
-      mkdirSync(join(testDir, "post"), { recursive: true });
-      writeFileSync(
-        join(testDir, "post", "post-1.md"),
-        "---\ntitle: Post 1\n---\n",
-      );
+      // Fire 3 events rapidly
       await harness.sendMessage("entity:created", {
         entityType: "post",
         entityId: "post-1",
       });
-
-      writeFileSync(
-        join(testDir, "post", "post-2.md"),
-        "---\ntitle: Post 2\n---\n",
-      );
       await harness.sendMessage("entity:created", {
         entityType: "post",
         entityId: "post-2",
       });
-
-      writeFileSync(
-        join(testDir, "post", "post-3.md"),
-        "---\ntitle: Post 3\n---\n",
-      );
       await harness.sendMessage("entity:created", {
         entityType: "post",
         entityId: "post-3",
       });
 
-      // Wait for single debounced commit
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Should have exactly one new commit (not three)
-      const logAfter = await git.log();
-      expect(logAfter.all.length).toBe(commitCountBefore + 1);
-
-      // All three files should be in that commit
-      const status = await git.status();
-      expect(status.isClean()).toBe(true);
-    });
-  });
-
-  describe("Auto-push after commit", () => {
-    it("should push to remote after committing", async () => {
-      // Create a file and trigger event
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      writeFileSync(
-        join(testDir, "note", "pushed.md"),
-        "---\ntitle: Pushed\n---\n",
-      );
-
-      await harness.sendMessage("entity:created", {
-        entityType: "note",
-        entityId: "pushed",
-      });
-
-      // Wait for debounce + commit + push
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Verify pushed to remote by cloning into a new directory
-      const verifyDir = join(tmpdir(), `verify-push-${Date.now()}`);
-      mkdirSync(verifyDir, { recursive: true });
-      await simpleGit(verifyDir).clone(remoteDir, ".", ["--branch", "main"]);
-
-      expect(existsSync(join(verifyDir, "note", "pushed.md"))).toBe(true);
-
-      // Cleanup
-      rmSync(verifyDir, { recursive: true, force: true });
+      // All 3 events should call requestSync (the debounce inside handles batching)
+      expect(spy).toHaveBeenCalledTimes(3);
     });
   });
 
   describe("No-op when no changes", () => {
-    it("should not commit when there are no actual file changes", async () => {
-      const git = simpleGit(testDir);
-
-      const logBefore = await git.log();
-      const commitCountBefore = logBefore.all.length;
+    it("should still trigger requestSync even without file changes", async () => {
+      const spy = mock(() => {});
+      const original = plugin.requestSync.bind(plugin);
+      plugin.requestSync = (): void => {
+        original();
+        spy();
+      };
 
       // Fire entity event without any file changes
       await harness.sendMessage("entity:updated", {
@@ -253,31 +164,26 @@ describe("Event-Driven Commit/Push", () => {
         entityId: "nonexistent",
       });
 
-      // Wait for debounce
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Should NOT have created a new commit
-      const logAfter = await git.log();
-      expect(logAfter.all.length).toBe(commitCountBefore);
+      // requestSync is called — the SyncJobHandler handles the no-op check
+      expect(spy).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("Concurrency guard", () => {
-    it("should have a syncing guard in the implementation", () => {
+    it("should use LeadingTrailingDebounce for sync deduplication", () => {
       const source = readFileSync(join(__dirname, "../src/plugin.ts"), "utf-8");
 
-      // Should have a syncing flag
-      expect(source).toContain("syncing");
+      expect(source).toContain("LeadingTrailingDebounce");
+      expect(source).toContain("syncDebounce");
     });
   });
 
   describe("Cleanup on unregister", () => {
-    it("should have cleanup logic for commit timeout", () => {
+    it("should have cleanup logic for sync debounce", () => {
       const source = readFileSync(join(__dirname, "../src/plugin.ts"), "utf-8");
 
-      // onUnregister should clear the commit timeout
-      expect(source).toContain("commitTimeout");
-      expect(source).toContain("clearTimeout");
+      expect(source).toContain("syncDebounce");
+      expect(source).toContain("dispose");
     });
   });
 });

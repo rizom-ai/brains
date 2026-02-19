@@ -78,9 +78,6 @@ describe("Pull Skip Unchanged", () => {
     );
 
     expect(result.success).toBe(true);
-    const data = result.success ? result.data : undefined;
-    expect(data).toBeDefined();
-    expect((data as { jobId?: string })?.jobId).toBeDefined();
   });
 });
 

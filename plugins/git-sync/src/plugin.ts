@@ -1,5 +1,6 @@
 import type { Plugin, PluginTool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { LeadingTrailingDebounce } from "@brains/utils";
 import { GitSync } from "./lib/git-sync";
 import { gitSyncConfigSchema, type GitSyncConfig } from "./types";
 import { GitSyncStatusFormatter } from "./formatters/git-sync-status-formatter";
@@ -15,8 +16,7 @@ import packageJson from "../package.json";
 
 export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
   private gitSync?: GitSync;
-  private commitTimeout?: Timer;
-  private syncing = false;
+  private syncDebounce?: LeadingTrailingDebounce;
 
   constructor(config: Partial<GitSyncConfig>) {
     super("git-sync", packageJson, config, gitSyncConfigSchema);
@@ -141,49 +141,57 @@ export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
       return { success: true };
     });
 
-    // Debounced commit+push on entity changes
-    const debouncedCommitAndPush = (): void => {
-      if (this.commitTimeout) clearTimeout(this.commitTimeout);
-      this.commitTimeout = setTimeout((): void => {
-        void (async (): Promise<void> => {
-          if (this.syncing) return;
-          this.syncing = true;
-          try {
-            const git = this.getGitSync();
-            const status = await git.getStatus();
-            if (status.hasChanges) {
-              await git.commit();
-              this.logger.info("Auto-committed entity changes");
-
-              // We just committed, push if remote exists
-              if (git.hasRemote()) {
-                await git.push();
-                this.logger.info("Auto-pushed entity changes");
-              }
-            }
-          } catch (error) {
-            this.logger.warn("Failed to auto-commit/push", { error });
-          } finally {
-            this.syncing = false;
-          }
-        })();
-      }, this.config.commitDebounce);
-    };
+    // Set up debounced sync for entity changes and tool calls
+    this.syncDebounce = new LeadingTrailingDebounce(() => {
+      void this.enqueueSync();
+    }, this.config.commitDebounce);
 
     context.messaging.subscribe("entity:created", async () => {
-      debouncedCommitAndPush();
+      this.requestSync();
       return { success: true };
     });
 
     context.messaging.subscribe("entity:updated", async () => {
-      debouncedCommitAndPush();
+      this.requestSync();
       return { success: true };
     });
 
     context.messaging.subscribe("entity:deleted", async () => {
-      debouncedCommitAndPush();
+      this.requestSync();
       return { success: true };
     });
+  }
+
+  /**
+   * Request a debounced sync via the job queue
+   */
+  public requestSync(): void {
+    if (!this.syncDebounce) {
+      this.logger.warn("Sync debounce not initialized");
+      return;
+    }
+    this.syncDebounce.trigger();
+  }
+
+  private async enqueueSync(): Promise<void> {
+    if (!this.context) return;
+    try {
+      await this.context.jobs.enqueue(
+        "sync",
+        { manualSync: false },
+        { interfaceType: "system", userId: "git-sync" },
+        {
+          source: `${this.id}_auto`,
+          deduplication: "skip",
+          metadata: {
+            operationType: "file_operations",
+            operationTarget: "sync",
+          },
+        },
+      );
+    } catch (error) {
+      this.logger.warn("Failed to enqueue sync job", { error });
+    }
   }
 
   /**
@@ -191,15 +199,17 @@ export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
    */
   override async getTools(): Promise<PluginTool[]> {
     if (!this.context) throw new Error("Plugin context not available");
-    return createGitSyncTools(this.getGitSync(), this.id, this.context);
+    return createGitSyncTools(this.getGitSync(), this.id, () =>
+      this.requestSync(),
+    );
   }
 
   /**
    * Cleanup when plugin is unregistered
    */
   protected async onUnregister(): Promise<void> {
-    if (this.commitTimeout) {
-      clearTimeout(this.commitTimeout);
+    if (this.syncDebounce) {
+      this.syncDebounce.dispose();
     }
     if (this.gitSync) {
       await this.gitSync.cleanup();

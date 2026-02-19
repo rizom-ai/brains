@@ -207,9 +207,6 @@ describe("Git-Sync with Directory-Sync Integration", () => {
       );
 
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect((result.data as { jobId?: string })?.jobId).toBeDefined();
-      }
     });
   });
 
