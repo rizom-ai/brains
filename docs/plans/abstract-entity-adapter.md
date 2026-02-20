@@ -1,4 +1,4 @@
-# Streamline EntityAdapter with Abstract Base Class
+# Streamline EntityAdapter with BaseEntityAdapter
 
 ## Context
 
@@ -10,19 +10,47 @@ Every entity plugin (note, blog, products, portfolio, link, newsletter, etc.) im
 
 The remaining two (`toMarkdown`, `fromMarkdown`) share a common "extract body, parse frontmatter, regenerate" pattern in 6+ adapters. This adds ~50-80 lines of copy-paste per plugin.
 
-The goal is to introduce an `AbstractEntityAdapter` base class that provides default implementations for the boilerplate methods and protected helpers for common sub-patterns, cutting adapter code roughly in half.
+The goal is to introduce a `BaseEntityAdapter` abstract class that provides default implementations for the boilerplate methods and protected helpers for common sub-patterns, cutting adapter code roughly in half.
 
-## Phase 1: Create `AbstractEntityAdapter` base class
+## Decisions
 
-**File**: `shell/entity-service/src/adapters/abstract-entity-adapter.ts` (new)
+- **Name**: `BaseEntityAdapter` (the existing no-op `BaseEntityAdapter` gets inlined into `shellInitializer.ts`)
+- **3 default methods**: `extractMetadata`, `parseFrontMatter`, `generateFrontMatter` — can be overridden
+- **3 protected helpers**: `extractBody`, `parseFrontmatter`, `buildMarkdown` — for use in toMarkdown/fromMarkdown
+- **3 generic type params**: `<TEntity, TMetadata, TFrontmatter>` where `TFrontmatter` defaults to `TMetadata`
+- **Constructor**: config object with entityType, schema, frontmatterSchema, and optional CMS hints
+- **toMarkdown/fromMarkdown stay abstract**: every adapter implements its own, using helpers
+- **Migration**: one commit per adapter, simplest first
+- **Excluded**: ImageAdapter (binary, no frontmatter), SummaryAdapter (custom log parsing)
 
-An abstract class that implements `EntityAdapter<TEntity, TMetadata>` with:
+## Phase 0: Inline existing BaseEntityAdapter
+
+The current `BaseEntityAdapter` is a no-op passthrough used only in `shell/core/src/initialization/shellInitializer.ts` to register the `"base"` entity type. Inline it there and delete the old file, freeing up the name.
+
+**Files changed:**
+
+- `shell/core/src/initialization/shellInitializer.ts` — inline the no-op adapter
+- `shell/entity-service/src/adapters/base-entity-adapter.ts` — **delete**
+- `shell/entity-service/src/adapters/index.ts` — remove export
+- `shell/entity-service/src/index.ts` — remove `BaseEntityAdapter` export
+
+## Phase 1: Create `BaseEntityAdapter` abstract class
+
+**File**: `shell/entity-service/src/adapters/base-entity-adapter.ts` (new, replaces deleted file)
+
+```typescript
+abstract class BaseEntityAdapter<
+  TEntity extends BaseEntity<TMetadata>,
+  TMetadata = Record<string, unknown>,
+  TFrontmatter = TMetadata,
+> implements EntityAdapter<TEntity, TMetadata>
+```
 
 **Default implementations** (can be overridden):
 
 - `extractMetadata(entity)` — returns `entity.metadata`
 - `parseFrontMatter(markdown, schema)` — delegates to `parseMarkdownWithFrontmatter`
-- `generateFrontMatter(entity)` — parses frontmatter from `entity.content` via `this.fmSchema`, calls `generateFrontmatter()`
+- `generateFrontMatter(entity)` — calls `generateFrontmatter()` with entity.metadata
 
 **Abstract methods** (subclasses must implement):
 
@@ -48,9 +76,9 @@ constructor(config: {
 })
 ```
 
-**Export from**: `shell/entity-service/src/index.ts` and re-export from `shell/plugins/src/index.ts` (so plugins import from `@brains/plugins`)
+**Export from**: `shell/entity-service/src/index.ts` and re-export from `shell/plugins/src/index.ts`
 
-**Tests**: `shell/entity-service/test/abstract-entity-adapter.test.ts`
+**Tests**: `shell/entity-service/test/base-entity-adapter.test.ts`
 
 - Test default `extractMetadata` returns `entity.metadata`
 - Test default `parseFrontMatter` delegates correctly
@@ -58,9 +86,9 @@ constructor(config: {
 - Test protected helpers (`extractBody`, `parseFrontmatter`, `buildMarkdown`)
 - Test with a concrete test subclass
 
-## Phase 2: Migrate adapters (one per commit, simplest first)
+## Phase 2: Migrate adapters (one commit per adapter, simplest first)
 
-Each migration replaces `implements EntityAdapter` with `extends AbstractEntityAdapter`, removes the 3 boilerplate methods, and uses protected helpers in `toMarkdown`/`fromMarkdown`.
+Each migration replaces `implements EntityAdapter` with `extends BaseEntityAdapter`, removes the 3 boilerplate methods, and uses protected helpers in `toMarkdown`/`fromMarkdown`.
 
 ### Migration order:
 
@@ -95,9 +123,8 @@ Each migration replaces `implements EntityAdapter` with `extends AbstractEntityA
 
 ### What stays as-is:
 
-- **ImageAdapter** — binary content, no frontmatter. Minimal savings.
-- **SummaryAdapter** — complex log entry parsing, mostly custom logic
-- **BaseEntityAdapter** — no-op passthrough, different purpose
+- **ImageAdapter** — binary content, no frontmatter. No savings.
+- **SummaryAdapter** — complex log entry parsing, mostly custom logic.
 
 ### Example: NewsletterAdapter before/after
 
@@ -132,10 +159,9 @@ export class NewsletterAdapter
 **After** (~35 lines):
 
 ```typescript
-export class NewsletterAdapter extends AbstractEntityAdapter<
+export class NewsletterAdapter extends BaseEntityAdapter<
   Newsletter,
-  NewsletterMetadata,
-  NewsletterFrontmatter
+  NewsletterMetadata
 > {
   constructor() {
     super({
@@ -163,13 +189,14 @@ export class NewsletterAdapter extends AbstractEntityAdapter<
 
 ## Files Modified
 
-| File                                                           | Change                                        |
-| -------------------------------------------------------------- | --------------------------------------------- |
-| `shell/entity-service/src/adapters/abstract-entity-adapter.ts` | **New** — abstract base class                 |
-| `shell/entity-service/test/abstract-entity-adapter.test.ts`    | **New** — unit tests                          |
-| `shell/entity-service/src/index.ts`                            | Export `AbstractEntityAdapter`                |
-| `shell/plugins/src/index.ts`                                   | Re-export `AbstractEntityAdapter`             |
-| `plugins/*/src/adapters/*-adapter.ts`                          | Migrate to extend base class (one per commit) |
+| File                                                       | Change                                        |
+| ---------------------------------------------------------- | --------------------------------------------- |
+| `shell/core/src/initialization/shellInitializer.ts`        | Inline no-op adapter                          |
+| `shell/entity-service/src/adapters/base-entity-adapter.ts` | **Replace** — abstract base class             |
+| `shell/entity-service/test/base-entity-adapter.test.ts`    | **New** — unit tests                          |
+| `shell/entity-service/src/index.ts`                        | Keep `BaseEntityAdapter` export               |
+| `shell/plugins/src/index.ts`                               | Keep re-export                                |
+| `plugins/*/src/adapters/*-adapter.ts`                      | Migrate to extend base class (one per commit) |
 
 ## Verification
 
