@@ -1,10 +1,5 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/plugins";
-import { z, slugify } from "@brains/utils";
+import { BaseEntityAdapter } from "@brains/plugins";
+import { slugify } from "@brains/utils";
 import {
   productSchema,
   productFrontmatterSchema,
@@ -18,38 +13,36 @@ import {
  * Descriptive content (tagline, role, purpose, audience, values, features, story)
  * lives in the structured body — parsed by ProductBodyFormatter in the datasource.
  */
-export class ProductAdapter implements EntityAdapter<Product, ProductMetadata> {
-  public readonly entityType = "product" as const;
-  public readonly schema = productSchema;
-  public readonly frontmatterSchema = productFrontmatterSchema;
+export class ProductAdapter extends BaseEntityAdapter<
+  Product,
+  ProductMetadata
+> {
+  constructor() {
+    super({
+      entityType: "product",
+      schema: productSchema,
+      frontmatterSchema: productFrontmatterSchema,
+    });
+  }
 
   public toMarkdown(entity: Product): string {
-    let contentBody = entity.content;
+    const body = this.extractBody(entity.content);
     try {
-      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
-      contentBody = parsed.content;
-    } catch {
-      // Content doesn't have frontmatter, use as-is
-    }
-
-    try {
-      const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+      const frontmatter = this.parseFrontMatter(
         entity.content,
         productFrontmatterSchema,
       );
-
-      return generateMarkdownWithFrontmatter(contentBody, frontmatter);
+      return this.buildMarkdown(body, frontmatter);
     } catch {
-      return contentBody;
+      return body;
     }
   }
 
   public fromMarkdown(markdown: string): Partial<Product> {
-    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+    const frontmatter = this.parseFrontMatter(
       markdown,
       productFrontmatterSchema,
     );
-
     const slug = slugify(frontmatter.name);
 
     return {
@@ -62,30 +55,6 @@ export class ProductAdapter implements EntityAdapter<Product, ProductMetadata> {
         order: frontmatter.order,
       },
     };
-  }
-
-  public extractMetadata(entity: Product): ProductMetadata {
-    return entity.metadata;
-  }
-
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  public generateFrontMatter(entity: Product): string {
-    try {
-      const { metadata } = parseMarkdownWithFrontmatter(
-        entity.content,
-        productFrontmatterSchema,
-      );
-      return generateFrontmatter(metadata);
-    } catch {
-      return "";
-    }
   }
 }
 
