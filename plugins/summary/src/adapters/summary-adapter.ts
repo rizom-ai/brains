@@ -15,6 +15,10 @@ import type {
 /**
  * Adapter for summary entities with simplified log-based structure
  * Entries are prepended (newest first) for optimization
+ *
+ * TODO: Refactor to extend BaseEntityAdapter — requires rethinking the
+ * log entry parsing/formatting as structured body content so toMarkdown
+ * and fromMarkdown can use the standard helpers.
  */
 export class SummaryAdapter
   implements EntityAdapter<SummaryEntity, SummaryMetadata>
