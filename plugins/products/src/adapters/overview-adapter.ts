@@ -1,10 +1,5 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/plugins";
-import { z, slugify } from "@brains/utils";
+import { BaseEntityAdapter } from "@brains/plugins";
+import { slugify } from "@brains/utils";
 import {
   overviewSchema,
   overviewFrontmatterSchema,
@@ -18,38 +13,36 @@ import {
  * sections (vision, pillars, technologies, benefits, CTA) parsed
  * by OverviewBodyFormatter in the datasource layer.
  */
-export class OverviewAdapter
-  implements EntityAdapter<Overview, OverviewMetadata>
-{
-  public readonly entityType = "products-overview" as const;
-  public readonly schema = overviewSchema;
+export class OverviewAdapter extends BaseEntityAdapter<
+  Overview,
+  OverviewMetadata
+> {
+  constructor() {
+    super({
+      entityType: "products-overview",
+      schema: overviewSchema,
+      frontmatterSchema: overviewFrontmatterSchema,
+    });
+  }
 
   public toMarkdown(entity: Overview): string {
-    let contentBody = entity.content;
+    const body = this.extractBody(entity.content);
     try {
-      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
-      contentBody = parsed.content;
-    } catch {
-      // Content doesn't have frontmatter, use as-is
-    }
-
-    try {
-      const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+      const frontmatter = this.parseFrontMatter(
         entity.content,
         overviewFrontmatterSchema,
       );
-      return generateMarkdownWithFrontmatter(contentBody, frontmatter);
+      return this.buildMarkdown(body, frontmatter);
     } catch {
-      return contentBody;
+      return body;
     }
   }
 
   public fromMarkdown(markdown: string): Partial<Overview> {
-    const { metadata: frontmatter } = parseMarkdownWithFrontmatter(
+    const frontmatter = this.parseFrontMatter(
       markdown,
       overviewFrontmatterSchema,
     );
-
     const slug = slugify(frontmatter.headline);
 
     return {
@@ -60,30 +53,6 @@ export class OverviewAdapter
         slug,
       },
     };
-  }
-
-  public extractMetadata(entity: Overview): OverviewMetadata {
-    return entity.metadata;
-  }
-
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  public generateFrontMatter(entity: Overview): string {
-    try {
-      const { metadata } = parseMarkdownWithFrontmatter(
-        entity.content,
-        overviewFrontmatterSchema,
-      );
-      return generateFrontmatter(metadata);
-    } catch {
-      return "";
-    }
   }
 }
 
