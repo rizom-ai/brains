@@ -16,10 +16,6 @@ export const directorySyncConfigSchema = z.object({
     .boolean()
     .describe("Enable bidirectional auto-sync")
     .default(true),
-  syncDebounce: z
-    .number()
-    .describe("Debounce time for entity exports in ms")
-    .default(1000),
   watchInterval: z
     .number()
     .describe("File watch polling interval in ms")

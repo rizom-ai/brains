@@ -23,7 +23,6 @@ describe("DirectorySync AutoSync", () => {
     plugin = new DirectorySyncPlugin({
       syncPath: testDir,
       autoSync: true,
-      syncDebounce: 100, // Short debounce for tests
       initialSync: false,
     });
   });
@@ -41,7 +40,6 @@ describe("DirectorySync AutoSync", () => {
       const config = {
         syncPath: testDir,
         autoSync: true,
-        syncDebounce: 1000,
       };
 
       const plugin = new DirectorySyncPlugin(config);
@@ -51,16 +49,6 @@ describe("DirectorySync AutoSync", () => {
     it("should default autoSync to true", () => {
       const plugin = new DirectorySyncPlugin({
         syncPath: testDir,
-      });
-
-      expect(plugin).toBeDefined();
-      // Will verify it works by checking subscriptions
-    });
-
-    it("should default syncDebounce to 1000ms", () => {
-      const plugin = new DirectorySyncPlugin({
-        syncPath: testDir,
-        autoSync: true,
       });
 
       expect(plugin).toBeDefined();

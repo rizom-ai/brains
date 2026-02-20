@@ -37,7 +37,6 @@ import { MarkdownImageConverter } from "./markdown-image-converter";
 export const directorySyncOptionsSchema = z.object({
   syncPath: z.string(),
   autoSync: z.boolean().optional(),
-  syncDebounce: z.number().optional(),
   watchInterval: z.number().optional(),
   includeMetadata: z.boolean().optional(),
   entityTypes: z.array(z.string()).optional(),
@@ -61,7 +60,6 @@ export class DirectorySync {
   private logger: Logger;
   private syncPath: string;
   private autoSync: boolean;
-  private syncDebounce: number;
   private watchInterval: number;
   private deleteOnFileRemoval: boolean;
   private entityTypes: string[] | undefined;
@@ -90,7 +88,6 @@ export class DirectorySync {
       : resolve(process.cwd(), options.syncPath);
 
     this.autoSync = options.autoSync ?? true;
-    this.syncDebounce = options.syncDebounce ?? 1000;
     this.watchInterval = options.watchInterval ?? 5000;
     this.deleteOnFileRemoval = options.deleteOnFileRemoval ?? true;
     this.entityTypes = options.entityTypes;
@@ -861,12 +858,5 @@ export class DirectorySync {
     if (this.fileWatcher) {
       this.fileWatcher.setCallback(callback);
     }
-  }
-
-  /**
-   * Get sync debounce time
-   */
-  getSyncDebounce(): number {
-    return this.syncDebounce;
   }
 }

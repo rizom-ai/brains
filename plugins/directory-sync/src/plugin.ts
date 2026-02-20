@@ -34,7 +34,6 @@ import packageJson from "../package.json";
  */
 export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
-  private pluginContext?: ServicePluginContext;
 
   constructor(config: Partial<DirectorySyncConfig> = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
@@ -47,20 +46,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     return this.directorySync;
   }
 
-  private requirePluginContext(): ServicePluginContext {
-    if (!this.pluginContext) {
-      throw new Error("Plugin context not initialized");
-    }
-    return this.pluginContext;
-  }
-
   /**
    * Initialize the plugin
    */
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    this.pluginContext = context;
     const { logger, entityService } = context;
 
     // Register our template for directory sync status
@@ -80,7 +71,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     this.directorySync = new DirectorySync({
       syncPath,
       autoSync: this.config.autoSync,
-      syncDebounce: this.config.syncDebounce,
       watchInterval: this.config.watchInterval,
       includeMetadata: this.config.includeMetadata,
       entityTypes: this.config.entityTypes,
@@ -323,8 +313,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
    */
   protected override async getTools(): Promise<PluginTool[]> {
     const directorySync = this.requireDirectorySync();
-    const pluginContext = this.requirePluginContext();
-    return createDirectorySyncTools(directorySync, pluginContext, this.id);
+    return createDirectorySyncTools(directorySync, this.getContext(), this.id);
   }
 
   /**
@@ -567,7 +556,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
 
     this.debug("Setup auto-sync for entity events", {
-      syncDebounce: this.config.syncDebounce,
       entityTypes: this.config.entityTypes,
     });
   }
