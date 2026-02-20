@@ -144,6 +144,7 @@ export type {
   EntityTypeConfig,
 } from "@brains/entity-service";
 export {
+  BaseEntityAdapter,
   baseEntitySchema,
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

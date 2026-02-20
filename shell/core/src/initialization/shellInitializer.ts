@@ -35,9 +35,14 @@ import {
   type JobQueueDbConfig,
   type IJobQueueService,
 } from "@brains/job-queue";
-import { BaseEntityAdapter } from "@brains/entity-service";
 import { knowledgeQueryTemplate } from "@brains/content-service";
-import { BaseEntityFormatter, baseEntitySchema } from "@brains/entity-service";
+import {
+  BaseEntityFormatter,
+  baseEntitySchema,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
+import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
+import type { z } from "@brains/utils";
 import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
 import { ProfileAdapter, ProfileService } from "@brains/profile-service";
@@ -192,13 +197,22 @@ export class ShellInitializer {
     this.logger.debug("Registering base entity support");
 
     try {
-      // Create base entity adapter
-      const baseEntityAdapter = new BaseEntityAdapter();
+      // Inline no-op adapter for the "base" entity type (passthrough, no frontmatter)
+      const baseEntityAdapter: EntityAdapter<BaseEntity> = {
+        entityType: "base",
+        schema: baseEntitySchema,
+        toMarkdown: (entity) => entity.content,
+        fromMarkdown: (markdown) => ({ content: markdown }),
+        extractMetadata: () => ({}),
+        parseFrontMatter: <T>(md: string, schema: z.ZodSchema<T>): T =>
+          parseMarkdownWithFrontmatter(md, schema).metadata,
+        generateFrontMatter: () => "",
+      };
 
       // Register with entity registry
       entityRegistry.registerEntityType(
         SHELL_ENTITY_TYPES.BASE,
-        baseEntityAdapter.schema,
+        baseEntitySchema,
         baseEntityAdapter,
       );
 

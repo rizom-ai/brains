@@ -1,73 +1,105 @@
 import { z } from "@brains/utils";
 import type { BaseEntity, EntityAdapter } from "../types";
-import { parseMarkdownWithFrontmatter } from "../frontmatter";
+import {
+  parseMarkdownWithFrontmatter,
+  generateMarkdownWithFrontmatter,
+  generateFrontmatter,
+} from "../frontmatter";
+
+export interface BaseEntityAdapterConfig<
+  TEntity extends BaseEntity<TMetadata>,
+  TMetadata,
+> {
+  entityType: string;
+  schema: z.ZodSchema<TEntity>;
+  frontmatterSchema: z.ZodObject<z.ZodRawShape>;
+  isSingleton?: boolean;
+  hasBody?: boolean;
+  supportsCoverImage?: boolean;
+}
 
 /**
- * Adapter for base entity type - handles serialization/deserialization
+ * Abstract base class for entity adapters.
  *
- * Following the new architecture, system fields (id, entityType, created, updated)
- * are NOT included in frontmatter. Only entity-specific fields go in frontmatter.
- * For BaseEntity, there are no entity-specific fields, so frontmatter is typically empty.
+ * Provides default implementations for the 3 boilerplate methods
+ * (extractMetadata, parseFrontMatter, generateFrontMatter) and
+ * protected helpers for common patterns in toMarkdown/fromMarkdown.
+ *
+ * Subclasses must implement toMarkdown() and fromMarkdown().
  */
-export class BaseEntityAdapter implements EntityAdapter<BaseEntity> {
-  public readonly entityType = "base";
-  public readonly schema = z.object({
-    id: z.string(),
-    entityType: z.string(),
-    content: z.string(),
-    contentHash: z.string(),
-    created: z.string().datetime(),
-    updated: z.string().datetime(),
-    metadata: z.record(z.string(), z.unknown()),
-  });
+export abstract class BaseEntityAdapter<
+  TEntity extends BaseEntity<TMetadata>,
+  TMetadata = Record<string, unknown>,
+  TFrontmatter = TMetadata,
+> implements EntityAdapter<TEntity, TMetadata>
+{
+  public readonly entityType: string;
+  public readonly schema: z.ZodSchema<TEntity>;
+  public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
+  public readonly isSingleton?: boolean;
+  public readonly hasBody?: boolean;
+  public readonly supportsCoverImage?: boolean;
 
-  /**
-   * Convert entity to markdown
-   * For base entities, we return the content as-is without adding any frontmatter
-   */
-  toMarkdown(entity: BaseEntity): string {
-    // BaseEntity returns content as-is, no frontmatter added
-    return entity.content;
+  // Stored separately with output type preserved for type-safe parsing.
+  // ZodObject<ZodRawShape> erases the output type; this recovers it.
+  private readonly fmSchema: z.ZodSchema<TFrontmatter>;
+
+  constructor(config: BaseEntityAdapterConfig<TEntity, TMetadata>) {
+    this.entityType = config.entityType;
+    this.schema = config.schema;
+    this.frontmatterSchema = config.frontmatterSchema;
+    // ZodObject<ZodRawShape> erases the output type; recover it via cast.
+    // Safe because the runtime object IS a ZodSchema<TFrontmatter>.
+    this.fmSchema =
+      config.frontmatterSchema as unknown as z.ZodSchema<TFrontmatter>;
+    if (config.isSingleton !== undefined) this.isSingleton = config.isSingleton;
+    if (config.hasBody !== undefined) this.hasBody = config.hasBody;
+    if (config.supportsCoverImage !== undefined)
+      this.supportsCoverImage = config.supportsCoverImage;
   }
 
-  /**
-   * Extract entity fields from markdown
-   * For BaseEntity, we return the entire markdown as content without any parsing
-   * This preserves the content exactly as-is, including any frontmatter
-   */
-  fromMarkdown(markdown: string): Partial<BaseEntity> {
-    // BaseEntity preserves content exactly as-is
-    return {
-      content: markdown,
-    };
+  // ── Abstract methods (subclasses must implement) ──
+
+  public abstract toMarkdown(entity: TEntity): string;
+  public abstract fromMarkdown(markdown: string): Partial<TEntity>;
+
+  // ── Default implementations (can be overridden) ──
+
+  public extractMetadata(entity: TEntity): TMetadata {
+    return entity.metadata;
   }
 
-  /**
-   * Extract metadata for search/filtering
-   * For base entities, no metadata since no entity-specific fields
-   */
-  extractMetadata(_entity: BaseEntity): Record<string, unknown> {
-    // BaseEntity has no metadata
-    return {};
+  public parseFrontMatter<T>(markdown: string, schema: z.ZodSchema<T>): T {
+    return parseMarkdownWithFrontmatter(markdown, schema).metadata;
   }
 
-  /**
-   * Parse frontmatter metadata from markdown
-   */
-  parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
+  public generateFrontMatter(entity: TEntity): string {
+    const metadata = entity.metadata as Record<string, unknown>;
+    return generateFrontmatter(metadata);
   }
 
-  /**
-   * Generate frontmatter for markdown
-   * For base entities, this returns empty string since no frontmatter is added
-   */
-  generateFrontMatter(_entity: BaseEntity): string {
-    // BaseEntity doesn't use frontmatter
-    return "";
+  // ── Protected helpers for use in toMarkdown/fromMarkdown ──
+
+  /** Strip frontmatter and return the body content. */
+  protected extractBody(markdown: string): string {
+    try {
+      return parseMarkdownWithFrontmatter(markdown, z.record(z.unknown()))
+        .content;
+    } catch {
+      return markdown;
+    }
+  }
+
+  /** Parse frontmatter using this adapter's frontmatter schema. */
+  protected parseFrontmatter(markdown: string): TFrontmatter {
+    return parseMarkdownWithFrontmatter(markdown, this.fmSchema).metadata;
+  }
+
+  /** Combine body and frontmatter into a markdown string. */
+  protected buildMarkdown(
+    body: string,
+    frontmatter: Record<string, unknown>,
+  ): string {
+    return generateMarkdownWithFrontmatter(body, frontmatter);
   }
 }
