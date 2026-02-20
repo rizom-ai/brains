@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brains — Codebase Map</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;height:100vh;overflow:hidden}
+#app{display:flex;height:100vh}
+
+/* Sidebar */
+#sidebar{width:272px;min-width:272px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+#sidebar h1{font-size:15px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
+#sidebar h1 span{font-size:11px;color:#8b949e;font-weight:400}
+.section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8b949e;margin-bottom:8px}
+.section{background:#1c2333;border:1px solid #30363d;border-radius:8px;padding:10px 12px}
+
+/* Presets */
+.preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.preset-btn{background:#21262d;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;padding:5px 8px;cursor:pointer;transition:all .15s;font-family:inherit;text-align:center}
+.preset-btn:hover{background:#30363d;color:#e6edf3}
+.preset-btn.active{background:#1f6feb22;border-color:#58a6ff;color:#58a6ff}
+
+/* Toggles */
+.toggle-row{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;user-select:none;font-size:12px}
+.toggle-row:hover{opacity:.85}
+.toggle-box{width:12px;height:12px;border-radius:3px;border:2px solid;flex-shrink:0;position:relative;transition:all .15s}
+.toggle-box.on::after{content:'';position:absolute;inset:1px;border-radius:1px;background:currentColor}
+
+/* Comments */
+.comment-item{background:#21262d;border:1px solid #30363d;border-radius:6px;padding:8px 10px;margin-bottom:5px;position:relative}
+.comment-target{font-size:11px;font-weight:600;color:#58a6ff}
+.comment-file{font-size:10px;color:#484f58;margin-top:1px}
+.comment-text{font-size:12px;color:#c9d1d9;margin-top:4px;line-height:1.4}
+.comment-del{position:absolute;top:6px;right:8px;background:none;border:none;color:#484f58;cursor:pointer;font-size:13px;line-height:1}
+.comment-del:hover{color:#f85149}
+.no-comments{font-size:12px;color:#484f58;font-style:italic}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;min-width:0}
+#canvas-area{flex:1;position:relative;overflow:hidden;background:#0d1117}
+#canvas-area svg{width:100%;height:100%;display:block}
+
+/* Zoom */
+.zoom-bar{position:absolute;top:10px;right:10px;display:flex;gap:3px}
+.zoom-btn{background:#21262dee;border:1px solid #30363d;border-radius:6px;color:#8b949e;width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;backdrop-filter:blur(4px)}
+.zoom-btn:hover{background:#30363dee;color:#e6edf3}
+
+/* Legend */
+.legend{position:absolute;bottom:10px;left:10px;background:#161b22dd;border:1px solid #30363d;border-radius:8px;padding:8px 14px;display:flex;gap:14px;font-size:10px;backdrop-filter:blur(4px)}
+.legend-item{display:flex;align-items:center;gap:5px;color:#8b949e}
+
+/* Prompt */
+#prompt-bar{background:#161b22;border-top:1px solid #30363d;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;max-height:180px}
+#prompt-text{flex:1;font-family:'SF Mono','Fira Code','Cascadia Code',monospace;font-size:11.5px;color:#8b949e;white-space:pre-wrap;overflow-y:auto;max-height:160px;line-height:1.5}
+#copy-btn{background:#238636;border:1px solid #2ea04366;border-radius:6px;color:#fff;font-size:12px;padding:5px 14px;cursor:pointer;font-family:inherit;font-weight:500;white-space:nowrap;flex-shrink:0}
+#copy-btn:hover{background:#2ea043}
+#copy-btn.copied{background:#1f6feb;border-color:#58a6ff66}
+
+/* Modal */
+#modal-overlay{display:none;position:fixed;inset:0;background:#000a;backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center}
+#modal-overlay.vis{display:flex}
+#modal{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;width:380px;max-width:90vw}
+#modal h3{font-size:14px;margin-bottom:2px}
+#modal .sub{font-size:11px;color:#8b949e;margin-bottom:10px;font-family:'SF Mono',monospace}
+#modal textarea{width:100%;height:72px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-family:inherit;font-size:13px;padding:8px;resize:vertical}
+#modal textarea:focus{outline:none;border-color:#58a6ff}
+.modal-btns{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
+.mbtn{border-radius:6px;font-size:12px;padding:5px 14px;cursor:pointer;font-family:inherit;border:1px solid #30363d}
+.mbtn-cancel{background:#21262d;color:#8b949e}
+.mbtn-save{background:#238636;border-color:#2ea04366;color:#fff}
+
+/* SVG */
+.node-group{cursor:pointer}
+.node-bg{transition:filter .15s}
+.node-group:hover .node-bg{filter:brightness(1.4)}
+.node-title{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:600;fill:#e6edf3}
+.node-sub{font-family:'SF Mono','Fira Code',monospace;font-size:9px;fill:#8b949e}
+.conn-path{fill:none;stroke-width:1.4;opacity:.35;transition:opacity .15s}
+.conn-path:hover{opacity:.9;stroke-width:2.2}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="sidebar">
+  <h1>Brains <span>codebase map</span></h1>
+
+  <div>
+    <div class="section-title">Presets</div>
+    <div class="section">
+      <div class="preset-grid" id="presets"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-title">Groups</div>
+    <div class="section" id="group-toggles"></div>
+  </div>
+
+  <div>
+    <div class="section-title">Connections</div>
+    <div class="section" id="conn-toggles"></div>
+  </div>
+
+  <div>
+    <div class="section-title">Comments <span id="comment-count"></span></div>
+    <div class="section" id="comments-list">
+      <div class="no-comments">Click a component to add feedback</div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="canvas-area">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="zoom-bar">
+      <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
+      <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">&minus;</button>
+      <button class="zoom-btn" onclick="zoomReset()" title="Reset">R</button>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div id="prompt-bar">
+    <pre id="prompt-text"></pre>
+    <button id="copy-btn" onclick="copyPrompt()">Copy</button>
+  </div>
+</div>
+</div>
+
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <h3 id="modal-title"></h3>
+    <div class="sub" id="modal-sub"></div>
+    <textarea id="modal-input" placeholder="Add your feedback or question about this component..."></textarea>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="mbtn mbtn-save" onclick="saveComment()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Group definitions ──
+const GROUPS = {
+  apps:       { label: 'Apps',             color: '#58a6ff', bg: '#1c2e4a' },
+  interfaces: { label: 'Interfaces',       color: '#d29922', bg: '#3b2a1a' },
+  content:    { label: 'Content Creation', color: '#3fb950', bg: '#1a3326' },
+  shell:      { label: 'Shell Core',       color: '#bc8cff', bg: '#2a1840' },
+  publishing: { label: 'Publishing',       color: '#8b8cf8', bg: '#1f2044' },
+  sync:       { label: 'Sync & Storage',   color: '#f0883e', bg: '#3a2510' },
+  system:     { label: 'System',           color: '#f85149', bg: '#3a1520' },
+  shared:     { label: 'Shared',           color: '#f778ba', bg: '#3a1530' },
+};
+
+const CONN_TYPES = {
+  'data-flow':  { label: 'Data Flow',  color: '#58a6ff', dash: '' },
+  'tool-call':  { label: 'Tool Call',  color: '#3fb950', dash: '6,3' },
+  'event':      { label: 'Event',      color: '#f85149', dash: '4,4' },
+  'dependency': { label: 'Dependency', color: '#484f58', dash: '2,4' },
+};
+
+// ── Cluster boxes (for background rendering) ──
+const CLUSTERS = {
+  apps:       { x: 20,   y: 8,   w: 544,  h: 80  },
+  interfaces: { x: 742,  y: 8,   w: 638,  h: 80  },
+  content:    { x: 20,   y: 108, w: 326,  h: 194 },
+  shell:      { x: 529,  y: 108, w: 342,  h: 194 },
+  publishing: { x: 1042, y: 108, w: 338,  h: 194 },
+  sync:       { x: 20,   y: 330, w: 429,  h: 80  },
+  shared:     { x: 504,  y: 330, w: 444,  h: 80  },
+  system:     { x: 1003, y: 330, w: 380,  h: 138 },
+};
+
+// ── Node data ──
+const nodes = [
+  // ─ Apps ─
+  { id:'pro-brain',  label:'Professional Brain', subtitle:'apps/professional-brain', x:34,  y:32, w:170, h:44, group:'apps' },
+  { id:'team-brain', label:'Team Brain',         subtitle:'apps/team-brain',         x:218, y:32, w:148, h:44, group:'apps' },
+  { id:'col-brain',  label:'Collective Brain',   subtitle:'apps/collective-brain',   x:380, y:32, w:170, h:44, group:'apps' },
+
+  // ─ Interfaces ─
+  { id:'cli',       label:'CLI',           subtitle:'interfaces/cli',       x:756,  y:32, w:130, h:44, group:'interfaces' },
+  { id:'matrix',    label:'Matrix',        subtitle:'interfaces/matrix',    x:900,  y:32, w:130, h:44, group:'interfaces' },
+  { id:'mcp-if',    label:'MCP Transport', subtitle:'interfaces/mcp',       x:1044, y:32, w:148, h:44, group:'interfaces' },
+  { id:'webserver', label:'Webserver',     subtitle:'interfaces/webserver', x:1206, y:32, w:138, h:44, group:'interfaces' },
+
+  // ─ Content Creation (2×3 grid) ─
+  { id:'note',      label:'Note',      subtitle:'plugins/note',      x:34,  y:132, w:142, h:44, group:'content' },
+  { id:'blog',      label:'Blog',      subtitle:'plugins/blog',      x:190, y:132, w:142, h:44, group:'content' },
+  { id:'link',      label:'Link',      subtitle:'plugins/link',      x:34,  y:188, w:142, h:44, group:'content' },
+  { id:'portfolio', label:'Portfolio',  subtitle:'plugins/portfolio', x:190, y:188, w:142, h:44, group:'content' },
+  { id:'products',  label:'Products',  subtitle:'plugins/products',  x:34,  y:244, w:142, h:44, group:'content' },
+  { id:'decks',     label:'Decks',     subtitle:'plugins/decks',     x:190, y:244, w:142, h:44, group:'content' },
+
+  // ─ Shell Core (2×3 grid) ─
+  { id:'entity-svc', label:'Entity Service',   subtitle:'shell/entity-service',    x:543, y:132, w:150, h:44, group:'shell' },
+  { id:'mcp-svc',    label:'MCP Service',      subtitle:'shell/mcp-service',       x:707, y:132, w:150, h:44, group:'shell' },
+  { id:'job-queue',  label:'Job Queue',        subtitle:'shell/job-queue',         x:543, y:188, w:150, h:44, group:'shell' },
+  { id:'messaging',  label:'Messaging',        subtitle:'shell/messaging-service', x:707, y:188, w:150, h:44, group:'shell' },
+  { id:'ai-svc',     label:'AI Service',       subtitle:'shell/ai-service',        x:543, y:244, w:150, h:44, group:'shell' },
+  { id:'plugin-fw',  label:'Plugin Framework', subtitle:'shell/plugins',           x:707, y:244, w:150, h:44, group:'shell' },
+
+  // ─ Publishing (2×3 grid, 5 filled) ─
+  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',     x:1056, y:132, w:148, h:44, group:'publishing' },
+  { id:'pro-site',     label:'Professional Site',  subtitle:'plugins/professional-site',x:1218, y:132, w:148, h:44, group:'publishing' },
+  { id:'content-pipe', label:'Content Pipeline',   subtitle:'plugins/content-pipeline', x:1056, y:188, w:148, h:44, group:'publishing' },
+  { id:'newsletter',   label:'Newsletter',         subtitle:'plugins/newsletter',       x:1218, y:188, w:148, h:44, group:'publishing' },
+  { id:'social',       label:'Social Media',       subtitle:'plugins/social-media',     x:1056, y:244, w:148, h:44, group:'publishing' },
+
+  // ─ Sync & Storage (row of 3) ─
+  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:354, w:145, h:44, group:'sync' },
+  { id:'git-sync', label:'Git Sync',      subtitle:'plugins/git-sync',       x:193, y:354, w:128, h:44, group:'sync' },
+  { id:'image',    label:'Image',         subtitle:'plugins/image',           x:335, y:354, w:100, h:44, group:'sync' },
+
+  // ─ Shared (row of 3) ─
+  { id:'utils',  label:'Utils',      subtitle:'shared/utils',      x:518, y:354, w:125, h:44, group:'shared' },
+  { id:'ui-lib', label:'UI Library', subtitle:'shared/ui-library', x:657, y:354, w:138, h:44, group:'shared' },
+  { id:'themes', label:'Themes',     subtitle:'shared/theme-*',    x:809, y:354, w:125, h:44, group:'shared' },
+
+  // ─ System (3+2 grid) ─
+  { id:'system',    label:'System',    subtitle:'plugins/system',    x:1017, y:354, w:108, h:44, group:'system' },
+  { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', x:1139, y:354, w:118, h:44, group:'system' },
+  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1271, y:354, w:108, h:44, group:'system' },
+  { id:'summary',   label:'Summary',  subtitle:'plugins/summary',   x:1081, y:410, w:112, h:44, group:'system' },
+  { id:'topics',    label:'Topics',   subtitle:'plugins/topics',    x:1207, y:410, w:108, h:44, group:'system' },
+];
+
+// ── Connections ──
+const connections = [
+  // Apps → Interfaces
+  { from:'pro-brain',  to:'cli',       type:'dependency' },
+  { from:'pro-brain',  to:'matrix',    type:'dependency' },
+  { from:'pro-brain',  to:'mcp-if',    type:'dependency' },
+  { from:'pro-brain',  to:'webserver', type:'dependency' },
+  { from:'team-brain', to:'cli',       type:'dependency' },
+  { from:'team-brain', to:'mcp-if',    type:'dependency' },
+  { from:'col-brain',  to:'cli',       type:'dependency' },
+  { from:'col-brain',  to:'mcp-if',    type:'dependency' },
+  { from:'col-brain',  to:'webserver', type:'dependency' },
+
+  // Interfaces → Shell (tool routing)
+  { from:'cli',    to:'mcp-svc', type:'tool-call', label:'tools' },
+  { from:'matrix', to:'mcp-svc', type:'tool-call', label:'tools' },
+  { from:'mcp-if', to:'mcp-svc', type:'tool-call', label:'tools' },
+  { from:'mcp-svc', to:'plugin-fw', type:'tool-call', label:'routes' },
+
+  // Webserver → Site Builder
+  { from:'webserver', to:'site-builder', type:'data-flow', label:'serves' },
+
+  // Content → Shell (entity CRUD)
+  { from:'note',      to:'entity-svc', type:'data-flow' },
+  { from:'blog',      to:'entity-svc', type:'data-flow' },
+  { from:'link',      to:'entity-svc', type:'data-flow' },
+  { from:'portfolio', to:'entity-svc', type:'data-flow' },
+  { from:'products',  to:'entity-svc', type:'data-flow' },
+  { from:'decks',     to:'entity-svc', type:'data-flow' },
+  { from:'blog',      to:'ai-svc',     type:'tool-call', label:'generate' },
+
+  // Publishing → Shell
+  { from:'site-builder', to:'entity-svc', type:'data-flow', label:'read' },
+  { from:'content-pipe', to:'job-queue',  type:'data-flow', label:'schedule' },
+  { from:'newsletter',   to:'entity-svc', type:'data-flow' },
+  { from:'social',       to:'entity-svc', type:'data-flow' },
+
+  // Sync → Shell
+  { from:'dir-sync', to:'entity-svc', type:'data-flow', label:'import/export' },
+  { from:'dir-sync', to:'job-queue',  type:'data-flow' },
+  { from:'git-sync', to:'job-queue',  type:'data-flow', label:'enqueue' },
+  { from:'image',    to:'entity-svc', type:'data-flow' },
+
+  // System → Shell
+  { from:'system',    to:'entity-svc', type:'data-flow', label:'search' },
+  { from:'summary',   to:'ai-svc',     type:'tool-call', label:'generate' },
+  { from:'summary',   to:'entity-svc', type:'data-flow' },
+  { from:'topics',    to:'entity-svc', type:'data-flow' },
+  { from:'dashboard', to:'messaging',  type:'event', label:'widget:*' },
+
+  // Shell events
+  { from:'entity-svc', to:'messaging', type:'event', label:'entity:*' },
+
+  // Messaging → subscribers
+  { from:'messaging', to:'dir-sync',     type:'event', label:'entity:*' },
+  { from:'messaging', to:'git-sync',     type:'event', label:'sync:*' },
+  { from:'messaging', to:'site-builder', type:'event', label:'sync:*' },
+  { from:'messaging', to:'content-pipe', type:'event', label:'entity:*' },
+
+  // Dependencies
+  { from:'git-sync',     to:'dir-sync',     type:'dependency' },
+  { from:'site-builder', to:'ui-lib',       type:'dependency' },
+  { from:'site-builder', to:'themes',       type:'dependency' },
+  { from:'pro-site',     to:'site-builder', type:'dependency' },
+];
+
+// ── Presets ──
+const ALL_GROUPS = Object.keys(GROUPS);
+const ALL_CONNS = Object.keys(CONN_TYPES);
+const PRESETS = {
+  full:    { label:'Full System',   groups: ALL_GROUPS, conns: ALL_CONNS },
+  data:    { label:'Data Flow',     groups:['content','publishing','sync','system','shell','shared'], conns:['data-flow'] },
+  events:  { label:'Event System',  groups:['content','publishing','sync','shell'], conns:['event'] },
+  tools:   { label:'Tool Routing',  groups:['interfaces','shell'], conns:['tool-call'] },
+  publish: { label:'Publishing',    groups:['content','publishing','shell','shared'], conns:['data-flow','dependency'] },
+  sync:    { label:'Sync Pipeline', groups:['sync','shell'], conns:['data-flow','event'] },
+};
+
+// ── State ──
+const state = {
+  groups: {},
+  conns: {},
+  zoom: 1,
+  panX: 0,
+  panY: 0,
+  comments: [],
+  preset: 'full',
+  modalNode: null,
+};
+
+ALL_GROUPS.forEach(k => state.groups[k] = true);
+ALL_CONNS.forEach(k => state.conns[k] = true);
+
+// ── Helpers ──
+const nodeMap = {};
+nodes.forEach(n => nodeMap[n.id] = n);
+
+function cx(n) { return n.x + n.w / 2; }
+function cy(n) { return n.y + n.h / 2; }
+
+function connPath(fromId, toId) {
+  const f = nodeMap[fromId], t = nodeMap[toId];
+  if (!f || !t) return '';
+
+  const fcx = cx(f), fcy = cy(f), tcx = cx(t), tcy = cy(t);
+  const dx = Math.abs(fcx - tcx), dy = Math.abs(fcy - tcy);
+
+  // Same row (horizontal-ish)
+  if (dy < 20) {
+    if (f.x < t.x) {
+      const sx = f.x + f.w, ex = t.x;
+      return `M${sx},${fcy} C${sx + (ex-sx)*0.4},${fcy + 20} ${ex - (ex-sx)*0.4},${tcy + 20} ${ex},${tcy}`;
+    }
+    const sx = f.x, ex = t.x + t.w;
+    return `M${sx},${fcy} C${sx - (sx-ex)*0.4},${fcy + 20} ${ex + (sx-ex)*0.4},${tcy + 20} ${ex},${tcy}`;
+  }
+
+  // Upward
+  if (f.y > t.y) {
+    const sx = fcx, sy = f.y, ex = tcx, ey = t.y + t.h;
+    const cp = (sy - ey) * 0.4;
+    return `M${sx},${sy} C${sx},${sy - cp} ${ex},${ey + cp} ${ex},${ey}`;
+  }
+
+  // Downward
+  const sx = fcx, sy = f.y + f.h, ex = tcx, ey = t.y;
+  const cp = (ey - sy) * 0.4;
+  return `M${sx},${sy} C${sx},${sy + cp} ${ex},${ey - cp} ${ex},${ey}`;
+}
+
+// ── Rendering ──
+function render() {
+  const svg = document.getElementById('svg');
+  svg.setAttribute('viewBox', '0 0 1400 480');
+
+  let html = '<defs>';
+  Object.entries(CONN_TYPES).forEach(([k, v]) => {
+    html += `<marker id="arrow-${k}" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="${v.color}" opacity=".7"/></marker>`;
+  });
+  html += '</defs>';
+
+  html += `<g id="viewport" transform="translate(${state.panX},${state.panY}) scale(${state.zoom})">`;
+
+  // Cluster backgrounds
+  Object.entries(CLUSTERS).forEach(([key, c]) => {
+    if (!state.groups[key]) return;
+    const g = GROUPS[key];
+    html += `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="12" fill="${g.color}" fill-opacity=".04" stroke="${g.color}" stroke-opacity=".15" stroke-width="1"/>`;
+    html += `<text x="${c.x + 12}" y="${c.y + 16}" fill="${g.color}" opacity=".4" style="font-size:10px;font-weight:600;letter-spacing:.05em;font-family:-apple-system,system-ui,sans-serif">${g.label.toUpperCase()}</text>`;
+  });
+
+  // Connections
+  connections.forEach(c => {
+    const fNode = nodeMap[c.from], tNode = nodeMap[c.to];
+    if (!fNode || !tNode) return;
+    if (!state.groups[fNode.group] || !state.groups[tNode.group]) return;
+    if (!state.conns[c.type]) return;
+
+    const ct = CONN_TYPES[c.type];
+    const d = connPath(c.from, c.to);
+    const dash = ct.dash ? `stroke-dasharray="${ct.dash}"` : '';
+    html += `<path d="${d}" stroke="${ct.color}" ${dash} marker-end="url(#arrow-${c.type})" class="conn-path"/>`;
+
+    if (c.label) {
+      const mx = (cx(fNode) + cx(tNode)) / 2;
+      const my = (cy(fNode) + cy(tNode)) / 2;
+      html += `<text x="${mx}" y="${my - 5}" text-anchor="middle" fill="${ct.color}" opacity=".45" style="font-size:8px;font-family:SF Mono,monospace">${c.label}</text>`;
+    }
+  });
+
+  // Nodes
+  const commentedIds = new Set(state.comments.map(c => c.target));
+  nodes.forEach(n => {
+    if (!state.groups[n.group]) return;
+    const g = GROUPS[n.group];
+    const commented = commentedIds.has(n.id);
+    const stroke = commented ? '#58a6ff' : g.color + '44';
+    const sw = commented ? 2 : 1;
+
+    html += `<g class="node-group" onclick="openModal('${n.id}')">`;
+    html += `<rect class="node-bg" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="6" fill="${g.bg}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    html += `<rect x="${n.x}" y="${n.y + 6}" width="3" height="${n.h - 12}" rx="1.5" fill="${g.color}" opacity=".6"/>`;
+    html += `<text class="node-title" x="${n.x + 12}" y="${n.y + 18}">${n.label}</text>`;
+    html += `<text class="node-sub" x="${n.x + 12}" y="${n.y + 31}">${n.subtitle}</text>`;
+    if (commented) {
+      html += `<circle cx="${n.x + n.w - 8}" cy="${n.y + 8}" r="4" fill="#58a6ff"/>`;
+    }
+    html += '</g>';
+  });
+
+  html += '</g>';
+  svg.innerHTML = html;
+}
+
+// ── Controls ──
+function renderControls() {
+  document.getElementById('presets').innerHTML = Object.entries(PRESETS).map(([k, v]) =>
+    `<button class="preset-btn ${state.preset === k ? 'active' : ''}" onclick="applyPreset('${k}')">${v.label}</button>`
+  ).join('');
+
+  document.getElementById('group-toggles').innerHTML = Object.entries(GROUPS).map(([k, v]) => {
+    const on = state.groups[k];
+    return `<div class="toggle-row" onclick="toggleGroup('${k}')">
+      <div class="toggle-box ${on ? 'on' : ''}" style="border-color:${v.color};color:${v.color}"></div>
+      <span>${v.label}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('conn-toggles').innerHTML = Object.entries(CONN_TYPES).map(([k, v]) => {
+    const on = state.conns[k];
+    const dash = v.dash || 'none';
+    return `<div class="toggle-row" onclick="toggleConn('${k}')">
+      <div class="toggle-box ${on ? 'on' : ''}" style="border-color:${v.color};color:${v.color}"></div>
+      <svg width="22" height="12" style="flex-shrink:0"><line x1="0" y1="6" x2="22" y2="6" stroke="${v.color}" stroke-width="2" stroke-dasharray="${dash}"/></svg>
+      <span>${v.label}</span>
+    </div>`;
+  }).join('');
+
+  renderComments();
+}
+
+function renderComments() {
+  const el = document.getElementById('comments-list');
+  const countEl = document.getElementById('comment-count');
+  if (state.comments.length === 0) {
+    el.innerHTML = '<div class="no-comments">Click a component to add feedback</div>';
+    countEl.textContent = '';
+    return;
+  }
+  countEl.textContent = `(${state.comments.length})`;
+  el.innerHTML = state.comments.map((c, i) =>
+    `<div class="comment-item">
+      <button class="comment-del" onclick="deleteComment(${i})">&times;</button>
+      <div class="comment-target">${c.targetLabel}</div>
+      <div class="comment-file">${c.targetFile}</div>
+      <div class="comment-text">${esc(c.text)}</div>
+    </div>`
+  ).join('');
+}
+
+function renderLegend() {
+  document.getElementById('legend').innerHTML = Object.entries(CONN_TYPES).map(([k, v]) => {
+    const dash = v.dash || 'none';
+    return `<div class="legend-item">
+      <svg width="24" height="10"><line x1="0" y1="5" x2="20" y2="5" stroke="${v.color}" stroke-width="2" stroke-dasharray="${dash}"/>
+      <polygon points="18,2 24,5 18,8" fill="${v.color}"/></svg>
+      ${v.label}
+    </div>`;
+  }).join('');
+}
+
+// ── Prompt ──
+function updatePrompt() {
+  const visible = Object.entries(state.groups).filter(([,v]) => v).map(([k]) => GROUPS[k].label);
+  const allVisible = visible.length === ALL_GROUPS.length;
+
+  let text = 'This is the Brains codebase architecture — a plugin-based personal knowledge management system.\n\n';
+
+  if (allVisible) {
+    text += 'Showing the full system with clustered groups:\n';
+    text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks\n';
+    text += '- Shell Core: Entity Service, MCP Service, Job Queue, Messaging, AI Service, Plugin Framework\n';
+    text += '- Publishing: Site Builder, Professional Site, Content Pipeline, Newsletter, Social Media\n';
+    text += '- Sync & Storage: Directory Sync, Git Sync, Image\n';
+    text += '- System: System, Dashboard, Analytics, Summary, Topics\n';
+    text += '- Shared: Utils, UI Library, Themes';
+  } else {
+    text += `Currently focusing on: ${visible.join(', ')}.`;
+  }
+
+  if (state.comments.length > 0) {
+    text += '\n\nFeedback on specific components:\n';
+    state.comments.forEach(c => {
+      text += `\n**${c.targetLabel}** (${c.targetFile}):\n${c.text}\n`;
+    });
+  }
+
+  document.getElementById('prompt-text').textContent = text;
+}
+
+// ── Actions ──
+function applyPreset(key) {
+  state.preset = key;
+  const p = PRESETS[key];
+  ALL_GROUPS.forEach(k => state.groups[k] = p.groups.includes(k));
+  ALL_CONNS.forEach(k => state.conns[k] = p.conns.includes(k));
+  updateAll();
+}
+
+function toggleGroup(key) {
+  state.groups[key] = !state.groups[key];
+  state.preset = detectPreset();
+  updateAll();
+}
+
+function toggleConn(key) {
+  state.conns[key] = !state.conns[key];
+  state.preset = detectPreset();
+  updateAll();
+}
+
+function detectPreset() {
+  for (const [k, p] of Object.entries(PRESETS)) {
+    const gMatch = ALL_GROUPS.every(g => state.groups[g] === p.groups.includes(g));
+    const cMatch = ALL_CONNS.every(c => state.conns[c] === p.conns.includes(c));
+    if (gMatch && cMatch) return k;
+  }
+  return null;
+}
+
+function openModal(nodeId) {
+  const node = nodeMap[nodeId];
+  if (!node) return;
+  state.modalNode = node;
+  document.getElementById('modal-title').textContent = node.label;
+  document.getElementById('modal-sub').textContent = node.subtitle;
+  document.getElementById('modal-input').value = '';
+  document.getElementById('modal-overlay').classList.add('vis');
+  setTimeout(() => document.getElementById('modal-input').focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('vis');
+  state.modalNode = null;
+}
+
+function saveComment() {
+  const text = document.getElementById('modal-input').value.trim();
+  if (!text || !state.modalNode) return;
+  state.comments.push({
+    id: Date.now(),
+    target: state.modalNode.id,
+    targetLabel: state.modalNode.label,
+    targetFile: state.modalNode.subtitle,
+    text,
+  });
+  closeModal();
+  updateAll();
+}
+
+function deleteComment(index) {
+  state.comments.splice(index, 1);
+  updateAll();
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+// ── Zoom / Pan ──
+function zoomIn()    { state.zoom = Math.min(state.zoom * 1.2, 3); render(); }
+function zoomOut()   { state.zoom = Math.max(state.zoom / 1.2, 0.3); render(); }
+function zoomReset() { state.zoom = 1; state.panX = 0; state.panY = 0; render(); }
+
+let dragging = false, lastX = 0, lastY = 0;
+document.getElementById('canvas-area').addEventListener('mousedown', e => {
+  if (e.target.closest('.node-group')) return;
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  state.panX += (e.clientX - lastX) / state.zoom;
+  state.panY += (e.clientY - lastY) / state.zoom;
+  lastX = e.clientX; lastY = e.clientY;
+  render();
+});
+document.addEventListener('mouseup', () => { dragging = false; });
+document.getElementById('canvas-area').addEventListener('wheel', e => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.92 : 1.08;
+  state.zoom = Math.max(0.3, Math.min(3, state.zoom * delta));
+  render();
+}, { passive: false });
+
+document.getElementById('modal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveComment(); }
+});
+
+// ── Update all ──
+function updateAll() {
+  render();
+  renderControls();
+  updatePrompt();
+}
+
+// ── Init ──
+renderLegend();
+updateAll();
+</script>
+</body>
+</html>
