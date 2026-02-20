@@ -1,9 +1,4 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { z } from "@brains/utils";
+import { BaseEntityAdapter } from "@brains/plugins";
 import {
   linkSchema,
   linkFrontmatterSchema,
@@ -17,10 +12,14 @@ import {
  * Link adapter for managing link entities with frontmatter
  * Following blog pattern: frontmatter contains structured data, body is the summary
  */
-export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
-  public readonly entityType = "link" as const;
-  public readonly schema = linkSchema;
-  public readonly frontmatterSchema = linkFrontmatterSchema;
+export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
+  constructor() {
+    super({
+      entityType: "link",
+      schema: linkSchema,
+      frontmatterSchema: linkFrontmatterSchema,
+    });
+  }
 
   /**
    * Create link content with frontmatter and summary body
@@ -48,7 +47,7 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
     };
 
     const body = params.summary ?? "";
-    return generateMarkdownWithFrontmatter(body, frontmatter);
+    return this.buildMarkdown(body, frontmatter);
   }
 
   /**
@@ -58,31 +57,18 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
     frontmatter: LinkFrontmatter;
     summary: string;
   } {
-    const { metadata, content: body } = parseMarkdownWithFrontmatter(
-      content,
-      linkFrontmatterSchema,
-    );
-
     return {
-      frontmatter: metadata,
-      summary: body.trim(),
+      frontmatter: this.parseFrontMatter(content, linkFrontmatterSchema),
+      summary: this.extractBody(content).trim(),
     };
   }
 
-  /**
-   * Convert entity to markdown (returns content as-is, already has frontmatter)
-   */
   public toMarkdown(entity: LinkEntity): string {
     return entity.content;
   }
 
-  /**
-   * Convert markdown to entity, extracting metadata from frontmatter
-   * Syncs key fields from frontmatter to metadata for fast queries
-   */
   public fromMarkdown(markdown: string): Partial<LinkEntity> {
     const { frontmatter } = this.parseLinkContent(markdown);
-
     return {
       content: markdown,
       entityType: "link",
@@ -91,30 +77,5 @@ export class LinkAdapter implements EntityAdapter<LinkEntity, LinkMetadata> {
         status: frontmatter.status,
       },
     };
-  }
-
-  /**
-   * Extract metadata from entity for filtering and display
-   */
-  public extractMetadata(entity: LinkEntity): LinkMetadata {
-    return entity.metadata;
-  }
-
-  /**
-   * Parse frontmatter from markdown
-   */
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  /**
-   * Generate frontmatter for the entity
-   */
-  public generateFrontMatter(entity: LinkEntity): string {
-    return entity.content;
   }
 }
