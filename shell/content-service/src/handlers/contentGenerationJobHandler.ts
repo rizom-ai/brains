@@ -151,9 +151,7 @@ export class ContentGenerationJobHandler
             id: data.entityId,
             entityType: data.entityType,
             content: formattedContent,
-            metadata: {},
-            routeId,
-            sectionId,
+            metadata: { routeId, sectionId },
           };
 
           await this.entityService.createEntity(newEntity);

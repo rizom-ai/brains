@@ -2,10 +2,13 @@ import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/plugins";
 
 /**
- * Site content metadata schema - empty as site-content doesn't use metadata for filtering
- * (routeId and sectionId are already top-level entity fields)
+ * Site content metadata schema - routeId and sectionId identify which route/section
+ * this content belongs to
  */
-export const siteContentMetadataSchema = z.object({});
+export const siteContentMetadataSchema = z.object({
+  routeId: z.string(),
+  sectionId: z.string(),
+});
 
 export type SiteContentMetadata = z.infer<typeof siteContentMetadataSchema>;
 
@@ -14,8 +17,6 @@ export type SiteContentMetadata = z.infer<typeof siteContentMetadataSchema>;
  */
 export const siteContentSchema = baseEntitySchema.extend({
   entityType: z.literal("site-content"),
-  routeId: z.string(),
-  sectionId: z.string(),
   template: z.string().optional(),
   content: z.string(),
   metadata: siteContentMetadataSchema,

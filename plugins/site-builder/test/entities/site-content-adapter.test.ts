@@ -11,8 +11,7 @@ describe("SiteContentAdapter", () => {
       const entity = createMockSiteContent({
         id: "test-id",
         content: "# Test Content\n\nThis is test content.",
-        routeId: "landing",
-        sectionId: "hero",
+        metadata: { routeId: "landing", sectionId: "hero" },
       });
 
       const markdown = adapter.toMarkdown(entity);
@@ -35,8 +34,7 @@ author: John Doe
 # Content with existing frontmatter
 
 This content already had frontmatter.`,
-        routeId: "about",
-        sectionId: "main",
+        metadata: { routeId: "about", sectionId: "main" },
       });
 
       const markdown = adapter.toMarkdown(entity);
@@ -51,8 +49,7 @@ This content already had frontmatter.`,
       const entity = createMockSiteContent({
         id: "test-id",
         content: "Plain text content without frontmatter",
-        routeId: "contact",
-        sectionId: "form",
+        metadata: { routeId: "contact", sectionId: "form" },
       });
 
       const markdown = adapter.toMarkdown(entity);
@@ -77,8 +74,8 @@ Welcome to our site!`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.routeId).toBe("landing");
-      expect(result.sectionId).toBe("hero");
+      expect(result.metadata?.routeId).toBe("landing");
+      expect(result.metadata?.sectionId).toBe("hero");
       expect(result.content).toBe(markdown); // Store full markdown
     });
 
@@ -94,17 +91,16 @@ title: Some Title
   });
 
   describe("extractMetadata", () => {
-    it("should return empty metadata (site-content doesn't use metadata)", () => {
+    it("should return metadata with routeId and sectionId", () => {
       const entity = createMockSiteContent({
         id: "test-id",
         content: "Content",
-        routeId: "products",
-        sectionId: "list",
+        metadata: { routeId: "products", sectionId: "list" },
       });
 
       const metadata = adapter.extractMetadata(entity);
 
-      expect(metadata).toEqual({});
+      expect(metadata).toEqual({ routeId: "products", sectionId: "list" });
     });
   });
 
@@ -139,8 +135,7 @@ customField: value
       const entity = createMockSiteContent({
         id: "test-id",
         content: "Content",
-        routeId: "blog",
-        sectionId: "posts",
+        metadata: { routeId: "blog", sectionId: "posts" },
       });
 
       const frontmatter = adapter.generateFrontMatter(entity);
@@ -161,8 +156,7 @@ customField: value
       const entity = createMockSiteContent({
         id: "test-id",
         content: "Test content",
-        routeId: "test-route",
-        sectionId: "test-section",
+        metadata: { routeId: "test-route", sectionId: "test-section" },
       });
 
       const result = adapter.schema.safeParse(entity);

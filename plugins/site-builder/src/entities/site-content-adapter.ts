@@ -1,95 +1,47 @@
-import type { EntityAdapter } from "@brains/plugins";
+import { BaseEntityAdapter } from "@brains/plugins";
 import type { SiteContent, SiteContentMetadata } from "../types";
-import { siteContentSchema } from "../types";
-import {
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/plugins";
-import { z } from "@brains/utils";
-
-// Schema for parsing frontmatter
-const frontmatterSchema = z.object({
-  routeId: z.string(),
-  sectionId: z.string(),
-  // Content origin metadata
-  generatedBy: z.string().optional(),
-  generatedAt: z.string().datetime().optional(),
-});
+import { siteContentSchema, siteContentMetadataSchema } from "../types";
 
 /**
  * Entity adapter for site content
+ * routeId and sectionId identify which route/section this content belongs to
  */
-export class SiteContentAdapter
-  implements EntityAdapter<SiteContent, SiteContentMetadata>
-{
-  public readonly entityType = "site-content";
-  public readonly schema = siteContentSchema;
-  public readonly frontmatterSchema = frontmatterSchema;
-
+export class SiteContentAdapter extends BaseEntityAdapter<
+  SiteContent,
+  SiteContentMetadata
+> {
   constructor() {
-    // No initialization needed
+    super({
+      entityType: "site-content",
+      schema: siteContentSchema,
+      frontmatterSchema: siteContentMetadataSchema,
+    });
   }
 
   public toMarkdown(entity: SiteContent): string {
-    // The content field already contains the formatted content
-    // We just need to add/update the frontmatter
-    const metadata: Record<string, unknown> = {
-      routeId: entity.routeId,
-      sectionId: entity.sectionId,
+    const fm = {
+      routeId: entity.metadata.routeId,
+      sectionId: entity.metadata.sectionId,
     };
 
-    // If content already has frontmatter, preserve the body and update metadata
-    // Otherwise, use the content as-is
     try {
-      const { content: body } = parseMarkdownWithFrontmatter(
-        entity.content,
-        z.object({}),
-      );
-      return generateMarkdownWithFrontmatter(body, metadata);
+      const body = this.extractBody(entity.content);
+      return this.buildMarkdown(body, fm);
     } catch {
-      // Content doesn't have valid frontmatter, use as-is
-      return generateMarkdownWithFrontmatter(entity.content, metadata);
+      return this.buildMarkdown(entity.content, fm);
     }
   }
 
   public fromMarkdown(markdown: string): Partial<SiteContent> {
-    // Parse frontmatter to get routeId and sectionId
-    const { metadata } = parseMarkdownWithFrontmatter(
-      markdown,
-      frontmatterSchema,
-    );
-
-    // The content is the formatted markdown
-    // For import, we store the full markdown as the source of truth
-    const result: Partial<SiteContent> = {
-      routeId: metadata.routeId,
-      sectionId: metadata.sectionId,
-      content: markdown, // Store the full markdown including frontmatter
+    const frontmatter = this.parseFrontmatter(markdown);
+    return {
+      content: markdown,
+      entityType: "site-content",
+      metadata: {
+        routeId: frontmatter.routeId,
+        sectionId: frontmatter.sectionId,
+      },
     };
-
-    return result;
-  }
-
-  public extractMetadata(_entity: SiteContent): SiteContentMetadata {
-    return {};
-  }
-
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  public generateFrontMatter(entity: SiteContent): string {
-    const metadata: Record<string, unknown> = {
-      routeId: entity.routeId,
-      sectionId: entity.sectionId,
-    };
-
-    return generateFrontmatter(metadata);
   }
 }
 

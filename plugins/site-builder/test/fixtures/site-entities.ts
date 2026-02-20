@@ -8,15 +8,17 @@ import { createTestEntity } from "@brains/test-utils";
 export function createMockSiteContent(
   overrides: Partial<Omit<SiteContent, "contentHash">> & { content: string },
 ): SiteContent {
+  const metadata = overrides.metadata ?? {
+    routeId: "test-route",
+    sectionId: "test-section",
+  };
   return createTestEntity<SiteContent>("site-content", {
     id: overrides.id ?? "test-site-content",
     content: overrides.content,
-    routeId: overrides.routeId ?? "test-route",
-    sectionId: overrides.sectionId ?? "test-section",
     ...(overrides.template && { template: overrides.template }),
     ...(overrides.created && { created: overrides.created }),
     ...(overrides.updated && { updated: overrides.updated }),
-    metadata: overrides.metadata ?? {},
+    metadata,
   });
 }
 
