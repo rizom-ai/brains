@@ -20,7 +20,6 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 
 - **shell/core**: Central shell with plugin management and core infrastructure
 - **shell/ai-service**: AI text and object generation using Anthropic
-- **shell/command-registry**: Command registration and management
 - **shell/content-service**: Template-based content generation system
 - **shell/conversation-service**: Conversation and message management with memory
 - **shell/daemon-registry**: Long-running process management
