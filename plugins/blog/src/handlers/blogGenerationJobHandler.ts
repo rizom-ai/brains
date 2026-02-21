@@ -1,6 +1,6 @@
 import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import { z, slugify, generationResultSchema } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
@@ -20,15 +20,9 @@ export const blogGenerationJobSchema = z.object({
 
 export type BlogGenerationJobData = z.infer<typeof blogGenerationJobSchema>;
 
-/**
- * Result schema for blog generation job
- */
-export const blogGenerationResultSchema = z.object({
-  success: z.boolean(),
-  entityId: z.string().optional(),
+export const blogGenerationResultSchema = generationResultSchema.extend({
   title: z.string().optional(),
   slug: z.string().optional(),
-  error: z.string().optional(),
 });
 
 export type BlogGenerationResult = z.infer<typeof blogGenerationResultSchema>;

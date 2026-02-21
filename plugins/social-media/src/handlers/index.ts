@@ -1,7 +1,7 @@
 export {
   GenerationJobHandler,
   generationJobSchema,
-  generationResultSchema,
+  socialMediaGenerationResultSchema,
   type GenerationJobData,
   type GenerationResult,
 } from "./generationHandler";

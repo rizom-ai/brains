@@ -1,5 +1,11 @@
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify, PROGRESS_STEPS, JobResult } from "@brains/utils";
+import {
+  z,
+  slugify,
+  PROGRESS_STEPS,
+  JobResult,
+  generationResultSchema,
+} from "@brains/utils";
 import { BaseJobHandler, type ServicePluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";
 
@@ -16,14 +22,8 @@ export type ProjectGenerationJobData = z.infer<
   typeof projectGenerationJobSchema
 >;
 
-/**
- * Result schema for project generation job
- */
-export const projectGenerationResultSchema = z.object({
-  success: z.boolean(),
-  entityId: z.string().optional(),
+export const projectGenerationResultSchema = generationResultSchema.extend({
   title: z.string().optional(),
-  error: z.string().optional(),
 });
 
 export type ProjectGenerationResult = z.infer<

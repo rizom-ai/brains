@@ -105,6 +105,10 @@ export type {
 // Job handler utilities
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export { JobResult } from "./job-result";
+export {
+  generationResultSchema,
+  type GenerationResult,
+} from "./generation-result";
 
 // Debounce utilities
 export { LeadingTrailingDebounce } from "./debounce";

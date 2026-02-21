@@ -2,7 +2,12 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { z, slugify, computeContentHash } from "@brains/utils";
+import {
+  z,
+  slugify,
+  computeContentHash,
+  generationResultSchema,
+} from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
 import { DeckFormatter } from "../formatters/deck-formatter";
 
@@ -21,15 +26,9 @@ export const deckGenerationJobSchema = z.object({
 
 export type DeckGenerationJobData = z.infer<typeof deckGenerationJobSchema>;
 
-/**
- * Result schema for deck generation job
- */
-export const deckGenerationResultSchema = z.object({
-  success: z.boolean(),
-  entityId: z.string().optional(),
+export const deckGenerationResultSchema = generationResultSchema.extend({
   title: z.string().optional(),
   slug: z.string().optional(),
-  error: z.string().optional(),
 });
 
 export type DeckGenerationResult = z.infer<typeof deckGenerationResultSchema>;

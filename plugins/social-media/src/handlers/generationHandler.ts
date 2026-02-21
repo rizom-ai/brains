@@ -1,6 +1,6 @@
 import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import { z, slugify, generationResultSchema } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -29,17 +29,13 @@ export const generationJobSchema = z.object({
 
 export type GenerationJobData = z.infer<typeof generationJobSchema>;
 
-/**
- * Result schema for social post generation job
- */
-export const generationResultSchema = z.object({
-  success: z.boolean(),
-  entityId: z.string().optional(),
+export const socialMediaGenerationResultSchema = generationResultSchema.extend({
   slug: z.string().optional(),
-  error: z.string().optional(),
 });
 
-export type GenerationResult = z.infer<typeof generationResultSchema>;
+export type GenerationResult = z.infer<
+  typeof socialMediaGenerationResultSchema
+>;
 
 /**
  * Job handler for social post generation

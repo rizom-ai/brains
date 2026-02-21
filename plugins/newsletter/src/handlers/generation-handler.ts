@@ -4,7 +4,12 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify, PROGRESS_STEPS } from "@brains/utils";
+import {
+  z,
+  slugify,
+  PROGRESS_STEPS,
+  type GenerationResult,
+} from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { NewsletterConfig } from "../config";
 import type { NewsletterMetadata } from "../schemas/newsletter";
@@ -34,17 +39,6 @@ export const generationJobSchema = z.object({
 });
 
 export type GenerationJobData = z.infer<typeof generationJobSchema>;
-
-/**
- * Result schema for newsletter generation job
- */
-export const generationResultSchema = z.object({
-  success: z.boolean(),
-  entityId: z.string().optional(),
-  error: z.string().optional(),
-});
-
-export type GenerationResult = z.infer<typeof generationResultSchema>;
 
 import type { BlogPost } from "./types";
 
