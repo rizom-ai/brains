@@ -164,12 +164,12 @@ const CONN_TYPES = {
 const CLUSTERS = {
   apps:       { x: 20,   y: 8,   w: 544,  h: 80  },
   interfaces: { x: 742,  y: 8,   w: 638,  h: 80  },
-  content:    { x: 20,   y: 108, w: 326,  h: 194 },
+  content:    { x: 20,   y: 108, w: 326,  h: 306 },
   shell:      { x: 529,  y: 108, w: 342,  h: 194 },
   publishing: { x: 1042, y: 108, w: 338,  h: 194 },
-  sync:       { x: 20,   y: 330, w: 429,  h: 80  },
-  shared:     { x: 504,  y: 330, w: 444,  h: 80  },
-  system:     { x: 1003, y: 330, w: 380,  h: 138 },
+  sync:       { x: 20,   y: 434, w: 285,  h: 80  },
+  shared:     { x: 320,  y: 434, w: 430,  h: 80  },
+  system:     { x: 770,  y: 434, w: 370,  h: 80  },
 };
 
 // ── Node data ──
@@ -185,13 +185,17 @@ const nodes = [
   { id:'mcp-if',    label:'MCP Transport', subtitle:'interfaces/mcp',       x:1044, y:32, w:148, h:44, group:'interfaces' },
   { id:'webserver', label:'Webserver',     subtitle:'interfaces/webserver', x:1206, y:32, w:138, h:44, group:'interfaces' },
 
-  // ─ Content Creation (2×3 grid) ─
-  { id:'note',      label:'Note',      subtitle:'plugins/note',      x:34,  y:132, w:142, h:44, group:'content' },
-  { id:'blog',      label:'Blog',      subtitle:'plugins/blog',      x:190, y:132, w:142, h:44, group:'content' },
-  { id:'link',      label:'Link',      subtitle:'plugins/link',      x:34,  y:188, w:142, h:44, group:'content' },
-  { id:'portfolio', label:'Portfolio',  subtitle:'plugins/portfolio', x:190, y:188, w:142, h:44, group:'content' },
-  { id:'products',  label:'Products',  subtitle:'plugins/products',  x:34,  y:244, w:142, h:44, group:'content' },
-  { id:'decks',     label:'Decks',     subtitle:'plugins/decks',     x:190, y:244, w:142, h:44, group:'content' },
+  // ─ Content Creation (2×5 grid) ─
+  { id:'note',         label:'Note',         subtitle:'plugins/note',         x:34,  y:132, w:142, h:44, group:'content' },
+  { id:'blog',         label:'Blog',         subtitle:'plugins/blog',         x:190, y:132, w:142, h:44, group:'content' },
+  { id:'link',         label:'Link',         subtitle:'plugins/link',         x:34,  y:188, w:142, h:44, group:'content' },
+  { id:'portfolio',    label:'Portfolio',     subtitle:'plugins/portfolio',    x:190, y:188, w:142, h:44, group:'content' },
+  { id:'products',     label:'Products',     subtitle:'plugins/products',     x:34,  y:244, w:142, h:44, group:'content' },
+  { id:'decks',        label:'Decks',        subtitle:'plugins/decks',        x:190, y:244, w:142, h:44, group:'content' },
+  { id:'image',        label:'Image',        subtitle:'plugins/image',        x:34,  y:300, w:142, h:44, group:'content' },
+  { id:'site-content', label:'Site Content', subtitle:'plugins/site-content', x:190, y:300, w:142, h:44, group:'content' },
+  { id:'summary',      label:'Summary',      subtitle:'plugins/summary',      x:34,  y:356, w:142, h:44, group:'content' },
+  { id:'topics',       label:'Topics',       subtitle:'plugins/topics',       x:190, y:356, w:142, h:44, group:'content' },
 
   // ─ Shell Core (2×3 grid) ─
   { id:'entity-svc', label:'Entity Service',   subtitle:'shell/entity-service',    x:543, y:132, w:150, h:44, group:'shell' },
@@ -201,30 +205,26 @@ const nodes = [
   { id:'ai-svc',     label:'AI Service',       subtitle:'shell/ai-service',        x:543, y:244, w:150, h:44, group:'shell' },
   { id:'plugin-fw',  label:'Plugin Framework', subtitle:'shell/plugins',           x:707, y:244, w:150, h:44, group:'shell' },
 
-  // ─ Publishing (2×3 grid) ─
+  // ─ Publishing (2×3 grid, 5 filled) ─
   { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',     x:1056, y:132, w:148, h:44, group:'publishing' },
   { id:'pro-site',     label:'Professional Site',  subtitle:'plugins/professional-site',x:1218, y:132, w:148, h:44, group:'publishing' },
   { id:'content-pipe', label:'Content Pipeline',   subtitle:'plugins/content-pipeline', x:1056, y:188, w:148, h:44, group:'publishing' },
   { id:'newsletter',   label:'Newsletter',         subtitle:'plugins/newsletter',       x:1218, y:188, w:148, h:44, group:'publishing' },
   { id:'social',       label:'Social Media',       subtitle:'plugins/social-media',     x:1056, y:244, w:148, h:44, group:'publishing' },
-  { id:'site-content', label:'Site Content',       subtitle:'plugins/site-content',     x:1218, y:244, w:148, h:44, group:'publishing' },
 
-  // ─ Sync & Storage (row of 3) ─
-  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:354, w:145, h:44, group:'sync' },
-  { id:'git-sync', label:'Git Sync',      subtitle:'plugins/git-sync',       x:193, y:354, w:128, h:44, group:'sync' },
-  { id:'image',    label:'Image',         subtitle:'plugins/image',           x:335, y:354, w:100, h:44, group:'sync' },
+  // ─ Sync & Storage (row of 2) ─
+  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:458, w:125, h:44, group:'sync' },
+  { id:'git-sync', label:'Git Sync',       subtitle:'plugins/git-sync',      x:173, y:458, w:118, h:44, group:'sync' },
 
   // ─ Shared (row of 3) ─
-  { id:'utils',  label:'Utils',      subtitle:'shared/utils',      x:518, y:354, w:125, h:44, group:'shared' },
-  { id:'ui-lib', label:'UI Library', subtitle:'shared/ui-library', x:657, y:354, w:138, h:44, group:'shared' },
-  { id:'themes', label:'Themes',     subtitle:'shared/theme-*',    x:809, y:354, w:125, h:44, group:'shared' },
+  { id:'utils',  label:'Utils',      subtitle:'shared/utils',      x:334, y:458, w:125, h:44, group:'shared' },
+  { id:'ui-lib', label:'UI Library', subtitle:'shared/ui-library', x:473, y:458, w:138, h:44, group:'shared' },
+  { id:'themes', label:'Themes',     subtitle:'shared/theme-*',    x:625, y:458, w:110, h:44, group:'shared' },
 
-  // ─ System (3+2 grid) ─
-  { id:'system',    label:'System',    subtitle:'plugins/system',    x:1017, y:354, w:108, h:44, group:'system' },
-  { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', x:1139, y:354, w:118, h:44, group:'system' },
-  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1271, y:354, w:108, h:44, group:'system' },
-  { id:'summary',   label:'Summary',  subtitle:'plugins/summary',   x:1081, y:410, w:112, h:44, group:'system' },
-  { id:'topics',    label:'Topics',   subtitle:'plugins/topics',    x:1207, y:410, w:108, h:44, group:'system' },
+  // ─ System (row of 3) ─
+  { id:'system',    label:'System',    subtitle:'plugins/system',    x:784,  y:458, w:108, h:44, group:'system' },
+  { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', x:906,  y:458, w:118, h:44, group:'system' },
+  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1038, y:458, w:108, h:44, group:'system' },
 ];
 
 // ── Connections ──
@@ -249,35 +249,35 @@ const connections = [
   // Webserver → Site Builder
   { from:'webserver', to:'site-builder', type:'data-flow', label:'serves' },
 
-  // Content → Shell (entity CRUD)
-  { from:'note',      to:'entity-svc', type:'data-flow' },
-  { from:'blog',      to:'entity-svc', type:'data-flow' },
-  { from:'link',      to:'entity-svc', type:'data-flow' },
-  { from:'portfolio', to:'entity-svc', type:'data-flow' },
-  { from:'products',  to:'entity-svc', type:'data-flow' },
-  { from:'decks',     to:'entity-svc', type:'data-flow' },
-  { from:'blog',      to:'ai-svc',     type:'tool-call', label:'generate' },
+  // Content → Shell (entity CRUD & AI)
+  { from:'note',         to:'entity-svc', type:'data-flow' },
+  { from:'blog',         to:'entity-svc', type:'data-flow' },
+  { from:'link',         to:'entity-svc', type:'data-flow' },
+  { from:'portfolio',    to:'entity-svc', type:'data-flow' },
+  { from:'products',     to:'entity-svc', type:'data-flow' },
+  { from:'decks',        to:'entity-svc', type:'data-flow' },
+  { from:'image',        to:'entity-svc', type:'data-flow' },
+  { from:'site-content', to:'entity-svc', type:'data-flow' },
+  { from:'site-content', to:'job-queue',  type:'data-flow', label:'enqueue' },
+  { from:'site-content', to:'messaging',  type:'event',     label:'routes:list' },
+  { from:'summary',      to:'entity-svc', type:'data-flow' },
+  { from:'summary',      to:'ai-svc',     type:'tool-call', label:'generate' },
+  { from:'topics',       to:'entity-svc', type:'data-flow' },
+  { from:'blog',         to:'ai-svc',     type:'tool-call', label:'generate' },
 
   // Publishing → Shell
   { from:'site-builder', to:'entity-svc', type:'data-flow', label:'read' },
   { from:'content-pipe', to:'job-queue',  type:'data-flow', label:'schedule' },
   { from:'newsletter',   to:'entity-svc', type:'data-flow' },
   { from:'social',       to:'entity-svc', type:'data-flow' },
-  { from:'site-content', to:'entity-svc', type:'data-flow' },
-  { from:'site-content', to:'job-queue',  type:'data-flow', label:'enqueue' },
-  { from:'site-content', to:'messaging',  type:'event',     label:'routes:list' },
 
   // Sync → Shell
   { from:'dir-sync', to:'entity-svc', type:'data-flow', label:'import/export' },
   { from:'dir-sync', to:'job-queue',  type:'data-flow' },
   { from:'git-sync', to:'job-queue',  type:'data-flow', label:'enqueue' },
-  { from:'image',    to:'entity-svc', type:'data-flow' },
 
   // System → Shell
   { from:'system',    to:'entity-svc', type:'data-flow', label:'search' },
-  { from:'summary',   to:'ai-svc',     type:'tool-call', label:'generate' },
-  { from:'summary',   to:'entity-svc', type:'data-flow' },
-  { from:'topics',    to:'entity-svc', type:'data-flow' },
   { from:'dashboard', to:'messaging',  type:'event', label:'widget:*' },
 
   // Shell events
@@ -306,6 +306,7 @@ const PRESETS = {
   tools:   { label:'Tool Routing',  groups:['interfaces','shell'], conns:['tool-call'] },
   publish: { label:'Publishing',    groups:['content','publishing','shell','shared'], conns:['data-flow','dependency'] },
   sync:    { label:'Sync Pipeline', groups:['sync','shell'], conns:['data-flow','event'] },
+  content: { label:'Content',       groups:['content','shell'], conns:['data-flow','tool-call'] },
 };
 
 // ── State ──
@@ -363,7 +364,7 @@ function connPath(fromId, toId) {
 // ── Rendering ──
 function render() {
   const svg = document.getElementById('svg');
-  svg.setAttribute('viewBox', '0 0 1400 480');
+  svg.setAttribute('viewBox', '0 0 1400 530');
 
   let html = '<defs>';
   Object.entries(CONN_TYPES).forEach(([k, v]) => {
@@ -491,11 +492,11 @@ function updatePrompt() {
 
   if (allVisible) {
     text += 'Showing the full system with clustered groups:\n';
-    text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks\n';
+    text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks, Image, Site Content, Summary, Topics\n';
     text += '- Shell Core: Entity Service, MCP Service, Job Queue, Messaging, AI Service, Plugin Framework\n';
-    text += '- Publishing: Site Builder, Professional Site, Content Pipeline, Newsletter, Social Media, Site Content\n';
-    text += '- Sync & Storage: Directory Sync, Git Sync, Image\n';
-    text += '- System: System, Dashboard, Analytics, Summary, Topics\n';
+    text += '- Publishing: Site Builder, Professional Site, Content Pipeline, Newsletter, Social Media\n';
+    text += '- Sync & Storage: Directory Sync, Git Sync\n';
+    text += '- System: System, Dashboard, Analytics\n';
     text += '- Shared: Utils, UI Library, Themes';
   } else {
     text += `Currently focusing on: ${visible.join(', ')}.`;
