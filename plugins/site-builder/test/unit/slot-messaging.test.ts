@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { createTestConfig } from "../test-helpers";
 
 describe("Site-builder slot messaging", () => {
-  let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
   let plugin: SiteBuilderPlugin;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness<SiteBuilderPlugin>();
+    harness = createPluginHarness<SiteBuilderPlugin>();
     plugin = new SiteBuilderPlugin(
       createTestConfig({
         previewOutputDir: "/tmp/test-output",

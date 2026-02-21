@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -10,7 +10,7 @@ import simpleGit from "simple-git";
  * Tests for git-sync as a ServicePlugin with async job-based sync.
  */
 describe("Git Sync Job Handler", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let testDir: string;
   let remoteDir: string;
 
@@ -22,7 +22,7 @@ describe("Git Sync Job Handler", () => {
 
     await simpleGit(remoteDir).init(true);
 
-    harness = createServicePluginHarness({ dataDir: testDir });
+    harness = createPluginHarness({ dataDir: testDir });
 
     harness.subscribe("entity:import:request", async () => {
       return { success: true, data: { imported: 0, errors: [] } };

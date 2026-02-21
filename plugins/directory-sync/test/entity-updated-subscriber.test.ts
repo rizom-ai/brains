@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import type { z } from "@brains/utils";
@@ -77,16 +77,14 @@ class SeriesTestAdapter implements EntityAdapter<BaseEntity> {
 }
 
 describe("entity:updated subscriber", () => {
-  let harness: ReturnType<
-    typeof createServicePluginHarness<DirectorySyncPlugin>
-  >;
+  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
   let plugin: DirectorySyncPlugin;
   let syncPath: string;
 
   beforeEach(async () => {
     syncPath = join(tmpdir(), `test-entity-subscriber-${Date.now()}`);
 
-    harness = createServicePluginHarness<DirectorySyncPlugin>({
+    harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: syncPath,
     });
 

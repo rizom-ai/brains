@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import type { LinkPlugin } from "../src/index";
 import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import {
   createMockLinkEntity,
@@ -159,12 +159,12 @@ This is a test article summary.`;
 });
 
 describe("LinkPlugin with Harness", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let plugin: LinkPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = createLinkPlugin({
       enableSummarization: true,

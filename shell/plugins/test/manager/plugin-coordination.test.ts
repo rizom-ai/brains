@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 
 /**
  * Regression test for: Dashboard Widget Registration Timing
@@ -26,11 +26,11 @@ import { createServicePluginHarness } from "@brains/plugins/test";
  * 7. Dashboard receives widget messages
  */
 describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let registeredWidgets: Array<{ id: string; pluginId: string }>;
 
   beforeEach(() => {
-    harness = createServicePluginHarness({
+    harness = createPluginHarness({
       dataDir: "/tmp/test-coordination",
     });
     registeredWidgets = [];

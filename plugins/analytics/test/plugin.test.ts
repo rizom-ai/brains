@@ -4,7 +4,7 @@ import {
   createAnalyticsPlugin,
   AnalyticsPlugin as AnalyticsPluginClass,
 } from "../src/index";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 
 describe("AnalyticsPlugin", () => {
   let plugin: AnalyticsPlugin;
@@ -48,7 +48,7 @@ describe("AnalyticsPlugin", () => {
 
   describe("Plugin Tools", () => {
     it("should register analytics_query tool when cloudflare is configured", async () => {
-      const harness = createCorePluginHarness();
+      const harness = createPluginHarness();
 
       const capabilities = await harness.installPlugin(
         new AnalyticsPluginClass({
@@ -66,7 +66,7 @@ describe("AnalyticsPlugin", () => {
     });
 
     it("should NOT register tools when cloudflare is not configured", async () => {
-      const harness = createCorePluginHarness();
+      const harness = createPluginHarness();
 
       const capabilities = await harness.installPlugin(
         new AnalyticsPluginClass({}),
@@ -77,7 +77,7 @@ describe("AnalyticsPlugin", () => {
     });
 
     it("should have query tool with correct description", async () => {
-      const harness = createCorePluginHarness();
+      const harness = createPluginHarness();
 
       const capabilities = await harness.installPlugin(
         new AnalyticsPluginClass({

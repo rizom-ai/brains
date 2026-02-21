@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
 import { GitSync } from "../src/lib/git-sync";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -15,7 +15,7 @@ import simpleGit from "simple-git";
  * - Only import changed files (not all files) when pull brings changes
  */
 describe("Pull Skip Unchanged", () => {
-  let harness: ReturnType<typeof createServicePluginHarness<GitSyncPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<GitSyncPlugin>>;
   let capabilities: PluginCapabilities;
   let testDir: string;
   let remoteDir: string;
@@ -29,7 +29,7 @@ describe("Pull Skip Unchanged", () => {
     // Initialize bare remote
     await simpleGit(remoteDir).init(true);
 
-    harness = createServicePluginHarness<GitSyncPlugin>({ dataDir: testDir });
+    harness = createPluginHarness<GitSyncPlugin>({ dataDir: testDir });
 
     harness.subscribe("entity:import:request", async () => {
       return { success: true, data: { imported: 0, errors: [] } };

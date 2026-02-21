@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { Plugin, MessageWithPayload } from "@brains/plugins";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { createNewsletterPlugin, NewsletterPlugin } from "../src";
 
 describe("NewsletterPlugin", () => {
@@ -91,7 +91,7 @@ describe("NewsletterPlugin", () => {
     }
 
     it("should send slot registration message on system:plugins:ready when buttondown is configured", async () => {
-      const harness = createServicePluginHarness<NewsletterPlugin>();
+      const harness = createPluginHarness<NewsletterPlugin>();
       let receivedPayload: SlotRegistrationPayload | undefined;
 
       // Subscribe before installing plugin
@@ -132,7 +132,7 @@ describe("NewsletterPlugin", () => {
     });
 
     it("should have render function that returns a VNode", async () => {
-      const harness = createServicePluginHarness<NewsletterPlugin>();
+      const harness = createPluginHarness<NewsletterPlugin>();
       let receivedPayload: SlotRegistrationPayload | undefined;
 
       harness.subscribe<SlotRegistrationPayload>(
@@ -167,7 +167,7 @@ describe("NewsletterPlugin", () => {
     });
 
     it("should not send slot registration when buttondown is not configured", async () => {
-      const harness = createServicePluginHarness<NewsletterPlugin>();
+      const harness = createPluginHarness<NewsletterPlugin>();
       let messageReceived = false;
 
       harness.subscribe("plugin:site-builder:slot:register", () => {

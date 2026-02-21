@@ -1,7 +1,4 @@
 import type { Plugin, PluginCapabilities, PluginType } from "../interfaces";
-import type { CorePlugin } from "../core/core-plugin";
-import type { ServicePlugin } from "../service/service-plugin";
-import type { InterfacePlugin } from "../interface/interface-plugin";
 import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
@@ -228,37 +225,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
 }
 
 /**
- * Create a test harness for core plugins
+ * Create a test harness for any plugin type
  */
-export function createCorePluginHarness<T extends CorePlugin = CorePlugin>(
+export function createPluginHarness<T extends Plugin = Plugin>(
   options?: HarnessOptions,
 ): PluginTestHarness<T> {
   return new PluginTestHarness<T>({
-    logContext: "core-plugin-test",
-    ...options,
-  });
-}
-
-/**
- * Create a test harness for service plugins
- */
-export function createServicePluginHarness<
-  T extends ServicePlugin = ServicePlugin,
->(options?: HarnessOptions): PluginTestHarness<T> {
-  return new PluginTestHarness<T>({
-    logContext: "service-plugin-test",
-    ...options,
-  });
-}
-
-/**
- * Create a test harness for interface plugins
- */
-export function createInterfacePluginHarness<
-  T extends InterfacePlugin = InterfacePlugin,
->(options?: HarnessOptions): PluginTestHarness<T> {
-  return new PluginTestHarness<T>({
-    logContext: "interface-plugin-test",
+    logContext: "plugin-test",
     ...options,
   });
 }

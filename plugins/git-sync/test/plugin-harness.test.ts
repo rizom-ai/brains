@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
 import { rmSync, existsSync, mkdirSync } from "fs";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("GitSyncPlugin with ServicePluginTestHarness", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let testRepoPath: string;
   let plugin: GitSyncPlugin;
   let capabilities: PluginCapabilities;
@@ -18,7 +18,7 @@ describe("GitSyncPlugin with ServicePluginTestHarness", () => {
     mkdirSync(testRepoPath, { recursive: true });
 
     // Create test harness with dataDir pointing to test directory
-    harness = createServicePluginHarness({ dataDir: testRepoPath });
+    harness = createPluginHarness({ dataDir: testRepoPath });
 
     // Set up message subscriptions for mocking dependencies
     harness.subscribe("sync:status:request", async () => {

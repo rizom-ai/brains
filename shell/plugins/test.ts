@@ -5,9 +5,7 @@
 export { MockShell } from "./src/test/mock-shell";
 export {
   PluginTestHarness,
-  createCorePluginHarness,
-  createServicePluginHarness,
-  createInterfacePluginHarness,
+  createPluginHarness,
   type HarnessOptions,
 } from "./src/test/harness";
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { NewsletterPlugin } from "../src";
 
 // Save original fetch to restore after tests
@@ -17,10 +17,10 @@ function mockFetch(
 }
 
 describe("Newsletter Tools", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness();
+    harness = createPluginHarness();
   });
 
   afterEach(() => {

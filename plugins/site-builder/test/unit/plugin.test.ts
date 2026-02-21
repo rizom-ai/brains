@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
@@ -11,12 +11,12 @@ import { createTestConfig } from "../test-helpers";
 const routesData = z.object({ routes: z.array(z.unknown()) });
 
 describe("SiteBuilderPlugin", () => {
-  let harness: ReturnType<typeof createServicePluginHarness<SiteBuilderPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
   let plugin: SiteBuilderPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness<SiteBuilderPlugin>();
+    harness = createPluginHarness<SiteBuilderPlugin>();
   });
 
   afterEach(() => {

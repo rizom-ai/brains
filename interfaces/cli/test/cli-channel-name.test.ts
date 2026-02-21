@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import { createInterfacePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type {
   IAgentService,
@@ -14,7 +14,7 @@ describe("CLI Interface - Agent Context Integration", () => {
   let chatMock: ReturnType<typeof mock>;
 
   beforeEach(async () => {
-    harness = createInterfacePluginHarness<CLIInterface>();
+    harness = createPluginHarness<CLIInterface>();
     cliInterface = new CLIInterface();
 
     // Create a mock AgentService to capture the chat context

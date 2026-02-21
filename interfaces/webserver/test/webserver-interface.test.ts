@@ -1,12 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createInterfacePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { WebserverInterface } from "../src/webserver-interface";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("WebserverInterface", () => {
-  let harness: ReturnType<
-    typeof createInterfacePluginHarness<WebserverInterface>
-  >;
+  let harness: ReturnType<typeof createPluginHarness<WebserverInterface>>;
   let plugin: WebserverInterface;
 
   beforeEach(async () => {
@@ -17,7 +15,7 @@ describe("WebserverInterface", () => {
       productionPort: 8081,
     });
 
-    harness = createInterfacePluginHarness<WebserverInterface>({
+    harness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-test"),
     });
 
@@ -40,7 +38,7 @@ describe("WebserverInterface", () => {
 
   it("should initialize with default config", async () => {
     const defaultPlugin = new WebserverInterface();
-    const defaultHarness = createInterfacePluginHarness<WebserverInterface>({
+    const defaultHarness = createPluginHarness<WebserverInterface>({
       logger: createSilentLogger("webserver-default-test"),
     });
 

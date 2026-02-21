@@ -8,7 +8,7 @@ import {
   afterAll,
 } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
-import { createInterfacePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 
 // Mock console.clear
@@ -23,7 +23,7 @@ describe("CLIInterface", () => {
     mock.restore();
 
     // Set up test harness
-    harness = createInterfacePluginHarness<CLIInterface>();
+    harness = createPluginHarness<CLIInterface>();
   });
 
   afterEach(() => {

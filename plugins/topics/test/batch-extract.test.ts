@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { topicSourceSchema, type TopicSource } from "../src/schemas/topic";
 import TopicsPlugin from "../src/index";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 
@@ -68,11 +68,11 @@ describe("TopicSource schema", () => {
 });
 
 describe("TopicsPlugin.getEntitiesToExtract", () => {
-  let harness: ReturnType<typeof createServicePluginHarness<TopicsPlugin>>;
+  let harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>;
   let plugin: TopicsPlugin;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness<TopicsPlugin>();
+    harness = createPluginHarness<TopicsPlugin>();
     plugin = new TopicsPlugin({
       includeEntityTypes: ["post", "link", "deck"],
     });

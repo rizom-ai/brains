@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { PluginTool } from "@brains/plugins";
 import { AnalyticsPlugin } from "../src/index";
@@ -35,7 +35,7 @@ async function executeTool(
 }
 
 describe("AnalyticsPlugin Integration", () => {
-  let harness: ReturnType<typeof createCorePluginHarness> | undefined;
+  let harness: ReturnType<typeof createPluginHarness> | undefined;
   let plugin: AnalyticsPlugin;
   let capabilities: PluginCapabilities;
 
@@ -54,7 +54,7 @@ describe("AnalyticsPlugin Integration", () => {
 
   describe("Plugin Registration", () => {
     beforeEach(async () => {
-      harness = createCorePluginHarness();
+      harness = createPluginHarness();
 
       plugin = new AnalyticsPlugin({
         cloudflare: {
@@ -91,7 +91,7 @@ describe("AnalyticsPlugin Integration", () => {
 
   describe("No Providers Configuration", () => {
     beforeEach(async () => {
-      harness = createCorePluginHarness();
+      harness = createPluginHarness();
 
       plugin = new AnalyticsPlugin({
         // No providers configured
@@ -107,7 +107,7 @@ describe("AnalyticsPlugin Integration", () => {
 
   describe("Tool Execution - analytics_query", () => {
     beforeEach(async () => {
-      harness = createCorePluginHarness();
+      harness = createPluginHarness();
 
       plugin = new AnalyticsPlugin({
         cloudflare: {
@@ -511,7 +511,7 @@ describe("AnalyticsPlugin Integration", () => {
 
   describe("Plugin Lifecycle", () => {
     it("should handle plugin registration and reset", async () => {
-      harness = createCorePluginHarness();
+      harness = createPluginHarness();
 
       plugin = new AnalyticsPlugin({
         cloudflare: {

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { rmSync, existsSync, readFileSync, mkdirSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createTestEntity } from "@brains/test-utils";
 
 describe("DirectorySync AutoSync", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let plugin: DirectorySyncPlugin;
   let testDir: string;
 
@@ -17,7 +17,7 @@ describe("DirectorySync AutoSync", () => {
     mkdirSync(testDir, { recursive: true });
 
     // Create test harness with dataDir pointing to test directory
-    harness = createServicePluginHarness({ dataDir: testDir });
+    harness = createPluginHarness({ dataDir: testDir });
 
     // Create plugin with autoSync enabled
     plugin = new DirectorySyncPlugin({

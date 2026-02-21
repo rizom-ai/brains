@@ -1,15 +1,15 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { ProfessionalSitePlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("ProfessionalSitePlugin", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let plugin: ProfessionalSitePlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = new ProfessionalSitePlugin({
       entityRouteConfig: {

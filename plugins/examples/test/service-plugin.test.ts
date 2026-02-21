@@ -1,16 +1,16 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { calculatorServicePlugin } from "../src/service-plugin-example";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "@brains/utils";
 
 describe("ServicePlugin", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
 
     // Register test templates
     harness.registerTemplate("test-template", {

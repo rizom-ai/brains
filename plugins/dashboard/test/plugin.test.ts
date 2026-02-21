@@ -1,15 +1,15 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { DashboardPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("DashboardPlugin", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let plugin: DashboardPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
     plugin = new DashboardPlugin();
     capabilities = await harness.installPlugin(plugin);
   });

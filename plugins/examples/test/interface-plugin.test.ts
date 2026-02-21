@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach } from "bun:test";
-import { createInterfacePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { webserverInterfacePlugin } from "../src/interface-plugin-example";
 import type { ExampleInterfacePlugin } from "../src/interface-plugin-example";
 import type { PluginCapabilities } from "@brains/plugins/test";
@@ -7,13 +7,11 @@ import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "@brains/utils";
 
 describe("InterfacePlugin", () => {
-  let harness: ReturnType<
-    typeof createInterfacePluginHarness<ExampleInterfacePlugin>
-  >;
+  let harness: ReturnType<typeof createPluginHarness<ExampleInterfacePlugin>>;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
-    harness = createInterfacePluginHarness<ExampleInterfacePlugin>({
+    harness = createPluginHarness<ExampleInterfacePlugin>({
       dataDir: "/tmp/test-datadir",
     });
 

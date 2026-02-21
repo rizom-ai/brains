@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { computeContentHash } from "@brains/utils";
 import { BlogPlugin } from "../src/plugin";
 import type { BlogPost } from "../src/schemas/blog-post";
 import type { Series } from "../src/schemas/series";
 
 describe("blog_enhance-series tool", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness();
+    harness = createPluginHarness();
     await harness.installPlugin(new BlogPlugin({}));
   });
 

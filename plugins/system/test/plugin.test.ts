@@ -1,18 +1,18 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { SystemPlugin } from "../src/plugin";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 
 describe("SystemPlugin", () => {
-  let harness: ReturnType<typeof createCorePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let plugin: SystemPlugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
     // Create test harness with dataDir for context
-    harness = createCorePluginHarness({ dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = new SystemPlugin({ searchLimit: 5, debug: false });
     capabilities = await harness.installPlugin(plugin);
@@ -25,7 +25,7 @@ describe("SystemPlugin", () => {
   describe("Dashboard Widget Registration", () => {
     it("should register entity-stats widget after system:plugins:ready", async () => {
       // Create a fresh harness and capture messages
-      const freshHarness = createCorePluginHarness({
+      const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
       const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
@@ -55,7 +55,7 @@ describe("SystemPlugin", () => {
     });
 
     it("should register job-status widget after system:plugins:ready", async () => {
-      const freshHarness = createCorePluginHarness({
+      const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
       const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
@@ -82,7 +82,7 @@ describe("SystemPlugin", () => {
     });
 
     it("should register identity widget after system:plugins:ready", async () => {
-      const freshHarness = createCorePluginHarness({
+      const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
       const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
@@ -111,7 +111,7 @@ describe("SystemPlugin", () => {
     it("should NOT register widgets before system:plugins:ready", async () => {
       // This test verifies the timing fix - widgets should only be sent
       // after system:plugins:ready, ensuring Dashboard has subscribed first
-      const freshHarness = createCorePluginHarness({
+      const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
       const registeredWidgets: Array<{ id: string; pluginId: string }> = [];

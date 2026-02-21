@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import type { z } from "@brains/utils";
@@ -91,7 +91,7 @@ describe("Seed Content Git Detection", () => {
       );
 
       // Create harness and plugin
-      const harness = createServicePluginHarness<DirectorySyncPlugin>({
+      const harness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: brainDataPath,
       });
 
@@ -144,7 +144,7 @@ describe("Seed Content Git Detection", () => {
       );
 
       // Create harness and plugin
-      const harness = createServicePluginHarness<DirectorySyncPlugin>({
+      const harness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: brainDataPath,
       });
 
@@ -200,7 +200,7 @@ describe("Seed Content Git Detection", () => {
       );
 
       // Create harness and plugin
-      const harness = createServicePluginHarness<DirectorySyncPlugin>({
+      const harness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: brainDataPath,
       });
 
@@ -255,7 +255,7 @@ describe("Seed Content Git Detection", () => {
       );
 
       // Create harness and plugin
-      const harness = createServicePluginHarness<DirectorySyncPlugin>({
+      const harness = createPluginHarness<DirectorySyncPlugin>({
         dataDir: brainDataPath,
       });
 

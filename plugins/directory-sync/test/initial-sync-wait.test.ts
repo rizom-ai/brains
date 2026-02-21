@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import type { z } from "@brains/utils";
@@ -40,9 +40,7 @@ class MockEntityAdapter implements EntityAdapter<BaseEntity> {
 }
 
 describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
-  let harness: ReturnType<
-    typeof createServicePluginHarness<DirectorySyncPlugin>
-  >;
+  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
   let syncPath: string;
   let seedContentPath: string;
 
@@ -54,7 +52,7 @@ describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
     mkdirSync(join(seedContentPath, "base"), { recursive: true });
 
     // Create test harness with dataDir pointing to test directory
-    harness = createServicePluginHarness<DirectorySyncPlugin>({
+    harness = createPluginHarness<DirectorySyncPlugin>({
       dataDir: syncPath,
     });
 

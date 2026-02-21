@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { TopicsPlugin } from "../src";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 
 describe("Deferred Auto-Extraction", () => {
   describe("isAutoExtractionEnabled", () => {
@@ -28,7 +28,7 @@ describe("Deferred Auto-Extraction", () => {
 
   describe("sync:initial:completed event", () => {
     it("should enable auto-extraction after sync completes when config allows", async () => {
-      const harness = createServicePluginHarness<TopicsPlugin>({});
+      const harness = createPluginHarness<TopicsPlugin>({});
       const plugin = new TopicsPlugin({ enableAutoExtraction: true });
 
       await harness.installPlugin(plugin);
@@ -50,7 +50,7 @@ describe("Deferred Auto-Extraction", () => {
     });
 
     it("should NOT enable auto-extraction after sync when config disables it", async () => {
-      const harness = createServicePluginHarness<TopicsPlugin>({});
+      const harness = createPluginHarness<TopicsPlugin>({});
       const plugin = new TopicsPlugin({ enableAutoExtraction: false });
 
       await harness.installPlugin(plugin);
@@ -71,7 +71,7 @@ describe("Deferred Auto-Extraction", () => {
 
   describe("when enableAutoExtraction config is false", () => {
     it("should never enable auto-extraction regardless of sync events", async () => {
-      const harness = createServicePluginHarness<TopicsPlugin>({});
+      const harness = createPluginHarness<TopicsPlugin>({});
       const plugin = new TopicsPlugin({ enableAutoExtraction: false });
 
       await harness.installPlugin(plugin);

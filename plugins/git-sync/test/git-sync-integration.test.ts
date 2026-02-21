@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { GitSyncPlugin } from "../src/plugin";
 import { DirectorySyncPlugin } from "@brains/directory-sync";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -21,8 +21,8 @@ const gitStatusData = z.object({
 });
 
 describe("Git-Sync with Directory-Sync Integration", () => {
-  let dirHarness: ReturnType<typeof createServicePluginHarness>;
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let dirHarness: ReturnType<typeof createPluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
   let gitPlugin: GitSyncPlugin;
   let dirPlugin: DirectorySyncPlugin;
   let gitCapabilities: PluginCapabilities;
@@ -42,8 +42,8 @@ describe("Git-Sync with Directory-Sync Integration", () => {
     await remoteGit.init(true);
 
     // Create test harnesses with shared data directory
-    dirHarness = createServicePluginHarness({ dataDir: testDir });
-    harness = createServicePluginHarness({ dataDir: testDir });
+    dirHarness = createPluginHarness({ dataDir: testDir });
+    harness = createPluginHarness({ dataDir: testDir });
 
     // Install directory-sync plugin first
     dirPlugin = new DirectorySyncPlugin({

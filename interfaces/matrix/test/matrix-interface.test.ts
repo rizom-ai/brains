@@ -9,10 +9,7 @@ import {
   spyOn,
 } from "bun:test";
 import { MatrixInterface } from "../src";
-import {
-  createInterfacePluginHarness,
-  PermissionService,
-} from "@brains/plugins/test";
+import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { IAgentService, AgentResponse } from "@brains/agent-service";
 
@@ -80,7 +77,7 @@ describe("MatrixInterface", () => {
     mockAgentService = createMockAgentService();
 
     // Create plugin harness with permission configuration
-    harness = createInterfacePluginHarness<MatrixInterface>();
+    harness = createPluginHarness<MatrixInterface>();
 
     // Configure mock shell with permissions and agent service
     const mockShell = harness.getShell();
