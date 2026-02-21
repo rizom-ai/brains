@@ -280,7 +280,7 @@ export type {
 } from "@brains/ai-service";
 
 // Utility functions
-export { createId } from "./utils/id";
+export { createId } from "@brains/utils";
 export {
   createTool,
   createTypedTool,

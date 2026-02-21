@@ -132,7 +132,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
       async (message: {
         payload: { operation: string; a: number; b: number };
       }) => {
-        this.info("Processing calculation request", message);
+        this.logger.info("Processing calculation request", message);
 
         const { operation, a, b } = message.payload;
 
@@ -169,7 +169,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
     );
 
     // Template formatting will be available after registration completes
-    this.info("Calculator plugin registered successfully");
+    this.logger.info("Calculator plugin registered successfully");
   }
 
   /**
@@ -194,7 +194,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
         },
         handler: async (input: unknown) => {
           const args = z.object({ a: z.number(), b: z.number() }).parse(input);
-          this.info(`Adding ${args.a} + ${args.b}`);
+          this.logger.info(`Adding ${args.a} + ${args.b}`);
           const result = `${args.a} + ${args.b} = ${args.a + args.b}`;
           return {
             success: true,
@@ -210,10 +210,13 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
         },
         handler: async (input: unknown) => {
           const args = z.object({ result: z.string() }).parse(input);
-          const formatted = this.formatContent("calculation-result", {
-            result: args.result,
-            timestamp: new Date().toISOString(),
-          });
+          const formatted = this.getContext().templates.format(
+            "calculation-result",
+            {
+              result: args.result,
+              timestamp: new Date().toISOString(),
+            },
+          );
           return { success: true, message: formatted };
         },
       },

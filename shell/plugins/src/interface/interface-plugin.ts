@@ -167,17 +167,10 @@ export abstract class InterfacePlugin<
    * Checks both direct job ownership and inherited ownership via rootJobId
    */
   protected ownsJob(jobId: string, rootJobId?: string): boolean {
-    // Check direct ownership
-    if (this.jobTrackingEntries.has(jobId)) {
-      return true;
-    }
-
-    // Check inherited ownership via rootJobId
-    if (rootJobId && this.jobTrackingEntries.has(rootJobId)) {
-      return true;
-    }
-
-    return false;
+    return (
+      this.jobTrackingEntries.has(jobId) ||
+      (rootJobId !== undefined && this.jobTrackingEntries.has(rootJobId))
+    );
   }
 
   /**

@@ -13,7 +13,11 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import { createEnqueueJobFn } from "../shared/job-helpers";
+import {
+  createEnqueueJobFn,
+  createEnqueueBatchFn,
+  createRegisterHandlerFn,
+} from "../shared/job-helpers";
 import type {
   IEntityService,
   BaseEntity,
@@ -22,8 +26,7 @@ import type {
 } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
-import type { JobHandler, BatchOperation, JobOptions } from "@brains/job-queue";
-import { createId } from "@brains/utils";
+
 import type { ViewTemplate, WebRenderer } from "@brains/render-service";
 import type { DataSource } from "@brains/datasource";
 import type { z } from "@brains/utils";
@@ -397,50 +400,10 @@ export function createServicePluginContext(
 
     // Job operations namespace - extends shell.jobs with plugin-scoped operations
     jobs: {
-      // Pass through base operations from shell
       ...shell.jobs,
-
-      // Plugin-scoped enqueue with auto-scoping enabled
       enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
-
-      // Plugin-scoped batch enqueue (generates batchId internally)
-      enqueueBatch: async (
-        operations: BatchOperation[],
-        options?: JobOptions,
-      ): Promise<string> => {
-        const batchId = createId();
-        // Add plugin scope to operation types unless already scoped
-        const scopedOperations = operations.map((op) => ({
-          ...op,
-          type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
-        }));
-        const jobOptions: JobOptions = {
-          ...options,
-          source: pluginId,
-          rootJobId: batchId,
-          metadata: {
-            ...options?.metadata,
-            operationType: "batch_processing" as const,
-            pluginId,
-          },
-        };
-        await shell.jobs.enqueueBatch(
-          scopedOperations,
-          jobOptions,
-          batchId,
-          pluginId,
-        );
-        return batchId;
-      },
-
-      // Plugin-scoped handler registration
-      registerHandler: <T = unknown, R = unknown>(
-        type: string,
-        handler: JobHandler<string, T, R>,
-      ): void => {
-        const scopedType = `${pluginId}:${type}`;
-        jobQueueService.registerHandler(scopedType, handler, pluginId);
-      },
+      enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
+      registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
     },
 
     // Views namespace

@@ -148,7 +148,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
 
       return results;
     } catch (error) {
-      this.error(`Failed to search entities: ${query}`, { error });
+      this.logger.error(`Failed to search entities: ${query}`, { error });
       return [];
     }
   }
@@ -182,7 +182,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
       const entity = await this.context.entityService.getEntity(entityType, id);
       return entity;
     } catch (error) {
-      this.error(`Failed to get entity ${entityType}:${id}`, { error });
+      this.logger.error(`Failed to get entity ${entityType}:${id}`, { error });
       return null;
     }
   }
@@ -225,7 +225,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
 
       return null;
     } catch (error) {
-      this.error(`Failed to find entity ${entityType}:${identifier}`, {
+      this.logger.error(`Failed to find entity ${entityType}:${identifier}`, {
         error,
       });
       return null;
@@ -263,7 +263,9 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
         listOptions,
       );
     } catch (error) {
-      this.error(`Failed to list entities of type ${entityType}`, { error });
+      this.logger.error(`Failed to list entities of type ${entityType}`, {
+        error,
+      });
       return [];
     }
   }
@@ -295,7 +297,11 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
         return { activeJobs, activeBatches };
       }
     } catch (error) {
-      this.error("Failed to get job status", { error, batchId, jobTypes });
+      this.logger.error("Failed to get job status", {
+        error,
+        batchId,
+        jobTypes,
+      });
       throw error;
     }
   }

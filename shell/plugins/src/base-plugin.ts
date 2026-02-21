@@ -252,52 +252,6 @@ export abstract class BasePlugin<
   }
 
   /**
-   * Helper to log debug messages (only if debug is enabled in config)
-   */
-  protected debug(message: string, data?: unknown): void {
-    if (this.isDebugEnabled()) {
-      this.logger.debug(`[${this.id}] ${message}`, data);
-    }
-  }
-
-  /**
-   * Helper to log info messages
-   */
-  protected info(message: string, data?: unknown): void {
-    this.logger.info(`[${this.id}] ${message}`, data);
-  }
-
-  /**
-   * Helper to log warning messages
-   */
-  protected warn(message: string, data?: unknown): void {
-    this.logger.warn(`[${this.id}] ${message}`, data);
-  }
-
-  /**
-   * Helper to log error messages
-   */
-  protected error(message: string, error?: unknown): void {
-    this.logger.error(`[${this.id}] ${message}`, error);
-  }
-
-  /**
-   * Check if debug logging is enabled
-   */
-  private isDebugEnabled(): boolean {
-    // Check if config has a debug property
-    if (
-      typeof this.config === "object" &&
-      this.config !== null &&
-      "debug" in this.config
-    ) {
-      const configObj = this.config as { debug?: unknown };
-      return Boolean(configObj.debug);
-    }
-    return false;
-  }
-
-  /**
    * Get the plugin context
    */
   protected getContext(): TContext {
@@ -305,29 +259,6 @@ export abstract class BasePlugin<
       throw new Error(`Plugin ${this.id}: Plugin not registered yet`);
     }
     return this.context;
-  }
-
-  /**
-   * Helper method to format content using the context's template system
-   */
-  protected formatContent<T = unknown>(
-    templateName: string,
-    data: T,
-    options?: { truncate?: number },
-  ): string {
-    const context = this.getContext();
-    return context.templates.format(templateName, data, options);
-  }
-
-  /**
-   * Helper method to parse content using the context's template system
-   */
-  protected parseContent<T = unknown>(
-    templateName: string,
-    content: string,
-  ): T {
-    const context = this.getContext();
-    return context.templates.parse<T>(templateName, content);
   }
 
   /**

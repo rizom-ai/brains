@@ -82,11 +82,11 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Initialize directory structure only (seed content is handled after plugins:ready)
     try {
       await this.directorySync.initializeDirectory();
-      this.debug("Directory structure initialized", {
+      this.logger.debug("Directory structure initialized", {
         path: syncPath,
       });
     } catch (error) {
-      this.error("Failed to initialize directory", error);
+      this.logger.error("Failed to initialize directory", error);
       throw error; // Fail plugin registration if init fails
     }
 
@@ -127,16 +127,16 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
           // Do full bidirectional sync: Files → DB, then DB → Files
           // This imports seed content and ensures everything is in sync
-          this.debug("Starting initial bidirectional sync");
+          this.logger.debug("Starting initial bidirectional sync");
           const syncResult = await directorySync.sync();
-          this.debug("Initial sync completed", {
+          this.logger.debug("Initial sync completed", {
             imported: syncResult.import.imported,
             jobCount: syncResult.import.jobIds.length,
           });
 
           // Wait for all embedding jobs to complete before initializing services
           if (syncResult.import.jobIds.length > 0) {
-            this.debug(
+            this.logger.debug(
               "Waiting for embedding generation to complete for imported entities",
             );
             await this.waitForJobs(
@@ -144,7 +144,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
               syncResult.import.jobIds,
               "embedding",
             );
-            this.debug("All embedding jobs completed");
+            this.logger.debug("All embedding jobs completed");
           }
 
           // Emit message when initial sync AND embedding jobs complete
@@ -155,7 +155,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             { broadcast: true },
           );
         } catch (error) {
-          this.error("Initial sync failed", error);
+          this.logger.error("Initial sync failed", error);
           await context.messaging.send(
             "sync:initial:completed",
             {
@@ -169,7 +169,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
       // Listen for git-sync registration - if received, we know to wait for pull
       context.messaging.subscribe("git:sync:registered", async () => {
-        this.debug(
+        this.logger.debug(
           "git:sync:registered received, will wait for git:pull:completed",
         );
         gitSyncEnabled = true;
@@ -179,7 +179,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       // Listen for git:pull:completed - this means git-sync has pulled remote data
       // and we can safely import files to DB
       context.messaging.subscribe("git:pull:completed", async () => {
-        this.debug("git:pull:completed received, starting initial sync");
+        this.logger.debug("git:pull:completed received, starting initial sync");
         await runInitialSync();
         return { success: true };
       });
@@ -187,11 +187,11 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       // If git-sync is NOT enabled, proceed immediately on system:plugins:ready
       context.messaging.subscribe("system:plugins:ready", async () => {
         if (gitSyncEnabled) {
-          this.debug(
+          this.logger.debug(
             "system:plugins:ready received, but git-sync is enabled - waiting for git:pull:completed",
           );
         } else {
-          this.debug(
+          this.logger.debug(
             "system:plugins:ready received, no git-sync - starting initial sync immediately",
           );
           await runInitialSync();
@@ -215,15 +215,17 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     const isEmpty = this.isBrainDataEmpty(brainDataPath);
 
     if (isEmpty && existsSync(seedContentPath)) {
-      this.debug("Copying seed content to brain-data directory");
+      this.logger.debug("Copying seed content to brain-data directory");
       await this.copyDirectory(seedContentPath, brainDataPath);
-      this.debug("Seed content copied successfully");
+      this.logger.debug("Seed content copied successfully");
     } else if (isEmpty) {
-      this.debug(
+      this.logger.debug(
         "No seed content directory found, starting with empty brain-data",
       );
     } else {
-      this.debug("brain-data directory not empty, skipping seed content");
+      this.logger.debug(
+        "brain-data directory not empty, skipping seed content",
+      );
     }
   }
 
@@ -253,7 +255,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Check if .git exists with a remote configured
     // If so, git-sync will pull real data - don't use seed content
     if (this.hasGitRemote(brainDataPath)) {
-      this.debug(
+      this.logger.debug(
         "Git repository with remote detected - skipping seed content",
         { path: brainDataPath },
       );
@@ -346,7 +348,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     });
 
     await this.directorySync.initialize();
-    this.info("Directory sync reconfigured", { path: options.syncPath });
+    this.logger.info("Directory sync reconfigured", { path: options.syncPath });
   }
 
   /**
@@ -451,7 +453,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    this.debug("Registered message handlers for inter-plugin communication");
+    this.logger.debug(
+      "Registered message handlers for inter-plugin communication",
+    );
   }
 
   /**
@@ -471,7 +475,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
 
     if (!result) {
-      this.info("No sync operations needed", { operation });
+      this.logger.info("No sync operations needed", { operation });
       return `empty-sync-${Date.now()}`;
     }
 
@@ -493,7 +497,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         const { entity } = message.payload;
 
         await directorySync.fileOps.writeEntity(entity);
-        this.debug("Auto-exported created entity", {
+        this.logger.debug("Auto-exported created entity", {
           id: entity.id,
           entityType: entity.entityType,
         });
@@ -515,7 +519,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           entityId,
         );
         if (!currentEntity) {
-          this.debug("Entity not found in DB, skipping export", {
+          this.logger.debug("Entity not found in DB, skipping export", {
             entityType,
             entityId,
           });
@@ -523,7 +527,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         }
 
         await directorySync.fileOps.writeEntity(currentEntity);
-        this.debug("Auto-exported updated entity", {
+        this.logger.debug("Auto-exported updated entity", {
           id: currentEntity.id,
           entityType: currentEntity.entityType,
         });
@@ -545,7 +549,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
         if (existsSync(filePath)) {
           unlinkSync(filePath);
-          this.debug("Auto-deleted entity file", {
+          this.logger.debug("Auto-deleted entity file", {
             id: entityId,
             entityType,
             path: filePath,
@@ -555,7 +559,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    this.debug("Setup auto-sync for entity events", {
+    this.logger.debug("Setup auto-sync for entity events", {
       entityTypes: this.config.entityTypes,
     });
   }
@@ -624,7 +628,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       }
 
       if (allComplete) {
-        this.debug(`All ${operationType} jobs completed`, {
+        this.logger.debug(`All ${operationType} jobs completed`, {
           total: jobIds.length,
           completed: completedCount,
           failed: failedCount,
@@ -637,7 +641,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
 
     // Timeout - log warning but don't fail
-    this.warn(
+    this.logger.warn(
       `Timeout waiting for ${operationType} jobs to complete after ${maxWaitTime}ms`,
     );
   }
@@ -702,7 +706,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       inlineImageConversionHandler,
     );
 
-    this.debug("Registered async job handlers");
+    this.logger.debug("Registered async job handlers");
   }
 }
 

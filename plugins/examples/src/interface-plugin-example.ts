@@ -228,7 +228,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
     });
 
     // Format the response as HTML
-    return this.formatContent("web-page", {
+    return this.getContext().templates.format("web-page", {
       title: `Page: ${path}`,
       content: response.message,
       timestamp: new Date().toISOString(),
@@ -241,7 +241,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
   async handleApiRequest(endpoint: string, params: unknown): Promise<string> {
     // In a real implementation, this would route to appropriate handlers
     // For now, just echo the request
-    return this.formatContent("api-response", {
+    return this.getContext().templates.format("api-response", {
       data: { endpoint, params },
       status: "success",
       timestamp: new Date().toISOString(),

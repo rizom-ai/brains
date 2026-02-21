@@ -1,32 +1,17 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { JobProgressEvent } from "@brains/job-queue";
 
-/**
- * Tests for job tracking in message interfaces
- *
- * Job tracking allows interfaces to:
- * 1. Track which agent response messages contain async job IDs
- * 2. Edit those messages when jobs complete (if message editing is supported)
- * 3. Send completion messages for jobs that weren't tracked
- */
-
-// Mock tracking state for testing
 interface ProgressMessageTracking {
   messageId: string;
   channelId: string;
   lastUpdate: number;
 }
 
-// Tool result with required jobId (for type narrowing after filter)
 interface ToolResultWithJob {
   toolName: string;
   jobId: string;
 }
 
-/**
- * Helper to extract jobIds from tool results
- * This is the logic that should be used by interfaces
- */
 function extractJobIds(
   toolResults: Array<{ toolName: string; jobId?: string }> | undefined,
 ): string[] {
@@ -34,6 +19,22 @@ function extractJobIds(
   return toolResults
     .filter((tr): tr is ToolResultWithJob => tr.jobId !== undefined)
     .map((tr) => tr.jobId);
+}
+
+function createCompletionEvent(
+  overrides: Partial<JobProgressEvent> & { id: string },
+): JobProgressEvent {
+  return {
+    type: "job",
+    status: "completed",
+    message: "Completed",
+    progress: { current: 1, total: 1, percentage: 100 },
+    metadata: {
+      operationType: "content_operations",
+      rootJobId: overrides.id,
+    },
+    ...overrides,
+  };
 }
 
 describe("job tracking", () => {
@@ -45,14 +46,11 @@ describe("job tracking", () => {
         { toolName: "build_site", jobId: "job-456" },
       ];
 
-      const jobIds = extractJobIds(toolResults);
-
-      expect(jobIds).toEqual(["job-123", "job-456"]);
+      expect(extractJobIds(toolResults)).toEqual(["job-123", "job-456"]);
     });
 
     it("should return empty array when no toolResults", () => {
-      const jobIds = extractJobIds(undefined);
-      expect(jobIds).toEqual([]);
+      expect(extractJobIds(undefined)).toEqual([]);
     });
 
     it("should return empty array when no jobs in toolResults", () => {
@@ -61,21 +59,16 @@ describe("job tracking", () => {
         { toolName: "list_notes" },
       ];
 
-      const jobIds = extractJobIds(toolResults);
-      expect(jobIds).toEqual([]);
+      expect(extractJobIds(toolResults)).toEqual([]);
     });
   });
 
   describe("trackAgentResponseForJob", () => {
     it("should call trackAgentResponseForJob for each jobId", () => {
       const trackAgentResponseForJob = mock(
-        (_jobId: string, _messageId: string, _channelId: string) => {
-          // Track the call
-        },
+        (_jobId: string, _messageId: string, _channelId: string) => {},
       );
 
-      const messageId = "msg-001";
-      const channelId = "room-123";
       const toolResults = [
         { toolName: "capture_url", jobId: "job-123" },
         { toolName: "build_site", jobId: "job-456" },
@@ -83,7 +76,7 @@ describe("job tracking", () => {
 
       const jobIds = extractJobIds(toolResults);
       for (const jobId of jobIds) {
-        trackAgentResponseForJob(jobId, messageId, channelId);
+        trackAgentResponseForJob(jobId, "msg-001", "room-123");
       }
 
       expect(trackAgentResponseForJob).toHaveBeenCalledTimes(2);
@@ -131,38 +124,31 @@ describe("job tracking", () => {
           true,
       );
 
-      // Track initial message
       agentResponseTracking.set("job-123", {
         messageId: "msg-001",
         channelId: "room-123",
         lastUpdate: Date.now(),
       });
 
-      // Simulate job completion event
-      const completionEvent: JobProgressEvent = {
+      const event = createCompletionEvent({
         id: "job-123",
-        type: "job",
-        status: "completed",
         message: "Capture completed successfully",
-        progress: { current: 1, total: 1, percentage: 100 },
         metadata: {
           operationType: "content_operations",
           interfaceType: "matrix",
           channelId: "room-123",
           rootJobId: "job-123",
         },
-      };
+      });
 
-      // Handle completion
-      const tracking = agentResponseTracking.get(completionEvent.id);
+      const tracking = agentResponseTracking.get(event.id);
       if (tracking) {
-        const completionMessage = `✅ ${completionEvent.message}`;
         await editMessage(
           tracking.channelId,
           tracking.messageId,
-          completionMessage,
+          `✅ ${event.message}`,
         );
-        agentResponseTracking.delete(completionEvent.id);
+        agentResponseTracking.delete(event.id);
       }
 
       expect(editMessage).toHaveBeenCalledWith(
@@ -179,28 +165,19 @@ describe("job tracking", () => {
         (_channelId: string | null, _message: string) => {},
       );
 
-      // No tracking for this job
-      const completionEvent: JobProgressEvent = {
+      const event = createCompletionEvent({
         id: "job-789",
-        type: "job",
-        status: "completed",
         message: "Build completed",
-        progress: { current: 1, total: 1, percentage: 100 },
         metadata: {
           operationType: "content_operations",
           channelId: "room-123",
           rootJobId: "job-789",
         },
-      };
+      });
 
-      // Handle completion - no tracking, so send new message
-      const tracking = agentResponseTracking.get(completionEvent.id);
-      if (!tracking && completionEvent.metadata.channelId) {
-        const completionMessage = `✅ ${completionEvent.message}`;
-        sendMessageToChannel(
-          completionEvent.metadata.channelId,
-          completionMessage,
-        );
+      const tracking = agentResponseTracking.get(event.id);
+      if (!tracking && event.metadata.channelId) {
+        sendMessageToChannel(event.metadata.channelId, `✅ ${event.message}`);
       }
 
       expect(sendMessageToChannel).toHaveBeenCalledWith(
@@ -215,23 +192,18 @@ describe("job tracking", () => {
         (_channelId: string | null, _message: string) => {},
       );
 
-      // Background job with no channelId
-      const completionEvent: JobProgressEvent = {
+      const event = createCompletionEvent({
         id: "job-background",
-        type: "job",
-        status: "completed",
         message: "Sync completed",
-        progress: { current: 1, total: 1, percentage: 100 },
         metadata: {
           operationType: "file_operations",
           rootJobId: "job-background",
         },
-      };
+      });
 
-      // Handle completion - no tracking, no channelId, so no message
-      const tracking = agentResponseTracking.get(completionEvent.id);
-      if (!tracking && completionEvent.metadata.channelId) {
-        sendMessageToChannel(completionEvent.metadata.channelId, "");
+      const tracking = agentResponseTracking.get(event.id);
+      if (!tracking && event.metadata.channelId) {
+        sendMessageToChannel(event.metadata.channelId, "");
       }
 
       expect(sendMessageToChannel).not.toHaveBeenCalled();
@@ -244,17 +216,14 @@ describe("job tracking", () => {
           true,
       );
 
-      // Track initial message
       agentResponseTracking.set("job-fail", {
         messageId: "msg-002",
         channelId: "room-456",
         lastUpdate: Date.now(),
       });
 
-      // Simulate job failure event
-      const failureEvent: JobProgressEvent = {
+      const event = createCompletionEvent({
         id: "job-fail",
-        type: "job",
         status: "failed",
         message: "Failed to capture: Connection timeout",
         progress: { current: 0, total: 1, percentage: 0 },
@@ -263,18 +232,16 @@ describe("job tracking", () => {
           channelId: "room-456",
           rootJobId: "job-fail",
         },
-      };
+      });
 
-      // Handle failure
-      const tracking = agentResponseTracking.get(failureEvent.id);
+      const tracking = agentResponseTracking.get(event.id);
       if (tracking) {
-        const failureMessage = `❌ ${failureEvent.message}`;
         await editMessage(
           tracking.channelId,
           tracking.messageId,
-          failureMessage,
+          `❌ ${event.message}`,
         );
-        agentResponseTracking.delete(failureEvent.id);
+        agentResponseTracking.delete(event.id);
       }
 
       expect(editMessage).toHaveBeenCalledWith(
@@ -287,33 +254,24 @@ describe("job tracking", () => {
 
   describe("CLI behavior", () => {
     it("should receive completion messages when channelId is set", () => {
-      // CLI doesn't support message editing, so it relies on sendMessageToChannel
       const sendMessageToChannel = mock(
         (_channelId: string | null, _message: string) => {},
       );
       const supportsMessageEditing = (): boolean => false;
 
-      const completionEvent: JobProgressEvent = {
+      const event = createCompletionEvent({
         id: "job-cli",
-        type: "job",
-        status: "completed",
         message: "Capture completed",
-        progress: { current: 1, total: 1, percentage: 100 },
         metadata: {
           operationType: "content_operations",
           channelId: "cli",
           interfaceType: "cli",
           rootJobId: "job-cli",
         },
-      };
+      });
 
-      // CLI behavior: no editing support, so always send new message
-      if (!supportsMessageEditing() && completionEvent.metadata.channelId) {
-        const completionMessage = `✅ ${completionEvent.message}`;
-        sendMessageToChannel(
-          completionEvent.metadata.channelId,
-          completionMessage,
-        );
+      if (!supportsMessageEditing() && event.metadata.channelId) {
+        sendMessageToChannel(event.metadata.channelId, `✅ ${event.message}`);
       }
 
       expect(sendMessageToChannel).toHaveBeenCalledWith(

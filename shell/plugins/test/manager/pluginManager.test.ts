@@ -1,20 +1,16 @@
 import { describe, expect, test, beforeEach, mock } from "bun:test";
-import type { BaseEntity } from "@brains/entity-service";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
-import type { IJobQueueService } from "@brains/job-queue";
 import {
   PluginEvent,
   PluginManager,
   PluginStatus,
 } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
-import type { Logger } from "@brains/utils";
-import { MessageBus } from "@brains/messaging-service";
+import { MockShell } from "../../src/test/mock-shell";
 
 import { match, P } from "ts-pattern";
 
-// Create a simple test plugin
 class TestPlugin implements Plugin {
   public id: string;
   public type: "core" | "service" | "interface" = "core";
@@ -48,7 +44,6 @@ class TestPlugin implements Plugin {
 
     this.registerCalled = true;
 
-    // Return empty capabilities
     return {
       tools: [],
       resources: [],
@@ -58,117 +53,15 @@ class TestPlugin implements Plugin {
 
 describe("PluginManager", (): void => {
   let pluginManager: PluginManager;
-  let logger: Logger;
 
   beforeEach((): void => {
-    // Reset singletons
     PluginManager.resetInstance();
-    MessageBus.resetInstance();
 
-    // Create fresh instances with mock logger
-    logger = createSilentLogger();
+    const logger = createSilentLogger();
+    const mockShell = MockShell.createFresh({ logger });
 
-    // Create a mock shell with required services
-    const mockShell = {
-      getEntityService: (): {
-        createEntity: <T extends BaseEntity>(
-          data: Partial<T>,
-        ) => Promise<{ entityId: string; jobId: string }>;
-        getEntity: <T extends BaseEntity>(
-          entityType: string,
-          id: string,
-        ) => Promise<T | null>;
-        updateEntity: <T extends BaseEntity>(
-          entity: T,
-        ) => Promise<{ entityId: string; jobId: string }>;
-        deleteEntity: (entityType: string, id: string) => Promise<boolean>;
-        listEntities: <T extends BaseEntity>(
-          entityType: string,
-          options?: unknown,
-        ) => Promise<T[]>;
-        search: <T extends BaseEntity>(
-          query: string,
-          options?: unknown,
-        ) => Promise<T[]>;
-        getEntityTypes: () => string[];
-        getAdapter: (entityType: string) => unknown;
-        hasAdapter: (entityType: string) => boolean;
-        importRawEntity: (entityType: string, data: unknown) => Promise<void>;
-      } => ({
-        createEntity: async (): Promise<{
-          entityId: string;
-          jobId: string;
-        }> => ({ entityId: "test-id", jobId: "job-123" }),
-        getEntity: async (): Promise<null> => null,
-        updateEntity: async (): Promise<{
-          entityId: string;
-          jobId: string;
-        }> => ({ entityId: "test-id", jobId: "job-123" }),
-        deleteEntity: async (): Promise<boolean> => true,
-        listEntities: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
-        search: async <T extends BaseEntity>(): Promise<T[]> => [] as T[],
-        getEntityTypes: (): string[] => [],
-        getAdapter: (): null => null,
-        hasAdapter: (): boolean => false,
-        importRawEntity: async (): Promise<void> => undefined,
-      }),
-      getContentGenerator: (): {
-        generateContent: <T>(
-          templateName: string,
-          context?: unknown,
-        ) => Promise<T>;
-        parseContent: <T>(templateName: string, content: string) => T;
-        registerTemplate: (name: string, template: unknown) => void;
-        getTemplate: (name: string) => unknown;
-        listTemplates: () => unknown[];
-      } => ({
-        generateContent: async <T>(): Promise<T> => ({}) as T,
-        parseContent: <T>(): T => ({}) as T,
-        registerTemplate: (): void => undefined,
-        getTemplate: (): null => null,
-        listTemplates: (): unknown[] => [],
-      }),
-      getViewRegistry: (): {
-        registerViewTemplate: (template: unknown) => void;
-        getViewTemplate: (name: string) => unknown;
-        listViewTemplates: () => unknown[];
-        validateViewTemplate: (
-          templateName: string,
-          content: unknown,
-        ) => boolean;
-      } => ({
-        registerViewTemplate: (): void => undefined,
-        getViewTemplate: (): undefined => undefined,
-        listViewTemplates: (): unknown[] => [],
-        validateViewTemplate: (): boolean => true,
-      }),
-      getMessageBus: (): MessageBus => MessageBus.getInstance(logger),
-      getJobQueueService: (): IJobQueueService => ({
-        registerHandler: mock(() => {}),
-        unregisterHandler: mock(() => {}),
-        unregisterPluginHandlers: mock(() => {}),
-        getHandler: mock(() => undefined),
-        enqueue: mock(async () => "job-123"),
-        dequeue: mock(async () => null),
-        complete: mock(async () => {}),
-        fail: mock(async () => {}),
-        update: mock(async () => {}),
-        getStatus: mock(async () => null),
-        getStatusByEntityId: mock(async () => null),
-        getStats: mock(async () => ({
-          pending: 0,
-          processing: 0,
-          failed: 0,
-          completed: 0,
-          total: 0,
-        })),
-        cleanup: mock(async () => 0),
-        getActiveJobs: mock(async () => []),
-        getRegisteredTypes: mock(() => []),
-      }),
-    };
     pluginManager = PluginManager.createFresh(logger);
-    pluginManager.setShell(mockShell as unknown as IShell);
+    pluginManager.setShell(mockShell);
   });
 
   test("plugin lifecycle - register and initialize plugins", async (): Promise<void> => {
@@ -211,9 +104,6 @@ describe("PluginManager", (): void => {
     // Check register was called
     expect(pluginA.registerCalled).toBe(true);
     expect(pluginB.registerCalled).toBe(true);
-
-    // Note: Registry service registration is no longer part of the plugin interface
-    // Plugins now use proper abstraction layers instead of direct registry access
   });
 
   test("plugin dependencies are respected during initialization", async (): Promise<void> => {

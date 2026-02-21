@@ -1,4 +1,11 @@
-import type { JobOptions, IJobQueueService } from "@brains/job-queue";
+import type {
+  JobOptions,
+  IJobQueueService,
+  BatchOperation,
+  IJobsNamespace,
+  JobHandler,
+} from "@brains/job-queue";
+import { createId } from "@brains/utils";
 import type { ToolContext } from "../interfaces";
 
 /**
@@ -57,5 +64,67 @@ export function createEnqueueJobFn(
       scopeJobType && !type.includes(":") ? `${pluginId}:${type}` : type;
 
     return jobQueueService.enqueue(finalType, data, jobOptions);
+  };
+}
+
+export type EnqueueBatchFn = (
+  operations: BatchOperation[],
+  options?: JobOptions,
+) => Promise<string>;
+
+/**
+ * Creates an enqueueBatch function for plugin contexts.
+ *
+ * Shared between ServicePluginContext and InterfacePluginContext.
+ * Handles operation type scoping, batchId generation, and metadata.
+ */
+export function createEnqueueBatchFn(
+  shellJobs: IJobsNamespace,
+  pluginId: string,
+): EnqueueBatchFn {
+  return async (operations, options) => {
+    const batchId = createId();
+    const scopedOperations = operations.map((op) => ({
+      ...op,
+      type: op.type.includes(":") ? op.type : `${pluginId}:${op.type}`,
+    }));
+    const jobOptions: JobOptions = {
+      ...options,
+      source: pluginId,
+      rootJobId: batchId,
+      metadata: {
+        ...options?.metadata,
+        operationType: "batch_processing" as const,
+        pluginId,
+      },
+    };
+    await shellJobs.enqueueBatch(
+      scopedOperations,
+      jobOptions,
+      batchId,
+      pluginId,
+    );
+    return batchId;
+  };
+}
+
+export type RegisterHandlerFn = <T = unknown, R = unknown>(
+  type: string,
+  handler: JobHandler<string, T, R>,
+) => void;
+
+/**
+ * Creates a registerHandler function for plugin contexts.
+ *
+ * Shared between ServicePluginContext and InterfacePluginContext.
+ * Handles automatic type scoping with pluginId.
+ */
+export function createRegisterHandlerFn(
+  jobQueueService: IJobQueueService,
+  pluginId: string,
+): RegisterHandlerFn {
+  return (type, handler) => {
+    const scopedType = `${pluginId}:${type}`;
+    jobQueueService.registerHandler(scopedType, handler, pluginId);
   };
 }

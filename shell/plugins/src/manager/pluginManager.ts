@@ -221,15 +221,13 @@ export class PluginManager implements IPluginManager {
    * Get plugins that failed to initialize
    */
   public getFailedPlugins(): Array<{ id: string; error: Error }> {
-    const failed: Array<{ id: string; error: Error }> = [];
-
-    for (const [id, info] of this.plugins) {
-      if (info.status === PluginStatus.ERROR && info.error) {
-        failed.push({ id, error: info.error });
-      }
-    }
-
-    return failed;
+    return Array.from(this.plugins.entries())
+      .filter(
+        (entry): entry is [string, PluginInfo & { error: Error }] =>
+          entry[1].status === PluginStatus.ERROR &&
+          entry[1].error !== undefined,
+      )
+      .map(([id, info]) => ({ id, error: info.error }));
   }
 
   /**

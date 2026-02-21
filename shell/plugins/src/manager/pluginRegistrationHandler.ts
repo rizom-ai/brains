@@ -151,44 +151,4 @@ export class PluginRegistrationHandler {
       `Successfully registered ${resources.length} resources for plugin ${pluginId}`,
     );
   }
-
-  /**
-   * Register all plugin capabilities (tools and resources)
-   */
-  public async registerPluginCapabilities(
-    pluginId: string,
-    capabilities: {
-      tools: PluginTool[];
-      resources: PluginResource[];
-    },
-  ): Promise<void> {
-    this.logger.debug(
-      `Registering capabilities for plugin ${pluginId}: ${capabilities.tools.length} tools, ${capabilities.resources.length} resources`,
-    );
-
-    // Register tools
-    await this.registerPluginTools(pluginId, capabilities.tools);
-
-    // Register resources
-    await this.registerPluginResources(pluginId, capabilities.resources);
-
-    this.logger.info(
-      `Successfully registered all capabilities for plugin ${pluginId}`,
-    );
-  }
-
-  /**
-   * Get registration statistics for monitoring
-   */
-  public getRegistrationStats(): {
-    toolsRegistered: number;
-    resourcesRegistered: number;
-  } {
-    // This could be enhanced to track actual counts if needed
-    // For now, return placeholder values
-    return {
-      toolsRegistered: 0,
-      resourcesRegistered: 0,
-    };
-  }
 }
