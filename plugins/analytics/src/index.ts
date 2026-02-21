@@ -48,13 +48,3 @@ export const analyticsPlugin = createAnalyticsPlugin;
 // Export types and schemas
 export type { AnalyticsConfig, CloudflareConfig } from "./config";
 export { analyticsConfigSchema, cloudflareConfigSchema } from "./config";
-
-// Export CloudflareClient for direct use if needed
-export { CloudflareClient } from "./lib/cloudflare-client";
-export type {
-  WebsiteStats,
-  TopPageResult,
-  TopReferrerResult,
-  TopCountryResult,
-  DeviceBreakdownResult,
-} from "./lib/cloudflare-client";
