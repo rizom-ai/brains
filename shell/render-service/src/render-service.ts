@@ -4,7 +4,7 @@ import type {
   OutputFormat,
   WebRenderer,
 } from "./types";
-import type { TemplateRegistry, Template } from "@brains/templates";
+import type { TemplateRegistry } from "@brains/templates";
 
 export class RenderService implements IViewTemplateRegistry {
   private static instance: RenderService | null = null;
@@ -74,33 +74,6 @@ export class RenderService implements IViewTemplateRegistry {
     } catch {
       return false;
     }
-  }
-
-  // ===== Template Registration Methods (for Shell usage) =====
-
-  registerTemplate(name: string, template: Template): void {
-    // Extract plugin ID from namespaced name
-    const parts = name.split(":");
-    if (parts.length < 2) {
-      throw new Error(
-        `Template name must be namespaced (plugin-id:template-name), got: ${name}`,
-      );
-    }
-
-    const pluginId = parts[0];
-    if (!pluginId) {
-      throw new Error(`Invalid template name format: ${name}`);
-    }
-
-    // Ensure template has layout and component
-    if (!template.layout?.component) {
-      throw new Error(
-        `Template ${name} must have a layout.component for view registration`,
-      );
-    }
-
-    // Template is already in central registry, no need to register again
-    // This method exists for compatibility with Shell.registerTemplate()
   }
 
   // ===== Advanced Template Methods =====
