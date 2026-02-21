@@ -7,14 +7,6 @@ import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 import { type Logger, createId } from "@brains/utils";
 import matter from "gray-matter";
 
-// ============================================================================
-// TEST NOTE ENTITY (following documented functional approach)
-// ============================================================================
-
-/**
- * Note entity schema extending base entity
- * For testing, we add title and tags as note-specific fields
- */
 const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
   title: z.string(),
@@ -22,14 +14,8 @@ const noteSchema = baseEntitySchema.extend({
   category: z.string(),
 });
 
-/**
- * Note entity type
- */
 type Note = z.infer<typeof noteSchema>;
 
-/**
- * Input type for creating notes (id, created, updated, contentHash are optional/generated)
- */
 type CreateNoteInput = Omit<
   z.input<typeof noteSchema>,
   "id" | "created" | "updated" | "entityType" | "metadata" | "contentHash"
@@ -40,9 +26,6 @@ type CreateNoteInput = Omit<
   metadata?: Record<string, unknown>;
 };
 
-/**
- * Factory function to create a Note entity (for testing)
- */
 function createNote(input: CreateNoteInput): Note {
   return createTestEntity<Note>("note", {
     ...input,
@@ -50,20 +33,6 @@ function createNote(input: CreateNoteInput): Note {
   });
 }
 
-/**
- * Schema for registry registration
- * For testing purposes, we use a schema that validates the data structure
- * The actual entity methods are added by the adapter during fromMarkdown
- */
-const registryNoteSchema = noteSchema;
-
-// ============================================================================
-// TEST ADAPTER IMPLEMENTATION
-// ============================================================================
-
-/**
- * Schema for parsing markdown frontmatter and content
- */
 const markdownParseSchema = z
   .object({
     id: z.string().optional(),
@@ -79,33 +48,25 @@ const markdownParseSchema = z
     tags: [],
   });
 
-/**
- * Test adapter implementation for Note entities
- */
 class NoteAdapter implements EntityAdapter<Note> {
   entityType = "note";
   schema = noteSchema;
+
   fromMarkdown(markdown: string): Partial<Note> {
     const { data, content } = matter(markdown);
-    const parsedData = data;
-
-    // Parse frontmatter with Zod for type safety
-    const frontmatter = markdownParseSchema.parse(parsedData);
+    const frontmatter = markdownParseSchema.parse(data);
 
     let title = frontmatter.title;
     let noteContent = content.trim();
 
-    // Extract title and content from markdown if not in frontmatter
     if (!title && content.trim().startsWith("# ")) {
       const lines = content.trim().split("\n");
       const titleLine = lines[0];
-      // Handle category tags like "# Test Note [testing]"
       if (titleLine) {
         const titleMatch = titleLine.match(/^#\s+(.+?)(?:\s+\[.*\])?\s*$/);
         title = titleMatch?.[1] ?? titleLine.substring(2).trim();
       }
 
-      // Get content after title
       const contentStartIndex = lines.findIndex(
         (line, i) => i > 0 && line.trim() !== "",
       );
@@ -115,7 +76,6 @@ class NoteAdapter implements EntityAdapter<Note> {
           : "";
     }
 
-    // If frontmatter has title, extract just body content (skip markdown title)
     if (frontmatter.title && content.trim().startsWith("# ")) {
       const lines = content.trim().split("\n");
       const contentStartIndex = lines.findIndex(
@@ -127,7 +87,6 @@ class NoteAdapter implements EntityAdapter<Note> {
           : "";
     }
 
-    // Extract category from title if present (like "# Test Note [testing]")
     let category: string = frontmatter.category;
     if (category === "general" && title) {
       const categoryMatch = title.match(/\[([^\]]+)\]$/);
@@ -137,10 +96,7 @@ class NoteAdapter implements EntityAdapter<Note> {
       }
     }
 
-    // Return only entity-specific fields
-    const result: Partial<Note> = {
-      content: noteContent,
-    };
+    const result: Partial<Note> = { content: noteContent };
 
     if (category && category !== "general") {
       result.category = category;
@@ -171,13 +127,11 @@ class NoteAdapter implements EntityAdapter<Note> {
 
   generateFrontMatter(entity: Note): string {
     const metadata = this.extractMetadata(entity);
-    // Generate proper YAML frontmatter with delimiters
     const yamlOutput = matter.stringify("", metadata);
     return yamlOutput.split("\n\n")[0] ?? "---\n---";
   }
 
   toMarkdown(entity: Note): string {
-    // Include frontmatter for note-specific fields
     const frontmatter = {
       title: entity.title,
       tags: entity.tags,
@@ -187,34 +141,25 @@ class NoteAdapter implements EntityAdapter<Note> {
   }
 }
 
-// ============================================================================
-// TESTS
-// ============================================================================
-
 describe("EntityRegistry", (): void => {
   let logger: Logger;
   let registry: EntityRegistry;
   let adapter: EntityAdapter<Note>;
 
   beforeEach((): void => {
-    // Reset singletons
     EntityRegistry.resetInstance();
 
-    // Create fresh instances with mock logger
     logger = createSilentLogger();
     registry = EntityRegistry.createFresh(logger);
     adapter = new NoteAdapter();
 
-    // Register the test entity type
-    registry.registerEntityType("note", registryNoteSchema, adapter);
+    registry.registerEntityType("note", noteSchema, adapter);
   });
 
   test("entity lifecycle - register, validate, and retrieve entities", (): void => {
-    // Verify registration works
     expect(registry.hasEntityType("note")).toBe(true);
     expect(registry.getAllEntityTypes()).toContain("note");
 
-    // Test data validation (without methods)
     const entityData = createTestEntity<Note>("note", {
       title: "Test Note",
       content: "This is a test note content.",
@@ -222,14 +167,12 @@ describe("EntityRegistry", (): void => {
       category: "testing",
     });
 
-    // Test validation - registry validates data structure
     const validatedEntity = registry.validateEntity<Note>("note", entityData);
     expect(validatedEntity.id).toBe(entityData.id);
     expect(validatedEntity.title).toBe("Test Note");
     expect(validatedEntity.entityType).toBe("note");
     expect(validatedEntity.category).toBe("testing");
 
-    // Test complete entity with adapter - this creates the full entity with methods
     const completeNote = createNote({
       id: entityData.id,
       title: entityData.title,
@@ -240,17 +183,13 @@ describe("EntityRegistry", (): void => {
       category: entityData.category,
     });
 
-    // Test markdown conversion with adapter directly
-    const adapter = registry.getAdapter<Note>("note");
-    const markdown = adapter.toMarkdown(completeNote);
+    const retrievedAdapter = registry.getAdapter<Note>("note");
+    const markdown = retrievedAdapter.toMarkdown(completeNote);
     expect(markdown).toContain("title: Test Note");
     expect(markdown).toContain("category: testing");
     expect(markdown).toContain("This is a test note content.");
 
-    // Test adapter's fromMarkdown (returns partial data)
-    // Note: Since fromMarkdown returns partial data and doesn't parse title,
-    // it won't extract category from the title tag
-    const parsedContent = adapter.fromMarkdown(markdown);
+    const parsedContent = retrievedAdapter.fromMarkdown(markdown);
     expect(parsedContent.content).toBe("This is a test note content.");
   });
 
@@ -258,7 +197,6 @@ describe("EntityRegistry", (): void => {
     const invalidEntity = {
       id: createId(),
       entityType: "note",
-      // missing required fields: title, content, etc.
     };
 
     expect(() => {
@@ -274,7 +212,7 @@ describe("EntityRegistry", (): void => {
 
   test("duplicate entity type registration should throw", (): void => {
     expect(() => {
-      registry.registerEntityType("note", registryNoteSchema, adapter);
+      registry.registerEntityType("note", noteSchema, adapter);
     }).toThrow();
   });
 
@@ -293,8 +231,10 @@ category: "testing"
 
 This note has frontmatter metadata.`;
 
-    const adapter = registry.getAdapter<Note>("note");
-    const parsedContent = adapter.fromMarkdown(markdownWithFrontmatter);
+    const retrievedAdapter = registry.getAdapter<Note>("note");
+    const parsedContent = retrievedAdapter.fromMarkdown(
+      markdownWithFrontmatter,
+    );
 
     expect(parsedContent.content).toBe("This note has frontmatter metadata.");
     expect(parsedContent.category).toBe("testing");
@@ -303,7 +243,7 @@ This note has frontmatter metadata.`;
   describe("entity type config", () => {
     test("registerEntityType with config stores weight", (): void => {
       const freshRegistry = EntityRegistry.createFresh(logger);
-      freshRegistry.registerEntityType("note", registryNoteSchema, adapter, {
+      freshRegistry.registerEntityType("note", noteSchema, adapter, {
         weight: 2.0,
       });
 
@@ -312,7 +252,6 @@ This note has frontmatter metadata.`;
     });
 
     test("registerEntityType without config uses default", (): void => {
-      // Registry from beforeEach doesn't have config
       const config = registry.getEntityTypeConfig("note");
       expect(config.weight).toBeUndefined();
     });
@@ -324,11 +263,10 @@ This note has frontmatter metadata.`;
 
     test("getWeightMap returns weights for all types with non-default weights", (): void => {
       const freshRegistry = EntityRegistry.createFresh(logger);
-      freshRegistry.registerEntityType("note", registryNoteSchema, adapter, {
+      freshRegistry.registerEntityType("note", noteSchema, adapter, {
         weight: 2.0,
       });
 
-      // Create another adapter for testing
       const anotherAdapter = new NoteAdapter();
       anotherAdapter.entityType = "post";
       const postSchema = noteSchema.extend({
@@ -340,19 +278,13 @@ This note has frontmatter metadata.`;
       });
 
       const weightMap = freshRegistry.getWeightMap();
-      expect(weightMap).toEqual({
-        note: 2.0,
-        post: 1.5,
-      });
+      expect(weightMap).toEqual({ note: 2.0, post: 1.5 });
     });
 
     test("getWeightMap excludes types without weight config", (): void => {
       const freshRegistry = EntityRegistry.createFresh(logger);
+      freshRegistry.registerEntityType("note", noteSchema, adapter);
 
-      // Register without config
-      freshRegistry.registerEntityType("note", registryNoteSchema, adapter);
-
-      // Create another adapter with config
       const anotherAdapter = new NoteAdapter();
       anotherAdapter.entityType = "post";
       const postSchema = noteSchema.extend({
@@ -364,14 +296,11 @@ This note has frontmatter metadata.`;
       });
 
       const weightMap = freshRegistry.getWeightMap();
-      expect(weightMap).toEqual({
-        post: 1.5,
-      });
+      expect(weightMap).toEqual({ post: 1.5 });
       expect(weightMap["note"]).toBeUndefined();
     });
 
     test("getWeightMap returns empty object when no weights configured", (): void => {
-      // Registry from beforeEach has no weights configured
       const weightMap = registry.getWeightMap();
       expect(weightMap).toEqual({});
     });
@@ -410,7 +339,10 @@ This note has frontmatter metadata.`;
       }
     }
 
-    test("should merge extension fields into effective schema", () => {
+    function createProfileRegistry(): {
+      registry: EntityRegistry;
+      adapter: AdapterWithFrontmatter;
+    } {
       const freshRegistry = EntityRegistry.createFresh(logger);
       const adapterWithSchema = new AdapterWithFrontmatter();
       freshRegistry.registerEntityType(
@@ -418,8 +350,13 @@ This note has frontmatter metadata.`;
         noteSchema,
         adapterWithSchema,
       );
+      return { registry: freshRegistry, adapter: adapterWithSchema };
+    }
 
-      freshRegistry.extendFrontmatterSchema(
+    test("should merge extension fields into effective schema", () => {
+      const { registry: profileRegistry } = createProfileRegistry();
+
+      profileRegistry.extendFrontmatterSchema(
         "profile",
         z.object({
           tagline: z.string().optional(),
@@ -427,7 +364,8 @@ This note has frontmatter metadata.`;
         }),
       );
 
-      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      const effective =
+        profileRegistry.getEffectiveFrontmatterSchema("profile");
       expect(effective).toBeDefined();
       if (!effective) return;
 
@@ -439,24 +377,19 @@ This note has frontmatter metadata.`;
     });
 
     test("should handle multiple extensions", () => {
-      const freshRegistry = EntityRegistry.createFresh(logger);
-      const adapterWithSchema = new AdapterWithFrontmatter();
-      freshRegistry.registerEntityType(
-        "profile",
-        noteSchema,
-        adapterWithSchema,
-      );
+      const { registry: profileRegistry } = createProfileRegistry();
 
-      freshRegistry.extendFrontmatterSchema(
+      profileRegistry.extendFrontmatterSchema(
         "profile",
         z.object({ tagline: z.string().optional() }),
       );
-      freshRegistry.extendFrontmatterSchema(
+      profileRegistry.extendFrontmatterSchema(
         "profile",
         z.object({ expertise: z.array(z.string()).optional() }),
       );
 
-      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      const effective =
+        profileRegistry.getEffectiveFrontmatterSchema("profile");
       expect(effective).toBeDefined();
       if (!effective) return;
       const shape = effective.shape;
@@ -476,7 +409,6 @@ This note has frontmatter metadata.`;
     });
 
     test("should throw when extending entity type without frontmatterSchema", () => {
-      // The NoteAdapter from beforeEach doesn't have frontmatterSchema
       expect(() => {
         registry.extendFrontmatterSchema(
           "note",
@@ -486,45 +418,34 @@ This note has frontmatter metadata.`;
     });
 
     test("should not mutate original adapter's frontmatterSchema", () => {
-      const freshRegistry = EntityRegistry.createFresh(logger);
-      const adapterWithSchema = new AdapterWithFrontmatter();
-      freshRegistry.registerEntityType(
-        "profile",
-        noteSchema,
-        adapterWithSchema,
-      );
+      const { registry: profileRegistry, adapter: adapterWithSchema } =
+        createProfileRegistry();
 
-      freshRegistry.extendFrontmatterSchema(
+      profileRegistry.extendFrontmatterSchema(
         "profile",
         z.object({ tagline: z.string().optional() }),
       );
 
-      // Original adapter's schema unchanged
       expect(adapterWithSchema.frontmatterSchema.shape).not.toHaveProperty(
         "tagline",
       );
 
-      // Effective schema has the extension
-      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      const effective =
+        profileRegistry.getEffectiveFrontmatterSchema("profile");
       expect(effective).toBeDefined();
       expect(effective?.shape).toHaveProperty("tagline");
     });
 
     test("effective schema should validate data with extension fields", () => {
-      const freshRegistry = EntityRegistry.createFresh(logger);
-      const adapterWithSchema = new AdapterWithFrontmatter();
-      freshRegistry.registerEntityType(
-        "profile",
-        noteSchema,
-        adapterWithSchema,
-      );
+      const { registry: profileRegistry } = createProfileRegistry();
 
-      freshRegistry.extendFrontmatterSchema(
+      profileRegistry.extendFrontmatterSchema(
         "profile",
         z.object({ tagline: z.string().optional() }),
       );
 
-      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      const effective =
+        profileRegistry.getEffectiveFrontmatterSchema("profile");
       expect(effective).toBeDefined();
       if (!effective) return;
       const result = effective.safeParse({
@@ -535,15 +456,11 @@ This note has frontmatter metadata.`;
     });
 
     test("should return base schema when no extensions registered", () => {
-      const freshRegistry = EntityRegistry.createFresh(logger);
-      const adapterWithSchema = new AdapterWithFrontmatter();
-      freshRegistry.registerEntityType(
-        "profile",
-        noteSchema,
-        adapterWithSchema,
-      );
+      const { registry: profileRegistry, adapter: adapterWithSchema } =
+        createProfileRegistry();
 
-      const effective = freshRegistry.getEffectiveFrontmatterSchema("profile");
+      const effective =
+        profileRegistry.getEffectiveFrontmatterSchema("profile");
       expect(effective).toBe(adapterWithSchema.frontmatterSchema);
     });
 

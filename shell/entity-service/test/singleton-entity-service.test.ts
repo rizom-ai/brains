@@ -1,19 +1,13 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { SingletonEntityService } from "../src/singleton-entity-service";
 import type { EntityService, BaseEntity } from "../src/types";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 
-/**
- * Test body type for the concrete test implementation
- */
 interface TestBody {
   title: string;
   description: string;
 }
 
-/**
- * Concrete test implementation of SingletonEntityService
- */
 class TestSingletonService extends SingletonEntityService<TestBody> {
   protected parseBody(content: string): TestBody {
     const lines = content.split("\n");
@@ -28,9 +22,6 @@ class TestSingletonService extends SingletonEntityService<TestBody> {
   }
 }
 
-/**
- * Create a minimal mock entity service for testing
- */
 function createMockEntityService(): EntityService {
   return {
     getEntity: async () => null,
@@ -54,22 +45,6 @@ function createMockEntityService(): EntityService {
     deserializeEntity: () => ({}),
     getAsyncJobStatus: async () => null,
     storeEmbedding: async () => undefined,
-  };
-}
-
-function createTestEntity(
-  entityType: string,
-  overrides: Partial<BaseEntity> = {},
-): BaseEntity {
-  const now = new Date().toISOString();
-  return {
-    id: overrides.id ?? entityType,
-    entityType,
-    content: overrides.content ?? "test content",
-    created: overrides.created ?? now,
-    updated: overrides.updated ?? now,
-    metadata: overrides.metadata ?? {},
-    contentHash: overrides.contentHash ?? "test-hash",
   };
 }
 
@@ -107,12 +82,11 @@ describe("SingletonEntityService", () => {
   describe("get", () => {
     it("should return default body when cache is empty", () => {
       const body = service.get();
-
       expect(body).toEqual(defaultBody);
     });
 
     it("should return parsed body from cache when entity exists", async () => {
-      const mockEntity = createTestEntity(entityType, {
+      const mockEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "Cached Title\nCached description",
       });
@@ -131,13 +105,12 @@ describe("SingletonEntityService", () => {
   describe("getContent", () => {
     it("should return created content from default when cache is empty", () => {
       const content = service.getContent();
-
       expect(content).toBe("Default Title\nDefault description");
     });
 
     it("should return raw content from cache when entity exists", async () => {
       const rawContent = "Raw cached content\nSome description";
-      const mockEntity = createTestEntity(entityType, {
+      const mockEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: rawContent,
       });
@@ -170,7 +143,7 @@ describe("SingletonEntityService", () => {
     });
 
     it("should not create entity when one already exists", async () => {
-      const mockEntity = createTestEntity(entityType, {
+      const mockEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "Existing\nEntity",
       });
@@ -185,17 +158,15 @@ describe("SingletonEntityService", () => {
       getEntitySpy.mockResolvedValue(null);
       createEntitySpy.mockRejectedValue(new Error("Database error"));
 
-      // Should not throw
       await service.initialize();
     });
 
     it("should reload cache after creating default entity", async () => {
-      const createdEntity = createTestEntity(entityType, {
+      const createdEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "Default Title\nDefault description",
       });
 
-      // First call returns null (no entity), second call returns the created entity
       let callCount = 0;
       getEntitySpy.mockImplementation(async () => {
         callCount++;
@@ -204,17 +175,14 @@ describe("SingletonEntityService", () => {
 
       await service.initialize();
 
-      // getEntity should have been called twice: initial load + reload after create
       expect(getEntitySpy).toHaveBeenCalledTimes(2);
-
-      // Cache should now have the entity
       expect(service.getContent()).toBe("Default Title\nDefault description");
     });
   });
 
   describe("refreshCache", () => {
     it("should reload entity from database", async () => {
-      const mockEntity = createTestEntity(entityType, {
+      const mockEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "Refreshed Title\nRefreshed description",
       });
@@ -230,8 +198,7 @@ describe("SingletonEntityService", () => {
     });
 
     it("should clear cache when entity no longer exists", async () => {
-      // First, populate cache
-      const mockEntity = createTestEntity(entityType, {
+      const mockEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "Cached\nContent",
       });
@@ -239,21 +206,17 @@ describe("SingletonEntityService", () => {
       await service.refreshCache();
       expect(service.get().title).toBe("Cached");
 
-      // Now entity is gone
       getEntitySpy.mockResolvedValue(null);
       await service.refreshCache();
 
-      // Should fall back to default
       expect(service.get()).toEqual(defaultBody);
     });
 
     it("should handle load errors gracefully", async () => {
       getEntitySpy.mockRejectedValue(new Error("Connection error"));
 
-      // Should not throw
       await service.refreshCache();
 
-      // Should fall back to default
       expect(service.get()).toEqual(defaultBody);
     });
   });

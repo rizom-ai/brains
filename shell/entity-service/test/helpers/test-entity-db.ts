@@ -10,39 +10,28 @@ import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
 
 /**
- * Create a temporary test entity database
- * Each test gets its own isolated database
+ * Create a temporary test entity database.
+ * Each test gets its own isolated database.
  */
 export async function createTestEntityDatabase(): Promise<{
   config: EntityDbConfig;
   cleanup: () => Promise<void>;
   dbPath: string;
 }> {
-  // Create a unique temporary directory
   const tempDir = await mkdtemp(join(tmpdir(), "brain-entity-test-"));
   const dbPath = join(tempDir, "test-entities.db");
+  const config: EntityDbConfig = { url: `file:${dbPath}` };
 
-  // Create config
-  const config: EntityDbConfig = {
-    url: `file:${dbPath}`,
-  };
-
-  // Run migrations
   const logger = createSilentLogger();
   await migrateEntities(config, logger);
 
-  // Cleanup function
   const cleanup = async (): Promise<void> => {
-    // Remove temporary directory
     await rm(tempDir, { recursive: true, force: true });
   };
 
   return { config, cleanup, dbPath };
 }
 
-/**
- * Data for inserting a test entity with its embedding
- */
 export interface TestEntityData {
   id: string;
   entityType: string;
@@ -54,8 +43,8 @@ export interface TestEntityData {
 }
 
 /**
- * Insert a test entity directly into the database with its embedding
- * This is for test setup - bypasses the job queue
+ * Insert a test entity directly into the database with its embedding.
+ * Bypasses the job queue for test setup.
  */
 export async function insertTestEntity(
   config: EntityDbConfig,
@@ -64,7 +53,6 @@ export async function insertTestEntity(
   const { db } = createEntityDatabase(config);
   const contentHash = computeContentHash(data.content);
 
-  // Insert entity
   await db.insert(entities).values({
     id: data.id,
     entityType: data.entityType,
@@ -75,7 +63,6 @@ export async function insertTestEntity(
     updated: data.updated,
   });
 
-  // Insert embedding
   await db.insert(embeddings).values({
     entityId: data.id,
     entityType: data.entityType,

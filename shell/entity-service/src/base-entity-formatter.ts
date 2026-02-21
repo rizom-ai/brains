@@ -1,8 +1,6 @@
-import type { ContentFormatter } from "@brains/utils";
+import { stripMarkdown, z, type ContentFormatter } from "@brains/utils";
 import type { BaseEntity } from "./types";
-import { stripMarkdown } from "@brains/utils";
 import { parseMarkdownWithFrontmatter } from "./frontmatter";
-import { z } from "@brains/utils";
 
 /**
  * Formatter for base entities
@@ -14,8 +12,7 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
   /**
    * Format a base entity as concise, single-line text
    */
-  format(data: BaseEntity): string {
-    const entity = data;
+  format(entity: BaseEntity): string {
     const parts: string[] = [];
 
     // Start with ID in brackets (escaped to prevent markdown interpretation)
@@ -25,7 +22,7 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
     let actualContent = entity.content;
     let frontmatter: Record<string, unknown> = {};
 
-    if (entity.content && entity.content.trim().length > 0) {
+    if (entity.content.trim()) {
       try {
         const parsed = parseMarkdownWithFrontmatter(
           entity.content,
@@ -40,7 +37,7 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
     }
 
     // Add content as plain text (after frontmatter is removed)
-    if (actualContent && actualContent.trim().length > 0) {
+    if (actualContent.trim()) {
       let content = actualContent.trim();
 
       // Remove markdown formatting

@@ -1,9 +1,8 @@
 import type { EntityDB } from "./db";
 import type { BaseEntity, SearchResult, SearchOptions } from "./types";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import type { EntityRegistry } from "./entityRegistry";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { EntitySerializer } from "./entity-serializer";
+import { z, type Logger } from "@brains/utils";
 import { sql, eq, and, desc } from "drizzle-orm";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
@@ -26,18 +25,18 @@ const searchOptionsSchema = z.object({
 export class EntitySearch {
   private db: EntityDB;
   private embeddingService: IEmbeddingService;
-  private entityRegistry: EntityRegistry;
+  private serializer: EntitySerializer;
   private logger: Logger;
 
   constructor(
     db: EntityDB,
     embeddingService: IEmbeddingService,
-    entityRegistry: EntityRegistry,
+    serializer: EntitySerializer,
     logger: Logger,
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
-    this.entityRegistry = entityRegistry;
+    this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
   }
 
@@ -125,39 +124,28 @@ export class EntitySearch {
 
     for (const row of results) {
       try {
-        const adapter = this.entityRegistry.getAdapter(row.entityType);
-        const parsedContent = adapter.fromMarkdown(row.content);
-
         const metadata: Record<string, unknown> =
           typeof row.metadata === "string"
             ? JSON.parse(row.metadata)
             : row.metadata;
-        const entity = this.entityRegistry.validateEntity<T>(row.entityType, {
+
+        const entity = this.serializer.reconstructEntity<T>({
           id: row.id,
           entityType: row.entityType,
           content: row.content,
           contentHash: row.contentHash,
-          created: new Date(row.created).toISOString(),
-          updated: new Date(row.updated).toISOString(),
+          created: row.created,
+          updated: row.updated,
           metadata,
-          ...metadata,
-          ...parsedContent,
         });
-
-        // Use weighted_score from SQL (already includes weight multipliers if provided)
-        const score = row.weighted_score;
-
-        // Create a more readable excerpt
-        const excerpt = this.createExcerpt(row.content, query);
 
         searchResults.push({
           entity,
-          score,
-          excerpt,
+          score: row.weighted_score,
+          excerpt: this.createExcerpt(row.content, query),
         });
       } catch (error) {
         this.logger.error(`Failed to parse entity during search: ${error}`);
-        // Skip this result
       }
     }
 

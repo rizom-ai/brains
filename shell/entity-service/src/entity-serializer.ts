@@ -36,7 +36,7 @@ export class EntitySerializer {
   }
 
   /**
-   * Convert database row to entity with validation
+   * Convert a database row to a validated entity, or null if parsing/validation fails
    */
   public async convertToEntity<T extends BaseEntity>(entityData: {
     id: string;
@@ -48,34 +48,7 @@ export class EntitySerializer {
     metadata: Record<string, unknown>;
   }): Promise<T | null> {
     try {
-      const adapter = this.entityRegistry.getAdapter<T>(entityData.entityType);
-
-      // Extract entity-specific fields from markdown
-      const parsedContent = adapter.fromMarkdown(entityData.content);
-
-      // Merge database fields with parsed content and metadata
-      const entity = {
-        // Core fields from database (always authoritative)
-        id: entityData.id,
-        entityType: entityData.entityType,
-        content: entityData.content,
-        contentHash: entityData.contentHash,
-        created: new Date(entityData.created).toISOString(),
-        updated: new Date(entityData.updated).toISOString(),
-        metadata: entityData.metadata,
-
-        // Fields from metadata (includes title, tags, entity-specific fields)
-        ...entityData.metadata,
-
-        // Entity-specific fields from adapter (override metadata if needed)
-        ...parsedContent,
-      } as T;
-
-      // Validate the complete entity
-      return await this.entityRegistry.validateEntity(
-        entityData.entityType,
-        entity,
-      );
+      return this.reconstructEntity<T>(entityData);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -87,7 +60,7 @@ export class EntitySerializer {
   }
 
   /**
-   * Convert multiple database rows to entities
+   * Convert multiple database rows to entities, skipping any that fail validation
    */
   public async convertToEntities<T extends BaseEntity>(
     rows: Array<{
@@ -102,48 +75,51 @@ export class EntitySerializer {
     entityType: string,
   ): Promise<T[]> {
     const entityList: T[] = [];
-    const adapter = this.entityRegistry.getAdapter<T>(entityType);
 
     for (const entityData of rows) {
       try {
-        // Extract entity-specific fields from markdown
-        const parsedContent = adapter.fromMarkdown(entityData.content);
-
-        // Merge database fields with parsed content and metadata
-        const entity = {
-          // Core fields from database
-          id: entityData.id,
-          entityType: entityData.entityType,
-          content: entityData.content,
-          contentHash: entityData.contentHash,
-          created: new Date(entityData.created).toISOString(),
-          updated: new Date(entityData.updated).toISOString(),
-          metadata: entityData.metadata,
-
-          // Fields from metadata (includes title, tags, entity-specific fields)
-          ...entityData.metadata,
-
-          // Entity-specific fields from adapter (override metadata if needed)
-          ...parsedContent,
-        } as T;
-
-        // Validate and add to list
-        const validatedEntity = this.entityRegistry.validateEntity<T>(
-          entityType,
-          entity,
-        );
-        entityList.push(validatedEntity);
+        entityList.push(this.reconstructEntity<T>(entityData));
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         this.logger.error(
           `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
         );
-        // Skip invalid entities and continue
       }
     }
 
     return entityList;
+  }
+
+  /**
+   * Reconstruct a typed entity from a database row by merging DB fields,
+   * metadata, and adapter-parsed content, then validating against the schema
+   */
+  public reconstructEntity<T extends BaseEntity>(entityData: {
+    id: string;
+    entityType: string;
+    content: string;
+    contentHash: string;
+    created: number;
+    updated: number;
+    metadata: Record<string, unknown>;
+  }): T {
+    const adapter = this.entityRegistry.getAdapter<T>(entityData.entityType);
+    const parsedContent = adapter.fromMarkdown(entityData.content);
+
+    const entity = {
+      id: entityData.id,
+      entityType: entityData.entityType,
+      content: entityData.content,
+      contentHash: entityData.contentHash,
+      created: new Date(entityData.created).toISOString(),
+      updated: new Date(entityData.updated).toISOString(),
+      metadata: entityData.metadata,
+      ...entityData.metadata,
+      ...parsedContent,
+    } as T;
+
+    return this.entityRegistry.validateEntity<T>(entityData.entityType, entity);
   }
 
   /**

@@ -4,31 +4,15 @@ import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import type { EntityAdapter, BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
-import type { IJobQueueService } from "@brains/job-queue";
-
 import {
   createSilentLogger,
   createMockJobQueueService,
   createTestEntity,
 } from "@brains/test-utils";
 import { type Logger, createId } from "@brains/utils";
-import type { IEmbeddingService } from "@brains/embedding-service";
+import { mockEmbeddingService } from "./helpers/mock-services";
 
-// Create a mock embedding service
-const mockEmbeddingService: IEmbeddingService = {
-  generateEmbedding: async () => new Float32Array(384).fill(0.1),
-  generateEmbeddings: async (texts: string[]) =>
-    texts.map(() => new Float32Array(384).fill(0.1)),
-};
-
-// ============================================================================
-// TEST NOTE ENTITY (following documented functional approach)
-// ============================================================================
-
-/**
- * Note entity schema extending base entity
- * For testing, we add title and tags as note-specific fields
- */
+// Note schema with category (specific to these unit tests)
 const noteSchema = baseEntitySchema.extend({
   entityType: z.literal("note"),
   title: z.string(),
@@ -36,68 +20,30 @@ const noteSchema = baseEntitySchema.extend({
   category: z.string().optional(),
 });
 
-/**
- * Note entity type
- */
 type Note = z.infer<typeof noteSchema>;
 
-/**
- * Factory function to create a Note entity (for testing)
- */
 function createNote(input: Partial<Note>): Note {
-  const base = createTestEntity<Note>("note", {
+  return createTestEntity<Note>("note", {
     title: "Test Note",
     tags: [],
     category: undefined,
     ...input,
   });
-
-  return base;
 }
-
-// ============================================================================
-// UNIT TESTS - Focus on EntityService business logic, not database operations
-// ============================================================================
 
 describe("EntityService", (): void => {
   let logger: Logger;
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
-  let mockJobQueueService: IJobQueueService;
 
   beforeEach((): void => {
-    // Reset singletons
     EntityService.resetInstance();
     EntityRegistry.resetInstance();
 
-    // Create mock job queue service with specific return values
-    mockJobQueueService = createMockJobQueueService({
-      returns: {
-        enqueue: "mock-job-id",
-        getStatus: {
-          status: "completed" as const,
-          id: "mock-job-id",
-          type: "embedding",
-          data: "",
-          priority: 0,
-          maxRetries: 3,
-          retryCount: 0,
-          lastError: null,
-          createdAt: Date.now(),
-          scheduledFor: Date.now(),
-          startedAt: Date.now(),
-          completedAt: Date.now(),
-          metadata: {
-            rootJobId: createId(),
-            operationType: "data_processing" as const,
-          },
-          source: null,
-          result: null,
-        },
-      },
+    const mockJobQueueService = createMockJobQueueService({
+      returns: { enqueue: "mock-job-id" },
     });
 
-    // Create fresh instances
     logger = createSilentLogger();
     entityRegistry = EntityRegistry.createFresh(logger);
     entityService = EntityService.createFresh({
@@ -105,7 +51,7 @@ describe("EntityService", (): void => {
       entityRegistry,
       logger,
       jobQueueService: mockJobQueueService,
-      dbConfig: { url: "file::memory:" }, // Use in-memory database for tests
+      dbConfig: { url: "file::memory:" },
     });
   });
 
@@ -115,7 +61,6 @@ describe("EntityService", (): void => {
   });
 
   test("getEntityTypes returns registered types", (): void => {
-    // Mock the registry to return specific types
     const mockGetAllEntityTypes = mock(() => ["note", "profile"]);
     entityRegistry.getAllEntityTypes = mockGetAllEntityTypes;
 
@@ -127,13 +72,11 @@ describe("EntityService", (): void => {
   test("entity validation uses EntityRegistry", (): void => {
     const testEntity = createNote({ title: "Test Note", category: "test" });
 
-    // Mock the registry validation - just return the entity for this test
     const mockValidateEntity = mock(
       (_type: string, entity: unknown) => entity,
     ) as typeof entityRegistry.validateEntity;
     entityRegistry.validateEntity = mockValidateEntity;
 
-    // Mock the adapter
     const mockAdapter = {
       entityType: "note",
       schema: noteSchema,
@@ -148,8 +91,6 @@ describe("EntityService", (): void => {
     ) as unknown as typeof entityRegistry.getAdapter;
     entityRegistry.getAdapter = mockGetAdapter;
 
-    // This would normally do database operations, but we're testing the validation logic
-    // The actual database calls would be tested in integration tests
     expect(() => {
       entityRegistry.validateEntity("note", testEntity);
       const adapter = entityRegistry.getAdapter("note");
@@ -172,7 +113,6 @@ describe("EntityService", (): void => {
       category: "general",
     };
 
-    // Test the ID generation logic
     const entityWithId = {
       ...entityData,
       id: entityData.id || createId(),
@@ -195,7 +135,6 @@ describe("EntityService", (): void => {
       tags: [],
     };
 
-    // Test that provided ID is preserved
     const entityWithId = {
       ...entityData,
       id: entityData.id || createId(),
@@ -213,7 +152,6 @@ describe("EntityService", (): void => {
       updated: originalTime,
     });
 
-    // Simulate update logic (what EntityService.updateEntitySync does)
     const updatedEntity = {
       ...entity,
       title: "Updated Title",
@@ -222,14 +160,11 @@ describe("EntityService", (): void => {
 
     expect(updatedEntity.title).toBe("Updated Title");
     expect(updatedEntity.updated).not.toBe(originalTime);
-    expect(updatedEntity.created).toBe(originalTime); // Should not change
-    expect(updatedEntity.id).toBe(entity.id); // Should not change
+    expect(updatedEntity.created).toBe(originalTime);
+    expect(updatedEntity.id).toBe(entity.id);
   });
 
-  // Note: toMarkdown tests removed - this is now handled by the adapter
-
   test("serializeEntity converts entities to markdown", () => {
-    // Create test adapter
     const testAdapter: EntityAdapter<Note> = {
       entityType: "note",
       schema: noteSchema,
@@ -253,7 +188,6 @@ describe("EntityService", (): void => {
       },
     };
 
-    // Register a test entity type
     entityRegistry.registerEntityType("note", noteSchema, testAdapter);
 
     const testEntity = createNote({
@@ -270,7 +204,6 @@ describe("EntityService", (): void => {
   });
 
   test("deserializeEntity converts markdown to entities", () => {
-    // Create and register test adapter
     const testAdapter: EntityAdapter<Note> = {
       entityType: "note",
       schema: noteSchema,
@@ -321,12 +254,9 @@ describe("EntityService", (): void => {
       content: "New content",
     });
 
-    // Mock getEntity to return null (entity doesn't exist)
     entityService.getEntity = mock((_entityType: string, _id: string) =>
       Promise.resolve(null),
     );
-
-    // Mock createEntity
     entityService.createEntity = mock(() =>
       Promise.resolve({ entityId: "new-entity", jobId: "job-123" }),
     );
@@ -336,11 +266,7 @@ describe("EntityService", (): void => {
     expect(result.entityId).toBe("new-entity");
     expect(result.jobId).toBe("job-123");
     expect(result.created).toBe(true);
-
-    // Verify getEntity was called
     expect(entityService.getEntity).toHaveBeenCalledWith("base", "new-entity");
-
-    // Verify createEntity was called
     expect(entityService.createEntity).toHaveBeenCalledWith(
       testEntity,
       undefined,
@@ -360,12 +286,9 @@ describe("EntityService", (): void => {
       content: "Updated content",
     });
 
-    // Mock getEntity to return existing entity
     entityService.getEntity = mock((_entityType: string, _id: string) =>
       Promise.resolve(existingEntity),
     ) as typeof entityService.getEntity;
-
-    // Mock updateEntity
     entityService.updateEntity = mock(() =>
       Promise.resolve({ entityId: "existing-entity", jobId: "job-456" }),
     );
@@ -375,14 +298,10 @@ describe("EntityService", (): void => {
     expect(result.entityId).toBe("existing-entity");
     expect(result.jobId).toBe("job-456");
     expect(result.created).toBe(false);
-
-    // Verify getEntity was called
     expect(entityService.getEntity).toHaveBeenCalledWith(
       "base",
       "existing-entity",
     );
-
-    // Verify updateEntity was called
     expect(entityService.updateEntity).toHaveBeenCalledWith(
       updatedEntity,
       undefined,
@@ -397,19 +316,15 @@ describe("EntityService", (): void => {
 
     const options = { priority: 5, maxRetries: 10 };
 
-    // Mock getEntity to return null
     entityService.getEntity = mock((_entityType: string, _id: string) =>
       Promise.resolve(null),
     );
-
-    // Mock createEntity
     entityService.createEntity = mock(() =>
       Promise.resolve({ entityId: "test-entity", jobId: "job-789" }),
     );
 
     await entityService.upsertEntity(testEntity, options);
 
-    // Verify options were passed through
     expect(entityService.createEntity).toHaveBeenCalledWith(
       testEntity,
       options,

@@ -1,6 +1,5 @@
-import type { EntityService } from "./types";
+import type { EntityService, BaseEntity } from "./types";
 import type { Logger } from "@brains/utils";
-import type { BaseEntity } from "./types";
 
 /**
  * Base class for singleton entity services (identity, profile, etc.)

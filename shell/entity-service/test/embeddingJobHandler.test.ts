@@ -5,22 +5,27 @@ import type {
   EmbeddingJobData,
   BaseEntity,
 } from "../src/types";
-import type { IEmbeddingService } from "@brains/embedding-service";
 import { createTestEntity } from "@brains/test-utils";
 import type { ProgressReporter } from "@brains/utils";
 import { computeContentHash } from "@brains/utils";
+import { mockEmbeddingService } from "./helpers/mock-services";
 
-// Mock embedding service
-const mockEmbeddingService: IEmbeddingService = {
-  generateEmbedding: async () => new Float32Array(384).fill(0.1),
-  generateEmbeddings: async (texts: string[]) =>
-    texts.map(() => new Float32Array(384).fill(0.1)),
-};
-
-// Mock progress reporter - partial mock is fine since we only use report()
 const mockProgressReporter = {
   report: async () => {},
 } as unknown as ProgressReporter;
+
+function createMockEntityService(overrides: {
+  getEntity: () => Promise<BaseEntity | null>;
+}): { service: IEntityService; storeEmbeddingCalled: () => boolean } {
+  let called = false;
+  const service = {
+    getEntity: overrides.getEntity,
+    storeEmbedding: async () => {
+      called = true;
+    },
+  } as unknown as IEntityService;
+  return { service, storeEmbeddingCalled: () => called };
+}
 
 describe("EmbeddingJobHandler", () => {
   beforeEach(() => {
@@ -28,59 +33,45 @@ describe("EmbeddingJobHandler", () => {
   });
 
   describe("CREATE operation handling", () => {
-    test("should skip when entity does not exist (with immediate persistence, entity should exist)", async () => {
-      let storeEmbeddingCalled = false;
-      const content = "new entity content";
-
-      const mockEntityService = {
-        getEntity: async () => null, // Entity doesn't exist - something went wrong
-        storeEmbedding: async () => {
-          storeEmbeddingCalled = true;
-        },
-      } as unknown as IEntityService;
+    test("should skip when entity does not exist", async () => {
+      const { service, storeEmbeddingCalled } = createMockEntityService({
+        getEntity: async () => null,
+      });
 
       const handler = EmbeddingJobHandler.createFresh(
-        mockEntityService,
+        service,
         mockEmbeddingService,
       );
 
-      // Job data is now minimal - no content, only contentHash
       const jobData: EmbeddingJobData = {
         id: "new-entity",
         entityType: "note",
-        contentHash: computeContentHash(content),
+        contentHash: computeContentHash("new entity content"),
         operation: "create",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // With immediate persistence, entity should exist. If not, we skip.
-      expect(storeEmbeddingCalled).toBe(false);
+      expect(storeEmbeddingCalled()).toBe(false);
     });
 
-    test("should process CREATE job when entity exists and content matches", async () => {
-      let storeEmbeddingCalled = false;
+    test("should process when entity exists and content matches", async () => {
       const content = "new entity content";
-
       const currentEntity = createTestEntity<BaseEntity>("note", {
         id: "new-entity",
         content,
         metadata: { coverImageId: "my-cover" },
       });
 
-      const mockEntityService = {
+      const { service, storeEmbeddingCalled } = createMockEntityService({
         getEntity: async () => currentEntity,
-        storeEmbedding: async () => {
-          storeEmbeddingCalled = true;
-        },
-      } as unknown as IEntityService;
+      });
 
       const handler = EmbeddingJobHandler.createFresh(
-        mockEntityService,
+        service,
         mockEmbeddingService,
       );
 
-      // Job data has contentHash matching entity's contentHash
       const jobData: EmbeddingJobData = {
         id: "new-entity",
         entityType: "note",
@@ -90,78 +81,56 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEmbedding SHOULD be called when entity exists and content matches
-      expect(storeEmbeddingCalled).toBe(true);
+      expect(storeEmbeddingCalled()).toBe(true);
     });
   });
 
   describe("UPDATE operation - stale content handling", () => {
-    test("should skip UPDATE job when entity content has changed since job creation", async () => {
-      // Job was created with hash of "old content"
-      const oldContent = "old content";
-      const oldContentHash = computeContentHash(oldContent);
-
-      // But current entity in DB has "new content"
-      const currentContent = "new content";
-
-      let storeEmbeddingCalled = false;
-
+    test("should skip when entity content has changed since job creation", async () => {
       const currentEntity = createTestEntity<BaseEntity>("note", {
         id: "test-entity",
-        content: currentContent,
+        content: "new content",
         metadata: { coverImageId: "should-be-preserved" },
       });
 
-      const mockEntityService = {
+      const { service, storeEmbeddingCalled } = createMockEntityService({
         getEntity: async () => currentEntity,
-        storeEmbedding: async () => {
-          storeEmbeddingCalled = true;
-        },
-      } as unknown as IEntityService;
+      });
 
       const handler = EmbeddingJobHandler.createFresh(
-        mockEntityService,
+        service,
         mockEmbeddingService,
       );
 
-      // Job data has stale contentHash (from old content)
       const jobData: EmbeddingJobData = {
         id: "test-entity",
         entityType: "note",
-        contentHash: oldContentHash,
+        contentHash: computeContentHash("old content"),
         operation: "update",
       };
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEmbedding should NOT have been called because content changed
-      expect(storeEmbeddingCalled).toBe(false);
+      expect(storeEmbeddingCalled()).toBe(false);
     });
 
-    test("should process job when entity content matches", async () => {
+    test("should process when entity content matches", async () => {
       const content = "same content";
-
-      let storeEmbeddingCalled = false;
-
       const currentEntity = createTestEntity<BaseEntity>("note", {
         id: "test-entity",
         content,
         metadata: { coverImageId: "preserved" },
       });
 
-      const mockEntityService = {
+      const { service, storeEmbeddingCalled } = createMockEntityService({
         getEntity: async () => currentEntity,
-        storeEmbedding: async () => {
-          storeEmbeddingCalled = true;
-        },
-      } as unknown as IEntityService;
+      });
 
       const handler = EmbeddingJobHandler.createFresh(
-        mockEntityService,
+        service,
         mockEmbeddingService,
       );
 
-      // Job data has matching contentHash
       const jobData: EmbeddingJobData = {
         id: "test-entity",
         entityType: "note",
@@ -171,22 +140,16 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEmbedding SHOULD have been called
-      expect(storeEmbeddingCalled).toBe(true);
+      expect(storeEmbeddingCalled()).toBe(true);
     });
 
-    test("should skip job when entity no longer exists", async () => {
-      let storeEmbeddingCalled = false;
-
-      const mockEntityService = {
-        getEntity: async () => null, // Entity doesn't exist
-        storeEmbedding: async () => {
-          storeEmbeddingCalled = true;
-        },
-      } as unknown as IEntityService;
+    test("should skip when entity no longer exists", async () => {
+      const { service, storeEmbeddingCalled } = createMockEntityService({
+        getEntity: async () => null,
+      });
 
       const handler = EmbeddingJobHandler.createFresh(
-        mockEntityService,
+        service,
         mockEmbeddingService,
       );
 
@@ -199,8 +162,7 @@ describe("EmbeddingJobHandler", () => {
 
       await handler.process(jobData, "job-123", mockProgressReporter);
 
-      // storeEmbedding should NOT have been called
-      expect(storeEmbeddingCalled).toBe(false);
+      expect(storeEmbeddingCalled()).toBe(false);
     });
   });
 });

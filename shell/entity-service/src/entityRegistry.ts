@@ -1,5 +1,4 @@
-import type { z } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import type { z, Logger } from "@brains/utils";
 import type {
   BaseEntity,
   EntityAdapter,
@@ -116,15 +115,12 @@ export class EntityRegistry implements IEntityRegistry {
       );
     }
 
-    const extensions = this.frontmatterExtensions.get(type);
-    if (!extensions?.length || !adapter.frontmatterSchema) {
+    const effectiveSchema = this.mergeExtensions(
+      type,
+      adapter.frontmatterSchema,
+    );
+    if (!effectiveSchema || effectiveSchema === adapter.frontmatterSchema) {
       return adapter as EntityAdapter<TEntity, TMetadata>;
-    }
-
-    // Merge all extensions into the base frontmatterSchema
-    let effectiveSchema = adapter.frontmatterSchema;
-    for (const ext of extensions) {
-      effectiveSchema = effectiveSchema.extend(ext.shape);
     }
 
     // Return a prototype-delegating wrapper that overrides only frontmatterSchema
@@ -211,15 +207,31 @@ export class EntityRegistry implements IEntityRegistry {
     type: string,
   ): z.ZodObject<z.ZodRawShape> | undefined {
     const adapter = this.entityAdapters.get(type);
-    if (!adapter?.frontmatterSchema) return undefined;
+    return this.mergeExtensions(type, adapter?.frontmatterSchema);
+  }
+
+  /**
+   * Merge registered frontmatter extensions into a base schema.
+   * Returns the base schema unchanged if no extensions exist,
+   * or undefined if the base schema is undefined.
+   */
+  private mergeExtensions(
+    type: string,
+    baseSchema?: z.ZodObject<z.ZodRawShape>,
+  ): z.ZodObject<z.ZodRawShape> | undefined {
+    if (!baseSchema) {
+      return undefined;
+    }
 
     const extensions = this.frontmatterExtensions.get(type);
-    if (!extensions?.length) return adapter.frontmatterSchema;
-
-    let schema = adapter.frontmatterSchema;
-    for (const ext of extensions) {
-      schema = schema.extend(ext.shape);
+    if (!extensions?.length) {
+      return baseSchema;
     }
-    return schema;
+
+    let merged = baseSchema;
+    for (const ext of extensions) {
+      merged = merged.extend(ext.shape);
+    }
+    return merged;
   }
 }

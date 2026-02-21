@@ -5,17 +5,18 @@ import {
   ensureEntityIndexes,
   type EntityDB,
 } from "./db";
-import type { EntityDbConfig } from "./types";
-import { EntityRegistry } from "./entityRegistry";
-import { Logger, createId, computeContentHash } from "@brains/utils";
 import type {
+  EntityDbConfig,
   BaseEntity,
   SearchResult,
   EmbeddingJobData,
   EntityInput,
+  SearchOptions,
+  EntityService as IEntityService,
 } from "./types";
+import { EntityRegistry } from "./entityRegistry";
+import { Logger, createId, computeContentHash } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import type { SearchOptions, EntityService as IEntityService } from "./types";
 import type { IJobQueueService } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
@@ -123,7 +124,7 @@ export class EntityService implements IEntityService {
     this.entitySearch = new EntitySearch(
       this.db,
       this.embeddingService,
-      this.entityRegistry,
+      this.entitySerializer,
       this.logger,
     );
     this.contentResolver = new ContentResolver(this.logger);
@@ -221,74 +222,24 @@ export class EntityService implements IEntityService {
       `Persisted entity ${validatedEntity.entityType}:${finalId} immediately`,
     );
 
-    // Emit entity:created event immediately (entity is now readable)
-    if (this.messageBus) {
-      this.logger.debug(
-        `Emitting entity:created event for ${validatedEntity.entityType}:${finalId}`,
-      );
-      await this.messageBus.send(
-        "entity:created",
-        {
-          entityType: validatedEntity.entityType,
-          entityId: finalId,
-          entity: { ...validatedEntity, id: finalId },
-        },
-        "entity-service",
-        undefined,
-        undefined,
-        true, // broadcast
-      );
-    }
-
-    // Skip embedding for non-embeddable entity types (e.g., images with base64 content)
-    const entityConfig = this.entityRegistry.getEntityTypeConfig(
+    await this.emitEntityEvent(
+      "entity:created",
       validatedEntity.entityType,
-    );
-    if (entityConfig.embeddable === false) {
-      this.logger.debug(
-        `Skipping embedding for non-embeddable entity type: ${validatedEntity.entityType}:${finalId}`,
-      );
-      return { entityId: finalId, jobId: "" };
-    }
-
-    // Prepare job data for embedding generation
-    // Include contentHash instead of content to:
-    // 1. Enable staleness detection (compare hashes)
-    // 2. Avoid large base64 data bloating job queue and dashboard hydration
-    const entityForQueue: EmbeddingJobData = {
-      id: finalId,
-      entityType: validatedEntity.entityType,
-      contentHash,
-      operation: "create",
-    };
-
-    // Enqueue for async embedding generation
-    const rootJobId = createId(); // Generate unique ID for system job
-    const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
-      entityForQueue,
+      finalId,
       {
-        ...(options?.priority !== undefined && { priority: options.priority }),
-        ...(options?.maxRetries !== undefined && {
-          maxRetries: options.maxRetries,
-        }),
-        source: "entity-service",
-        rootJobId,
-        metadata: {
-          operationType: "data_processing" as const,
-          operationTarget: finalId,
-        },
+        ...validatedEntity,
+        id: finalId,
       },
     );
 
-    this.logger.debug(
-      `Queued embedding job for ${validatedEntity.entityType}:${finalId} (job: ${jobId})`,
-    );
-
-    return {
+    return this.enqueueEmbeddingJob({
       entityId: finalId,
-      jobId,
-    };
+      entityType: validatedEntity.entityType,
+      contentHash,
+      operation: "create",
+      priority: options?.priority,
+      maxRetries: options?.maxRetries,
+    });
   }
 
   /**
@@ -431,98 +382,34 @@ export class EntityService implements IEntityService {
       `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
     );
 
-    // Emit entity:updated event immediately
-    if (this.messageBus) {
-      await this.messageBus.send(
-        "entity:updated",
-        {
-          entityType: validatedEntity.entityType,
-          entityId: validatedEntity.id,
-          entity: validatedEntity,
-        },
-        "entity-service",
-        undefined,
-        undefined,
-        true,
-      );
-    }
-
-    // Skip embedding for non-embeddable entity types (e.g., images with base64 content)
-    const entityConfig = this.entityRegistry.getEntityTypeConfig(
+    await this.emitEntityEvent(
+      "entity:updated",
       validatedEntity.entityType,
+      validatedEntity.id,
+      validatedEntity,
     );
-    if (entityConfig.embeddable === false) {
-      this.logger.debug(
-        `Skipping embedding for non-embeddable entity type: ${validatedEntity.entityType}:${validatedEntity.id}`,
-      );
-      return { entityId: validatedEntity.id, jobId: "" };
-    }
 
-    // Queue embedding generation for the updated entity
-    // Job data is minimal (no content) to avoid large base64 data in job queue
-    const rootJobId = createId();
-    const entityForQueue: EmbeddingJobData = {
-      id: validatedEntity.id,
+    return this.enqueueEmbeddingJob({
+      entityId: validatedEntity.id,
       entityType: validatedEntity.entityType,
       contentHash,
       operation: "update",
-    };
-    const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
-      entityForQueue,
-      {
-        ...(options?.priority !== undefined && { priority: options.priority }),
-        ...(options?.maxRetries !== undefined && {
-          maxRetries: options.maxRetries,
-        }),
-        source: "entity-service",
-        rootJobId,
-        metadata: {
-          operationType: "data_processing" as const,
-          operationTarget: validatedEntity.id,
-        },
-      },
-    );
-
-    this.logger.debug(
-      `Queued embedding job for ${validatedEntity.entityType}:${validatedEntity.id} (job: ${jobId})`,
-    );
-
-    return {
-      entityId: validatedEntity.id,
-      jobId,
-    };
+      priority: options?.priority,
+      maxRetries: options?.maxRetries,
+    });
   }
 
   /**
    * Delete an entity by type and ID
    */
   public async deleteEntity(entityType: string, id: string): Promise<boolean> {
-    const result = await this.entityQueries.deleteEntity(entityType, id);
+    const deleted = await this.entityQueries.deleteEntity(entityType, id);
 
-    // Emit entity:deleted event if deletion was successful
-    if (result && this.messageBus) {
-      this.logger.debug(
-        `Emitting entity:deleted event for ${entityType}:${id}`,
-      );
-      await this.messageBus.send(
-        "entity:deleted",
-        {
-          entityType,
-          entityId: id,
-        },
-        "entity-service",
-        undefined,
-        undefined,
-        true, // broadcast
-      );
-    } else if (result && !this.messageBus) {
-      this.logger.warn(
-        "MessageBus not available, cannot emit entity:deleted event",
-      );
+    if (deleted) {
+      await this.emitEntityEvent("entity:deleted", entityType, id);
     }
 
-    return result;
+    return deleted;
   }
 
   /**
@@ -697,5 +584,93 @@ export class EntityService implements IEntityService {
           contentHash: data.contentHash,
         },
       });
+  }
+
+  /**
+   * Broadcast an entity lifecycle event via the message bus
+   */
+  private async emitEntityEvent(
+    event: string,
+    entityType: string,
+    entityId: string,
+    entity?: BaseEntity,
+  ): Promise<void> {
+    if (!this.messageBus) {
+      return;
+    }
+
+    this.logger.debug(`Emitting ${event} for ${entityType}:${entityId}`);
+
+    const payload: Record<string, unknown> = { entityType, entityId };
+    if (entity) {
+      payload["entity"] = entity;
+    }
+
+    await this.messageBus.send(
+      event,
+      payload,
+      "entity-service",
+      undefined,
+      undefined,
+      true,
+    );
+  }
+
+  /**
+   * Enqueue an embedding job, or return early if the entity type is non-embeddable
+   */
+  private async enqueueEmbeddingJob(params: {
+    entityId: string;
+    entityType: string;
+    contentHash: string;
+    operation: "create" | "update";
+    priority?: number | undefined;
+    maxRetries?: number | undefined;
+  }): Promise<{ entityId: string; jobId: string }> {
+    const {
+      entityId,
+      entityType,
+      contentHash,
+      operation,
+      priority,
+      maxRetries,
+    } = params;
+
+    const entityConfig = this.entityRegistry.getEntityTypeConfig(entityType);
+    if (entityConfig.embeddable === false) {
+      this.logger.debug(
+        `Skipping embedding for non-embeddable entity type: ${entityType}:${entityId}`,
+      );
+      return { entityId, jobId: "" };
+    }
+
+    const jobData: EmbeddingJobData = {
+      id: entityId,
+      entityType,
+      contentHash,
+      operation,
+    };
+    const rootJobId = createId();
+
+    const jobId = await this.jobQueueService.enqueue(
+      "shell:embedding",
+      jobData,
+      {
+        ...(priority !== undefined && { priority }),
+        ...(maxRetries !== undefined && { maxRetries }),
+        source: "entity-service",
+        rootJobId,
+        metadata: {
+          operationType: "data_processing" as const,
+          operationTarget: entityId,
+        },
+      },
+    );
+
+    this.logger.debug(
+      `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,
+    );
+
+    return { entityId, jobId };
   }
 }

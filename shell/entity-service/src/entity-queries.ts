@@ -3,8 +3,7 @@ import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
-import { z } from "@brains/utils";
-import type { Logger } from "@brains/utils";
+import { z, type Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
 
 /**
@@ -77,19 +76,19 @@ export class EntityQueries {
       return null;
     }
 
-    const entityData = result[0];
-    if (!entityData) {
+    const row = result[0];
+    if (!row) {
       return null;
     }
 
     return {
-      id: entityData.id,
-      entityType: entityData.entityType,
-      content: entityData.content,
-      contentHash: entityData.contentHash,
-      created: entityData.created,
-      updated: entityData.updated,
-      metadata: (entityData.metadata as Record<string, unknown> | null) ?? {},
+      id: row.id,
+      entityType: row.entityType,
+      content: row.content,
+      contentHash: row.contentHash,
+      created: row.created,
+      updated: row.updated,
+      metadata: (row.metadata as Record<string, unknown> | null) ?? {},
     };
   }
 
@@ -108,35 +107,13 @@ export class EntityQueries {
       `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
     );
 
-    // Build where conditions
-    const whereConditions = [eq(entities.entityType, entityType)];
-
-    // Handle publishedOnly filter (filters on metadata.status = "published")
-    // Also include entities that don't have a status field at all (e.g., profile, link, project)
-    if (publishedOnly) {
-      whereConditions.push(
-        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
-      );
-    }
-
-    // Handle metadata filters
-    if (filter?.metadata) {
-      // For each metadata filter, add a JSON query condition
-      for (const [key, value] of Object.entries(filter.metadata)) {
-        if (value !== undefined) {
-          // SQLite JSON query: json_extract(metadata, '$.key') = value
-          const jsonPath = `$.${key}`;
-          whereConditions.push(
-            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
-          );
-        }
-      }
-    }
-
-    // Build order by clauses
+    const whereConditions = this.buildWhereConditions(
+      entityType,
+      publishedOnly,
+      filter?.metadata,
+    );
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
-    // Query database - conditionally apply limit
     const query = this.db
       .select()
       .from(entities)
@@ -144,7 +121,6 @@ export class EntityQueries {
       .orderBy(...orderByClauses)
       .offset(offset);
 
-    // Only apply limit if specified
     const result = limit !== undefined ? await query.limit(limit) : await query;
 
     // Convert from database format to entities
@@ -169,8 +145,39 @@ export class EntityQueries {
   }
 
   /**
-   * Build ORDER BY clauses from sortFields
-   * Supports system fields (created, updated) and metadata fields via json_extract
+   * Build WHERE conditions for entity queries.
+   * Shared by listEntities and countEntities.
+   */
+  private buildWhereConditions(
+    entityType: string,
+    publishedOnly?: boolean,
+    metadataFilter?: Record<string, unknown>,
+  ): SQL[] {
+    const conditions: SQL[] = [eq(entities.entityType, entityType)];
+
+    if (publishedOnly) {
+      conditions.push(
+        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
+      );
+    }
+
+    if (metadataFilter) {
+      for (const [key, value] of Object.entries(metadataFilter)) {
+        if (value !== undefined) {
+          const jsonPath = `$.${key}`;
+          conditions.push(
+            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
+          );
+        }
+      }
+    }
+
+    return conditions;
+  }
+
+  /**
+   * Build ORDER BY clauses from sortFields.
+   * Supports system fields (created, updated) and metadata fields via json_extract.
    */
   private buildOrderByClauses(
     sortFields?: Array<{ field: string; direction: "asc" | "desc" }>,
@@ -207,28 +214,11 @@ export class EntityQueries {
       filter?: { metadata?: Record<string, unknown> };
     } = {},
   ): Promise<number> {
-    const { publishedOnly, filter } = options;
-
-    // Build where conditions (same logic as listEntities)
-    const whereConditions = [eq(entities.entityType, entityType)];
-
-    // Also include entities that don't have a status field at all
-    if (publishedOnly) {
-      whereConditions.push(
-        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
-      );
-    }
-
-    if (filter?.metadata) {
-      for (const [key, value] of Object.entries(filter.metadata)) {
-        if (value !== undefined) {
-          const jsonPath = `$.${key}`;
-          whereConditions.push(
-            sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
-          );
-        }
-      }
-    }
+    const whereConditions = this.buildWhereConditions(
+      entityType,
+      options.publishedOnly,
+      options.filter?.metadata,
+    );
 
     const result = await this.db
       .select({ count: sql<number>`COUNT(*)` })

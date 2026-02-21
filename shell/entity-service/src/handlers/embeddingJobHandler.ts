@@ -1,12 +1,10 @@
-import { z } from "@brains/utils";
+import { z, Logger, type ProgressReporter } from "@brains/utils";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,
 } from "../types";
 import type { IEmbeddingService } from "@brains/embedding-service";
-import { Logger } from "@brains/utils";
 import type { JobHandler } from "@brains/job-queue";
-import type { ProgressReporter } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
 
 /**
@@ -205,7 +203,6 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
   /**
    * Handle embedding job errors
-   * Provides additional logging and context for debugging
    */
   public async onError(
     error: Error,
@@ -220,12 +217,6 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
       errorMessage: error.message,
       errorStack: error.stack,
     });
-
-    // Could add additional error handling here:
-    // - Mark entity as failed in database
-    // - Send alerts for critical entities
-    // - Retry with different embedding service
-    // - Store error details for analysis
   }
 
   /**
