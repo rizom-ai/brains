@@ -14,7 +14,6 @@ import {
   JobProgressMonitor,
 } from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/datasource";
-import { ServiceRegistry } from "@brains/service-registry";
 import { MessageBus } from "@brains/messaging-service";
 
 // Mock fastembed to avoid loading actual model in tests
@@ -57,7 +56,6 @@ describe("Shell initialization order", () => {
     await Shell.resetInstance();
     ShellInitializer.resetInstance();
     PluginManager.resetInstance();
-    ServiceRegistry.resetInstance();
     MessageBus.resetInstance();
     EntityRegistry.resetInstance();
     JobQueueWorker.resetInstance();
@@ -72,7 +70,6 @@ describe("Shell initialization order", () => {
     await Shell.resetInstance();
     ShellInitializer.resetInstance();
     PluginManager.resetInstance();
-    ServiceRegistry.resetInstance();
     MessageBus.resetInstance();
     EntityRegistry.resetInstance();
     JobQueueWorker.resetInstance();

@@ -897,7 +897,6 @@
         "@brains/permission-service": "workspace:*",
         "@brains/profile-service": "workspace:*",
         "@brains/render-service": "workspace:*",
-        "@brains/service-registry": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "eslint": "^8.56.0",
@@ -1094,20 +1093,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shell/service-registry": {
-      "name": "@brains/service-registry",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "shell/templates": {
       "name": "@brains/templates",
       "version": "0.1.0",
@@ -1244,8 +1229,6 @@
     "@brains/profile-service": ["@brains/profile-service@workspace:shell/profile-service"],
 
     "@brains/render-service": ["@brains/render-service@workspace:shell/render-service"],
-
-    "@brains/service-registry": ["@brains/service-registry@workspace:shell/service-registry"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 

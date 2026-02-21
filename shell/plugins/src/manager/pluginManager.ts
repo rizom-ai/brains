@@ -1,4 +1,3 @@
-import type { ServiceRegistry } from "@brains/service-registry";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "../interfaces";
 import { EventEmitter } from "events";
@@ -29,7 +28,7 @@ export class PluginManager implements IPluginManager {
   private logger: Logger;
   private events = new EventEmitter();
   private daemonRegistry: DaemonRegistry;
-  private serviceRegistry: ServiceRegistry;
+  private shell: IShell | null = null;
   private pluginLifecycle: PluginLifecycle;
   private dependencyResolver: DependencyResolver;
   private capabilityRegistrar: CapabilityRegistrar;
@@ -37,11 +36,8 @@ export class PluginManager implements IPluginManager {
   /**
    * Get the singleton instance of PluginManager
    */
-  public static getInstance(
-    serviceRegistry: ServiceRegistry,
-    logger: Logger,
-  ): PluginManager {
-    PluginManager.instance ??= new PluginManager(serviceRegistry, logger);
+  public static getInstance(logger: Logger): PluginManager {
+    PluginManager.instance ??= new PluginManager(logger);
     return PluginManager.instance;
   }
 
@@ -55,18 +51,21 @@ export class PluginManager implements IPluginManager {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(
-    serviceRegistry: ServiceRegistry,
-    logger: Logger,
-  ): PluginManager {
-    return new PluginManager(serviceRegistry, logger);
+  public static createFresh(logger: Logger): PluginManager {
+    return new PluginManager(logger);
+  }
+
+  /**
+   * Set the shell instance after it's created
+   */
+  public setShell(shell: IShell): void {
+    this.shell = shell;
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(serviceRegistry: ServiceRegistry, logger: Logger) {
-    this.serviceRegistry = serviceRegistry;
+  private constructor(logger: Logger) {
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
     this.daemonRegistry = DaemonRegistry.getInstance(logger);
@@ -151,8 +150,13 @@ export class PluginManager implements IPluginManager {
    * Initialize a specific plugin
    */
   private async initializePlugin(pluginId: string): Promise<void> {
-    // Get Shell from ServiceRegistry
-    const shell = this.serviceRegistry.resolve<IShell>("shell");
+    if (!this.shell) {
+      throw new PluginError(
+        pluginId,
+        "Cannot initialize plugin: Shell not set. Call setShell() first.",
+      );
+    }
+    const shell = this.shell;
 
     // Use plugin lifecycle to initialize
     const capabilities = await this.pluginLifecycle.initializePlugin(

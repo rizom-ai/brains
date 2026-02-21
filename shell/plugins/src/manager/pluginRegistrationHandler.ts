@@ -6,7 +6,6 @@ import type {
   PluginResourceRegisterEvent,
 } from "./types";
 import type { PluginTool, PluginResource } from "../interfaces";
-import type { ServiceRegistry } from "@brains/service-registry";
 import type { IShell } from "../interfaces";
 
 /**
@@ -18,7 +17,7 @@ export class PluginRegistrationHandler {
 
   private logger: Logger;
   private events: EventEmitter;
-  private serviceRegistry: ServiceRegistry;
+  private shell: IShell | null = null;
 
   /**
    * Get the singleton instance of PluginRegistrationHandler
@@ -26,12 +25,10 @@ export class PluginRegistrationHandler {
   public static getInstance(
     logger: Logger,
     events: EventEmitter,
-    serviceRegistry: ServiceRegistry,
   ): PluginRegistrationHandler {
     PluginRegistrationHandler.instance ??= new PluginRegistrationHandler(
       logger,
       events,
-      serviceRegistry,
     );
     return PluginRegistrationHandler.instance;
   }
@@ -49,22 +46,23 @@ export class PluginRegistrationHandler {
   public static createFresh(
     logger: Logger,
     events: EventEmitter,
-    serviceRegistry: ServiceRegistry,
   ): PluginRegistrationHandler {
-    return new PluginRegistrationHandler(logger, events, serviceRegistry);
+    return new PluginRegistrationHandler(logger, events);
+  }
+
+  /**
+   * Set the shell instance after it's created
+   */
+  public setShell(shell: IShell): void {
+    this.shell = shell;
   }
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(
-    logger: Logger,
-    events: EventEmitter,
-    serviceRegistry: ServiceRegistry,
-  ) {
+  private constructor(logger: Logger, events: EventEmitter) {
     this.logger = logger.child("PluginRegistrationHandler");
     this.events = events;
-    this.serviceRegistry = serviceRegistry;
   }
 
   /**
@@ -78,9 +76,12 @@ export class PluginRegistrationHandler {
       `Registering ${tools.length} tools for plugin ${pluginId}`,
     );
 
-    // Get the message bus from shell
-    const shell = this.serviceRegistry.resolve<IShell>("shell");
-    const messageBus = shell.getMessageBus();
+    if (!this.shell) {
+      throw new Error(
+        "Cannot register tools: Shell not set. Call setShell() first.",
+      );
+    }
+    const messageBus = this.shell.getMessageBus();
 
     for (const tool of tools) {
       this.logger.debug(`Registering MCP tool: ${tool.name}`);
@@ -117,9 +118,12 @@ export class PluginRegistrationHandler {
       `Registering ${resources.length} resources for plugin ${pluginId}`,
     );
 
-    // Get the message bus from shell
-    const shell = this.serviceRegistry.resolve<IShell>("shell");
-    const messageBus = shell.getMessageBus();
+    if (!this.shell) {
+      throw new Error(
+        "Cannot register resources: Shell not set. Call setShell() first.",
+      );
+    }
+    const messageBus = this.shell.getMessageBus();
 
     for (const resource of resources) {
       this.logger.debug(`Registering MCP resource: ${resource.uri}`);

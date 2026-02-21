@@ -1,7 +1,6 @@
 import type { Logger, IJobProgressMonitor } from "@brains/utils";
 import type { IEmbeddingService } from "@brains/embedding-service";
 import type { IAIService } from "@brains/ai-service";
-import type { ServiceRegistry } from "@brains/service-registry";
 import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import type {
   IJobQueueService,
@@ -28,7 +27,6 @@ export interface ShellDependencies {
   aiService?: IAIService;
   entityService?: IEntityService;
   conversationService?: IConversationService;
-  serviceRegistry?: ServiceRegistry;
   entityRegistry?: IEntityRegistry;
   messageBus?: MessageBus;
   renderService?: RenderService;

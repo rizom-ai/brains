@@ -9,7 +9,6 @@ import type {
   RegisteredApiRoute,
 } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
-import type { ServiceRegistry } from "@brains/service-registry";
 import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import type {
   BatchJobStatus,
@@ -64,7 +63,6 @@ export class Shell implements IShell {
   private static instance: Shell | null = null;
 
   private readonly logger: Logger;
-  private readonly serviceRegistry: ServiceRegistry;
   private readonly entityRegistry: IEntityRegistry;
   private readonly messageBus: MessageBus;
   private readonly pluginManager: PluginManager;
@@ -139,7 +137,6 @@ export class Shell implements IShell {
 
     // Store service references
     this.logger = services.logger;
-    this.serviceRegistry = services.serviceRegistry;
     this.entityRegistry = services.entityRegistry;
     this.messageBus = services.messageBus;
     this.renderService = services.renderService;
@@ -185,8 +182,8 @@ export class Shell implements IShell {
         this.jobQueueService.getStatus(jobId),
     };
 
-    // Register services that plugins need to resolve
-    shellInitializer.registerServices(services, this);
+    // Wire shell into plugin manager
+    shellInitializer.wireShell(services, this);
   }
 
   /**
@@ -296,9 +293,6 @@ export class Shell implements IShell {
     for (const [pluginId] of this.pluginManager.getAllPlugins()) {
       await this.pluginManager.disablePlugin(pluginId);
     }
-
-    // Clear registries
-    this.serviceRegistry.clear();
 
     this.initialized = false;
     this.logger.debug("Shell shutdown complete");

@@ -37,7 +37,6 @@ import type {
   IJobsNamespace,
 } from "@brains/job-queue";
 import type { RenderService } from "@brains/render-service";
-import type { ServiceRegistry } from "@brains/service-registry";
 import type { Template } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import { PermissionService } from "@brains/permission-service";
@@ -366,22 +365,6 @@ export class MockShell implements IShell {
       hasRenderer: () => false,
       listFormats: () => [],
     } as unknown as RenderService;
-  }
-
-  getServiceRegistry(): ServiceRegistry {
-    return {
-      register: (name: string, factory: () => unknown) => {
-        this.services.set(name, factory());
-      },
-      resolve: (name: string) => {
-        const service = this.services.get(name);
-        if (!service) throw new Error(`Service not found: ${name}`);
-        return service;
-      },
-      has: (name: string) => this.services.has(name),
-      list: () => Array.from(this.services.keys()),
-      clear: () => this.services.clear(),
-    } as unknown as ServiceRegistry;
   }
 
   getMcpTransport(): IMCPTransport {

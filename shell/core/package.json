@@ -36,7 +36,6 @@
     "@brains/permission-service": "workspace:*",
     "@brains/profile-service": "workspace:*",
     "@brains/render-service": "workspace:*",
-    "@brains/service-registry": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "eslint": "^8.56.0",

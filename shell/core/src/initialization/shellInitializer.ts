@@ -8,8 +8,7 @@ import {
 } from "@brains/entity-service";
 import type { ContentService } from "@brains/content-service";
 import { ContentGenerationJobHandler } from "@brains/content-service";
-import { PluginManager } from "@brains/plugins";
-import { ServiceRegistry } from "@brains/service-registry";
+import { PluginManager, type IShell } from "@brains/plugins";
 import { MessageBus, type IMessageBus } from "@brains/messaging-service";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
@@ -59,7 +58,6 @@ import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
  */
 export interface ShellServices {
   logger: Logger;
-  serviceRegistry: ServiceRegistry;
   entityRegistry: EntityRegistry;
   messageBus: MessageBus;
   renderService: RenderService;
@@ -359,8 +357,6 @@ export class ShellInitializer {
       dependencies?.aiService ?? AIService.getInstance(this.config.ai, logger);
 
     // Core registries and services
-    const serviceRegistry =
-      dependencies?.serviceRegistry ?? ServiceRegistry.getInstance(logger);
     const entityRegistry = EntityRegistry.getInstance(logger);
     const messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(logger);
@@ -377,8 +373,7 @@ export class ShellInitializer {
     const daemonRegistry =
       dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
     const pluginManager =
-      dependencies?.pluginManager ??
-      PluginManager.getInstance(serviceRegistry, logger);
+      dependencies?.pluginManager ?? PluginManager.getInstance(logger);
 
     // Permission service
     const permissionService = new PermissionService(this.config.permissions);
@@ -529,7 +524,6 @@ export class ShellInitializer {
 
     return {
       logger,
-      serviceRegistry,
       entityRegistry,
       messageBus,
       renderService,
@@ -575,15 +569,10 @@ export class ShellInitializer {
   }
 
   /**
-   * Register services in the service registry
-   * ONLY registers the services that are actually resolved by plugins
+   * Wire shell instance into plugin manager after Shell is created
    */
-  public registerServices(services: ShellServices, shell: unknown): void {
-    const { serviceRegistry, mcpService } = services;
-
-    // Only register the services that are actually resolved
-    serviceRegistry.register("shell", () => shell);
-    serviceRegistry.register("mcpService", () => mcpService);
+  public wireShell(services: ShellServices, shell: IShell): void {
+    services.pluginManager.setShell(shell);
   }
 
   /**

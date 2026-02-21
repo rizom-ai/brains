@@ -8,8 +8,6 @@ import {
   PluginManager,
   PluginStatus,
 } from "../../src/manager/pluginManager";
-import { ServiceRegistry } from "@brains/service-registry";
-
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
 import { MessageBus } from "@brains/messaging-service";
@@ -60,20 +58,17 @@ class TestPlugin implements Plugin {
 
 describe("PluginManager", (): void => {
   let pluginManager: PluginManager;
-  let serviceRegistry: ServiceRegistry;
   let logger: Logger;
 
   beforeEach((): void => {
     // Reset singletons
     PluginManager.resetInstance();
-    ServiceRegistry.resetInstance();
     MessageBus.resetInstance();
 
     // Create fresh instances with mock logger
     logger = createSilentLogger();
-    serviceRegistry = ServiceRegistry.createFresh(logger);
 
-    // Register a mock shell with required services
+    // Create a mock shell with required services
     const mockShell = {
       getEntityService: (): {
         createEntity: <T extends BaseEntity>(
@@ -172,30 +167,8 @@ describe("PluginManager", (): void => {
         getRegisteredTypes: mock(() => []),
       }),
     };
-    serviceRegistry.register("shell", () => mockShell as unknown as IShell);
-
-    // Register required services for direct registration
-    const mockCommandRegistry = {
-      registerCommand: mock(() => {}),
-      executeCommand: mock(() => Promise.resolve()),
-      getCommand: mock(() => undefined),
-      getAllCommands: mock(() => []),
-      listCommands: mock(() => []),
-      findCommand: mock(() => undefined),
-    };
-    serviceRegistry.register("commandRegistry", () => mockCommandRegistry);
-
-    const mockMCPService = {
-      registerTool: mock(() => {}),
-      registerResource: mock(() => {}),
-      listTools: mock(() => []),
-      listResources: mock(() => []),
-      getMcpServer: mock(() => ({})),
-      setPermissionLevel: mock(() => {}),
-    };
-    serviceRegistry.register("mcpService", () => mockMCPService);
-
-    pluginManager = PluginManager.createFresh(serviceRegistry, logger);
+    pluginManager = PluginManager.createFresh(logger);
+    pluginManager.setShell(mockShell as unknown as IShell);
   });
 
   test("plugin lifecycle - register and initialize plugins", async (): Promise<void> => {
@@ -424,8 +397,6 @@ describe("PluginManager", (): void => {
   });
 
   test("plugin registration can handle async operations", async () => {
-    const pm = PluginManager.createFresh(serviceRegistry, logger);
-
     // Create a plugin that does async work during registration
     let asyncWorkCompleted = false;
     const asyncPlugin = {
@@ -453,18 +424,18 @@ describe("PluginManager", (): void => {
       },
     };
 
-    pm.registerPlugin(asyncPlugin);
+    pluginManager.registerPlugin(asyncPlugin);
 
     // Async work should not be completed yet
     expect(asyncWorkCompleted).toBe(false);
 
     // Initialize plugins
-    await pm.initializePlugins();
+    await pluginManager.initializePlugins();
 
     // Now async work should be completed
     expect(asyncWorkCompleted).toBe(true);
 
-    const status = pm.getPluginStatus("async-plugin");
+    const status = pluginManager.getPluginStatus("async-plugin");
     expect(status).toBe(PluginStatus.INITIALIZED);
   });
 });

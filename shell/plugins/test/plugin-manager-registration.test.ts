@@ -3,7 +3,6 @@ import { PluginManager } from "../src/manager/pluginManager";
 import { CorePlugin } from "../src/core/core-plugin";
 import { PluginTestHarness } from "../src/test/harness";
 import type { PluginTool, PluginResource, IShell } from "../src/interfaces";
-import type { ServiceRegistry } from "@brains/service-registry";
 import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -56,7 +55,6 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
 
 describe("PluginManager - Direct Registration", () => {
   let pluginManager: PluginManager;
-  let mockServiceRegistry: ServiceRegistry;
   let mockMCPService: IMCPService;
   let mockShell: IShell;
   let registeredTools: Array<{ pluginId: string; tool: PluginTool }> = [];
@@ -111,25 +109,9 @@ describe("PluginManager - Direct Registration", () => {
       },
     );
 
-    // Create mock service registry
-    const resolveMock = mock((name: string) => {
-      if (name === "mcpService") return mockMCPService;
-      if (name === "shell") return mockShell;
-      throw new Error(`Unknown service: ${name}`);
-    });
-
-    mockServiceRegistry = {
-      register: mock(() => {}),
-      resolve: resolveMock,
-      tryResolve: mock(() => undefined),
-      list: mock(() => []),
-    } as unknown as ServiceRegistry;
-
-    // Create plugin manager
-    pluginManager = PluginManager.getInstance(
-      mockServiceRegistry,
-      createSilentLogger(),
-    );
+    // Create plugin manager and wire shell
+    pluginManager = PluginManager.getInstance(createSilentLogger());
+    pluginManager.setShell(mockShell);
   });
 
   describe("capability registration", () => {
@@ -231,10 +213,8 @@ describe("PluginManager - Direct Registration", () => {
 
     it("should use direct registration instead of MessageBus", async () => {
       // Create plugin manager (MessageBus no longer needed)
-      pluginManager = PluginManager.getInstance(
-        mockServiceRegistry,
-        createSilentLogger(),
-      );
+      pluginManager = PluginManager.getInstance(createSilentLogger());
+      pluginManager.setShell(mockShell);
 
       const plugin = new TestPlugin();
       pluginManager.registerPlugin(plugin);
