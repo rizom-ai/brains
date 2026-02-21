@@ -6,18 +6,12 @@ import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import { mkdir } from "fs/promises";
 
-/**
- * Standard directory structure - centralized in one place
- */
 export const STANDARD_PATHS = {
   dataDir: "./data",
   cacheDir: "./cache",
   distDir: "./dist",
 } as const;
 
-/**
- * Standard configuration type
- */
 export interface StandardConfig {
   database: {
     url: string;
@@ -36,10 +30,6 @@ export interface StandardConfig {
   };
 }
 
-/**
- * Get standard configuration with required paths
- * This is the single source of truth for all path configuration
- */
 export function getStandardConfig(): StandardConfig {
   return {
     database: {
@@ -60,12 +50,7 @@ export function getStandardConfig(): StandardConfig {
   };
 }
 
-/**
- * Get standard configuration and ensure directories exist
- * Use this for migration scripts and setup operations
- */
 export async function getStandardConfigWithDirectories(): Promise<StandardConfig> {
-  // Ensure all directories exist
   await mkdir(STANDARD_PATHS.dataDir, { recursive: true });
   await mkdir(STANDARD_PATHS.cacheDir, { recursive: true });
   await mkdir(STANDARD_PATHS.distDir, { recursive: true });
@@ -73,33 +58,23 @@ export async function getStandardConfigWithDirectories(): Promise<StandardConfig
   return getStandardConfig();
 }
 
-/**
- * Shell configuration schema
- */
 export const shellConfigSchema = z.object({
-  // App metadata
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
 
-  // Database configuration (required - no defaults)
   database: z.object({
     url: z.string(),
     authToken: z.string().optional(),
   }),
-
-  // Job Queue Database configuration (required - no defaults)
   jobQueueDatabase: z.object({
     url: z.string(),
     authToken: z.string().optional(),
   }),
-
-  // Conversation Database configuration (required - no defaults)
   conversationDatabase: z.object({
     url: z.string(),
     authToken: z.string().optional(),
   }),
 
-  // AI Service configuration
   ai: z.object({
     provider: z.enum(["anthropic"]).default("anthropic"),
     apiKey: z.string(),
@@ -107,41 +82,25 @@ export const shellConfigSchema = z.object({
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
-    // OpenAI API key for image generation (optional)
     openaiApiKey: z.string().optional(),
-    // Google Generative AI API key for image generation (optional)
     googleApiKey: z.string().optional(),
   }),
 
-  // Embedding configuration (required - no defaults)
   embedding: z.object({
     model: z.enum(["fast-all-MiniLM-L6-v2"]).default("fast-all-MiniLM-L6-v2"),
     cacheDir: z.string(),
   }),
 
-  // Logging configuration
   logging: z
     .object({
       level: z.enum(["debug", "info", "warn", "error"]).default("info"),
       context: z.string().default("shell"),
     })
-    .default({
-      level: "info",
-      context: "shell",
-    }),
+    .default({ level: "info", context: "shell" }),
 
-  // Feature flags (removed enablePlugins - it doesn't make sense)
   features: z.object({}).default({}),
-
-  // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
-
-  // Data directory - where plugins store entity files (e.g., directory-sync, git-sync)
-  // Default: ./brain-data, can be overridden for evals or custom deployments
   dataDir: z.string().default("./brain-data"),
-
-  // Site base URL for generating entity links (e.g., "yeehaa.io")
-  // Used by AI content generation to include URLs when referencing entities
   siteBaseUrl: z.string().optional(),
 });
 
@@ -153,10 +112,6 @@ export type ShellConfig = z.infer<typeof shellConfigSchema> & {
   evalHandlerRegistry?: IEvalHandlerRegistry;
 };
 
-/**
- * Input type for createShellConfig that allows partial nested objects
- * This enables callers to provide just { ai: { apiKey: "..." } } without all other ai fields
- */
 export type ShellConfigInput = Partial<
   Omit<ShellConfig, "ai" | "logging" | "database" | "embedding"> & {
     ai?: Partial<ShellConfig["ai"]>;
@@ -166,17 +121,11 @@ export type ShellConfigInput = Partial<
   }
 >;
 
-/**
- * Create a shell configuration using standard paths
- * Simple and direct - no excessive indirection
- */
 export function createShellConfig(
   overrides: ShellConfigInput = {},
 ): ShellConfig {
-  // Get standard config if not provided
   const standardConfig = getStandardConfig();
 
-  // Build config with standard values or overrides
   const config = {
     name: overrides.name ?? "brain-app",
     version: overrides.version ?? "1.0.0",
@@ -202,11 +151,10 @@ export function createShellConfig(
     },
     features: {},
     plugins: overrides.plugins ?? [],
-    permissions: overrides.permissions ?? {}, // Default to empty permissions
+    permissions: overrides.permissions ?? {},
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
   };
 
-  // Validate schema and return with plugins
   const validated = shellConfigSchema.parse(config);
   const result: ShellConfig = {
     ...validated,
@@ -214,25 +162,13 @@ export function createShellConfig(
     permissions: config.permissions,
   };
 
-  // Only add identity if it's defined (exactOptionalPropertyTypes requirement)
-  if (overrides.identity !== undefined) {
-    result.identity = overrides.identity;
-  }
-
-  // Only add profile if it's defined (exactOptionalPropertyTypes requirement)
-  if (overrides.profile !== undefined) {
-    result.profile = overrides.profile;
-  }
-
-  // Only add evalHandlerRegistry if it's defined (exactOptionalPropertyTypes requirement)
-  if (overrides.evalHandlerRegistry !== undefined) {
+  // Guard each optional property assignment (required by exactOptionalPropertyTypes)
+  if (overrides.identity !== undefined) result.identity = overrides.identity;
+  if (overrides.profile !== undefined) result.profile = overrides.profile;
+  if (overrides.evalHandlerRegistry !== undefined)
     result.evalHandlerRegistry = overrides.evalHandlerRegistry;
-  }
-
-  // Only add siteBaseUrl if it's defined
-  if (overrides.siteBaseUrl !== undefined) {
+  if (overrides.siteBaseUrl !== undefined)
     result.siteBaseUrl = overrides.siteBaseUrl;
-  }
 
   return result;
 }

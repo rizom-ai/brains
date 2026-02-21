@@ -2,35 +2,49 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { MessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
 
-/**
- * Tests for entity cache invalidation subscription pattern.
- *
- * When identity or profile entities change (created/updated/deleted),
- * their respective services need to refresh their caches.
- *
- * This test verifies the behavior that will be extracted into a
- * reusable helper function.
- */
+interface EntityPayload {
+  entityType: string;
+  entityId: string;
+}
+
 describe("Entity cache invalidation", () => {
   let messageBus: MessageBus;
   const logger = createSilentLogger();
 
-  // Helper to send entity events via the public API
-  // Entity events are broadcast (all handlers receive them)
-  const sendEntityEvent = async (
+  function subscribeForEntity(
     eventType: string,
     entityType: string,
     entityId: string,
-  ): Promise<void> => {
+  ): ReturnType<typeof mock> {
+    const refreshCache = mock(() => Promise.resolve());
+
+    messageBus.subscribe<EntityPayload, void>(eventType, async (message) => {
+      if (
+        message.payload.entityType === entityType &&
+        message.payload.entityId === entityId
+      ) {
+        await refreshCache();
+      }
+      return { success: true };
+    });
+
+    return refreshCache;
+  }
+
+  async function sendEntityEvent(
+    eventType: string,
+    entityType: string,
+    entityId: string,
+  ): Promise<void> {
     await messageBus.send(
       eventType,
       { entityType, entityId },
-      "test", // sender
-      undefined, // target
-      undefined, // metadata
-      true, // broadcast - all handlers receive the message
+      "test",
+      undefined,
+      undefined,
+      true,
     );
-  };
+  }
 
   beforeEach(() => {
     MessageBus.resetInstance();
@@ -39,222 +53,108 @@ describe("Entity cache invalidation", () => {
 
   describe("identity service cache refresh", () => {
     it("should refresh cache when identity entity is created", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      // Subscribe to entity:created for identity
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:created",
-        async (message) => {
-          if (
-            message.payload.entityType === "identity" &&
-            message.payload.entityId === "identity"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "identity",
+        "identity",
       );
-
-      // Send identity entity created event
       await sendEntityEvent("entity:created", "identity", "identity");
-
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when identity entity is updated", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:updated",
-        async (message) => {
-          if (
-            message.payload.entityType === "identity" &&
-            message.payload.entityId === "identity"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "identity",
+        "identity",
       );
-
       await sendEntityEvent("entity:updated", "identity", "identity");
-
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when identity entity is deleted", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:deleted",
-        async (message) => {
-          if (
-            message.payload.entityType === "identity" &&
-            message.payload.entityId === "identity"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "identity",
+        "identity",
       );
-
       await sendEntityEvent("entity:deleted", "identity", "identity");
-
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should NOT refresh cache for non-identity entities", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:created",
-        async (message) => {
-          if (
-            message.payload.entityType === "identity" &&
-            message.payload.entityId === "identity"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "identity",
+        "identity",
       );
-
-      // Send non-identity entity events
       await sendEntityEvent("entity:created", "note", "note-123");
       await sendEntityEvent("entity:created", "profile", "profile");
-
       expect(refreshCache).toHaveBeenCalledTimes(0);
     });
   });
 
   describe("profile service cache refresh", () => {
     it("should refresh cache when profile entity is created", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:created",
-        async (message) => {
-          if (
-            message.payload.entityType === "profile" &&
-            message.payload.entityId === "profile"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "profile",
+        "profile",
       );
-
       await sendEntityEvent("entity:created", "profile", "profile");
-
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when profile entity is updated", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:updated",
-        async (message) => {
-          if (
-            message.payload.entityType === "profile" &&
-            message.payload.entityId === "profile"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "profile",
+        "profile",
       );
-
       await sendEntityEvent("entity:updated", "profile", "profile");
-
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when profile entity is deleted", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:deleted",
-        async (message) => {
-          if (
-            message.payload.entityType === "profile" &&
-            message.payload.entityId === "profile"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "profile",
+        "profile",
       );
-
       await sendEntityEvent("entity:deleted", "profile", "profile");
-
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should NOT refresh cache for non-profile entities", async () => {
-      const refreshCache = mock(() => Promise.resolve());
-
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const refreshCache = subscribeForEntity(
         "entity:updated",
-        async (message) => {
-          if (
-            message.payload.entityType === "profile" &&
-            message.payload.entityId === "profile"
-          ) {
-            await refreshCache();
-          }
-          return { success: true };
-        },
+        "profile",
+        "profile",
       );
-
       await sendEntityEvent("entity:updated", "identity", "identity");
       await sendEntityEvent("entity:updated", "post", "post-123");
-
       expect(refreshCache).toHaveBeenCalledTimes(0);
     });
   });
 
   describe("multiple entity types with independent caches", () => {
     it("should refresh only the matching service cache", async () => {
-      const identityRefresh = mock(() => Promise.resolve());
-      const profileRefresh = mock(() => Promise.resolve());
-
-      // Subscribe both identity and profile handlers
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
+      const identityRefresh = subscribeForEntity(
         "entity:updated",
-        async (message) => {
-          if (
-            message.payload.entityType === "identity" &&
-            message.payload.entityId === "identity"
-          ) {
-            await identityRefresh();
-          }
-          return { success: true };
-        },
+        "identity",
+        "identity",
+      );
+      const profileRefresh = subscribeForEntity(
+        "entity:updated",
+        "profile",
+        "profile",
       );
 
-      messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-        "entity:updated",
-        async (message) => {
-          if (
-            message.payload.entityType === "profile" &&
-            message.payload.entityId === "profile"
-          ) {
-            await profileRefresh();
-          }
-          return { success: true };
-        },
-      );
-
-      // Update identity - only identity cache should refresh
       await sendEntityEvent("entity:updated", "identity", "identity");
-
       expect(identityRefresh).toHaveBeenCalledTimes(1);
       expect(profileRefresh).toHaveBeenCalledTimes(0);
 
-      // Update profile - only profile cache should refresh
       await sendEntityEvent("entity:updated", "profile", "profile");
-
       expect(identityRefresh).toHaveBeenCalledTimes(1);
       expect(profileRefresh).toHaveBeenCalledTimes(1);
     });

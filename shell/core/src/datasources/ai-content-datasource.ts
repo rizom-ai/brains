@@ -4,9 +4,6 @@ import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { z, EntityUrlGenerator } from "@brains/utils";
 
-/**
- * Zod schema for GenerationContext validation
- */
 export const GenerationContextSchema = z.object({
   prompt: z.string().optional(),
   conversationHistory: z.string().optional(),
@@ -14,17 +11,8 @@ export const GenerationContextSchema = z.object({
   templateName: z.string(),
 });
 
-/**
- * Generation context for AI content generation
- */
 export type GenerationContext = z.infer<typeof GenerationContextSchema>;
 
-/**
- * AI Content DataSource
- *
- * Handles AI-powered content generation using templates and context.
- * Replaces the Provider pattern for content generation.
- */
 export class AIContentDataSource implements DataSource {
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
@@ -40,33 +28,24 @@ export class AIContentDataSource implements DataSource {
     private readonly siteBaseUrl?: string,
   ) {}
 
-  /**
-   * Generate content using AI based on the request context
-   * This replicates the logic from ContentService.generateContent()
-   */
   async generate<T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> {
-    // Validate the request using our internal schema
     const context = GenerationContextSchema.parse(request);
 
-    // Get the template from registry
     const template = this.templateRegistry.get(context.templateName);
     if (!template) {
       throw new Error(`Template not found: ${context.templateName}`);
     }
 
-    // Check if template supports AI generation
     if (!template.basePrompt) {
       throw new Error(
         `Template ${context.templateName} must have basePrompt for content generation`,
       );
     }
 
-    // Query relevant entities to provide context for generation
     const searchTerms = [template.basePrompt, context.prompt]
       .filter(Boolean)
       .join(" ");
 
-    // Get weight map from entity service for search boosting
     const weightMap = this.entityService.getWeightMap();
     const hasWeights = Object.keys(weightMap).length > 0;
 
@@ -77,50 +56,36 @@ export class AIContentDataSource implements DataSource {
         })
       : [];
 
-    // Build enhanced prompt with template, user context, entity context, and conversation context
     const enhancedPrompt = await this.buildPrompt(
       { basePrompt: template.basePrompt },
       context,
       relevantEntities,
     );
 
-    // Build system prompt with identity and profile
     const systemPrompt = this.buildSystemPrompt(template.basePrompt);
 
-    // Generate content using AI service with entity-informed context and identity
     const result = await this.aiService.generateObject(
       systemPrompt,
       enhancedPrompt,
       template.schema,
     );
 
-    // Validate and return typed result
     return schema.parse(result.object);
   }
 
-  /**
-   * Build system prompt with identity and profile context
-   */
   private buildSystemPrompt(templateBasePrompt: string): string {
-    const identityContent = this.getIdentityContent();
-    const profileContent = this.getProfileContent();
-
-    // Combine identity, profile, and template base prompt
     return [
       "# Your Identity",
-      identityContent,
+      this.getIdentityContent(),
       "",
       "# About the Person You Represent",
-      profileContent,
+      this.getProfileContent(),
       "",
       "# Instructions",
       templateBasePrompt,
     ].join("\n");
   }
 
-  /**
-   * Build enhanced prompt with context from template, user context, entities, and conversation
-   */
   private async buildPrompt(
     template: { basePrompt: string },
     context: GenerationContext,
@@ -128,12 +93,10 @@ export class AIContentDataSource implements DataSource {
   ): Promise<string> {
     let prompt = template.basePrompt;
 
-    // Add conversation history if provided
     if (context.conversationHistory) {
       prompt += `\n\nRecent conversation context:\n${context.conversationHistory}`;
     }
 
-    // Add entity context to inform the generation
     if (relevantEntities.length > 0) {
       const urlGenerator = EntityUrlGenerator.getInstance();
       const entityContext = relevantEntities
@@ -144,7 +107,6 @@ export class AIContentDataSource implements DataSource {
           const parsed = slugSchema.safeParse(entity.metadata);
           const slug = parsed.success ? parsed.data.slug : entity.id;
 
-          // Include URL only for entity types with configured routes
           if (this.siteBaseUrl && urlGenerator.hasRoute(entityType)) {
             const path = urlGenerator.generateUrl(entityType, slug);
             const url = `https://${this.siteBaseUrl}${path}`;
@@ -157,12 +119,10 @@ export class AIContentDataSource implements DataSource {
       prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
     }
 
-    // Add user context data if provided
     if (context.data) {
       prompt += `\n\nContext data:\n${JSON.stringify(context.data, null, 2)}`;
     }
 
-    // Add additional instructions if provided
     if (context.prompt) {
       prompt += `\n\nAdditional instructions: ${context.prompt}`;
     }

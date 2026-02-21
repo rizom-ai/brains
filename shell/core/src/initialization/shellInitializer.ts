@@ -1,57 +1,58 @@
-import { Logger, LogLevel } from "@brains/utils";
-import type { ShellConfig } from "../config";
 import {
-  EntityRegistry,
-  EntityService,
-  type IEntityRegistry,
-  type IEntityService,
-} from "@brains/entity-service";
+  AgentService,
+  createBrainAgentFactory,
+  type IAgentService,
+} from "@brains/agent-service";
+import { AIService, type IAIService } from "@brains/ai-service";
+import {
+  ContentGenerationJobHandler,
+  ContentService as ContentServiceClass,
+  knowledgeQueryTemplate,
+} from "@brains/content-service";
 import type { ContentService } from "@brains/content-service";
-import { ContentGenerationJobHandler } from "@brains/content-service";
-import { PluginManager, type IShell } from "@brains/plugins";
-import { MessageBus, type IMessageBus } from "@brains/messaging-service";
-import { MCPService, type IMCPService } from "@brains/mcp-service";
+import {
+  ConversationService,
+  type IConversationService,
+} from "@brains/conversation-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import { RenderService } from "@brains/render-service";
-import { TemplateRegistry } from "@brains/templates";
 import { DataSourceRegistry } from "@brains/datasource";
 import {
   EmbeddingService,
   type IEmbeddingService,
 } from "@brains/embedding-service";
 import {
-  ConversationService,
-  type IConversationService,
-} from "@brains/conversation-service";
-import { ContentService as ContentServiceClass } from "@brains/content-service";
-import { AIService, type IAIService } from "@brains/ai-service";
-import { PermissionService } from "@brains/permission-service";
-import {
-  JobQueueService,
-  JobQueueWorker,
-  BatchJobManager,
-  JobProgressMonitor,
-  type JobQueueDbConfig,
-  type IJobQueueService,
-} from "@brains/job-queue";
-import { knowledgeQueryTemplate } from "@brains/content-service";
-import {
   BaseEntityFormatter,
+  EntityRegistry,
+  EntityService,
   baseEntitySchema,
   parseMarkdownWithFrontmatter,
+  type BaseEntity,
+  type EntityAdapter,
+  type IEntityRegistry,
+  type IEntityService,
 } from "@brains/entity-service";
-import type { BaseEntity, EntityAdapter } from "@brains/entity-service";
-import type { z } from "@brains/utils";
-import type { ShellDependencies } from "../types/shell-types";
 import { IdentityAdapter, IdentityService } from "@brains/identity-service";
-import { ProfileAdapter, ProfileService } from "@brains/profile-service";
-import { imageSchema, imageAdapter } from "@brains/image";
+import { imageAdapter, imageSchema } from "@brains/image";
 import {
-  AgentService,
-  createBrainAgentFactory,
-  type IAgentService,
-} from "@brains/agent-service";
+  BatchJobManager,
+  JobProgressMonitor,
+  JobQueueService,
+  JobQueueWorker,
+  type IJobQueueService,
+  type JobQueueDbConfig,
+} from "@brains/job-queue";
+import { MCPService, type IMCPService } from "@brains/mcp-service";
+import { MessageBus, type IMessageBus } from "@brains/messaging-service";
+import { PermissionService } from "@brains/permission-service";
+import { PluginManager, type IShell } from "@brains/plugins";
+import { ProfileAdapter, ProfileService } from "@brains/profile-service";
+import { RenderService } from "@brains/render-service";
+import { TemplateRegistry } from "@brains/templates";
+import { Logger, LogLevel, type z } from "@brains/utils";
+
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
+import type { ShellConfig } from "../config";
+import type { ShellDependencies } from "../types/shell-types";
 
 /**
  * Services initialized by ShellInitializer
@@ -116,19 +117,12 @@ function subscribeToEntityCacheInvalidation(
   );
 }
 
-/**
- * Handles Shell initialization logic
- * Extracted from Shell to improve maintainability
- */
 export class ShellInitializer {
   private static instance: ShellInitializer | null = null;
 
   private logger: Logger;
   private config: ShellConfig;
 
-  /**
-   * Get the singleton instance of ShellInitializer
-   */
   public static getInstance(
     logger: Logger,
     config: ShellConfig,
@@ -137,16 +131,10 @@ export class ShellInitializer {
     return ShellInitializer.instance;
   }
 
-  /**
-   * Reset the singleton instance (primarily for testing)
-   */
   public static resetInstance(): void {
     ShellInitializer.instance = null;
   }
 
-  /**
-   * Create a fresh instance without affecting the singleton
-   */
   public static createFresh(
     logger: Logger,
     config: ShellConfig,
@@ -154,187 +142,98 @@ export class ShellInitializer {
     return new ShellInitializer(logger, config);
   }
 
-  /**
-   * Private constructor to enforce singleton pattern
-   */
   private constructor(logger: Logger, config: ShellConfig) {
     this.logger = logger.child("ShellInitializer");
     this.config = config;
   }
 
-  /**
-   * Register shell's own system templates
-   */
   public registerShellTemplates(templateRegistry: TemplateRegistry): void {
-    this.logger.debug("Registering shell system templates");
-
-    try {
-      // Register knowledge query template for shell queries
-      templateRegistry.register(
-        knowledgeQueryTemplate.name,
-        knowledgeQueryTemplate,
-      );
-
-      this.logger.debug("Shell system templates registered successfully");
-    } catch (error) {
-      this.logger.error("Failed to register shell templates", error);
-      throw new Error(
-        `Failed to register template: ${knowledgeQueryTemplate.name}`,
-      );
-    }
+    templateRegistry.register(
+      knowledgeQueryTemplate.name,
+      knowledgeQueryTemplate,
+    );
+    this.logger.debug("Shell system templates registered");
   }
 
-  /**
-   * Register base entity support
-   * This provides fallback handling for generic entities
-   */
   public registerBaseEntitySupport(
     entityRegistry: IEntityRegistry,
     templateRegistry: TemplateRegistry,
   ): void {
-    this.logger.debug("Registering base entity support");
+    const baseEntityAdapter: EntityAdapter<BaseEntity> = {
+      entityType: "base",
+      schema: baseEntitySchema,
+      toMarkdown: (entity) => entity.content,
+      fromMarkdown: (markdown) => ({ content: markdown }),
+      extractMetadata: () => ({}),
+      parseFrontMatter: <T>(md: string, schema: z.ZodSchema<T>): T =>
+        parseMarkdownWithFrontmatter(md, schema).metadata,
+      generateFrontMatter: () => "",
+    };
 
-    try {
-      // Inline no-op adapter for the "base" entity type (passthrough, no frontmatter)
-      const baseEntityAdapter: EntityAdapter<BaseEntity> = {
-        entityType: "base",
-        schema: baseEntitySchema,
-        toMarkdown: (entity) => entity.content,
-        fromMarkdown: (markdown) => ({ content: markdown }),
-        extractMetadata: () => ({}),
-        parseFrontMatter: <T>(md: string, schema: z.ZodSchema<T>): T =>
-          parseMarkdownWithFrontmatter(md, schema).metadata,
-        generateFrontMatter: () => "",
-      };
+    entityRegistry.registerEntityType(
+      SHELL_ENTITY_TYPES.BASE,
+      baseEntitySchema,
+      baseEntityAdapter,
+    );
 
-      // Register with entity registry
-      entityRegistry.registerEntityType(
-        SHELL_ENTITY_TYPES.BASE,
-        baseEntitySchema,
-        baseEntityAdapter,
-      );
+    templateRegistry.register(SHELL_TEMPLATE_NAMES.BASE_ENTITY_DISPLAY, {
+      name: "base-entity-display",
+      description: "Display template for base entities",
+      schema: baseEntitySchema,
+      formatter: new BaseEntityFormatter(),
+      requiredPermission: "public",
+    });
 
-      // Register base entity display template
-      templateRegistry.register(SHELL_TEMPLATE_NAMES.BASE_ENTITY_DISPLAY, {
-        name: "base-entity-display",
-        description: "Display template for base entities",
-        schema: baseEntitySchema,
-        formatter: new BaseEntityFormatter(),
-        requiredPermission: "public",
-      });
-
-      this.logger.debug("Base entity support registered successfully");
-    } catch (error) {
-      this.logger.error("Failed to register base entity support", error);
-      throw new Error("Failed to register base entity type");
-    }
+    this.logger.debug("Base entity support registered");
   }
 
-  /**
-   * Register identity entity support
-   * This provides the brain's identity (role, purpose, values)
-   */
   public registerIdentitySupport(entityRegistry: IEntityRegistry): void {
-    this.logger.debug("Registering identity entity support");
-
-    try {
-      // Create identity adapter
-      const identityAdapter = new IdentityAdapter();
-
-      // Register with entity registry
-      entityRegistry.registerEntityType(
-        SHELL_ENTITY_TYPES.IDENTITY,
-        identityAdapter.schema,
-        identityAdapter,
-      );
-
-      this.logger.debug("Identity entity support registered successfully");
-    } catch (error) {
-      this.logger.error("Failed to register identity entity support", error);
-      throw new Error("Failed to register identity entity type");
-    }
+    const identityAdapter = new IdentityAdapter();
+    entityRegistry.registerEntityType(
+      SHELL_ENTITY_TYPES.IDENTITY,
+      identityAdapter.schema,
+      identityAdapter,
+    );
+    this.logger.debug("Identity entity support registered");
   }
 
-  /**
-   * Register profile entity support
-   * This provides the brain owner's profile information
-   */
   public registerProfileSupport(entityRegistry: IEntityRegistry): void {
-    this.logger.debug("Registering profile entity support");
-
-    try {
-      // Create profile adapter
-      const profileAdapter = new ProfileAdapter();
-
-      // Register with entity registry
-      entityRegistry.registerEntityType(
-        SHELL_ENTITY_TYPES.PROFILE,
-        profileAdapter.schema,
-        profileAdapter,
-      );
-
-      this.logger.debug("Profile entity support registered successfully");
-    } catch (error) {
-      this.logger.error("Failed to register profile entity support", error);
-      throw new Error("Failed to register profile entity type");
-    }
+    const profileAdapter = new ProfileAdapter();
+    entityRegistry.registerEntityType(
+      SHELL_ENTITY_TYPES.PROFILE,
+      profileAdapter.schema,
+      profileAdapter,
+    );
+    this.logger.debug("Profile entity support registered");
   }
 
-  /**
-   * Register image entity support
-   * This provides base64 image storage with entity://image/{id} references
-   */
   public registerImageSupport(entityRegistry: IEntityRegistry): void {
-    this.logger.debug("Registering image entity support");
-
-    try {
-      // Register with entity registry
-      entityRegistry.registerEntityType(
-        SHELL_ENTITY_TYPES.IMAGE,
-        imageSchema,
-        imageAdapter,
-        { embeddable: false },
-      );
-
-      this.logger.debug("Image entity support registered successfully");
-    } catch (error) {
-      this.logger.error("Failed to register image entity support", error);
-      throw new Error("Failed to register image entity type");
-    }
+    entityRegistry.registerEntityType(
+      SHELL_ENTITY_TYPES.IMAGE,
+      imageSchema,
+      imageAdapter,
+      { embeddable: false },
+    );
+    this.logger.debug("Image entity support registered");
   }
 
-  /**
-   * Initialize plugins
-   */
   public async initializePlugins(pluginManager: PluginManager): Promise<void> {
     this.logger.debug(
       `Found ${this.config.plugins.length} plugins to register`,
     );
 
-    try {
-      // Register plugins from config
-      for (const plugin of this.config.plugins) {
-        this.logger.debug(`Registering plugin: ${plugin.id}`);
-        pluginManager.registerPlugin(plugin);
-      }
-
-      // Initialize all registered plugins
-      await pluginManager.initializePlugins();
-
-      this.logger.debug("Plugin initialization complete");
-    } catch (error) {
-      this.logger.error("Failed to initialize plugins", error);
-      throw new Error("Failed to initialize plugins");
+    for (const plugin of this.config.plugins) {
+      this.logger.debug(`Registering plugin: ${plugin.id}`);
+      pluginManager.registerPlugin(plugin);
     }
+
+    await pluginManager.initializePlugins();
+    this.logger.debug("Plugin initialization complete");
   }
 
-  /**
-   * Initialize all services required by Shell
-   */
   public initializeServices(dependencies?: ShellDependencies): ShellServices {
     this.logger.debug("Initializing Shell services");
 
-    // Create or use provided logger
     const logLevel = {
       debug: LogLevel.DEBUG,
       info: LogLevel.INFO,
@@ -349,24 +248,16 @@ export class ShellInitializer {
         context: this.config.logging.context,
       });
 
-    // Create or use provided services
     const embeddingService =
       dependencies?.embeddingService ??
       EmbeddingService.getInstance(logger, this.config.embedding.cacheDir);
     const aiService =
       dependencies?.aiService ?? AIService.getInstance(this.config.ai, logger);
-
-    // Core registries and services
     const entityRegistry = EntityRegistry.getInstance(logger);
     const messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(logger);
-    // Template registry
     const templateRegistry = TemplateRegistry.getInstance(logger);
-
-    // DataSource registry
     const dataSourceRegistry = DataSourceRegistry.getInstance(logger);
-
-    // Render and route services
     const renderService =
       dependencies?.renderService ??
       RenderService.getInstance(templateRegistry);
@@ -374,13 +265,10 @@ export class ShellInitializer {
       dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
     const pluginManager =
       dependencies?.pluginManager ?? PluginManager.getInstance(logger);
-
-    // Permission service
     const permissionService = new PermissionService(this.config.permissions);
     const mcpService =
       dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
-    // Job queue configuration
     const jobQueueDbConfig: JobQueueDbConfig = {
       url: this.config.jobQueueDatabase.url,
       ...(this.config.jobQueueDatabase.authToken && {
@@ -393,7 +281,6 @@ export class ShellInitializer {
       logger,
     );
 
-    // Entity service with its database
     const entityService = EntityService.getInstance({
       embeddingService,
       entityRegistry,
@@ -408,7 +295,6 @@ export class ShellInitializer {
       },
     });
 
-    // Conversation service
     const conversationService =
       dependencies?.conversationService ??
       ConversationService.getInstance(logger, messageBus, {
@@ -418,7 +304,6 @@ export class ShellInitializer {
         }),
       });
 
-    // Content generator
     const contentService =
       dependencies?.contentService ??
       new ContentServiceClass({
@@ -429,14 +314,12 @@ export class ShellInitializer {
         dataSourceRegistry,
       });
 
-    // Identity service
     const identityService = IdentityService.getInstance(
       entityService,
       logger,
       this.config.identity,
     );
 
-    // Subscribe to identity entity changes for cache refresh
     subscribeToEntityCacheInvalidation(
       messageBus,
       SHELL_ENTITY_TYPES.IDENTITY,
@@ -445,14 +328,12 @@ export class ShellInitializer {
       logger,
     );
 
-    // Profile service
     const profileService = ProfileService.getInstance(
       entityService,
       logger,
       this.config.profile,
     );
 
-    // Create agent factory with AI service config and message bus for tool events
     const agentFactory = createBrainAgentFactory({
       model: aiService.getModel(),
       webSearch: aiService.getConfig().webSearch,
@@ -461,7 +342,6 @@ export class ShellInitializer {
       messageBus,
     });
 
-    // Agent service for AI-powered conversation
     const agentService = AgentService.getInstance(
       mcpService,
       conversationService,
@@ -470,7 +350,6 @@ export class ShellInitializer {
       { agentFactory },
     );
 
-    // Subscribe to profile entity changes for cache refresh
     subscribeToEntityCacheInvalidation(
       messageBus,
       SHELL_ENTITY_TYPES.PROFILE,
@@ -479,9 +358,8 @@ export class ShellInitializer {
       logger,
     );
 
-    // Initialize identity and profile services AFTER sync:initial:completed
-    // This ensures remote data is pulled before defaults are created.
-    // Without this, empty DB would get defaults before git-sync pulls remote data.
+    // Initialize identity and profile services after sync completes.
+    // This ensures remote data is pulled before defaults are created for empty DB.
     messageBus.subscribe<{ success: boolean }, void>(
       "sync:initial:completed",
       async () => {
@@ -495,10 +373,6 @@ export class ShellInitializer {
       },
     );
 
-    // Register job handlers
-    this.registerJobHandlers(jobQueueService, contentService, entityService);
-
-    // Batch and progress management
     const batchJobManager = BatchJobManager.getInstance(
       jobQueueService,
       logger,
@@ -510,7 +384,6 @@ export class ShellInitializer {
       logger,
     );
 
-    // Job queue worker
     const jobQueueWorker = JobQueueWorker.getInstance(
       jobQueueService,
       jobProgressMonitor,
@@ -548,15 +421,11 @@ export class ShellInitializer {
     };
   }
 
-  /**
-   * Register job handlers for content generation and derivation
-   */
   public registerJobHandlers(
     jobQueueService: IJobQueueService,
     contentService: ContentService,
     entityService: IEntityService,
   ): void {
-    // Register content generation job handler with shell namespace
     const contentGenerationJobHandler = ContentGenerationJobHandler.createFresh(
       contentService,
       entityService,
@@ -568,17 +437,10 @@ export class ShellInitializer {
     );
   }
 
-  /**
-   * Wire shell instance into plugin manager after Shell is created
-   */
   public wireShell(services: ShellServices, shell: IShell): void {
     services.pluginManager.setShell(shell);
   }
 
-  /**
-   * Complete initialization process
-   * Coordinates all initialization steps
-   */
   public async initializeAll(
     templateRegistry: TemplateRegistry,
     entityRegistry: IEntityRegistry,
@@ -587,22 +449,11 @@ export class ShellInitializer {
     this.logger.debug("Starting Shell initialization");
 
     try {
-      // Step 1: Register shell templates
       this.registerShellTemplates(templateRegistry);
-
-      // Step 2: Register base entity support
       this.registerBaseEntitySupport(entityRegistry, templateRegistry);
-
-      // Step 3: Register identity entity support
       this.registerIdentitySupport(entityRegistry);
-
-      // Step 4: Register profile entity support
       this.registerProfileSupport(entityRegistry);
-
-      // Step 5: Register image entity support (builtin)
       this.registerImageSupport(entityRegistry);
-
-      // Step 6: Initialize plugins
       await this.initializePlugins(pluginManager);
 
       this.logger.debug("Shell ready");
