@@ -3,7 +3,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { fetchImageAsBase64 } from "@brains/utils";
+import { fetchImageAsBase64, PROGRESS_STEPS } from "@brains/utils";
 import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";
 import { MarkdownImageConverter } from "../lib/markdown-image-converter";
@@ -65,7 +65,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
     try {
       await this.reportProgress(progressReporter, {
-        progress: 10,
+        progress: PROGRESS_STEPS.INIT,
         message: `Reading file: ${filePath}`,
       });
 
@@ -80,7 +80,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       }
 
       await this.reportProgress(progressReporter, {
-        progress: 20,
+        progress: PROGRESS_STEPS.FETCH,
         message: "Detecting inline images",
       });
 
@@ -93,7 +93,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       if (detections.length === 0) {
         this.logger.debug("No inline images to convert", { filePath });
         await this.reportProgress(progressReporter, {
-          progress: 100,
+          progress: PROGRESS_STEPS.COMPLETE,
           message: "No images to convert",
         });
         return { success: true, skipped: true, convertedCount: 0 };
@@ -105,7 +105,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       });
 
       await this.reportProgress(progressReporter, {
-        progress: 30,
+        progress: PROGRESS_STEPS.PROCESS,
         message: `Converting ${detections.length} images`,
       });
 
@@ -115,14 +115,14 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       if (!result.converted) {
         this.logger.debug("No images were converted", { filePath });
         await this.reportProgress(progressReporter, {
-          progress: 100,
+          progress: PROGRESS_STEPS.COMPLETE,
           message: "No images converted",
         });
         return { success: true, skipped: true, convertedCount: 0 };
       }
 
       await this.reportProgress(progressReporter, {
-        progress: 80,
+        progress: PROGRESS_STEPS.SAVE,
         message: "Writing updated file",
       });
 
@@ -136,7 +136,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       }
 
       await this.reportProgress(progressReporter, {
-        progress: 100,
+        progress: PROGRESS_STEPS.COMPLETE,
         message: "Conversion complete",
       });
 

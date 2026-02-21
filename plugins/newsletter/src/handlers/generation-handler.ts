@@ -4,7 +4,7 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify } from "@brains/utils";
+import { z, slugify, PROGRESS_STEPS } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { NewsletterConfig } from "../config";
 import type { NewsletterMetadata } from "../schemas/newsletter";
@@ -78,9 +78,8 @@ export class GenerationJobHandler extends BaseJobHandler<
     let { content, subject } = data;
 
     try {
-      await progressReporter.report({
-        progress: 0,
-        total: 100,
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.START,
         message: "Starting newsletter generation",
       });
 
@@ -92,9 +91,8 @@ export class GenerationJobHandler extends BaseJobHandler<
             error: "Subject is required when providing content directly",
           };
         }
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.GENERATE,
           message: "Using provided content",
         });
       }
@@ -102,9 +100,8 @@ export class GenerationJobHandler extends BaseJobHandler<
       else if (sourceEntityIds && sourceEntityIds.length > 0) {
         const entityType = sourceEntityType ?? "post";
 
-        await progressReporter.report({
-          progress: 10,
-          total: 100,
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.INIT,
           message: `Fetching ${sourceEntityIds.length} source entities`,
         });
 
@@ -127,9 +124,8 @@ export class GenerationJobHandler extends BaseJobHandler<
           };
         }
 
-        await progressReporter.report({
-          progress: 30,
-          total: 100,
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.FETCH,
           message: `Generating newsletter from ${posts.length} posts`,
         });
 
@@ -168,17 +164,15 @@ The newsletter should:
         subject = subject ?? generated.subject;
         content = generated.content;
 
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.GENERATE,
           message: "Newsletter generated from posts",
         });
       }
       // Case 3: Generate from prompt
       else if (prompt) {
-        await progressReporter.report({
-          progress: 10,
-          total: 100,
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.INIT,
           message: "Generating newsletter with AI",
         });
 
@@ -194,9 +188,8 @@ The newsletter should:
         subject = subject ?? generated.subject;
         content = generated.content;
 
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.GENERATE,
           message: "Newsletter generated",
         });
       } else {
@@ -208,9 +201,8 @@ The newsletter should:
       }
 
       // Create newsletter entity
-      await progressReporter.report({
-        progress: 60,
-        total: 100,
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.EXTRACT,
         message: "Creating newsletter entity",
       });
 
@@ -239,9 +231,8 @@ The newsletter should:
         metadata,
       );
 
-      await progressReporter.report({
-        progress: 80,
-        total: 100,
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.SAVE,
         message: "Saving newsletter to database",
       });
 
@@ -270,9 +261,8 @@ The newsletter should:
         { deduplicateId: true },
       );
 
-      await progressReporter.report({
-        progress: 100,
-        total: 100,
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.COMPLETE,
         message: `Newsletter created${addToQueue ? " and queued" : " as draft"}`,
       });
 
