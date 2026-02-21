@@ -766,46 +766,47 @@ export class BackupPlugin extends ServicePlugin<BackupConfig> {
 }
 ```
 
-### Site Builder Plugin Pattern
+### Cross-Plugin Communication Pattern
 
-The site-builder plugin shows how to handle content generation and site building:
+The site-builder and site-content plugins demonstrate how to decouple plugins using messaging:
 
 ```typescript
-import { ServicePlugin } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
-import { SiteBuilder } from "./lib/site-builder";
-import { SiteContentService } from "./lib/site-content-service";
-
+// site-builder exposes routes via messaging
 export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
-  private siteBuilder?: SiteBuilder;
-  private siteContentService?: SiteContentService;
-
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Register entity types for content
+    // Expose routes for other plugins to query
+    context.messaging.subscribe("site-builder:routes:list", async () => {
+      return { success: true, data: this.routeRegistry.list() };
+    });
+  }
+}
+
+// site-content queries routes via messaging (no direct import)
+export class SiteContentPlugin extends ServicePlugin {
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
     context.entities.register(
       "site-content",
       siteContentSchema,
       siteContentAdapter,
     );
-
-    // Register templates
-    context.templates.register({ dashboard: dashboardTemplate });
-
-    // Initialize services
-    this.siteBuilder = SiteBuilder.getInstance(
-      this.logger.child("SiteBuilder"),
-      context,
-    );
-
-    this.siteContentService = new SiteContentService(
-      this.logger.child("SiteContentService"),
-      context,
-      this.id,
-      this.config.siteConfig,
-    );
+    this.siteContentService = new SiteContentService(context);
   }
+}
+
+// In SiteContentOperations — query routes from site-builder
+private async fetchRoutes(): Promise<RouteDefinition[]> {
+  const response = await this.context.messaging.send(
+    "site-builder:routes:list",
+    {},
+  );
+  if ("noop" in response) {
+    throw new Error("No handler for site-builder:routes:list");
+  }
+  return response.data as RouteDefinition[];
 }
 ```
 

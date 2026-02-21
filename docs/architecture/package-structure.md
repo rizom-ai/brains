@@ -269,8 +269,18 @@ All interfaces are implemented as plugins extending base classes from `shared/pl
   - Preact-based rendering
   - Template system
   - CSS processing
-  - Content management
+  - Route registry and management
   - Dashboard hydration
+  - Exposes routes via `site-builder:routes:list` messaging
+
+#### `plugins/site-content`
+
+- **Purpose**: AI-generated content for site sections
+- **Features**:
+  - Site content entity type and adapter
+  - Content generation tool with route/section filtering
+  - Orchestrates generation jobs via job queue
+  - Queries routes from site-builder via messaging
 
 ## Apps (Example Applications)
 

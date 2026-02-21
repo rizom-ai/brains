@@ -201,12 +201,13 @@ const nodes = [
   { id:'ai-svc',     label:'AI Service',       subtitle:'shell/ai-service',        x:543, y:244, w:150, h:44, group:'shell' },
   { id:'plugin-fw',  label:'Plugin Framework', subtitle:'shell/plugins',           x:707, y:244, w:150, h:44, group:'shell' },
 
-  // ─ Publishing (2×3 grid, 5 filled) ─
+  // ─ Publishing (2×3 grid) ─
   { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',     x:1056, y:132, w:148, h:44, group:'publishing' },
   { id:'pro-site',     label:'Professional Site',  subtitle:'plugins/professional-site',x:1218, y:132, w:148, h:44, group:'publishing' },
   { id:'content-pipe', label:'Content Pipeline',   subtitle:'plugins/content-pipeline', x:1056, y:188, w:148, h:44, group:'publishing' },
   { id:'newsletter',   label:'Newsletter',         subtitle:'plugins/newsletter',       x:1218, y:188, w:148, h:44, group:'publishing' },
   { id:'social',       label:'Social Media',       subtitle:'plugins/social-media',     x:1056, y:244, w:148, h:44, group:'publishing' },
+  { id:'site-content', label:'Site Content',       subtitle:'plugins/site-content',     x:1218, y:244, w:148, h:44, group:'publishing' },
 
   // ─ Sync & Storage (row of 3) ─
   { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:354, w:145, h:44, group:'sync' },
@@ -262,6 +263,9 @@ const connections = [
   { from:'content-pipe', to:'job-queue',  type:'data-flow', label:'schedule' },
   { from:'newsletter',   to:'entity-svc', type:'data-flow' },
   { from:'social',       to:'entity-svc', type:'data-flow' },
+  { from:'site-content', to:'entity-svc', type:'data-flow' },
+  { from:'site-content', to:'job-queue',  type:'data-flow', label:'enqueue' },
+  { from:'site-content', to:'messaging',  type:'event',     label:'routes:list' },
 
   // Sync → Shell
   { from:'dir-sync', to:'entity-svc', type:'data-flow', label:'import/export' },
@@ -489,7 +493,7 @@ function updatePrompt() {
     text += 'Showing the full system with clustered groups:\n';
     text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks\n';
     text += '- Shell Core: Entity Service, MCP Service, Job Queue, Messaging, AI Service, Plugin Framework\n';
-    text += '- Publishing: Site Builder, Professional Site, Content Pipeline, Newsletter, Social Media\n';
+    text += '- Publishing: Site Builder, Professional Site, Content Pipeline, Newsletter, Social Media, Site Content\n';
     text += '- Sync & Storage: Directory Sync, Git Sync, Image\n';
     text += '- System: System, Dashboard, Analytics, Summary, Topics\n';
     text += '- Shared: Utils, UI Library, Themes';

@@ -72,6 +72,7 @@ The codebase follows a monorepo structure managed by Turborepo with packages org
 - **plugins/portfolio**: Portfolio project showcase
 - **plugins/professional-site**: Professional homepage templates
 - **plugins/site-builder**: Static site generation with Preact and Tailwind CSS v4
+- **plugins/site-content**: AI-generated content for site sections, queries routes via messaging
 - **plugins/social-media**: Multi-provider social media posting
 - **plugins/summary**: AI-powered content summarization and daily digests
 - **plugins/system**: System information and health checks

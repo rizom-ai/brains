@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-02-19
+Last Updated: 2026-02-21
 
 ---
 
@@ -54,6 +54,13 @@ Last Updated: 2026-02-19
 
 ## Completed (2026-02)
 
+- ✅ Extract site-content plugin from site-builder (entity, adapter, tools, orchestration via messaging)
+- ✅ BaseEntityAdapter abstract class — migrated all 10 adapters to reduce boilerplate
+- ✅ Route types moved to `@brains/plugins` (shared cross-plugin concern)
+- ✅ LinkedIn organization posting support
+- ✅ Professional site layout improvements (hero asymmetry, featured items, stacked variants)
+- ✅ 5 theme variations (brutalist, editorial, geometric, neo-retro, swiss)
+- ✅ Brutalist theme CRT terminal aesthetic elevation
 - ✅ Content finalization: portfolio voice/backstory cleanup, Public Badges project added, URLs populated
 - ✅ Removed technologies field from project schema
 - ✅ Pagination dark mode fix (replaced theme-dependent CSS classes with Tailwind utilities)
