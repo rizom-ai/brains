@@ -90,7 +90,7 @@ export class ContentGenerationJobHandler
     data: ContentGenerationJobData,
     jobId: string,
     progressReporter: ProgressReporter,
-  ): Promise<string> {
+  ): Promise<unknown> {
     try {
       this.logger.debug("Processing content generation job", {
         jobId,
@@ -195,34 +195,11 @@ export class ContentGenerationJobHandler
         userId: data.userId,
         error,
       });
-      throw error;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
     }
-  }
-
-  /**
-   * Handle content generation job errors
-   * Provides additional logging and context for debugging
-   */
-  public async onError(
-    error: Error,
-    data: ContentGenerationJobData,
-    jobId: string,
-  ): Promise<void> {
-    this.logger.error("Content generation job error handler called", {
-      jobId,
-      templateName: data.templateName,
-      userId: data.userId,
-      hasPrompt: !!data.context.prompt,
-      hasData: !!data.context.data,
-      errorMessage: error.message,
-      errorStack: error.stack,
-    });
-
-    // Could add additional error handling here:
-    // - Notify user of failed content generation
-    // - Send alerts for critical templates
-    // - Store error details for analysis
-    // - Retry with different parameters
   }
 
   /**
