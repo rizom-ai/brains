@@ -5,9 +5,7 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin, ProfileService } from "@brains/plugins";
-import { siteContentSchema } from "./types";
 import { SiteBuilder } from "./lib/site-builder";
-import { SiteContentService } from "./lib/site-content-service";
 import { RouteRegistry } from "./lib/route-registry";
 import { UISlotRegistry, type SlotRegistration } from "./lib/ui-slot-registry";
 import type { RouteDefinition } from "@brains/plugins";
@@ -17,7 +15,6 @@ import {
   ListRoutesPayloadSchema,
   GetRoutePayloadSchema,
 } from "@brains/plugins";
-import { siteContentAdapter } from "./entities/site-content-adapter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
 import { SiteInfoDataSource } from "./datasources/site-info-datasource";
@@ -51,7 +48,6 @@ import { join } from "path";
  */
 export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteBuilder?: SiteBuilder;
-  private siteContentService?: SiteContentService;
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
   private _slotRegistry?: UISlotRegistry;
@@ -176,13 +172,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     // Setup route message handlers
     this.setupRouteHandlers(context);
 
-    // Register site content entity type
-    context.entities.register(
-      "site-content",
-      siteContentSchema,
-      siteContentAdapter,
-    );
-
     // Register templates from configuration using unified registration
     if (this.config.templates) {
       context.templates.register(this.config.templates);
@@ -213,13 +202,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.siteInfoService,
       this.profileService,
       this.config.entityRouteConfig,
-    );
-
-    // Initialize the site content service with route registry
-    this.siteContentService = new SiteContentService(
-      context,
-      this.routeRegistry,
-      this.config.siteInfo,
     );
 
     // Register site-build job handler (site-specific, not a content operation)
@@ -409,7 +391,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     }
 
     return createSiteBuilderTools(
-      () => this.siteContentService,
       this.pluginContext,
       this.id,
       this.routeRegistry,
@@ -429,13 +410,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    */
   public getSiteBuilder(): SiteBuilder | undefined {
     return this.siteBuilder;
-  }
-
-  /**
-   * Get the site content service instance
-   */
-  public getSiteContentService(): SiteContentService | undefined {
-    return this.siteContentService;
   }
 
   /**
@@ -535,6 +509,11 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         }
       },
     );
+
+    // Handler for site-content plugin to discover all routes
+    context.messaging.subscribe("site-builder:routes:list", async () => {
+      return { success: true, data: this.routeRegistry.list() };
+    });
   }
 
   /**

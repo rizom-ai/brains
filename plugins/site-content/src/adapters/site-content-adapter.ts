@@ -1,6 +1,9 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import type { SiteContent, SiteContentMetadata } from "../types";
-import { siteContentSchema, siteContentMetadataSchema } from "../types";
+import type { SiteContent, SiteContentMetadata } from "../schemas/site-content";
+import {
+  siteContentSchema,
+  siteContentMetadataSchema,
+} from "../schemas/site-content";
 
 /**
  * Entity adapter for site content
@@ -45,5 +48,4 @@ export class SiteContentAdapter extends BaseEntityAdapter<
   }
 }
 
-// Create default instance
 export const siteContentAdapter = new SiteContentAdapter();

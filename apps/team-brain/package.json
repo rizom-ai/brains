@@ -35,6 +35,7 @@
     "@brains/matrix": "workspace:*",
     "@brains/product-site-content": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/site-content": "workspace:*",
     "@brains/summary": "workspace:*",
     "@brains/webserver": "workspace:*",
     "preact": "^10.27.2"

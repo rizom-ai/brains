@@ -2,9 +2,8 @@ import type { ServicePluginContext, JobContext } from "@brains/plugins";
 import {
   GenerateOptionsSchema,
   type GenerateOptions,
-} from "../types/content-schemas";
+} from "../schemas/generate-options";
 import { SiteContentOperations } from "./site-content-operations";
-import type { RouteRegistry } from "./route-registry";
 
 /**
  * Service for managing site content operations
@@ -14,10 +13,9 @@ export class SiteContentService {
 
   constructor(
     pluginContext: ServicePluginContext,
-    routeRegistry: RouteRegistry,
     private readonly siteConfig?: Record<string, unknown>,
   ) {
-    this.operations = new SiteContentOperations(pluginContext, routeRegistry);
+    this.operations = new SiteContentOperations(pluginContext);
   }
 
   /**
@@ -32,16 +30,11 @@ export class SiteContentService {
     queuedSections: number;
     batchId: string;
   }> {
-    // Validate input
     const validatedOptions = GenerateOptionsSchema.parse(options);
-
-    // Generate content
-    const result = await this.operations.generate(
+    return this.operations.generate(
       validatedOptions,
       this.siteConfig,
       metadata,
     );
-
-    return result;
   }
 }

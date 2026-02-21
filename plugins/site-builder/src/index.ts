@@ -14,10 +14,6 @@ export { createPreactBuilder } from "./lib/preact-builder";
 export { Head, useHead, HeadProvider } from "@brains/ui-library";
 export type { HeadProps } from "@brains/ui-library";
 
-// Export site content types and schemas
-export type { SiteContent } from "./types";
-export { siteContentSchema } from "./types";
-
 // Export site info types and adapter
 export type { SiteInfo } from "./types/site-info";
 export { SiteInfoSchema } from "./types/site-info";

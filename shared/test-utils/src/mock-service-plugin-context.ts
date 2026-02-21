@@ -37,6 +37,8 @@ export interface MockServicePluginContextReturns {
   ai?: MockAIReturns;
   /** Return value for jobs.enqueue */
   jobsEnqueue?: string;
+  /** Custom messaging.send implementation */
+  messagingSend?: (channel: string, payload: unknown) => Promise<unknown>;
 }
 
 /**
@@ -212,7 +214,7 @@ export function createMockServicePluginContext(
 
     // Messaging namespace
     messaging: {
-      send: mock(() => Promise.resolve()),
+      send: mock(returns.messagingSend ?? (() => Promise.resolve())),
       subscribe: mock(() => () => {}),
     },
 

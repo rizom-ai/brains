@@ -2,19 +2,17 @@ import type {
   ServicePluginContext,
   JobContext,
   JobOptions,
+  RouteDefinition,
+  SectionDefinition,
 } from "@brains/plugins";
-import type { RouteDefinition, SectionDefinition } from "@brains/plugins";
-import type { GenerateOptions } from "../types/content-schemas";
-import type { RouteRegistry } from "./route-registry";
+import type { GenerateOptions } from "../schemas/generate-options";
 
 /**
- * Site content operations - handles content generation
+ * Site content operations - handles content generation orchestration
+ * Discovers routes via messaging instead of importing RouteRegistry directly
  */
 export class SiteContentOperations {
-  constructor(
-    private readonly context: ServicePluginContext,
-    private readonly routeRegistry: RouteRegistry,
-  ) {}
+  constructor(private readonly context: ServicePluginContext) {}
 
   /**
    * Create JobOptions from metadata
@@ -31,9 +29,28 @@ export class SiteContentOperations {
       metadata: {
         operationType: metadata.operationType ?? "content_operations",
         progressToken: metadata.progressToken,
-        pluginId: metadata.pluginId ?? "site-builder",
+        pluginId: metadata.pluginId ?? "site-content",
       },
     };
+  }
+
+  /**
+   * Fetch routes from site-builder via messaging
+   */
+  private async fetchRoutes(): Promise<RouteDefinition[]> {
+    const response = await this.context.messaging.send(
+      "site-builder:routes:list",
+      {},
+    );
+    if ("noop" in response) {
+      throw new Error(
+        "No handler for site-builder:routes:list — is site-builder plugin loaded?",
+      );
+    }
+    if (!response.success || !response.data) {
+      throw new Error("Failed to fetch routes from site-builder");
+    }
+    return response.data as RouteDefinition[];
   }
 
   /**
@@ -51,8 +68,8 @@ export class SiteContentOperations {
   }> {
     const logger = this.context.logger.child("SiteContentOperations");
 
-    // Get all routes from registry
-    const routes = this.routeRegistry.list();
+    // Fetch routes via messaging
+    const routes = await this.fetchRoutes();
 
     // Filter routes based on options
     let targetRoutes = routes;
@@ -158,8 +175,6 @@ export class SiteContentOperations {
 
     for (const { route, section } of sectionsToGenerate) {
       const entityId = `${route.id}:${section.id}`;
-
-      // Template name is already scoped in the route definition
       const templateName = section.template;
 
       const jobData: Record<string, unknown> = {
@@ -199,7 +214,6 @@ export class SiteContentOperations {
         ? await this.context.jobs.enqueueBatch(batchJobs, jobOptions)
         : await this.context.jobs.enqueueBatch(batchJobs);
 
-      // Create job entries for tracking
       for (let i = 0; i < sectionsToGenerate.length; i++) {
         const item = sectionsToGenerate[i];
         if (item) {

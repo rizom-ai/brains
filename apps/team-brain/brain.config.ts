@@ -7,6 +7,7 @@ import { directorySync } from "@brains/directory-sync";
 import { GitSyncPlugin } from "@brains/git-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { siteContentPlugin } from "@brains/site-content";
 import {
   templates,
   routes,
@@ -82,6 +83,7 @@ const config = defineConfig({
         ? `https://${process.env["DOMAIN"]}`
         : undefined,
     }),
+    siteContentPlugin(),
     siteBuilderPlugin({
       templates,
       routes,

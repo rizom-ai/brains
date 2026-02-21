@@ -1,74 +1,64 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
-import { SiteContentService } from "./site-content-service";
-import { RouteRegistry } from "./route-registry";
-import { createSilentLogger } from "@brains/test-utils";
-import {
-  MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
-} from "@brains/plugins/test";
-import { SiteContentOperations } from "./site-content-operations";
+import { SiteContentService } from "../../src/lib/site-content-service";
+import { createMockServicePluginContext } from "@brains/test-utils";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { RouteDefinition } from "@brains/plugins";
+import { SiteContentOperations } from "../../src/lib/site-content-operations";
+
+const testRoutes: RouteDefinition[] = [
+  {
+    id: "landing",
+    path: "/",
+    title: "Home",
+    description: "Landing page",
+    layout: "default",
+    sections: [
+      { id: "hero", template: "site-builder:hero" },
+      { id: "features", template: "site-builder:features" },
+    ],
+    pluginId: "site-builder",
+  },
+  {
+    id: "about",
+    path: "/about",
+    title: "About",
+    description: "About us page",
+    layout: "default",
+    sections: [{ id: "main", template: "site-builder:content" }],
+    pluginId: "site-builder",
+  },
+];
 
 describe("SiteContentService", () => {
-  let mockShell: MockShell;
   let context: ServicePluginContext;
   let service: SiteContentService;
-  let routeRegistry: RouteRegistry;
 
   beforeEach(() => {
-    // Create mock shell and context
-    const logger = createSilentLogger("site-builder-test");
-    mockShell = new MockShell({ logger });
-    context = createServicePluginContext(mockShell, "site-builder");
-
-    // Set up route registry with test routes
-    routeRegistry = new RouteRegistry(context.logger);
-
-    // Register test routes
-    routeRegistry.register({
-      id: "landing",
-      path: "/",
-      title: "Home",
-      description: "Landing page",
-      layout: "default",
-      sections: [
-        { id: "hero", template: "site-builder:hero" },
-        { id: "features", template: "site-builder:features" },
-      ],
-      pluginId: "site-builder",
+    context = createMockServicePluginContext({
+      returns: {
+        messagingSend: async (channel: string) => {
+          if (channel === "site-builder:routes:list") {
+            return { success: true, data: testRoutes };
+          }
+          return { noop: true };
+        },
+      },
     });
 
-    routeRegistry.register({
-      id: "about",
-      path: "/about",
-      title: "About",
-      description: "About us page",
-      layout: "default",
-      sections: [{ id: "main", template: "site-builder:content" }],
-      pluginId: "site-builder",
-    });
-
-    // Create service instance
-    service = new SiteContentService(context, routeRegistry, {
+    service = new SiteContentService(context, {
       title: "Test Site",
       description: "Test Description",
     });
-  });
-
-  afterEach(() => {
-    // No cleanup needed for mock shell
   });
 
   describe("generateContent", () => {
     let generateSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
-      // Reset the spy before each test
       generateSpy = spyOn(SiteContentOperations.prototype, "generate");
     });
 
     afterEach(() => {
-      // Restore the original function
       generateSpy.mockRestore();
     });
 
@@ -88,7 +78,6 @@ describe("SiteContentService", () => {
         force: true,
       });
 
-      // Verify operations.generate was called with correct params
       expect(generateSpy).toHaveBeenCalledTimes(1);
 
       expect(generateSpy).toHaveBeenCalledWith(
@@ -101,7 +90,6 @@ describe("SiteContentService", () => {
         undefined,
       );
 
-      // Verify result
       expect(result).toEqual({
         jobs: [
           { jobId: "job-1", routeId: "landing", sectionId: "hero" },
@@ -124,7 +112,7 @@ describe("SiteContentService", () => {
       const metadata = {
         rootJobId: "root-123",
         progressToken: "token-abc",
-        pluginId: "site-builder",
+        pluginId: "site-content",
         operationType: "content_operations" as const,
       };
 
@@ -133,7 +121,6 @@ describe("SiteContentService", () => {
         metadata,
       );
 
-      // Verify metadata was passed through
       expect(generateSpy).toHaveBeenCalledWith(
         { routeId: "about", sectionId: "main", dryRun: false, force: false },
         { title: "Test Site", description: "Test Description" },
@@ -168,7 +155,6 @@ describe("SiteContentService", () => {
     });
 
     test("should handle validation errors", async () => {
-      // Reset the spy to ensure clean state
       generateSpy.mockResolvedValue({
         jobs: [],
         totalSections: 0,
@@ -176,10 +162,9 @@ describe("SiteContentService", () => {
         batchId: "batch-error",
       });
 
-      // The validation happens inside async function
       try {
         await service.generateContent({
-          routeId: 123 as unknown as string, // Invalid type
+          routeId: 123 as unknown as string,
         });
         expect(true).toBe(false); // Should not reach here
       } catch (error) {
@@ -188,8 +173,7 @@ describe("SiteContentService", () => {
     });
 
     test("should work without site config", async () => {
-      // Create service without site config
-      const serviceNoConfig = new SiteContentService(context, routeRegistry);
+      const serviceNoConfig = new SiteContentService(context);
       generateSpy.mockResolvedValue({
         jobs: [],
         totalSections: 0,
@@ -200,7 +184,6 @@ describe("SiteContentService", () => {
       const result = await serviceNoConfig.generateContent({});
       expect(result).toBeDefined();
 
-      // Should pass undefined as siteConfig
       expect(generateSpy).toHaveBeenCalledWith(
         { dryRun: false, force: false },
         undefined,
