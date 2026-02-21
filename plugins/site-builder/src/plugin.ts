@@ -10,13 +10,13 @@ import { SiteBuilder } from "./lib/site-builder";
 import { SiteContentService } from "./lib/site-content-service";
 import { RouteRegistry } from "./lib/route-registry";
 import { UISlotRegistry, type SlotRegistration } from "./lib/ui-slot-registry";
-import type { RouteDefinition } from "./types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 import {
   RegisterRoutesPayloadSchema,
   UnregisterRoutesPayloadSchema,
   ListRoutesPayloadSchema,
   GetRoutePayloadSchema,
-} from "./types/routes";
+} from "@brains/plugins";
 import { siteContentAdapter } from "./entities/site-content-adapter";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";

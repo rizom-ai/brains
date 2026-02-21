@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
-import type { RouteDefinition, NavigationSlot } from "../types/routes";
+import type { RouteDefinition, NavigationSlot } from "@brains/plugins";
 import type { EntityRouteConfig } from "../config";
 import { pluralize } from "@brains/utils";
 

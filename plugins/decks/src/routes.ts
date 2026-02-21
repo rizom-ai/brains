@@ -1,4 +1,4 @@
-import type { RouteDefinition } from "@brains/site-builder-plugin";
+import type { RouteDefinition } from "@brains/plugins";
 
 /**
  * Generate deck routes with fullscreen layout

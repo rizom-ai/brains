@@ -34,25 +34,3 @@ export type { SlotRegistration } from "./lib/ui-slot-registry";
 export type { LayoutSlots } from "./config";
 export { Slot } from "./components/Slot";
 export type { SlotProps } from "./components/Slot";
-
-// Export route types and schemas for other plugins to use
-export type {
-  RouteDefinition,
-  SectionDefinition,
-  NavigationItem,
-  RegisterRoutesPayload,
-  UnregisterRoutesPayload,
-  ListRoutesPayload,
-  GetRoutePayload,
-  RouteResponse,
-  RouteListResponse,
-  SingleRouteResponse,
-} from "./types/routes";
-export {
-  RouteDefinitionSchema,
-  SectionDefinitionSchema,
-  RegisterRoutesPayloadSchema,
-  UnregisterRoutesPayloadSchema,
-  ListRoutesPayloadSchema,
-  GetRoutePayloadSchema,
-} from "./types/routes";

@@ -1,4 +1,4 @@
-import type { RouteDefinition } from "../types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 
 interface SitemapEntry {
   url: string;

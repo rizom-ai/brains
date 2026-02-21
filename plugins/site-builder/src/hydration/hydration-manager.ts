@@ -1,6 +1,6 @@
 import type { Logger } from "@brains/utils";
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
-import type { RouteDefinition, SectionDefinition } from "../types/routes";
+import type { RouteDefinition, SectionDefinition } from "@brains/plugins";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { promises as fs } from "fs";

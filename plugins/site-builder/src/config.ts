@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
 import type { Template } from "@brains/plugins";
-import { RouteDefinitionSchema, NavigationSlots } from "./types/routes";
+import { RouteDefinitionSchema, NavigationSlots } from "@brains/plugins";
 import { siteInfoBodySchema } from "./services/site-info-schema";
 
 /**

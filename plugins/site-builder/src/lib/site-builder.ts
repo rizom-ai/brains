@@ -9,7 +9,7 @@ import { baseEntitySchema } from "@brains/plugins";
 import { resolveEntityCoverImage } from "@brains/image";
 import type { Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
-import type { SectionDefinition, RouteDefinition } from "../types/routes";
+import type { SectionDefinition, RouteDefinition } from "@brains/plugins";
 import type {
   ISiteBuilder,
   SiteBuilderOptions,

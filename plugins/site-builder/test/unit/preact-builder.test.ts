@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/lib/preact-builder";
 import type { BuildContext } from "../../src/lib/static-site-builder";
 import type { ViewTemplate, OutputFormat } from "@brains/plugins";
-import type { RouteDefinition } from "../../src/types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockServicePluginContext,

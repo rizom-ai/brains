@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
 import { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinition } from "../../src/types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 

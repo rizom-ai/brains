@@ -1,6 +1,6 @@
 import type { VNode } from "preact";
 import { Logo, Button, cn } from "@brains/ui-library";
-import type { NavigationItem } from "@brains/site-builder-plugin";
+import type { NavigationItem } from "@brains/plugins";
 
 /**
  * Compact header component props

@@ -1,6 +1,6 @@
 import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { RouteDefinition } from "../types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 import type { CSSProcessor } from "../css/css-processor";
 import type { LayoutComponent, LayoutSlots } from "../config";
 import type { SiteInfo } from "../types/site-info";

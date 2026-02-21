@@ -5,7 +5,7 @@ import type {
   SiteInfo,
 } from "./static-site-builder";
 import type { ComponentType } from "@brains/plugins";
-import type { RouteDefinition } from "../types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";
 import { h } from "preact";

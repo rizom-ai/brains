@@ -196,7 +196,32 @@ export { JobProgressEventSchema, BaseJobHandler } from "@brains/job-queue";
 // From @brains/render-service
 export type { ViewTemplate, OutputFormat } from "@brains/render-service";
 // Note: ViewRegistry is not exported as plugins access views through context
-// Note: Route types moved to @brains/site-builder-plugin - plugins that need routes should import from there
+
+// Route types (cross-cutting concern used by site-builder, site-content, decks, etc.)
+export type {
+  RouteDefinition,
+  SectionDefinition,
+  NavigationMetadata,
+  NavigationSlot,
+  NavigationItem,
+  RegisterRoutesPayload,
+  UnregisterRoutesPayload,
+  ListRoutesPayload,
+  GetRoutePayload,
+  RouteResponse,
+  RouteListResponse,
+  SingleRouteResponse,
+} from "./types/routes";
+export {
+  RouteDefinitionSchema,
+  SectionDefinitionSchema,
+  NavigationMetadataSchema,
+  NavigationSlots,
+  RegisterRoutesPayloadSchema,
+  UnregisterRoutesPayloadSchema,
+  ListRoutesPayloadSchema,
+  GetRoutePayloadSchema,
+} from "./types/routes";
 
 // Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
 

@@ -6,7 +6,7 @@ import {
   createMockServicePluginContext,
 } from "@brains/test-utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinition } from "../../src/types/routes";
+import type { RouteDefinition } from "@brains/plugins";
 import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { ProfileService } from "@brains/plugins";
 import { TestLayout } from "../test-helpers";

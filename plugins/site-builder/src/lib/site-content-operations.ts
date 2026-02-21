@@ -3,7 +3,7 @@ import type {
   JobContext,
   JobOptions,
 } from "@brains/plugins";
-import type { RouteDefinition, SectionDefinition } from "../types/routes";
+import type { RouteDefinition, SectionDefinition } from "@brains/plugins";
 import type { GenerateOptions } from "../types/content-schemas";
 import type { RouteRegistry } from "./route-registry";
 
