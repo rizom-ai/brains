@@ -4,6 +4,7 @@ export { EntityRegistry } from "./entityRegistry";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter } from "./adapters";
+export { SingletonEntityService } from "./singleton-entity-service";
 
 // Export types
 export type {
