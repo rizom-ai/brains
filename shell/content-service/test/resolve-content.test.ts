@@ -11,14 +11,6 @@ import {
   createMockDataSourceRegistry,
 } from "@brains/test-utils";
 
-// Helper function for tests - simple pluralization
-const testGenerateEntityUrl = (entityType: string, slug: string): string => {
-  const pluralName = entityType.endsWith("y")
-    ? entityType.slice(0, -1) + "ies"
-    : entityType + "s";
-  return `/${pluralName}/${slug}`;
-};
-
 describe("ContentService.resolveContent", () => {
   let mockDependencies: ContentServiceDependencies;
   let contentService: ContentService;
@@ -78,7 +70,6 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("dashboard", {
         dataParams: { timeRange: "24h" },
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toEqual({
@@ -114,7 +105,6 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("article", {
         fallback: "Default content",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Default content");
@@ -155,7 +145,6 @@ describe("ContentService.resolveContent", () => {
           entityType: "site-content-preview",
           entityId: "article-123",
         },
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toEqual(savedArticle);
@@ -190,7 +179,6 @@ describe("ContentService.resolveContent", () => {
           entityId: "dashboard-123",
         },
         fallback: { cpu: 0, memory: 0 },
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Should skip to fallback since no formatter
@@ -212,7 +200,6 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("simple", {
         fallback: "Fallback content",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fallback content");
@@ -233,7 +220,6 @@ describe("ContentService.resolveContent", () => {
       // Invalid fallback (string instead of object)
       const result = await contentService.resolveContent("typed", {
         fallback: "invalid",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBeNull();
@@ -273,7 +259,6 @@ describe("ContentService.resolveContent", () => {
           entityId: "test-123",
         },
         fallback: "Fallback data",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fresh data");
@@ -306,7 +291,6 @@ describe("ContentService.resolveContent", () => {
           entityId: "test-456",
         },
         fallback: "Fallback data",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Saved data");
@@ -339,7 +323,6 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("error-test", {
         fallback: "Fallback after error",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fallback after error");
@@ -367,7 +350,6 @@ describe("ContentService.resolveContent", () => {
           entityId: "missing",
         },
         fallback: "Fallback after missing entity",
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Fallback after missing entity");
@@ -395,7 +377,6 @@ describe("ContentService.resolveContent", () => {
 
       const result = await contentService.resolveContent("simple-sourced", {
         dataParams: { test: true },
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       expect(result).toBe("Simple data");
@@ -444,7 +425,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("prod-test", {
         dataParams: { entityType: "post" },
         publishedOnly: true,
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Context should have entityService
@@ -486,7 +466,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("preview-test", {
         dataParams: { entityType: "post" },
         publishedOnly: false,
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // In preview, publishedOnly should NOT be added
@@ -530,7 +509,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("queue-test", {
         dataParams: {},
         publishedOnly: true, // Production mode
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Should NOT add publishedOnly since datasource already filters on status
@@ -579,7 +557,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("series-test", {
         dataParams: {},
         publishedOnly: true, // Production mode
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Should add publishedOnly since the filter is on seriesName, not status
@@ -620,7 +597,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("count-test", {
         dataParams: {},
         publishedOnly: true,
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Should add publishedOnly to countEntities
@@ -662,7 +638,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("count-status-test", {
         dataParams: {},
         publishedOnly: true,
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // Should NOT add publishedOnly since status filter already present
@@ -715,7 +690,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("forward-test", {
         dataParams: {},
         publishedOnly: true, // Use scoped service
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // getEntity should be forwarded to base service
@@ -753,7 +727,6 @@ describe("ContentService.resolveContent", () => {
       await contentService.resolveContent("search-test", {
         dataParams: {},
         publishedOnly: true, // Use scoped service
-        generateEntityUrl: testGenerateEntityUrl,
       });
 
       // search should be forwarded to base service
@@ -822,7 +795,6 @@ describe("ContentService.resolveContent", () => {
         {
           dataParams: {},
           publishedOnly: true, // Use scoped service - triggers proxy
-          generateEntityUrl: testGenerateEntityUrl,
         },
       );
 
@@ -851,7 +823,6 @@ describe("ContentService.resolveContent", () => {
         "scoped",
         {
           fallback: "Scoped content",
-          generateEntityUrl: testGenerateEntityUrl,
         },
         "myplugin",
       );
@@ -873,7 +844,6 @@ describe("ContentService.resolveContent", () => {
         "plugin:already-scoped",
         {
           fallback: "Content",
-          generateEntityUrl: testGenerateEntityUrl,
         },
         "otherplugin", // Different plugin, but shouldn't double-scope
       );

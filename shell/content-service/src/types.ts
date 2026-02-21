@@ -61,11 +61,6 @@ export interface ResolutionOptions {
    * Set by site-builder: true for production, false for preview
    */
   publishedOnly?: boolean;
-  /**
-   * URL generator function for entity detail pages - passed to datasources via context
-   * Required for site builds to ensure consistent routing
-   */
-  generateEntityUrl: (entityType: string, slug: string) => string;
 }
 
 /**

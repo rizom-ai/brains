@@ -376,8 +376,6 @@ export class SiteBuilder implements ISiteBuilder {
         dataParams: section.dataQuery,
         // Static fallback content from section definition
         fallback: section.content,
-        // Pass URL generator for datasources to add url fields
-        generateEntityUrl,
         // Filter to published-only content in production builds
         publishedOnly,
       };
@@ -404,8 +402,6 @@ export class SiteBuilder implements ISiteBuilder {
       },
       // Static fallback content from section definition
       fallback: section.content,
-      // Pass URL generator for datasources
-      generateEntityUrl,
     });
 
     // Auto-enrich data with URLs, typeLabels, and coverImageUrls
