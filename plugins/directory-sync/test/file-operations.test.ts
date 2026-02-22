@@ -12,6 +12,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
 import { createTestEntity } from "@brains/test-utils";
+import { TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "./fixtures";
 
 describe("FileOperations", () => {
   let fileOps: FileOperations;
@@ -298,13 +299,6 @@ describe("FileOperations", () => {
   });
 
   describe("Image File Support", () => {
-    // Minimal 1x1 pixel PNG as binary
-    const TINY_PNG_BYTES = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      "base64",
-    );
-    const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BYTES.toString("base64")}`;
-
     it("should read image files from image/ directory as base64 data URLs", async () => {
       // Create image file in image/ directory
       mkdirSync(join(testDir, "image"), { recursive: true });
@@ -524,22 +518,16 @@ describe("FileOperations", () => {
     });
 
     it("should skip write for image when content matches", async () => {
-      const imageBytes = Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-        "base64",
-      );
-
       mkdirSync(join(testDir, "image"), { recursive: true });
       const filePath = join(testDir, "image", "test-image.png");
-      writeFileSync(filePath, imageBytes);
+      writeFileSync(filePath, TINY_PNG_BYTES);
 
       const mtimeBefore = statSync(filePath).mtime.getTime();
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Entity with SAME image data
       const entity = createTestEntity("image", {
         id: "test-image",
-        content: `data:image/png;base64,${imageBytes.toString("base64")}`,
+        content: TINY_PNG_DATA_URL,
         metadata: { format: "png" },
       });
 
@@ -551,12 +539,9 @@ describe("FileOperations", () => {
     });
 
     it("should write image when content differs", async () => {
+      // Use a different 1x1 PNG (grayscale) as the "old" content
       const oldImageBytes = Buffer.from(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-        "base64",
-      );
-      const newImageBytes = Buffer.from(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         "base64",
       );
 
@@ -564,18 +549,16 @@ describe("FileOperations", () => {
       const filePath = join(testDir, "image", "test-image.png");
       writeFileSync(filePath, oldImageBytes);
 
-      // Entity with DIFFERENT image data
       const entity = createTestEntity("image", {
         id: "test-image",
-        content: `data:image/png;base64,${newImageBytes.toString("base64")}`,
+        content: TINY_PNG_DATA_URL,
         metadata: { format: "png" },
       });
 
       await fileOps.writeEntity(entity);
 
-      // Verify file WAS updated
       const actualBytes = readFileSync(filePath);
-      expect(actualBytes.equals(newImageBytes)).toBe(true);
+      expect(actualBytes.equals(TINY_PNG_BYTES)).toBe(true);
     });
   });
 });

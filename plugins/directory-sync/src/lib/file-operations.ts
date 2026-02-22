@@ -12,22 +12,20 @@ import {
 import { computeContentHash } from "@brains/utils";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 
-/**
- * Supported image file extensions
- */
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+export const IMAGE_EXTENSIONS = [
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
+  ".svg",
+];
 
-/**
- * Check if a file is an image based on extension
- */
-function isImageFile(filePath: string): boolean {
+export function isImageFile(filePath: string): boolean {
   const ext = extname(filePath).toLowerCase();
   return IMAGE_EXTENSIONS.includes(ext);
 }
 
-/**
- * Get MIME type for image extension
- */
 function getMimeTypeForExtension(ext: string): string {
   const normalized = ext.toLowerCase().replace(".", "");
   switch (normalized) {
@@ -47,9 +45,6 @@ function getMimeTypeForExtension(ext: string): string {
   }
 }
 
-/**
- * Get file extension for image format
- */
 function getExtensionForFormat(format: string): string {
   switch (format.toLowerCase()) {
     case "jpeg":
@@ -73,48 +68,35 @@ export class FileOperations {
     this.entityService = entityService;
   }
 
-  /**
-   * Parse entity info from file path
-   * Extracts entity type and ID from the file path structure
-   */
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
     const fullPath = filePath.startsWith(this.syncPath)
       ? filePath
       : join(this.syncPath, filePath);
 
-    // Determine entity type from path
     const relativePath = fullPath.replace(this.syncPath + "/", "");
     const pathParts = relativePath.split("/");
 
-    // Check if first part is a known entity type directory
-    // Base entities are in root, so if there's only one part or
-    // the first part isn't a directory, it's a base entity
+    // Base entities are in root; subdirectory name is the entity type
     let entityType: string;
     let idPathParts: string[];
 
     if (pathParts.length === 1) {
-      // File in root - it's a base entity
       entityType = "base";
       idPathParts = pathParts;
     } else if (pathParts.length > 1 && pathParts[0]) {
-      // Multiple parts means first part is a directory (entity type)
-      // even if it has .md in the name (edge case)
       entityType = pathParts[0];
       idPathParts = pathParts.slice(1);
     } else {
-      // Fallback: treat as base entity
       entityType = "base";
       idPathParts = pathParts;
     }
 
-    // Reconstruct ID from path with colons for nested structures
+    // Reconstruct ID: nested paths become colon-separated
     // e.g., site-content/landing/hero.md -> id: "landing:hero"
     let id: string;
     if (idPathParts.length > 1) {
-      // Has subdirectories - join with colons
       const lastPart = idPathParts[idPathParts.length - 1];
       if (lastPart) {
-        // Strip any known extension (.md or image extensions)
         const ext = extname(lastPart).toLowerCase();
         const filename =
           ext === ".md" || IMAGE_EXTENSIONS.includes(ext)
@@ -124,7 +106,6 @@ export class FileOperations {
       }
       id = idPathParts.join(":");
     } else {
-      // Simple case - just filename, strip extension
       const filename = idPathParts[0] ?? "";
       const ext = extname(filename).toLowerCase();
       id =
@@ -136,9 +117,6 @@ export class FileOperations {
     return { entityType, id };
   }
 
-  /**
-   * Read entity from file
-   */
   async readEntity(filePath: string): Promise<RawEntity> {
     const fullPath = filePath.startsWith(this.syncPath)
       ? filePath
@@ -146,15 +124,13 @@ export class FileOperations {
 
     const stats = statSync(fullPath);
 
-    // Parse entity info from path
     const { entityType, id } = this.parseEntityFromPath(filePath);
 
-    // Use file timestamps, but fallback to current time if birthtime is invalid
+    // Fallback to mtime if birthtime is invalid (zero epoch)
     const created =
       stats.birthtime.getTime() > 0 ? stats.birthtime : stats.mtime;
     const updated = stats.mtime;
 
-    // Handle image files: read as binary and convert to base64 data URL
     let content: string;
     if (isImageFile(filePath)) {
       const buffer = readFileSync(fullPath);
@@ -183,7 +159,6 @@ export class FileOperations {
     const filePath = this.getEntityFilePath(entity);
     const isImage = entity.entityType === "image";
 
-    // Prepare content to write
     let contentToWrite: Buffer | string;
     if (isImage) {
       const match = entity.content.match(/^data:image\/[a-z+]+;base64,(.+)$/i);
@@ -194,7 +169,6 @@ export class FileOperations {
       contentToWrite = this.entityService.serializeEntity(entity);
     }
 
-    // Skip write if file exists and content matches
     if (existsSync(filePath)) {
       const currentContent = isImage
         ? readFileSync(filePath)
@@ -212,11 +186,10 @@ export class FileOperations {
       );
 
       if (currentHash === newHash) {
-        return; // Content matches, skip write
+        return;
       }
     }
 
-    // Ensure directory exists (only for non-base entities)
     if (entity.entityType !== "base") {
       const dir = dirname(filePath);
       if (!existsSync(dir)) {
@@ -224,7 +197,6 @@ export class FileOperations {
       }
     }
 
-    // Write the content
     if (isImage) {
       writeFileSync(filePath, contentToWrite as Buffer);
     } else {
@@ -236,42 +208,29 @@ export class FileOperations {
     utimesSync(filePath, updatedTime, updatedTime);
   }
 
-  /**
-   * Get file path for entity by ID, type, and optional extension
-   */
   getFilePath(
     entityId: string,
     entityType: string,
     extension: string = ".md",
   ): string {
-    // Split ID by colons to create subdirectory structure
-    const idParts = entityId.split(":");
-
-    // Filter empty parts but preserve structure
-    const cleanParts = idParts.filter((part) => part.length > 0);
-
-    // Base entities go in root, others in type subdirectory
+    const cleanParts = entityId.split(":").filter((part) => part.length > 0);
     const isBase = entityType === "base";
 
-    // If only one part (no colons), simple flat file
     if (cleanParts.length === 1) {
       return isBase
         ? join(this.syncPath, `${cleanParts[0]}${extension}`)
         : join(this.syncPath, entityType, `${cleanParts[0]}${extension}`);
     }
 
-    // For multiple parts, check if first part matches entity type
-    // If it does, skip it to avoid duplication like "summary/summary/..."
+    // Skip first part if it duplicates the entity type (e.g., "summary/summary/...")
     let pathParts = cleanParts;
     if (cleanParts[0] === entityType) {
       pathParts = cleanParts.slice(1);
     }
 
-    // Last part becomes the filename
     const filename = pathParts[pathParts.length - 1];
     const directories = pathParts.slice(0, -1);
 
-    // Build path - base entities in root, others in type subdirectory
     if (isBase) {
       return join(this.syncPath, ...directories, `${filename}${extension}`);
     } else {
@@ -284,19 +243,13 @@ export class FileOperations {
     }
   }
 
-  /**
-   * Get file path for entity
-   */
   getEntityFilePath(entity: BaseEntity): string {
-    // Determine file extension based on entity type
     let extension = ".md";
     if (entity.entityType === "image") {
-      // Get format from metadata or extract from content data URL
       const format = (entity.metadata as { format?: string }).format;
       if (format) {
         extension = getExtensionForFormat(format);
       } else {
-        // Try to extract from data URL
         const match = entity.content.match(/^data:image\/([a-z+]+);base64,/i);
         if (match?.[1]) {
           extension = getExtensionForFormat(match[1]);
@@ -306,107 +259,60 @@ export class FileOperations {
     return this.getFilePath(entity.id, entity.entityType, extension);
   }
 
-  /**
-   * Get all markdown files in sync directory
-   */
   getAllMarkdownFiles(): string[] {
-    const files: string[] = [];
-
-    if (!existsSync(this.syncPath)) {
-      return files;
-    }
-
-    // Recursively find all markdown files
-    const findMarkdownFiles = (
-      currentPath: string,
-      relativePath: string = "",
-    ): void => {
-      const entries = readdirSync(currentPath, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const entryPath = join(currentPath, entry.name);
-        const relativeEntryPath = relativePath
-          ? join(relativePath, entry.name)
-          : entry.name;
-
-        if (
-          entry.isFile() &&
-          entry.name.endsWith(".md") &&
-          !entry.name.endsWith(".invalid")
-        ) {
-          files.push(relativeEntryPath);
-        } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
-          findMarkdownFiles(entryPath, relativeEntryPath);
-        }
-      }
-    };
-
-    findMarkdownFiles(this.syncPath);
-    return files;
+    return this.findFiles({ includeImages: false });
   }
 
   /**
    * Get all syncable files in sync directory (markdown + images in image/ dir)
    */
   getAllSyncFiles(): string[] {
+    return this.findFiles({ includeImages: true });
+  }
+
+  private findFiles(opts: { includeImages: boolean }): string[] {
     const files: string[] = [];
+    if (!existsSync(this.syncPath)) return files;
 
-    if (!existsSync(this.syncPath)) {
-      return files;
-    }
-
-    // Recursively find all syncable files
-    const findSyncFiles = (
+    const walk = (
       currentPath: string,
       relativePath: string = "",
       inImageDir: boolean = false,
     ): void => {
       const entries = readdirSync(currentPath, { withFileTypes: true });
-
       for (const entry of entries) {
         const entryPath = join(currentPath, entry.name);
-        const relativeEntryPath = relativePath
-          ? join(relativePath, entry.name)
-          : entry.name;
+        const rel = relativePath ? join(relativePath, entry.name) : entry.name;
 
         if (entry.isFile() && !entry.name.endsWith(".invalid")) {
-          // Include .md files from anywhere
           if (entry.name.endsWith(".md")) {
-            files.push(relativeEntryPath);
-          }
-          // Include image files only from image/ directory
-          else if (inImageDir && isImageFile(entry.name)) {
-            files.push(relativeEntryPath);
+            files.push(rel);
+          } else if (
+            opts.includeImages &&
+            inImageDir &&
+            isImageFile(entry.name)
+          ) {
+            files.push(rel);
           }
         } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
-          // Track if we're entering the image directory
-          const isImageDir = entry.name === "image" && relativePath === "";
-          findSyncFiles(entryPath, relativeEntryPath, inImageDir || isImageDir);
+          const isImgDir = entry.name === "image" && relativePath === "";
+          walk(entryPath, rel, inImageDir || isImgDir);
         }
       }
     };
 
-    findSyncFiles(this.syncPath);
+    walk(this.syncPath);
     return files;
-  }
-
-  /**
-   * Calculate content hash
-   */
-  calculateContentHash(content: string): string {
-    return computeContentHash(content);
   }
 
   /**
    * Ensure directory structure exists
    */
   async ensureDirectoryStructure(entityTypes: string[]): Promise<void> {
-    // Create sync directory if it doesn't exist
     if (!existsSync(this.syncPath)) {
       mkdirSync(this.syncPath, { recursive: true });
     }
 
-    // Create subdirectories for registered entity types
     for (const entityType of entityTypes) {
       if (entityType !== "base") {
         const dir = join(this.syncPath, entityType);
@@ -422,7 +328,7 @@ export class FileOperations {
    * Uses stored contentHash from existing entity for efficiency
    */
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
-    const newHash = this.calculateContentHash(newEntity.content);
+    const newHash = computeContentHash(newEntity.content);
     return existing.contentHash !== newHash;
   }
 
@@ -469,17 +375,11 @@ export class FileOperations {
     return { files, stats };
   }
 
-  /**
-   * Check if sync directory exists
-   */
   syncDirectoryExists(): boolean {
     return existsSync(this.syncPath);
   }
 
-  /**
-   * Check if a file exists
-   */
-  async fileExists(filePath: string): Promise<boolean> {
+  fileExists(filePath: string): boolean {
     return existsSync(filePath);
   }
 }

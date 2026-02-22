@@ -3,7 +3,7 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { IEntityService, BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -12,25 +12,23 @@ import {
 describe("Invalid Entity Handling", () => {
   let dirSync: DirectorySync;
   let testDir: string;
-  let mockEntityService: IEntityService;
+  let mockEntityService: ReturnType<typeof createMockEntityService>;
   let deserializeError: Error | null = null;
 
   beforeEach(() => {
-    // Create a unique test directory
     testDir = join(tmpdir(), `test-invalid-entity-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
 
-    // Create mock entity service using factory, then configure for this test
-    mockEntityService = createMockEntityService();
+    mockEntityService = createMockEntityService({
+      entityTypes: ["note", "summary", "topic"],
+    });
 
     spyOn(mockEntityService, "serializeEntity").mockImplementation(
-      (entity: BaseEntity): string => {
-        return `# ${entity.id}\n\n${entity.content}`;
-      },
+      (entity: BaseEntity): string => `# ${entity.id}\n\n${entity.content}`,
     );
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(
-      (_content: string, _entityType: string): Partial<BaseEntity> => {
+      (): Partial<BaseEntity> => {
         if (deserializeError) {
           throw deserializeError;
         }
@@ -38,80 +36,6 @@ describe("Invalid Entity Handling", () => {
       },
     );
 
-    spyOn(mockEntityService, "getEntity").mockImplementation(
-      async () => null, // No existing entities
-    );
-
-    spyOn(mockEntityService, "createEntity").mockImplementation(
-      async (
-        entity: Partial<BaseEntity>,
-      ): Promise<{ entityId: string; jobId: string }> => {
-        return { entityId: entity.id ?? "test-id", jobId: "test-job" };
-      },
-    );
-
-    spyOn(mockEntityService, "updateEntity").mockImplementation(
-      async (
-        _entity: BaseEntity,
-      ): Promise<{ entityId: string; jobId: string }> => {
-        return { entityId: _entity.id, jobId: "test-job" };
-      },
-    );
-
-    spyOn(mockEntityService, "upsertEntity").mockImplementation(
-      async (
-        entity: Partial<BaseEntity>,
-      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
-        return {
-          entityId: entity.id ?? "test-id",
-          jobId: "test-job",
-          created: true,
-        };
-      },
-    );
-
-    spyOn(mockEntityService, "deleteEntity").mockImplementation(
-      async (_entityType: string, _id: string): Promise<boolean> => {
-        return true;
-      },
-    );
-
-    spyOn(mockEntityService, "listEntities").mockImplementation(async () => []);
-
-    spyOn(mockEntityService, "search").mockImplementation(async () => []);
-
-    spyOn(mockEntityService, "getEntityTypes").mockImplementation(
-      (): string[] => {
-        return ["note", "summary", "topic"];
-      },
-    );
-
-    spyOn(mockEntityService, "hasEntityType").mockImplementation(
-      (entityType: string): boolean => {
-        return ["note", "summary", "topic"].includes(entityType);
-      },
-    );
-
-    spyOn(mockEntityService, "getAsyncJobStatus").mockImplementation(
-      async (
-        _jobId: string,
-      ): Promise<{ status: "completed"; progress: number }> => {
-        return { status: "completed" as const, progress: 100 };
-      },
-    );
-
-    spyOn(mockEntityService, "storeEmbedding").mockImplementation(
-      async (_data: {
-        entityId: string;
-        entityType: string;
-        embedding: Float32Array;
-        contentHash: string;
-      }): Promise<void> => {
-        // Mock implementation - does nothing
-      },
-    );
-
-    // Create directory sync instance
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
@@ -120,7 +44,6 @@ describe("Invalid Entity Handling", () => {
   });
 
   afterEach(() => {
-    // Clean up test directory
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }

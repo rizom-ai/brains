@@ -5,6 +5,7 @@ import type {
   BaseEntity,
 } from "@brains/plugins";
 import { ServicePlugin, createId } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
 import { DirectorySync } from "./lib/directory-sync";
 import { existsSync, readdirSync, mkdirSync, copyFileSync } from "fs";
 import { execSync } from "child_process";
@@ -28,10 +29,6 @@ import { createDirectorySyncTools } from "./tools";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
-/**
- * Directory Sync plugin that extends BasePlugin
- * Synchronizes brain entities with a directory structure
- */
 export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
 
@@ -46,27 +43,22 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     return this.directorySync;
   }
 
-  /**
-   * Initialize the plugin
-   */
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     const { logger, entityService } = context;
 
-    // Register our template for directory sync status
     context.templates.register({
       status: {
         name: "status",
         description: "Directory synchronization status",
         schema: directorySyncStatusSchema,
         basePrompt: "",
-        formatter: new DirectorySyncStatusFormatter(), // Use status formatter for template
+        formatter: new DirectorySyncStatusFormatter(),
         requiredPermission: "anchor",
       },
     });
 
-    // Create DirectorySync instance using syncPath override or centralized data directory
     const syncPath = this.config.syncPath ?? context.dataDir;
     this.directorySync = new DirectorySync({
       syncPath,
@@ -79,7 +71,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       logger,
     });
 
-    // Initialize directory structure only (seed content is handled after plugins:ready)
     try {
       await this.directorySync.initializeDirectory();
       this.logger.debug("Directory structure initialized", {
@@ -87,46 +78,33 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       });
     } catch (error) {
       this.logger.error("Failed to initialize directory", error);
-      throw error; // Fail plugin registration if init fails
+      throw error;
     }
 
-    // Register job handlers for async operations
     await this.registerJobHandlers(context);
 
-    // Setup auto-sync if enabled (bidirectional sync)
     if (this.config.autoSync) {
-      // Database → Files
       this.setupAutoSync(context);
-      // Files → Database
       this.setupFileWatcher(context);
-      // File watching is started automatically in DirectorySync.initialize()
     }
 
-    // Queue initial sync after git-sync pulls (or immediately if git-sync not enabled)
     if (this.config.initialSync) {
       let initialSyncStarted = false;
       let gitSyncEnabled = false;
 
-      // Helper to run initial sync (only once)
       const runInitialSync = async (): Promise<void> => {
         if (initialSyncStarted) return;
         initialSyncStarted = true;
 
-        // Copy seed content AFTER git-sync has pulled (if enabled)
-        // This ensures we can reliably detect if git data exists and skip seed content
         if (this.config.seedContent) {
           await this.copySeedContentIfNeeded(syncPath);
         }
 
         await this.queueSyncJob(context, "initial");
 
-        // Always do initial sync (bidirectional) even if queueSyncJob says empty
-        // This ensures seed content is loaded into DB before services initialize
+        // Full bidirectional sync ensures seed content is loaded into DB
         try {
           const directorySync = this.requireDirectorySync();
-
-          // Do full bidirectional sync: Files → DB, then DB → Files
-          // This imports seed content and ensures everything is in sync
           this.logger.debug("Starting initial bidirectional sync");
           const syncResult = await directorySync.sync();
           this.logger.debug("Initial sync completed", {
@@ -134,7 +112,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             jobCount: syncResult.import.jobIds.length,
           });
 
-          // Wait for all embedding jobs to complete before initializing services
           if (syncResult.import.jobIds.length > 0) {
             this.logger.debug(
               "Waiting for embedding generation to complete for imported entities",
@@ -147,8 +124,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
             this.logger.debug("All embedding jobs completed");
           }
 
-          // Emit message when initial sync AND embedding jobs complete
-          // Use broadcast to ensure ALL handlers are called (not just the first one)
           await context.messaging.send(
             "sync:initial:completed",
             { success: true },
@@ -167,7 +142,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         }
       };
 
-      // Listen for git-sync registration - if received, we know to wait for pull
       context.messaging.subscribe("git:sync:registered", async () => {
         this.logger.debug(
           "git:sync:registered received, will wait for git:pull:completed",
@@ -176,15 +150,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         return { success: true };
       });
 
-      // Listen for git:pull:completed - this means git-sync has pulled remote data
-      // and we can safely import files to DB
       context.messaging.subscribe("git:pull:completed", async () => {
         this.logger.debug("git:pull:completed received, starting initial sync");
         await runInitialSync();
         return { success: true };
       });
 
-      // If git-sync is NOT enabled, proceed immediately on system:plugins:ready
       context.messaging.subscribe("system:plugins:ready", async () => {
         if (gitSyncEnabled) {
           this.logger.debug(
@@ -200,18 +171,13 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       });
     }
 
-    // Register message handlers for plugin communication
     this.registerMessageHandlers(context);
   }
 
-  /**
-   * Copy seed content if the data directory is empty
-   */
   private async copySeedContentIfNeeded(dataDir: string): Promise<void> {
     const brainDataPath = resolve(process.cwd(), dataDir);
     const seedContentPath = resolve(process.cwd(), "seed-content");
 
-    // Check if brain-data is empty
     const isEmpty = this.isBrainDataEmpty(brainDataPath);
 
     if (isEmpty && existsSync(seedContentPath)) {
@@ -245,15 +211,13 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
 
     const files = readdirSync(brainDataPath);
-    // Check for content files (excluding .git and .gitkeep)
-    const nonGitFiles = files.filter((f) => f !== ".git" && f !== ".gitkeep");
+    const contentFiles = files.filter((f) => f !== ".git" && f !== ".gitkeep");
 
-    if (nonGitFiles.length > 0) {
-      return false; // Has content files
+    if (contentFiles.length > 0) {
+      return false;
     }
 
-    // Check if .git exists with a remote configured
-    // If so, git-sync will pull real data - don't use seed content
+    // If .git has a remote, git-sync will pull real data -- skip seed content
     if (this.hasGitRemote(brainDataPath)) {
       this.logger.debug(
         "Git repository with remote detected - skipping seed content",
@@ -265,9 +229,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     return true;
   }
 
-  /**
-   * Check if a directory has a git repository with a remote configured
-   */
   private hasGitRemote(dirPath: string): boolean {
     const gitDir = join(dirPath, ".git");
     if (!existsSync(gitDir)) {
@@ -275,23 +236,17 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
 
     try {
-      // Check git config for remotes
       const result = execSync("git remote", {
         cwd: dirPath,
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "pipe"],
       });
-      // If there's any remote configured, return true
       return result.trim().length > 0;
     } catch {
-      // Git command failed - assume no remote
       return false;
     }
   }
 
-  /**
-   * Recursively copy a directory
-   */
   private async copyDirectory(src: string, dest: string): Promise<void> {
     const entries = readdirSync(src, { withFileTypes: true });
 
@@ -310,35 +265,21 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
   }
 
-  /**
-   * Get the tools provided by this plugin
-   */
   protected override async getTools(): Promise<PluginTool[]> {
     const directorySync = this.requireDirectorySync();
     return createDirectorySyncTools(directorySync, this.getContext(), this.id);
   }
 
-  /**
-   * Shutdown the plugin
-   */
   protected override async onShutdown(): Promise<void> {
     this.directorySync?.stopWatching();
   }
 
-  /**
-   * Get the DirectorySync instance (for other plugins to use)
-   */
   public getDirectorySync(): DirectorySync | undefined {
     return this.directorySync;
   }
 
-  /**
-   * Configure the sync path (for other plugins to use)
-   */
   public async configure(options: { syncPath: string }): Promise<void> {
-    this.requireDirectorySync(); // Verify it's initialized
-
-    // Update the sync path
+    this.requireDirectorySync();
     const context = this.getContext();
     this.directorySync = new DirectorySync({
       ...this.config,
@@ -351,13 +292,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     this.logger.info("Directory sync reconfigured", { path: options.syncPath });
   }
 
-  /**
-   * Register message handlers for inter-plugin communication
-   */
   private registerMessageHandlers(context: ServicePluginContext): void {
     const { subscribe } = context.messaging;
 
-    // Handler for export requests
     subscribe<{ entityTypes?: string[] }>(
       "entity:export:request",
       async (message) => {
@@ -378,7 +315,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    // Handler for import requests
     subscribe<{ paths?: string[] }>(
       "entity:import:request",
       async (message) => {
@@ -399,7 +335,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    // Handler for status requests
     subscribe("sync:status:request", async () => {
       try {
         const ds = this.requireDirectorySync();
@@ -421,7 +356,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       }
     });
 
-    // Handler for configuration requests
     subscribe<{ syncPath: string }>(
       "sync:configure:request",
       async (message) => {
@@ -433,7 +367,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         }
 
         try {
-          // Reconfigure directory sync with new path
           await this.configure({ syncPath: message.payload.syncPath });
 
           return {
@@ -453,14 +386,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    this.logger.debug(
-      "Registered message handlers for inter-plugin communication",
-    );
+    this.logger.debug("Registered message handlers");
   }
 
-  /**
-   * Queue a sync job as a batch for progress visibility
-   */
   private async queueSyncJob(
     context: ServicePluginContext,
     operation: "initial" | "scheduled" | "manual",
@@ -482,15 +410,11 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     return result.batchId;
   }
 
-  /**
-   * Setup auto-sync for entity events (Database → Files)
-   */
   private setupAutoSync(context: ServicePluginContext): void {
     const { subscribe } = context.messaging;
     const { entityService } = context;
     const directorySync = this.requireDirectorySync();
 
-    // Subscribe to entity:created
     subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
       "entity:created",
       async (message) => {
@@ -505,15 +429,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    // Subscribe to entity:updated
-    // IMPORTANT: We fetch the current entity from DB instead of using the event payload.
-    // This prevents stale data from old jobs overwriting current content.
+    // Fetch current entity from DB instead of using event payload to avoid stale data
     subscribe<{ entity: BaseEntity; entityType: string; entityId: string }>(
       "entity:updated",
       async (message) => {
         const { entityType, entityId } = message.payload;
 
-        // Fetch current entity from DB to avoid stale payload from old jobs
         const currentEntity = await entityService.getEntity(
           entityType,
           entityId,
@@ -535,7 +456,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       },
     );
 
-    // Subscribe to entity:deleted
     subscribe<{ entityId: string; entityType: string }>(
       "entity:deleted",
       async (message) => {
@@ -564,13 +484,9 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     });
   }
 
-  /**
-   * Setup file watcher with job queue integration
-   */
   private setupFileWatcher(context: ServicePluginContext): void {
     const directorySync = this.requireDirectorySync();
     directorySync.setJobQueueCallback(async (job: JobRequest) => {
-      // Use enqueueBatch for all file watcher operations to ensure progress visibility
       const operations = [
         {
           type: job.type,
@@ -591,25 +507,20 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     });
   }
 
-  /**
-   * Wait for a set of jobs to complete
-   */
   private async waitForJobs(
     context: ServicePluginContext,
     jobIds: string[],
     operationType: string,
   ): Promise<void> {
-    const maxWaitTime = 30000; // 30 seconds max
-    const checkInterval = 100; // Check every 100ms
+    const maxWaitTime = 30000;
+    const checkInterval = 100;
     const startTime = Date.now();
 
     while (Date.now() - startTime < maxWaitTime) {
-      // Check status of all jobs
       const statuses = await Promise.all(
         jobIds.map((id) => context.jobs.getStatus(id)),
       );
 
-      // Count job states
       let allComplete = true;
       let failedCount = 0;
       let completedCount = 0;
@@ -622,7 +533,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         } else if (status.status === "failed") {
           failedCount++;
         } else {
-          // Must be "completed" after narrowing
           completedCount++;
         }
       }
@@ -636,83 +546,71 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         return;
       }
 
-      // Wait before checking again
       await new Promise((resolve) => setTimeout(resolve, checkInterval));
     }
 
-    // Timeout - log warning but don't fail
     this.logger.warn(
       `Timeout waiting for ${operationType} jobs to complete after ${maxWaitTime}ms`,
     );
   }
 
-  /**
-   * Register job handlers for async operations
-   */
   protected override async registerJobHandlers(
     context: ServicePluginContext,
   ): Promise<void> {
-    const directorySync = this.requireDirectorySync();
+    const ds = this.requireDirectorySync();
+    const childLogger = (name: string): Logger => this.logger.child(name);
 
-    // Register sync job handler
-    const syncHandler = new DirectorySyncJobHandler(
-      this.logger.child("DirectorySyncJobHandler"),
-      context,
-      directorySync,
+    context.jobs.registerHandler(
+      "directory-sync",
+      new DirectorySyncJobHandler(
+        childLogger("DirectorySyncJobHandler"),
+        context,
+        ds,
+      ),
     );
-    context.jobs.registerHandler("directory-sync", syncHandler);
-
-    // Register export job handler
-    const exportHandler = new DirectoryExportJobHandler(
-      this.logger.child("DirectoryExportJobHandler"),
-      context,
-      directorySync,
+    context.jobs.registerHandler(
+      "directory-export",
+      new DirectoryExportJobHandler(
+        childLogger("DirectoryExportJobHandler"),
+        context,
+        ds,
+      ),
     );
-    context.jobs.registerHandler("directory-export", exportHandler);
-
-    // Register import job handler
-    const importHandler = new DirectoryImportJobHandler(
-      this.logger.child("DirectoryImportJobHandler"),
-      context,
-      directorySync,
+    context.jobs.registerHandler(
+      "directory-import",
+      new DirectoryImportJobHandler(
+        childLogger("DirectoryImportJobHandler"),
+        context,
+        ds,
+      ),
     );
-    context.jobs.registerHandler("directory-import", importHandler);
-
-    // Register delete job handler
-    const deleteHandler = new DirectoryDeleteJobHandler(
-      this.logger.child("DirectoryDeleteJobHandler"),
-      context,
-      directorySync,
-    );
-    context.jobs.registerHandler("directory-delete", deleteHandler);
-
-    // Register cover image conversion job handler (non-blocking image URL fetch)
-    const coverImageConversionHandler = new CoverImageConversionJobHandler(
-      context,
-      this.logger.child("CoverImageConversionJobHandler"),
+    context.jobs.registerHandler(
+      "directory-delete",
+      new DirectoryDeleteJobHandler(
+        childLogger("DirectoryDeleteJobHandler"),
+        context,
+        ds,
+      ),
     );
     context.jobs.registerHandler(
       "cover-image-convert",
-      coverImageConversionHandler,
-    );
-
-    // Register inline image conversion job handler (non-blocking)
-    const inlineImageConversionHandler = new InlineImageConversionJobHandler(
-      context,
-      this.logger.child("InlineImageConversionJobHandler"),
+      new CoverImageConversionJobHandler(
+        context,
+        childLogger("CoverImageConversionJobHandler"),
+      ),
     );
     context.jobs.registerHandler(
       "inline-image-convert",
-      inlineImageConversionHandler,
+      new InlineImageConversionJobHandler(
+        context,
+        childLogger("InlineImageConversionJobHandler"),
+      ),
     );
 
     this.logger.debug("Registered async job handlers");
   }
 }
 
-/**
- * Factory function for creating directory sync plugin
- */
 export function directorySync(
   config: Partial<DirectorySyncConfig> = {},
 ): Plugin {

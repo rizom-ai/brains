@@ -10,10 +10,6 @@ import {
   type IDirectorySync,
 } from "../types";
 
-/**
- * Job handler for async directory import operations
- * Processes file imports asynchronously with chunked processing
- */
 export class DirectoryImportJobHandler extends BaseJobHandler<
   "directory-import",
   DirectoryImportJobData,
@@ -22,9 +18,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
   private context: ServicePluginContext;
   private directorySync: IDirectorySync;
 
-  /**
-   * Create a new instance of the job handler
-   */
   constructor(
     logger: Logger,
     context: ServicePluginContext,
@@ -38,10 +31,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     this.directorySync = directorySync;
   }
 
-  /**
-   * Process directory import job
-   * Imports files in batches with progress tracking
-   */
   public async process(
     data: DirectoryImportJobData,
     jobId: string,
@@ -61,30 +50,25 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     };
 
     try {
-      // Get files to import
       const filesToImport =
         data.paths ?? this.directorySync.getAllMarkdownFiles();
 
-      // Log start
       this.logger.debug("Starting import", {
         jobId,
         totalFiles: filesToImport.length,
       });
 
-      // Report initial progress
       await progressReporter.report({
         message: `Starting import of ${filesToImport.length} files`,
         progress: 0,
         total: filesToImport.length,
       });
 
-      // Process files in batches
       const batchSize = data.batchSize ?? 100;
       for (let i = 0; i < filesToImport.length; i += batchSize) {
         const batch = filesToImport.slice(i, i + batchSize);
         await this.importBatch(batch, jobId, result, i, filesToImport.length);
 
-        // Report progress after each batch
         const processed = Math.min(i + batchSize, filesToImport.length);
         await progressReporter.report({
           message: `Imported ${processed}/${filesToImport.length} files (${result.imported} successful, ${result.failed} failed)`,
@@ -92,15 +76,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
           total: filesToImport.length,
         });
       }
-
-      // Log completion
-      this.logger.debug("Import completed", {
-        jobId,
-        imported: result.imported,
-        skipped: result.skipped,
-        failed: result.failed,
-        duration: Date.now() - startTime,
-      });
 
       this.logger.debug("Directory import job completed", {
         jobId,
@@ -117,9 +92,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     }
   }
 
-  /**
-   * Import a batch of files
-   */
   private async importBatch(
     batch: string[],
     jobId: string,
@@ -127,33 +99,28 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
     startIndex: number,
     totalFiles: number,
   ): Promise<void> {
-    // Process batch in parallel
     const batchPromises = batch.map(async (filePath) => {
       try {
         const rawEntity = await this.directorySync.fileOps.readEntity(filePath);
 
-        // Check if entity type is registered
         const entityTypes = this.context.entityService.getEntityTypes();
         if (!entityTypes.includes(rawEntity.entityType)) {
           result.skipped++;
           return { success: false, skipped: true };
         }
 
-        // Try to deserialize and import
         try {
           const parsedEntity = this.context.entityService.deserializeEntity(
             rawEntity.content,
             rawEntity.entityType,
           );
 
-          // Check if entity exists
           const existing = await this.context.entityService.getEntity(
             rawEntity.entityType,
             rawEntity.id,
           );
 
           if (existing) {
-            // Update if file is newer OR content has changed
             const existingTime = new Date(existing.updated).getTime();
             const newTime = rawEntity.updated.getTime();
             const fileContentHash = computeContentHash(rawEntity.content);
@@ -174,7 +141,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
               result.skipped++;
             }
           } else {
-            // Create new entity
             const entityCreate = {
               id: rawEntity.id,
               entityType: rawEntity.entityType,
@@ -189,7 +155,6 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
           }
           return { success: true };
         } catch {
-          // Deserialization failed
           result.skipped++;
           return { success: false, skipped: true };
         }

@@ -9,10 +9,6 @@ import {
   type IDirectorySync,
 } from "../types";
 
-/**
- * Job handler for async directory export operations
- * Processes entity exports asynchronously with chunked processing
- */
 export class DirectoryExportJobHandler extends BaseJobHandler<
   "directory-export",
   DirectoryExportJobData,
@@ -21,9 +17,6 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
   private context: ServicePluginContext;
   private directorySync: IDirectorySync;
 
-  /**
-   * Create a new instance of the job handler
-   */
   constructor(
     logger: Logger,
     context: ServicePluginContext,
@@ -37,10 +30,6 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     this.directorySync = directorySync;
   }
 
-  /**
-   * Process directory export job
-   * Exports entities in batches with progress tracking
-   */
   public async process(
     data: DirectoryExportJobData,
     jobId: string,
@@ -56,24 +45,20 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     };
 
     try {
-      // Get entity types to export
       const typesToExport =
         data.entityTypes ?? this.context.entityService.getEntityTypes();
 
-      // Log start
       this.logger.debug("Starting export", {
         jobId,
         entityTypes: typesToExport,
       });
 
-      // Report initial progress
       await progressReporter.report({
         message: `Starting export of ${typesToExport.length} entity types`,
         progress: 0,
         total: typesToExport.length,
       });
 
-      // Process each entity type
       for (const [index, entityType] of typesToExport.entries()) {
         await this.exportEntityType(
           entityType,
@@ -82,21 +67,12 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
           result,
         );
 
-        // Report progress after each entity type
         await progressReporter.report({
           message: `Exported ${index + 1}/${typesToExport.length} entity types (${result.exported} entities)`,
           progress: index + 1,
           total: typesToExport.length,
         });
       }
-
-      // Log completion
-      this.logger.debug("Export completed", {
-        jobId,
-        exported: result.exported,
-        failed: result.failed,
-        duration: Date.now() - startTime,
-      });
 
       this.logger.debug("Directory export job completed", {
         jobId,
@@ -112,9 +88,6 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     }
   }
 
-  /**
-   * Export entities of a specific type in batches
-   */
   private async exportEntityType(
     entityType: string,
     batchSize: number,
@@ -125,7 +98,6 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
     let hasMore = true;
 
     while (hasMore) {
-      // Get batch of entities
       const entities = await this.context.entityService.listEntities(
         entityType,
         {
@@ -139,7 +111,6 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
         break;
       }
 
-      // Process batch in parallel
       const batchPromises = entities.map(async (entity) => {
         const exportResult =
           await this.directorySync.processEntityExport(entity);
@@ -158,10 +129,8 @@ export class DirectoryExportJobHandler extends BaseJobHandler<
         return exportResult;
       });
 
-      // Process batch in parallel
       await Promise.all(batchPromises);
 
-      // Log progress
       this.logger.debug("Export progress", {
         jobId,
         entityType,

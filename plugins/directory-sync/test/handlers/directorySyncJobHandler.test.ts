@@ -1,45 +1,19 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { DirectorySyncJobHandler } from "../../src/handlers/directorySyncJobHandler";
-import type { IDirectorySync } from "../../src/types";
 import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
+import { createMockDirectorySync } from "../fixtures";
 
 describe("DirectorySyncJobHandler", () => {
   let handler: DirectorySyncJobHandler;
-  let mockDirectorySync: IDirectorySync;
 
   beforeEach(() => {
-    const mockContext = createMockServicePluginContext();
-
-    mockDirectorySync = {
-      importEntitiesWithProgress: mock(() =>
-        Promise.resolve({
-          imported: 0,
-          skipped: 0,
-          failed: 0,
-          quarantined: 0,
-          quarantinedFiles: [],
-          errors: [],
-          jobIds: [],
-        }),
-      ),
-      exportEntitiesWithProgress: mock(() =>
-        Promise.resolve({ exported: 0, failed: 0, errors: [] }),
-      ),
-      getAllMarkdownFiles: mock(() => []),
-      processEntityExport: mock(() => Promise.resolve({ success: true })),
-      fileOps: {
-        readEntity: mock(() => Promise.resolve({} as never)),
-        parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
-      },
-    };
-
     handler = new DirectorySyncJobHandler(
       createSilentLogger("test"),
-      mockContext,
-      mockDirectorySync,
+      createMockServicePluginContext(),
+      createMockDirectorySync(),
     );
   });
 

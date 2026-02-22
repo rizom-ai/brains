@@ -16,10 +16,7 @@ import {
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { ProgressReporter, type ProgressNotification } from "@brains/utils";
-
-// Valid 1x1 PNG image as base64 data URL
-const VALID_PNG_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("InlineImageConversionJobHandler", () => {
   let handler: InlineImageConversionJobHandler;

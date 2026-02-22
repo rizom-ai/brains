@@ -51,7 +51,6 @@ describe("EventHandler", () => {
             paths: ["/test/file.md"],
           },
         });
-        // Logger is silent, no need to test its calls
       });
 
       it("should queue import job for 'change' event", async () => {
@@ -82,7 +81,6 @@ describe("EventHandler", () => {
             filePath: "/test/topic/technology/ai.md",
           },
         });
-        // Logger is silent, no need to test its calls
       });
 
       it("should queue delete job for 'unlink' event", async () => {
@@ -117,7 +115,6 @@ describe("EventHandler", () => {
         await eventHandler.handleFileChange("delete", "/test/file.md");
 
         expect(mockJobQueueCallback).not.toHaveBeenCalled();
-        // Logger is silent, no need to test its calls
       });
 
       it("should handle parseEntityFromPath errors gracefully", async () => {
@@ -130,7 +127,6 @@ describe("EventHandler", () => {
         await eventHandler.handleFileChange("delete", "/test/invalid.md");
 
         expect(mockJobQueueCallback).not.toHaveBeenCalled();
-        // Logger is silent, no need to test its calls
       });
 
       it("should handle unknown events", async () => {
@@ -138,15 +134,12 @@ describe("EventHandler", () => {
 
         expect(mockJobQueueCallback).not.toHaveBeenCalled();
         expect(mockImportFn).not.toHaveBeenCalled();
-        // Logger is silent, no need to test its calls
       });
 
       it("should handle errors in event processing", async () => {
         mockJobQueueCallback.mockRejectedValue(new Error("Queue failed"));
 
         await eventHandler.handleFileChange("add", "/test/file.md");
-
-        // Logger is silent, no need to test its calls
       });
     });
   });

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
-import type { IDirectorySync } from "../../src/types";
 import {
   createSilentLogger,
   createMockServicePluginContext,
@@ -8,10 +7,10 @@ import {
 import type { IEntityService } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
+import { createMockDirectorySync } from "../fixtures";
 
 describe("DirectoryImportJobHandler", () => {
   let handler: DirectoryImportJobHandler;
-  let mockDirectorySync: IDirectorySync;
 
   beforeEach(() => {
     const mockContext = createMockServicePluginContext({
@@ -24,41 +23,10 @@ describe("DirectoryImportJobHandler", () => {
       },
     });
 
-    mockDirectorySync = {
-      getAllMarkdownFiles: mock(() => []),
-      fileOps: {
-        readEntity: mock(() =>
-          Promise.resolve({
-            entityType: "note",
-            id: "test",
-            content: "test",
-            created: new Date(),
-            updated: new Date(),
-          }),
-        ),
-        parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
-      },
-      importEntitiesWithProgress: mock(() =>
-        Promise.resolve({
-          imported: 0,
-          skipped: 0,
-          failed: 0,
-          quarantined: 0,
-          quarantinedFiles: [],
-          errors: [],
-          jobIds: [],
-        }),
-      ),
-      exportEntitiesWithProgress: mock(() =>
-        Promise.resolve({ exported: 0, failed: 0, errors: [] }),
-      ),
-      processEntityExport: mock(() => Promise.resolve({ success: true })),
-    };
-
     handler = new DirectoryImportJobHandler(
       createSilentLogger("test"),
       mockContext,
-      mockDirectorySync,
+      createMockDirectorySync(),
     );
   });
 
@@ -180,7 +148,7 @@ slug: test-series
         entityService: mockEntityService as unknown as IEntityService,
       });
 
-      const mockDirSync: IDirectorySync = {
+      const mockDirSync = createMockDirectorySync({
         getAllMarkdownFiles: mock(() => ["/path/to/series.md"]),
         fileOps: {
           readEntity: mock(() => Promise.resolve(fileEntity)),
@@ -189,22 +157,7 @@ slug: test-series
             id: "series-test-series",
           })),
         },
-        importEntitiesWithProgress: mock(() =>
-          Promise.resolve({
-            imported: 0,
-            skipped: 0,
-            failed: 0,
-            quarantined: 0,
-            quarantinedFiles: [],
-            errors: [],
-            jobIds: [],
-          }),
-        ),
-        exportEntitiesWithProgress: mock(() =>
-          Promise.resolve({ exported: 0, failed: 0, errors: [] }),
-        ),
-        processEntityExport: mock(() => Promise.resolve({ success: true })),
-      };
+      });
 
       const testHandler = new DirectoryImportJobHandler(
         createSilentLogger("test"),

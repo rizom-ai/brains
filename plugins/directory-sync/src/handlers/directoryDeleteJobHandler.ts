@@ -9,10 +9,6 @@ import {
   type DirectoryDeleteJobData,
 } from "../types";
 
-/**
- * Job handler for async directory delete operations
- * Processes entity deletions when files are removed from disk
- */
 export class DirectoryDeleteJobHandler extends BaseJobHandler<
   "directory-delete",
   DirectoryDeleteJobData,
@@ -20,9 +16,6 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
 > {
   private context: ServicePluginContext;
 
-  /**
-   * Create a new instance of the job handler
-   */
   constructor(
     logger: Logger,
     context: ServicePluginContext,
@@ -35,10 +28,6 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     this.context = context;
   }
 
-  /**
-   * Process directory delete job
-   * Deletes an entity from the database when its file is removed
-   */
   public async process(
     data: DirectoryDeleteJobData,
     _jobId: string,
@@ -59,7 +48,6 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     });
 
     try {
-      // Delete the entity from the database
       const deleted = await this.context.entityService.deleteEntity(
         validatedData.entityType,
         validatedData.entityId,

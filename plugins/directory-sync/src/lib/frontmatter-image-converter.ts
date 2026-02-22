@@ -8,11 +8,7 @@ import {
   generateMarkdown,
   z,
 } from "@brains/utils";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
+import { getOrCreateImageEntity } from "./image-entity-helper";
 
 /**
  * Result of image URL conversion
@@ -167,7 +163,7 @@ export class FrontmatterImageConverter {
 
     // Convert the image URL
     try {
-      const imageId = await this.getOrCreateImageEntity(imageContext);
+      const imageId = await this.createImageEntity(imageContext);
 
       // Clone frontmatter and replace coverImageUrl with coverImageId
       const newFrontmatter = { ...frontmatter };
@@ -189,62 +185,19 @@ export class FrontmatterImageConverter {
     }
   }
 
-  /**
-   * Get existing image entity by sourceUrl or create new one
-   */
-  private async getOrCreateImageEntity(context: ImageContext): Promise<string> {
+  private async createImageEntity(context: ImageContext): Promise<string> {
     const { postTitle, postSlug, sourceUrl, customAlt } = context;
-
-    // Check for existing image with this sourceUrl (deduplication)
-    const existing = await this.entityService.listEntities("image", {
-      filter: { metadata: { sourceUrl } },
-      limit: 1,
-    });
-
-    if (existing[0]) {
-      this.logger.debug("Reusing existing image entity", {
-        sourceUrl,
-        imageId: existing[0].id,
-      });
-      return existing[0].id;
-    }
-
-    // Fetch the image and create new entity
-    const dataUrl = await this.fetcher(sourceUrl);
-
-    // Extract format and dimensions from the image data
-    const { base64 } = parseDataUrl(dataUrl);
-    const format = detectImageFormat(base64);
-    const dimensions = detectImageDimensions(base64);
-
-    if (!format || !dimensions) {
-      throw new Error("Could not detect image format or dimensions");
-    }
-
-    // Generate ID and metadata from post context
-    const imageId = `${postSlug}-cover`;
     const imageTitle = `Cover image for ${postTitle}`;
-    const imageAlt = customAlt ?? imageTitle;
-
-    const result = await this.entityService.createEntity({
-      id: imageId,
-      entityType: "image",
-      content: dataUrl,
-      metadata: {
+    return getOrCreateImageEntity(
+      {
+        id: `${postSlug}-cover`,
         title: imageTitle,
-        alt: imageAlt,
-        format,
-        width: dimensions.width,
-        height: dimensions.height,
+        alt: customAlt ?? imageTitle,
         sourceUrl,
       },
-    });
-
-    this.logger.debug("Created image entity from URL", {
-      sourceUrl,
-      imageId: result.entityId,
-    });
-
-    return result.entityId;
+      this.entityService,
+      this.fetcher,
+      this.logger,
+    );
   }
 }

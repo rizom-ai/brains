@@ -6,12 +6,8 @@ import {
   extractMarkdownImages,
   type ExtractedImage,
 } from "@brains/utils";
-import {
-  parseDataUrl,
-  detectImageFormat,
-  detectImageDimensions,
-} from "@brains/image";
 import type { ImageFetcher } from "./frontmatter-image-converter";
+import { getOrCreateImageEntity } from "./image-entity-helper";
 
 /**
  * Detection info for a single inline image
@@ -134,10 +130,7 @@ export class MarkdownImageConverter {
 
     for (const detection of detections) {
       try {
-        const imageId = await this.getOrCreateImageEntity(
-          detection,
-          imageIndex++,
-        );
+        const imageId = await this.createImageEntity(detection, imageIndex++);
 
         // Replace the original markdown with entity reference
         // Preserve the alt text
@@ -168,65 +161,21 @@ export class MarkdownImageConverter {
     };
   }
 
-  /**
-   * Get existing image entity by sourceUrl or create new one
-   */
-  private async getOrCreateImageEntity(
+  private async createImageEntity(
     detection: InlineImageDetection,
     index: number,
   ): Promise<string> {
     const { sourceUrl, alt, postSlug } = detection;
-
-    // Check for existing image with this sourceUrl (deduplication)
-    const existing = await this.entityService.listEntities("image", {
-      filter: { metadata: { sourceUrl } },
-      limit: 1,
-    });
-
-    if (existing[0]) {
-      this.logger.debug("Reusing existing image entity", {
-        sourceUrl,
-        imageId: existing[0].id,
-      });
-      return existing[0].id;
-    }
-
-    // Fetch the image and create new entity
-    const dataUrl = await this.fetcher(sourceUrl);
-
-    // Extract format and dimensions from the image data
-    const { base64 } = parseDataUrl(dataUrl);
-    const format = detectImageFormat(base64);
-    const dimensions = detectImageDimensions(base64);
-
-    if (!format || !dimensions) {
-      throw new Error("Could not detect image format or dimensions");
-    }
-
-    // Generate unique ID from post slug and index
-    const imageId = `${postSlug}-inline-${index}`;
-    const imageTitle = alt || `Inline image ${index + 1} for ${postSlug}`;
-    const imageAlt = alt || "";
-
-    const result = await this.entityService.createEntity({
-      id: imageId,
-      entityType: "image",
-      content: dataUrl,
-      metadata: {
-        title: imageTitle,
-        alt: imageAlt,
-        format,
-        width: dimensions.width,
-        height: dimensions.height,
+    return getOrCreateImageEntity(
+      {
+        id: `${postSlug}-inline-${index}`,
+        title: alt || `Inline image ${index + 1} for ${postSlug}`,
+        alt: alt || "",
         sourceUrl,
       },
-    });
-
-    this.logger.debug("Created image entity from inline URL", {
-      sourceUrl,
-      imageId: result.entityId,
-    });
-
-    return result.entityId;
+      this.entityService,
+      this.fetcher,
+      this.logger,
+    );
   }
 }

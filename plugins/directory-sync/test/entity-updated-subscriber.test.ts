@@ -9,15 +9,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, readFileSync, mkdirSync } from "fs";
 
-/**
- * Test for entity:updated subscriber preserving coverImageId
- *
- * This verifies that when an entity is updated (e.g., via import),
- * the entity:updated subscriber correctly exports the entity with
- * all frontmatter fields including coverImageId.
- */
-
-// Series adapter that preserves coverImageId
+// Series adapter that preserves coverImageId in frontmatter
 class SeriesTestAdapter implements EntityAdapter<BaseEntity> {
   public readonly entityType = "series";
   public readonly schema = baseEntitySchema;
@@ -150,23 +142,12 @@ slug: test-series
       // Give subscriber time to process
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Check if file was written with coverImageId preserved
       const filePath = join(seriesDir, `${entity.id}.md`);
+      expect(existsSync(filePath)).toBe(true);
 
-      if (existsSync(filePath)) {
-        const fileContent = readFileSync(filePath, "utf-8");
-        expect(fileContent).toContain("coverImageId: series-test-cover");
-        expect(fileContent).toContain("name: Test Series");
-      } else {
-        // If file doesn't exist, the subscriber didn't write it
-        // This could indicate an issue with the test setup or the subscriber
-        console.log("File not created at:", filePath);
-        console.log("Sync path exists:", existsSync(syncPath));
-        console.log("Series dir exists:", existsSync(seriesDir));
-
-        // For now, we expect the file to be created
-        expect(existsSync(filePath)).toBe(true);
-      }
+      const fileContent = readFileSync(filePath, "utf-8");
+      expect(fileContent).toContain("coverImageId: series-test-cover");
+      expect(fileContent).toContain("name: Test Series");
     });
 
     it("should write correct content when entity has coverImageId in frontmatter", async () => {
@@ -206,19 +187,14 @@ Some content here.`;
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const filePath = join(seriesDir, `${entity.id}.md`);
+      expect(existsSync(filePath)).toBe(true);
 
-      if (existsSync(filePath)) {
-        const fileContent = readFileSync(filePath, "utf-8");
-
-        // Verify all frontmatter fields are preserved
-        expect(fileContent).toContain("coverImageId: series-ecosystem-cover");
-        expect(fileContent).toContain("name: Ecosystem Architecture");
-        expect(fileContent).toContain("slug: ecosystem-architecture");
-        expect(fileContent).toContain("# Ecosystem Architecture");
-        expect(fileContent).toContain("Some content here.");
-      } else {
-        expect(existsSync(filePath)).toBe(true);
-      }
+      const fileContent = readFileSync(filePath, "utf-8");
+      expect(fileContent).toContain("coverImageId: series-ecosystem-cover");
+      expect(fileContent).toContain("name: Ecosystem Architecture");
+      expect(fileContent).toContain("slug: ecosystem-architecture");
+      expect(fileContent).toContain("# Ecosystem Architecture");
+      expect(fileContent).toContain("Some content here.");
     });
   });
 

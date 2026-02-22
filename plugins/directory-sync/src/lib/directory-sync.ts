@@ -31,9 +31,6 @@ import { EventHandler } from "./event-handler";
 import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
 
-/**
- * DirectorySync options schema
- */
 export const directorySyncOptionsSchema = z.object({
   syncPath: z.string(),
   autoSync: z.boolean().optional(),
@@ -52,9 +49,6 @@ export type DirectorySyncOptions = z.infer<
   logger: Logger;
 };
 
-/**
- * DirectorySync handles synchronization of entities with a directory structure
- */
 export class DirectorySync {
   private entityService: IEntityService;
   private logger: Logger;
@@ -73,7 +67,6 @@ export class DirectorySync {
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
 
   constructor(options: DirectorySyncOptions) {
-    // Validate options (excluding the complex types)
     const { entityService, logger, ...validatableOptions } = options;
     directorySyncOptionsSchema
       .omit({ entityService: true, logger: true })
@@ -82,7 +75,6 @@ export class DirectorySync {
     this.entityService = entityService;
     this.logger = logger.child("DirectorySync");
 
-    // Resolve sync path - support both relative and absolute paths
     this.syncPath = isAbsolute(options.syncPath)
       ? options.syncPath
       : resolve(process.cwd(), options.syncPath);
@@ -116,46 +108,29 @@ export class DirectorySync {
     });
   }
 
-  /**
-   * Initialize directory structure
-   */
   async initialize(): Promise<void> {
     this.logger.debug("Initializing directory sync", { path: this.syncPath });
+    this.ensureSyncPath();
 
-    // Ensure sync path exists
-    if (!existsSync(this.syncPath)) {
-      mkdirSync(this.syncPath, { recursive: true });
-      this.logger.info("Created sync directory", {
-        path: this.syncPath,
-      });
-    }
-
-    // Start file watching if autoSync enabled (for bidirectional sync)
     if (this.autoSync) {
       void this.startWatching();
     }
   }
 
-  /**
-   * Initialize directory structure only (no sync or watching)
-   */
   async initializeDirectory(): Promise<void> {
     this.logger.debug("Initializing directory structure", {
       path: this.syncPath,
     });
+    this.ensureSyncPath();
+  }
 
-    // Ensure sync path exists
+  private ensureSyncPath(): void {
     if (!existsSync(this.syncPath)) {
       mkdirSync(this.syncPath, { recursive: true });
-      this.logger.info("Created sync directory", {
-        path: this.syncPath,
-      });
+      this.logger.info("Created sync directory", { path: this.syncPath });
     }
   }
 
-  /**
-   * Set job queue callback for async operations
-   */
   setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
     this.jobQueueCallback = callback;
   }
@@ -172,13 +147,8 @@ export class DirectorySync {
     const startTime = Date.now();
     this.logger.debug("Starting sync (import only)");
 
-    // Import from directory
+    // Export is handled by entity:created/entity:updated subscribers when autoSync is enabled
     const importResult = await this.importEntities();
-
-    // NOTE: Export is NOT called here. When autoSync is enabled, the
-    // entity:created/entity:updated subscribers handle export after each
-    // entity is saved to DB. This ensures files are written with the
-    // correct content after jobs complete.
 
     const duration = Date.now() - startTime;
     this.lastSync = new Date();
@@ -195,22 +165,14 @@ export class DirectorySync {
     };
   }
 
-  /**
-   * Process export for a single entity
-   * Checks if file exists and either writes or deletes entity accordingly
-   */
   async processEntityExport(entity: BaseEntity): Promise<{
     success: boolean;
     deleted?: boolean;
     error?: string;
   }> {
     try {
-      // Check if file exists
       const filePath = this.fileOperations.getEntityFilePath(entity);
-      const fileExists = await this.fileOperations.fileExists(filePath);
-
-      if (!fileExists) {
-        // File was deleted - delete entity from DB if configured
+      if (!this.fileOperations.fileExists(filePath)) {
         if (this.deleteOnFileRemoval) {
           this.logger.debug("File missing, deleting entity from DB", {
             entityId: entity.id,
@@ -221,7 +183,6 @@ export class DirectorySync {
         }
       }
 
-      // File exists or deleteOnFileRemoval is false - write/update it
       await this.fileOperations.writeEntity(entity);
       return { success: true };
     } catch (error) {
@@ -232,9 +193,6 @@ export class DirectorySync {
     }
   }
 
-  /**
-   * Export all entities to directory
-   */
   async exportEntities(entityTypes?: string[]): Promise<ExportResult> {
     const typesToExport =
       entityTypes ?? this.entityTypes ?? this.entityService.getEntityTypes();
@@ -249,10 +207,9 @@ export class DirectorySync {
       errors: [],
     };
 
-    // For each entity type, get all entities and save to markdown
     for (const entityType of typesToExport) {
       const entities = await this.entityService.listEntities(entityType, {
-        limit: 1000, // Get all entities
+        limit: 1000,
       });
 
       this.logger.debug("Processing entity type for export", {
@@ -291,9 +248,6 @@ export class DirectorySync {
     return result;
   }
 
-  /**
-   * Import entities from directory with progress reporting
-   */
   async importEntitiesWithProgress(
     paths: string[] | undefined,
     reporter: ProgressReporter,
@@ -307,9 +261,6 @@ export class DirectorySync {
     );
   }
 
-  /**
-   * Export entities to directory with progress reporting
-   */
   async exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
     reporter: ProgressReporter,
@@ -323,14 +274,10 @@ export class DirectorySync {
     );
   }
 
-  /**
-   * Import a single file
-   */
   private async importFile(
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
-    // Skip .invalid files
     if (filePath.endsWith(".invalid")) {
       return;
     }
@@ -338,7 +285,6 @@ export class DirectorySync {
     try {
       const rawEntity = await this.fileOperations.readEntity(filePath);
 
-      // Skip if entity type is not in our filter
       if (
         this.entityTypes &&
         !this.entityTypes.includes(rawEntity.entityType)
@@ -347,7 +293,6 @@ export class DirectorySync {
         return;
       }
 
-      // Try to process the entity
       await this.processEntityImport(rawEntity, filePath, result);
     } catch {
       const importError = new Error(`Failed to import entity from file`);
@@ -363,15 +308,10 @@ export class DirectorySync {
     }
   }
 
-  /**
-   * Check if an error is a validation error (should quarantine)
-   * vs a transient error (should not quarantine)
-   */
   private isValidationError(error: unknown): boolean {
     if (error instanceof z.ZodError) {
       return true;
     }
-    // Check for error messages that indicate validation issues
     const message = error instanceof Error ? error.message : String(error);
     return (
       message.includes("invalid_type") ||
@@ -382,47 +322,45 @@ export class DirectorySync {
     );
   }
 
-  /**
-   * Queue cover image conversion job if content has coverImageUrl that needs conversion
-   * This is non-blocking - just queues a job and returns immediately
-   */
-  private queueCoverImageConversionIfNeeded(
-    content: string,
-    filePath: string,
-  ): void {
-    // Skip if no job queue callback configured
-    if (!this.jobQueueCallback) {
-      return;
-    }
-
-    // Detect if conversion is needed (sync, fast)
-    const detection = this.coverImageConverter.detectCoverImageUrl(content);
-    if (!detection) {
-      return;
-    }
-
-    // Get absolute path for the job
-    const fullPath = filePath.startsWith(this.syncPath)
+  private resolveFilePath(filePath: string): string {
+    return filePath.startsWith(this.syncPath)
       ? filePath
       : join(this.syncPath, filePath);
+  }
 
-    // Queue the conversion job (non-blocking)
-    this.jobQueueCallback({
-      type: "cover-image-convert",
-      data: {
-        filePath: fullPath,
-        sourceUrl: detection.sourceUrl,
-        postTitle: detection.postTitle,
-        postSlug: detection.postSlug,
-        customAlt: detection.customAlt,
-      },
-    }).catch((error) => {
-      // Log but don't fail - image conversion is best-effort
-      this.logger.warn("Failed to queue image conversion job", {
+  private queueJob(job: JobRequest, filePath: string, label: string): void {
+    if (!this.jobQueueCallback) return;
+    this.jobQueueCallback(job).catch((error) => {
+      this.logger.warn(`Failed to queue ${label} job`, {
         filePath,
         error: error instanceof Error ? error.message : String(error),
       });
     });
+  }
+
+  private queueCoverImageConversionIfNeeded(
+    content: string,
+    filePath: string,
+  ): void {
+    if (!this.jobQueueCallback) return;
+
+    const detection = this.coverImageConverter.detectCoverImageUrl(content);
+    if (!detection) return;
+
+    this.queueJob(
+      {
+        type: "cover-image-convert",
+        data: {
+          filePath: this.resolveFilePath(filePath),
+          sourceUrl: detection.sourceUrl,
+          postTitle: detection.postTitle,
+          postSlug: detection.postSlug,
+          customAlt: detection.customAlt,
+        },
+      },
+      filePath,
+      "cover image conversion",
+    );
 
     this.logger.debug("Queued cover image conversion job", {
       filePath,
@@ -430,48 +368,30 @@ export class DirectorySync {
     });
   }
 
-  /**
-   * Queue inline image conversion job if content has HTTP image URLs in body
-   * This is non-blocking - just queues a job and returns immediately
-   */
   private queueInlineImageConversionIfNeeded(
     content: string,
     filePath: string,
     postSlug: string,
   ): void {
-    // Skip if no job queue callback configured
-    if (!this.jobQueueCallback) {
-      return;
-    }
+    if (!this.jobQueueCallback) return;
 
-    // Detect if conversion is needed (sync, fast)
     const detections = this.inlineImageConverter.detectInlineImages(
       content,
       postSlug,
     );
-    if (detections.length === 0) {
-      return;
-    }
+    if (detections.length === 0) return;
 
-    // Get absolute path for the job
-    const fullPath = filePath.startsWith(this.syncPath)
-      ? filePath
-      : join(this.syncPath, filePath);
-
-    // Queue the conversion job (non-blocking)
-    this.jobQueueCallback({
-      type: "inline-image-convert",
-      data: {
-        filePath: fullPath,
-        postSlug,
+    this.queueJob(
+      {
+        type: "inline-image-convert",
+        data: {
+          filePath: this.resolveFilePath(filePath),
+          postSlug,
+        },
       },
-    }).catch((error) => {
-      // Log but don't fail - image conversion is best-effort
-      this.logger.warn("Failed to queue inline image conversion job", {
-        filePath,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    });
+      filePath,
+      "inline image conversion",
+    );
 
     this.logger.debug("Queued inline image conversion job", {
       filePath,
@@ -479,26 +399,20 @@ export class DirectorySync {
     });
   }
 
-  /**
-   * Process entity import with deserialization and update check
-   * Separates validation errors (quarantine) from transient errors (fail without quarantine)
-   */
   private async processEntityImport(
     rawEntity: RawEntity,
     filePath: string,
     result: ImportResult,
   ): Promise<void> {
-    // Step 0: Queue image conversions if needed (non-blocking)
-    // Cover image: coverImageUrl → coverImageId
+    // Queue non-blocking image conversions
     this.queueCoverImageConversionIfNeeded(rawEntity.content, filePath);
-    // Inline images: ![alt](https://...) → ![alt](entity://image/{id})
     this.queueInlineImageConversionIfNeeded(
       rawEntity.content,
       filePath,
       rawEntity.id,
     );
 
-    // Step 1: Deserialize (validation errors should quarantine)
+    // Deserialize -- validation errors quarantine the file
     let parsedEntity;
     try {
       parsedEntity = this.entityService.deserializeEntity(
@@ -506,14 +420,12 @@ export class DirectorySync {
         rawEntity.entityType,
       );
     } catch (error) {
-      // Validation error during deserialization - quarantine the file
       this.quarantineInvalidFile(filePath, error, result);
       return;
     }
 
-    // Step 2: Database operations (transient errors should NOT quarantine)
+    // Database operations -- transient errors fail without quarantining
     try {
-      // Check if entity exists and compare content
       const existing = await this.entityService.getEntity(
         rawEntity.entityType,
         rawEntity.id,
@@ -523,12 +435,10 @@ export class DirectorySync {
         existing &&
         !this.fileOperations.shouldUpdateEntity(existing, rawEntity)
       ) {
-        // Skip if content hasn't changed
         result.skipped++;
         return;
       }
 
-      // Build entity for upsert
       const entity = {
         id: rawEntity.id,
         entityType: rawEntity.entityType,
@@ -542,7 +452,7 @@ export class DirectorySync {
 
       const upsertResult = await this.entityService.upsertEntity(entity);
       result.imported++;
-      result.jobIds.push(upsertResult.jobId); // Track job for waiting
+      result.jobIds.push(upsertResult.jobId);
       this.logger.debug("Imported entity from directory", {
         path: filePath,
         entityType: rawEntity.entityType,
@@ -550,17 +460,13 @@ export class DirectorySync {
         jobId: upsertResult.jobId,
       });
 
-      // Mark as recovered in error log if it was previously quarantined
       this.markAsRecoveredIfNeeded(filePath);
     } catch (error) {
-      // Check if this is actually a validation error that slipped through
       if (this.isValidationError(error)) {
         this.quarantineInvalidFile(filePath, error, result);
         return;
       }
 
-      // Transient error (database, network, etc.) - fail but DON'T quarantine
-      // The file is valid, just couldn't be saved right now
       result.failed++;
       result.errors.push({
         path: filePath,
@@ -581,28 +487,19 @@ export class DirectorySync {
     }
   }
 
-  /**
-   * Mark a file as recovered in the error log if it was previously quarantined
-   */
   private markAsRecoveredIfNeeded(filePath: string): void {
     const errorLogPath = join(this.syncPath, ".import-errors.log");
 
-    // Check if error log exists
     if (!existsSync(errorLogPath)) {
       return;
     }
 
     try {
-      // Read current log content
       const logContent = readFileSync(errorLogPath, "utf-8");
 
-      // Check if this file is mentioned in the error log
       if (logContent.includes(filePath)) {
-        // Replace entries for this file with [RECOVERED] marker
         const timestamp = new Date().toISOString();
         const recoveryMarker = `${timestamp} - [RECOVERED] ${filePath}\n`;
-
-        // Find and replace the error entry for this file
         const lines = logContent.split("\n");
         const newLines: string[] = [];
         let skipNext = false;
@@ -614,16 +511,13 @@ export class DirectorySync {
           }
 
           if (line.includes(filePath) && !line.includes("[RECOVERED]")) {
-            // Replace with recovery marker
             newLines.push(recoveryMarker.trim());
-            // Skip the arrow line
             skipNext = true;
           } else {
             newLines.push(line);
           }
         }
 
-        // Write updated content back
         writeFileSync(errorLogPath, newLines.join("\n"));
 
         this.logger.debug("Marked file as recovered in error log", {
@@ -631,7 +525,6 @@ export class DirectorySync {
         });
       }
     } catch (error) {
-      // Non-critical, just log debug
       this.logger.debug("Could not update error log for recovered file", {
         path: filePath,
         error,
@@ -639,29 +532,20 @@ export class DirectorySync {
     }
   }
 
-  /**
-   * Quarantine an invalid file by renaming it and logging the error
-   */
   private quarantineInvalidFile(
     filePath: string,
     error: unknown,
     result: ImportResult,
   ): void {
-    const fullPath = filePath.startsWith(this.syncPath)
-      ? filePath
-      : join(this.syncPath, filePath);
+    const fullPath = this.resolveFilePath(filePath);
 
     const quarantinePath = `${fullPath}.invalid`;
 
     try {
-      // Rename file to .invalid
       renameSync(fullPath, quarantinePath);
-
-      // Track in result
       result.quarantined++;
       result.quarantinedFiles.push(filePath);
 
-      // Log error to .import-errors.log
       const errorLogPath = join(this.syncPath, ".import-errors.log");
       const timestamp = new Date().toISOString();
       const errorMessage =
@@ -676,7 +560,6 @@ export class DirectorySync {
         error: errorMessage,
       });
     } catch (renameError) {
-      // If we can't quarantine, just log and skip
       this.logger.error("Failed to quarantine invalid file", {
         path: filePath,
         error: renameError,
@@ -689,9 +572,6 @@ export class DirectorySync {
     }
   }
 
-  /**
-   * Import entities from directory
-   */
   async importEntities(paths?: string[]): Promise<ImportResult> {
     this.logger.debug("Importing entities from directory");
 
@@ -705,22 +585,16 @@ export class DirectorySync {
       jobIds: [],
     };
 
-    // Get all files to process (markdown + images from image/ directory)
     const filesToProcess = paths ?? this.fileOperations.getAllSyncFiles();
 
-    // Process each file
     for (const filePath of filesToProcess) {
       await this.importFile(filePath, result);
     }
 
-    // Log import summary
     this.logImportSummary(filesToProcess.length, result);
     return result;
   }
 
-  /**
-   * Log import operation summary
-   */
   private logImportSummary(fileCount: number, result: ImportResult): void {
     if (fileCount > 1) {
       this.logger.debug("Import completed", {
@@ -731,43 +605,27 @@ export class DirectorySync {
         quarantined: result.quarantined,
       });
     } else {
-      // For single file imports (like from file watcher), use debug level
       this.logger.debug("Import completed", result);
     }
   }
 
-  /**
-   * Get file operations instance (for handlers)
-   */
   get fileOps(): FileOperations {
     return this.fileOperations;
   }
 
-  /**
-   * Get deleteOnFileRemoval config
-   */
   get shouldDeleteOnFileRemoval(): boolean {
     return this.deleteOnFileRemoval;
   }
 
-  /**
-   * Get all markdown files (for tools)
-   */
   getAllMarkdownFiles(): string[] {
     return this.fileOperations.getAllMarkdownFiles();
   }
 
-  /**
-   * Ensure directory structure exists (for tools)
-   */
   async ensureDirectoryStructure(): Promise<void> {
     const entityTypes = this.entityTypes ?? this.entityService.getEntityTypes();
     await this.fileOperations.ensureDirectoryStructure(entityTypes);
   }
 
-  /**
-   * Get directory sync status
-   */
   async getStatus(): Promise<DirectorySyncStatus> {
     const { files, stats } = this.fileOperations.gatherFileStatus();
 
@@ -781,10 +639,6 @@ export class DirectorySync {
     };
   }
 
-  /**
-   * Queue a sync batch operation
-   * Encapsulates the common pattern of preparing and queuing batch operations
-   */
   async queueSyncBatch(
     pluginContext: ServicePluginContext,
     source: string,
@@ -796,11 +650,9 @@ export class DirectorySync {
     importOperationsCount: number;
     totalFiles: number;
   } | null> {
-    // Get entity types and files
     const entityTypes = this.entityTypes ?? this.entityService.getEntityTypes();
     const files = this.fileOperations.getAllMarkdownFiles();
 
-    // Use BatchOperationsManager to queue the batch
     return this.batchOperationsManager.queueSyncBatch(
       pluginContext,
       source,
@@ -810,16 +662,12 @@ export class DirectorySync {
     );
   }
 
-  /**
-   * Start watching directory for changes
-   */
   async startWatching(): Promise<void> {
     if (this.fileWatcher?.isWatching()) {
       this.logger.debug("Already watching directory");
       return;
     }
 
-    // Create event handler for file changes
     const eventHandler = new EventHandler(
       this.logger,
       this.importEntities.bind(this),
@@ -828,7 +676,6 @@ export class DirectorySync {
       this.deleteOnFileRemoval,
     );
 
-    // Create file watcher with callback to handle changes
     this.fileWatcher = new FileWatcher({
       syncPath: this.syncPath,
       watchInterval: this.watchInterval,
@@ -841,9 +688,6 @@ export class DirectorySync {
     await this.fileWatcher.start();
   }
 
-  /**
-   * Stop watching directory
-   */
   stopWatching(): void {
     if (this.fileWatcher) {
       this.fileWatcher.stop();
@@ -851,9 +695,6 @@ export class DirectorySync {
     }
   }
 
-  /**
-   * Set watch callback for external handling
-   */
   setWatchCallback(callback: (event: string, path: string) => void): void {
     if (this.fileWatcher) {
       this.fileWatcher.setCallback(callback);

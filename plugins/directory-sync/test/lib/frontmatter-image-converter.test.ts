@@ -2,10 +2,7 @@ import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { FrontmatterImageConverter } from "../../src/lib/frontmatter-image-converter";
 import type { IEntityService } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
-
-// Valid 1x1 PNG with proper headers for dimension detection
-const VALID_PNG_DATA_URL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("FrontmatterImageConverter", () => {
   let converter: FrontmatterImageConverter;

@@ -2,49 +2,15 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { z } from "@brains/utils";
 import type { ToolResponse } from "@brains/mcp-service";
-
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync } from "fs";
+import { MockEntityAdapter } from "./fixtures";
 
-// Schema for parsing sync tool response data
 const syncResponseData = z.object({ jobId: z.string() });
-
-// Mock entity adapter
-class MockEntityAdapter implements EntityAdapter<BaseEntity> {
-  public readonly entityType = "base";
-  public readonly schema = baseEntitySchema;
-
-  fromMarkdown(markdown: string): Partial<BaseEntity> {
-    return {
-      content: markdown,
-    };
-  }
-
-  toMarkdown(entity: BaseEntity): string {
-    return entity.content;
-  }
-
-  extractMetadata(_entity: BaseEntity): Record<string, unknown> {
-    return {};
-  }
-
-  parseFrontMatter<TFrontmatter>(
-    _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    // Simple mock implementation
-    return schema.parse({});
-  }
-
-  generateFrontMatter(_entity: BaseEntity): string {
-    return "";
-  }
-}
 
 describe("DirectorySyncPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
@@ -53,17 +19,11 @@ describe("DirectorySyncPlugin", () => {
   let syncPath: string;
 
   beforeEach(async () => {
-    // Create temporary test directory
     syncPath = join(tmpdir(), `test-directory-sync-${Date.now()}`);
 
-    // Create test harness with dataDir pointing to test directory
-    harness = createPluginHarness<DirectorySyncPlugin>({
-      dataDir: syncPath,
-    });
+    harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
-    // Get the shell and register entity types
-    const shell = harness.getShell();
-    const entityRegistry = shell.getEntityRegistry();
+    const entityRegistry = harness.getShell().getEntityRegistry();
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,
@@ -75,22 +35,17 @@ describe("DirectorySyncPlugin", () => {
       new MockEntityAdapter(),
     );
 
-    // Create plugin
     plugin = new DirectorySyncPlugin({
       syncPath,
       autoSync: false,
       initialSync: false,
     });
 
-    // Install plugin
     capabilities = await harness.installPlugin(plugin);
   });
 
   afterEach(() => {
-    // Reset harness
     harness.reset();
-
-    // Clean up test directory
     if (existsSync(syncPath)) {
       rmSync(syncPath, { recursive: true, force: true });
     }

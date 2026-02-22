@@ -3,26 +3,17 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { IEntityService, BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
-
-// Tiny valid PNG bytes for testing
-const TINY_PNG_BYTES = Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,
-  0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x02,
-  0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xde, 0x00, 0x00, 0x00, 0x0c, 0x49, 0x44,
-  0x41, 0x54, 0x08, 0xd7, 0x63, 0xf8, 0xff, 0xff, 0x3f, 0x00, 0x05, 0xfe, 0x02,
-  0xfe, 0xdc, 0xcc, 0x59, 0xe7, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44,
-  0xae, 0x42, 0x60, 0x82,
-]);
+import { TINY_PNG_BYTES } from "./fixtures";
 
 describe("Image Import - Regression Tests", () => {
   let dirSync: DirectorySync;
   let testDir: string;
-  let mockEntityService: IEntityService;
+  let mockEntityService: ReturnType<typeof createMockEntityService>;
   let upsertedEntities: Array<{ entityType: string; id: string }>;
 
   beforeEach(() => {
@@ -30,21 +21,17 @@ describe("Image Import - Regression Tests", () => {
     mkdirSync(testDir, { recursive: true });
 
     upsertedEntities = [];
-    mockEntityService = createMockEntityService();
+    mockEntityService = createMockEntityService({
+      entityTypes: ["note", "image", "post"],
+    });
 
     spyOn(mockEntityService, "serializeEntity").mockImplementation(
-      (entity: BaseEntity): string => {
-        return `# ${entity.id}\n\n${entity.content}`;
-      },
+      (entity: BaseEntity): string => `# ${entity.id}\n\n${entity.content}`,
     );
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(
-      (_content: string, _entityType: string): Partial<BaseEntity> => {
-        return { metadata: {} };
-      },
+      (): Partial<BaseEntity> => ({ metadata: {} }),
     );
-
-    spyOn(mockEntityService, "getEntity").mockImplementation(async () => null);
 
     spyOn(mockEntityService, "upsertEntity").mockImplementation(
       async (
@@ -62,26 +49,6 @@ describe("Image Import - Regression Tests", () => {
       },
     );
 
-    spyOn(mockEntityService, "listEntities").mockImplementation(async () => []);
-
-    spyOn(mockEntityService, "getEntityTypes").mockImplementation(
-      (): string[] => {
-        return ["note", "image", "post"];
-      },
-    );
-
-    spyOn(mockEntityService, "hasEntityType").mockImplementation(
-      (entityType: string): boolean => {
-        return ["note", "image", "post"].includes(entityType);
-      },
-    );
-
-    spyOn(mockEntityService, "getAsyncJobStatus").mockImplementation(
-      async (): Promise<{ status: "completed"; progress: number }> => {
-        return { status: "completed", progress: 100 };
-      },
-    );
-
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
@@ -96,13 +63,6 @@ describe("Image Import - Regression Tests", () => {
   });
 
   describe("importEntities should include image files", () => {
-    /**
-     * REGRESSION TEST: importEntities was only importing markdown files,
-     * not image files from the image/ directory.
-     *
-     * Bug: Line 702 in directory-sync.ts used getAllMarkdownFiles() instead of getAllSyncFiles()
-     * This caused image entities in the image/ directory to never be imported into the database.
-     */
     it("should import image files from image/ directory when calling importEntities()", async () => {
       // Create note markdown file
       mkdirSync(join(testDir, "note"), { recursive: true });
