@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { jobQueue } from "./schema/job-queue";
 import type { Logger } from "@brains/utils";
 import { JOB_STATUS } from "./schemas";
@@ -128,22 +128,5 @@ export class JobOperations {
       .where(eq(jobQueue.id, jobId));
 
     this.logger.debug("Job marked as processing", { jobId });
-  }
-
-  /**
-   * Reset a stuck job back to pending
-   */
-  public async resetStuckJob(jobId: string): Promise<void> {
-    await this.db
-      .update(jobQueue)
-      .set({
-        status: JOB_STATUS.PENDING,
-        startedAt: null,
-      })
-      .where(
-        and(eq(jobQueue.id, jobId), eq(jobQueue.status, JOB_STATUS.PROCESSING)),
-      );
-
-    this.logger.debug("Reset stuck job to pending", { jobId });
   }
 }

@@ -88,26 +88,16 @@ export class BatchJobManager {
         jobIds.push(jobId);
       }
 
-      // Store batch metadata
-      // Create full JobContext by adding rootJobId (the batch is its own root)
-      const batchMetadata: {
-        jobIds: string[];
-        operations: BatchOperation[];
-        source: string;
-        startedAt: string;
-        metadata: JobContext;
-      } = {
+      this.batches.set(batchId, {
         jobIds,
-        operations: operations,
+        operations,
         source: options.source,
         startedAt: new Date().toISOString(),
         metadata: {
           ...options.metadata,
-          rootJobId: batchId, // Batch is its own root
+          rootJobId: batchId,
         },
-      };
-
-      this.batches.set(batchId, batchMetadata);
+      });
 
       this.logger.debug("Enqueued batch operations", {
         batchId,
@@ -145,8 +135,7 @@ export class BatchJobManager {
       // Count statuses
       let completedOperations = 0;
       let failedOperations = 0;
-      let pendingOperations = 0;
-      let processingOperations = 0;
+      let activeOperations = 0;
       const errors: string[] = [];
 
       for (const job of jobStatuses) {
@@ -163,17 +152,14 @@ export class BatchJobManager {
             }
             break;
           case "processing":
-            processingOperations++;
-            break;
           case "pending":
-            pendingOperations++;
+            activeOperations++;
             break;
         }
       }
 
-      // Determine overall batch status
       let status: (typeof JOB_STATUS)[keyof typeof JOB_STATUS];
-      if (processingOperations > 0 || pendingOperations > 0) {
+      if (activeOperations > 0) {
         status = JOB_STATUS.PROCESSING;
       } else if (failedOperations > 0) {
         status = JOB_STATUS.FAILED;
@@ -248,21 +234,13 @@ export class BatchJobManager {
     source: string,
     metadata: JobContext,
   ): void {
-    const batchMetadata: {
-      jobIds: string[];
-      operations: BatchOperation[];
-      source: string;
-      startedAt: string;
-      metadata: JobContext;
-    } = {
+    this.batches.set(batchId, {
       jobIds,
       operations,
       source,
       startedAt: new Date().toISOString(),
       metadata,
-    };
-
-    this.batches.set(batchId, batchMetadata);
+    });
 
     this.logger.debug("Registered batch metadata", {
       batchId,

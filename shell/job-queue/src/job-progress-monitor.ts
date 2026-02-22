@@ -5,11 +5,15 @@ import type {
   ProgressNotification,
 } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
-import type { IBatchJobManager, IJobQueueService } from "./types";
+import type {
+  IBatchJobManager,
+  IJobQueueService,
+  JobContext,
+  JobInfo,
+} from "./types";
 import type { BatchJobStatus } from "./batch-schemas";
 import type { z } from "@brains/utils";
 import type { JobProgressEventSchema } from "./schemas";
-import type { JobContext } from "./types";
 
 /**
  * Progress event emitted by the monitor
@@ -165,33 +169,36 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     }
   }
 
-  /**
-   * Emit job progress event
-   */
+  private isBatchChild(jobId: string, rootJobId: string | undefined): boolean {
+    return !!rootJobId && rootJobId !== jobId;
+  }
+
+  private async broadcastEvent(event: JobProgressEvent): Promise<void> {
+    await this.messageBus.send(
+      "job-progress",
+      event,
+      "job-progress-monitor",
+      undefined,
+      undefined,
+      true,
+    );
+  }
+
   private async emitJobProgress(
     jobId: string,
     progress: ProgressNotification,
   ): Promise<void> {
     try {
-      // Get job to extract metadata for routing
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
         this.logger.warn("Job not found for progress update", { jobId });
         return;
       }
 
-      // Skip individual job progress for batch operations
-      // Only show individual job progress for standalone jobs (where rootJobId === jobId)
-      const rootJobId = job.metadata.rootJobId;
-      if (rootJobId && rootJobId !== jobId) {
-        // This is part of a batch operation - skip individual job progress
-        // The batch progress will be emitted separately by handleJobStatusChange
+      if (this.isBatchChild(jobId, job.metadata.rootJobId)) {
         this.logger.debug(
           "Skipping individual job progress for batch operation",
-          {
-            jobId,
-            rootJobId,
-          },
+          { jobId, rootJobId: job.metadata.rootJobId },
         );
         return;
       }
@@ -205,80 +212,53 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         message: progress.message,
       };
 
-      // Add progress info if we have totals
       if (total > 0) {
         event.progress = {
           current: progress.progress,
-          total: total,
+          total,
           percentage: Math.round((progress.progress / total) * 100),
         };
       }
 
-      await this.messageBus.send(
-        "job-progress",
-        event,
-        "job-progress-monitor",
-        undefined, // no target - use metadata for routing
-        undefined,
-        true, // broadcast to all subscribers
-      );
+      await this.broadcastEvent(event);
     } catch (error) {
-      this.logger.error("Error emitting job progress", {
-        jobId,
-        error,
-      });
+      this.logger.error("Error emitting job progress", { jobId, error });
     }
   }
 
-  /**
-   * Emit job completion event
-   */
   public async emitJobCompletion(jobId: string): Promise<void> {
+    await this.emitJobStatusEvent(jobId, "completed");
+  }
+
+  public async emitJobFailure(jobId: string): Promise<void> {
+    await this.emitJobStatusEvent(jobId, "failed");
+  }
+
+  private async emitJobStatusEvent(
+    jobId: string,
+    status: "completed" | "failed",
+  ): Promise<void> {
     try {
       const job = await this.jobQueueService.getStatus(jobId);
       if (!job) {
-        this.logger.warn("Cannot emit completion for unknown job", { jobId });
+        this.logger.warn(`Cannot emit ${status} for unknown job`, { jobId });
         return;
       }
 
-      // Skip individual job completion for batch operations
-      const rootJobId = job.metadata.rootJobId;
-      if (rootJobId && rootJobId !== jobId) {
+      if (this.isBatchChild(jobId, job.metadata.rootJobId)) {
         this.logger.debug(
-          "Skipping individual job completion for batch operation",
-          {
-            jobId,
-            rootJobId,
-          },
+          `Skipping individual job ${status} for batch operation`,
+          { jobId, rootJobId: job.metadata.rootJobId },
         );
         return;
-      }
-
-      // Try to extract a completion message from the job result
-      let message: string | undefined;
-      if (job.result) {
-        try {
-          const result =
-            typeof job.result === "string"
-              ? JSON.parse(job.result)
-              : job.result;
-          // Check for common result fields that contain messages
-          if (result.message) {
-            message = result.message;
-          } else if (result.routesBuilt !== undefined) {
-            message = `${result.routesBuilt} routes built`;
-          }
-        } catch {
-          // Ignore parsing errors
-        }
       }
 
       const event: JobProgressEvent = {
         id: jobId,
         type: "job",
-        status: "completed",
+        status,
+        message: this.extractStatusMessage(job, status),
         metadata: job.metadata,
-        message,
         jobDetails: {
           jobType: job.type,
           priority: job.priority,
@@ -286,77 +266,42 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         },
       };
 
-      await this.messageBus.send(
-        "job-progress",
-        event,
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
-
-      this.logger.debug("Emitted job completion event", { jobId });
+      await this.broadcastEvent(event);
+      this.logger.debug(`Emitted job ${status} event`, { jobId });
     } catch (error) {
-      this.logger.error("Error emitting job completion event", {
+      this.logger.error(`Error emitting job ${status} event`, {
         jobId,
         error,
       });
     }
   }
 
-  /**
-   * Emit job failure event
-   */
-  public async emitJobFailure(jobId: string): Promise<void> {
-    try {
-      const job = await this.jobQueueService.getStatus(jobId);
-      if (!job) {
-        this.logger.warn("Cannot emit failure for unknown job", { jobId });
-        return;
-      }
-
-      // Skip individual job failure for batch operations
-      const rootJobId = job.metadata.rootJobId;
-      if (rootJobId && rootJobId !== jobId) {
-        this.logger.debug(
-          "Skipping individual job failure for batch operation",
-          {
-            jobId,
-            rootJobId,
-          },
-        );
-        return;
-      }
-
-      const event: JobProgressEvent = {
-        id: jobId,
-        type: "job",
-        status: "failed",
-        message: job.lastError ?? undefined,
-        metadata: job.metadata,
-        jobDetails: {
-          jobType: job.type,
-          priority: job.priority,
-          retryCount: job.retryCount,
-        },
-      };
-
-      await this.messageBus.send(
-        "job-progress",
-        event,
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
-
-      this.logger.debug("Emitted job failure event", { jobId });
-    } catch (error) {
-      this.logger.error("Error emitting job failure event", {
-        jobId,
-        error,
-      });
+  private extractStatusMessage(
+    job: JobInfo,
+    status: "completed" | "failed",
+  ): string | undefined {
+    if (status === "failed") {
+      return job.lastError ?? undefined;
     }
+
+    if (!job.result) {
+      return undefined;
+    }
+
+    try {
+      const result =
+        typeof job.result === "string" ? JSON.parse(job.result) : job.result;
+      if (result.message) {
+        return result.message;
+      }
+      if (result.routesBuilt !== undefined) {
+        return `${result.routesBuilt} routes built`;
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+
+    return undefined;
   }
 
   /**
@@ -380,29 +325,21 @@ export class JobProgressMonitor implements IJobProgressMonitor {
     metadata?: JobContext,
   ): Promise<void> {
     try {
-      // Emit individual job status event
-      if (status === "completed") {
-        await this.emitJobCompletion(jobId);
-      } else {
-        // status === "failed"
-        await this.emitJobFailure(jobId);
-      }
+      await this.emitJobStatusEvent(jobId, status);
 
-      // Check if this job is part of a batch and emit batch progress
-      const rootJobId = metadata?.rootJobId;
-      if (rootJobId && rootJobId !== jobId) {
+      if (metadata && this.isBatchChild(jobId, metadata.rootJobId)) {
         try {
+          const rootJobId = metadata.rootJobId;
           const batchStatus =
             await this.batchJobManager.getBatchStatus(rootJobId);
           if (batchStatus) {
-            // Use batch's original metadata for routing context, not child job's metadata
             const batchMetadata = batchStatus.metadata ?? metadata;
             await this.emitBatchProgress(rootJobId, batchStatus, batchMetadata);
           }
         } catch (error) {
           this.logger.warn("Failed to emit batch progress", {
             jobId,
-            rootJobId,
+            rootJobId: metadata?.rootJobId,
             error,
           });
         }

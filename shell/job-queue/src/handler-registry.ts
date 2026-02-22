@@ -76,19 +76,4 @@ export class HandlerRegistry {
   public getHandler(type: string): JobHandler | undefined {
     return this.handlers.get(type);
   }
-
-  /**
-   * Check if a handler is registered for a type
-   */
-  public hasHandler(type: string): boolean {
-    return this.handlers.has(type);
-  }
-
-  /**
-   * Clear all handlers
-   */
-  public clear(): void {
-    this.handlers.clear();
-    this.logger.debug("Cleared all job handlers");
-  }
 }

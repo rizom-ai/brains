@@ -168,12 +168,8 @@ export class JobQueueService implements IJobQueueService {
     data: unknown,
     options?: JobOptions,
   ): Promise<string> {
-    // Use the type exactly as provided - callers should be explicit about scope
-    const scopedType = type;
-
-    // Check for duplicates BEFORE validation
     const duplicate = await this.checkForDuplicate(
-      scopedType,
+      type,
       options?.deduplication,
       options?.deduplicationKey,
     );
@@ -181,7 +177,7 @@ export class JobQueueService implements IJobQueueService {
     if (duplicate) {
       if (options?.deduplication === "skip") {
         this.logger.debug("Skipping duplicate job (already pending)", {
-          type: scopedType,
+          type,
           existingJobId: duplicate.id,
         });
         return duplicate.id;
@@ -189,10 +185,9 @@ export class JobQueueService implements IJobQueueService {
 
       if (options?.deduplication === "replace") {
         this.logger.debug("Replacing duplicate job", {
-          type: scopedType,
+          type,
           oldJobId: duplicate.id,
         });
-        // Cancel the old job
         await this.db
           .update(jobQueue)
           .set({
@@ -204,10 +199,9 @@ export class JobQueueService implements IJobQueueService {
 
       if (options?.deduplication === "coalesce") {
         this.logger.debug("Coalescing with existing job", {
-          type: scopedType,
+          type,
           existingJobId: duplicate.id,
         });
-        // Update timestamp to "refresh" the job
         await this.db
           .update(jobQueue)
           .set({ scheduledFor: Date.now() })
@@ -216,13 +210,11 @@ export class JobQueueService implements IJobQueueService {
       }
     }
 
-    // Get handler and validate data
-    const handler = this.handlerRegistry.getHandler(scopedType);
+    const handler = this.handlerRegistry.getHandler(type);
     if (!handler) {
-      throw new Error(`No handler registered for job type: ${scopedType}`);
+      throw new Error(`No handler registered for job type: ${type}`);
     }
 
-    // Validate and parse data
     const parsedData = handler.validateAndParse(data);
     if (parsedData === null) {
       throw new Error(`Invalid job data for type: ${type}`);
@@ -231,14 +223,13 @@ export class JobQueueService implements IJobQueueService {
     const now = Date.now();
     const id = createId();
 
-    // Include deduplicationKey in job data for filtering
     const dataWithKey = options?.deduplicationKey
       ? { ...parsedData, deduplicationKey: options.deduplicationKey }
       : parsedData;
 
     const jobData = {
       id,
-      type: scopedType,
+      type,
       data: JSON.stringify(dataWithKey),
       status: JOB_STATUS.PENDING,
       priority: options?.priority ?? 0,
@@ -246,12 +237,8 @@ export class JobQueueService implements IJobQueueService {
       retryCount: 0,
       source: options?.source ?? null,
       metadata: {
-        // Default metadata values - will be overridden by spread if provided
         operationType: "data_processing" as const,
-        // Merge provided metadata (allows override of defaults)
         ...options?.metadata,
-        // Ensure rootJobId is always present - default to job's own ID for standalone jobs
-        // Batch children will have rootJobId set by BatchJobManager via options.rootJobId
         rootJobId: options?.rootJobId ?? id,
       },
       createdAt: now,
@@ -267,7 +254,7 @@ export class JobQueueService implements IJobQueueService {
 
       this.logger.debug("Job enqueued", {
         id,
-        type: scopedType,
+        type,
         priority: jobData.priority,
         rootJobId: jobData.metadata.rootJobId,
       });
@@ -275,7 +262,7 @@ export class JobQueueService implements IJobQueueService {
       return id;
     } catch (error) {
       this.logger.error("Failed to enqueue job", {
-        type: scopedType,
+        type,
         error: error instanceof Error ? error.message : error,
       });
       throw error;
@@ -288,7 +275,6 @@ export class JobQueueService implements IJobQueueService {
   public async dequeue(): Promise<JobQueue | null> {
     const now = Date.now();
 
-    // Find the next pending job that's ready to process
     const jobs = await this.db
       .select()
       .from(jobQueue)
@@ -301,19 +287,12 @@ export class JobQueueService implements IJobQueueService {
       .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))
       .limit(1);
 
-    if (jobs.length === 0) {
-      return null;
-    }
-
     const job = jobs[0];
     if (!job) {
       return null;
     }
 
-    // Mark the job as processing
     await this.jobOperations.markProcessing(job.id);
-
-    // Update the job object to reflect the new status
     job.status = JOB_STATUS.PROCESSING;
     job.startedAt = Date.now();
 
@@ -358,20 +337,10 @@ export class JobQueueService implements IJobQueueService {
       .where(eq(jobQueue.id, jobId))
       .limit(1);
 
-    const job = jobs[0];
-    if (!job) {
-      this.logger.debug("Job not found", { jobId });
-      return null;
-    }
-
-    return job;
+    return jobs[0] ?? null;
   }
 
-  /**
-   * Get job status by entity ID (from job data)
-   */
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
-    // Use JSON extract to search within the data field
     const jobs = await this.db
       .select()
       .from(jobQueue)
@@ -379,13 +348,7 @@ export class JobQueueService implements IJobQueueService {
       .orderBy(desc(jobQueue.createdAt))
       .limit(1);
 
-    const job = jobs[0];
-    if (!job) {
-      this.logger.debug("No job found for entity", { entityId });
-      return null;
-    }
-
-    return job;
+    return jobs[0] ?? null;
   }
 
   /**
@@ -457,33 +420,20 @@ export class JobQueueService implements IJobQueueService {
    * Get active jobs (pending or processing)
    */
   public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
-    let query = this.db
+    const activeStatusFilter = or(
+      eq(jobQueue.status, JOB_STATUS.PENDING),
+      eq(jobQueue.status, JOB_STATUS.PROCESSING),
+    );
+
+    const whereClause =
+      types && types.length > 0
+        ? and(activeStatusFilter, inArray(jobQueue.type, types))
+        : activeStatusFilter;
+
+    return this.db
       .select()
       .from(jobQueue)
-      .where(
-        or(
-          eq(jobQueue.status, JOB_STATUS.PENDING),
-          eq(jobQueue.status, JOB_STATUS.PROCESSING),
-        ),
-      );
-
-    if (types && types.length > 0) {
-      query = this.db
-        .select()
-        .from(jobQueue)
-        .where(
-          and(
-            or(
-              eq(jobQueue.status, JOB_STATUS.PENDING),
-              eq(jobQueue.status, JOB_STATUS.PROCESSING),
-            ),
-            inArray(jobQueue.type, types),
-          ),
-        );
-    }
-
-    const jobs = await query.orderBy(desc(jobQueue.createdAt));
-
-    return jobs;
+      .where(whereClause)
+      .orderBy(desc(jobQueue.createdAt));
   }
 }

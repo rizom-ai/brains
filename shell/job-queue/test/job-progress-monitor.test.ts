@@ -7,8 +7,15 @@ import {
   mock,
   spyOn,
 } from "bun:test";
+import type { Mock } from "bun:test";
 import { JobProgressMonitor } from "../src/job-progress-monitor";
-import type { IBatchJobManager, IJobQueueService } from "../src/types";
+import type {
+  IBatchJobManager,
+  IJobQueueService,
+  JobContext,
+} from "../src/types";
+import type { JobQueue } from "../src/schema/job-queue";
+import type { BatchJobStatus } from "../src/batch-schemas";
 import {
   createSilentLogger,
   createMockMessageBus,
@@ -17,12 +24,31 @@ import {
 import type { Logger } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
 
-// Use consistent test metadata to ensure test expectations match
 const testRootJobId = "test-root-job-id";
-import type { JobContext } from "../src/types";
-import type { JobQueue } from "../src/schema/job-queue";
-import type { BatchJobStatus } from "../src/batch-schemas";
-import type { Mock } from "bun:test";
+
+function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
+  return {
+    id: "job-123",
+    type: "test-job",
+    status: "processing",
+    data: "{}",
+    priority: 5,
+    retryCount: 0,
+    createdAt: Date.now(),
+    maxRetries: 3,
+    lastError: null,
+    result: null,
+    completedAt: null,
+    startedAt: null,
+    scheduledFor: Date.now(),
+    metadata: {
+      rootJobId: "job-123",
+      operationType: "data_processing",
+    },
+    source: "test-source",
+    ...overrides,
+  };
+}
 
 describe("JobProgressMonitor", () => {
   let monitor: JobProgressMonitor;
@@ -31,12 +57,10 @@ describe("JobProgressMonitor", () => {
   let mockMessageBus: MessageBus;
   let mockLogger: Logger;
 
-  // Properly typed mock functions
   let getStatusMock: Mock<(id: string) => Promise<JobQueue | null>>;
   let messageBusSendMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    // Create fresh mocks for each test
     getStatusMock = mock(() => Promise.resolve(null));
 
     mockJobQueueService = {
@@ -66,13 +90,10 @@ describe("JobProgressMonitor", () => {
     };
 
     mockBatchJobManager = createMockBatchJobManager();
-
     mockMessageBus = createMockMessageBus();
     messageBusSendMock = spyOn(mockMessageBus, "send");
-
     mockLogger = createSilentLogger();
 
-    // Reset singleton before each test
     JobProgressMonitor.resetInstance();
 
     monitor = JobProgressMonitor.createFresh(
@@ -101,31 +122,8 @@ describe("JobProgressMonitor", () => {
   });
 
   describe("progress reporting", () => {
-    const createMockJob = (overrides: Partial<JobQueue> = {}): JobQueue => ({
-      id: "job-123",
-      type: "test-job",
-      status: "processing",
-      data: "{}",
-      priority: 5,
-      retryCount: 0,
-      createdAt: Date.now(),
-      maxRetries: 3,
-      lastError: null,
-      result: null,
-      completedAt: null,
-      startedAt: null,
-      scheduledFor: Date.now(),
-      metadata: {
-        rootJobId: "job-123", // Use same ID as job ID for standalone job testing
-        operationType: "data_processing",
-      },
-      source: "test-source",
-      ...overrides,
-    });
-
     it("should emit progress event when progress is reported", async () => {
-      const mockJob = createMockJob();
-      getStatusMock.mockResolvedValue(mockJob);
+      getStatusMock.mockResolvedValue(createMockJob());
 
       const progressReporter = monitor.createProgressReporter("job-123");
       await progressReporter.report({
@@ -159,8 +157,7 @@ describe("JobProgressMonitor", () => {
     });
 
     it("should handle progress without totals", async () => {
-      const mockJob = createMockJob();
-      getStatusMock.mockResolvedValue(mockJob);
+      getStatusMock.mockResolvedValue(createMockJob());
 
       const progressReporter = monitor.createProgressReporter("job-123");
       await progressReporter.report({
@@ -197,7 +194,6 @@ describe("JobProgressMonitor", () => {
         message: "Processing...",
       });
 
-      // Should not emit any event for missing job
       expect(messageBusSendMock).not.toHaveBeenCalled();
     });
   });
@@ -279,32 +275,12 @@ describe("JobProgressMonitor", () => {
   });
 
   describe("completion events", () => {
-    const createMockJob = (overrides: Partial<JobQueue> = {}): JobQueue => ({
-      id: "job-123",
-      type: "test-job",
-      status: "completed",
-      data: "{}",
-      priority: 5,
-      retryCount: 0,
-      createdAt: Date.now(),
-      maxRetries: 3,
-      lastError: null,
-      result: null,
-      completedAt: Date.now(),
-      startedAt: null,
-      scheduledFor: Date.now(),
-      metadata: {
-        rootJobId: testRootJobId,
-        operationType: "data_processing",
-      },
-      source: "test-source",
-      ...overrides,
-    });
-
     it("should emit job completion event", async () => {
       const mockJob = createMockJob({
+        status: "completed",
+        completedAt: Date.now(),
         metadata: {
-          rootJobId: "job-123", // For standalone job, rootJobId equals jobId
+          rootJobId: "job-123",
           operationType: "data_processing",
         },
       });
@@ -338,9 +314,10 @@ describe("JobProgressMonitor", () => {
     it("should emit job failure event", async () => {
       const mockJob = createMockJob({
         status: "failed",
+        completedAt: Date.now(),
         lastError: "Something went wrong",
         metadata: {
-          rootJobId: "job-123", // For standalone job, rootJobId equals jobId
+          rootJobId: "job-123",
           operationType: "data_processing",
         },
       });
@@ -384,8 +361,10 @@ describe("JobProgressMonitor", () => {
     it("should skip individual job completion for batch operations", async () => {
       const mockJob = createMockJob({
         id: "child-job-456",
+        status: "completed",
+        completedAt: Date.now(),
         metadata: {
-          rootJobId: "batch-789", // Different from jobId, so it's part of a batch
+          rootJobId: "batch-789",
           operationType: "data_processing",
         },
       });
@@ -400,9 +379,10 @@ describe("JobProgressMonitor", () => {
       const mockJob = createMockJob({
         id: "child-job-456",
         status: "failed",
+        completedAt: Date.now(),
         lastError: "Something went wrong",
         metadata: {
-          rootJobId: "batch-789", // Different from jobId, so it's part of a batch
+          rootJobId: "batch-789",
           operationType: "data_processing",
         },
       });
@@ -417,32 +397,10 @@ describe("JobProgressMonitor", () => {
   describe("error handling", () => {
     it("should handle message bus errors gracefully", async () => {
       messageBusSendMock.mockRejectedValue(new Error("Message bus error"));
-
-      const mockJob = {
-        id: "job-123",
-        type: "test-job",
-        status: "processing" as const,
-        data: "{}",
-        priority: 5,
-        retryCount: 0,
-        createdAt: Date.now(),
-        maxRetries: 3,
-        lastError: null,
-        result: null,
-        completedAt: null,
-        startedAt: null,
-        scheduledFor: Date.now(),
-        source: "test-source",
-        metadata: {
-          rootJobId: "job-123",
-          operationType: "data_processing" as const,
-        },
-      };
-      getStatusMock.mockResolvedValue(mockJob);
+      getStatusMock.mockResolvedValue(createMockJob());
 
       const progressReporter = monitor.createProgressReporter("job-123");
 
-      // Should handle message bus errors and not throw unhandled errors
       try {
         await progressReporter.report({
           progress: 1,
@@ -450,7 +408,6 @@ describe("JobProgressMonitor", () => {
           message: "Processing...",
         });
       } catch (error) {
-        // Error is expected and handled
         expect(error).toEqual(new Error("Message bus error"));
       }
     });

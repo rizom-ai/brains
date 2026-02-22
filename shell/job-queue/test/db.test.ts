@@ -5,12 +5,15 @@ describe("JobQueueService Database", () => {
   let cleanup: (() => Promise<void>)[] = [];
 
   afterEach(async () => {
-    // Run all cleanup functions
     for (const fn of cleanup) {
       await fn();
     }
     cleanup = [];
   });
+
+  function trackClient(client: { close(): void }): void {
+    cleanup.push(async () => client.close());
+  }
 
   describe("createJobQueueDatabase", () => {
     test("creates database with explicit config", () => {
@@ -20,7 +23,7 @@ describe("JobQueueService Database", () => {
       expect(db).toBeDefined();
       expect(client).toBeDefined();
       expect(url).toBe("file::memory:");
-      cleanup.push(async () => client.close());
+      trackClient(client);
     });
 
     test("creates database with custom URL", () => {
@@ -29,7 +32,7 @@ describe("JobQueueService Database", () => {
       expect(db).toBeDefined();
       expect(client).toBeDefined();
       expect(url).toBe(customUrl);
-      cleanup.push(async () => client.close());
+      trackClient(client);
     });
 
     test("creates database with auth token", () => {
@@ -41,7 +44,7 @@ describe("JobQueueService Database", () => {
       expect(db).toBeDefined();
       expect(client).toBeDefined();
       expect(url).toBe(config.url);
-      cleanup.push(async () => client.close());
+      trackClient(client);
     });
   });
 
@@ -51,12 +54,10 @@ describe("JobQueueService Database", () => {
 
       await enableWALMode(client, "file::memory:");
 
-      // Note: WAL mode is not applicable to in-memory databases,
-      // they use "memory" journal mode instead
       const result = await client.execute("PRAGMA journal_mode");
       expect(result.rows[0]?.["journal_mode"]).toBe("memory");
 
-      cleanup.push(async () => client.close());
+      trackClient(client);
     });
 
     test("skips WAL mode for remote database", async () => {
@@ -64,11 +65,9 @@ describe("JobQueueService Database", () => {
         url: "libsql://test.turso.io",
       });
 
-      // Should not throw for remote databases
       await enableWALMode(client, "libsql://test.turso.io");
-      // Should complete without error
 
-      cleanup.push(async () => client.close());
+      trackClient(client);
     });
   });
 
@@ -76,16 +75,13 @@ describe("JobQueueService Database", () => {
     test("full database initialization flow", async () => {
       const config = { url: "file::memory:" };
 
-      // Create database
       const { db, client, url } = createJobQueueDatabase(config);
       expect(db).toBeDefined();
       expect(client).toBeDefined();
       expect(url).toBe(config.url);
 
-      // Enable WAL mode
       await enableWALMode(client, url);
 
-      // Create a test table
       await client.execute(`
         CREATE TABLE IF NOT EXISTS job_queue (
           id TEXT PRIMARY KEY,
@@ -94,7 +90,6 @@ describe("JobQueueService Database", () => {
         )
       `);
 
-      // Verify database is usable
       await client.execute(
         "INSERT INTO job_queue (id, type, status) VALUES (?, ?, ?)",
         ["test-id", "test-type", "pending"],
@@ -108,7 +103,7 @@ describe("JobQueueService Database", () => {
         status: "pending",
       });
 
-      cleanup.push(async () => client.close());
+      trackClient(client);
     });
   });
 });

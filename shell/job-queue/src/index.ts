@@ -51,5 +51,3 @@ export type {
   JobOptions,
   JobStats,
 } from "./schema/types";
-
-// Removed complex progress utilities for simplicity
