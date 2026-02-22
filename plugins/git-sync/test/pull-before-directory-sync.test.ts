@@ -31,7 +31,7 @@ describe("Git Pull Before Directory Sync", () => {
     it("should subscribe to git:pull:completed event to coordinate with git-sync", () => {
       const directorySyncPluginPath = join(
         __dirname,
-        "../../directory-sync/src/plugin.ts",
+        "../../directory-sync/src/lib/initial-sync.ts",
       );
       const source = readFileSync(directorySyncPluginPath, "utf-8");
 
@@ -44,7 +44,7 @@ describe("Git Pull Before Directory Sync", () => {
       // It listens for git:sync:registered to know if git-sync is present
       const directorySyncPluginPath = join(
         __dirname,
-        "../../directory-sync/src/plugin.ts",
+        "../../directory-sync/src/lib/initial-sync.ts",
       );
       const source = readFileSync(directorySyncPluginPath, "utf-8");
 

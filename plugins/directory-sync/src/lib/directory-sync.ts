@@ -4,22 +4,13 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { resolve, isAbsolute, join } from "path";
-import {
-  existsSync,
-  mkdirSync,
-  renameSync,
-  appendFileSync,
-  readFileSync,
-  writeFileSync,
-} from "fs";
-import { z, computeContentHash } from "@brains/utils";
+import { resolve, isAbsolute } from "path";
+import { existsSync, mkdirSync } from "fs";
+import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
   ExportResult,
   ImportResult,
-  SyncResult,
-  RawEntity,
   JobRequest,
 } from "../types";
 import { FileWatcher } from "./file-watcher";
@@ -30,6 +21,13 @@ import { ProgressOperations } from "./progress-operations";
 import { EventHandler } from "./event-handler";
 import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
+import { Quarantine } from "./quarantine";
+import type { ImageJobQueueDeps } from "./image-job-queue";
+import { importEntities as runImport } from "./import-pipeline";
+import {
+  exportEntities as runExport,
+  processEntityExport as runProcessEntityExport,
+} from "./export-pipeline";
 
 export const directorySyncOptionsSchema = z.object({
   syncPath: z.string(),
@@ -64,6 +62,7 @@ export class DirectorySync {
   private progressOperations: ProgressOperations;
   private coverImageConverter: FrontmatterImageConverter;
   private inlineImageConverter: MarkdownImageConverter;
+  private quarantine: Quarantine;
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
 
   constructor(options: DirectorySyncOptions) {
@@ -101,11 +100,22 @@ export class DirectorySync {
       this.entityService,
       this.logger,
     );
+    this.quarantine = new Quarantine(this.logger, this.syncPath);
 
     this.logger.debug("Initialized with path", {
       originalPath: options.syncPath,
       resolvedPath: this.syncPath,
     });
+  }
+
+  private getImageJobQueueDeps(): ImageJobQueueDeps {
+    return {
+      logger: this.logger,
+      syncPath: this.syncPath,
+      jobQueueCallback: this.jobQueueCallback,
+      coverImageConverter: this.coverImageConverter,
+      inlineImageConverter: this.inlineImageConverter,
+    };
   }
 
   async initialize(): Promise<void> {
@@ -138,16 +148,17 @@ export class DirectorySync {
   /**
    * Sync entities from directory to database.
    *
-   * NOTE: This method only imports (files → DB). Export (DB → files) is handled
+   * NOTE: This method only imports (files -> DB). Export (DB -> files) is handled
    * by entity:created/entity:updated subscribers when autoSync is enabled.
-   * This design eliminates the race condition where export would write stale
-   * content before import jobs complete.
    */
-  async sync(): Promise<SyncResult> {
+  async sync(): Promise<{
+    export: ExportResult;
+    import: ImportResult;
+    duration: number;
+  }> {
     const startTime = Date.now();
     this.logger.debug("Starting sync (import only)");
 
-    // Export is handled by entity:created/entity:updated subscribers when autoSync is enabled
     const importResult = await this.importEntities();
 
     const duration = Date.now() - startTime;
@@ -170,82 +181,29 @@ export class DirectorySync {
     deleted?: boolean;
     error?: string;
   }> {
-    try {
-      const filePath = this.fileOperations.getEntityFilePath(entity);
-      if (!this.fileOperations.fileExists(filePath)) {
-        if (this.deleteOnFileRemoval) {
-          this.logger.debug("File missing, deleting entity from DB", {
-            entityId: entity.id,
-            entityType: entity.entityType,
-          });
-          await this.entityService.deleteEntity(entity.entityType, entity.id);
-          return { success: true, deleted: true };
-        }
-      }
-
-      await this.fileOperations.writeEntity(entity);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
+    return runProcessEntityExport(
+      {
+        entityService: this.entityService,
+        logger: this.logger,
+        fileOperations: this.fileOperations,
+        deleteOnFileRemoval: this.deleteOnFileRemoval,
+        entityTypes: this.entityTypes,
+      },
+      entity,
+    );
   }
 
   async exportEntities(entityTypes?: string[]): Promise<ExportResult> {
-    const typesToExport =
-      entityTypes ?? this.entityTypes ?? this.entityService.getEntityTypes();
-
-    this.logger.debug("Exporting entities to directory", {
-      entityTypes: typesToExport,
-    });
-
-    const result: ExportResult = {
-      exported: 0,
-      failed: 0,
-      errors: [],
-    };
-
-    for (const entityType of typesToExport) {
-      const entities = await this.entityService.listEntities(entityType, {
-        limit: 1000,
-      });
-
-      this.logger.debug("Processing entity type for export", {
-        entityType,
-        count: entities.length,
-      });
-
-      for (const entity of entities) {
-        const exportResult = await this.processEntityExport(entity);
-
-        if (exportResult.success) {
-          result.exported++;
-          if (exportResult.deleted) {
-            this.logger.debug("Deleted entity from DB (file missing)", {
-              entityType,
-              id: entity.id,
-            });
-          }
-        } else {
-          result.failed++;
-          result.errors.push({
-            entityId: entity.id,
-            entityType,
-            error: exportResult.error ?? "Unknown error",
-          });
-          this.logger.error("Failed to export entity", {
-            entityType,
-            id: entity.id,
-            error: exportResult.error,
-          });
-        }
-      }
-    }
-
-    this.logger.debug("Export completed", result);
-    return result;
+    return runExport(
+      {
+        entityService: this.entityService,
+        logger: this.logger,
+        fileOperations: this.fileOperations,
+        deleteOnFileRemoval: this.deleteOnFileRemoval,
+        entityTypes: this.entityTypes,
+      },
+      entityTypes,
+    );
   }
 
   async importEntitiesWithProgress(
@@ -274,339 +232,18 @@ export class DirectorySync {
     );
   }
 
-  private async importFile(
-    filePath: string,
-    result: ImportResult,
-  ): Promise<void> {
-    if (filePath.endsWith(".invalid")) {
-      return;
-    }
-
-    try {
-      const rawEntity = await this.fileOperations.readEntity(filePath);
-
-      if (
-        this.entityTypes &&
-        !this.entityTypes.includes(rawEntity.entityType)
-      ) {
-        result.skipped++;
-        return;
-      }
-
-      await this.processEntityImport(rawEntity, filePath, result);
-    } catch {
-      const importError = new Error(`Failed to import entity from file`);
-      result.failed++;
-      result.errors.push({
-        path: filePath,
-        error: importError.message,
-      });
-      this.logger.error("Failed to import entity", {
-        path: filePath,
-        error: importError,
-      });
-    }
-  }
-
-  private isValidationError(error: unknown): boolean {
-    if (error instanceof z.ZodError) {
-      return true;
-    }
-    const message = error instanceof Error ? error.message : String(error);
-    return (
-      message.includes("invalid_type") ||
-      message.includes("invalid_enum_value") ||
-      message.includes("Required") ||
-      message.includes("Invalid frontmatter") ||
-      message.includes("Unknown entity type")
-    );
-  }
-
-  private resolveFilePath(filePath: string): string {
-    return filePath.startsWith(this.syncPath)
-      ? filePath
-      : join(this.syncPath, filePath);
-  }
-
-  private queueJob(job: JobRequest, filePath: string, label: string): void {
-    if (!this.jobQueueCallback) return;
-    this.jobQueueCallback(job).catch((error) => {
-      this.logger.warn(`Failed to queue ${label} job`, {
-        filePath,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    });
-  }
-
-  private queueCoverImageConversionIfNeeded(
-    content: string,
-    filePath: string,
-  ): void {
-    if (!this.jobQueueCallback) return;
-
-    const detection = this.coverImageConverter.detectCoverImageUrl(content);
-    if (!detection) return;
-
-    this.queueJob(
-      {
-        type: "cover-image-convert",
-        data: {
-          filePath: this.resolveFilePath(filePath),
-          sourceUrl: detection.sourceUrl,
-          postTitle: detection.postTitle,
-          postSlug: detection.postSlug,
-          customAlt: detection.customAlt,
-        },
-      },
-      filePath,
-      "cover image conversion",
-    );
-
-    this.logger.debug("Queued cover image conversion job", {
-      filePath,
-      sourceUrl: detection.sourceUrl,
-    });
-  }
-
-  private queueInlineImageConversionIfNeeded(
-    content: string,
-    filePath: string,
-    postSlug: string,
-  ): void {
-    if (!this.jobQueueCallback) return;
-
-    const detections = this.inlineImageConverter.detectInlineImages(
-      content,
-      postSlug,
-    );
-    if (detections.length === 0) return;
-
-    this.queueJob(
-      {
-        type: "inline-image-convert",
-        data: {
-          filePath: this.resolveFilePath(filePath),
-          postSlug,
-        },
-      },
-      filePath,
-      "inline image conversion",
-    );
-
-    this.logger.debug("Queued inline image conversion job", {
-      filePath,
-      imageCount: detections.length,
-    });
-  }
-
-  private async processEntityImport(
-    rawEntity: RawEntity,
-    filePath: string,
-    result: ImportResult,
-  ): Promise<void> {
-    // Queue non-blocking image conversions
-    this.queueCoverImageConversionIfNeeded(rawEntity.content, filePath);
-    this.queueInlineImageConversionIfNeeded(
-      rawEntity.content,
-      filePath,
-      rawEntity.id,
-    );
-
-    // Deserialize -- validation errors quarantine the file
-    let parsedEntity;
-    try {
-      parsedEntity = this.entityService.deserializeEntity(
-        rawEntity.content,
-        rawEntity.entityType,
-      );
-    } catch (error) {
-      this.quarantineInvalidFile(filePath, error, result);
-      return;
-    }
-
-    // Database operations -- transient errors fail without quarantining
-    try {
-      const existing = await this.entityService.getEntity(
-        rawEntity.entityType,
-        rawEntity.id,
-      );
-
-      if (
-        existing &&
-        !this.fileOperations.shouldUpdateEntity(existing, rawEntity)
-      ) {
-        result.skipped++;
-        return;
-      }
-
-      const entity = {
-        id: rawEntity.id,
-        entityType: rawEntity.entityType,
-        content: rawEntity.content,
-        contentHash: computeContentHash(rawEntity.content),
-        ...parsedEntity,
-        metadata: parsedEntity.metadata ?? {},
-        created: existing?.created ?? rawEntity.created.toISOString(),
-        updated: rawEntity.updated.toISOString(),
-      };
-
-      const upsertResult = await this.entityService.upsertEntity(entity);
-      result.imported++;
-      result.jobIds.push(upsertResult.jobId);
-      this.logger.debug("Imported entity from directory", {
-        path: filePath,
-        entityType: rawEntity.entityType,
-        id: rawEntity.id,
-        jobId: upsertResult.jobId,
-      });
-
-      this.markAsRecoveredIfNeeded(filePath);
-    } catch (error) {
-      if (this.isValidationError(error)) {
-        this.quarantineInvalidFile(filePath, error, result);
-        return;
-      }
-
-      result.failed++;
-      result.errors.push({
-        path: filePath,
-        error:
-          error instanceof Error
-            ? `Transient error (file not quarantined): ${error.message}`
-            : String(error),
-      });
-      this.logger.warn(
-        "Failed to import entity (transient error, not quarantined)",
-        {
-          path: filePath,
-          entityType: rawEntity.entityType,
-          id: rawEntity.id,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
-    }
-  }
-
-  private markAsRecoveredIfNeeded(filePath: string): void {
-    const errorLogPath = join(this.syncPath, ".import-errors.log");
-
-    if (!existsSync(errorLogPath)) {
-      return;
-    }
-
-    try {
-      const logContent = readFileSync(errorLogPath, "utf-8");
-
-      if (logContent.includes(filePath)) {
-        const timestamp = new Date().toISOString();
-        const recoveryMarker = `${timestamp} - [RECOVERED] ${filePath}\n`;
-        const lines = logContent.split("\n");
-        const newLines: string[] = [];
-        let skipNext = false;
-
-        for (const line of lines) {
-          if (skipNext) {
-            skipNext = false;
-            continue;
-          }
-
-          if (line.includes(filePath) && !line.includes("[RECOVERED]")) {
-            newLines.push(recoveryMarker.trim());
-            skipNext = true;
-          } else {
-            newLines.push(line);
-          }
-        }
-
-        writeFileSync(errorLogPath, newLines.join("\n"));
-
-        this.logger.debug("Marked file as recovered in error log", {
-          path: filePath,
-        });
-      }
-    } catch (error) {
-      this.logger.debug("Could not update error log for recovered file", {
-        path: filePath,
-        error,
-      });
-    }
-  }
-
-  private quarantineInvalidFile(
-    filePath: string,
-    error: unknown,
-    result: ImportResult,
-  ): void {
-    const fullPath = this.resolveFilePath(filePath);
-
-    const quarantinePath = `${fullPath}.invalid`;
-
-    try {
-      renameSync(fullPath, quarantinePath);
-      result.quarantined++;
-      result.quarantinedFiles.push(filePath);
-
-      const errorLogPath = join(this.syncPath, ".import-errors.log");
-      const timestamp = new Date().toISOString();
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const logEntry = `${timestamp} - ${filePath}: ${errorMessage}\n→ ${filePath}.invalid\n\n`;
-
-      appendFileSync(errorLogPath, logEntry);
-
-      this.logger.warn("Quarantined invalid entity file", {
-        originalPath: filePath,
-        quarantinePath: `${filePath}.invalid`,
-        error: errorMessage,
-      });
-    } catch (renameError) {
-      this.logger.error("Failed to quarantine invalid file", {
-        path: filePath,
-        error: renameError,
-      });
-      result.failed++;
-      result.errors.push({
-        path: filePath,
-        error: "Failed to quarantine invalid file",
-      });
-    }
-  }
-
   async importEntities(paths?: string[]): Promise<ImportResult> {
-    this.logger.debug("Importing entities from directory");
-
-    const result: ImportResult = {
-      imported: 0,
-      skipped: 0,
-      failed: 0,
-      quarantined: 0,
-      quarantinedFiles: [],
-      errors: [],
-      jobIds: [],
-    };
-
-    const filesToProcess = paths ?? this.fileOperations.getAllSyncFiles();
-
-    for (const filePath of filesToProcess) {
-      await this.importFile(filePath, result);
-    }
-
-    this.logImportSummary(filesToProcess.length, result);
-    return result;
-  }
-
-  private logImportSummary(fileCount: number, result: ImportResult): void {
-    if (fileCount > 1) {
-      this.logger.debug("Import completed", {
-        filesProcessed: fileCount,
-        imported: result.imported,
-        skipped: result.skipped,
-        failed: result.failed,
-        quarantined: result.quarantined,
-      });
-    } else {
-      this.logger.debug("Import completed", result);
-    }
+    return runImport(
+      {
+        entityService: this.entityService,
+        logger: this.logger,
+        fileOperations: this.fileOperations,
+        quarantine: this.quarantine,
+        imageJobQueue: this.getImageJobQueueDeps(),
+        entityTypes: this.entityTypes,
+      },
+      paths,
+    );
   }
 
   get fileOps(): FileOperations {

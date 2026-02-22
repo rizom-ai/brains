@@ -5,25 +5,25 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin, ProfileService } from "@brains/plugins";
-import { SiteBuilder } from "./lib/site-builder";
-import { RouteRegistry } from "./lib/route-registry";
-import { UISlotRegistry, type SlotRegistration } from "./lib/ui-slot-registry";
-import type { RouteDefinition } from "@brains/plugins";
+import { SiteBuilder } from "./lib/site-builder.js";
+import { RouteRegistry } from "./lib/route-registry.js";
 import {
-  RegisterRoutesPayloadSchema,
-  UnregisterRoutesPayloadSchema,
-  ListRoutesPayloadSchema,
-  GetRoutePayloadSchema,
-} from "@brains/plugins";
-import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
-import { NavigationDataSource } from "./datasources/navigation-datasource";
-import { SiteInfoDataSource } from "./datasources/site-info-datasource";
-import { createSiteBuilderTools } from "./tools";
-import type { SiteBuilderConfig, LayoutComponent } from "./config";
-import { siteBuilderConfigSchema } from "./config";
-import { SiteInfoService } from "./services/site-info-service";
-import { siteInfoSchema } from "./services/site-info-schema";
-import { SiteInfoAdapter } from "./services/site-info-adapter";
+  UISlotRegistry,
+  type SlotRegistration,
+} from "./lib/ui-slot-registry.js";
+import { RebuildManager } from "./lib/auto-rebuild.js";
+import { setupRouteHandlers } from "./lib/route-handlers.js";
+import { registerConfigRoutes } from "./lib/route-helpers.js";
+import { subscribeBuildCompleted } from "./lib/seo-file-handler.js";
+import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler.js";
+import { NavigationDataSource } from "./datasources/navigation-datasource.js";
+import { SiteInfoDataSource } from "./datasources/site-info-datasource.js";
+import { createSiteBuilderTools } from "./tools/index.js";
+import type { SiteBuilderConfig, LayoutComponent } from "./config.js";
+import { siteBuilderConfigSchema } from "./config.js";
+import { SiteInfoService } from "./services/site-info-service.js";
+import { siteInfoSchema } from "./services/site-info-schema.js";
+import { SiteInfoAdapter } from "./services/site-info-adapter.js";
 import {
   templates as defaultTemplates,
   routes as defaultRoutes,
@@ -34,13 +34,6 @@ import {
 } from "@brains/default-site-content";
 import defaultTheme from "@brains/theme-default";
 import packageJson from "../package.json";
-import { generateRobotsTxt } from "./lib/robots-generator";
-import { generateSitemap } from "./lib/sitemap-generator";
-import { generateCmsConfig, CMS_ADMIN_HTML } from "./lib/cms-config";
-import type { SiteBuildCompletedPayload } from "./types/job-types";
-import { toYaml, LeadingTrailingDebounce } from "@brains/utils";
-import { promises as fs } from "fs";
-import { join } from "path";
 
 /**
  * Site Builder Plugin
@@ -54,12 +47,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private siteInfoService?: SiteInfoService;
   private profileService?: ProfileService;
   private layouts: Record<string, LayoutComponent>;
-  private unsubscribeFunctions: Array<() => void> = [];
-  private rebuildDebounces = new Map<string, LeadingTrailingDebounce>();
+  private rebuildManager?: RebuildManager;
 
-  /**
-   * Get the route registry, throwing if not initialized
-   */
   private get routeRegistry(): RouteRegistry {
     if (!this._routeRegistry) {
       throw new Error("RouteRegistry not initialized - plugin not registered");
@@ -68,11 +57,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
-    // Apply defaults for common settings
     const configWithDefaults = {
       ...config,
-      // Don't default previewOutputDir - let it be undefined if not configured
-      // This allows the build tools to default to production mode
       templates: config.templates ?? defaultTemplates,
       routes: config.routes ?? defaultRoutes,
       layouts: config.layouts ?? {
@@ -89,22 +75,16 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       configWithDefaults,
       siteBuilderConfigSchema,
     );
-    // Store layouts from config
     this.layouts = configWithDefaults.layouts;
   }
 
-  /**
-   * Initialize the plugin
-   */
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     this.pluginContext = context;
 
-    // Initialize route registry with logger
+    // Initialize registries
     this._routeRegistry = new RouteRegistry(context.logger);
-
-    // Initialize slot registry for UI components from other plugins
     this._slotRegistry = new UISlotRegistry();
 
     // Subscribe to slot registration messages from other plugins
@@ -121,34 +101,32 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       return { success: true };
     });
 
-    // Register NavigationDataSource
-    const navigationDataSource = new NavigationDataSource(
-      this._routeRegistry,
-      context.logger.child("NavigationDataSource"),
+    // Register data sources
+    context.entities.registerDataSource(
+      new NavigationDataSource(
+        this._routeRegistry,
+        context.logger.child("NavigationDataSource"),
+      ),
     );
-    context.entities.registerDataSource(navigationDataSource);
 
-    // Register site-info entity type BEFORE initializing service
+    // Register site-info entity type
     context.entities.register(
       "site-info",
       siteInfoSchema,
       new SiteInfoAdapter(),
     );
 
-    // Create SiteInfoService instance (don't initialize yet - wait for seed content)
+    // Create services (initialized after seed content is loaded)
     this.siteInfoService = SiteInfoService.getInstance(
       context.entityService,
       context.logger,
       this.config.siteInfo,
     );
-
-    // Create ProfileService instance (don't initialize yet - wait for seed content)
     this.profileService = ProfileService.getInstance(
       context.entityService,
       context.logger,
     );
 
-    // Initialize both services after seed content is loaded
     context.messaging.subscribe("sync:initial:completed", async () => {
       this.logger.info(
         "sync:initial:completed received, initializing services",
@@ -160,41 +138,27 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       return { success: true };
     });
 
-    // Register SiteInfoDataSource with services
-    const siteInfoDataSource = new SiteInfoDataSource(
-      this._routeRegistry,
-      this.siteInfoService,
-      this.profileService,
-      context.logger.child("SiteInfoDataSource"),
+    context.entities.registerDataSource(
+      new SiteInfoDataSource(
+        this._routeRegistry,
+        this.siteInfoService,
+        this.profileService,
+        context.logger.child("SiteInfoDataSource"),
+      ),
     );
-    context.entities.registerDataSource(siteInfoDataSource);
 
-    // Setup route message handlers
-    this.setupRouteHandlers(context);
+    // Wire up route message handlers and register config routes
+    setupRouteHandlers(context, this._routeRegistry, this.logger);
 
-    // Register templates from configuration using unified registration
     if (this.config.templates) {
       context.templates.register(this.config.templates);
     }
 
-    // Register routes if provided
     if (this.config.routes) {
-      for (const route of this.config.routes) {
-        this.routeRegistry.register({
-          ...route,
-          pluginId: this.id,
-          // Prefix template names with plugin ID for consistency
-          sections: route.sections.map((section) => ({
-            ...section,
-            template: section.template.includes(":")
-              ? section.template
-              : `${this.id}:${section.template}`,
-          })),
-        });
-      }
+      registerConfigRoutes(this.config.routes, this.id, this.routeRegistry);
     }
 
-    // Initialize the site builder with plugin context and route registry
+    // Initialize site builder
     this.siteBuilder = SiteBuilder.getInstance(
       context.logger.child("SiteBuilder"),
       context,
@@ -204,188 +168,46 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.config.entityRouteConfig,
     );
 
-    // Register site-build job handler (site-specific, not a content operation)
-    const siteBuildHandler = new SiteBuildJobHandler(
-      this.logger.child("SiteBuildJobHandler"),
-      this.siteBuilder,
-      this.layouts,
-      this.config.siteInfo,
-      context,
-      this.config.themeCSS,
-      this.config.previewUrl,
-      this.config.productionUrl,
-      this._slotRegistry,
+    // Register site-build job handler
+    context.jobs.registerHandler(
+      "site-build",
+      new SiteBuildJobHandler(
+        this.logger.child("SiteBuildJobHandler"),
+        this.siteBuilder,
+        this.layouts,
+        this.config.siteInfo,
+        context,
+        this.config.themeCSS,
+        this.config.previewUrl,
+        this.config.productionUrl,
+        this._slotRegistry,
+      ),
     );
-    context.jobs.registerHandler("site-build", siteBuildHandler);
 
-    // Note: content-generation and content-derivation handlers are registered
-    // by the shell as they are core content operations owned by ContentService
+    // Set up rebuild manager (handles debounced builds and auto-rebuild)
+    this.rebuildManager = new RebuildManager(
+      this.config,
+      context,
+      this.id,
+      this.logger,
+    );
 
-    // Set up auto-rebuild if enabled
     if (this.config.autoRebuild) {
       this.logger.debug("Auto-rebuild enabled");
-      this.setupAutoRebuild(context);
+      this.rebuildManager.setupAutoRebuild();
     }
 
-    // Subscribe to site:build:completed to auto-generate SEO files
-    context.messaging.subscribe<
-      SiteBuildCompletedPayload,
-      { success: boolean }
-    >("site:build:completed", async (message) => {
-      try {
-        const payload = message.payload;
-
-        this.logger.info(
-          `Received site:build:completed event for ${payload.environment} environment - generating SEO files`,
-        );
-
-        const baseUrl = payload.siteConfig.url ?? "https://example.com";
-        const routes = this.routeRegistry.list();
-
-        // Generate robots.txt
-        const robotsTxt = generateRobotsTxt(baseUrl, payload.environment);
-        await fs.writeFile(
-          join(payload.outputDir, "robots.txt"),
-          robotsTxt,
-          "utf-8",
-        );
-        this.logger.info(
-          `Generated robots.txt for ${payload.environment} environment`,
-        );
-
-        // Generate sitemap.xml
-        const sitemap = generateSitemap(routes, baseUrl);
-        await fs.writeFile(
-          join(payload.outputDir, "sitemap.xml"),
-          sitemap,
-          "utf-8",
-        );
-        this.logger.info(`Generated sitemap.xml with ${routes.length} URLs`);
-
-        // Generate CMS config if cms is configured
-        if (this.config.cms && this.pluginContext) {
-          const repoInfo = await this.pluginContext.messaging.send<
-            Record<string, never>,
-            { repo: string; branch: string }
-          >("git-sync:get-repo-info", {});
-
-          if ("noop" in repoInfo || !repoInfo.success || !repoInfo.data?.repo) {
-            this.logger.warn(
-              "CMS enabled but git-sync repo info unavailable — skipping CMS generation",
-            );
-          } else {
-            const entityTypes =
-              this.pluginContext.entityService.getEntityTypes();
-            const cmsConfig = generateCmsConfig({
-              repo: repoInfo.data.repo,
-              branch: repoInfo.data.branch,
-              ...(this.config.cms.baseUrl && {
-                baseUrl: this.config.cms.baseUrl,
-              }),
-              entityTypes,
-              getFrontmatterSchema: (type) =>
-                this.pluginContext?.entities.getEffectiveFrontmatterSchema(
-                  type,
-                ),
-              getAdapter: (type) =>
-                this.pluginContext?.entities.getAdapter(type),
-              ...(this.config.entityRouteConfig && {
-                entityRouteConfig: this.config.entityRouteConfig,
-              }),
-            });
-            const adminDir = join(payload.outputDir, "admin");
-            await fs.mkdir(adminDir, { recursive: true });
-            await fs.writeFile(
-              join(adminDir, "config.yml"),
-              toYaml(cmsConfig),
-              "utf-8",
-            );
-            await fs.writeFile(
-              join(adminDir, "index.html"),
-              CMS_ADMIN_HTML,
-              "utf-8",
-            );
-            this.logger.info("Generated CMS admin page and config.yml");
-          }
-        }
-
-        return { success: true };
-      } catch (error) {
-        this.logger.error("Failed to generate SEO files", error);
-        return { success: false };
-      }
+    // Subscribe to build-completed for SEO + CMS file generation
+    subscribeBuildCompleted({
+      context,
+      routeRegistry: this._routeRegistry,
+      config: this.config,
+      logger: this.logger,
     });
-
-    // Site builder is now encapsulated within the plugin
   }
 
-  /**
-   * Request a site rebuild through the shared debounce.
-   * Both auto-rebuild (entity events) and the build-site tool use this.
-   * Separate debounces per environment so preview and production don't interfere.
-   */
-  public requestBuild(environment?: "preview" | "production"): void {
-    const env =
-      environment ?? (this.config.previewOutputDir ? "preview" : "production");
-
-    let debounce = this.rebuildDebounces.get(env);
-    if (!debounce) {
-      debounce = new LeadingTrailingDebounce(() => {
-        void this.enqueueBuild(env);
-      }, this.config.rebuildDebounce);
-      this.rebuildDebounces.set(env, debounce);
-    }
-
-    debounce.trigger();
-  }
-
-  private async enqueueBuild(
-    environment: "preview" | "production",
-  ): Promise<void> {
-    const context = this.pluginContext;
-    if (!context) return;
-
-    const outputDir =
-      environment === "production"
-        ? this.config.productionOutputDir
-        : (this.config.previewOutputDir ?? this.config.productionOutputDir);
-
-    this.logger.debug(`Triggering ${environment} site rebuild`);
-
-    try {
-      await context.jobs.enqueue(
-        "site-build",
-        {
-          environment,
-          outputDir,
-          workingDir: this.config.workingDir,
-          enableContentGeneration: true,
-          metadata: {
-            trigger: "debounced-rebuild",
-            timestamp: new Date().toISOString(),
-          },
-        },
-        null,
-        {
-          priority: 0,
-          source: this.id,
-          metadata: {
-            operationType: "content_operations" as const,
-          },
-          deduplication: "skip",
-        },
-      );
-      this.logger.debug("Site rebuild enqueued");
-    } catch (error) {
-      this.logger.error("Failed to enqueue site rebuild", { error });
-    }
-  }
-
-  /**
-   * Get the tools provided by this plugin
-   */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.pluginContext) {
+    if (!this.pluginContext || !this.rebuildManager) {
       throw new Error("Plugin context not initialized");
     }
 
@@ -393,175 +215,25 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.pluginContext,
       this.id,
       this.routeRegistry,
-      (env) => this.requestBuild(env),
+      (env) => this.rebuildManager!.requestBuild(env),
     );
   }
 
-  /**
-   * No resources needed for this plugin
-   */
   protected override async getResources(): Promise<PluginResource[]> {
     return [];
   }
 
-  /**
-   * Get the site builder instance
-   */
   public getSiteBuilder(): SiteBuilder | undefined {
     return this.siteBuilder;
   }
 
-  /**
-   * Get the slot registry for UI component slots
-   */
   public getSlotRegistry(): UISlotRegistry | undefined {
     return this._slotRegistry;
   }
 
-  /**
-   * Setup message handlers for route operations
-   */
-  private setupRouteHandlers(context: ServicePluginContext): void {
-    // Register handler for route registration
-    context.messaging.subscribe(
-      "plugin:site-builder:route:register",
-      async (message) => {
-        try {
-          const payload = RegisterRoutesPayloadSchema.parse(message.payload);
-          const { routes, pluginId } = payload;
-
-          for (const route of routes) {
-            const processedRoute: RouteDefinition = {
-              ...route,
-              pluginId,
-              // Add plugin prefix to template names if not already prefixed
-              sections: route.sections.map((section) => ({
-                ...section,
-                template: section.template.includes(":")
-                  ? section.template
-                  : `${pluginId}:${section.template}`,
-              })),
-            };
-            this.routeRegistry.register(processedRoute);
-          }
-
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to register routes", { error });
-          return { success: false, error: "Failed to register routes" };
-        }
-      },
-    );
-
-    // Handler for unregistering routes
-    context.messaging.subscribe(
-      "plugin:site-builder:route:unregister",
-      async (message) => {
-        try {
-          const payload = UnregisterRoutesPayloadSchema.parse(message.payload);
-          const { paths, pluginId } = payload;
-
-          if (paths) {
-            for (const path of paths) {
-              this.routeRegistry.unregister(path);
-            }
-          } else if (pluginId) {
-            this.routeRegistry.unregisterByPlugin(pluginId);
-          }
-
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to unregister routes", { error });
-          return { success: false, error: "Failed to unregister routes" };
-        }
-      },
-    );
-
-    // Handler for listing routes
-    context.messaging.subscribe(
-      "plugin:site-builder:route:list",
-      async (message) => {
-        try {
-          const payload = ListRoutesPayloadSchema.parse(message.payload);
-          const routes = this.routeRegistry.list(
-            payload.pluginId ? payload : undefined,
-          );
-          return { success: true, data: { routes } };
-        } catch (error) {
-          this.logger.error("Failed to list routes", { error });
-          return { success: false, error: "Failed to list routes" };
-        }
-      },
-    );
-
-    // Handler for getting specific route
-    context.messaging.subscribe(
-      "plugin:site-builder:route:get",
-      async (message) => {
-        try {
-          const payload = GetRoutePayloadSchema.parse(message.payload);
-          const route = this.routeRegistry.get(payload.path);
-          return { success: true, data: { route } };
-        } catch (error) {
-          this.logger.error("Failed to get route", { error });
-          return { success: false, error: "Failed to get route" };
-        }
-      },
-    );
-
-    // Handler for site-content plugin to discover all routes
-    context.messaging.subscribe("site-builder:routes:list", async () => {
-      return { success: true, data: this.routeRegistry.list() };
-    });
-  }
-
-  /**
-   * Set up automatic site rebuilding when content changes
-   * Uses timer-based debounce plus job queue deduplication as safety net
-   */
-  private setupAutoRebuild(context: ServicePluginContext): void {
-    const excludedTypes = new Set(["base"]);
-
-    const entityEventHandler = async (message: {
-      payload: { entityType: string };
-    }): Promise<{ success: boolean }> => {
-      const { entityType } = message.payload;
-      if (!excludedTypes.has(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        this.requestBuild();
-      }
-      return { success: true };
-    };
-
-    const events = ["entity:created", "entity:updated", "entity:deleted"];
-    for (const event of events) {
-      this.unsubscribeFunctions.push(
-        context.messaging.subscribe(event, entityEventHandler),
-      );
-    }
-
-    this.logger.debug(
-      `Auto-rebuild enabled (${this.config.rebuildDebounce}ms debounce), excluding types: ${[...excludedTypes].join(", ")}`,
-    );
-  }
-
-  /**
-   * Cleanup subscriptions on shutdown
-   */
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
-
-    // Cancel any pending rebuilds
-    for (const debounce of this.rebuildDebounces.values()) {
-      debounce.dispose();
-    }
-    this.rebuildDebounces.clear();
-
-    // Unsubscribe from all event subscriptions
-    for (const unsubscribe of this.unsubscribeFunctions) {
-      unsubscribe();
-    }
-    this.unsubscribeFunctions = [];
+    this.rebuildManager?.dispose();
     this.logger.debug("Cleaned up all event subscriptions");
   }
 }
