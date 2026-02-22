@@ -1,53 +1,14 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import type { BlogPost } from "../src/schemas/blog-post";
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import {
-  createMockLogger,
-  createMockEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { SeriesRouteGenerator } from "../src/routes/series-route-generator";
+import { createMockPost } from "./fixtures/blog-entities";
 
 describe("SeriesRouteGenerator", () => {
   let generator: SeriesRouteGenerator;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
-
-  const createMockPost = (
-    id: string,
-    title: string,
-    slug: string,
-    seriesName?: string,
-    seriesIndex?: number,
-  ): BlogPost => {
-    const content = `---
-title: ${title}
-slug: ${slug}
-status: published
-publishedAt: "2025-01-01T10:00:00.000Z"
-excerpt: Excerpt for ${title}
-author: Test Author
-${seriesName ? `seriesName: ${seriesName}` : ""}
-${seriesIndex ? `seriesIndex: ${seriesIndex}` : ""}
----
-
-# ${title}
-
-Content for ${title}`;
-    return createTestEntity<BlogPost>("post", {
-      id,
-      content,
-      metadata: {
-        title,
-        slug,
-        status: "published",
-        publishedAt: "2025-01-01T10:00:00.000Z",
-        seriesName,
-        seriesIndex,
-      },
-    });
-  };
 
   beforeEach(() => {
     mockLogger = createMockLogger();
@@ -71,17 +32,26 @@ Content for ${title}`;
 
     it("should generate detail routes for each unique series", async () => {
       const posts = [
-        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
-        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
-        createMockPost("3", "Post 3", "post-3", "Other Series", 1),
-        createMockPost("4", "Post 4", "post-4"), // No series
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 1,
+        }),
+        createMockPost("2", "Post 2", "post-2", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 2,
+        }),
+        createMockPost("3", "Post 3", "post-3", "published", {
+          seriesName: "Other Series",
+          seriesIndex: 1,
+        }),
+        createMockPost("4", "Post 4", "post-4", "published"),
       ];
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const routes = await generator.generateRoutes();
 
-      expect(routes).toHaveLength(3); // list + 2 detail
+      expect(routes).toHaveLength(3);
       expect(routes.map((r) => r.path).sort()).toEqual([
         "/series",
         "/series/new-institutions",
@@ -91,7 +61,10 @@ Content for ${title}`;
 
     it("should generate route with correct data query", async () => {
       const posts = [
-        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 1,
+        }),
       ];
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
@@ -117,7 +90,10 @@ Content for ${title}`;
 
     it("should slugify series names for URLs", async () => {
       const posts = [
-        createMockPost("1", "Post 1", "post-1", "The Future of Work", 1),
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "The Future of Work",
+          seriesIndex: 1,
+        }),
       ];
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
@@ -130,7 +106,12 @@ Content for ${title}`;
     });
 
     it("should mark routes with sourceEntityType for cleanup", async () => {
-      const posts = [createMockPost("1", "Post 1", "post-1", "Test Series", 1)];
+      const posts = [
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "Test Series",
+          seriesIndex: 1,
+        }),
+      ];
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 

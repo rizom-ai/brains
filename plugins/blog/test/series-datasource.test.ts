@@ -1,70 +1,37 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import type { BlogPost } from "../src/schemas/blog-post";
-import type { Series } from "../src/schemas/series";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import {
-  createMockLogger,
-  createMockEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { z } from "zod";
 import { SeriesDataSource } from "../src/datasources/series-datasource";
+import { createMockPost, createMockSeries } from "./fixtures/blog-entities";
+
+const seriesListSchema = z.object({
+  series: z.array(
+    z
+      .object({
+        frontmatter: z.object({
+          title: z.string(),
+          slug: z.string(),
+        }),
+        postCount: z.number(),
+      })
+      .passthrough(),
+  ),
+});
+
+const seriesDetailSchema = z
+  .object({
+    seriesName: z.string(),
+    posts: z.array(z.object({ id: z.string() })),
+  })
+  .passthrough();
 
 describe("SeriesDataSource", () => {
   let datasource: SeriesDataSource;
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
-
-  const createMockPost = (
-    id: string,
-    title: string,
-    slug: string,
-    seriesName?: string,
-    seriesIndex?: number,
-  ): BlogPost => {
-    const content = `---
-title: ${title}
-slug: ${slug}
-status: published
-publishedAt: "2025-01-01T10:00:00.000Z"
-excerpt: Excerpt for ${title}
-author: Test Author
-${seriesName ? `seriesName: ${seriesName}` : ""}
-${seriesIndex ? `seriesIndex: ${seriesIndex}` : ""}
----
-
-# ${title}
-
-Content for ${title}`;
-    return createTestEntity<BlogPost>("post", {
-      id,
-      content,
-      metadata: {
-        title,
-        slug,
-        status: "published",
-        publishedAt: "2025-01-01T10:00:00.000Z",
-        seriesName,
-        seriesIndex,
-      },
-    });
-  };
-
-  const createMockSeries = (title: string, slug: string): Series => {
-    const content = `---
-title: ${title}
-slug: ${slug}
----
-
-# ${title}`;
-    return createTestEntity<Series>("series", {
-      id: `series-${slug}`,
-      content,
-      metadata: { title, slug },
-    });
-  };
 
   beforeEach(() => {
     mockLogger = createMockLogger();
@@ -73,44 +40,42 @@ slug: ${slug}
     datasource = new SeriesDataSource(mockLogger);
   });
 
+  function mockSeriesAndPosts(): void {
+    const seriesEntities = [
+      createMockSeries("New Institutions"),
+      createMockSeries("Other Series"),
+    ];
+    const posts = [
+      createMockPost("1", "Post 1", "post-1", "published", {
+        seriesName: "New Institutions",
+        seriesIndex: 1,
+      }),
+      createMockPost("2", "Post 2", "post-2", "published", {
+        seriesName: "New Institutions",
+        seriesIndex: 2,
+      }),
+      createMockPost("3", "Post 3", "post-3", "published", {
+        seriesName: "Other Series",
+        seriesIndex: 1,
+      }),
+    ];
+
+    spyOn(mockEntityService, "listEntities").mockImplementation(((
+      entityType: string,
+    ) => {
+      if (entityType === "series") return Promise.resolve(seriesEntities);
+      if (entityType === "post") return Promise.resolve(posts);
+      return Promise.resolve([]);
+    }) as typeof mockEntityService.listEntities);
+  }
+
   describe("fetchSeriesList", () => {
     it("should return all series entities", async () => {
-      const seriesEntities = [
-        createMockSeries("New Institutions", "new-institutions"),
-        createMockSeries("Other Series", "other-series"),
-      ];
-      const posts = [
-        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
-        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
-        createMockPost("3", "Post 3", "post-3", "Other Series", 1),
-      ];
-
-      // Mock listEntities to return series for "series" type and posts for "post" type
-      spyOn(mockEntityService, "listEntities").mockImplementation(((
-        entityType: string,
-      ) => {
-        if (entityType === "series") return Promise.resolve(seriesEntities);
-        if (entityType === "post") return Promise.resolve(posts);
-        return Promise.resolve([]);
-      }) as typeof mockEntityService.listEntities);
-
-      const schema = z.object({
-        series: z.array(
-          z
-            .object({
-              frontmatter: z.object({
-                title: z.string(),
-                slug: z.string(),
-              }),
-              postCount: z.number(),
-            })
-            .passthrough(),
-        ),
-      });
+      mockSeriesAndPosts();
 
       const result = await datasource.fetch(
         { type: "list" },
-        schema,
+        seriesListSchema,
         mockContext,
       );
 
@@ -132,28 +97,13 @@ slug: ${slug}
     });
 
     it("should return empty array when no series exist", async () => {
-      // Mock both series and posts as empty
       spyOn(mockEntityService, "listEntities").mockImplementation(() =>
         Promise.resolve([]),
       );
 
-      const schema = z.object({
-        series: z.array(
-          z
-            .object({
-              frontmatter: z.object({
-                title: z.string(),
-                slug: z.string(),
-              }),
-              postCount: z.number(),
-            })
-            .passthrough(),
-        ),
-      });
-
       const result = await datasource.fetch(
         { type: "list" },
-        schema,
+        seriesListSchema,
         mockContext,
       );
 
@@ -163,29 +113,25 @@ slug: ${slug}
 
   describe("fetchSeriesDetail", () => {
     it("should return posts for a specific series", async () => {
-      const seriesEntity = createMockSeries(
-        "New Institutions",
-        "new-institutions",
-      );
+      const seriesEntity = createMockSeries("New Institutions");
       const posts = [
-        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
-        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 1,
+        }),
+        createMockPost("2", "Post 2", "post-2", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 2,
+        }),
       ];
 
       const listSpy = spyOn(mockEntityService, "listEntities");
-      listSpy.mockResolvedValueOnce([seriesEntity]); // series lookup
-      listSpy.mockResolvedValueOnce(posts); // posts lookup
-
-      const schema = z
-        .object({
-          seriesName: z.string(),
-          posts: z.array(z.object({ id: z.string() })),
-        })
-        .passthrough();
+      listSpy.mockResolvedValueOnce([seriesEntity]);
+      listSpy.mockResolvedValueOnce(posts);
 
       const result = await datasource.fetch(
         { type: "detail", seriesName: "New Institutions" },
-        schema,
+        seriesDetailSchema,
         mockContext,
       );
 
@@ -196,42 +142,11 @@ slug: ${slug}
 
   describe("DynamicRouteGenerator query format", () => {
     it("should handle list query with entityType format", async () => {
-      const seriesEntities = [
-        createMockSeries("New Institutions", "new-institutions"),
-        createMockSeries("Other Series", "other-series"),
-      ];
-      const posts = [
-        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
-        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
-        createMockPost("3", "Post 3", "post-3", "Other Series", 1),
-      ];
+      mockSeriesAndPosts();
 
-      spyOn(mockEntityService, "listEntities").mockImplementation(((
-        entityType: string,
-      ) => {
-        if (entityType === "series") return Promise.resolve(seriesEntities);
-        if (entityType === "post") return Promise.resolve(posts);
-        return Promise.resolve([]);
-      }) as typeof mockEntityService.listEntities);
-
-      const schema = z.object({
-        series: z.array(
-          z
-            .object({
-              frontmatter: z.object({
-                title: z.string(),
-                slug: z.string(),
-              }),
-              postCount: z.number(),
-            })
-            .passthrough(),
-        ),
-      });
-
-      // DynamicRouteGenerator query format for list
       const result = await datasource.fetch(
         { entityType: "series", query: { limit: 100 } },
-        schema,
+        seriesListSchema,
         mockContext,
       );
 
@@ -245,31 +160,25 @@ slug: ${slug}
     });
 
     it("should handle detail query with entityType format using id as slug", async () => {
-      const seriesEntities = [
-        createMockSeries("New Institutions", "new-institutions"),
-      ];
+      const seriesEntities = [createMockSeries("New Institutions")];
       const posts = [
-        createMockPost("1", "Post 1", "post-1", "New Institutions", 1),
-        createMockPost("2", "Post 2", "post-2", "New Institutions", 2),
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 1,
+        }),
+        createMockPost("2", "Post 2", "post-2", "published", {
+          seriesName: "New Institutions",
+          seriesIndex: 2,
+        }),
       ];
 
       const listSpy = spyOn(mockEntityService, "listEntities");
-      // First call returns the series entity to get the seriesName from slug
       listSpy.mockResolvedValueOnce(seriesEntities);
-      // Second call returns posts for that series
       listSpy.mockResolvedValueOnce(posts);
 
-      const schema = z
-        .object({
-          seriesName: z.string(),
-          posts: z.array(z.object({ id: z.string() })),
-        })
-        .passthrough();
-
-      // DynamicRouteGenerator query format for detail (id = slug)
       const result = await datasource.fetch(
         { entityType: "series", query: { id: "new-institutions" } },
-        schema,
+        seriesDetailSchema,
         mockContext,
       );
 
@@ -279,15 +188,30 @@ slug: ${slug}
 
     it("should handle paginated list query", async () => {
       const seriesEntities = [
-        createMockSeries("Series A", "series-a"),
-        createMockSeries("Series B", "series-b"),
+        createMockSeries("Series A"),
+        createMockSeries("Series B"),
       ];
       const posts = [
-        createMockPost("1", "Post 1", "post-1", "Series A", 1),
-        createMockPost("2", "Post 2", "post-2", "Series A", 2),
-        createMockPost("3", "Post 3", "post-3", "Series A", 3),
-        createMockPost("4", "Post 4", "post-4", "Series B", 1),
-        createMockPost("5", "Post 5", "post-5", "Series B", 2),
+        createMockPost("1", "Post 1", "post-1", "published", {
+          seriesName: "Series A",
+          seriesIndex: 1,
+        }),
+        createMockPost("2", "Post 2", "post-2", "published", {
+          seriesName: "Series A",
+          seriesIndex: 2,
+        }),
+        createMockPost("3", "Post 3", "post-3", "published", {
+          seriesName: "Series A",
+          seriesIndex: 3,
+        }),
+        createMockPost("4", "Post 4", "post-4", "published", {
+          seriesName: "Series B",
+          seriesIndex: 1,
+        }),
+        createMockPost("5", "Post 5", "post-5", "published", {
+          seriesName: "Series B",
+          seriesIndex: 2,
+        }),
       ];
 
       spyOn(mockEntityService, "listEntities").mockImplementation(((
@@ -298,27 +222,12 @@ slug: ${slug}
         return Promise.resolve([]);
       }) as typeof mockEntityService.listEntities);
 
-      const schema = z.object({
-        series: z.array(
-          z
-            .object({
-              frontmatter: z.object({
-                title: z.string(),
-                slug: z.string(),
-              }),
-              postCount: z.number(),
-            })
-            .passthrough(),
-        ),
-      });
-
-      // Paginated query format
       const result = await datasource.fetch(
         {
           entityType: "series",
           query: { page: 1, pageSize: 10, baseUrl: "/series" },
         },
-        schema,
+        seriesListSchema,
         mockContext,
       );
 

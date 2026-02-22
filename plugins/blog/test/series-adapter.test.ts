@@ -1,26 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SeriesAdapter } from "../src/adapters/series-adapter";
-import type { Series } from "../src/schemas/series";
-import { createTestEntity } from "@brains/test-utils";
-
-function createMockSeries(overrides: Partial<Series> = {}): Series {
-  const title = overrides.metadata?.title ?? "Test Series";
-  const slug = overrides.metadata?.slug ?? "test-series";
-  const defaultContent = `---
-title: ${title}
-slug: ${slug}
----
-
-# ${title}`;
-  return createTestEntity<Series>("series", {
-    content: overrides.content ?? defaultContent,
-    metadata: {
-      title,
-      slug,
-    },
-    ...overrides,
-  });
-}
+import { createMockSeries } from "./fixtures/blog-entities";
 
 describe("SeriesAdapter", () => {
   let adapter: SeriesAdapter;
@@ -34,13 +14,7 @@ describe("SeriesAdapter", () => {
   });
 
   it("should generate frontmatter with title and slug", () => {
-    const entity = createMockSeries({
-      content: "# Ecosystem Architecture",
-      metadata: {
-        title: "Ecosystem Architecture",
-        slug: "ecosystem-architecture",
-      },
-    });
+    const entity = createMockSeries("Ecosystem Architecture");
 
     const markdown = adapter.toMarkdown(entity);
 
@@ -71,13 +45,8 @@ slug: ecosystem-architecture
 
 # Ecosystem Architecture`;
 
-    const entity = createMockSeries({
-      content: contentWithCover,
-      metadata: {
-        title: "Ecosystem Architecture",
-        slug: "ecosystem-architecture",
-      },
-    });
+    const entity = createMockSeries("Ecosystem Architecture");
+    entity.content = contentWithCover;
 
     const output = adapter.toMarkdown(entity);
 

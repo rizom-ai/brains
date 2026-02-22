@@ -3,7 +3,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import { computeContentHash } from "@brains/utils";
 import { BlogPlugin } from "../src/plugin";
 import type { BlogPost } from "../src/schemas/blog-post";
-import type { Series } from "../src/schemas/series";
+import { createMockSeries } from "./fixtures/blog-entities";
 
 describe("blog_enhance-series tool", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -13,12 +13,12 @@ describe("blog_enhance-series tool", () => {
     await harness.installPlugin(new BlogPlugin({}));
   });
 
-  const createMockPost = (
+  function createSeriesPost(
     id: string,
     title: string,
     excerpt: string,
     seriesName: string,
-  ): BlogPost => {
+  ): BlogPost {
     const content = `---
 title: "${title}"
 slug: ${id}
@@ -46,30 +46,7 @@ Post content here.`;
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
     };
-  };
-
-  const createMockSeries = (title: string): Series => {
-    const slug = title.toLowerCase().replace(/\s+/g, "-");
-    const content = `---
-title: "${title}"
-slug: ${slug}
----
-
-# ${title}`;
-
-    return {
-      id: slug, // No prefix - just the slug
-      entityType: "series",
-      content,
-      contentHash: computeContentHash(content),
-      metadata: {
-        title,
-        slug,
-      },
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    };
-  };
+  }
 
   it("should return error when series not found", async () => {
     const result = await harness.executeTool("blog_enhance-series", {
@@ -96,16 +73,15 @@ slug: ${slug}
   it("should find series by slug without prefix", async () => {
     const entityService = harness.getShell().getEntityService();
 
-    const series = createMockSeries("Test Series");
-    await entityService.createEntity(series);
-
-    const post = createMockPost(
-      "post-1",
-      "First Post",
-      "An introduction",
-      "Test Series",
+    await entityService.createEntity(createMockSeries("Test Series"));
+    await entityService.createEntity(
+      createSeriesPost(
+        "post-1",
+        "First Post",
+        "An introduction",
+        "Test Series",
+      ),
     );
-    await entityService.createEntity(post);
 
     const result = await harness.executeTool("blog_enhance-series", {
       seriesId: "test-series",
@@ -117,26 +93,26 @@ slug: ${slug}
   it("should succeed with posts in series", async () => {
     const entityService = harness.getShell().getEntityService();
 
-    const series = createMockSeries("AI Learning");
-    await entityService.createEntity(series);
-
-    const post1 = createMockPost(
-      "intro-to-ml",
-      "Introduction to Machine Learning",
-      "Learn the basics of ML",
-      "AI Learning",
+    await entityService.createEntity(createMockSeries("AI Learning"));
+    await entityService.createEntity(
+      createSeriesPost(
+        "intro-to-ml",
+        "Introduction to Machine Learning",
+        "Learn the basics of ML",
+        "AI Learning",
+      ),
     );
-    const post2 = createMockPost(
-      "deep-learning",
-      "Deep Learning Fundamentals",
-      "Understanding neural networks",
-      "AI Learning",
+    await entityService.createEntity(
+      createSeriesPost(
+        "deep-learning",
+        "Deep Learning Fundamentals",
+        "Understanding neural networks",
+        "AI Learning",
+      ),
     );
-    await entityService.createEntity(post1);
-    await entityService.createEntity(post2);
 
     const result = await harness.executeTool("blog_enhance-series", {
-      seriesId: series.id,
+      seriesId: "ai-learning",
     });
 
     expect(result.success).toBe(true);

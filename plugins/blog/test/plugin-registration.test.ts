@@ -3,59 +3,36 @@ import { BlogPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
 import { MockShell } from "@brains/plugins/test";
 import type { BlogPost } from "../src/schemas/blog-post";
+import { createMockPost } from "./fixtures/blog-entities";
 
-// Sample post for testing
-const sampleDraftPost: BlogPost = {
-  id: "post-1",
-  entityType: "post",
-  content: `---
-title: Test Post
-status: draft
-excerpt: A test post
-author: Test Author
----
-This is a test post.`,
-  metadata: {
-    title: "Test Post",
-    slug: "test-post",
-    status: "draft",
-  },
-  contentHash: "abc123",
-  created: "2024-01-01T00:00:00Z",
-  updated: "2024-01-01T00:00:00Z",
-};
+const sampleDraftPost = createMockPost(
+  "post-1",
+  "Test Post",
+  "test-post",
+  "draft",
+);
 
 describe("BlogPlugin - Publish Pipeline Integration", () => {
   let plugin: BlogPlugin;
   let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    logger = createSilentLogger();
+    const logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-blog" });
     receivedMessages = [];
 
-    // Capture publish messages
     const messageBus = mockShell.getMessageBus();
-    messageBus.subscribe("publish:register", async (msg) => {
-      receivedMessages.push({ type: "publish:register", payload: msg.payload });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:success", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:success",
-        payload: msg.payload,
+    for (const eventType of [
+      "publish:register",
+      "publish:report:success",
+      "publish:report:failure",
+    ]) {
+      messageBus.subscribe(eventType, async (msg) => {
+        receivedMessages.push({ type: eventType, payload: msg.payload });
+        return { success: true };
       });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:failure", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:failure",
-        payload: msg.payload,
-      });
-      return { success: true };
-    });
+    }
   });
 
   afterEach(async () => {
@@ -125,7 +102,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         "test",
       );
 
-      // No report messages for other entity types
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );
@@ -136,7 +112,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       plugin = new BlogPlugin({});
       await plugin.register(mockShell);
 
-      // Add draft post
       const entityService = mockShell.getEntityService();
       await entityService.createEntity(sampleDraftPost);
 
@@ -156,7 +131,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         entityId: "post-1",
       });
 
-      // Verify post was updated to published
       const updatedPost = await entityService.getEntity<BlogPost>(
         "post",
         "post-1",
@@ -168,15 +142,14 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       plugin = new BlogPlugin({});
       await plugin.register(mockShell);
 
-      // Add published post
-      const publishedPost: BlogPost = {
-        ...sampleDraftPost,
-        content: sampleDraftPost.content.replace(
-          "status: draft",
-          "status: published",
-        ),
-        metadata: { ...sampleDraftPost.metadata, status: "published" },
-      };
+      const publishedPost = createMockPost(
+        "post-1",
+        "Test Post",
+        "test-post",
+        "published",
+        { publishedAt: "2025-01-01T00:00:00.000Z" },
+      );
+
       const entityService = mockShell.getEntityService();
       await entityService.createEntity(publishedPost);
 
@@ -187,7 +160,6 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         "test",
       );
 
-      // No report messages for already published
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );
