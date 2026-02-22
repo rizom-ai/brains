@@ -4,17 +4,11 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import {
-  parseMarkdownWithFrontmatter,
-  buildPaginationInfo,
-} from "@brains/plugins";
+import { buildPaginationInfo } from "@brains/plugins";
 import { z, slugify } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
-import {
-  blogPostFrontmatterSchema,
-  blogPostWithDataSchema,
-  type BlogPostWithData,
-} from "../schemas/blog-post";
+import type { BlogPostWithData } from "../schemas/blog-post";
+import { parsePostData as parsePostDataBase } from "./parse-helpers";
 
 // Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
@@ -35,32 +29,13 @@ const entityFetchQuerySchema = z.object({
 // Re-export for convenience
 export type { BlogPostWithData };
 
-/**
- * Parse frontmatter and extract body from entity
- * Uses Zod schema to validate the output
- * Includes seriesUrl if the post belongs to a series
- */
 function parsePostData(
   entity: BlogPost,
 ): BlogPostWithData & { seriesUrl?: string } {
-  const parsed = parseMarkdownWithFrontmatter(
-    entity.content,
-    blogPostFrontmatterSchema,
-  );
-
-  // Compute series URL if post belongs to a series
-  const seriesName = parsed.metadata.seriesName;
+  const post = parsePostDataBase(entity);
+  const seriesName = post.frontmatter.seriesName;
   const seriesUrl = seriesName ? `/series/${slugify(seriesName)}` : undefined;
-
-  // Use schema to validate and parse
-  return {
-    ...blogPostWithDataSchema.parse({
-      ...entity,
-      frontmatter: parsed.metadata,
-      body: parsed.content, // Markdown without frontmatter
-    }),
-    ...(seriesUrl && { seriesUrl }),
-  };
+  return { ...post, ...(seriesUrl && { seriesUrl }) };
 }
 
 /**
@@ -148,26 +123,16 @@ export class BlogDataSource implements DataSource {
     }
 
     const post = parsePostData(latestEntity);
-
-    // For home page, we don't need prev/next navigation
-    // But include series posts if this is part of a series
-    let seriesPosts = null;
-    const seriesName = latestEntity.metadata.seriesName;
-    if (seriesName) {
-      const seriesEntities: BlogPost[] =
-        await entityService.listEntities<BlogPost>("post", {
-          limit: 100,
-          filter: { metadata: { seriesName } },
-          sortFields: [{ field: "seriesIndex", direction: "asc" }],
-        });
-      seriesPosts = seriesEntities.map(parsePostData);
-    }
+    const seriesPosts = await this.fetchSeriesPostsForEntity(
+      latestEntity,
+      entityService,
+    );
 
     const detailData = {
       post,
-      prevPost: null, // No navigation on home page
+      prevPost: null,
       nextPost: null,
-      seriesPosts, // Keep series info if available
+      seriesPosts,
     };
 
     return outputSchema.parse(detailData);
@@ -220,19 +185,10 @@ export class BlogDataSource implements DataSource {
         : null;
     const prevPost = prevEntity ? parsePostData(prevEntity) : null;
     const nextPost = nextEntity ? parsePostData(nextEntity) : null;
-
-    // Get series posts if this is part of a series
-    let seriesPosts = null;
-    const seriesName = entity.metadata.seriesName;
-    if (seriesName) {
-      const seriesEntities: BlogPost[] =
-        await entityService.listEntities<BlogPost>("post", {
-          limit: 100,
-          filter: { metadata: { seriesName } },
-          sortFields: [{ field: "seriesIndex", direction: "asc" }],
-        });
-      seriesPosts = seriesEntities.map(parsePostData);
-    }
+    const seriesPosts = await this.fetchSeriesPostsForEntity(
+      entity,
+      entityService,
+    );
 
     const detailData = {
       post,
@@ -244,29 +200,37 @@ export class BlogDataSource implements DataSource {
     return outputSchema.parse(detailData);
   }
 
-  /**
-   * Fetch all posts in a series
-   */
+  private async fetchPostsBySeries(
+    seriesName: string,
+    entityService: IEntityService,
+  ): Promise<(BlogPostWithData & { seriesUrl?: string })[]> {
+    const entities: BlogPost[] = await entityService.listEntities<BlogPost>(
+      "post",
+      {
+        limit: 100,
+        filter: { metadata: { seriesName } },
+        sortFields: [{ field: "seriesIndex", direction: "asc" }],
+      },
+    );
+    return entities.map(parsePostData);
+  }
+
+  private async fetchSeriesPostsForEntity(
+    entity: BlogPost,
+    entityService: IEntityService,
+  ): Promise<(BlogPostWithData & { seriesUrl?: string })[] | null> {
+    const seriesName = entity.metadata.seriesName;
+    if (!seriesName) return null;
+    return this.fetchPostsBySeries(seriesName, entityService);
+  }
+
   private async fetchSeriesPosts<T>(
     seriesName: string,
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const seriesEntities: BlogPost[] =
-      await entityService.listEntities<BlogPost>("post", {
-        limit: 100,
-        filter: { metadata: { seriesName } },
-        sortFields: [{ field: "seriesIndex", direction: "asc" }],
-      });
-
-    const seriesPosts = seriesEntities.map(parsePostData);
-
-    const seriesData = {
-      seriesName,
-      posts: seriesPosts,
-    };
-
-    return outputSchema.parse(seriesData);
+    const posts = await this.fetchPostsBySeries(seriesName, entityService);
+    return outputSchema.parse({ seriesName, posts });
   }
 
   /**

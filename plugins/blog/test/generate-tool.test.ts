@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { createGenerateTool } from "../src/tools/generate";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
-import type { BlogConfig } from "../src/config";
 import { createMockServicePluginContext } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
@@ -18,11 +17,6 @@ describe("Generate Tool", () => {
   let mockContext: ServicePluginContext;
   let generateTool: ReturnType<typeof createGenerateTool>;
   let enqueueJobSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  const mockConfig: BlogConfig = {
-    defaultPrompt: "Write a blog post about my work",
-    paginate: true,
-    pageSize: 10,
-  };
 
   beforeEach(() => {
     mockContext = createMockServicePluginContext({
@@ -40,7 +34,7 @@ describe("Generate Tool", () => {
       "enqueue",
     ) as unknown as typeof enqueueJobSpy;
 
-    generateTool = createGenerateTool(mockContext, mockConfig, "blog");
+    generateTool = createGenerateTool(mockContext, "blog");
   });
 
   describe("tool metadata", () => {

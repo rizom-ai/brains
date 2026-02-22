@@ -1,9 +1,4 @@
-import type {
-  Plugin,
-  PluginTool,
-  PluginResource,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { Plugin, PluginTool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin, paginationInfoSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
@@ -78,26 +73,17 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       this.logger.child("SeriesManager"),
     );
 
-    // Subscribe to post changes to sync series
-    context.messaging.subscribe<
-      { entityType: string; entity: BlogPost },
-      { success: boolean }
-    >("entity:created", async (message) => {
-      if (message.payload.entityType === "post") {
-        await seriesManager.handlePostChange(message.payload.entity);
-      }
-      return { success: true };
-    });
-
-    context.messaging.subscribe<
-      { entityType: string; entity: BlogPost },
-      { success: boolean }
-    >("entity:updated", async (message) => {
-      if (message.payload.entityType === "post") {
-        await seriesManager.handlePostChange(message.payload.entity);
-      }
-      return { success: true };
-    });
+    for (const event of ["entity:created", "entity:updated"] as const) {
+      context.messaging.subscribe<
+        { entityType: string; entity: BlogPost },
+        { success: boolean }
+      >(event, async (message) => {
+        if (message.payload.entityType === "post") {
+          await seriesManager.handlePostChange(message.payload.entity);
+        }
+        return { success: true };
+      });
+    }
 
     context.messaging.subscribe<
       { entityType: string; entityId: string },
@@ -442,18 +428,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       { limit: 1000 },
     );
 
-    // Filter posts based on environment
-    // Preview: include all posts, Production: only published posts
     const filteredPosts: BlogPostWithData[] = allPosts
-      .filter((p) => {
-        if (isPreview) {
-          // Preview: include all posts
-          return true;
-        } else {
-          // Production: only published posts with publishedAt date
-          return p.metadata.status === "published" && p.metadata.publishedAt;
-        }
-      })
+      .filter(
+        (p) =>
+          isPreview ||
+          (p.metadata.status === "published" && p.metadata.publishedAt),
+      )
       .map((entity) => {
         const parsed = parseMarkdownWithFrontmatter(
           entity.content,
@@ -509,16 +489,9 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     // Note: RSS generation is automatic via site:build:completed event
     // Publish tool removed - use publish-pipeline_publish instead
     return [
-      createGenerateTool(this.pluginContext, this.config, this.id),
+      createGenerateTool(this.pluginContext, this.id),
       createEnhanceSeriesToolFactory(this.pluginContext, this.id),
     ];
-  }
-
-  /**
-   * No resources needed for this plugin
-   */
-  protected override async getResources(): Promise<PluginResource[]> {
-    return [];
   }
 }
 

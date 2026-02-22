@@ -9,16 +9,12 @@ import { z } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";
 import {
-  blogPostFrontmatterSchema,
-  blogPostWithDataSchema,
-  type BlogPostWithData,
-} from "../schemas/blog-post";
-import {
   seriesFrontmatterSchema,
   seriesWithDataSchema,
   type SeriesWithData,
 } from "../schemas/series";
 import { seriesAdapter } from "../adapters/series-adapter";
+import { parsePostData } from "./parse-helpers";
 
 // Custom query format (used by SeriesRouteGenerator)
 const customQuerySchema = z.object({
@@ -73,21 +69,6 @@ function normalizeQuery(query: unknown): {
   throw new Error(
     `Invalid series query format. Expected { type: "list" | "detail", seriesName?: string } or { entityType: "series", query: { id?: string } }`,
   );
-}
-
-/**
- * Parse frontmatter and extract body from blog post entity
- */
-function parsePostData(entity: BlogPost): BlogPostWithData {
-  const parsed = parseMarkdownWithFrontmatter(
-    entity.content,
-    blogPostFrontmatterSchema,
-  );
-  return blogPostWithDataSchema.parse({
-    ...entity,
-    frontmatter: parsed.metadata,
-    body: parsed.content,
-  });
 }
 
 /**

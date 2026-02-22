@@ -156,18 +156,12 @@ Add your conclusion here.`;
         });
       }
 
-      // Generate slug from title (will be stored in metadata for URL routing)
       await progressReporter.report({
         progress: 60,
         total: 100,
         message: "Creating blog post entity",
       });
 
-      const slug = slugify(title);
-
-      const finalExcerpt = excerpt;
-
-      // Get author name from profile
       const author = this.context.identity.getProfile().name;
 
       // Handle series indexing
@@ -181,28 +175,6 @@ Add your conclusion here.`;
         finalSeriesIndex = postsInSeries.length + 1;
       }
 
-      await progressReporter.report({
-        progress: 80,
-        total: 100,
-        message: "Saving blog post to database",
-      });
-
-      // Create entity with auto-generated ID (nanoid)
-      // Store all data in frontmatter, duplicate key fields in metadata for fast queries
-      const { blogPostAdapter } = await import("../adapters/blog-post-adapter");
-
-      // Create frontmatter with all post data including slug
-      const frontmatter: BlogPostFrontmatter = {
-        title,
-        slug, // Store slug in frontmatter for user visibility
-        status: "draft" as const,
-        excerpt: finalExcerpt,
-        author,
-        ...(coverImageId && { coverImageId }),
-        ...(seriesName && { seriesName }),
-        ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
-      };
-
       // Ensure title doesn't collide with an existing entity
       const finalTitle = await ensureUniqueTitle({
         entityType: "post",
@@ -212,13 +184,26 @@ Add your conclusion here.`;
           "Generate a different blog post title on the same topic.",
         context: this.context,
       });
-      const finalSlug = slugify(finalTitle);
+      const slug = slugify(finalTitle);
 
-      // Update frontmatter if title changed
-      if (finalTitle !== title) {
-        frontmatter.title = finalTitle;
-        frontmatter.slug = finalSlug;
-      }
+      await progressReporter.report({
+        progress: 80,
+        total: 100,
+        message: "Saving blog post to database",
+      });
+
+      const { blogPostAdapter } = await import("../adapters/blog-post-adapter");
+
+      const frontmatter: BlogPostFrontmatter = {
+        title: finalTitle,
+        slug,
+        status: "draft" as const,
+        excerpt,
+        author,
+        ...(coverImageId && { coverImageId }),
+        ...(seriesName && { seriesName }),
+        ...(finalSeriesIndex && { seriesIndex: finalSeriesIndex }),
+      };
 
       const result = await this.context.entityService.createEntity(
         {
@@ -226,8 +211,8 @@ Add your conclusion here.`;
           entityType: "post",
           content: blogPostAdapter.createPostContent(frontmatter, content),
           metadata: {
-            title: frontmatter.title,
-            slug: frontmatter.slug,
+            title: finalTitle,
+            slug,
             status: frontmatter.status,
             publishedAt: frontmatter.publishedAt,
             seriesName: frontmatter.seriesName,
@@ -240,13 +225,13 @@ Add your conclusion here.`;
       await progressReporter.report({
         progress: 100,
         total: 100,
-        message: `Blog post "${title}" created successfully`,
+        message: `Blog post "${finalTitle}" created successfully`,
       });
 
       return {
         success: true,
         entityId: result.entityId,
-        title,
+        title: finalTitle,
         slug,
       };
     } catch (error) {

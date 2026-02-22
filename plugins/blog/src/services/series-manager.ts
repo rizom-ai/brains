@@ -119,18 +119,6 @@ export class SeriesManager {
   }
 
   /**
-   * Handle a post deletion - cleanup orphaned series
-   */
-  async handlePostDelete(post: BlogPost): Promise<void> {
-    const seriesName = post.metadata.seriesName;
-    if (!seriesName) {
-      return;
-    }
-
-    await this.cleanupOrphanedSeries(seriesName);
-  }
-
-  /**
    * Check if a series has no posts and delete it if orphaned
    */
   async cleanupOrphanedSeries(seriesName: string): Promise<void> {

@@ -438,45 +438,6 @@ Content for ${title}`;
     });
   });
 
-  describe("handlePostDelete", () => {
-    it("should cleanup orphaned series when post is deleted", async () => {
-      const post = createMockPost("1", "Post 1", "post-1", "Old Series", 1);
-
-      // Series exists
-      spyOn(mockEntityService, "getEntity").mockResolvedValue({
-        id: "old-series",
-        entityType: "series",
-        content: "",
-        contentHash: "",
-        created: "",
-        updated: "",
-        metadata: { title: "Old Series", slug: "old-series" },
-      });
-      // No other posts reference this series
-      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
-      const deleteSpy = spyOn(
-        mockEntityService,
-        "deleteEntity",
-      ).mockResolvedValue(true);
-
-      await manager.handlePostDelete(post);
-
-      expect(deleteSpy).toHaveBeenCalledWith("series", "old-series");
-    });
-
-    it("should do nothing when deleted post has no seriesName", async () => {
-      const post = createMockPost("1", "Post 1", "post-1"); // No series
-
-      const getSpy = spyOn(mockEntityService, "getEntity").mockResolvedValue(
-        null,
-      );
-
-      await manager.handlePostDelete(post);
-
-      expect(getSpy).not.toHaveBeenCalled();
-    });
-  });
-
   describe("handlePostChange with oldSeriesName", () => {
     it("should cleanup old series when post moves to new series", async () => {
       const post = createMockPost("1", "Post 1", "post-1", "New Series", 1);

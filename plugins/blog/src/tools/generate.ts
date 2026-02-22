@@ -1,7 +1,6 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { BlogConfig } from "../config";
 
 /**
  * Input schema for blog:generate tool
@@ -48,7 +47,6 @@ export type GenerateInput = z.infer<typeof generateInputSchema>;
  */
 export function createGenerateTool(
   context: ServicePluginContext,
-  _config: BlogConfig,
   pluginId: string,
 ): PluginTool {
   return createTypedTool(
