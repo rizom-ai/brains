@@ -12,7 +12,7 @@ import {
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
-import { pluralize } from "@brains/utils";
+import { EntityUrlGenerator } from "@brains/utils";
 
 /**
  * Job handler for site building operations
@@ -28,7 +28,6 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     private layouts: Record<string, LayoutComponent>,
     private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
     private context: ServicePluginContext,
-    private entityRouteConfig?: SiteBuilderConfig["entityRouteConfig"],
     private themeCSS?: string,
     private previewUrl?: string,
     private productionUrl?: string,
@@ -38,23 +37,6 @@ export class SiteBuildJobHandler extends BaseJobHandler<
       schema: siteBuildJobSchema,
       jobTypeName: "site-build",
     });
-  }
-
-  /**
-   * Generate URL for an entity detail page
-   */
-  private generateEntityUrl(entityType: string, slug: string): string {
-    const config = this.entityRouteConfig?.[entityType];
-
-    if (config) {
-      // Use custom config
-      const pluralName = config.pluralName ?? config.label.toLowerCase() + "s";
-      return `/${pluralName}/${slug}`;
-    }
-
-    // Fall back to auto-generated pluralization
-    const pluralName = pluralize(entityType);
-    return `/${pluralName}/${slug}`;
   }
 
   async process(
@@ -147,7 +129,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
               ...(data.siteConfig ?? this.defaultSiteConfig),
               url,
             },
-            generateEntityUrl: this.generateEntityUrl.bind(this),
+            generateEntityUrl: (entityType: string, slug: string) =>
+              EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
           },
           { broadcast: true },
         );

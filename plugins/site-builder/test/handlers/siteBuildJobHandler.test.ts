@@ -140,7 +140,6 @@ describe("SiteBuildJobHandler", () => {
         {}, // layouts
         defaultSiteConfig,
         mockContext,
-        undefined, // entityRouteConfig
         undefined, // themeCSS
         undefined, // previewUrl
         undefined, // productionUrl

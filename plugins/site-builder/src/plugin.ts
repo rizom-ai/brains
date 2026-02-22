@@ -211,7 +211,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.layouts,
       this.config.siteInfo,
       context,
-      this.config.entityRouteConfig,
       this.config.themeCSS,
       this.config.previewUrl,
       this.config.productionUrl,
@@ -521,67 +520,28 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
    * Uses timer-based debounce plus job queue deduplication as safety net
    */
   private setupAutoRebuild(context: ServicePluginContext): void {
-    // Entity types to exclude from auto-rebuild
-    const excludedTypes = ["base"];
+    const excludedTypes = new Set(["base"]);
 
-    // Subscribe to entity events and store unsubscribe functions
-    const unsubscribeCreated = context.messaging.subscribe<
-      { entityType: string },
-      { success: boolean }
-    >("entity:created", async (message) => {
+    const entityEventHandler = async (message: {
+      payload: { entityType: string };
+    }): Promise<{ success: boolean }> => {
       const { entityType } = message.payload;
-      this.logger.debug(
-        `Received entity:created event for type: ${entityType}`,
-      );
-      if (!excludedTypes.includes(entityType)) {
+      if (!excludedTypes.has(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
         this.requestBuild();
       }
       return { success: true };
-    });
+    };
 
-    const unsubscribeUpdated = context.messaging.subscribe<
-      { entityType: string },
-      { success: boolean }
-    >("entity:updated", async (message) => {
-      const { entityType } = message.payload;
-      this.logger.debug(
-        `Received entity:updated event for type: ${entityType}`,
+    const events = ["entity:created", "entity:updated", "entity:deleted"];
+    for (const event of events) {
+      this.unsubscribeFunctions.push(
+        context.messaging.subscribe(event, entityEventHandler),
       );
-      if (!excludedTypes.includes(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        this.requestBuild();
-      }
-      return { success: true };
-    });
+    }
 
-    const unsubscribeDeleted = context.messaging.subscribe<
-      { entityType: string },
-      { success: boolean }
-    >("entity:deleted", async (message) => {
-      const { entityType } = message.payload;
-      this.logger.debug(
-        `Received entity:deleted event for type: ${entityType}`,
-      );
-      if (!excludedTypes.includes(entityType)) {
-        this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
-        this.requestBuild();
-      }
-      return { success: true };
-    });
-
-    // Store all unsubscribe functions for cleanup
-    this.unsubscribeFunctions.push(
-      unsubscribeCreated,
-      unsubscribeUpdated,
-      unsubscribeDeleted,
-    );
-
-    this.logger.debug("Auto-rebuild enabled for all entity types except", {
-      excludedTypes,
-    });
     this.logger.debug(
-      `Using ${this.config.rebuildDebounce}ms debounce + job queue deduplication for rebuild`,
+      `Auto-rebuild enabled (${this.config.rebuildDebounce}ms debounce), excluding types: ${[...excludedTypes].join(", ")}`,
     );
   }
 

@@ -1,7 +1,6 @@
 import type {
   ProgressCallback,
   ServicePluginContext,
-  Template,
   ProfileService,
   ResolutionOptions,
 } from "@brains/plugins";
@@ -16,7 +15,6 @@ import type {
   BuildResult,
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
-import { builtInTemplates } from "../view-template-schemas";
 import type {
   StaticSiteBuilderFactory,
   BuildContext,
@@ -25,9 +23,9 @@ import { createPreactBuilder } from "./preact-builder";
 import { join } from "path";
 import type { RouteRegistry } from "./route-registry";
 import { DynamicRouteGenerator } from "./dynamic-route-generator";
-import type { SiteInfo } from "../types/site-info";
 import type { SiteInfoService } from "../services/site-info-service";
 import type { EntityRouteConfig } from "../config";
+import { buildSiteInfo } from "./build-site-info";
 import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
 
 // Schema for entities with slug metadata (for auto-enrichment)
@@ -134,54 +132,14 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Configure the shared EntityUrlGenerator singleton
     EntityUrlGenerator.getInstance().configure(entityRouteConfig);
-
-    // Register built-in templates
-    this.registerBuiltInTemplates();
   }
 
-  /**
-   * Build site information directly from available data
-   */
-  private async getSiteInfo(): Promise<SiteInfo> {
-    // Get site info from service (entity or defaults)
-    const siteInfoBody = await this.siteInfoService.getSiteInfo();
-
-    // Get profile info from service (for socialLinks)
-    const profileBody = this.profileService.getProfile();
-
-    // Get navigation items for both slots
-    const primaryItems = this.routeRegistry.getNavigationItems("primary");
-    const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
-
-    // Generate default copyright if not provided
-    const currentYear = new Date().getFullYear();
-    const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
-
-    // Build complete site info (merge site-info, profile.socialLinks, and navigation)
-    return {
-      ...siteInfoBody,
-      // socialLinks now comes from profile entity only
-      socialLinks: profileBody.socialLinks,
-      navigation: {
-        primary: primaryItems,
-        secondary: secondaryItems,
-      },
-      copyright: siteInfoBody.copyright ?? defaultCopyright,
-    };
-  }
-
-  private registerBuiltInTemplates(): void {
-    // Convert array to object for registerTemplates
-    const templatesObj = builtInTemplates.reduce(
-      (acc, template) => {
-        acc[template.name] = template;
-        return acc;
-      },
-      {} as Record<string, Template>,
+  private async getSiteInfo() {
+    return buildSiteInfo(
+      this.siteInfoService,
+      this.profileService,
+      this.routeRegistry,
     );
-
-    // Register built-in templates
-    this.context.templates.register(templatesObj);
   }
 
   async build(
@@ -348,24 +306,8 @@ export class SiteBuilder implements ISiteBuilder {
       return section.content ?? null;
     }
 
-    // Template name will be automatically scoped by the context helper
     const templateName = section.template;
-
-    // Create URL generator function based on entityRouteConfig
-    const generateEntityUrl = (entityType: string, slug: string): string => {
-      const config = this.entityRouteConfig?.[entityType];
-
-      if (config) {
-        // Use custom config
-        const pluralName =
-          config.pluralName ?? config.label.toLowerCase() + "s";
-        return `/${pluralName}/${slug}`;
-      }
-
-      // Fall back to auto-generated pluralization
-      const pluralName = pluralize(entityType);
-      return `/${pluralName}/${slug}`;
-    };
+    const urlGenerator = EntityUrlGenerator.getInstance();
 
     // Check if this section uses dynamic content (DataSource)
     if (section.dataQuery) {
@@ -387,7 +329,7 @@ export class SiteBuilder implements ISiteBuilder {
 
       // Auto-enrich data with URLs, typeLabels, and coverImageUrls
       if (content) {
-        return this.enrichWithUrls(content, generateEntityUrl);
+        return this.enrichWithUrls(content, urlGenerator);
       }
 
       return null;
@@ -406,7 +348,7 @@ export class SiteBuilder implements ISiteBuilder {
 
     // Auto-enrich data with URLs, typeLabels, and coverImageUrls
     if (content) {
-      return this.enrichWithUrls(content, generateEntityUrl);
+      return this.enrichWithUrls(content, urlGenerator);
     }
 
     return null;
@@ -418,90 +360,79 @@ export class SiteBuilder implements ISiteBuilder {
    */
   private async enrichWithUrls(
     data: unknown,
-    generateEntityUrl: (entityType: string, slug: string) => string,
+    urlGenerator: EntityUrlGenerator,
   ): Promise<unknown> {
-    // Handle null/undefined
     if (data === null || data === undefined) {
       return data;
     }
 
-    // Handle arrays - recursively enrich each item in parallel
     if (Array.isArray(data)) {
       return Promise.all(
-        data.map((item) => this.enrichWithUrls(item, generateEntityUrl)),
+        data.map((item) => this.enrichWithUrls(item, urlGenerator)),
       );
     }
 
-    // Handle objects
-    if (typeof data === "object") {
-      const obj = data as Record<string, unknown>;
+    if (typeof data !== "object") {
+      return data;
+    }
 
-      // Recursively enrich all nested objects first (in parallel)
-      const enriched: Record<string, unknown> = {};
-      const entries = Object.entries(obj);
-      const enrichedValues = await Promise.all(
-        entries.map(([, value]) =>
-          this.enrichWithUrls(value, generateEntityUrl),
-        ),
-      );
-      for (let i = 0; i < entries.length; i++) {
-        const entry = entries[i];
-        if (entry) {
-          enriched[entry[0]] = enrichedValues[i];
-        }
+    const obj = data as Record<string, unknown>;
+
+    // Recursively enrich all nested objects first (in parallel)
+    const enriched: Record<string, unknown> = {};
+    const entries = Object.entries(obj);
+    const enrichedValues = await Promise.all(
+      entries.map(([, value]) => this.enrichWithUrls(value, urlGenerator)),
+    );
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      if (entry) {
+        enriched[entry[0]] = enrichedValues[i];
       }
+    }
 
-      // Check if this object is an entity with slug metadata
-      const entityCheck = entityWithSlugSchema.safeParse(obj);
-      if (entityCheck.success) {
-        const entity = entityCheck.data;
-        const entityType = entity.entityType;
-        const slug = entity.metadata.slug;
-
-        // Build properly typed enriched entity with navigation context
-        const config = this.entityRouteConfig?.[entityType];
-
-        // Compute typeLabel (singular)
-        const typeLabel = config
-          ? config.label
-          : entityType.charAt(0).toUpperCase() + entityType.slice(1);
-
-        // Compute listUrl and listLabel (plural) for breadcrumbs
-        // Match dynamic-route-generator logic: use config.pluralName or derive from label
-        const pluralName = config
-          ? (config.pluralName ?? config.label.toLowerCase() + "s")
-          : pluralize(entityType);
-        const listUrl = `/${pluralName}`;
-        const listLabel =
-          pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
-
-        // Resolve cover image with dimensions if entity has coverImageId in frontmatter
-        const coverImage = await resolveEntityCoverImage(
-          entity,
-          this.context.entityService,
-        );
-
-        const enrichedEntity: EnrichedEntity = {
-          ...enriched,
-          ...entity,
-          url: generateEntityUrl(entityType, slug),
-          typeLabel,
-          listUrl,
-          listLabel,
-          ...(coverImage && {
-            coverImageUrl: coverImage.url,
-            coverImageWidth: coverImage.width,
-            coverImageHeight: coverImage.height,
-          }),
-        };
-
-        return enrichedEntity;
-      }
-
+    // Check if this object is an entity with slug metadata
+    const entityCheck = entityWithSlugSchema.safeParse(obj);
+    if (!entityCheck.success) {
       return enriched;
     }
 
-    // Return primitives as-is
-    return data;
+    const entity = entityCheck.data;
+    const entityType = entity.entityType;
+    const slug = entity.metadata.slug;
+
+    const config = this.entityRouteConfig?.[entityType];
+
+    const typeLabel = config
+      ? config.label
+      : entityType.charAt(0).toUpperCase() + entityType.slice(1);
+
+    // Compute listUrl and listLabel (plural) for breadcrumbs
+    const pluralName = config
+      ? (config.pluralName ?? config.label.toLowerCase() + "s")
+      : pluralize(entityType);
+    const listUrl = `/${pluralName}`;
+    const listLabel = pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
+
+    const coverImage = await resolveEntityCoverImage(
+      entity,
+      this.context.entityService,
+    );
+
+    const enrichedEntity: EnrichedEntity = {
+      ...enriched,
+      ...entity,
+      url: urlGenerator.generateUrl(entityType, slug),
+      typeLabel,
+      listUrl,
+      listLabel,
+      ...(coverImage && {
+        coverImageUrl: coverImage.url,
+        coverImageWidth: coverImage.width,
+        coverImageHeight: coverImage.height,
+      }),
+    };
+
+    return enrichedEntity;
   }
 }

@@ -1,6 +1,5 @@
 // Site builder plugin - provides static site generation capabilities
 export { SiteBuilderPlugin, siteBuilderPlugin } from "./plugin";
-export { builtInTemplates } from "./view-template-schemas";
 export { SiteBuilder } from "./lib/site-builder";
 export type {
   StaticSiteBuilder,
