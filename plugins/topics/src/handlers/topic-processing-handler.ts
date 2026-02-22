@@ -79,8 +79,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
 
       // Check if a similar topic already exists by title and key terms
       // Only merge if extremely similar (95%+ match)
-      const searchQuery = `${topic.title}`;
-      const searchResults = await this.topicService.searchTopics(searchQuery);
+      const searchResults = await this.topicService.searchTopics(topic.title);
 
       let action: "created" | "merged";
       let topicId: string;

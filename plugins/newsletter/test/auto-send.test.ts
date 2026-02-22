@@ -1,28 +1,17 @@
-import { describe, it, expect, mock, afterEach } from "bun:test";
-import type { Logger } from "@brains/utils";
+import { describe, it, expect, spyOn, afterEach } from "bun:test";
+import {
+  createSilentLogger,
+  createMockEntityService,
+  mockFetch,
+} from "@brains/test-utils";
 
-// Save original fetch to restore after tests
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-// Mock logger
-const mockLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  child: () => mockLogger,
-} as unknown as Logger;
-
-// Helper to create a mock fetch
-function mockFetch(
-  handler: (url: string, options: RequestInit) => Promise<Partial<Response>>,
-): void {
-  globalThis.fetch = mock(handler) as unknown as typeof fetch;
-}
+const mockLogger = createSilentLogger();
 
 describe("Newsletter Auto-Send on Publish", () => {
   describe("handlePublishCompleted", () => {
@@ -41,25 +30,24 @@ describe("Newsletter Auto-Send on Publish", () => {
         });
       });
 
-      // Import after mocking fetch
       const { handlePublishCompleted } = await import(
         "../src/handlers/publish-handler"
       );
 
-      const mockEntityService = {
-        getEntity: mock(() =>
-          Promise.resolve({
-            id: "post-1",
-            entityType: "post",
-            content: "# My Blog Post\n\nThis is the content.",
-            metadata: {
-              title: "My Blog Post",
-              slug: "my-blog-post",
-              status: "published",
-            },
-          }),
-        ),
-      };
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "post-1",
+        entityType: "post",
+        content: "# My Blog Post\n\nThis is the content.",
+        metadata: {
+          title: "My Blog Post",
+          slug: "my-blog-post",
+          status: "published",
+        },
+        contentHash: "",
+        created: "",
+        updated: "",
+      });
 
       const result = await handlePublishCompleted(
         {
@@ -71,9 +59,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           apiKey: "test-key",
           doubleOptIn: true,
         },
-        mockEntityService as unknown as Parameters<
-          typeof handlePublishCompleted
-        >[2],
+        mockEntityService,
         mockLogger,
       );
 
@@ -90,13 +76,11 @@ describe("Newsletter Auto-Send on Publish", () => {
         "../src/handlers/publish-handler"
       );
 
-      const mockEntityService = {
-        getEntity: mock(() => Promise.resolve(null)),
-      };
+      const mockEntityService = createMockEntityService();
 
       const result = await handlePublishCompleted(
         {
-          entityType: "deck", // Not a post
+          entityType: "deck",
           entityId: "deck-1",
           result: { id: "deck-1" },
         },
@@ -104,9 +88,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           apiKey: "test-key",
           doubleOptIn: true,
         },
-        mockEntityService as unknown as Parameters<
-          typeof handlePublishCompleted
-        >[2],
+        mockEntityService,
         mockLogger,
       );
 
@@ -122,9 +104,7 @@ describe("Newsletter Auto-Send on Publish", () => {
         "../src/handlers/publish-handler"
       );
 
-      const mockEntityService = {
-        getEntity: mock(() => Promise.resolve(null)),
-      };
+      const mockEntityService = createMockEntityService();
 
       const result = await handlePublishCompleted(
         {
@@ -136,9 +116,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           apiKey: "test-key",
           doubleOptIn: true,
         },
-        mockEntityService as unknown as Parameters<
-          typeof handlePublishCompleted
-        >[2],
+        mockEntityService,
         mockLogger,
       );
 
@@ -161,16 +139,16 @@ describe("Newsletter Auto-Send on Publish", () => {
         "../src/handlers/publish-handler"
       );
 
-      const mockEntityService = {
-        getEntity: mock(() =>
-          Promise.resolve({
-            id: "post-1",
-            entityType: "post",
-            content: "# Test\n\nContent",
-            metadata: { title: "Test", slug: "test", status: "published" },
-          }),
-        ),
-      };
+      const mockEntityService = createMockEntityService();
+      spyOn(mockEntityService, "getEntity").mockResolvedValue({
+        id: "post-1",
+        entityType: "post",
+        content: "# Test\n\nContent",
+        metadata: { title: "Test", slug: "test", status: "published" },
+        contentHash: "",
+        created: "",
+        updated: "",
+      });
 
       const result = await handlePublishCompleted(
         {
@@ -182,9 +160,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           apiKey: "test-key",
           doubleOptIn: true,
         },
-        mockEntityService as unknown as Parameters<
-          typeof handlePublishCompleted
-        >[2],
+        mockEntityService,
         mockLogger,
       );
 

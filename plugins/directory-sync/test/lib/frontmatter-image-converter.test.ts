@@ -1,24 +1,26 @@
 import { describe, test, expect, mock, beforeEach } from "bun:test";
 import { FrontmatterImageConverter } from "../../src/lib/frontmatter-image-converter";
-import type { IEntityService } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("FrontmatterImageConverter", () => {
   let converter: FrontmatterImageConverter;
-  let mockEntityService: IEntityService;
+  let mockEntityService: ReturnType<typeof createMockEntityService>;
   let mockFetcher: ReturnType<typeof mock>;
   const logger = createSilentLogger();
 
   beforeEach(() => {
     mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
 
-    mockEntityService = {
-      listEntities: mock(() => Promise.resolve([])),
-      createEntity: mock(() =>
-        Promise.resolve({ entityId: "generated-image-id", jobId: "job-1" }),
-      ),
-    } as unknown as IEntityService;
+    mockEntityService = createMockEntityService({
+      returns: {
+        createEntity: { entityId: "generated-image-id", jobId: "job-1" },
+      },
+    });
 
     converter = new FrontmatterImageConverter(
       mockEntityService,
@@ -92,19 +94,16 @@ Post content here.`;
       const localFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
       const localLogger = createSilentLogger();
 
-      const entityServiceWithExisting = {
-        listEntities: mock(() =>
-          Promise.resolve([
-            {
-              id: "existing-image-id",
-              metadata: { sourceUrl: "https://example.com/image.png" },
-            },
-          ]),
-        ),
-        createEntity: mock(() =>
-          Promise.resolve({ entityId: "new-id", jobId: "job-1" }),
-        ),
-      } as unknown as IEntityService;
+      const existingImage = createTestEntity("image", {
+        id: "existing-image-id",
+        metadata: { sourceUrl: "https://example.com/image.png" },
+      });
+      const entityServiceWithExisting = createMockEntityService({
+        returns: {
+          createEntity: { entityId: "new-id", jobId: "job-1" },
+          listEntities: [existingImage],
+        },
+      });
 
       const converterWithExisting = new FrontmatterImageConverter(
         entityServiceWithExisting,

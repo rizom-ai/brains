@@ -1,29 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ButtondownClient } from "../src/lib/buttondown-client";
-import type { Logger } from "@brains/utils";
+import { createSilentLogger, mockFetch } from "@brains/test-utils";
 
-// Save original fetch to restore after tests
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
 
-// Mock logger - cast through unknown to satisfy type checker
-const mockLogger = {
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  child: () => mockLogger,
-} as unknown as Logger;
-
-// Helper to create a mock fetch that satisfies TypeScript
-function mockFetch(
-  handler: (url: string, options: RequestInit) => Promise<Partial<Response>>,
-): void {
-  globalThis.fetch = mock(handler) as unknown as typeof fetch;
-}
+const mockLogger = createSilentLogger();
 
 describe("ButtondownClient", () => {
   let client: ButtondownClient;
@@ -102,7 +87,6 @@ describe("ButtondownClient", () => {
         }),
       );
 
-      // Should resolve without throwing
       await client.unsubscribe("test@example.com");
     });
   });

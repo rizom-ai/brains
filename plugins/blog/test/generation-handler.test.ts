@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
@@ -7,17 +7,12 @@ import {
   createMockProgressReporter,
   createMockServicePluginContext,
 } from "@brains/test-utils";
-import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
 describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
   let mockContext: ServicePluginContext;
   let mockProgressReporter: ProgressReporter;
-  let generateSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let reportSpy: Mock<(...args: unknown[]) => void>;
 
   beforeEach(() => {
     mockProgressReporter = createMockProgressReporter();
@@ -38,23 +33,6 @@ describe("BlogGenerationJobHandler", () => {
         },
       },
     });
-
-    generateSpy = spyOn(
-      mockContext.ai,
-      "generate",
-    ) as unknown as typeof generateSpy;
-    listEntitiesSpy = spyOn(
-      mockContext.entityService,
-      "listEntities",
-    ) as unknown as typeof listEntitiesSpy;
-    createEntitySpy = spyOn(
-      mockContext.entityService,
-      "createEntity",
-    ) as unknown as typeof createEntitySpy;
-    reportSpy = spyOn(
-      mockProgressReporter,
-      "report",
-    ) as unknown as typeof reportSpy;
 
     handler = new BlogGenerationJobHandler(
       createSilentLogger("test"),
@@ -88,7 +66,7 @@ describe("BlogGenerationJobHandler", () => {
 
   describe("process - AI generates everything", () => {
     it("should generate title, content, and excerpt with AI", async () => {
-      generateSpy.mockResolvedValue({
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
         title: "AI Generated Title",
         content: "AI generated content here",
         excerpt: "AI generated excerpt",
@@ -104,23 +82,22 @@ describe("BlogGenerationJobHandler", () => {
       expect(result.title).toBe("AI Generated Title");
       expect(result.slug).toBe("ai-generated-title");
 
-      const generateCall = generateSpy.mock.calls[0];
-      expect(generateCall).toBeDefined();
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["prompt"],
-      ).toContain("Write about AI");
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["templateName"],
-      ).toBe("blog:generation");
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("Write about AI"),
+          templateName: "blog:generation",
+        }),
+      );
     });
 
     it("should use default prompt when none provided", async () => {
       await handler.process({}, "job-123", mockProgressReporter);
 
-      const generateCall = generateSpy.mock.calls[0];
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["prompt"],
-      ).toContain("knowledge base");
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("knowledge base"),
+        }),
+      );
     });
 
     it("should include series context in generation prompt", async () => {
@@ -130,10 +107,11 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const generateCall = generateSpy.mock.calls[0];
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["prompt"],
-      ).toContain("AI Series");
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("AI Series"),
+        }),
+      );
     });
 
     it("should report progress during AI generation", async () => {
@@ -143,22 +121,24 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const reportCalls = reportSpy.mock.calls;
-      expect(reportCalls.length).toBeGreaterThan(2);
-      expect(
-        (reportCalls[0]?.[0] as Record<string, unknown>)["message"],
-      ).toContain("Starting");
-      expect(
-        (reportCalls[reportCalls.length - 1]?.[0] as Record<string, unknown>)[
-          "message"
-        ],
-      ).toContain("created successfully");
+      expect(mockProgressReporter.report).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining("Starting"),
+        }),
+      );
+      expect(mockProgressReporter.report).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining("created successfully"),
+        }),
+      );
     });
   });
 
   describe("process - AI generates excerpt only", () => {
     it("should generate excerpt when title and content provided", async () => {
-      generateSpy.mockResolvedValue({ excerpt: "AI generated excerpt" });
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
+        excerpt: "AI generated excerpt",
+      });
 
       const result = await handler.process(
         { title: "My Title", content: "My content" },
@@ -168,20 +148,20 @@ describe("BlogGenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
 
-      const generateCall = generateSpy.mock.calls[0];
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["templateName"],
-      ).toBe("blog:excerpt");
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["prompt"],
-      ).toContain("My Title");
-      expect(
-        (generateCall?.[0] as Record<string, unknown>)["prompt"],
-      ).toContain("My content");
+      expect(mockContext.ai.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "blog:excerpt",
+          prompt: expect.stringMatching(
+            /My Title.*My content|My content.*My Title/s,
+          ),
+        }),
+      );
     });
 
     it("should use generated excerpt in entity creation", async () => {
-      generateSpy.mockResolvedValue({ excerpt: "Generated excerpt text" });
+      spyOn(mockContext.ai, "generate").mockResolvedValue({
+        excerpt: "Generated excerpt text",
+      });
 
       await handler.process(
         { title: "Test Post", content: "Test content" },
@@ -189,9 +169,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-      expect(entityData.content).toContain("excerpt: Generated excerpt text");
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("excerpt: Generated excerpt text"),
+        }),
+        { deduplicateId: true },
+      );
     });
   });
 
@@ -205,7 +188,7 @@ describe("BlogGenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       expect(result.title).toBe("My Title");
-      expect(generateSpy.mock.calls.length).toBe(0);
+      expect(mockContext.ai.generate).not.toHaveBeenCalled();
     });
 
     it("should create entity with provided content", async () => {
@@ -219,12 +202,24 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-
-      expect(entityData.content).toContain("title: Custom Title");
-      expect(entityData.content).toContain("excerpt: Custom excerpt");
-      expect(entityData.content).toContain("Custom content here");
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("title: Custom Title"),
+        }),
+        { deduplicateId: true },
+      );
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("excerpt: Custom excerpt"),
+        }),
+        { deduplicateId: true },
+      );
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("Custom content here"),
+        }),
+        { deduplicateId: true },
+      );
     });
   });
 
@@ -260,12 +255,14 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-
-      expect(entityData.id).toBe("Test Title");
-      expect(entityData.metadata.slug).toBe("test-title");
-      expect(entityData.content).toContain("slug: test-title");
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "Test Title",
+          metadata: expect.objectContaining({ slug: "test-title" }),
+          content: expect.stringContaining("slug: test-title"),
+        }),
+        { deduplicateId: true },
+      );
     });
   });
 
@@ -281,9 +278,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-      expect(entityData.content).toContain("author: John Doe");
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("author: John Doe"),
+        }),
+        { deduplicateId: true },
+      );
     });
   });
 
@@ -301,17 +301,20 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-
-      expect(entityData.content).toContain("seriesName: My Series");
-      expect(entityData.content).toContain("seriesIndex: 1");
-      expect(entityData.metadata.seriesName).toBe("My Series");
-      expect(entityData.metadata.seriesIndex).toBe(1);
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("seriesName: My Series"),
+          metadata: expect.objectContaining({
+            seriesName: "My Series",
+            seriesIndex: 1,
+          }),
+        }),
+        { deduplicateId: true },
+      );
     });
 
     it("should auto-increment series index when not provided", async () => {
-      listEntitiesSpy.mockResolvedValue([
+      spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
         createMockPost("post-1", "Test Post", "test-post-1", "published", {
           seriesName: "My Series",
           publishedAt: "2025-01-01T10:00:00.000Z",
@@ -337,15 +340,17 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-
-      expect(entityData.content).toContain("seriesIndex: 3");
-      expect(entityData.metadata.seriesIndex).toBe(3);
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("seriesIndex: 3"),
+          metadata: expect.objectContaining({ seriesIndex: 3 }),
+        }),
+        { deduplicateId: true },
+      );
     });
 
     it("should count only published posts in series for indexing", async () => {
-      listEntitiesSpy.mockResolvedValue([
+      spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
         createMockPost("post-1", "Test Post", "test-post-1", "published", {
           seriesName: "My Series",
           publishedAt: "2025-01-01T10:00:00.000Z",
@@ -366,10 +371,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-
-      expect(entityData.metadata.seriesIndex).toBe(2);
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({ seriesIndex: 2 }),
+        }),
+        { deduplicateId: true },
+      );
     });
   });
 
@@ -381,12 +388,13 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-
-      expect(entityData.content).toContain("status: draft");
-      expect(entityData.metadata.status).toBe("draft");
-      expect(entityData.metadata.publishedAt).toBeUndefined();
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("status: draft"),
+          metadata: expect.objectContaining({ status: "draft" }),
+        }),
+        { deduplicateId: true },
+      );
     });
 
     it("should include cover image ID when provided", async () => {
@@ -401,15 +409,18 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      const createCall = createEntitySpy.mock.calls[0];
-      const entityData = createCall?.[0] as BlogPost;
-      expect(entityData.content).toContain("coverImageId: hero-image");
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("coverImageId: hero-image"),
+        }),
+        { deduplicateId: true },
+      );
     });
 
     it("should return entityId and slug on success", async () => {
-      createEntitySpy.mockResolvedValue({
+      spyOn(mockContext.entityService, "createEntity").mockResolvedValue({
         entityId: "my-post-slug",
-        entity: {},
+        jobId: "job-456",
       });
 
       const result = await handler.process(
@@ -426,7 +437,9 @@ describe("BlogGenerationJobHandler", () => {
 
   describe("error handling", () => {
     it("should handle AI generation errors", async () => {
-      generateSpy.mockRejectedValue(new Error("AI service unavailable"));
+      spyOn(mockContext.ai, "generate").mockRejectedValue(
+        new Error("AI service unavailable"),
+      );
 
       const result = await handler.process(
         { prompt: "Test" },
@@ -439,7 +452,9 @@ describe("BlogGenerationJobHandler", () => {
     });
 
     it("should handle entity creation errors", async () => {
-      createEntitySpy.mockRejectedValue(new Error("Database error"));
+      spyOn(mockContext.entityService, "createEntity").mockRejectedValue(
+        new Error("Database error"),
+      );
 
       const result = await handler.process(
         { title: "Test", content: "Content", excerpt: "Excerpt" },

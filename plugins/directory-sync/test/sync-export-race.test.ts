@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, mkdirSync, writeFileSync, readFileSync } from "fs";
-import type { IEntityService, BaseEntity } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
+import type { BaseEntity } from "@brains/plugins";
 
 /**
  * Test that sync() should NOT call exportEntities().
@@ -58,24 +61,21 @@ slug: test-series
     });
 
     // Create mock entity service
-    const mockEntityService = {
-      getEntityTypes: () => ["series"],
-      hasEntityType: (type: string) => type === "series",
-      getEntity: async () => mockEntity,
-      listEntities: async () => [mockEntity],
-      upsertEntity: async () => ({
-        entityId: "series-test-series",
-        jobId: "job-123",
-        created: false,
-      }),
-      deserializeEntity: () => ({
-        content: fileContent,
-        entityType: "series",
-        metadata: { name: "Test Series", slug: "test-series" },
-      }),
-      serializeEntity: (entity: BaseEntity) => entity.content,
-      getAsyncJobStatus: async () => ({ status: "completed" as const }),
-    } as unknown as IEntityService;
+    const mockEntityService = createMockEntityService({
+      entityTypes: ["series"],
+      returns: {
+        getEntity: mockEntity,
+        listEntities: [mockEntity],
+      },
+    });
+    spyOn(mockEntityService, "deserializeEntity").mockReturnValue({
+      content: fileContent,
+      entityType: "series",
+      metadata: { name: "Test Series", slug: "test-series" },
+    });
+    spyOn(mockEntityService, "serializeEntity").mockImplementation(
+      (entity: BaseEntity) => entity.content,
+    );
 
     // Create DirectorySync with the mock
     directorySync = new DirectorySync({

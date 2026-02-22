@@ -1,11 +1,7 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { SocialMediaConfig } from "../config";
 
-/**
- * Input schema for social-media:generate tool
- */
 export const generateInputSchema = z.object({
   prompt: z
     .string()
@@ -41,12 +37,8 @@ export const generateInputSchema = z.object({
 
 export type GenerateInput = z.infer<typeof generateInputSchema>;
 
-/**
- * Create the social-media:generate tool
- */
 export function createGenerateTool(
   context: ServicePluginContext,
-  _config: SocialMediaConfig,
   pluginId: string,
 ): PluginTool {
   return createTypedTool(
@@ -55,7 +47,6 @@ export function createGenerateTool(
     "Generate a new social media post from a prompt, source content, or direct text",
     generateInputSchema,
     async (input, toolContext) => {
-      // Validate input: need at least one of prompt, sourceEntityId, or content
       if (!input.prompt && !input.sourceEntityId && !input.content) {
         return {
           success: false,
@@ -64,7 +55,6 @@ export function createGenerateTool(
         };
       }
 
-      // If sourceEntityId is provided, sourceEntityType is required
       if (input.sourceEntityId && !input.sourceEntityType) {
         return {
           success: false,
@@ -73,7 +63,6 @@ export function createGenerateTool(
         };
       }
 
-      // Enqueue the generation job
       const jobId = await context.jobs.enqueue(
         "generation",
         input,

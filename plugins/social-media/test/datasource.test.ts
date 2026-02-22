@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { SocialPostDataSource } from "../src/datasources/social-post-datasource";
 import type { SocialPost } from "../src/schemas/social-post";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
@@ -15,8 +15,6 @@ describe("SocialPostDataSource", () => {
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
-  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let countEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   const createMockSocialPost = (
     id: string,
@@ -49,16 +47,6 @@ ${body}`;
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
 
-    listEntitiesSpy = spyOn(
-      mockEntityService,
-      "listEntities",
-    ) as unknown as typeof listEntitiesSpy;
-
-    countEntitiesSpy = spyOn(
-      mockEntityService,
-      "countEntities",
-    ) as unknown as typeof countEntitiesSpy;
-
     datasource = new SocialPostDataSource(mockLogger);
   });
 
@@ -71,7 +59,7 @@ ${body}`;
         "published",
         "This is my LinkedIn post content.",
       );
-      listEntitiesSpy.mockResolvedValue([mockPost]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([mockPost]);
 
       const schema = z.object({
         post: z.object({
@@ -93,14 +81,17 @@ ${body}`;
       expect(result.post.id).toBe("post-1");
       expect(result.post.body).toContain("This is my LinkedIn post content");
       expect(result.post.frontmatter.platform).toBe("linkedin");
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        filter: { metadata: { slug: "my-linkedin-post" } },
-        limit: 1,
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "social-post",
+        {
+          filter: { metadata: { slug: "my-linkedin-post" } },
+          limit: 1,
+        },
+      );
     });
 
     it("should throw error when post not found", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       const schema = z.object({ post: z.any() });
 
@@ -132,7 +123,7 @@ ${body}`;
           "Post 2 content",
         ),
       ];
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const schema = z.object({
         posts: z.array(z.object({ id: z.string() })),
@@ -147,11 +138,14 @@ ${body}`;
 
       expect(result.posts).toHaveLength(2);
       expect(result.totalCount).toBe(2);
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        sortFields: [{ field: "created", direction: "desc" }],
-        limit: 100,
-        offset: 0,
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "social-post",
+        {
+          sortFields: [{ field: "created", direction: "desc" }],
+          limit: 100,
+          offset: 0,
+        },
+      );
     });
 
     it("should filter by status", async () => {
@@ -164,7 +158,7 @@ ${body}`;
           "Queued post content",
         ),
       ];
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const schema = z.object({
         posts: z.array(z.object({ id: z.string() })),
@@ -178,12 +172,15 @@ ${body}`;
       );
 
       expect(result.posts).toHaveLength(1);
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        filter: { metadata: { status: "queued" } },
-        sortFields: [{ field: "created", direction: "desc" }],
-        limit: 100,
-        offset: 0,
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "social-post",
+        {
+          filter: { metadata: { status: "queued" } },
+          sortFields: [{ field: "created", direction: "desc" }],
+          limit: 100,
+          offset: 0,
+        },
+      );
     });
 
     it("should sort by queue order when sortByQueue is true", async () => {
@@ -203,7 +200,7 @@ ${body}`;
           "Post 2 content",
         ),
       ];
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const schema = z.object({
         posts: z.array(z.object({ id: z.string() })),
@@ -216,17 +213,20 @@ ${body}`;
         mockContext,
       );
 
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        sortFields: [{ field: "queueOrder", direction: "asc" }],
-        limit: 100,
-        offset: 0,
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "social-post",
+        {
+          sortFields: [{ field: "queueOrder", direction: "asc" }],
+          limit: 100,
+          offset: 0,
+        },
+      );
     });
   });
 
   describe("pagination", () => {
     it("should return pagination info when page is specified", async () => {
-      listEntitiesSpy.mockResolvedValue([
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([
         createMockSocialPost(
           "post-1",
           "Post One",
@@ -235,7 +235,7 @@ ${body}`;
           "Post 1 content",
         ),
       ]);
-      countEntitiesSpy.mockResolvedValue(25);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(25);
 
       const schema = z.object({
         posts: z.array(z.object({ id: z.string() })),
@@ -264,8 +264,8 @@ ${body}`;
     });
 
     it("should calculate correct offset for page 2", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
-      countEntitiesSpy.mockResolvedValue(25);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(25);
 
       const schema = z.object({
         posts: z.array(z.any()),
@@ -279,11 +279,14 @@ ${body}`;
         mockContext,
       );
 
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        sortFields: [{ field: "created", direction: "desc" }],
-        limit: 10,
-        offset: 10,
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "social-post",
+        {
+          sortFields: [{ field: "created", direction: "desc" }],
+          limit: 10,
+          offset: 10,
+        },
+      );
     });
   });
 
@@ -298,7 +301,7 @@ ${body}`;
           "Next post content",
         ),
       ];
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const schema = z.object({
         post: z.object({ id: z.string() }).nullable(),
@@ -311,15 +314,18 @@ ${body}`;
       );
 
       expect(result.post?.id).toBe("post-1");
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        filter: { metadata: { status: "queued" } },
-        sortFields: [{ field: "queueOrder", direction: "asc" }],
-        limit: 1,
-      });
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "social-post",
+        {
+          filter: { metadata: { status: "queued" } },
+          sortFields: [{ field: "queueOrder", direction: "asc" }],
+          limit: 1,
+        },
+      );
     });
 
     it("should return null when queue is empty", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       const schema = z.object({
         post: z.object({ id: z.string() }).nullable(),

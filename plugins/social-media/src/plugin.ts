@@ -1,9 +1,4 @@
-import type {
-  Plugin,
-  PluginTool,
-  PluginResource,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin, paginationInfoSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
@@ -34,10 +29,6 @@ import {
 import { createLinkedInProvider } from "./lib/linkedin-client";
 import packageJson from "../package.json";
 
-/**
- * Social Media Plugin
- * Provides social media post management with platform providers
- */
 export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
   private pluginContext?: ServicePluginContext;
   private providers = new Map<string, PublishProvider>();
@@ -46,33 +37,26 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     super("social-media", packageJson, config, socialMediaConfigSchema);
   }
 
-  /**
-   * Initialize the plugin
-   */
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     this.pluginContext = context;
 
-    // Register social-post entity type
     context.entities.register(
       "social-post",
       socialPostSchema,
       socialPostAdapter,
     );
 
-    // Register datasource
     const socialPostDataSource = new SocialPostDataSource(
       this.logger.child("SocialPostDataSource"),
     );
     context.entities.registerDataSource(socialPostDataSource);
 
-    // Register AI templates
     context.templates.register({
       linkedin: linkedinTemplate,
     });
 
-    // Register view templates for routes
     const postListSchema = z.object({
       posts: z.array(enrichedSocialPostSchema),
       totalCount: z.number().optional(),
@@ -115,42 +99,31 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       }),
     });
 
-    // Initialize providers
     this.initializeProviders();
 
-    // Register job handlers
     const generationHandler = new GenerationJobHandler(
       this.logger.child("GenerationJobHandler"),
       context,
-      this.config,
     );
     context.jobs.registerHandler("generation", generationHandler);
 
-    // Register with publish-pipeline and subscribe to execute messages
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
 
-    // Subscribe to entity:updated for auto-generation when blog posts are queued
     if (this.config.autoGenerateOnBlogPublish) {
       this.subscribeToEntityUpdatedForAutoGenerate(context);
       this.subscribeToAutoGenerate(context);
       this.logger.info("Auto-generate on blog queued enabled");
     }
 
-    // Subscribe to generate:execute for scheduled generation
     this.subscribeToGenerateExecute(context);
 
-    // Register eval handlers for testing
     this.registerEvalHandlers(context);
 
     this.logger.info("Social media plugin registered successfully");
   }
 
-  /**
-   * Register eval handlers for plugin testing
-   */
   private registerEvalHandlers(context: ServicePluginContext): void {
-    // Generate LinkedIn post from prompt or content
     const generationInputSchema = z.object({
       prompt: z.string().optional(),
       content: z.string().optional(),
@@ -173,11 +146,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     });
   }
 
-  /**
-   * Initialize platform providers based on config
-   */
   private initializeProviders(): void {
-    // LinkedIn provider - only init if accessToken is actually provided
     if (this.config.linkedin?.accessToken) {
       const linkedinProvider = createLinkedInProvider(
         this.config.linkedin,
@@ -188,13 +157,9 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     }
   }
 
-  /**
-   * Register entity type and provider with publish-pipeline
-   */
   private async registerWithPublishPipeline(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Only register if we have providers configured
     if (this.providers.size === 0) {
       this.logger.debug(
         "No providers configured, skipping publish-pipeline registration",
@@ -202,7 +167,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       return;
     }
 
-    // Get the first provider (typically linkedin)
     const provider = this.providers.values().next().value;
 
     await context.messaging.send("publish:register", {
@@ -213,9 +177,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.logger.info("Registered social-post with publish-pipeline");
   }
 
-  /**
-   * Subscribe to publish:execute messages from publish-pipeline
-   */
   private subscribeToPublishExecute(context: ServicePluginContext): void {
     const executeHandler = new PublishExecuteHandler({
       sendMessage: context.messaging.send,
@@ -235,9 +196,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.logger.debug("Subscribed to publish:execute messages");
   }
 
-  /**
-   * Subscribe to entity:updated to auto-generate social posts when blog posts are queued
-   */
   private subscribeToEntityUpdatedForAutoGenerate(
     context: ServicePluginContext,
   ): void {
@@ -251,19 +209,16 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     >("entity:updated", async (msg) => {
       const { entityType, entityId, entity } = msg.payload;
 
-      // Only auto-generate for blog posts
       if (entityType !== "post") {
         return { success: true };
       }
 
-      // Only trigger when status is "queued"
       const status = entity.metadata?.status;
       if (status !== "queued") {
         return { success: true };
       }
 
       try {
-        // Check if a social post already exists for this source
         const existingPosts = await context.entityService.listEntities(
           "social-post",
           {
@@ -284,7 +239,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
           return { success: true };
         }
 
-        // Send message to trigger auto-generation
         await context.messaging.send("social:auto-generate", {
           sourceEntityType: entityType,
           sourceEntityId: entityId,
@@ -308,9 +262,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.logger.debug("Subscribed to entity:updated for auto-generation");
   }
 
-  /**
-   * Subscribe to social:auto-generate messages and enqueue generation jobs
-   */
   private subscribeToAutoGenerate(context: ServicePluginContext): void {
     context.messaging.subscribe<
       {
@@ -323,14 +274,13 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       const { sourceEntityType, sourceEntityId, platform } = msg.payload;
 
       try {
-        // Enqueue generation job
         const jobId = await context.jobs.enqueue(
           "social-media:generation",
           {
             sourceEntityType,
             sourceEntityId,
             platform,
-            addToQueue: false, // Default to draft status
+            addToQueue: false,
           },
           { interfaceType: "job", userId: "system" },
         );
@@ -355,17 +305,12 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.logger.debug("Subscribed to social:auto-generate messages");
   }
 
-  /**
-   * Subscribe to generate:execute messages for scheduled social post generation
-   * Triggered by content-pipeline scheduler based on generation schedule
-   */
   private subscribeToGenerateExecute(context: ServicePluginContext): void {
     context.messaging.subscribe<{ entityType: string }, { success: boolean }>(
       "generate:execute",
       async (msg) => {
         const { entityType } = msg.payload;
 
-        // Only handle social-post entities
         if (entityType !== "social-post") {
           return { success: true };
         }
@@ -373,7 +318,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
         this.logger.info("Received generate:execute for social-post");
 
         try {
-          // Find a recent published blog post to generate from
           const recentPosts = await context.entityService.listEntities("post", {
             filter: { metadata: { status: "published" } },
             limit: 5,
@@ -390,7 +334,6 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
             return { success: true };
           }
 
-          // Check which posts don't already have social posts
           let sourcePost = null;
           for (const post of recentPosts) {
             const existingPosts = await context.entityService.listEntities(
@@ -421,14 +364,13 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
             return { success: true };
           }
 
-          // Enqueue generation job
           const jobId = await context.jobs.enqueue(
             "social-media:generation",
             {
               sourceEntityType: "post",
               sourceEntityId: sourcePost.id,
               platform: "linkedin",
-              addToQueue: false, // Create as draft for review
+              addToQueue: false,
             },
             { interfaceType: "job", userId: "system" },
           );
@@ -457,28 +399,17 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.logger.debug("Subscribed to generate:execute messages");
   }
 
-  /**
-   * Get the tools provided by this plugin
-   */
   protected override async getTools(): Promise<PluginTool[]> {
     if (!this.pluginContext) {
       throw new Error("Plugin context not initialized");
     }
 
-    return [createGenerateTool(this.pluginContext, this.config, this.id)];
-  }
-
-  /**
-   * No resources needed for this plugin
-   */
-  protected override async getResources(): Promise<PluginResource[]> {
-    return [];
+    return [createGenerateTool(this.pluginContext, this.id)];
   }
 }
 
-/**
- * Factory function to create the plugin
- */
-export function socialMediaPlugin(config: SocialMediaConfigInput): Plugin {
+export function socialMediaPlugin(
+  config: SocialMediaConfigInput,
+): SocialMediaPlugin {
   return new SocialMediaPlugin(config);
 }

@@ -2,7 +2,6 @@ import {
   ServicePlugin,
   type ServicePluginContext,
   type PluginTool,
-  type PluginResource,
   type BaseEntity,
 } from "@brains/plugins";
 import { z, computeContentHash } from "@brains/utils";
@@ -21,9 +20,6 @@ import { TopicsDataSource } from "./datasources/topics-datasource";
 import packageJson from "../package.json";
 import { createTopicsTools } from "./tools";
 
-/**
- * Topics Plugin - Extracts and manages topics from conversations and other sources
- */
 export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   declare protected config: TopicsPluginConfig;
 
@@ -37,18 +33,10 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     super("topics", packageJson, config, topicsPluginConfigSchema);
   }
 
-  /**
-   * Check if auto-extraction is currently enabled.
-   * Returns false during startup, true after sync:initial:completed.
-   */
   public isAutoExtractionEnabled(): boolean {
     return this.autoExtractionEnabled;
   }
 
-  /**
-   * Enable auto-extraction. Called after sync:initial:completed.
-   * Only enables if config.enableAutoExtraction is true.
-   */
   public enableAutoExtraction(): void {
     if (this.config.enableAutoExtraction) {
       this.autoExtractionEnabled = true;
@@ -57,39 +45,32 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
-    // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
-    // Register topic entity type with lower weight (metadata entity)
     const adapter = new TopicAdapter();
     context.entities.register("topic", adapter.schema, adapter, {
       weight: 0.5,
     });
 
-    // Register templates
     context.templates.register({
       extraction: topicExtractionTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
     });
 
-    // Register DataSource
     const topicsDataSource = new TopicsDataSource(
       this.logger.child("TopicsDataSource"),
     );
     context.entities.registerDataSource(topicsDataSource);
 
-    // Register job handlers
     const processingHandler = new TopicProcessingHandler(context, this.logger);
     context.jobs.registerHandler("process-single", processingHandler);
 
     const extractionHandler = new TopicExtractionHandler(context, this.logger);
     context.jobs.registerHandler("extract", extractionHandler);
 
-    // Register eval handler for plugin testing
     this.registerEvalHandler(context);
 
-    // Subscribe to sync:initial:completed to enable auto-extraction after startup
     if (this.config.enableAutoExtraction) {
       context.messaging.subscribe(
         "sync:initial:completed",
@@ -99,7 +80,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         },
       );
 
-      // Subscribe to entity events for auto-extraction
       const handleEntityEvent = async (message: {
         payload: { entityType: string; entityId: string; entity?: BaseEntity };
       }): Promise<{ success: boolean }> => {
@@ -146,9 +126,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     );
   }
 
-  /**
-   * Get entity types that should be processed for topic extraction
-   */
   public getExtractableEntityTypes(): string[] {
     if (!this.context) {
       return [];
@@ -157,10 +134,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     return allTypes.filter((type) => this.shouldProcessEntityType(type));
   }
 
-  /**
-   * Get entities that need topic extraction.
-   * Filters by extractable types, skips drafts, and optionally skips already-processed entities.
-   */
   public async getEntitiesToExtract(options?: {
     entityTypes?: string[] | undefined;
     limit?: number | undefined;
@@ -217,18 +190,10 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     return limit !== undefined ? toExtract.slice(0, limit) : toExtract;
   }
 
-  protected override async getResources(): Promise<PluginResource[]> {
-    return [];
-  }
-
   protected override async onShutdown(): Promise<void> {
     this.logger.info("Shutting down Topics plugin");
   }
 
-  /**
-   * Determine if an entity type should be processed for topic extraction
-   * Public for testing
-   */
   public shouldProcessEntityType(entityType: string): boolean {
     if (entityType === "topic") {
       return false;
@@ -236,21 +201,12 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     return this.config.includeEntityTypes.includes(entityType);
   }
 
-  /**
-   * Determine if an entity is published (not a draft)
-   * Drafts should not trigger topic extraction - only published content
-   * Public for testing
-   */
   public isEntityPublished(entity: BaseEntity): boolean {
     const metadata = entity.metadata as Record<string, unknown>;
     const status = metadata["status"];
     return status === "published" || status === undefined || status === null;
   }
 
-  /**
-   * Handle entity created/updated events for automatic topic extraction
-   * Queues an extraction job instead of blocking on AI extraction
-   */
   private async handleEntityChanged(
     context: ServicePluginContext,
     entity: BaseEntity,
@@ -309,9 +265,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     }
   }
 
-  /**
-   * Register eval handler for plugin testing
-   */
   private registerEvalHandler(context: ServicePluginContext): void {
     const extractor = new TopicExtractor(context, this.logger);
 
@@ -405,9 +358,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 }
 
-// Export for use as a plugin
 export default TopicsPlugin;
 
-// Export public API for external consumers
 export type { TopicsPluginConfig } from "./schemas/config";
 export type { TopicEntity } from "./types";

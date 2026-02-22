@@ -2,11 +2,22 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { CloudflareClient } from "../src/lib/cloudflare-client";
 import type { CloudflareConfig } from "../src/config";
 
-// Mock fetch
-const mockFetch = mock(() => Promise.resolve(new Response()));
-
-// Store original fetch
 const originalFetch = globalThis.fetch;
+
+/**
+ * Install a mock fetch that resolves with the given response.
+ * Centralizes the single unavoidable cast.
+ */
+function installMockFetch(
+  handler: (url: string, options: RequestInit) => Promise<Response>,
+): void {
+  globalThis.fetch = mock(handler) as unknown as typeof fetch;
+}
+
+/** Install a mock fetch that always resolves with the given response. */
+function installStaticMockFetch(response: Response): void {
+  installMockFetch(() => Promise.resolve(response));
+}
 
 describe("CloudflareClient", () => {
   let client: CloudflareClient;
@@ -19,14 +30,9 @@ describe("CloudflareClient", () => {
       siteTag: "test_site_tag",
     };
     client = new CloudflareClient(config);
-
-    // Reset and install mock
-    mockFetch.mockReset();
-    globalThis.fetch = mockFetch as unknown as typeof fetch;
   });
 
   afterEach(() => {
-    // Restore original fetch
     globalThis.fetch = originalFetch;
   });
 
@@ -61,7 +67,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -73,17 +79,15 @@ describe("CloudflareClient", () => {
         endDate: "2025-01-16",
       });
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [url, options] = mockFetch.mock.calls[0] as unknown as [
-        string,
-        RequestInit,
-      ];
-      expect(url).toBe("https://api.cloudflare.com/client/v4/graphql");
-      expect(options.method).toBe("POST");
-      expect(options.headers).toEqual(
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "https://api.cloudflare.com/client/v4/graphql",
         expect.objectContaining({
-          Authorization: "Bearer cf_test_api_token",
-          "Content-Type": "application/json",
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: "Bearer cf_test_api_token",
+            "Content-Type": "application/json",
+          }),
         }),
       );
 
@@ -106,7 +110,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -124,9 +128,7 @@ describe("CloudflareClient", () => {
     });
 
     it("should throw error on API failure", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response("Unauthorized", { status: 401 }),
-      );
+      installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
 
       let error: Error | null = null;
       try {
@@ -148,7 +150,7 @@ describe("CloudflareClient", () => {
         errors: [{ message: "Invalid query" }],
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -171,7 +173,7 @@ describe("CloudflareClient", () => {
     });
 
     it("should use date_geq/date_leq filters (not datetime_geq/datetime_leq)", async () => {
-      const mockResponse = {
+      const emptyResponse = {
         data: {
           viewer: {
             accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
@@ -179,23 +181,23 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+      let capturedBody: string | undefined;
+      installMockFetch((_url, options) => {
+        capturedBody = options.body as string;
+        return Promise.resolve(
+          new Response(JSON.stringify(emptyResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      });
 
       await client.getWebsiteStats({
         startDate: "2025-01-15",
         endDate: "2025-01-16",
       });
 
-      const [, options] = mockFetch.mock.calls[0] as unknown as [
-        string,
-        RequestInit,
-      ];
-      const body = JSON.parse(options.body as string);
+      const body = JSON.parse(capturedBody!);
 
       // Verify the query uses date filters, not datetime filters
       expect(body.query).toContain("date_geq");
@@ -205,7 +207,7 @@ describe("CloudflareClient", () => {
     });
 
     it("should pass dates in YYYY-MM-DD format to the API", async () => {
-      const mockResponse = {
+      const emptyResponse = {
         data: {
           viewer: {
             accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
@@ -213,23 +215,23 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+      let capturedBody: string | undefined;
+      installMockFetch((_url, options) => {
+        capturedBody = options.body as string;
+        return Promise.resolve(
+          new Response(JSON.stringify(emptyResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      });
 
       await client.getWebsiteStats({
         startDate: "2025-01-15",
         endDate: "2025-01-16",
       });
 
-      const [, options] = mockFetch.mock.calls[0] as unknown as [
-        string,
-        RequestInit,
-      ];
-      const body = JSON.parse(options.body as string);
+      const body = JSON.parse(capturedBody!);
 
       // Verify dates are in YYYY-MM-DD format
       expect(body.variables.start).toBe("2025-01-15");
@@ -237,7 +239,7 @@ describe("CloudflareClient", () => {
     });
 
     it("should truncate ISO datetime strings to date format", async () => {
-      const mockResponse = {
+      const emptyResponse = {
         data: {
           viewer: {
             accounts: [{ rumPageloadEventsAdaptiveGroups: [] }],
@@ -245,12 +247,16 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
-        new Response(JSON.stringify(mockResponse), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+      let capturedBody: string | undefined;
+      installMockFetch((_url, options) => {
+        capturedBody = options.body as string;
+        return Promise.resolve(
+          new Response(JSON.stringify(emptyResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        );
+      });
 
       // Pass ISO datetime strings with time component
       await client.getWebsiteStats({
@@ -258,11 +264,7 @@ describe("CloudflareClient", () => {
         endDate: "2025-01-16T23:59:59.999Z",
       });
 
-      const [, options] = mockFetch.mock.calls[0] as unknown as [
-        string,
-        RequestInit,
-      ];
-      const body = JSON.parse(options.body as string);
+      const body = JSON.parse(capturedBody!);
 
       // Should be truncated to just the date part
       expect(body.variables.start).toBe("2025-01-15");
@@ -280,7 +282,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -292,9 +294,7 @@ describe("CloudflareClient", () => {
     });
 
     it("should return false for invalid credentials", async () => {
-      mockFetch.mockResolvedValueOnce(
-        new Response("Unauthorized", { status: 401 }),
-      );
+      installStaticMockFetch(new Response("Unauthorized", { status: 401 }));
 
       const isValid = await client.validateCredentials();
       expect(isValid).toBe(false);
@@ -305,7 +305,7 @@ describe("CloudflareClient", () => {
         errors: [{ message: "Authentication failed" }],
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -317,7 +317,7 @@ describe("CloudflareClient", () => {
     });
 
     it("should return false on network errors", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+      installMockFetch(() => Promise.reject(new Error("Network error")));
 
       const isValid = await client.validateCredentials();
       expect(isValid).toBe(false);
@@ -351,7 +351,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -379,7 +379,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -422,7 +422,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -469,7 +469,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -506,7 +506,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -553,7 +553,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      mockFetch.mockResolvedValueOnce(
+      installStaticMockFetch(
         new Response(JSON.stringify(mockResponse), {
           status: 200,
           headers: { "Content-Type": "application/json" },

@@ -1,13 +1,11 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { createGenerateTool } from "../src/tools/generate";
 import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import { createMockServicePluginContext } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
-// Schema for parsing tool response data
 const jobIdData = z.object({ jobId: z.string() });
 
-// Mock ToolContext for handler calls
 const mockToolContext: ToolContext = {
   userId: "test-user",
   interfaceType: "test",
@@ -16,7 +14,6 @@ const mockToolContext: ToolContext = {
 describe("Generate Tool", () => {
   let mockContext: ServicePluginContext;
   let generateTool: ReturnType<typeof createGenerateTool>;
-  let enqueueJobSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     mockContext = createMockServicePluginContext({
@@ -28,11 +25,6 @@ describe("Generate Tool", () => {
         },
       },
     });
-
-    enqueueJobSpy = spyOn(
-      mockContext.jobs,
-      "enqueue",
-    ) as unknown as typeof enqueueJobSpy;
 
     generateTool = createGenerateTool(mockContext, "blog");
   });
@@ -70,12 +62,11 @@ describe("Generate Tool", () => {
         expect(result.message).toContain("queued");
       }
 
-      // Verify enqueueJob was called correctly
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      expect(enqueueCall).toBeDefined();
-      expect(enqueueCall?.[0]).toBe("generation"); // Job type
-      expect((enqueueCall?.[1] as Record<string, unknown>)["prompt"]).toBe(
-        "Write about AI",
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({ prompt: "Write about AI" }),
+        mockToolContext,
+        expect.any(Object),
       );
     });
 
@@ -94,10 +85,15 @@ describe("Generate Tool", () => {
         expect(data.jobId).toBe("job-123");
       }
 
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      const jobData = enqueueCall?.[1] as Record<string, unknown>;
-      expect(jobData["title"]).toBe("My Post");
-      expect(jobData["content"]).toBe("Post content here");
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({
+          title: "My Post",
+          content: "Post content here",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
 
     it("should enqueue job with all optional fields", async () => {
@@ -116,22 +112,25 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      const jobData = enqueueCall?.[1] as Record<string, unknown>;
-      expect(jobData["seriesName"]).toBe("AI Series");
-      expect(jobData["seriesIndex"]).toBe(1);
-      expect(jobData["coverImageId"]).toBe("hero-image");
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({
+          seriesName: "AI Series",
+          seriesIndex: 1,
+          coverImageId: "hero-image",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
 
     it("should include correct job metadata", async () => {
       await generateTool.handler({ prompt: "Test" }, mockToolContext);
 
-      // Verify jobs.enqueue was called with correct params:
-      // (type, data, toolContext, options)
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
         "generation",
         expect.any(Object),
-        mockToolContext, // Should pass toolContext for progress routing
+        mockToolContext,
         expect.objectContaining({
           source: "blog_generate",
           metadata: expect.objectContaining({
@@ -155,7 +154,9 @@ describe("Generate Tool", () => {
 
   describe("error handling", () => {
     it("should handle enqueueJob errors gracefully", async () => {
-      enqueueJobSpy.mockRejectedValue(new Error("Queue full"));
+      spyOn(mockContext.jobs, "enqueue").mockRejectedValue(
+        new Error("Queue full"),
+      );
 
       const result = await generateTool.handler(
         { prompt: "Test" },
@@ -170,7 +171,7 @@ describe("Generate Tool", () => {
 
     it("should validate input schema", async () => {
       const result = await generateTool.handler(
-        { seriesIndex: "not-a-number" }, // Invalid type
+        { seriesIndex: "not-a-number" },
         mockToolContext,
       );
 
@@ -182,7 +183,7 @@ describe("Generate Tool", () => {
 
     it("should handle invalid input types", async () => {
       const result = await generateTool.handler(
-        { title: 123 }, // Wrong type
+        { title: 123 },
         mockToolContext,
       );
 
@@ -207,10 +208,15 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      const jobData = enqueueCall?.[1] as Record<string, unknown>;
-      expect(jobData["seriesName"]).toBe("My Series");
-      expect(jobData["seriesIndex"]).toBe(1);
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({
+          seriesName: "My Series",
+          seriesIndex: 1,
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
 
     it("should accept seriesName without seriesIndex", async () => {
@@ -225,16 +231,18 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      const jobData = enqueueCall?.[1] as Record<string, unknown>;
-      expect(jobData["seriesName"]).toBe("My Series");
-      expect(jobData["seriesIndex"]).toBeUndefined();
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({ seriesName: "My Series" }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
   });
 
   describe("return data", () => {
     it("should return jobId in data field", async () => {
-      enqueueJobSpy.mockResolvedValue("custom-job-id");
+      spyOn(mockContext.jobs, "enqueue").mockResolvedValue("custom-job-id");
 
       const result = await generateTool.handler(
         { prompt: "Test" },
@@ -271,10 +279,12 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      const jobData = enqueueCall?.[1] as Record<string, unknown>;
-      expect(jobData["skipAi"]).toBe(true);
-      expect(jobData["title"]).toBe("My Post");
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({ skipAi: true, title: "My Post" }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
 
     it("should accept skipAi with title and content", async () => {
@@ -289,10 +299,15 @@ describe("Generate Tool", () => {
 
       expect(result.success).toBe(true);
 
-      const enqueueCall = enqueueJobSpy.mock.calls[0];
-      const jobData = enqueueCall?.[1] as Record<string, unknown>;
-      expect(jobData["skipAi"]).toBe(true);
-      expect(jobData["content"]).toBe("Some blog content here");
+      expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+        "generation",
+        expect.objectContaining({
+          skipAi: true,
+          content: "Some blog content here",
+        }),
+        mockToolContext,
+        expect.any(Object),
+      );
     });
   });
 });

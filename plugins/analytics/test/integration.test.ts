@@ -4,9 +4,27 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import type { PluginTool } from "@brains/plugins";
 import { AnalyticsPlugin } from "../src/index";
 
-// Mock fetch for API calls
-const mockFetch = mock(() => Promise.resolve(new Response()));
 const originalFetch = globalThis.fetch;
+
+/**
+ * Install a mock fetch that returns responses from the queue in order.
+ * Centralizes the single unavoidable cast.
+ */
+function installMockFetch(responses: Response[]): void {
+  let callIndex = 0;
+  globalThis.fetch = mock(() => {
+    const response = responses[callIndex++];
+    return Promise.resolve(response ?? new Response("", { status: 500 }));
+  }) as unknown as typeof fetch;
+}
+
+/** Create a JSON response with status 200. */
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
 
 // Null tool context for testing
 const nullToolContext = {
@@ -40,9 +58,7 @@ describe("AnalyticsPlugin Integration", () => {
   let capabilities: PluginCapabilities;
 
   beforeEach(() => {
-    // Install fetch mock
-    mockFetch.mockReset();
-    globalThis.fetch = mockFetch as unknown as typeof fetch;
+    installMockFetch([]);
   });
 
   afterEach(() => {
@@ -121,7 +137,6 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should query website metrics for a single day", async () => {
-      // Mock Cloudflare API responses for all 5 parallel calls
       const mockStatsResponse = {
         data: {
           viewer: {
@@ -207,40 +222,14 @@ describe("AnalyticsPlugin Integration", () => {
         },
       };
 
-      // Mock all 5 API calls
-      mockFetch
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockStatsResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockTopPagesResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockReferrersResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockDevicesResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockCountriesResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
+      installMockFetch([
+        jsonResponse(mockStatsResponse),
+        jsonResponse(mockTopPagesResponse),
+        jsonResponse(mockReferrersResponse),
+        jsonResponse(mockDevicesResponse),
+        jsonResponse(mockCountriesResponse),
+      ]);
 
-      // Execute tool
       const result = await executeTool(capabilities, "analytics_query", {
         date: "2025-01-15",
       });
@@ -265,13 +254,11 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should handle API errors gracefully", async () => {
-      // Mock all 5 parallel API calls to return 401
-      mockFetch
-        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
-        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
-        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
-        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }))
-        .mockResolvedValueOnce(new Response("Unauthorized", { status: 401 }));
+      const unauthorized = Array.from(
+        { length: 5 },
+        () => new Response("Unauthorized", { status: 401 }),
+      );
+      installMockFetch(unauthorized);
 
       const result = await executeTool(capabilities, "analytics_query", {
         date: "2025-01-15",
@@ -282,7 +269,6 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should query website metrics for a date range using days parameter", async () => {
-      // Mock Cloudflare API responses for all 5 parallel calls
       const mockStatsResponse = {
         data: {
           viewer: {
@@ -376,40 +362,13 @@ describe("AnalyticsPlugin Integration", () => {
         },
       };
 
-      // Mock all 5 API calls
-      mockFetch
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockStatsResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockTopPagesResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockReferrersResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockDevicesResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockCountriesResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-
-      // Execute tool with days parameter
+      installMockFetch([
+        jsonResponse(mockStatsResponse),
+        jsonResponse(mockTopPagesResponse),
+        jsonResponse(mockReferrersResponse),
+        jsonResponse(mockDevicesResponse),
+        jsonResponse(mockCountriesResponse),
+      ]);
       const result = await executeTool(capabilities, "analytics_query", {
         days: 7,
       });
@@ -428,7 +387,6 @@ describe("AnalyticsPlugin Integration", () => {
     });
 
     it("should query website metrics with custom date range", async () => {
-      // Mock Cloudflare API responses
       const mockStatsResponse = {
         data: {
           viewer: {
@@ -453,23 +411,13 @@ describe("AnalyticsPlugin Integration", () => {
         },
       };
 
-      // Mock all 5 API calls
-      mockFetch
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockStatsResponse), { status: 200 }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
-        )
-        .mockResolvedValueOnce(
-          new Response(JSON.stringify(mockEmptyResponse), { status: 200 }),
-        );
+      installMockFetch([
+        jsonResponse(mockStatsResponse),
+        jsonResponse(mockEmptyResponse),
+        jsonResponse(mockEmptyResponse),
+        jsonResponse(mockEmptyResponse),
+        jsonResponse(mockEmptyResponse),
+      ]);
 
       // Execute tool with custom date range
       const result = await executeTool(capabilities, "analytics_query", {

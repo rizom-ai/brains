@@ -2,7 +2,6 @@ import {
   ServicePlugin,
   type ServicePluginContext,
   type PluginTool,
-  type PluginResource,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { DeckFormatter } from "./formatters/deck-formatter";
@@ -16,14 +15,11 @@ import { createDeckTools } from "./tools";
 import type { DeckEntity } from "./schemas/deck";
 import packageJson from "../package.json";
 
-// No configuration needed for decks plugin
 const decksConfigSchema = z.object({});
 
-/**
- * Decks Plugin - Manages presentation decks stored as markdown with slide separators
- */
 export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   private pluginContext?: ServicePluginContext;
+  private formatter = new DeckFormatter();
 
   constructor() {
     super("decks", packageJson, {}, decksConfigSchema);
@@ -31,20 +27,14 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
     this.pluginContext = context;
-    // Call parent onRegister first to set up base functionality
     await super.onRegister(context);
 
-    // Register deck entity type with formatter and elevated weight for search
-    const formatter = new DeckFormatter();
-    context.entities.register("deck", formatter.schema, formatter, {
+    context.entities.register("deck", this.formatter.schema, this.formatter, {
       weight: 1.5,
     });
 
-    // Register deck datasource
-    const datasource = new DeckDataSource(this.logger);
-    context.entities.registerDataSource(datasource);
+    context.entities.registerDataSource(new DeckDataSource(this.logger));
 
-    // Register deck templates
     context.templates.register({
       "deck-detail": deckTemplate,
       "deck-list": deckListTemplate,
@@ -52,57 +42,42 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       description: deckDescriptionTemplate,
     });
 
-    // Register job handler for deck generation
-    const deckGenerationHandler = new DeckGenerationJobHandler(
-      this.logger.child("DeckGenerationJobHandler"),
-      context,
+    context.jobs.registerHandler(
+      "generation",
+      new DeckGenerationJobHandler(
+        this.logger.child("DeckGenerationJobHandler"),
+        context,
+      ),
     );
-    context.jobs.registerHandler("generation", deckGenerationHandler);
 
-    // Register eval handlers for AI testing
     this.registerEvalHandlers(context);
-
-    // Register with publish-pipeline
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
 
     this.logger.info("Decks plugin registered successfully");
   }
 
-  /**
-   * Register with publish-pipeline using internal provider
-   */
   private async registerWithPublishPipeline(
     context: ServicePluginContext,
   ): Promise<void> {
-    const internalProvider = {
-      name: "internal",
-      publish: async (): Promise<{ id: string }> => {
-        return { id: "internal" };
-      },
-    };
-
     await context.messaging.send("publish:register", {
       entityType: "deck",
-      provider: internalProvider,
+      provider: {
+        name: "internal",
+        publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+      },
     });
 
     this.logger.info("Registered deck with publish-pipeline");
   }
 
-  /**
-   * Subscribe to publish:execute messages from publish-pipeline
-   */
   private subscribeToPublishExecute(context: ServicePluginContext): void {
-    const formatter = new DeckFormatter();
-
     context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
     >("publish:execute", async (msg) => {
       const { entityType, entityId } = msg.payload;
 
-      // Only handle deck entities
       if (entityType !== "deck") {
         return { success: true };
       }
@@ -122,7 +97,6 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
           return { success: true };
         }
 
-        // Skip already published decks
         if (deck.metadata.status === "published") {
           this.logger.debug(`Deck already published: ${entityId}`);
           return { success: true };
@@ -140,11 +114,9 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
           },
         };
 
-        const updatedContent = formatter.toMarkdown(updatedDeck);
-
         await context.entityService.updateEntity({
           ...updatedDeck,
-          content: updatedContent,
+          content: this.formatter.toMarkdown(updatedDeck),
         });
 
         await context.messaging.send("publish:report:success", {
@@ -171,11 +143,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     this.logger.debug("Subscribed to publish:execute messages");
   }
 
-  /**
-   * Register eval handlers for plugin testing
-   */
   private registerEvalHandlers(context: ServicePluginContext): void {
-    // Generate full slide deck (title, content, description) from prompt
     const generateDeckInputSchema = z.object({
       prompt: z.string(),
       event: z.string().optional(),
@@ -195,7 +163,6 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
       });
     });
 
-    // Generate description from title + content
     const generateDescriptionInputSchema = z.object({
       title: z.string(),
       content: z.string(),
@@ -220,12 +187,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     if (!this.pluginContext) {
       throw new Error("Plugin context not initialized");
     }
-    // List and get functionality provided by system_list and system_get tools
     return createDeckTools(this.pluginContext, this.id);
-  }
-
-  protected override async getResources(): Promise<PluginResource[]> {
-    return [];
   }
 
   protected override async onShutdown(): Promise<void> {
@@ -233,17 +195,8 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   }
 }
 
-/**
- * Factory function to create the decks plugin
- */
 export function decksPlugin(): DecksPlugin {
   return new DecksPlugin();
 }
 
-// Export for use as a plugin
 export default decksPlugin;
-
-// Export public API for external consumers
-export type { DeckEntity } from "./schemas/deck";
-export { DeckFormatter } from "./formatters/deck-formatter";
-export { deckTemplate } from "./templates/deck-template";

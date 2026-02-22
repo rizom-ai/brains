@@ -16,21 +16,26 @@ import {
   type TopicMetadata,
 } from "../schemas/topic";
 
-/**
- * Entity adapter for Topic entities
- * Uses frontmatter for title + keywords, body for content + sources
- * Supports reading legacy structured content format for backward compatibility
- */
 export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
   public readonly entityType = "topic";
   public readonly schema = topicEntitySchema;
   public readonly frontmatterSchema = topicFrontmatterSchema;
 
-  constructor() {}
+  private buildBody(content: string, sources: TopicSource[]): string {
+    if (sources.length === 0) return content;
+    return content + "\n\n## Sources\n" + SourceListFormatter.format(sources);
+  }
 
-  /**
-   * Create a legacy formatter with the given title (for backward compatibility)
-   */
+  private buildFrontmatter(
+    title: string,
+    keywords: string[],
+  ): Record<string, unknown> {
+    return {
+      title,
+      ...(keywords.length > 0 && { keywords }),
+    };
+  }
+
   private createLegacyFormatter(
     title: string,
   ): StructuredContentFormatter<TopicBody> {
@@ -62,37 +67,17 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     });
   }
 
-  /**
-   * Convert topic entity to frontmatter markdown
-   * Title and keywords go in frontmatter, content is body, sources appended as ## Sources
-   */
   public toMarkdown(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
-
-    // Build body: content text + sources section
-    let body = parsed.content;
-    if (parsed.sources.length > 0) {
-      body += "\n\n## Sources\n" + SourceListFormatter.format(parsed.sources);
-    }
-
-    const frontmatter = {
-      title: parsed.title,
-      ...(parsed.keywords.length > 0 && { keywords: parsed.keywords }),
-    };
-
-    return generateMarkdownWithFrontmatter(body, frontmatter);
+    const body = this.buildBody(parsed.content, parsed.sources);
+    return generateMarkdownWithFrontmatter(
+      body,
+      this.buildFrontmatter(parsed.title, parsed.keywords),
+    );
   }
 
-  /**
-   * Extract topic-specific fields from markdown
-   * Auto-converts legacy structured content to frontmatter format
-   * Parses sources from the body to restore metadata for batch-extract tracking
-   */
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
-    // Auto-convert to frontmatter format
     const content = this.convertToFrontmatter(markdown);
-
-    // Parse sources from body content using SourceListFormatter
     const sourcesSection = SourceListFormatter.extractSection(content);
     const sources = sourcesSection
       ? SourceListFormatter.parse(sourcesSection)
@@ -107,17 +92,10 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     };
   }
 
-  /**
-   * Extract metadata for search/filtering
-   * Topics don't use metadata for filtering
-   */
   public extractMetadata(_entity: TopicEntity): TopicMetadata {
     return {};
   }
 
-  /**
-   * Parse frontmatter from markdown
-   */
   public parseFrontMatter<TFrontmatter>(
     markdown: string,
     schema: z.ZodSchema<TFrontmatter>,
@@ -126,25 +104,17 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     return metadata;
   }
 
-  /**
-   * Generate frontmatter for the entity
-   */
   public generateFrontMatter(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
-    const frontmatter = {
-      title: parsed.title,
-      ...(parsed.keywords.length > 0 && { keywords: parsed.keywords }),
-    };
-    const fullMarkdown = generateMarkdownWithFrontmatter("", frontmatter);
+    const fullMarkdown = generateMarkdownWithFrontmatter(
+      "",
+      this.buildFrontmatter(parsed.title, parsed.keywords),
+    );
     // Extract just the frontmatter block (between --- markers)
     const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
     return match ? match[0] : "";
   }
 
-  /**
-   * Parse topic body to extract structured content
-   * Handles both frontmatter and legacy structured content formats
-   */
   public parseTopicBody(
     body: string,
   ): TopicBody & { formatted: string; title: string } {
@@ -209,33 +179,19 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     }
   }
 
-  /**
-   * Create topic body in frontmatter format
-   */
   public createTopicBody(params: {
     title: string;
     content: string;
     keywords: string[];
     sources: TopicSource[];
   }): string {
-    // Build body: content text + sources section
-    let body = params.content;
-    if (params.sources.length > 0) {
-      body += "\n\n## Sources\n" + SourceListFormatter.format(params.sources);
-    }
-
-    const frontmatter = {
-      title: params.title,
-      ...(params.keywords.length > 0 && { keywords: params.keywords }),
-    };
-
-    return generateMarkdownWithFrontmatter(body, frontmatter);
+    const body = this.buildBody(params.content, params.sources);
+    return generateMarkdownWithFrontmatter(
+      body,
+      this.buildFrontmatter(params.title, params.keywords),
+    );
   }
 
-  /**
-   * Convert legacy structured content to frontmatter format
-   * If already frontmatter, return as-is
-   */
   private convertToFrontmatter(markdown: string): string {
     if (markdown.startsWith("---")) {
       return markdown;
@@ -252,17 +208,11 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
         sources,
       } = formatter.parse(markdown);
 
-      let body = parsedContent;
-      if (sources.length > 0) {
-        body += "\n\n## Sources\n" + SourceListFormatter.format(sources);
-      }
-
-      const frontmatter = {
-        title,
-        ...(keywords.length > 0 && { keywords }),
-      };
-
-      return generateMarkdownWithFrontmatter(body, frontmatter);
+      const body = this.buildBody(parsedContent, sources);
+      return generateMarkdownWithFrontmatter(
+        body,
+        this.buildFrontmatter(title, keywords),
+      );
     } catch {
       return markdown;
     }

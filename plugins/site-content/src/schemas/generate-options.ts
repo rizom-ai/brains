@@ -1,12 +1,5 @@
 import { z } from "@brains/utils";
 
-/**
- * Content generation schemas for site-builder plugin
- */
-
-/**
- * Generate operation options schema
- */
 export const GenerateOptionsSchema = z.object({
   routeId: z.string().optional().describe("Optional: specific route filter"),
   sectionId: z
@@ -25,9 +18,6 @@ export const GenerateOptionsSchema = z.object({
     .describe("Force regeneration even if content exists"),
 });
 
-/**
- * Generate operation result schema
- */
 export const GenerateResultSchema = z.object({
   jobs: z.array(
     z.object({
@@ -42,6 +32,5 @@ export const GenerateResultSchema = z.object({
   batchId: z.string().optional(),
 });
 
-// Export inferred types
 export type GenerateOptions = z.input<typeof GenerateOptionsSchema>;
 export type GenerateResult = z.infer<typeof GenerateResultSchema>;

@@ -21,9 +21,7 @@ describe("TopicsDataSource", () => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger });
     context = createServicePluginContext(mockShell, "topics");
-    // Only pass logger to constructor - entityService comes from context
     dataSource = new TopicsDataSource(logger);
-    // Create context with entityService for fetch calls
     mockContext = { entityService: context.entityService };
   });
 
@@ -38,7 +36,6 @@ describe("TopicsDataSource", () => {
   });
 
   it("should fetch data without throwing", async () => {
-    // Pass context with entityService to fetch
     const result = await dataSource.fetch(
       { entityType: "topic" },
       topicListSchema,

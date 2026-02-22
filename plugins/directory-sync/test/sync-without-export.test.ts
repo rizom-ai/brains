@@ -313,11 +313,8 @@ slug: test-series
       await simulatePluginInitialSync();
 
       // Verify git-sync would commit the correct content
-      expect(gitSyncCommitContent).not.toBeNull();
-      const commitContent = gitSyncCommitContent as unknown as Map<
-        string,
-        string
-      >;
+      const commitContent = gitSyncCommitContent!;
+      expect(commitContent).not.toBeNull();
       expect(commitContent.get("series-test-series.md")).toContain(
         "coverImageId: series-test-cover",
       );
@@ -371,10 +368,8 @@ slug: test-series
       // In the buggy flow, the file DOES end up correct because subscriber overwrites
       // But there's a window where the file had wrong content
       // And if waitForJobs didn't work correctly, git might commit wrong content
-      const commitContent = gitSyncCommitContent as unknown as Map<
-        string,
-        string
-      >;
+      const commitContent = gitSyncCommitContent!;
+      expect(commitContent).not.toBeNull();
       expect(commitContent.get("series-test-series.md")).toContain(
         "coverImageId: series-test-cover",
       );

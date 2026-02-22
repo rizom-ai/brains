@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BlogDataSource } from "../src/datasources/blog-datasource";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -51,17 +51,11 @@ describe("BlogDataSource", () => {
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
-  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
-
-    listEntitiesSpy = spyOn(
-      mockEntityService,
-      "listEntities",
-    ) as unknown as typeof listEntitiesSpy;
 
     datasource = new BlogDataSource(mockLogger);
   });
@@ -75,7 +69,7 @@ describe("BlogDataSource", () => {
         "published",
         { publishedAt: "2025-01-03T10:00:00.000Z" },
       );
-      listEntitiesSpy.mockResolvedValue([latestPost]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([latestPost]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
@@ -98,7 +92,9 @@ describe("BlogDataSource", () => {
         "published",
         { publishedAt: "2025-01-02T10:00:00.000Z" },
       );
-      listEntitiesSpy.mockResolvedValue([latestPublished]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([
+        latestPublished,
+      ]);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { latest: true } },
@@ -111,7 +107,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should throw error when no published posts exist", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       expect(
         datasource.fetch(
@@ -161,7 +157,7 @@ describe("BlogDataSource", () => {
         latestPost,
       ];
 
-      listEntitiesSpy
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([latestPost])
         .mockResolvedValueOnce(seriesPosts);
 
@@ -198,7 +194,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted);
 
@@ -215,7 +211,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should throw error when post not found", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       expect(
         datasource.fetch(
@@ -294,7 +290,7 @@ describe("BlogDataSource", () => {
         ),
       ];
 
-      listEntitiesSpy
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted)
         .mockResolvedValueOnce(seriesPosts);
@@ -327,7 +323,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted);
 
@@ -358,7 +354,7 @@ describe("BlogDataSource", () => {
         targetPost,
       ];
 
-      listEntitiesSpy
+      spyOn(mockEntityService, "listEntities")
         .mockResolvedValueOnce([targetPost])
         .mockResolvedValueOnce(allPostsSorted);
 
@@ -388,7 +384,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(postsSorted);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(postsSorted);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -411,7 +407,7 @@ describe("BlogDataSource", () => {
         createMockPost("post-3", "Draft 2", "draft-2", "draft"),
       ];
 
-      listEntitiesSpy.mockResolvedValue(postsSorted);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(postsSorted);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -435,7 +431,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(limitedPosts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(limitedPosts);
 
       const result = await datasource.fetch(
         { entityType: "post", query: { limit: 2 } },
@@ -453,7 +449,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle empty post list", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -471,7 +467,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -526,7 +522,9 @@ describe("BlogDataSource", () => {
         ),
       ];
 
-      listEntitiesSpy.mockResolvedValue(seriesPostsSorted);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        seriesPostsSorted,
+      );
 
       const schema = z.object({
         seriesName: z.string(),
@@ -565,7 +563,9 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(seriesPostsSorted);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        seriesPostsSorted,
+      );
 
       const schema = z.object({
         seriesName: z.string(),
@@ -583,7 +583,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle series with no posts", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -627,7 +627,7 @@ describe("BlogDataSource", () => {
         ),
       ];
 
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const schema = z.object({
         seriesName: z.string(),
@@ -658,7 +658,7 @@ describe("BlogDataSource", () => {
         ),
       );
 
-      listEntitiesSpy.mockResolvedValue(page1Posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(page1Posts);
       spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
 
       const result = await datasource.fetch(
@@ -690,7 +690,7 @@ describe("BlogDataSource", () => {
         ),
       );
 
-      listEntitiesSpy.mockResolvedValue(page2Posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(page2Posts);
       spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
 
       const result = await datasource.fetch(
@@ -718,7 +718,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(lastPagePosts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(lastPagePosts);
       spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
 
       const result = await datasource.fetch(
@@ -746,7 +746,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(posts);
 
       const result = await datasource.fetch(
         { entityType: "post" },
@@ -758,7 +758,7 @@ describe("BlogDataSource", () => {
     });
 
     it("should handle empty results with pagination", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
       spyOn(mockEntityService, "countEntities").mockResolvedValue(0);
 
       const result = await datasource.fetch(
@@ -785,7 +785,7 @@ describe("BlogDataSource", () => {
         }),
       ];
 
-      listEntitiesSpy.mockResolvedValue(page1Posts);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(page1Posts);
       spyOn(mockEntityService, "countEntities").mockResolvedValue(3);
 
       const result = await datasource.fetch(

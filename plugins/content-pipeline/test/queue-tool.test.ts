@@ -19,7 +19,10 @@ import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 
 // Mock context for testing
 const mockContext = {} as ServicePluginContext;
-const mockToolContext = null as unknown as ToolContext;
+const mockToolContext: ToolContext = {
+  interfaceType: "test",
+  userId: "test-user",
+};
 
 describe("publish_queue tool", () => {
   let queueManager: QueueManager;

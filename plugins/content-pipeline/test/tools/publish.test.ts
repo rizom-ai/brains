@@ -12,16 +12,12 @@ import {
 } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
 
-// Helper to create a mock tool context
-const createMockToolContext = (): ToolContext =>
-  ({
-    routing: {
-      source: "test",
-      messageId: "test-msg",
-      interface: "test",
-      userId: "test-user",
-    },
-  }) as unknown as ToolContext;
+function createMockToolContext(): ToolContext {
+  return {
+    interfaceType: "test",
+    userId: "test-user",
+  };
+}
 
 // Create mock provider for testing
 function createMockProvider(name: string): PublishProvider {

@@ -27,7 +27,6 @@ describe("TopicExtractionHandler", () => {
     context = createServicePluginContext(mockShell, "topics");
     handler = new TopicExtractionHandler(context, logger);
 
-    // Track progress calls
     progressCalls = [];
     const reporter = ProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
@@ -44,9 +43,7 @@ describe("TopicExtractionHandler", () => {
     progressReporter = reporter;
   });
 
-  // Helper to add entity to MockShell's internal storage
   const addEntityToShell = (entity: BaseEntity): void => {
-    // Access MockShell's internal entities map via createEntity
     void mockShell.getEntityService().createEntity(entity);
   };
 
@@ -72,7 +69,6 @@ describe("TopicExtractionHandler", () => {
     it("should reject invalid job data - missing required fields", () => {
       const invalidData = {
         entityId: "test-entity",
-        // missing entityType, contentHash, etc.
       };
 
       const result = handler.validateAndParse(invalidData);
@@ -135,7 +131,6 @@ describe("TopicExtractionHandler", () => {
     });
 
     it("should return success with 0 topics when entity not found", async () => {
-      // Don't add any entity - it won't be found
       const jobData = createJobData("non-existent", computeContentHash(""));
 
       const result = await handler.process(
@@ -152,11 +147,9 @@ describe("TopicExtractionHandler", () => {
       const originalContent = "Original content";
       const newContent = "Updated content that is different";
 
-      // Add entity with NEW content
       const entity = createEntity("test-entity", newContent);
       addEntityToShell(entity);
 
-      // But job data has hash of ORIGINAL content (simulating stale job)
       const jobData = createJobData(
         "test-entity",
         computeContentHash(originalContent),
@@ -227,7 +220,6 @@ describe("TopicExtractionHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      // Note: actual topic count depends on AI response
       expect(result.topicsExtracted).toBeGreaterThanOrEqual(0);
     });
 
@@ -240,7 +232,6 @@ describe("TopicExtractionHandler", () => {
 
       await handler.process(jobData, "job-123", progressReporter);
 
-      // Verify progress was reported
       expect(progressCalls.length).toBeGreaterThan(0);
     });
   });

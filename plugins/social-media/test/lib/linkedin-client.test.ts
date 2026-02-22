@@ -2,33 +2,21 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { LinkedInClient } from "../../src/lib/linkedin-client";
 import type { LinkedinConfig } from "../../src/config";
 import type { PublishImageData } from "@brains/utils";
+import { createMockLogger } from "@brains/test-utils";
 
-// Mock logger
-interface MockLogger {
-  child: () => MockLogger;
-  info: ReturnType<typeof mock>;
-  debug: ReturnType<typeof mock>;
-  error: ReturnType<typeof mock>;
-  warn: ReturnType<typeof mock>;
-}
-
-function createMockLogger(): MockLogger {
-  const logger: MockLogger = {
-    child: (): MockLogger => createMockLogger(),
-    info: mock(() => {}),
-    debug: mock(() => {}),
-    error: mock(() => {}),
-    warn: mock(() => {}),
-  };
-  return logger;
-}
-
-// Minimal 1x1 PNG for testing
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-// Store original fetch to restore after tests
 const originalFetch = globalThis.fetch;
+
+// Centralizes the single `as unknown as typeof fetch` cast needed for bun's mock type
+function installFetchMock(
+  handler: (...args: unknown[]) => Promise<Partial<Response>>,
+): ReturnType<typeof mock> {
+  const mocked = mock(handler);
+  globalThis.fetch = mocked as unknown as typeof fetch;
+  return mocked;
+}
 
 describe("LinkedInClient", () => {
   let client: LinkedInClient;
@@ -39,10 +27,9 @@ describe("LinkedInClient", () => {
   beforeEach(() => {
     config = { accessToken: "test-token" };
     logger = createMockLogger();
-    client = new LinkedInClient(config, logger as never);
+    client = new LinkedInClient(config, logger);
 
-    // Mock fetch globally
-    fetchMock = mock(() =>
+    fetchMock = installFetchMock(() =>
       Promise.resolve({
         ok: true,
         headers: new Headers({ "X-RestLi-Id": "urn:li:share:123" }),
@@ -50,11 +37,9 @@ describe("LinkedInClient", () => {
         text: () => Promise.resolve(""),
       }),
     );
-    globalThis.fetch = fetchMock as never;
   });
 
   afterEach(() => {
-    // Restore original fetch
     globalThis.fetch = originalFetch;
   });
 
@@ -78,7 +63,7 @@ describe("LinkedInClient", () => {
     it("should register upload, upload binary, then publish with IMAGE category", async () => {
       // Mock responses for the 3-step flow
       let callCount = 0;
-      fetchMock = mock(() => {
+      fetchMock = installFetchMock(() => {
         callCount++;
         if (callCount === 1) {
           // getUserId call
@@ -114,7 +99,6 @@ describe("LinkedInClient", () => {
           });
         }
       });
-      globalThis.fetch = fetchMock as never;
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -140,7 +124,7 @@ describe("LinkedInClient", () => {
 
     it("should fall back to text-only if image upload fails", async () => {
       let callCount = 0;
-      fetchMock = mock(() => {
+      fetchMock = installFetchMock(() => {
         callCount++;
         if (callCount === 1) {
           return Promise.resolve({
@@ -162,7 +146,6 @@ describe("LinkedInClient", () => {
           });
         }
       });
-      globalThis.fetch = fetchMock as never;
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -197,7 +180,7 @@ describe("LinkedInClient", () => {
         accessToken: "test-token",
         organizationId: "12345",
       };
-      orgClient = new LinkedInClient(orgConfig, logger as never);
+      orgClient = new LinkedInClient(orgConfig, logger);
     });
 
     it("should use organization URN as author", async () => {
@@ -214,7 +197,7 @@ describe("LinkedInClient", () => {
 
     it("should use organization URN as owner in image upload", async () => {
       let callCount = 0;
-      fetchMock = mock(() => {
+      fetchMock = installFetchMock(() => {
         callCount++;
         if (callCount === 1) {
           // registerUpload (no getUserId — org mode skips it)
@@ -244,7 +227,6 @@ describe("LinkedInClient", () => {
           });
         }
       });
-      globalThis.fetch = fetchMock as never;
 
       const imageData: PublishImageData = {
         data: Buffer.from(TINY_PNG_BASE64, "base64"),
@@ -275,10 +257,7 @@ describe("LinkedInClient", () => {
     });
 
     it("should return false when no token configured", async () => {
-      const clientNoToken = new LinkedInClient(
-        { accessToken: "" },
-        logger as never,
-      );
+      const clientNoToken = new LinkedInClient({ accessToken: "" }, logger);
       const result = await clientNoToken.validateCredentials();
       expect(result).toBe(false);
     });
@@ -288,15 +267,14 @@ describe("LinkedInClient", () => {
         accessToken: "test-token",
         organizationId: "12345",
       };
-      const orgClient = new LinkedInClient(orgConfig, logger as never);
+      const orgClient = new LinkedInClient(orgConfig, logger);
 
-      fetchMock = mock(() =>
+      fetchMock = installFetchMock(() =>
         Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ id: 12345 }),
         }),
       );
-      globalThis.fetch = fetchMock as never;
 
       const result = await orgClient.validateCredentials();
       expect(result).toBe(true);
@@ -310,16 +288,15 @@ describe("LinkedInClient", () => {
         accessToken: "test-token",
         organizationId: "12345",
       };
-      const orgClient = new LinkedInClient(orgConfig, logger as never);
+      const orgClient = new LinkedInClient(orgConfig, logger);
 
-      fetchMock = mock(() =>
+      fetchMock = installFetchMock(() =>
         Promise.resolve({
           ok: false,
           status: 403,
           text: () => Promise.resolve("Forbidden"),
         }),
       );
-      globalThis.fetch = fetchMock as never;
 
       const result = await orgClient.validateCredentials();
       expect(result).toBe(false);

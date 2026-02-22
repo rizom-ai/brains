@@ -33,17 +33,14 @@ describe("Deferred Auto-Extraction", () => {
 
       await harness.installPlugin(plugin);
 
-      // Before sync completes, auto-extraction should be disabled
       expect(plugin.isAutoExtractionEnabled()).toBe(false);
 
-      // Emit sync:initial:completed
       await harness.sendMessage(
         "sync:initial:completed",
         { success: true },
         "directory-sync",
       );
 
-      // After sync completes, auto-extraction should be enabled
       expect(plugin.isAutoExtractionEnabled()).toBe(true);
 
       harness.reset();
@@ -55,14 +52,12 @@ describe("Deferred Auto-Extraction", () => {
 
       await harness.installPlugin(plugin);
 
-      // Emit sync:initial:completed
       await harness.sendMessage(
         "sync:initial:completed",
         { success: true },
         "directory-sync",
       );
 
-      // Auto-extraction should remain disabled
       expect(plugin.isAutoExtractionEnabled()).toBe(false);
 
       harness.reset();
@@ -76,10 +71,8 @@ describe("Deferred Auto-Extraction", () => {
 
       await harness.installPlugin(plugin);
 
-      // Try enabling via direct method call
       plugin.enableAutoExtraction();
 
-      // Should still be false because config doesn't allow it
       expect(plugin.isAutoExtractionEnabled()).toBe(false);
 
       harness.reset();

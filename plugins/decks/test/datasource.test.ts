@@ -16,7 +16,6 @@ describe("DeckDataSource", () => {
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
-  // Helper to create mock deck entities
   const createMockDeck = (
     id: string,
     title: string,

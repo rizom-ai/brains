@@ -7,16 +7,9 @@ import type {
 } from "@brains/plugins";
 import type { GenerateOptions } from "../schemas/generate-options";
 
-/**
- * Site content operations - handles content generation orchestration
- * Discovers routes via messaging instead of importing RouteRegistry directly
- */
 export class SiteContentOperations {
   constructor(private readonly context: ServicePluginContext) {}
 
-  /**
-   * Create JobOptions from metadata
-   */
   private createJobOptions(
     metadata: Partial<JobContext> | undefined,
     defaultSource: string,
@@ -34,9 +27,6 @@ export class SiteContentOperations {
     };
   }
 
-  /**
-   * Fetch routes from site-builder via messaging
-   */
   private async fetchRoutes(): Promise<RouteDefinition[]> {
     const response = await this.context.messaging.send(
       "site-builder:routes:list",
@@ -53,9 +43,6 @@ export class SiteContentOperations {
     return response.data as RouteDefinition[];
   }
 
-  /**
-   * Generate content for routes
-   */
   async generate(
     options: GenerateOptions,
     siteConfig?: Record<string, unknown>,
@@ -68,10 +55,8 @@ export class SiteContentOperations {
   }> {
     const logger = this.context.logger.child("SiteContentOperations");
 
-    // Fetch routes via messaging
     const routes = await this.fetchRoutes();
 
-    // Filter routes based on options
     let targetRoutes = routes;
     if (options.routeId) {
       targetRoutes = routes.filter((r) => r.id === options.routeId);
@@ -80,7 +65,6 @@ export class SiteContentOperations {
       }
     }
 
-    // Collect all sections to generate
     const sectionsToGenerate: Array<{
       route: RouteDefinition;
       section: SectionDefinition;
@@ -88,12 +72,10 @@ export class SiteContentOperations {
 
     for (const route of targetRoutes) {
       for (const section of route.sections) {
-        // Filter by sectionId if specified
         if (options.sectionId && section.id !== options.sectionId) {
           continue;
         }
 
-        // Skip sections with static content
         if (section.content) {
           logger.debug("Section has static content, skipping", {
             routeId: route.id,
@@ -102,7 +84,6 @@ export class SiteContentOperations {
           continue;
         }
 
-        // Check template capabilities
         if (section.template) {
           const capabilities = this.context.templates.getCapabilities(
             section.template,
@@ -134,7 +115,6 @@ export class SiteContentOperations {
           continue;
         }
 
-        // Check if content already exists (unless force is true)
         if (!options.force && !options.dryRun) {
           const entityId = `${route.id}:${section.id}`;
           const existing = await this.context.entityService.getEntity(
@@ -165,7 +145,6 @@ export class SiteContentOperations {
       };
     }
 
-    // Queue generation jobs
     const jobs: Array<{ jobId: string; routeId: string; sectionId: string }> =
       [];
     const batchJobs: Array<{
@@ -204,15 +183,15 @@ export class SiteContentOperations {
       });
     }
 
-    // Queue all jobs as a batch
     if (batchJobs.length > 0) {
       const jobOptions = this.createJobOptions(
         metadata,
         "site:content-generation",
       );
-      const batchId = jobOptions
-        ? await this.context.jobs.enqueueBatch(batchJobs, jobOptions)
-        : await this.context.jobs.enqueueBatch(batchJobs);
+      const batchId = await this.context.jobs.enqueueBatch(
+        batchJobs,
+        jobOptions,
+      );
 
       for (let i = 0; i < sectionsToGenerate.length; i++) {
         const item = sectionsToGenerate[i];

@@ -4,7 +4,6 @@ import {
   generationJobSchema,
   type GenerationJobData,
 } from "../../src/handlers/generationHandler";
-import { socialMediaConfigSchema } from "../../src/config";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
@@ -21,13 +20,11 @@ describe("GenerationJobHandler", () => {
   let mockShell: MockShell;
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;
-  const config = socialMediaConfigSchema.parse({});
-
   beforeEach(() => {
     logger = createSilentLogger();
     mockShell = MockShell.createFresh({ logger });
     context = createServicePluginContext(mockShell, "social-media");
-    handler = new GenerationJobHandler(logger, context, config);
+    handler = new GenerationJobHandler(logger, context);
 
     // Track progress calls
     progressCalls = [];
@@ -247,13 +244,23 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should queue image generation when generateImage is true", async () => {
-      // Track enqueued jobs
-      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
+      // Track enqueued jobs with the known image-generate data shape
+      interface ImageGenerateJobData {
+        prompt: string;
+        title: string;
+        aspectRatio: string;
+        targetEntityType: string;
+        targetEntityId: string;
+      }
+      const enqueuedJobs: Array<{
+        jobType: string;
+        data: ImageGenerateJobData;
+      }> = [];
       context.jobs.enqueue = async (
         jobType: string,
         data: unknown,
       ): Promise<string> => {
-        enqueuedJobs.push({ jobType, data });
+        enqueuedJobs.push({ jobType, data: data as ImageGenerateJobData });
         return "image-job-456";
       };
 
@@ -277,8 +284,7 @@ describe("GenerationJobHandler", () => {
         (j) => j.jobType === "image:image-generate",
       );
       expect(imageJob).toBeDefined();
-      const imageJobData = imageJob?.data as Record<string, unknown>;
-      expect(imageJobData["targetEntityType"]).toBe("social-post");
+      expect(imageJob?.data.targetEntityType).toBe("social-post");
     });
 
     it("should not queue image generation when generateImage is false", async () => {

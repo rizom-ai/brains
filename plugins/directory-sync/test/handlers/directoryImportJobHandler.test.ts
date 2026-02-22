@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import {
   createSilentLogger,
   createMockServicePluginContext,
+  createMockEntityService,
+  createMockProgressReporter,
+  createTestEntity,
 } from "@brains/test-utils";
-import type { IEntityService } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
-import { createTestEntity } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";
 
 describe("DirectoryImportJobHandler", () => {
@@ -108,44 +108,23 @@ slug: test-series
         updated: new Date("2025-01-01T11:00:00.000Z"), // OLDER than entity.updated
       };
 
-      const updateEntityMock = mock(() =>
-        Promise.resolve({ entityId: "series-test-series", jobId: "job-1" }),
-      );
-
-      // Create custom entity service with proper mocks
-      const mockEntityService = {
-        getEntity: mock(() => Promise.resolve(existingEntity)),
-        createEntity: mock(() =>
-          Promise.resolve({ entityId: "test", jobId: "job-1" }),
-        ),
-        updateEntity: updateEntityMock,
-        deleteEntity: mock(() => Promise.resolve(true)),
-        upsertEntity: mock(() =>
-          Promise.resolve({ entityId: "test", jobId: "job-1", created: false }),
-        ),
-        listEntities: mock(() => Promise.resolve([])),
-        search: mock(() => Promise.resolve([])),
-        getEntityTypes: mock(() => ["series", "note", "post"]),
-        hasEntityType: mock((type: string) =>
-          ["series", "note", "post"].includes(type),
-        ),
-        serializeEntity: mock(() => ""),
-        deserializeEntity: mock(() => ({
-          content: newContent,
-          entityType: "series",
-          metadata: { name: "Test Series", slug: "test-series" },
-        })),
-        getAsyncJobStatus: mock(() =>
-          Promise.resolve({ status: "completed" as const }),
-        ),
-        countEntities: mock(() => Promise.resolve(0)),
-        getEntityCounts: mock(() => Promise.resolve([])),
-        storeEmbedding: mock(() => Promise.resolve()),
-        getWeightMap: mock(() => ({})),
-      };
+      // Create entity service with proper mocks via createMockEntityService
+      const mockEntityService = createMockEntityService({
+        entityTypes: ["series", "note", "post"],
+        returns: {
+          getEntity: existingEntity,
+          createEntity: { entityId: "test", jobId: "job-1" },
+          updateEntity: { entityId: "series-test-series", jobId: "job-1" },
+        },
+      });
+      spyOn(mockEntityService, "deserializeEntity").mockReturnValue({
+        content: newContent,
+        entityType: "series",
+        metadata: { name: "Test Series", slug: "test-series" },
+      });
 
       const mockContext = createMockServicePluginContext({
-        entityService: mockEntityService as unknown as IEntityService,
+        entityService: mockEntityService,
       });
 
       const mockDirSync = createMockDirectorySync({
@@ -165,34 +144,18 @@ slug: test-series
         mockDirSync,
       );
 
-      const mockProgressReporter = {
-        report: mock(() => Promise.resolve()),
-        heartbeatInterval: 30000,
-        callback: mock(() => Promise.resolve()),
-        createSub: mock(() => ({
-          report: mock(() => Promise.resolve()),
-          heartbeatInterval: 30000,
-          callback: mock(() => Promise.resolve()),
-          createSub: mock(() => ({})),
-          startHeartbeat: mock(() => {}),
-          stopHeartbeat: mock(() => {}),
-          finish: mock(() => Promise.resolve()),
-        })),
-        startHeartbeat: mock(() => {}),
-        stopHeartbeat: mock(() => {}),
-        finish: mock(() => Promise.resolve()),
-      };
+      const mockProgressReporter = createMockProgressReporter();
 
       const result = await testHandler.process(
         { paths: ["/path/to/series.md"] },
         "test-job",
-        mockProgressReporter as unknown as ProgressReporter,
+        mockProgressReporter,
       );
 
       // EXPECTED: Entity should be updated because content hash differs
       expect(result.imported).toBe(1);
       expect(result.skipped).toBe(0);
-      expect(updateEntityMock).toHaveBeenCalled();
+      expect(mockEntityService.updateEntity).toHaveBeenCalled();
     });
   });
 });

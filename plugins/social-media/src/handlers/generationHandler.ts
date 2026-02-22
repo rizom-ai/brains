@@ -4,7 +4,6 @@ import { z, slugify, generationResultSchema } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
-import type { SocialMediaConfig } from "../config";
 import { getTemplateName } from "../templates";
 
 /**
@@ -37,10 +36,6 @@ export type GenerationResult = z.infer<
   typeof socialMediaGenerationResultSchema
 >;
 
-/**
- * Job handler for social post generation
- * Handles AI-powered content generation from prompts or source entities
- */
 export class GenerationJobHandler extends BaseJobHandler<
   "generation",
   GenerationJobData,
@@ -49,7 +44,6 @@ export class GenerationJobHandler extends BaseJobHandler<
   constructor(
     logger: Logger,
     private context: ServicePluginContext,
-    _config: SocialMediaConfig, // Config available for future extensions
   ) {
     super(logger, {
       jobTypeName: "social-post-generation",

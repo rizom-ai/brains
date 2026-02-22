@@ -5,9 +5,6 @@ import type { TopicMetadata, TopicSource } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText, computeContentHash } from "@brains/utils";
 
-/**
- * Service for managing topics
- */
 export class TopicService {
   private adapter: TopicAdapter;
 
@@ -18,9 +15,6 @@ export class TopicService {
     this.adapter = new TopicAdapter();
   }
 
-  /**
-   * Create a new topic (with deduplication)
-   */
   public async createTopic(params: {
     title: string;
     content: string;
@@ -98,9 +92,6 @@ export class TopicService {
     }
   }
 
-  /**
-   * Update an existing topic
-   */
   public async updateTopic(
     id: string,
     updates: {
@@ -170,31 +161,17 @@ export class TopicService {
     return updatedTopic;
   }
 
-  /**
-   * Get a topic by ID
-   */
   public async getTopic(id: string): Promise<TopicEntity | null> {
     return this.entityService.getEntity<TopicEntity>("topic", id);
   }
 
-  /**
-   * List topics with pagination
-   */
   public async listTopics(params?: {
     limit?: number;
     offset?: number;
   }): Promise<TopicEntity[]> {
-    const listOptions = {
-      ...(params?.limit !== undefined && { limit: params.limit }),
-      ...(params?.offset !== undefined && { offset: params.offset }),
-    };
-
-    return this.entityService.listEntities<TopicEntity>("topic", listOptions);
+    return this.entityService.listEntities<TopicEntity>("topic", params);
   }
 
-  /**
-   * Search topics by query
-   */
   public async searchTopics(
     query: string,
     limit = 10,
@@ -205,9 +182,6 @@ export class TopicService {
     });
   }
 
-  /**
-   * Delete a topic
-   */
   public async deleteTopic(id: string): Promise<boolean> {
     const result = await this.entityService.deleteEntity("topic", id);
     if (result) {
@@ -216,9 +190,6 @@ export class TopicService {
     return result;
   }
 
-  /**
-   * Merge multiple topics into one
-   */
   public async mergeTopics(
     topicIds: string[],
     targetId?: string,

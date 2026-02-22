@@ -5,43 +5,20 @@ import {
   type PublishExecuteHandlerConfig,
 } from "../../src/handlers/publishExecuteHandler";
 import type { SocialPost } from "../../src/schemas/social-post";
+import { createMockLogger } from "@brains/test-utils";
 
-// Mock message sender - tracks sent messages and allows assertions
 function createMockMessageSender(): {
   sendMessage: ReturnType<typeof mock>;
   _sentMessages: Array<{ type: string; payload: unknown }>;
 } {
   const sentMessages: Array<{ type: string; payload: unknown }> = [];
-
   const sendFn = mock(async (type: string, payload: unknown) => {
     sentMessages.push({ type, payload });
     return { success: true };
   });
-
-  return {
-    sendMessage: sendFn,
-    _sentMessages: sentMessages,
-  };
+  return { sendMessage: sendFn, _sentMessages: sentMessages };
 }
 
-// Mock logger
-function createMockLogger(): {
-  child: () => ReturnType<typeof createMockLogger>;
-  info: ReturnType<typeof mock>;
-  debug: ReturnType<typeof mock>;
-  error: ReturnType<typeof mock>;
-  warn: ReturnType<typeof mock>;
-} {
-  return {
-    child: () => createMockLogger(),
-    info: mock(() => {}),
-    debug: mock(() => {}),
-    error: mock(() => {}),
-    warn: mock(() => {}),
-  };
-}
-
-// Mock entity service
 function createMockEntityService(): {
   getEntity: ReturnType<typeof mock>;
   updateEntity: ReturnType<typeof mock>;
@@ -52,11 +29,9 @@ function createMockEntityService(): {
   };
 }
 
-// Minimal 1x1 PNG for testing
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
-// Sample post for testing
 const samplePost: SocialPost = {
   id: "post-1",
   entityType: "social-post",
@@ -77,7 +52,6 @@ This is a test post for LinkedIn.`,
   updated: "2024-01-01T00:00:00Z",
 };
 
-// Sample post with cover image
 const samplePostWithImage: SocialPost = {
   id: "post-2",
   entityType: "social-post",
@@ -99,7 +73,6 @@ This is a post with an image.`,
   updated: "2024-01-01T00:00:00Z",
 };
 
-// Sample image entity
 const sampleImage = {
   id: "image-123",
   entityType: "image",
@@ -138,7 +111,7 @@ describe("PublishExecuteHandler", () => {
 
     const config: PublishExecuteHandlerConfig = {
       sendMessage: messageSender.sendMessage as never,
-      logger: logger as never,
+      logger,
       entityService: entityService as never,
       providers,
     };
@@ -314,7 +287,6 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-2",
       });
 
-      // Verify provider was called with image data
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "This is a post with an image.",
         expect.any(Object),
@@ -330,7 +302,6 @@ describe("PublishExecuteHandler", () => {
         if (entityType === "social-post") {
           return Promise.resolve(samplePostWithImage);
         }
-        // Image not found
         return Promise.resolve(null);
       });
 
@@ -339,7 +310,6 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-2",
       });
 
-      // Should still publish, but without image data
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "This is a post with an image.",
         expect.any(Object),
@@ -356,7 +326,6 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      // No image data passed
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "This is a test post for LinkedIn.",
         expect.any(Object),

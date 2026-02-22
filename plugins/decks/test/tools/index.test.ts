@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { createGenerateTool } from "../../src/tools";
 import { createMockServicePluginContext } from "@brains/test-utils";
 import { type ServicePluginContext } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 
-// Schema for parsing tool response data
 const jobIdData = z.object({ jobId: z.string() });
 
 const mockToolContext: ToolContext = {
@@ -17,7 +16,6 @@ describe("Deck Tools", () => {
   describe("createGenerateTool", () => {
     let mockContext: ServicePluginContext;
     let generateTool: ReturnType<typeof createGenerateTool>;
-    let enqueueJobSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
     beforeEach(() => {
       mockContext = createMockServicePluginContext({
@@ -30,11 +28,6 @@ describe("Deck Tools", () => {
           },
         },
       });
-
-      enqueueJobSpy = spyOn(
-        mockContext.jobs,
-        "enqueue",
-      ) as unknown as typeof enqueueJobSpy;
 
       generateTool = createGenerateTool(mockContext, "decks");
     });
@@ -76,12 +69,11 @@ describe("Deck Tools", () => {
           expect(result.message).toContain("queued");
         }
 
-        // Verify enqueueJob was called correctly
-        const enqueueCall = enqueueJobSpy.mock.calls[0];
-        expect(enqueueCall).toBeDefined();
-        expect(enqueueCall?.[0]).toBe("generation"); // Job type
-        expect((enqueueCall?.[1] as Record<string, unknown>)["prompt"]).toBe(
-          "Create a talk about AI",
+        expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+          "generation",
+          expect.objectContaining({ prompt: "Create a talk about AI" }),
+          mockToolContext,
+          expect.any(Object),
         );
       });
 
@@ -100,10 +92,15 @@ describe("Deck Tools", () => {
           expect(data.jobId).toBe("job-123");
         }
 
-        const enqueueCall = enqueueJobSpy.mock.calls[0];
-        const jobData = enqueueCall?.[1] as Record<string, unknown>;
-        expect(jobData["title"]).toBe("My Presentation");
-        expect(jobData["content"]).toBe("# Slide 1\n\n---\n\n# Slide 2");
+        expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+          "generation",
+          expect.objectContaining({
+            title: "My Presentation",
+            content: "# Slide 1\n\n---\n\n# Slide 2",
+          }),
+          mockToolContext,
+          expect.any(Object),
+        );
       });
 
       it("should enqueue job with all optional fields", async () => {
@@ -121,22 +118,25 @@ describe("Deck Tools", () => {
 
         expect(result.success).toBe(true);
 
-        const enqueueCall = enqueueJobSpy.mock.calls[0];
-        const jobData = enqueueCall?.[1] as Record<string, unknown>;
-        expect(jobData["author"]).toBe("Test Author");
-        expect(jobData["event"]).toBe("Tech Conference 2024");
-        expect(jobData["description"]).toBe("A talk about AI");
+        expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+          "generation",
+          expect.objectContaining({
+            author: "Test Author",
+            event: "Tech Conference 2024",
+            description: "A talk about AI",
+          }),
+          mockToolContext,
+          expect.any(Object),
+        );
       });
 
       it("should include correct job metadata", async () => {
         await generateTool.handler({ prompt: "Test" }, mockToolContext);
 
-        // Verify jobs.enqueue was called with correct params:
-        // (type, data, toolContext, options)
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",
           expect.any(Object),
-          mockToolContext, // Should pass toolContext for progress routing
+          mockToolContext,
           expect.objectContaining({
             source: "decks_generate",
             metadata: expect.objectContaining({
@@ -160,7 +160,9 @@ describe("Deck Tools", () => {
 
     describe("error handling", () => {
       it("should handle enqueueJob errors gracefully", async () => {
-        enqueueJobSpy.mockRejectedValue(new Error("Queue full"));
+        spyOn(mockContext.jobs, "enqueue").mockRejectedValue(
+          new Error("Queue full"),
+        );
 
         const result = await generateTool.handler(
           { prompt: "Test" },
@@ -188,7 +190,7 @@ describe("Deck Tools", () => {
 
     describe("return data", () => {
       it("should return jobId in data field", async () => {
-        enqueueJobSpy.mockResolvedValue("custom-job-id");
+        spyOn(mockContext.jobs, "enqueue").mockResolvedValue("custom-job-id");
 
         const result = await generateTool.handler(
           { prompt: "Test" },
@@ -225,10 +227,12 @@ describe("Deck Tools", () => {
 
         expect(result.success).toBe(true);
 
-        const enqueueCall = enqueueJobSpy.mock.calls[0];
-        const jobData = enqueueCall?.[1] as Record<string, unknown>;
-        expect(jobData["skipAi"]).toBe(true);
-        expect(jobData["title"]).toBe("My Deck");
+        expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+          "generation",
+          expect.objectContaining({ skipAi: true, title: "My Deck" }),
+          mockToolContext,
+          expect.any(Object),
+        );
       });
 
       it("should accept skipAi with title and content", async () => {
@@ -243,13 +247,16 @@ describe("Deck Tools", () => {
 
         expect(result.success).toBe(true);
 
-        const enqueueCall = enqueueJobSpy.mock.calls[0];
-        const jobData = enqueueCall?.[1] as Record<string, unknown>;
-        expect(jobData["skipAi"]).toBe(true);
-        expect(jobData["content"]).toBe("# Slide 1\n\n---\n\n# Slide 2");
+        expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
+          "generation",
+          expect.objectContaining({
+            skipAi: true,
+            content: "# Slide 1\n\n---\n\n# Slide 2",
+          }),
+          mockToolContext,
+          expect.any(Object),
+        );
       });
     });
   });
-
-  // Publish tool tests removed - publish functionality moved to publish-pipeline
 });

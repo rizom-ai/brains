@@ -68,7 +68,6 @@ multiple layers to process complex patterns.
 
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
-      // If topics are extracted, verify source metadata
       const firstTopic = result[0];
       if (firstTopic && firstTopic.sources.length > 0) {
         const firstSource = firstTopic.sources[0];
@@ -103,7 +102,6 @@ multiple layers to process complex patterns.
         metadata: { title: "Brief Summary" },
       });
 
-      // High threshold should filter out low-relevance topics
       const highThresholdResult = await extractor.extractFromEntity(
         entity,
         0.9,

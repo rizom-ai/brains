@@ -100,11 +100,12 @@ describe("SeriesManager", () => {
 
       expect(upsertSpy).toHaveBeenCalledTimes(2);
 
-      const seriesIds = upsertSpy.mock.calls.map(
-        (call) => (call[0] as unknown as { id: string }).id,
-      );
-      expect(seriesIds).toContain("new-institutions");
-      expect(seriesIds).toContain("future-of-work");
+      expect(upsertSpy.mock.calls[0]?.[0]).toMatchObject({
+        id: "new-institutions",
+      });
+      expect(upsertSpy.mock.calls[1]?.[0]).toMatchObject({
+        id: "future-of-work",
+      });
     });
 
     it("should ignore posts without seriesName", async () => {

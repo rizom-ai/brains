@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { mockFetch } from "@brains/test-utils";
 import { NewsletterPlugin } from "../src";
 
 // Save original fetch to restore after tests
@@ -8,13 +9,6 @@ const originalFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = originalFetch;
 });
-
-// Helper to create a mock fetch
-function mockFetch(
-  handler: (url: string, options: RequestInit) => Promise<Partial<Response>>,
-): void {
-  globalThis.fetch = mock(handler) as unknown as typeof fetch;
-}
 
 describe("Newsletter Tools", () => {
   let harness: ReturnType<typeof createPluginHarness>;

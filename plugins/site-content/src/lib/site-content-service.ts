@@ -5,9 +5,6 @@ import {
 } from "../schemas/generate-options";
 import { SiteContentOperations } from "./site-content-operations";
 
-/**
- * Service for managing site content operations
- */
 export class SiteContentService {
   private readonly operations: SiteContentOperations;
 
@@ -18,9 +15,6 @@ export class SiteContentService {
     this.operations = new SiteContentOperations(pluginContext);
   }
 
-  /**
-   * Generate content for routes
-   */
   async generateContent(
     options: GenerateOptions,
     metadata?: Partial<JobContext>,

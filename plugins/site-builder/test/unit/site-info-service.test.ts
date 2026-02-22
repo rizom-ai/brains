@@ -1,52 +1,26 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { SiteInfoService } from "../../src/services/site-info-service";
 import type { IEntityService } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
-import type { SiteInfoEntity } from "../../src/services/site-info-schema";
 import { createMockSiteInfo } from "../fixtures/site-entities";
 
 describe("SiteInfoService", () => {
-  // Shared mock state that can be controlled per test
-  let mockGetEntityImpl: () => Promise<SiteInfoEntity | null>;
-  let mockCreateEntityImpl: () => Promise<{ entityId: string; jobId: string }>;
-
   let mockEntityService: IEntityService;
   let siteInfoService: SiteInfoService;
-  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
-    // Reset singleton
     SiteInfoService.resetInstance();
 
-    // Default implementations
-    mockGetEntityImpl = async (): Promise<SiteInfoEntity | null> => null;
-    mockCreateEntityImpl = async (): Promise<{
-      entityId: string;
-      jobId: string;
-    }> => ({
+    mockEntityService = createMockEntityService();
+    spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
+    spyOn(mockEntityService, "createEntity").mockResolvedValue({
       entityId: "site-info",
       jobId: "job-123",
     });
 
-    // Create mock using factory, then override implementations
-    mockEntityService = createMockEntityService();
-    getEntitySpy = spyOn(
-      mockEntityService,
-      "getEntity",
-    ) as unknown as typeof getEntitySpy;
-    createEntitySpy = spyOn(
-      mockEntityService,
-      "createEntity",
-    ) as unknown as typeof createEntitySpy;
-
-    getEntitySpy.mockImplementation(async () => mockGetEntityImpl());
-    createEntitySpy.mockImplementation(async () => mockCreateEntityImpl());
-
-    // Create fresh instance with silent logger
     siteInfoService = SiteInfoService.createFresh(
       mockEntityService,
       createSilentLogger(),
@@ -100,8 +74,7 @@ Get Started
 https://rizom.ai/join`,
       });
 
-      // Control mock behavior to return the entity
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(mockEntity);
 
       // Initialize to load the entity into cache
       await siteInfoService.initialize();
@@ -130,7 +103,7 @@ My Site
 A simple website`,
       });
 
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(mockEntity);
 
       await siteInfoService.initialize();
 
@@ -144,27 +117,23 @@ A simple website`,
 
   describe("initialize", () => {
     it("should create default site info entity when none exists", async () => {
-      // Mock behavior: no existing site info
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity | null> => null;
-
       await siteInfoService.initialize();
 
       // Should have called createEntity
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
-      // Check that it created with default values
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(createCall).toBeDefined();
-      expect(createCall).toMatchObject({
-        id: "site-info",
-        entityType: "site-info",
-      });
-
-      // Content should contain default site info data
-      expect(createCall?.["content"]).toContain("Personal Brain");
-      expect(createCall?.["content"]).toContain("knowledge management system");
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "site-info",
+          entityType: "site-info",
+          content: expect.stringContaining("Personal Brain"),
+        }),
+      );
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("knowledge management system"),
+        }),
+      );
     });
 
     it("should not create entity when one already exists", async () => {
@@ -179,7 +148,7 @@ Existing Site
 Existing description`,
       });
 
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity> => mockEntity;
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(mockEntity);
 
       await siteInfoService.initialize();
 
@@ -188,13 +157,9 @@ Existing description`,
     });
 
     it("should handle errors during entity creation gracefully", async () => {
-      // Mock behavior: no existing entity
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity | null> => null;
-
-      // Mock behavior: createEntity throws error
-      mockCreateEntityImpl = async (): Promise<never> => {
-        throw new Error("Database error");
-      };
+      spyOn(mockEntityService, "createEntity").mockRejectedValue(
+        new Error("Database error"),
+      );
 
       // Should not throw
       await siteInfoService.initialize();
@@ -210,7 +175,6 @@ Existing description`,
       // Actual behavior (BUG): getSiteInfo() returns cached null → falls back to defaults
 
       // Step 1: Initialize service with NO entity in database (simulating first boot)
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity | null> => null;
       await siteInfoService.initialize();
 
       // Verify service is using defaults since no entity exists yet
@@ -229,7 +193,7 @@ Personal knowledge base and professional showcase`,
       });
 
       // Change mock to return imported entity (as if git-sync just imported it)
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity> => importedEntity;
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(importedEntity);
 
       // Step 3: Call getSiteInfo() again - should now return imported data
       siteInfo = await siteInfoService.getSiteInfo();
@@ -291,22 +255,24 @@ Personal knowledge base and professional showcase`,
         customSiteInfo,
       );
 
-      // Mock behavior: no existing site info
-      mockGetEntityImpl = async (): Promise<SiteInfoEntity | null> => null;
-
       await customService.initialize();
 
-      // Should have created entity with custom values
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
-
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-
-      expect(createCall?.["content"]).toContain("Tech Docs");
-      expect(createCall?.["content"]).toContain("Technical documentation site");
-      expect(createCall?.["content"]).toContain("Get Started");
-      expect(createCall?.["content"]).not.toContain("Personal Brain");
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("Tech Docs"),
+        }),
+      );
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("Technical documentation site"),
+        }),
+      );
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("Get Started"),
+        }),
+      );
     });
 
     it("should fall back to hardcoded default when custom site info is not provided", async () => {

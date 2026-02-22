@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createGenerateTool, generateInputSchema } from "../../src/tools";
-import { socialMediaConfigSchema } from "../../src/config";
+import {
+  createGenerateTool,
+  generateInputSchema,
+  type GenerateInput,
+} from "../../src/tools";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   MockShell,
@@ -10,15 +13,16 @@ import {
 } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
 
-// Helper to create a null tool context for tests
-const nullContext = null as unknown as ToolContext;
+const testToolContext: ToolContext = {
+  interfaceType: "test",
+  userId: "test-user",
+};
 
 describe("Social Media Tools", () => {
   let context: ServicePluginContext;
   let logger: Logger;
   let mockShell: MockShell;
   const pluginId = "social-media";
-  const config = socialMediaConfigSchema.parse({});
 
   beforeEach(() => {
     logger = createSilentLogger();
@@ -28,7 +32,7 @@ describe("Social Media Tools", () => {
 
   describe("createGenerateTool", () => {
     it("should create a generate tool", () => {
-      const tool = createGenerateTool(context, config, pluginId);
+      const tool = createGenerateTool(context, pluginId);
       expect(tool.name).toBe("social-media_generate");
       expect(tool.handler).toBeDefined();
     });
@@ -51,8 +55,8 @@ describe("Social Media Tools", () => {
     });
 
     it("should require at least one content source", async () => {
-      const tool = createGenerateTool(context, config, pluginId);
-      const result = await tool.handler({}, nullContext);
+      const tool = createGenerateTool(context, pluginId);
+      const result = await tool.handler({}, testToolContext);
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("prompt");
@@ -73,29 +77,28 @@ describe("Social Media Tools", () => {
 
     it("should pass generateImage to job when set to true", async () => {
       // Track enqueued jobs
-      const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
+      const enqueuedJobs: Array<{ jobType: string; data: GenerateInput }> = [];
       context.jobs.enqueue = async (
         jobType: string,
         data: unknown,
       ): Promise<string> => {
-        enqueuedJobs.push({ jobType, data });
+        enqueuedJobs.push({ jobType, data: data as GenerateInput });
         return "job-123";
       };
 
-      const tool = createGenerateTool(context, config, pluginId);
+      const tool = createGenerateTool(context, pluginId);
       const result = await tool.handler(
         {
           prompt: "Test prompt",
           platform: "linkedin",
           generateImage: true,
         },
-        nullContext,
+        testToolContext,
       );
 
       expect(result.success).toBe(true);
       expect(enqueuedJobs.length).toBe(1);
-      const jobData = enqueuedJobs[0]?.data as Record<string, unknown>;
-      expect(jobData["generateImage"]).toBe(true);
+      expect(enqueuedJobs[0]?.data.generateImage).toBe(true);
     });
   });
 });

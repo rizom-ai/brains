@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { NewsletterDataSource } from "../../src/datasources/newsletter-datasource";
 import type { Newsletter } from "../../src/schemas/newsletter";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
@@ -15,8 +15,6 @@ describe("NewsletterDataSource", () => {
   let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
-  let listEntitiesSpy: Mock<(...args: unknown[]) => Promise<unknown>>;
-  let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   // Helper to create mock newsletter
   const createMockNewsletter = (
@@ -43,16 +41,6 @@ describe("NewsletterDataSource", () => {
     mockLogger = createMockLogger();
     mockEntityService = createMockEntityService();
     mockContext = { entityService: mockEntityService };
-
-    listEntitiesSpy = spyOn(
-      mockEntityService,
-      "listEntities",
-    ) as unknown as typeof listEntitiesSpy;
-
-    getEntitySpy = spyOn(
-      mockEntityService,
-      "getEntity",
-    ) as unknown as typeof getEntitySpy;
 
     datasource = new NewsletterDataSource(mockLogger);
   });
@@ -81,7 +69,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter("nl-2", "Second Newsletter", "draft", "Content 2"),
       ];
 
-      listEntitiesSpy.mockResolvedValue(newsletters);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
       const schema = z.object({
         newsletters: z.array(z.any()),
@@ -105,7 +93,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter("nl-1", "Test Newsletter", "draft", longContent),
       ];
 
-      listEntitiesSpy.mockResolvedValue(newsletters);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
       const schema = z.object({
         newsletters: z.array(z.any()),
@@ -123,7 +111,7 @@ describe("NewsletterDataSource", () => {
     });
 
     it("should handle empty newsletter list", async () => {
-      listEntitiesSpy.mockResolvedValue([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
       const schema = z.object({
         newsletters: z.array(z.any()),
@@ -145,7 +133,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter("nl-2", "Newsletter 2", "published"),
       ];
 
-      listEntitiesSpy.mockResolvedValue(newsletters);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
       const schema = z.object({
         newsletters: z.array(z.any()),
@@ -175,7 +163,9 @@ describe("NewsletterDataSource", () => {
         ),
       ];
 
-      listEntitiesSpy.mockResolvedValue(publishedNewsletters);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        publishedNewsletters,
+      );
 
       const schema = z.object({
         newsletters: z.array(z.any()),
@@ -207,8 +197,8 @@ describe("NewsletterDataSource", () => {
         "2025-01-01T10:00:00.000Z",
       );
 
-      getEntitySpy.mockResolvedValueOnce(newsletter);
-      listEntitiesSpy.mockResolvedValueOnce([]); // For navigation
+      spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(newsletter);
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
       const schema = z.object({
         id: z.string(),
@@ -232,7 +222,7 @@ describe("NewsletterDataSource", () => {
     });
 
     it("should throw error when newsletter not found", async () => {
-      getEntitySpy.mockResolvedValue(null);
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
 
       const schema = z.object({
         id: z.string(),
@@ -277,8 +267,12 @@ describe("NewsletterDataSource", () => {
         ),
       ];
 
-      getEntitySpy.mockResolvedValueOnce(targetNewsletter);
-      listEntitiesSpy.mockResolvedValueOnce(allNewsletters);
+      spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(
+        targetNewsletter,
+      );
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce(
+        allNewsletters,
+      );
 
       const schema = z.object({
         id: z.string(),
@@ -318,8 +312,12 @@ describe("NewsletterDataSource", () => {
         ),
       ];
 
-      getEntitySpy.mockResolvedValueOnce(targetNewsletter);
-      listEntitiesSpy.mockResolvedValueOnce(allNewsletters);
+      spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(
+        targetNewsletter,
+      );
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce(
+        allNewsletters,
+      );
 
       const schema = z.object({
         id: z.string(),
@@ -358,8 +356,12 @@ describe("NewsletterDataSource", () => {
         targetNewsletter,
       ];
 
-      getEntitySpy.mockResolvedValueOnce(targetNewsletter);
-      listEntitiesSpy.mockResolvedValueOnce(allNewsletters);
+      spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(
+        targetNewsletter,
+      );
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce(
+        allNewsletters,
+      );
 
       const schema = z.object({
         id: z.string(),
@@ -401,13 +403,12 @@ describe("NewsletterDataSource", () => {
         metadata: { title: "Blog Post 2", slug: "blog-post-2" },
       });
 
-      // First call: fetch newsletter, then fetch source entities
-      getEntitySpy
-        .mockResolvedValueOnce(newsletter) // Newsletter fetch
-        .mockResolvedValueOnce(mockPost1) // Source entity 1
-        .mockResolvedValueOnce(mockPost2); // Source entity 2
+      spyOn(mockEntityService, "getEntity")
+        .mockResolvedValueOnce(newsletter)
+        .mockResolvedValueOnce(mockPost1)
+        .mockResolvedValueOnce(mockPost2);
 
-      listEntitiesSpy.mockResolvedValueOnce([]); // For navigation
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
       const schema = z.object({
         id: z.string(),
@@ -449,11 +450,11 @@ describe("NewsletterDataSource", () => {
         metadata: { title: "My Deck", slug: "my-deck" },
       });
 
-      getEntitySpy
-        .mockResolvedValueOnce(newsletter) // Newsletter fetch
-        .mockResolvedValueOnce(mockDeck); // Source entity
+      spyOn(mockEntityService, "getEntity")
+        .mockResolvedValueOnce(newsletter)
+        .mockResolvedValueOnce(mockDeck);
 
-      listEntitiesSpy.mockResolvedValueOnce([]); // For navigation
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
       const schema = z.object({
         id: z.string(),
@@ -470,7 +471,10 @@ describe("NewsletterDataSource", () => {
       );
 
       // Should have fetched as "deck" type, not "post"
-      expect(getEntitySpy).toHaveBeenCalledWith("deck", "deck-1");
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
+        "deck",
+        "deck-1",
+      );
       expect(result.sourceEntities).toHaveLength(1);
       expect(result.sourceEntities?.[0].title).toBe("My Deck");
       expect(result.sourceEntities?.[0].url).toBe("/decks/my-deck");
@@ -492,11 +496,11 @@ describe("NewsletterDataSource", () => {
         metadata: { title: "Blog Post", slug: "blog-post" },
       });
 
-      getEntitySpy
+      spyOn(mockEntityService, "getEntity")
         .mockResolvedValueOnce(newsletter)
         .mockResolvedValueOnce(mockPost);
 
-      listEntitiesSpy.mockResolvedValueOnce([]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]);
 
       const schema = z.object({
         id: z.string(),
@@ -513,7 +517,10 @@ describe("NewsletterDataSource", () => {
       );
 
       // Should have fetched as "post" (default)
-      expect(getEntitySpy).toHaveBeenCalledWith("post", "post-1");
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
+        "post",
+        "post-1",
+      );
       expect(result.sourceEntities?.[0].url).toBe("/posts/blog-post");
     });
 
@@ -533,13 +540,12 @@ describe("NewsletterDataSource", () => {
         metadata: { title: "Blog Post 1", slug: "blog-post-1" },
       });
 
-      // First call: fetch newsletter, then fetch source entities
-      getEntitySpy
-        .mockResolvedValueOnce(newsletter) // Newsletter fetch
-        .mockResolvedValueOnce(mockPost1) // Source entity 1
-        .mockResolvedValueOnce(null); // Nonexistent post
+      spyOn(mockEntityService, "getEntity")
+        .mockResolvedValueOnce(newsletter)
+        .mockResolvedValueOnce(mockPost1)
+        .mockResolvedValueOnce(null);
 
-      listEntitiesSpy.mockResolvedValueOnce([]); // For navigation
+      spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
       const schema = z.object({
         id: z.string(),
@@ -583,7 +589,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter("nl-3", "Newsletter 3", "published"),
       ];
 
-      listEntitiesSpy.mockResolvedValue(newsletters);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
       spyOn(mockEntityService, "countEntities").mockResolvedValue(10);
 
       const result = await datasource.fetch(
@@ -606,7 +612,7 @@ describe("NewsletterDataSource", () => {
         createMockNewsletter("nl-1", "Newsletter 1", "published"),
       ];
 
-      listEntitiesSpy.mockResolvedValue(newsletters);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
       const result = await datasource.fetch(
         { entityType: "newsletter" },

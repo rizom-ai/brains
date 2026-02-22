@@ -1,11 +1,4 @@
-/**
- * ContentPipelinePlugin - Plugin for managing content publishing pipeline
- *
- * Provides centralized queue management, scheduling, and retry logic
- * for all publishable entity types via message-driven architecture.
- */
-
-import type { Plugin, PluginTool, ServicePluginContext } from "@brains/plugins";
+import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
 import { createQueueTool, createPublishTool } from "./tools";
@@ -32,10 +25,6 @@ import type { ContentPipelineConfig } from "./types/config";
 import { contentPipelineConfigSchema } from "./types/config";
 import packageJson from "../package.json";
 
-/**
- * Content Pipeline Plugin
- * Manages entity publishing queues and scheduling
- */
 export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> {
   private pluginContext?: ServicePluginContext;
   private queueManager!: QueueManager;
@@ -52,15 +41,11 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     );
   }
 
-  /**
-   * Initialize the plugin
-   */
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     this.pluginContext = context;
 
-    // Initialize components
     this.queueManager = QueueManager.createFresh();
     this.providerRegistry = ProviderRegistry.createFresh();
     this.retryTracker = RetryTracker.createFresh({
@@ -68,7 +53,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       baseDelayMs: this.config.retryBaseDelayMs,
     });
 
-    // Create a messageBus adapter for the scheduler
     const messageBusAdapter = {
       send: async (channel: string, message: unknown): Promise<unknown> => {
         return context.messaging.send(channel, message);
@@ -100,10 +84,8 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       onGenerate: (event) => this.handleGenerateExecute(context, event),
     });
 
-    // Subscribe to message bus events
     this.subscribeToMessages(context);
 
-    // Rebuild queue from DB after initial sync completes
     context.messaging.subscribe("sync:initial:completed", async () => {
       const entityTypes = context.entityService.getEntityTypes();
       for (const entityType of entityTypes) {
@@ -125,7 +107,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       return { success: true };
     });
 
-    // Start the scheduler
     await this.scheduler.start();
 
     this.logger.info("Content pipeline plugin started");
@@ -178,7 +159,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 
     this.logger.debug("Subscribed to publish messages");
 
-    // Generation completion reporting (from job handlers in newsletter/social-media)
     context.messaging.subscribe<GenerateCompletedPayload, { success: boolean }>(
       GENERATE_MESSAGES.REPORT_SUCCESS,
       async (msg) => {
@@ -414,20 +394,12 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     return { success: true };
   }
 
-  // ============================================
-  // Generation Scheduling Methods
-  // ============================================
-
-  /**
-   * Check if generation conditions are met for an entity type
-   */
   private async checkGenerationConditions(
     context: ServicePluginContext,
     entityType: string,
     conditions: GenerationCondition,
   ): Promise<GenerationConditionResult> {
     try {
-      // Check skipIfDraftExists condition
       if (conditions.skipIfDraftExists !== false) {
         const drafts = await context.entityService.listEntities(entityType, {
           filter: { metadata: { status: "draft" } },
@@ -442,7 +414,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         }
       }
 
-      // Check maxUnpublishedDrafts condition
       if (conditions.maxUnpublishedDrafts !== undefined) {
         const unpublishedDrafts = await context.entityService.listEntities(
           entityType,
@@ -460,7 +431,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         }
       }
 
-      // Check minSourceEntities condition
       if (
         conditions.minSourceEntities !== undefined &&
         conditions.sourceEntityType
@@ -481,7 +451,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         }
       }
 
-      // All conditions met
       return { shouldGenerate: true };
     } catch (error) {
       this.logger.error("Failed to check generation conditions", {
@@ -489,7 +458,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         error: error instanceof Error ? error.message : String(error),
       });
 
-      // Fail safe: don't generate if we can't check conditions
       return {
         shouldGenerate: false,
         reason: `Condition check failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -497,18 +465,12 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     }
   }
 
-  /**
-   * Handle generation trigger event
-   */
   private handleGenerateExecute(
     context: ServicePluginContext,
     event: { entityType: string },
   ): void {
     this.logger.info(`Generation triggered for ${event.entityType}`);
 
-    // The generate:execute message is already sent by the scheduler.
-    // Plugins subscribe to this message to perform their generation logic.
-    // This callback is for logging and potential additional actions.
     void context.messaging.send(GENERATE_MESSAGES.EXECUTE, {
       entityType: event.entityType,
     });
@@ -530,7 +492,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     this.logger.info("Content pipeline plugin stopped");
   }
 
-  // Expose components for testing
   public getQueueManager(): QueueManager {
     return this.queueManager;
   }
@@ -548,11 +509,8 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   }
 }
 
-/**
- * Factory function to create the plugin
- */
 export function contentPipelinePlugin(
   config?: Partial<ContentPipelineConfig>,
-): Plugin {
+): ContentPipelinePlugin {
   return new ContentPipelinePlugin(config);
 }

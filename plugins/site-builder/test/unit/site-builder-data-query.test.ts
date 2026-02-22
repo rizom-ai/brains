@@ -435,7 +435,7 @@ describe("SiteBuilder dataQuery handling", () => {
                 offset: 20,
                 customParam: "value",
                 anotherParam: 123,
-              } as Record<string, unknown>,
+              },
             },
           },
         ],

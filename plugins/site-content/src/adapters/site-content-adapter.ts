@@ -5,10 +5,6 @@ import {
   siteContentMetadataSchema,
 } from "../schemas/site-content";
 
-/**
- * Entity adapter for site content
- * routeId and sectionId identify which route/section this content belongs to
- */
 export class SiteContentAdapter extends BaseEntityAdapter<
   SiteContent,
   SiteContentMetadata
@@ -22,28 +18,15 @@ export class SiteContentAdapter extends BaseEntityAdapter<
   }
 
   public toMarkdown(entity: SiteContent): string {
-    const fm = {
-      routeId: entity.metadata.routeId,
-      sectionId: entity.metadata.sectionId,
-    };
-
-    try {
-      const body = this.extractBody(entity.content);
-      return this.buildMarkdown(body, fm);
-    } catch {
-      return this.buildMarkdown(entity.content, fm);
-    }
+    const body = this.extractBody(entity.content);
+    return this.buildMarkdown(body, entity.metadata);
   }
 
   public fromMarkdown(markdown: string): Partial<SiteContent> {
-    const frontmatter = this.parseFrontmatter(markdown);
     return {
       content: markdown,
       entityType: "site-content",
-      metadata: {
-        routeId: frontmatter.routeId,
-        sectionId: frontmatter.sectionId,
-      },
+      metadata: this.parseFrontmatter(markdown),
     };
   }
 }
