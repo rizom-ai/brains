@@ -1,11 +1,42 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
-import type { ToolLoopAgent } from "@brains/ai-service";
+import type { ModelMessage } from "@brains/ai-service";
 
 /**
- * The actual agent type returned by createBrainAgentFactory
+ * Result shape from BrainAgent.generate()
+ * Matches the subset of GenerateTextResult that AgentService uses.
  */
-export type BrainAgent = ToolLoopAgent<BrainCallOptions>;
+export interface BrainAgentResult {
+  text: string;
+  steps: Array<{
+    toolCalls: Array<{
+      toolCallId: string;
+      toolName: string;
+      input: unknown;
+    }>;
+    toolResults: Array<{
+      toolCallId: string;
+      toolName: string;
+      output: unknown;
+    }>;
+  }>;
+  usage: {
+    inputTokens: number | undefined;
+    outputTokens: number | undefined;
+    totalTokens: number | undefined;
+  };
+}
+
+/**
+ * Interface for the brain agent.
+ * ToolLoopAgent satisfies this structurally — this decouples consumers from the concrete SDK type.
+ */
+export interface BrainAgent {
+  generate(params: {
+    messages: ModelMessage[];
+    options: BrainCallOptions;
+  }): Promise<BrainAgentResult>;
+}
 
 /**
  * Factory function type for creating brain agents

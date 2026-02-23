@@ -4,6 +4,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
+import { z } from "@brains/utils";
 
 describe("SystemPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -180,10 +181,13 @@ describe("SystemPlugin", () => {
       );
       expect(searchTool).toBeDefined();
       if (!searchTool) throw new Error("searchTool not found");
-      expect(searchTool.inputSchema.entityType).toBeDefined();
-      // Verify entityType is optional by checking the zod schema
-      const schema = searchTool.inputSchema.entityType;
-      expect(schema._def.typeName).toBe("ZodOptional");
+      const schema = z.object(searchTool.inputSchema);
+      // entityType is optional — parsing without it should succeed
+      expect(() => schema.parse({ query: "test" })).not.toThrow();
+      // entityType is accepted when provided
+      expect(() =>
+        schema.parse({ query: "test", entityType: "note" }),
+      ).not.toThrow();
     });
 
     it("system_get should support ID/slug/title lookup", () => {
@@ -198,11 +202,15 @@ describe("SystemPlugin", () => {
       const listTool = capabilities.tools.find((t) => t.name === "system_list");
       expect(listTool).toBeDefined();
       if (!listTool) throw new Error("listTool not found");
-      expect(listTool.inputSchema.entityType).toBeDefined();
-      expect(listTool.inputSchema.status).toBeDefined();
-      // Verify status is optional
-      const statusSchema = listTool.inputSchema.status;
-      expect(statusSchema._def.typeName).toBe("ZodOptional");
+      const schema = z.object(listTool.inputSchema);
+      // entityType is required — parsing without it should fail
+      expect(() => schema.parse({})).toThrow();
+      // status is optional — parsing without it should succeed
+      expect(() => schema.parse({ entityType: "note" })).not.toThrow();
+      // status is accepted when provided
+      expect(() =>
+        schema.parse({ entityType: "note", status: "published" }),
+      ).not.toThrow();
     });
   });
 
@@ -387,8 +395,9 @@ describe("SystemPlugin", () => {
       expect(entities[0]).toHaveProperty("id", "post-a");
       expect(entities[0]).toHaveProperty("entityType", "post");
       expect(entities[0]).toHaveProperty("metadata");
-      expect(entities[0]?.metadata).toHaveProperty("title", "Post A");
-      expect(entities[0]?.metadata).toHaveProperty("status", "published");
+      const metadata = entities[0]?.["metadata"] as Record<string, unknown>;
+      expect(metadata).toHaveProperty("title", "Post A");
+      expect(metadata).toHaveProperty("status", "published");
     });
 
     it("should include dates in list results", async () => {

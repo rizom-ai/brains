@@ -18,6 +18,7 @@ import type { IdentityBody } from "@brains/identity-service";
 import type { PluginTool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
+import type { BrainAgent, BrainAgentFactory } from "./types";
 import {
   createToolExecuteWrapper,
   createMessageBusEmitter,
@@ -209,15 +210,13 @@ When asking for confirmation, clearly describe what will happen.
  */
 export function createBrainAgentFactory(
   options: BrainAgentFactoryOptions,
-): (config: BrainAgentConfig) => ToolLoopAgent<BrainCallOptions> {
+): BrainAgentFactory {
   const { model, webSearch, temperature, maxTokens, messageBus } = options;
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
 
-  return function createBrainAgent(
-    config: BrainAgentConfig,
-  ): ToolLoopAgent<BrainCallOptions> {
+  return function createBrainAgent(config: BrainAgentConfig): BrainAgent {
     // Pre-convert all tools - activeTools will filter which ones are available
     // Use a default context for initial tools (will be overridden in prepareCall)
     const allTools = convertToSDKTools(

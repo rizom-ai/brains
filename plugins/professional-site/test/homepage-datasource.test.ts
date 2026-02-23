@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { HomepageListDataSource } from "../src/datasources/homepage-datasource";
 import { createMockEntityService, createTestEntity } from "@brains/test-utils";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  IEntityService,
+  BaseDataSourceContext,
+  BaseEntity,
+} from "@brains/plugins";
 import type { BlogPost } from "@brains/blog";
 import type { DeckEntity } from "@brains/decks";
 import { z } from "@brains/utils";
@@ -100,16 +104,23 @@ mailto:test@example.com`;
     metadata: {},
   });
 
+  const entityStore: Record<string, BaseEntity[]> = {
+    profile: [mockProfile],
+    post: [mockPost],
+    deck: [mockDeck],
+    "site-info": [mockSiteInfo],
+  };
+
+  function mockListEntities<T extends BaseEntity>(
+    entityType: string,
+  ): Promise<T[]> {
+    return Promise.resolve((entityStore[entityType] ?? []) as T[]);
+  }
+
   beforeEach(() => {
     mockEntityService = createMockEntityService();
     spyOn(mockEntityService, "listEntities").mockImplementation(
-      (entityType: string) => {
-        if (entityType === "profile") return Promise.resolve([mockProfile]);
-        if (entityType === "post") return Promise.resolve([mockPost]);
-        if (entityType === "deck") return Promise.resolve([mockDeck]);
-        if (entityType === "site-info") return Promise.resolve([mockSiteInfo]);
-        return Promise.resolve([]);
-      },
+      mockListEntities,
     );
 
     // Only provide entityService via context - not constructor
@@ -154,25 +165,32 @@ mailto:test@example.com`;
       },
     };
 
+    const store: Record<string, BaseEntity[]> = {
+      profile: [mockProfile],
+      post: [mockPost, draftPost],
+      deck: [mockDeck],
+      "site-info": [mockSiteInfo],
+    };
+
     spyOn(mockEntityService, "listEntities").mockImplementation(
-      (
+      function mockList<T extends BaseEntity>(
         entityType: string,
-        options?: { filter?: { metadata?: { status?: string } } },
-      ) => {
-        if (entityType === "profile") return Promise.resolve([mockProfile]);
-        if (entityType === "post") {
-          // Respect filter parameter - only return published posts if filter requests them
-          const allPosts = [mockPost, draftPost];
-          if (options?.filter?.metadata?.status === "published") {
-            return Promise.resolve(
-              allPosts.filter((p) => p.metadata.status === "published"),
-            );
-          }
-          return Promise.resolve(allPosts);
+        options?: { filter?: { metadata?: Record<string, unknown> } },
+      ): Promise<T[]> {
+        const entities = store[entityType] ?? [];
+        if (
+          entityType === "post" &&
+          options?.filter?.metadata?.["status"] === "published"
+        ) {
+          return Promise.resolve(
+            entities.filter(
+              (e) =>
+                (e.metadata as Record<string, unknown>)["status"] ===
+                "published",
+            ),
+          ) as Promise<T[]>;
         }
-        if (entityType === "deck") return Promise.resolve([mockDeck]);
-        if (entityType === "site-info") return Promise.resolve([mockSiteInfo]);
-        return Promise.resolve([]);
+        return Promise.resolve(entities) as Promise<T[]>;
       },
     );
 
@@ -194,13 +212,17 @@ mailto:test@example.com`;
   });
 
   it("should throw error if profile not found", async () => {
+    const noProfileStore: Record<string, BaseEntity[]> = {
+      post: [mockPost],
+      deck: [mockDeck],
+      "site-info": [mockSiteInfo],
+    };
+
     spyOn(mockEntityService, "listEntities").mockImplementation(
-      (entityType: string) => {
-        if (entityType === "profile") return Promise.resolve([]); // No profile
-        if (entityType === "post") return Promise.resolve([mockPost]);
-        if (entityType === "deck") return Promise.resolve([mockDeck]);
-        if (entityType === "site-info") return Promise.resolve([mockSiteInfo]);
-        return Promise.resolve([]);
+      function mockList<T extends BaseEntity>(
+        entityType: string,
+      ): Promise<T[]> {
+        return Promise.resolve((noProfileStore[entityType] ?? []) as T[]);
       },
     );
 

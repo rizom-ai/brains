@@ -85,7 +85,7 @@ describe("TestRunner", () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(
           createMockResponse({
-            toolResults: [{ toolName: "system_search", formatted: "results" }],
+            toolResults: [{ toolName: "system_search", data: "results" }],
           }),
         ),
       );

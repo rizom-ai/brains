@@ -5,23 +5,28 @@ import { z } from "@brains/utils";
 import type { IMCPService, PluginTool } from "@brains/mcp-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
+import type { BrainAgent, BrainAgentResult } from "../src/types";
+import type { BrainAgentConfig, BrainCallOptions } from "../src/brain-agent";
+import type { ModelMessage } from "@brains/ai-service";
+
 // Mock return value for agent.generate
-let mockAgentGenerateResult = {
+let mockAgentGenerateResult: BrainAgentResult = {
   text: "I found some results for you.",
-  steps: [] as {
-    toolCalls?: { toolName: string; toolCallId: string; args: unknown }[];
-    toolResults?: { toolName: string; toolCallId: string; output: unknown }[];
-  }[],
+  steps: [],
   usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
 };
 
 // Mock the agent's generate function
-const mockGenerate = mock(async () => mockAgentGenerateResult);
+const mockGenerate = mock(
+  async (_params: { messages: ModelMessage[]; options: BrainCallOptions }) =>
+    mockAgentGenerateResult,
+);
 
 // Mock agent factory - returns a mock agent with generate
-const mockAgentFactory = mock(() => ({
-  generate: mockGenerate,
-}));
+const mockAgent: BrainAgent = { generate: mockGenerate };
+const mockAgentFactory = mock(
+  (_config: BrainAgentConfig): BrainAgent => mockAgent,
+);
 
 // Mock MCPService
 const createMockMCPService = (): IMCPService => ({
@@ -67,7 +72,6 @@ describe("AgentService", () => {
     mockIdentityService = createMockIdentityService();
     mockConversationService = createMockConversationService();
 
-    // Reset mock generate result and call count
     mockAgentGenerateResult = {
       text: "I found some results for you.",
       steps: [],
@@ -183,13 +187,13 @@ describe("AgentService", () => {
 
       await service.chat("Search for notes", "test-conversation");
 
-      const call = mockGenerate.mock.calls[0]?.[0] as {
-        messages: { role: string; content: string }[];
-      };
-      expect(call.messages).toContainEqual({
-        role: "user",
-        content: "Search for notes",
-      });
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            { role: "user", content: "Search for notes" },
+          ]),
+        }),
+      );
     });
 
     it("should load conversation history from ConversationService", async () => {
@@ -225,14 +229,17 @@ describe("AgentService", () => {
 
       await service.chat("New message", "test-conversation");
 
-      const call = mockGenerate.mock.calls[0]?.[0] as {
-        messages: { role: string; content: string }[];
-      };
+      const callArgs = mockGenerate.mock.calls[0]?.[0];
+      const messages = callArgs?.messages ?? [];
 
       // Should include history plus new message
-      expect(call.messages.length).toBe(3);
-      expect(call.messages[0]?.content).toBe("Previous message");
-      expect(call.messages[2]?.content).toBe("New message");
+      expect(messages.length).toBe(3);
+      expect(messages[0]).toEqual(
+        expect.objectContaining({ content: "Previous message" }),
+      );
+      expect(messages[2]).toEqual(
+        expect.objectContaining({ content: "New message" }),
+      );
     });
 
     it("should save messages to ConversationService", async () => {
@@ -282,11 +289,10 @@ describe("AgentService", () => {
       await service.chat("Search for something", "test-conversation");
 
       // Verify agentFactory was called with tools
-      const createCall = mockAgentFactory.mock.calls[0]?.[0] as {
-        tools: PluginTool[];
-      };
-      expect(createCall.tools.length).toBe(1);
-      expect(createCall.tools[0]?.name).toBe("search");
+      const createCallArgs = mockAgentFactory.mock.calls[0]?.[0];
+      const tools = createCallArgs?.tools ?? [];
+      expect(tools.length).toBe(1);
+      expect(tools[0]?.name).toBe("search");
     });
   });
 
@@ -333,10 +339,13 @@ describe("AgentService", () => {
       });
 
       // Verify options passed to agent.generate
-      const call = mockGenerate.mock.calls[0]?.[0] as {
-        options: { userPermissionLevel: string };
-      };
-      expect(call.options.userPermissionLevel).toBe("public");
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            userPermissionLevel: "public",
+          }),
+        }),
+      );
     });
 
     it("should default to public permission level if not specified", async () => {
@@ -350,10 +359,13 @@ describe("AgentService", () => {
 
       await service.chat("Hello", "test-conversation");
 
-      const call = mockGenerate.mock.calls[0]?.[0] as {
-        options: { userPermissionLevel: string };
-      };
-      expect(call.options.userPermissionLevel).toBe("public");
+      expect(mockGenerate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.objectContaining({
+            userPermissionLevel: "public",
+          }),
+        }),
+      );
     });
   });
 
@@ -473,11 +485,11 @@ describe("AgentService", () => {
 
       await service.chat("Hello", "test-conversation");
 
-      const createCall = mockAgentFactory.mock.calls[0]?.[0] as {
-        identity: { name: string };
-      };
-
-      expect(createCall.identity.name).toBe("Test Brain");
+      expect(mockAgentFactory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identity: expect.objectContaining({ name: "Test Brain" }),
+        }),
+      );
     });
   });
 
@@ -492,7 +504,7 @@ describe("AgentService", () => {
               {
                 toolName: "search",
                 toolCallId: "call1",
-                args: { query: "typescript" },
+                input: { query: "typescript" },
               },
             ],
             toolResults: [
@@ -561,7 +573,7 @@ describe("AgentService", () => {
               {
                 toolName: "search",
                 toolCallId: "call1",
-                args: { query: "typescript" },
+                input: { query: "typescript" },
               },
             ],
             toolResults: [
@@ -577,7 +589,7 @@ describe("AgentService", () => {
               {
                 toolName: "get_note",
                 toolCallId: "call2",
-                args: { id: "note1" },
+                input: { id: "note1" },
               },
             ],
             toolResults: [

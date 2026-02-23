@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { AboutDataSource } from "../src/datasources/about-datasource";
 import { createMockEntityService, createTestEntity } from "@brains/test-utils";
-import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type {
+  IEntityService,
+  BaseDataSourceContext,
+  BaseEntity,
+} from "@brains/plugins";
 import { z } from "@brains/utils";
 import { professionalProfileSchema } from "../src/schemas";
 
@@ -46,9 +50,10 @@ Open for consulting`;
   beforeEach(() => {
     mockEntityService = createMockEntityService();
     spyOn(mockEntityService, "listEntities").mockImplementation(
-      (entityType: string) => {
-        if (entityType === "profile") return Promise.resolve([mockProfile]);
-        return Promise.resolve([]);
+      <T extends BaseEntity>(entityType: string): Promise<T[]> => {
+        if (entityType === "profile")
+          return Promise.resolve([mockProfile]) as Promise<T[]>;
+        return Promise.resolve([]) as Promise<T[]>;
       },
     );
 
@@ -87,8 +92,8 @@ Open for consulting`;
   });
 
   it("should throw error if profile not found", async () => {
-    spyOn(mockEntityService, "listEntities").mockImplementation(() =>
-      Promise.resolve([]),
+    spyOn(mockEntityService, "listEntities").mockImplementation(
+      <T extends BaseEntity>(): Promise<T[]> => Promise.resolve([]),
     );
 
     // Recreate context with new mock
@@ -117,9 +122,10 @@ Test User`;
     });
 
     spyOn(mockEntityService, "listEntities").mockImplementation(
-      (entityType: string) => {
-        if (entityType === "profile") return Promise.resolve([minimalProfile]);
-        return Promise.resolve([]);
+      <T extends BaseEntity>(entityType: string): Promise<T[]> => {
+        if (entityType === "profile")
+          return Promise.resolve([minimalProfile]) as Promise<T[]>;
+        return Promise.resolve([]) as Promise<T[]>;
       },
     );
 
