@@ -4,10 +4,10 @@
 
 Two issues to address:
 
-1. **AI merge**: The previous attempt to merge `agent-service` + `embedding-service` → `ai-service` failed due to cyclic dependencies. The root cause was identified: `entity-service` depends on `embedding-service` for `IEmbeddingService`, creating a cycle when embedding-service moves into ai-service (which transitively depends back on entity-service via identity-service). The fix is **dependency inversion**: move the `IEmbeddingService` interface into `entity-service` so it no longer depends on embedding-service/ai-service.
+1. **AI merge**: Merge `agent-service` → `ai-service`. The agent is the primary orchestrator of the AI model — they're naturally coupled (`ai-service` already re-exports SDK types specifically for `agent-service`). **Keep `embedding-service` separate** — it uses different tech (fastembed, not AI SDK), serves different consumers, and has zero overlap with agent orchestration. Apply **dependency inversion** to decouple `entity-service` from `embedding-service` by moving the `IEmbeddingService` interface into `entity-service`.
 2. **tsconfig**: 7 packages have test directories but exclude them from typechecking, meaning type errors in tests go undetected.
 
-Shell packages: 17 → 15 after merge (removing `agent-service` and `embedding-service`).
+Shell packages: 17 → 16 after merge (removing `agent-service`).
 
 ---
 
@@ -37,23 +37,29 @@ These packages have `test/` dirs but their `tsconfig.json` only includes `src/`:
 
 ---
 
-## Part 2: Merge agent-service + embedding-service → ai-service
+## Part 2: Merge agent-service → ai-service + DI cleanup
 
-### Why the previous attempt cycled
+### Why merge agent-service into ai-service?
+
+- `agent-service` depends on `ai-service` — the agent IS the AI model orchestrator
+- `ai-service` already re-exports SDK types (`ToolLoopAgent`, `stepCountIs`, `dynamicTool`) specifically for `agent-service`
+- Consumers of `agent-service` always need `ai-service` transitively
+- Natural cohesion: AI model calls + agent conversation orchestration
+
+### Why keep embedding-service separate?
+
+- Uses completely different tech (fastembed, not AI SDK)
+- Different consumers (only entity-service needs the interface)
+- Zero overlap with agent orchestration
+- Independent dependency tree
+
+### Dependency inversion (IEmbeddingService)
+
+Move `IEmbeddingService` (5-line interface) from `embedding-service` into `entity-service`:
 
 ```
-ai-service → identity-service → entity-service → embedding-service (= ai-service) CYCLE!
-ai-service → test-utils → plugins → ai-service CYCLE!
-```
-
-### How dependency inversion breaks the cycle
-
-Move `IEmbeddingService` (5-line interface) from `embedding-service` into `entity-service`. Then:
-
-```
-entity-service → (job-queue, utils)           ← no dep on ai-service!
-ai-service → identity-service → entity-service ← one-directional, no cycle
-plugins (devDep) → ai-service                  ← one-directional, no cycle
+entity-service → (job-queue, utils)           ← no dep on embedding-service for the type!
+embedding-service implements IEmbeddingService ← depends on entity-service for the interface
 ```
 
 `entity-service` only ever imported `IEmbeddingService` as `import type` (3 source files, 2 test files) — it never needed the implementation. This is textbook dependency inversion.
@@ -83,30 +89,7 @@ export interface IEmbeddingService {
 
 **Verify**: `cd shell/entity-service && bun run typecheck && bun test`
 
-### Step 2.2: Move embedding-service code into ai-service
-
-**Copy** `embedding-service/src/embeddingService.ts` → `ai-service/src/embeddingService.ts`
-
-- Change `import type { IEmbeddingService } from "./types"` → keep a local copy of the interface in `ai-service/src/embedding-types.ts` (so EmbeddingService can still `implements IEmbeddingService` without depending on entity-service)
-
-**Copy** `embedding-service/src/types.ts` → `ai-service/src/embedding-types.ts`
-
-**Copy** `embedding-service/test/embeddingService.test.ts` → `ai-service/test/embeddingService.test.ts`
-
-- Change `import { EmbeddingService } from "@/embeddingService"` → `from "../src/embeddingService"` (ai-service has no `@/` path alias)
-
-**Update** `ai-service/src/index.ts` — add:
-
-```typescript
-export { EmbeddingService } from "./embeddingService";
-export type { IEmbeddingService } from "./embedding-types";
-```
-
-**Update** `ai-service/package.json` — add `"fastembed": "^1.14.4"` to dependencies
-
-**Verify**: `cd shell/ai-service && bun run typecheck && bun test`
-
-### Step 2.3: Move agent-service code into ai-service
+### Step 2.2: Move agent-service code into ai-service
 
 **Copy files** (4 source + 2 test):
 
@@ -156,9 +139,11 @@ export type {
 
 - `@brains/conversation-service`, `@brains/identity-service`, `@brains/mcp-service`, `@brains/messaging-service`, `@brains/templates`
 
+**Update** `ai-service/tsconfig.json` — ensure `rootDir: "."` and `include` covers `test/**/*`
+
 **Verify**: `cd shell/ai-service && bun run typecheck && bun test`
 
-### Step 2.4: Update all external consumers
+### Step 2.3: Update all external consumers
 
 **`@brains/agent-service` → `@brains/ai-service`** (~15 files):
 
@@ -170,31 +155,29 @@ export type {
 - `interfaces/mcp/src/transports/http-server.ts`
 - `interfaces/cli/src/cli-interface.ts`, `test/cli-channel-name.test.ts`
 
-**`@brains/embedding-service` → split**:
+**`IEmbeddingService` import updates** (DI consequence):
 
-- `shell/core/src/initialization/shellInitializer.ts` — `EmbeddingService` from `@brains/ai-service`, `IEmbeddingService` from `@brains/entity-service`
 - `shell/core/src/types/shell-types.ts` — `IEmbeddingService` from `@brains/entity-service`
 - `shell/core/src/index.ts` — re-export from `@brains/entity-service`
 
 **package.json updates**:
 
 - `shell/plugins` devDeps: `@brains/agent-service` → `@brains/ai-service`
-- `shell/core` devDeps: remove `@brains/agent-service`, `@brains/embedding-service`
+- `shell/core` devDeps: remove `@brains/agent-service`
 - `shell/ai-evaluation` deps: `@brains/agent-service` → `@brains/ai-service`
 - `interfaces/matrix` deps: check and update
 - `interfaces/cli`, `interfaces/mcp`: add `@brains/ai-service` as devDep if importing types
 
-### Step 2.5: Delete old packages + clean up
+### Step 2.4: Delete old package + clean up
 
 - Delete `shell/agent-service/` directory
-- Delete `shell/embedding-service/` directory
 - Run `bun install` to update lockfile
 - Update `docs/codebase-map.html`
 
-### Step 2.6: Full verification
+### Step 2.5: Full verification
 
 ```bash
-bun run typecheck   # 56 packages pass
+bun run typecheck   # 57 packages pass
 bun test            # Full suite green
 bun run lint        # Zero errors
 ```
@@ -203,11 +186,11 @@ bun run lint        # Zero errors
 
 ## Execution order
 
-1. Part 1: Fix 7 tsconfigs + surface/fix type errors (independent, provides safety net)
+1. ~~Part 1: Fix 7 tsconfigs + surface/fix type errors~~ ✅ Done
 2. Part 2 Step 2.1: Dependency inversion (IEmbeddingService → entity-service)
-3. Part 2 Steps 2.2-2.3: Move code into ai-service
-4. Part 2 Step 2.4: Update all consumers
-5. Part 2 Step 2.5: Delete old packages
-6. Part 2 Step 2.6: Full verification
+3. Part 2 Step 2.2: Move agent-service code into ai-service
+4. Part 2 Step 2.3: Update all consumers
+5. Part 2 Step 2.4: Delete old package
+6. Part 2 Step 2.5: Full verification
 
 Each step verified independently before proceeding.
