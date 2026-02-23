@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@brains/ai-service": "workspace:*",
-    "@brains/datasource": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/templates": "workspace:*",

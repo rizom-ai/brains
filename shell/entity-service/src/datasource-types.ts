@@ -1,5 +1,5 @@
 import type { z } from "@brains/utils";
-import type { IEntityService } from "@brains/plugins";
+import type { EntityService as IEntityService } from "./types";
 
 /**
  * Context passed to all DataSource operations

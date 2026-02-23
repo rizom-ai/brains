@@ -3,8 +3,8 @@ import type {
   ViewTemplateRegistry as IViewTemplateRegistry,
   OutputFormat,
   WebRenderer,
-} from "./types";
-import type { TemplateRegistry } from "@brains/templates";
+} from "./render-types";
+import type { TemplateRegistry } from "./registry";
 
 export class RenderService implements IViewTemplateRegistry {
   private static instance: RenderService | null = null;

@@ -211,11 +211,12 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       throw new Error("Plugin context not initialized");
     }
 
+    const rebuildManager = this.rebuildManager;
     return createSiteBuilderTools(
       this.pluginContext,
       this.id,
       this.routeRegistry,
-      (env) => this.rebuildManager!.requestBuild(env),
+      (env) => rebuildManager.requestBuild(env),
     );
   }
 

@@ -13,7 +13,7 @@ import {
   BatchJobManager,
   JobProgressMonitor,
 } from "@brains/job-queue";
-import { DataSourceRegistry } from "@brains/datasource";
+import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 
 const mockEmbed = mock(() => Promise.resolve([[0.1, 0.2, 0.3]]));

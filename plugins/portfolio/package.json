@@ -14,7 +14,6 @@
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
-    "@brains/datasource": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/plugins": "workspace:*",

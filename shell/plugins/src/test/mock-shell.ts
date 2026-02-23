@@ -36,11 +36,13 @@ import type {
   JobInfo,
   IJobsNamespace,
 } from "@brains/job-queue";
-import type { RenderService } from "@brains/render-service";
-import type { Template } from "@brains/templates";
+import {
+  PermissionService,
+  type RenderService,
+  type Template,
+} from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
-import { PermissionService } from "@brains/permission-service";
-import type { DataSourceRegistry, DataSource } from "@brains/datasource";
+import type { DataSourceRegistry, DataSource } from "@brains/entity-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import type { IAgentService, AgentResponse } from "@brains/agent-service";
@@ -300,13 +302,13 @@ export class MockShell implements IShell {
         type: string,
         _schema: unknown,
         _adapter: unknown,
-      ) => {
+      ): void => {
         this.entityTypes.add(type);
       },
-      getSchema: () => {
+      getSchema: (): never => {
         throw new Error("Not implemented");
       },
-      getAdapter: () => {
+      getAdapter: (): never => {
         throw new Error("Not implemented");
       },
       hasEntityType: (type: string) => this.entityTypes.has(type),
@@ -315,7 +317,7 @@ export class MockShell implements IShell {
       getAllEntityTypes: () => Array.from(this.entityTypes),
       getEntityTypeConfig: () => ({}),
       getWeightMap: () => ({}),
-      extendFrontmatterSchema: () => {},
+      extendFrontmatterSchema: (): void => {},
       getEffectiveFrontmatterSchema: () => undefined,
     };
   }

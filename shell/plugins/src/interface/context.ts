@@ -11,7 +11,7 @@ import {
   createRegisterHandlerFn,
 } from "../shared/job-helpers";
 import type { Daemon } from "@brains/daemon-registry";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { IAgentService } from "@brains/agent-service";
 import type {
   MessageRole,

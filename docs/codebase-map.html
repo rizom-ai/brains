@@ -143,14 +143,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <script>
 // ── Group definitions ──
 const GROUPS = {
-  apps:       { label: 'Apps',             color: '#58a6ff', bg: '#1c2e4a' },
-  interfaces: { label: 'Interfaces',       color: '#d29922', bg: '#3b2a1a' },
-  content:    { label: 'Content Creation', color: '#3fb950', bg: '#1a3326' },
-  shell:      { label: 'Shell Core',       color: '#bc8cff', bg: '#2a1840' },
-  publishing: { label: 'Publishing',       color: '#8b8cf8', bg: '#1f2044' },
-  sync:       { label: 'Sync & Storage',   color: '#f0883e', bg: '#3a2510' },
-  system:     { label: 'System',           color: '#f85149', bg: '#3a1520' },
-  shared:     { label: 'Shared',           color: '#f778ba', bg: '#3a1530' },
+  apps:           { label: 'Apps',              color: '#58a6ff', bg: '#1c2e4a' },
+  interfaces:     { label: 'Interfaces',        color: '#d29922', bg: '#3b2a1a' },
+  content:        { label: 'Content Creation',  color: '#3fb950', bg: '#1a3326' },
+  'shell-runtime':{ label: 'Shell Runtime',     color: '#bc8cff', bg: '#2a1840' },
+  'shell-data':   { label: 'Shell Data',        color: '#bc8cff', bg: '#2a1840' },
+  'shell-comms':  { label: 'Shell Comms & AI',  color: '#bc8cff', bg: '#2a1840' },
+  'shell-support':{ label: 'Shell Support',     color: '#bc8cff', bg: '#2a1840' },
+  'shell-id':     { label: 'Shell Identity',    color: '#bc8cff', bg: '#2a1840' },
+  publishing:     { label: 'Publishing',        color: '#8b8cf8', bg: '#1f2044' },
+  sync:           { label: 'Sync & Storage',    color: '#f0883e', bg: '#3a2510' },
+  system:         { label: 'System',            color: '#f85149', bg: '#3a1520' },
+  shared:         { label: 'Shared',            color: '#f778ba', bg: '#3a1530' },
 };
 
 const CONN_TYPES = {
@@ -162,14 +166,18 @@ const CONN_TYPES = {
 
 // ── Cluster boxes (for background rendering) ──
 const CLUSTERS = {
-  apps:       { x: 20,   y: 8,   w: 544,  h: 80  },
-  interfaces: { x: 742,  y: 8,   w: 638,  h: 80  },
-  content:    { x: 20,   y: 108, w: 326,  h: 306 },
-  shell:      { x: 529,  y: 108, w: 342,  h: 194 },
-  publishing: { x: 1042, y: 108, w: 338,  h: 194 },
-  sync:       { x: 20,   y: 434, w: 285,  h: 80  },
-  shared:     { x: 320,  y: 434, w: 430,  h: 80  },
-  system:     { x: 770,  y: 434, w: 370,  h: 80  },
+  apps:             { x: 20,   y: 8,   w: 544,  h: 80  },
+  interfaces:       { x: 742,  y: 8,   w: 638,  h: 80  },
+  content:          { x: 20,   y: 108, w: 326,  h: 306 },
+  'shell-runtime':  { x: 366,  y: 108, w: 608,  h: 68  },
+  'shell-data':     { x: 366,  y: 176, w: 462,  h: 56  },
+  'shell-comms':    { x: 366,  y: 232, w: 608,  h: 56  },
+  'shell-support':  { x: 366,  y: 288, w: 462,  h: 56  },
+  'shell-id':       { x: 366,  y: 344, w: 318,  h: 56  },
+  publishing:       { x: 994,  y: 108, w: 350,  h: 306 },
+  sync:             { x: 20,   y: 434, w: 285,  h: 80  },
+  shared:           { x: 320,  y: 434, w: 430,  h: 80  },
+  system:           { x: 770,  y: 434, w: 370,  h: 80  },
 };
 
 // ── Node data ──
@@ -197,20 +205,34 @@ const nodes = [
   { id:'summary',      label:'Summary',      subtitle:'plugins/summary',      x:34,  y:356, w:142, h:44, group:'content' },
   { id:'topics',       label:'Topics',       subtitle:'plugins/topics',       x:190, y:356, w:142, h:44, group:'content' },
 
-  // ─ Shell Core (2×3 grid) ─
-  { id:'entity-svc', label:'Entity Service',   subtitle:'shell/entity-service',    x:543, y:132, w:150, h:44, group:'shell' },
-  { id:'mcp-svc',    label:'MCP Service',      subtitle:'shell/mcp-service',       x:707, y:132, w:150, h:44, group:'shell' },
-  { id:'job-queue',  label:'Job Queue',        subtitle:'shell/job-queue',         x:543, y:188, w:150, h:44, group:'shell' },
-  { id:'messaging',  label:'Messaging',        subtitle:'shell/messaging-service', x:707, y:188, w:150, h:44, group:'shell' },
-  { id:'ai-svc',     label:'AI Service',       subtitle:'shell/ai-service',        x:543, y:244, w:150, h:44, group:'shell' },
-  { id:'plugin-fw',  label:'Plugin Framework', subtitle:'shell/plugins',           x:707, y:244, w:150, h:44, group:'shell' },
+  // ─ Shell Runtime ─
+  { id:'core',       label:'Core',             subtitle:'shell/core',            x:380, y:120, w:130, h:44, group:'shell-runtime' },
+  { id:'app',        label:'App',              subtitle:'shell/app',             x:524, y:120, w:130, h:44, group:'shell-runtime' },
+  { id:'plugin-fw',  label:'Plugin',  subtitle:'shell/plugins',         x:668, y:120, w:130, h:44, group:'shell-runtime' },
+  { id:'daemons',    label:'Daemons', subtitle:'shell/daemon-registry', x:812, y:120, w:130, h:44, group:'shell-runtime' },
+  // ─ Shell Data ─
+  { id:'entity-svc',  label:'Entity Service',  subtitle:'shell/entity-service',  x:380, y:182, w:130, h:44, group:'shell-data' },
+  { id:'content-svc', label:'Content Service', subtitle:'shell/content-service', x:524, y:182, w:130, h:44, group:'shell-data' },
+  { id:'job-queue',   label:'Job Queue',       subtitle:'shell/job-queue',        x:668, y:182, w:130, h:44, group:'shell-data' },
+  // ─ Shell Comms & AI ─
+  { id:'messaging', label:'Messaging',     subtitle:'shell/messaging-service', x:380, y:244, w:130, h:44, group:'shell-comms' },
+  { id:'mcp-svc',   label:'MCP Service',   subtitle:'shell/mcp-service',      x:524, y:244, w:130, h:44, group:'shell-comms' },
+  { id:'ai-svc',    label:'AI Service',    subtitle:'shell/ai-service',       x:668, y:244, w:130, h:44, group:'shell-comms' },
+  { id:'agent-svc', label:'Agent Service', subtitle:'shell/agent-service',    x:812, y:244, w:130, h:44, group:'shell-comms' },
+  // ─ Shell Support ─
+  { id:'embedding',    label:'Embedding',     subtitle:'shell/embedding-service',    x:380, y:300, w:130, h:44, group:'shell-support' },
+  { id:'conversation', label:'Conversations', subtitle:'shell/conversation-service', x:524, y:300, w:130, h:44, group:'shell-support' },
+  { id:'templates',    label:'Templates',     subtitle:'shell/templates',            x:668, y:300, w:130, h:44, group:'shell-support' },
+  // ─ Shell Identity ─
+  { id:'identity',    label:'Identity',    subtitle:'shell/identity-service',   x:380, y:356, w:130, h:44, group:'shell-id' },
+  { id:'profile',     label:'Profile',     subtitle:'shell/profile-service',    x:524, y:356, w:130, h:44, group:'shell-id' },
 
   // ─ Publishing (2×3 grid, 5 filled) ─
-  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',     x:1056, y:132, w:148, h:44, group:'publishing' },
-  { id:'pro-site',     label:'Professional Site',  subtitle:'plugins/professional-site',x:1218, y:132, w:148, h:44, group:'publishing' },
-  { id:'content-pipe', label:'Content Pipeline',   subtitle:'plugins/content-pipeline', x:1056, y:188, w:148, h:44, group:'publishing' },
-  { id:'newsletter',   label:'Newsletter',         subtitle:'plugins/newsletter',       x:1218, y:188, w:148, h:44, group:'publishing' },
-  { id:'social',       label:'Social Media',       subtitle:'plugins/social-media',     x:1056, y:244, w:148, h:44, group:'publishing' },
+  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',      x:1008, y:132, w:154, h:44, group:'publishing' },
+  { id:'pro-site',     label:'Professional Site', subtitle:'plugins/professional-site', x:1176, y:132, w:154, h:44, group:'publishing' },
+  { id:'content-pipe', label:'Content Pipeline',  subtitle:'plugins/content-pipeline',  x:1008, y:188, w:154, h:44, group:'publishing' },
+  { id:'newsletter',   label:'Newsletter',        subtitle:'plugins/newsletter',        x:1176, y:188, w:154, h:44, group:'publishing' },
+  { id:'social',       label:'Social Media',      subtitle:'plugins/social-media',      x:1008, y:244, w:154, h:44, group:'publishing' },
 
   // ─ Sync & Storage (row of 2) ─
   { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:458, w:125, h:44, group:'sync' },
@@ -241,12 +263,19 @@ const connections = [
   { from:'col-brain',  to:'webserver', type:'dependency' },
 
   // Interfaces → Shell (tool routing)
-  { from:'cli',    to:'mcp-svc', type:'tool-call', label:'tools' },
-  { from:'matrix', to:'mcp-svc', type:'tool-call', label:'tools' },
-  { from:'mcp-if', to:'mcp-svc', type:'tool-call', label:'tools' },
+  { from:'cli',    to:'mcp-svc',   type:'tool-call', label:'tools' },
+  { from:'matrix', to:'mcp-svc',   type:'tool-call', label:'tools' },
+  { from:'mcp-if', to:'mcp-svc',   type:'tool-call', label:'tools' },
   { from:'mcp-svc', to:'plugin-fw', type:'tool-call', label:'routes' },
 
-  // Webserver → Site Builder
+  // Interfaces → Shell (agent & conversation)
+  { from:'cli',    to:'agent-svc',    type:'tool-call', label:'queries' },
+  { from:'matrix', to:'agent-svc',    type:'tool-call', label:'queries' },
+  { from:'cli',    to:'conversation', type:'data-flow', label:'chat' },
+  { from:'matrix', to:'conversation', type:'data-flow', label:'chat' },
+
+  // Webserver → rendering
+  { from:'webserver', to:'templates',    type:'data-flow', label:'renders' },
   { from:'webserver', to:'site-builder', type:'data-flow', label:'serves' },
 
   // Content → Shell (entity CRUD & AI)
@@ -280,6 +309,13 @@ const connections = [
   { from:'system',    to:'entity-svc', type:'data-flow', label:'search' },
   { from:'dashboard', to:'messaging',  type:'event', label:'widget:*' },
 
+  // Shell internal
+  { from:'core',       to:'plugin-fw',  type:'dependency' },
+  { from:'agent-svc',  to:'ai-svc',     type:'dependency' },
+  { from:'embedding',  to:'entity-svc', type:'dependency', label:'search' },
+  { from:'mcp-svc',    to:'templates',  type:'dependency', label:'checks' },
+  { from:'identity',   to:'profile',    type:'dependency' },
+
   // Shell events
   { from:'entity-svc', to:'messaging', type:'event', label:'entity:*' },
 
@@ -288,6 +324,14 @@ const connections = [
   { from:'messaging', to:'git-sync',     type:'event', label:'sync:*' },
   { from:'messaging', to:'site-builder', type:'event', label:'sync:*' },
   { from:'messaging', to:'content-pipe', type:'event', label:'entity:*' },
+
+  // Publish pipeline (plugins register with content-pipeline via messaging)
+  { from:'blog',       to:'content-pipe', type:'event', label:'publish:register' },
+  { from:'social',     to:'content-pipe', type:'event', label:'publish:register' },
+  { from:'newsletter', to:'content-pipe', type:'event', label:'publish:register' },
+
+  // Cross-plugin auto-generation (social posts from blog posts)
+  { from:'social', to:'blog', type:'event', label:'entity:updated' },
 
   // Dependencies
   { from:'git-sync',     to:'dir-sync',     type:'dependency' },
@@ -299,14 +343,16 @@ const connections = [
 // ── Presets ──
 const ALL_GROUPS = Object.keys(GROUPS);
 const ALL_CONNS = Object.keys(CONN_TYPES);
+const SHELL_GROUPS = ['shell-runtime','shell-data','shell-comms','shell-support','shell-id'];
 const PRESETS = {
   full:    { label:'Full System',   groups: ALL_GROUPS, conns: ALL_CONNS },
-  data:    { label:'Data Flow',     groups:['content','publishing','sync','system','shell','shared'], conns:['data-flow'] },
-  events:  { label:'Event System',  groups:['content','publishing','sync','shell'], conns:['event'] },
-  tools:   { label:'Tool Routing',  groups:['interfaces','shell'], conns:['tool-call'] },
-  publish: { label:'Publishing',    groups:['content','publishing','shell','shared'], conns:['data-flow','dependency'] },
-  sync:    { label:'Sync Pipeline', groups:['sync','shell'], conns:['data-flow','event'] },
-  content: { label:'Content',       groups:['content','shell'], conns:['data-flow','tool-call'] },
+  data:    { label:'Data Flow',     groups:['content','publishing','sync','system',...SHELL_GROUPS,'shared'], conns:['data-flow'] },
+  events:  { label:'Event System',  groups:['content','publishing','sync',...SHELL_GROUPS], conns:['event'] },
+  tools:   { label:'Tool Routing',  groups:['interfaces',...SHELL_GROUPS], conns:['tool-call'] },
+  publish: { label:'Publishing',    groups:['content','publishing',...SHELL_GROUPS,'shared'], conns:['data-flow','dependency'] },
+  sync:    { label:'Sync Pipeline', groups:['sync',...SHELL_GROUPS], conns:['data-flow','event'] },
+  content: { label:'Content',       groups:['content',...SHELL_GROUPS], conns:['data-flow','tool-call'] },
+  shell:   { label:'Shell Only',    groups: SHELL_GROUPS, conns:['dependency'] },
 };
 
 // ── State ──
@@ -493,8 +539,12 @@ function updatePrompt() {
   if (allVisible) {
     text += 'Showing the full system with clustered groups:\n';
     text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks, Image, Site Content, Summary, Topics\n';
-    text += '- Shell Core: Entity Service, MCP Service, Job Queue, Messaging, AI Service, Plugin Framework\n';
-    text += '- Publishing: Site Builder, Professional Site, Content Pipeline, Newsletter, Social Media\n';
+    text += '- Shell Runtime: Core, App, Plugin Framework, Daemon Registry\n';
+    text += '- Shell Data: Entity Service (incl. Datasource), Content Service, Job Queue\n';
+    text += '- Shell Communication & AI: Messaging, MCP Service, AI Service, Agent Service\n';
+    text += '- Shell Supporting: Embedding, Conversations, Templates (incl. Render Service & Permissions)\n';
+    text += '- Shell Identity: Identity, Profile\n';
+    text += '- Publishing: Site Builder, Professional Site, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';
     text += '- Sync & Storage: Directory Sync, Git Sync\n';
     text += '- System: System, Dashboard, Analytics\n';
     text += '- Shared: Utils, UI Library, Themes';

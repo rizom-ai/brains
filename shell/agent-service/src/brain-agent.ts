@@ -16,7 +16,7 @@ import {
 import { z } from "@brains/utils";
 import type { IdentityBody } from "@brains/identity-service";
 import type { PluginTool, ToolContext } from "@brains/mcp-service";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
   createToolExecuteWrapper,

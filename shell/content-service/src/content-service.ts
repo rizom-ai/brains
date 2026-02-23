@@ -12,7 +12,7 @@ import { TemplateCapabilities } from "@brains/templates";
 import type {
   DataSourceRegistry,
   BaseDataSourceContext,
-} from "@brains/datasource";
+} from "@brains/entity-service";
 
 /**
  * Dependencies required by ContentService

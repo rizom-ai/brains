@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type {
   MessageResponse,
   MessageHandler,

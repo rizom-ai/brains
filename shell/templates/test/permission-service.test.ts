@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { PermissionService } from "../src/permission-service";
 import type {
   PermissionConfig,
+  UserPermissionLevel,
   WithVisibility,
 } from "../src/permission-service";
-import type { UserPermissionLevel } from "@brains/utils";
 
 describe("PermissionService", () => {
   let permissionService: PermissionService;
@@ -311,7 +311,7 @@ describe("PermissionService", () => {
       { visibility: "public" },
       { visibility: "trusted" },
       { visibility: "anchor" },
-      { visibility: undefined }, // Should be treated as public
+      {}, // No visibility = treated as public
     ];
 
     describe("filterByPermission", () => {

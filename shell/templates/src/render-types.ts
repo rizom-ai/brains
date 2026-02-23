@@ -1,26 +1,6 @@
 import { z } from "@brains/utils";
 import type { ProgressCallback, ContentFormatter } from "@brains/utils";
-import type { ComponentType } from "@brains/templates";
-
-/**
- * Zod schema for Template validation (used in plugin configurations)
- */
-export const TemplateSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  schema: z.any(), // ZodType can't be validated at runtime - required
-  basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
-  requiredPermission: z.enum(["anchor", "trusted", "public"]),
-  formatter: z.any().optional(), // ContentFormatter instance
-  layout: z
-    .object({
-      component: z.any(), // ComponentType or string
-      description: z.string().optional(),
-      interactive: z.boolean().optional(),
-      packageName: z.string().optional(),
-    })
-    .optional(),
-});
+import type { ComponentType } from "./types";
 
 /**
  * Site content entity types

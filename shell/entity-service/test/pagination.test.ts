@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { paginateItems } from "./pagination";
+import { paginateItems } from "../src/pagination";
 
 describe("paginateItems", () => {
   const items = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"];

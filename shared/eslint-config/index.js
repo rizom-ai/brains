@@ -23,11 +23,6 @@ module.exports = {
           {
             paths: [
               {
-                name: "@brains/datasource",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
                 name: "@brains/job-queue",
                 message:
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
@@ -54,16 +49,6 @@ module.exports = {
               },
               {
                 name: "@brains/messaging-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/permission-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/render-service",
                 message:
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
               },

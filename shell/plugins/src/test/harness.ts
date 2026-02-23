@@ -3,7 +3,7 @@ import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
-import type { DataSource } from "@brains/datasource";
+import type { DataSource } from "@brains/entity-service";
 import { MockShell } from "./mock-shell";
 
 export interface HarnessOptions {

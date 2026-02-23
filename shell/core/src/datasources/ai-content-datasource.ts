@@ -1,4 +1,4 @@
-import type { DataSource } from "@brains/datasource";
+import type { DataSource } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";

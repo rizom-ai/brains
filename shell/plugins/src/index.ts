@@ -193,8 +193,8 @@ export type {
 } from "@brains/job-queue";
 export { JobProgressEventSchema, BaseJobHandler } from "@brains/job-queue";
 
-// From @brains/render-service
-export type { ViewTemplate, OutputFormat } from "@brains/render-service";
+// From @brains/templates (render, merged)
+export type { ViewTemplate, OutputFormat } from "@brains/templates";
 // Note: ViewRegistry is not exported as plugins access views through context
 
 // Route types (cross-cutting concern used by site-builder, site-content, decks, etc.)
@@ -241,9 +241,9 @@ export type {
   ContentFormatter,
 } from "@brains/utils";
 
-// From @brains/permission-service
-export type { UserPermissionLevel } from "@brains/permission-service";
-export { PermissionService } from "@brains/permission-service";
+// From @brains/templates (permission, merged)
+export type { UserPermissionLevel } from "@brains/templates";
+export { PermissionService } from "@brains/templates";
 
 // From @brains/identity-service
 export type { IdentityBody } from "@brains/identity-service";
@@ -257,7 +257,7 @@ export {
   profileBodySchema,
 } from "@brains/profile-service";
 
-// From @brains/datasource
+// From @brains/entity-service (datasource, merged)
 export type {
   DataSource,
   DataSourceCapabilities,
@@ -265,13 +265,13 @@ export type {
   PaginationInfo,
   PaginateOptions,
   PaginateResult,
-} from "@brains/datasource";
+} from "@brains/entity-service";
 export {
   DataSourceRegistry,
   paginationInfoSchema,
   paginateItems,
   buildPaginationInfo,
-} from "@brains/datasource";
+} from "@brains/entity-service";
 
 // From @brains/ai-service
 export type {

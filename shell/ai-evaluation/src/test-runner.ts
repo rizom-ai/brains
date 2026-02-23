@@ -3,7 +3,7 @@ import type {
   ChatContext,
   AgentResponse,
 } from "@brains/agent-service";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
 import type { ITestRunner, ILLMJudge, TestRunnerOptions } from "./types";

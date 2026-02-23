@@ -16,6 +16,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

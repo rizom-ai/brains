@@ -1,10 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
-import {
-  PermissionService,
-  type UserPermissionLevel,
-} from "@brains/permission-service";
+import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import type { PluginTool, PluginResource } from "./types";
 import type { IMCPService } from "./types";
 

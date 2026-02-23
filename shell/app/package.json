@@ -16,7 +16,7 @@
     "@brains/core": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
-    "@brains/permission-service": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

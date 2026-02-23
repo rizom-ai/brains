@@ -3,7 +3,7 @@ import { pluginMetadataSchema } from "@brains/plugins";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
-import type { PermissionConfig } from "@brains/permission-service";
+import type { PermissionConfig } from "@brains/templates";
 import { identityBodySchema } from "@brains/identity-service";
 
 // Deployment configuration schema

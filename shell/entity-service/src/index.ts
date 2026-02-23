@@ -29,3 +29,21 @@ export {
 } from "./frontmatter";
 
 export { FrontmatterContentHelper } from "./frontmatter-content-helper";
+
+// Datasource (merged from @brains/datasource)
+export { DataSourceRegistry } from "./datasource-registry";
+export type {
+  DataSource,
+  DataSourceCapabilities,
+  BaseDataSourceContext,
+} from "./datasource-types";
+export {
+  paginationInfoSchema,
+  paginateItems,
+  buildPaginationInfo,
+} from "./pagination";
+export type {
+  PaginationInfo,
+  PaginateOptions,
+  PaginateResult,
+} from "./pagination";

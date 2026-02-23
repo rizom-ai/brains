@@ -121,7 +121,7 @@ Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
           endDate = toISODateString(end);
         }
 
-        const limit = input.limit ?? 20;
+        const limit = input.limit;
 
         try {
           // Fetch all data from Cloudflare in parallel

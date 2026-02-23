@@ -285,10 +285,11 @@ slug: test-series
 # Test Series`;
 
       const filesOnDisk: Map<string, string> = new Map();
-      let gitSyncCommitContent: Map<string, string> | null = null;
 
       // Simulate the full flow as it happens in the plugin
-      const simulatePluginInitialSync = async (): Promise<void> => {
+      const simulatePluginInitialSync = async (): Promise<
+        Map<string, string>
+      > => {
         // Step 1: Plugin calls directorySync.sync() which only does import
         // Import reads file with coverImageId, queues job
         // (importResult would contain jobIds for waitForJobs)
@@ -307,15 +308,13 @@ slug: test-series
         // git-sync receives this and commits
 
         // Simulate git-sync receiving the event and reading files for commit
-        gitSyncCommitContent = new Map(filesOnDisk);
+        return new Map(filesOnDisk);
       };
 
-      await simulatePluginInitialSync();
+      const gitSyncCommitContent = await simulatePluginInitialSync();
 
       // Verify git-sync would commit the correct content
-      const commitContent = gitSyncCommitContent!;
-      expect(commitContent).not.toBeNull();
-      expect(commitContent.get("series-test-series.md")).toContain(
+      expect(gitSyncCommitContent.get("series-test-series.md")).toContain(
         "coverImageId: series-test-cover",
       );
     });
@@ -338,10 +337,11 @@ slug: test-series
 
       let dbContent = oldContent;
       const filesOnDisk: Map<string, string> = new Map();
-      let gitSyncCommitContent: Map<string, string> | null = null;
 
       // BUGGY FLOW: sync() with export
-      const simulateBuggyPluginInitialSync = async (): Promise<void> => {
+      const simulateBuggyPluginInitialSync = async (): Promise<
+        Map<string, string>
+      > => {
         // Step 1: sync() does import then export immediately
         // Import queues job
         // Export reads OLD db content and writes to file
@@ -360,17 +360,15 @@ slug: test-series
 
         // Step 3: sync:initial:completed emitted
         // git-sync commits
-        gitSyncCommitContent = new Map(filesOnDisk);
+        return new Map(filesOnDisk);
       };
 
-      await simulateBuggyPluginInitialSync();
+      const gitSyncCommitContent = await simulateBuggyPluginInitialSync();
 
       // In the buggy flow, the file DOES end up correct because subscriber overwrites
       // But there's a window where the file had wrong content
       // And if waitForJobs didn't work correctly, git might commit wrong content
-      const commitContent = gitSyncCommitContent!;
-      expect(commitContent).not.toBeNull();
-      expect(commitContent.get("series-test-series.md")).toContain(
+      expect(gitSyncCommitContent.get("series-test-series.md")).toContain(
         "coverImageId: series-test-cover",
       );
 

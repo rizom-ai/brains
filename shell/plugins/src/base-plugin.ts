@@ -14,7 +14,7 @@ import {
   type ProgressNotification,
   ProgressReporter,
 } from "@brains/utils";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import { z } from "@brains/utils";
 
 // Message schemas for validation

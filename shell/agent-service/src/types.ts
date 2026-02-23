@@ -1,4 +1,4 @@
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
 import type { ToolLoopAgent } from "@brains/ai-service";
 

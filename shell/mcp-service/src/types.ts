@@ -5,7 +5,7 @@ import {
   type ZodType,
   type ProgressNotification,
 } from "@brains/utils";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 
 /**
  * Tool visibility levels for permission control

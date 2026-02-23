@@ -27,8 +27,8 @@ import type {
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
 
-import type { ViewTemplate, WebRenderer } from "@brains/render-service";
-import type { DataSource } from "@brains/datasource";
+import type { ViewTemplate, WebRenderer } from "@brains/templates";
+import type { DataSource } from "@brains/entity-service";
 import type { z } from "@brains/utils";
 import { createCorePluginContext } from "../core/context";
 

@@ -246,11 +246,12 @@ describe("AIService", () => {
 
       await service.generateText("System", "User");
 
-      const call = generateTextSpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(call?.temperature).toBe(0.7);
-      expect(call?.maxTokens).toBe(1000);
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          temperature: 0.7,
+          maxTokens: 1000,
+        }),
+      );
     });
   });
 
@@ -506,10 +507,8 @@ describe("AIService", () => {
 
         await service.generateImage("A sunset", { aspectRatio: "1:1" });
 
-        const call = generateImageSpy.mock.calls[0]?.[0] as
-          | Record<string, unknown>
-          | undefined;
-        expect(call?.size).toBeUndefined();
+        const call = generateImageSpy.mock.calls[0]?.[0];
+        expect(call).not.toHaveProperty("size");
       });
     });
 

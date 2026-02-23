@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@brains/blog": "workspace:*",
-    "@brains/datasource": "workspace:*",
     "@brains/decks": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile-service": "workspace:*",

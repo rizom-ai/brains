@@ -36,14 +36,6 @@ export interface PermissionConfig {
 }
 
 /**
- * Generic interface for items with visibility
- * Used to avoid circular dependency with plugins package
- */
-export interface WithVisibility {
-  visibility?: UserPermissionLevel;
-}
-
-/**
  * Centralized permission service for determining user permission levels
  * Handles both explicit user lists and pattern-based rules
  * Replaces the old PermissionHandler from @brains/utils

@@ -15,7 +15,7 @@ import {
   type IConversationService,
 } from "@brains/conversation-service";
 import { DaemonRegistry } from "@brains/daemon-registry";
-import { DataSourceRegistry } from "@brains/datasource";
+import { DataSourceRegistry } from "@brains/entity-service";
 import {
   EmbeddingService,
   type IEmbeddingService,
@@ -43,11 +43,13 @@ import {
 } from "@brains/job-queue";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { MessageBus, type IMessageBus } from "@brains/messaging-service";
-import { PermissionService } from "@brains/permission-service";
 import { PluginManager, type IShell } from "@brains/plugins";
 import { ProfileAdapter, ProfileService } from "@brains/profile-service";
-import { RenderService } from "@brains/render-service";
-import { TemplateRegistry } from "@brains/templates";
+import {
+  PermissionService,
+  RenderService,
+  TemplateRegistry,
+} from "@brains/templates";
 import { Logger, LogLevel, type z } from "@brains/utils";
 
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";

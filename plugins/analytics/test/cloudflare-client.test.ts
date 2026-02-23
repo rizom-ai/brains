@@ -14,6 +14,31 @@ function installMockFetch(
   globalThis.fetch = mock(handler) as unknown as typeof fetch;
 }
 
+/**
+ * Install a mock fetch that captures the request body and returns a getter
+ * for the parsed JSON body after the request completes.
+ */
+function installCapturingMockFetch(response: object): () => unknown {
+  let capturedBody: string | undefined;
+  installMockFetch((_url, options) => {
+    if (typeof options.body === "string") {
+      capturedBody = options.body;
+    }
+    return Promise.resolve(
+      new Response(JSON.stringify(response), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  });
+  return () => {
+    if (capturedBody === undefined) {
+      throw new Error("No request body was captured");
+    }
+    return JSON.parse(capturedBody);
+  };
+}
+
 /** Install a mock fetch that always resolves with the given response. */
 function installStaticMockFetch(response: Response): void {
   installMockFetch(() => Promise.resolve(response));
@@ -181,29 +206,26 @@ describe("CloudflareClient", () => {
         },
       };
 
-      let capturedBody: string | undefined;
-      installMockFetch((_url, options) => {
-        capturedBody = options.body as string;
-        return Promise.resolve(
-          new Response(JSON.stringify(emptyResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-      });
+      const getBody = installCapturingMockFetch(emptyResponse);
 
       await client.getWebsiteStats({
         startDate: "2025-01-15",
         endDate: "2025-01-16",
       });
 
-      const body = JSON.parse(capturedBody!);
+      const body = getBody();
 
       // Verify the query uses date filters, not datetime filters
-      expect(body.query).toContain("date_geq");
-      expect(body.query).toContain("date_leq");
-      expect(body.query).not.toContain("datetime_geq");
-      expect(body.query).not.toContain("datetime_leq");
+      expect(body).toHaveProperty("query", expect.stringContaining("date_geq"));
+      expect(body).toHaveProperty("query", expect.stringContaining("date_leq"));
+      expect(body).toHaveProperty(
+        "query",
+        expect.not.stringContaining("datetime_geq"),
+      );
+      expect(body).toHaveProperty(
+        "query",
+        expect.not.stringContaining("datetime_leq"),
+      );
     });
 
     it("should pass dates in YYYY-MM-DD format to the API", async () => {
@@ -215,27 +237,18 @@ describe("CloudflareClient", () => {
         },
       };
 
-      let capturedBody: string | undefined;
-      installMockFetch((_url, options) => {
-        capturedBody = options.body as string;
-        return Promise.resolve(
-          new Response(JSON.stringify(emptyResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-      });
+      const getBody = installCapturingMockFetch(emptyResponse);
 
       await client.getWebsiteStats({
         startDate: "2025-01-15",
         endDate: "2025-01-16",
       });
 
-      const body = JSON.parse(capturedBody!);
+      const body = getBody();
 
       // Verify dates are in YYYY-MM-DD format
-      expect(body.variables.start).toBe("2025-01-15");
-      expect(body.variables.end).toBe("2025-01-16");
+      expect(body).toHaveProperty("variables.start", "2025-01-15");
+      expect(body).toHaveProperty("variables.end", "2025-01-16");
     });
 
     it("should truncate ISO datetime strings to date format", async () => {
@@ -247,16 +260,7 @@ describe("CloudflareClient", () => {
         },
       };
 
-      let capturedBody: string | undefined;
-      installMockFetch((_url, options) => {
-        capturedBody = options.body as string;
-        return Promise.resolve(
-          new Response(JSON.stringify(emptyResponse), {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }),
-        );
-      });
+      const getBody = installCapturingMockFetch(emptyResponse);
 
       // Pass ISO datetime strings with time component
       await client.getWebsiteStats({
@@ -264,11 +268,11 @@ describe("CloudflareClient", () => {
         endDate: "2025-01-16T23:59:59.999Z",
       });
 
-      const body = JSON.parse(capturedBody!);
+      const body = getBody();
 
       // Should be truncated to just the date part
-      expect(body.variables.start).toBe("2025-01-15");
-      expect(body.variables.end).toBe("2025-01-16");
+      expect(body).toHaveProperty("variables.start", "2025-01-15");
+      expect(body).toHaveProperty("variables.end", "2025-01-16");
     });
   });
 

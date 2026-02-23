@@ -1,7 +1,7 @@
 import { z } from "@brains/utils";
 import type { Plugin, IEvalHandlerRegistry } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
-import type { PermissionConfig } from "@brains/permission-service";
+import type { PermissionConfig } from "@brains/templates";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import { mkdir } from "fs/promises";

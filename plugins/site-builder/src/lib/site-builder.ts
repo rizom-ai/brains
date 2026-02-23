@@ -26,6 +26,7 @@ import { DynamicRouteGenerator } from "./dynamic-route-generator";
 import type { SiteInfoService } from "../services/site-info-service";
 import type { EntityRouteConfig } from "../config";
 import { buildSiteInfo } from "./build-site-info";
+import type { SiteInfo } from "../types/site-info";
 import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
 
 // Schema for entities with slug metadata (for auto-enrichment)
@@ -134,7 +135,7 @@ export class SiteBuilder implements ISiteBuilder {
     EntityUrlGenerator.getInstance().configure(entityRouteConfig);
   }
 
-  private async getSiteInfo() {
+  private async getSiteInfo(): Promise<SiteInfo> {
     return buildSiteInfo(
       this.siteInfoService,
       this.profileService,

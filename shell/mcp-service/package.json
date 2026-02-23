@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@brains/messaging-service": "workspace:*",
-    "@brains/permission-service": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.24.0"
   },

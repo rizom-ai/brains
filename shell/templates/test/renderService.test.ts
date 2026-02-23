@@ -1,8 +1,9 @@
 import { describe, expect, test, beforeEach } from "bun:test";
-import { RenderService } from "../src";
-import { TemplateRegistry } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import { RenderService } from "../src/render-service";
+import { TemplateRegistry } from "../src/registry";
+import type { Template } from "../src/types";
 import { z } from "@brains/utils";
+import { h } from "preact";
 
 // Test schemas
 const testSchema = z.object({
@@ -17,7 +18,7 @@ const testTemplate: Template = {
   schema: testSchema,
   requiredPermission: "public",
   layout: {
-    component: () => "Test component",
+    component: () => h("span", null, "Test component"),
     interactive: false,
   },
 };

@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { UserPermissionLevelSchema } from "@brains/permission-service";
+import { UserPermissionLevelSchema } from "@brains/templates";
 
 /**
  * Agent test case types (chat-based)

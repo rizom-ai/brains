@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { UserPermissionLevel } from "@brains/permission-service";
+import type { UserPermissionLevel } from "@brains/templates";
 import {
   defaultQueryResponseSchema,
   simpleTextResponseSchema,
@@ -29,11 +29,11 @@ export {
   ToolContextRoutingSchema,
 } from "@brains/mcp-service";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
-import type { RenderService } from "@brains/render-service";
+import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
-import type { PermissionService } from "@brains/permission-service";
-import type { DataSourceRegistry } from "@brains/datasource";
+import type { PermissionService } from "@brains/templates";
+import type { DataSourceRegistry } from "@brains/entity-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";

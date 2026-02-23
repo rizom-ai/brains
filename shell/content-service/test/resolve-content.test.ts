@@ -3,7 +3,7 @@ import { z } from "@brains/utils";
 import { ContentService } from "../src/content-service";
 import type { ContentServiceDependencies } from "../src/content-service";
 import { TemplateRegistry, type Template } from "@brains/templates";
-import type { DataSource } from "@brains/datasource";
+import type { DataSource } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
