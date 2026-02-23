@@ -6,7 +6,7 @@ import {
 } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";
-import type { ModelMessage } from "@brains/ai-service";
+import type { ModelMessage } from "ai";
 import type {
   AgentConfig,
   AgentResponse,
@@ -15,7 +15,7 @@ import type {
   IAgentService,
   PendingConfirmation,
   ToolResultData,
-} from "./types";
+} from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
 
 /**

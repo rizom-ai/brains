@@ -19,7 +19,6 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/agent-service": "workspace:*",
     "@brains/ai-service": "workspace:*",
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",

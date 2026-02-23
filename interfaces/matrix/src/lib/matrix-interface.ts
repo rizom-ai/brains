@@ -4,7 +4,7 @@ import {
   parseConfirmationResponse,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
-import type { IAgentService } from "@brains/agent-service";
+import type { IAgentService } from "@brains/plugins";
 import { markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema } from "../schemas";
 import type { MatrixConfig } from "../schemas";

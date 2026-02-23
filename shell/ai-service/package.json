@@ -1,7 +1,7 @@
 {
   "name": "@brains/ai-service",
   "version": "0.1.0",
-  "description": "AI service for text and object generation using Vercel AI SDK",
+  "description": "AI service for text/object generation and agent conversation orchestration",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
@@ -14,6 +14,11 @@
     "@ai-sdk/anthropic": "^3.0.44",
     "@ai-sdk/google": "^3.0.29",
     "@ai-sdk/openai": "^3.0.29",
+    "@brains/conversation-service": "workspace:*",
+    "@brains/identity-service": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "ai": "^6.0.86"
   },

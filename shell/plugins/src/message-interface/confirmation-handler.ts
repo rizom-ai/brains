@@ -5,7 +5,7 @@
  * (CLI, Matrix, etc.) with support for various affirmative and negative responses.
  */
 
-import type { PendingConfirmation } from "@brains/agent-service";
+import type { PendingConfirmation } from "@brains/ai-service";
 
 /**
  * Positive confirmation responses (case-insensitive)

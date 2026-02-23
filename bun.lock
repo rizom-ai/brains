@@ -133,7 +133,6 @@
         "brain-matrix-setup": "./src/setup/cli.ts",
       },
       "dependencies": {
-        "@brains/agent-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@clack/prompts": "^0.8.2",
         "marked": "^12.0.0",
@@ -752,24 +751,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shell/agent-service": {
-      "name": "@brains/agent-service",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/ai-service": "workspace:*",
-        "@brains/conversation-service": "workspace:*",
-        "@brains/identity-service": "workspace:*",
-        "@brains/mcp-service": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "^5.3.3",
-      },
-    },
     "shell/ai-evaluation": {
       "name": "@brains/ai-evaluation",
       "version": "0.1.0",
@@ -777,7 +758,6 @@
         "brain-eval": "./src/run-evaluations.ts",
       },
       "dependencies": {
-        "@brains/agent-service": "workspace:*",
         "@brains/ai-service": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/core": "workspace:*",
@@ -801,6 +781,11 @@
         "@ai-sdk/anthropic": "^3.0.44",
         "@ai-sdk/google": "^3.0.29",
         "@ai-sdk/openai": "^3.0.29",
+        "@brains/conversation-service": "workspace:*",
+        "@brains/identity-service": "workspace:*",
+        "@brains/mcp-service": "workspace:*",
+        "@brains/messaging-service": "workspace:*",
+        "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "ai": "^6.0.86",
       },
@@ -878,7 +863,6 @@
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
-        "@brains/agent-service": "workspace:*",
         "@brains/ai-service": "workspace:*",
         "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
@@ -1019,7 +1003,7 @@
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
-        "@brains/agent-service": "workspace:*",
+        "@brains/ai-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1092,8 +1076,6 @@
     "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@7.27.1", "", {}, "sha512-D2hP9eA+Sqx1kBZgzxZh0y1trbuU+JoDkiEwqhQ36nodYqJwyEIhPSdMNd7lOm/4io72luTPWH20Yda0xOuUow=="],
 
     "@babel/runtime": ["@babel/runtime@7.28.4", "", {}, "sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ=="],
-
-    "@brains/agent-service": ["@brains/agent-service@workspace:shell/agent-service"],
 
     "@brains/ai-evaluation": ["@brains/ai-evaluation@workspace:shell/ai-evaluation"],
 

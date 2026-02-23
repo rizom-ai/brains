@@ -45,7 +45,7 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { DataSourceRegistry, DataSource } from "@brains/entity-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
-import type { IAgentService, AgentResponse } from "@brains/agent-service";
+import type { IAgentService, AgentResponse } from "@brains/ai-service";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,

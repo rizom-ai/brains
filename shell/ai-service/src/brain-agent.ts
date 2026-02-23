@@ -12,13 +12,13 @@ import {
   dynamicTool,
   type ToolSet,
   type LanguageModel,
-} from "@brains/ai-service";
+} from "ai";
 import { z } from "@brains/utils";
 import type { IdentityBody } from "@brains/identity-service";
 import type { PluginTool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { BrainAgent, BrainAgentFactory } from "./types";
+import type { BrainAgent, BrainAgentFactory } from "./agent-types";
 import {
   createToolExecuteWrapper,
   createMessageBusEmitter,

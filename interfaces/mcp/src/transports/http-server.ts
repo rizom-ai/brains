@@ -13,7 +13,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
-import type { IAgentService } from "@brains/agent-service";
+import type { IAgentService } from "@brains/plugins";
 
 export interface AuthConfig {
   enabled: boolean;

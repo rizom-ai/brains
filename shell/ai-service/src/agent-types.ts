@@ -1,6 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { BrainAgentConfig, BrainCallOptions } from "./brain-agent";
-import type { ModelMessage } from "@brains/ai-service";
+import type { ModelMessage } from "ai";
 
 /**
  * Result shape from BrainAgent.generate()

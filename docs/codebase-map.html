@@ -218,7 +218,6 @@ const nodes = [
   { id:'messaging', label:'Messaging',     subtitle:'shell/messaging-service', x:380, y:244, w:130, h:44, group:'shell-comms' },
   { id:'mcp-svc',   label:'MCP Service',   subtitle:'shell/mcp-service',      x:524, y:244, w:130, h:44, group:'shell-comms' },
   { id:'ai-svc',    label:'AI Service',    subtitle:'shell/ai-service',       x:668, y:244, w:130, h:44, group:'shell-comms' },
-  { id:'agent-svc', label:'Agent Service', subtitle:'shell/agent-service',    x:812, y:244, w:130, h:44, group:'shell-comms' },
   // ─ Shell Support ─
   { id:'embedding',    label:'Embedding',     subtitle:'shell/embedding-service',    x:380, y:300, w:130, h:44, group:'shell-support' },
   { id:'conversation', label:'Conversations', subtitle:'shell/conversation-service', x:524, y:300, w:130, h:44, group:'shell-support' },
@@ -269,8 +268,8 @@ const connections = [
   { from:'mcp-svc', to:'plugin-fw', type:'tool-call', label:'routes' },
 
   // Interfaces → Shell (agent & conversation)
-  { from:'cli',    to:'agent-svc',    type:'tool-call', label:'queries' },
-  { from:'matrix', to:'agent-svc',    type:'tool-call', label:'queries' },
+  { from:'cli',    to:'ai-svc',    type:'tool-call', label:'queries' },
+  { from:'matrix', to:'ai-svc',    type:'tool-call', label:'queries' },
   { from:'cli',    to:'conversation', type:'data-flow', label:'chat' },
   { from:'matrix', to:'conversation', type:'data-flow', label:'chat' },
 
@@ -311,7 +310,6 @@ const connections = [
 
   // Shell internal
   { from:'core',       to:'plugin-fw',  type:'dependency' },
-  { from:'agent-svc',  to:'ai-svc',     type:'dependency' },
   { from:'embedding',  to:'entity-svc', type:'dependency', label:'search' },
   { from:'mcp-svc',    to:'templates',  type:'dependency', label:'checks' },
   { from:'identity',   to:'profile',    type:'dependency' },
@@ -541,7 +539,7 @@ function updatePrompt() {
     text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks, Image, Site Content, Summary, Topics\n';
     text += '- Shell Runtime: Core, App, Plugin Framework, Daemon Registry\n';
     text += '- Shell Data: Entity Service (incl. Datasource), Content Service, Job Queue\n';
-    text += '- Shell Communication & AI: Messaging, MCP Service, AI Service, Agent Service\n';
+    text += '- Shell Communication & AI: Messaging, MCP Service, AI Service (incl. Agent)\n';
     text += '- Shell Supporting: Embedding, Conversations, Templates (incl. Render Service & Permissions)\n';
     text += '- Shell Identity: Identity, Profile\n';
     text += '- Publishing: Site Builder, Professional Site, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';

@@ -2,7 +2,7 @@ import type {
   IAgentService,
   AgentResponse,
   ChatContext,
-} from "@brains/agent-service";
+} from "@brains/ai-service";
 
 export interface RemoteAgentServiceConfig {
   /** Base URL of the remote brain (e.g., http://localhost:3333) */

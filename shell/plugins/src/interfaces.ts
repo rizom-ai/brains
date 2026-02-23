@@ -37,7 +37,7 @@ import type { DataSourceRegistry } from "@brains/entity-service";
 import type { IdentityBody } from "@brains/identity-service";
 import type { ProfileBody } from "@brains/profile-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
-import type { IAgentService } from "@brains/agent-service";
+import type { IAgentService } from "@brains/ai-service";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,

@@ -2,7 +2,7 @@ import type {
   IAgentService,
   ChatContext,
   AgentResponse,
-} from "@brains/agent-service";
+} from "@brains/ai-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 

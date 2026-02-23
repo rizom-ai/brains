@@ -6,7 +6,7 @@ import type {
   IAgentService,
   AgentResponse,
   ChatContext,
-} from "@brains/agent-service";
+} from "@brains/plugins";
 
 describe("CLI Interface - Agent Context Integration", () => {
   let cliInterface: CLIInterface;

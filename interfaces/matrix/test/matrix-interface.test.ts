@@ -11,7 +11,7 @@ import {
 import { MatrixInterface } from "../src";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { IAgentService, AgentResponse } from "@brains/agent-service";
+import type { IAgentService, AgentResponse } from "@brains/plugins";
 
 // Type for mock.on calls - [eventName, handler]
 type MockOnCall = [string, (roomId: string, event: unknown) => void];

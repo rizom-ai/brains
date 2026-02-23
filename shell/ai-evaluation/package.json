@@ -15,7 +15,6 @@
     "brain-eval": "./src/run-evaluations.ts"
   },
   "dependencies": {
-    "@brains/agent-service": "workspace:*",
     "@brains/ai-service": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/core": "workspace:*",

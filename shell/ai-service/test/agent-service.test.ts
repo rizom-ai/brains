@@ -5,9 +5,9 @@ import { z } from "@brains/utils";
 import type { IMCPService, PluginTool } from "@brains/mcp-service";
 import type { IdentityService as IIdentityService } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
-import type { BrainAgent, BrainAgentResult } from "../src/types";
+import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
 import type { BrainAgentConfig, BrainCallOptions } from "../src/brain-agent";
-import type { ModelMessage } from "@brains/ai-service";
+import type { ModelMessage } from "ai";
 
 // Mock return value for agent.generate
 let mockAgentGenerateResult: BrainAgentResult = {

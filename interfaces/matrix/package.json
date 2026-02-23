@@ -18,7 +18,6 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@brains/agent-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@clack/prompts": "^0.8.2",
     "marked": "^12.0.0",

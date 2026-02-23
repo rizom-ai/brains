@@ -6,7 +6,7 @@ import {
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
 import type { JobProgressEvent } from "@brains/plugins";
-import type { IAgentService } from "@brains/agent-service";
+import type { IAgentService } from "@brains/plugins";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";
 import packageJson from "../package.json";

@@ -277,7 +277,17 @@ export {
 export type {
   ImageGenerationOptions,
   ImageGenerationResult,
+  IAgentService,
+  AgentConfig,
+  AgentResponse,
+  ChatContext,
+  PendingConfirmation,
+  ToolResultData,
+  BrainAgentFactory,
+  BrainAgentFactoryOptions,
+  BrainCallOptions,
 } from "@brains/ai-service";
+export { AgentService, createBrainAgentFactory } from "@brains/ai-service";
 
 // Utility functions
 export { createId } from "@brains/utils";

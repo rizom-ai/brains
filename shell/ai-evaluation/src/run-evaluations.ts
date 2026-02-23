@@ -14,7 +14,7 @@
  */
 
 import { resolve } from "path";
-import type { IAgentService } from "@brains/agent-service";
+import type { IAgentService } from "@brains/ai-service";
 import type { IAIService } from "@brains/ai-service";
 import { EvaluationService } from "./evaluation-service";
 import { ConsoleReporter } from "./reporters/console-reporter";

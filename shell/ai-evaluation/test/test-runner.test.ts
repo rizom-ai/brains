@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
-import type { IAgentService, AgentResponse } from "@brains/agent-service";
+import type { IAgentService, AgentResponse } from "@brains/ai-service";
 
 describe("TestRunner", () => {
   let mockAgentService: IAgentService;

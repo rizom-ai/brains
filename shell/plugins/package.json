@@ -24,7 +24,7 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/agent-service": "workspace:*",
+    "@brains/ai-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/typescript-config": "workspace:*",

@@ -2,7 +2,7 @@ import {
   AgentService,
   createBrainAgentFactory,
   type IAgentService,
-} from "@brains/agent-service";
+} from "@brains/ai-service";
 import { AIService, type IAIService } from "@brains/ai-service";
 import {
   ContentGenerationJobHandler,
