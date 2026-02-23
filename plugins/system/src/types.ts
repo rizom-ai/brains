@@ -6,8 +6,8 @@ import type {
   BatchJobStatus,
   Batch,
   JobInfo,
-  IdentityBody,
-  ProfileBody,
+  BrainCharacter,
+  AnchorProfile,
   Conversation,
   Message,
 } from "@brains/plugins";
@@ -63,7 +63,7 @@ export interface ISystemPlugin {
   getConversation(conversationId: string): Promise<Conversation | null>;
   getMessages(conversationId: string, limit?: number): Promise<Message[]>;
   searchConversations(query: string): Promise<Conversation[]>;
-  getIdentityData(): IdentityBody;
-  getProfileData(): ProfileBody;
+  getIdentityData(): BrainCharacter;
+  getProfileData(): AnchorProfile;
   getAppInfo(): Promise<AppInfo>;
 }

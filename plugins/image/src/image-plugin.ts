@@ -4,8 +4,8 @@ import type {
   BaseEntity,
   EntityInput,
   EntityAdapter,
-  IdentityBody,
-  ProfileBody,
+  BrainCharacter,
+  AnchorProfile,
   ServicePluginContext,
 } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -185,7 +185,7 @@ export class ImagePlugin
   /**
    * Get the brain's identity data
    */
-  public getIdentityData(): IdentityBody {
+  public getIdentityData(): BrainCharacter {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -195,7 +195,7 @@ export class ImagePlugin
   /**
    * Get the owner's profile data
    */
-  public getProfileData(): ProfileBody {
+  public getProfileData(): AnchorProfile {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }

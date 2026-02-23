@@ -1,36 +1,39 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { IdentityAdapter } from "../src/adapter";
-import type { IdentityEntity } from "../src/schema";
+import { BrainCharacterAdapter } from "../src/brain-character-adapter";
+import type { BrainCharacterEntity } from "../src/brain-character-schema";
 import { z } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
 
-describe("IdentityAdapter", () => {
-  let adapter: IdentityAdapter;
+describe("BrainCharacterAdapter", () => {
+  let adapter: BrainCharacterAdapter;
 
   beforeEach(() => {
-    adapter = new IdentityAdapter();
+    adapter = new BrainCharacterAdapter();
   });
 
   describe("schema", () => {
-    it("should have valid identity schema", () => {
+    it("should have valid character schema", () => {
       const schema = adapter.schema;
 
-      const validIdentity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
-        content: "",
-      });
+      const validCharacter = createTestEntity<BrainCharacterEntity>(
+        "brain-character",
+        {
+          id: "brain-character",
+          content: "",
+        },
+      );
 
-      expect(() => schema.parse(validIdentity)).not.toThrow();
+      expect(() => schema.parse(validCharacter)).not.toThrow();
     });
 
-    it("should reject invalid identity entity type", () => {
+    it("should reject invalid character entity type", () => {
       const schema = adapter.schema;
 
-      const base = createTestEntity("identity", {
-        id: "identity",
+      const base = createTestEntity("brain-character", {
+        id: "brain-character",
         content: "",
       });
-      const invalidIdentity = {
+      const invalidCharacter = {
         ...base,
         entityType: "other",
         role: "Assistant",
@@ -38,24 +41,24 @@ describe("IdentityAdapter", () => {
         values: ["clarity"],
       };
 
-      expect(() => schema.parse(invalidIdentity)).toThrow();
+      expect(() => schema.parse(invalidCharacter)).toThrow();
     });
 
-    it("should reject invalid identity ID", () => {
+    it("should reject invalid character ID", () => {
       const schema = adapter.schema;
 
-      const base = createTestEntity("identity", {
+      const base = createTestEntity("brain-character", {
         id: "wrong:id",
         content: "",
       });
-      const invalidIdentity = {
+      const invalidCharacter = {
         ...base,
         role: "Assistant",
         purpose: "Help",
         values: ["clarity"],
       };
 
-      expect(() => schema.parse(invalidIdentity)).toThrow();
+      expect(() => schema.parse(invalidCharacter)).toThrow();
     });
   });
 
@@ -78,8 +81,8 @@ describe("IdentityAdapter", () => {
   });
 
   describe("toMarkdown", () => {
-    it("should convert identity entity to frontmatter format", () => {
-      const content = adapter.createIdentityContent({
+    it("should convert character entity to frontmatter format", () => {
+      const content = adapter.createCharacterContent({
         name: "Personal Brain",
         role: "Personal knowledge assistant",
         purpose:
@@ -87,8 +90,8 @@ describe("IdentityAdapter", () => {
         values: ["clarity", "accuracy", "helpfulness"],
       });
 
-      const entity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
+      const entity = createTestEntity<BrainCharacterEntity>("brain-character", {
+        id: "brain-character",
         content,
       });
 
@@ -106,8 +109,8 @@ describe("IdentityAdapter", () => {
     });
   });
 
-  describe("parseIdentityBody", () => {
-    it("should parse frontmatter format to identity body", () => {
+  describe("parseCharacterBody", () => {
+    it("should parse frontmatter format to character body", () => {
       const markdown = `---
 name: Research Brain
 role: Research assistant
@@ -119,7 +122,7 @@ values:
 ---
 `;
 
-      const result = adapter.parseIdentityBody(markdown);
+      const result = adapter.parseCharacterBody(markdown);
 
       expect(result.name).toBe("Research Brain");
       expect(result.role).toBe("Research assistant");
@@ -133,7 +136,7 @@ values:
       ]);
     });
 
-    it("should parse legacy structured markdown to identity body", () => {
+    it("should parse legacy structured markdown to character body", () => {
       const markdown = `# Brain Identity
 
 ## Name
@@ -151,7 +154,7 @@ Help organize research papers and maintain literature review notes.
 - citation accuracy
 - critical thinking`;
 
-      const result = adapter.parseIdentityBody(markdown);
+      const result = adapter.parseCharacterBody(markdown);
 
       expect(result.name).toBe("Research Brain");
       expect(result.role).toBe("Research assistant");
@@ -168,13 +171,13 @@ Help organize research papers and maintain literature review notes.
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
-      expect(() => adapter.parseIdentityBody(markdown)).toThrow();
+      expect(() => adapter.parseCharacterBody(markdown)).toThrow();
     });
 
     it("should throw error for empty markdown", () => {
       const markdown = "";
 
-      expect(() => adapter.parseIdentityBody(markdown)).toThrow();
+      expect(() => adapter.parseCharacterBody(markdown)).toThrow();
     });
   });
 
@@ -192,7 +195,7 @@ values:
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("identity");
+      expect(result.entityType).toBe("brain-character");
       expect(result.content).toBeDefined();
       // Content should be stored as frontmatter format
       expect(result.content).toContain("---");
@@ -218,7 +221,7 @@ Help organize research papers.
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("identity");
+      expect(result.entityType).toBe("brain-character");
       // Legacy content should be converted to frontmatter format
       expect(result.content).toContain("---");
       expect(result.content).toContain("name: Research Brain");
@@ -228,15 +231,15 @@ Help organize research papers.
 
   describe("extractMetadata", () => {
     it("should extract role and values as metadata", () => {
-      const content = adapter.createIdentityContent({
+      const content = adapter.createCharacterContent({
         name: "Team Brain",
         role: "Team coordinator",
         purpose: "Facilitate knowledge sharing across the organization",
         values: ["collaboration", "transparency", "accessibility"],
       });
 
-      const entity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
+      const entity = createTestEntity<BrainCharacterEntity>("brain-character", {
+        id: "brain-character",
         content,
       });
 
@@ -251,15 +254,15 @@ Help organize research papers.
 
   describe("generateFrontMatter", () => {
     it("should generate frontmatter string from entity", () => {
-      const content = adapter.createIdentityContent({
+      const content = adapter.createCharacterContent({
         name: "Test Brain",
         role: "Assistant",
         purpose: "Help",
         values: ["clarity"],
       });
 
-      const entity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
+      const entity = createTestEntity<BrainCharacterEntity>("brain-character", {
+        id: "brain-character",
         content,
       });
 
@@ -291,7 +294,7 @@ values:
   });
 
   describe("roundtrip conversion", () => {
-    it("should preserve data through createIdentityContent and parseIdentityBody", () => {
+    it("should preserve data through createCharacterContent and parseCharacterBody", () => {
       const originalData = {
         name: "Personal Brain",
         role: "Personal knowledge assistant",
@@ -300,8 +303,8 @@ values:
         values: ["clarity", "accuracy", "helpfulness"],
       };
 
-      const content = adapter.createIdentityContent(originalData);
-      const parsed = adapter.parseIdentityBody(content);
+      const content = adapter.createCharacterContent(originalData);
+      const parsed = adapter.parseCharacterBody(content);
 
       expect(parsed.name).toBe(originalData.name);
       expect(parsed.role).toBe(originalData.role);
@@ -309,7 +312,7 @@ values:
       expect(parsed.values).toEqual(originalData.values);
     });
 
-    it("should preserve data through toMarkdown and parseIdentityBody", () => {
+    it("should preserve data through toMarkdown and parseCharacterBody", () => {
       const originalData = {
         name: "Test Brain",
         role: "Test assistant",
@@ -317,14 +320,14 @@ values:
         values: ["testing", "precision"],
       };
 
-      const content = adapter.createIdentityContent(originalData);
-      const entity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
+      const content = adapter.createCharacterContent(originalData);
+      const entity = createTestEntity<BrainCharacterEntity>("brain-character", {
+        id: "brain-character",
         content,
       });
 
       const markdown = adapter.toMarkdown(entity);
-      const parsed = adapter.parseIdentityBody(markdown);
+      const parsed = adapter.parseCharacterBody(markdown);
 
       expect(parsed.name).toBe(originalData.name);
       expect(parsed.role).toBe(originalData.role);

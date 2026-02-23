@@ -1,34 +1,34 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
-import { ProfileService } from "../src/profile-service";
+import { AnchorProfileService } from "../src/anchor-profile-service";
 import type { IEntityService } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
   createTestEntity,
 } from "@brains/test-utils";
-import type { ProfileEntity } from "../src/schema";
+import type { AnchorProfileEntity } from "../src/anchor-profile-schema";
 
-describe("ProfileService", () => {
+describe("AnchorProfileService", () => {
   // Shared mock state that can be controlled per test
-  let mockGetEntityImpl: () => Promise<ProfileEntity | null>;
+  let mockGetEntityImpl: () => Promise<AnchorProfileEntity | null>;
   let mockCreateEntityImpl: () => Promise<{ entityId: string; jobId: string }>;
 
   let mockEntityService: IEntityService;
-  let profileService: ProfileService;
+  let profileService: AnchorProfileService;
   let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     // Reset singleton
-    ProfileService.resetInstance();
+    AnchorProfileService.resetInstance();
 
     // Default implementations
-    mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
+    mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
     mockCreateEntityImpl = async (): Promise<{
       entityId: string;
       jobId: string;
     }> => ({
-      entityId: "profile",
+      entityId: "anchor-profile",
       jobId: "job-123",
     });
 
@@ -47,7 +47,7 @@ describe("ProfileService", () => {
     createEntitySpy.mockImplementation(async () => mockCreateEntityImpl());
 
     // Create fresh instance with silent logger
-    profileService = ProfileService.createFresh(
+    profileService = AnchorProfileService.createFresh(
       mockEntityService,
       createSilentLogger(),
     );
@@ -55,7 +55,7 @@ describe("ProfileService", () => {
 
   describe("getDefaultProfile", () => {
     it("should return default profile with name", () => {
-      const defaultProfile = ProfileService.getDefaultProfile();
+      const defaultProfile = AnchorProfileService.getDefaultProfile();
 
       expect(defaultProfile).toEqual({
         name: "Unknown",
@@ -67,7 +67,7 @@ describe("ProfileService", () => {
     it("should return default profile when no entity exists", () => {
       const profile = profileService.getProfile();
 
-      expect(profile).toEqual(ProfileService.getDefaultProfile());
+      expect(profile).toEqual(AnchorProfileService.getDefaultProfile());
     });
 
     it("should parse and return profile from cache when entity exists", async () => {
@@ -95,13 +95,16 @@ github
 
 #### URL
 https://github.com/rizom-ai`;
-      const mockEntity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
-        content: mockContent,
-      });
+      const mockEntity = createTestEntity<AnchorProfileEntity>(
+        "anchor-profile",
+        {
+          id: "anchor-profile",
+          content: mockContent,
+        },
+      );
 
       // Control mock behavior to return the entity
-      mockGetEntityImpl = async (): Promise<ProfileEntity> => mockEntity;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity> => mockEntity;
 
       // Initialize to load the entity into cache
       await profileService.initialize();
@@ -126,7 +129,7 @@ https://github.com/rizom-ai`;
   describe("initialize", () => {
     it("should create default profile entity when none exists", async () => {
       // Mock behavior: no existing profile
-      mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
 
       await profileService.initialize();
 
@@ -139,8 +142,8 @@ https://github.com/rizom-ai`;
         | undefined;
       expect(createCall).toBeDefined();
       expect(createCall).toMatchObject({
-        id: "profile",
-        entityType: "profile",
+        id: "anchor-profile",
+        entityType: "anchor-profile",
       });
 
       // Content should contain default profile data
@@ -153,12 +156,15 @@ https://github.com/rizom-ai`;
 
 ## Name
 Existing Profile`;
-      const mockEntity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
-        content: existingContent,
-      });
+      const mockEntity = createTestEntity<AnchorProfileEntity>(
+        "anchor-profile",
+        {
+          id: "anchor-profile",
+          content: existingContent,
+        },
+      );
 
-      mockGetEntityImpl = async (): Promise<ProfileEntity> => mockEntity;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity> => mockEntity;
 
       await profileService.initialize();
 
@@ -168,7 +174,7 @@ Existing Profile`;
 
     it("should handle errors during entity creation gracefully", async () => {
       // Mock behavior: no existing entity
-      mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
 
       // Mock behavior: createEntity throws error
       mockCreateEntityImpl = async (): Promise<never> => {
@@ -183,7 +189,7 @@ Existing Profile`;
   describe("refreshCache", () => {
     it("should reload profile from database after entity import", async () => {
       // Step 1: Initialize service with NO entity in database
-      mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
       await profileService.initialize();
 
       // Verify service is using defaults since no entity exists yet
@@ -214,13 +220,17 @@ https://github.com/yourusername
 
 #### Label
 View my code on GitHub`;
-      const importedEntity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
-        content: importedContent,
-      });
+      const importedEntity = createTestEntity<AnchorProfileEntity>(
+        "anchor-profile",
+        {
+          id: "anchor-profile",
+          content: importedContent,
+        },
+      );
 
       // Change mock to return imported entity
-      mockGetEntityImpl = async (): Promise<ProfileEntity> => importedEntity;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity> =>
+        importedEntity;
 
       // Step 3: refreshCache() reloads from database
       // (In production, message bus triggers this on entity:created/updated)
@@ -247,12 +257,12 @@ View my code on GitHub`;
       const freshMockEntityService = createMockEntityService();
       spyOn(freshMockEntityService, "getEntity").mockResolvedValue(null);
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
-        entityId: "profile",
+        entityId: "anchor-profile",
         jobId: "job-123",
       });
 
       // Create a completely fresh service with custom profile
-      const customService = ProfileService.createFresh(
+      const customService = AnchorProfileService.createFresh(
         freshMockEntityService,
         createSilentLogger(),
         customProfile,
@@ -273,14 +283,14 @@ View my code on GitHub`;
         ],
       };
 
-      const customService = ProfileService.createFresh(
+      const customService = AnchorProfileService.createFresh(
         mockEntityService,
         createSilentLogger(),
         customProfile,
       );
 
       // Mock behavior: no existing profile
-      mockGetEntityImpl = async (): Promise<ProfileEntity | null> => null;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
 
       await customService.initialize();
 
@@ -297,7 +307,7 @@ View my code on GitHub`;
     });
 
     it("should fall back to hardcoded default when custom profile is not provided", () => {
-      const serviceWithoutCustom = ProfileService.createFresh(
+      const serviceWithoutCustom = AnchorProfileService.createFresh(
         mockEntityService,
         createSilentLogger(),
         undefined,
@@ -305,7 +315,7 @@ View my code on GitHub`;
 
       const profile = serviceWithoutCustom.getProfile();
 
-      expect(profile).toEqual(ProfileService.getDefaultProfile());
+      expect(profile).toEqual(AnchorProfileService.getDefaultProfile());
     });
   });
 });

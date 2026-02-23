@@ -1,6 +1,6 @@
 import { z, StructuredContentFormatter } from "@brains/utils";
 import {
-  profileBodySchema,
+  anchorProfileBodySchema,
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
@@ -40,7 +40,7 @@ export const professionalProfileExtension = z.object({
     .describe("What you're open to (consulting, speaking, etc.)"),
 });
 
-export const professionalProfileSchema = profileBodySchema.extend(
+export const professionalProfileSchema = anchorProfileBodySchema.extend(
   professionalProfileExtension.shape,
 );
 

@@ -1,24 +1,27 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { ProfileAdapter } from "../src/adapter";
-import type { ProfileEntity } from "../src/schema";
+import { AnchorProfileAdapter } from "../src/anchor-profile-adapter";
+import type { AnchorProfileEntity } from "../src/anchor-profile-schema";
 import { z } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
 
-describe("ProfileAdapter", () => {
-  let adapter: ProfileAdapter;
+describe("AnchorProfileAdapter", () => {
+  let adapter: AnchorProfileAdapter;
 
   beforeEach(() => {
-    adapter = new ProfileAdapter();
+    adapter = new AnchorProfileAdapter();
   });
 
   describe("schema", () => {
     it("should have valid profile schema", () => {
       const schema = adapter.schema;
 
-      const validProfile = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
-        content: "",
-      });
+      const validProfile = createTestEntity<AnchorProfileEntity>(
+        "anchor-profile",
+        {
+          id: "anchor-profile",
+          content: "",
+        },
+      );
 
       expect(() => schema.parse(validProfile)).not.toThrow();
     });
@@ -26,8 +29,8 @@ describe("ProfileAdapter", () => {
     it("should reject invalid profile entity type", () => {
       const schema = adapter.schema;
 
-      const base = createTestEntity("profile", {
-        id: "profile",
+      const base = createTestEntity("anchor-profile", {
+        id: "anchor-profile",
         content: "",
       });
       const invalidProfile = {
@@ -41,7 +44,7 @@ describe("ProfileAdapter", () => {
     it("should reject invalid profile ID", () => {
       const schema = adapter.schema;
 
-      const base = createTestEntity("profile", {
+      const base = createTestEntity("anchor-profile", {
         id: "wrong:id",
         content: "",
       });
@@ -83,8 +86,8 @@ describe("ProfileAdapter", () => {
         ],
       });
 
-      const entity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
         content,
       });
 
@@ -105,8 +108,8 @@ describe("ProfileAdapter", () => {
         name: "John Doe",
       });
 
-      const entity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
         content,
       });
 
@@ -216,7 +219,7 @@ description: Open-source collective
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("profile");
+      expect(result.entityType).toBe("anchor-profile");
       expect(result.content).toContain("---");
       expect(result.content).toContain("name: Rizom");
     });
@@ -232,7 +235,7 @@ Open-source collective building privacy-first tools`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("profile");
+      expect(result.entityType).toBe("anchor-profile");
       expect(result.content).toContain("---");
       expect(result.content).toContain("name: Rizom");
     });
@@ -250,8 +253,8 @@ Open-source collective building privacy-first tools`;
         ],
       });
 
-      const entity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
         content,
       });
 
@@ -272,8 +275,8 @@ Open-source collective building privacy-first tools`;
         website: "https://test.com",
       });
 
-      const entity = createTestEntity<ProfileEntity>("profile", {
-        id: "profile",
+      const entity = createTestEntity<AnchorProfileEntity>("anchor-profile", {
+        id: "anchor-profile",
         content,
       });
 

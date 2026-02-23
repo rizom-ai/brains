@@ -5,7 +5,7 @@ import {
   toolResponseSchema,
 } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
-import type { IdentityService as IIdentityService } from "@brains/identity-service";
+import type { IBrainCharacterService } from "@brains/identity-service";
 import type { ModelMessage } from "ai";
 import type {
   AgentConfig,
@@ -50,7 +50,7 @@ export class AgentService implements IAgentService {
   public static getInstance(
     mcpService: IMCPService,
     conversationService: IConversationService,
-    identityService: IIdentityService,
+    identityService: IBrainCharacterService,
     logger: Logger,
     config: AgentConfig,
   ): AgentService {
@@ -77,7 +77,7 @@ export class AgentService implements IAgentService {
   public static createFresh(
     mcpService: IMCPService,
     conversationService: IConversationService,
-    identityService: IIdentityService,
+    identityService: IBrainCharacterService,
     logger: Logger,
     config: AgentConfig,
   ): AgentService {
@@ -96,7 +96,7 @@ export class AgentService implements IAgentService {
   private constructor(
     private mcpService: IMCPService,
     private conversationService: IConversationService,
-    private identityService: IIdentityService,
+    private identityService: IBrainCharacterService,
     logger: Logger,
     config: AgentConfig,
   ) {
@@ -111,7 +111,7 @@ export class AgentService implements IAgentService {
    */
   private getAgent(): BrainAgent {
     this.agent ??= this.agentFactory({
-      identity: this.identityService.getIdentity(),
+      identity: this.identityService.getCharacter(),
       tools: this.mcpService.listTools().map((t) => t.tool),
       stepLimit: this.stepLimit,
       getToolsForPermission: (level) =>

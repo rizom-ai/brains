@@ -8,7 +8,7 @@ import {
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinition } from "@brains/plugins";
 import type { SiteInfoService } from "../../src/services/site-info-service";
-import type { ProfileService } from "@brains/plugins";
+import type { IAnchorProfileService } from "@brains/plugins";
 import { TestLayout } from "../test-helpers";
 import { z } from "@brains/utils";
 
@@ -67,7 +67,7 @@ describe("SiteBuilder dataQuery handling", () => {
     };
 
     // Create SiteBuilder instance with mock static site builder
-    const mockProfileService: Partial<ProfileService> = {
+    const mockProfileService: IAnchorProfileService = {
       getProfile: () => ({ name: "Test" }),
     };
 
@@ -76,7 +76,7 @@ describe("SiteBuilder dataQuery handling", () => {
       mockContext,
       mockRouteRegistry as RouteRegistry,
       mockSiteInfoService as SiteInfoService,
-      mockProfileService as ProfileService,
+      mockProfileService,
       () => mockStaticSiteBuilder,
     );
   });

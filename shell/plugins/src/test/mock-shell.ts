@@ -43,8 +43,8 @@ import {
 } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { DataSourceRegistry, DataSource } from "@brains/entity-service";
-import type { IdentityBody } from "@brains/identity-service";
-import type { ProfileBody } from "@brains/profile-service";
+import type { BrainCharacter } from "@brains/identity-service";
+import type { AnchorProfile } from "@brains/identity-service";
 import type { IAgentService, AgentResponse } from "@brains/ai-service";
 import type {
   ImageGenerationOptions,
@@ -540,7 +540,7 @@ export class MockShell implements IShell {
   }
 
   // Identity and Profile
-  getIdentity(): IdentityBody {
+  getIdentity(): BrainCharacter {
     // Return a default identity for testing
     return {
       name: "Test Brain",
@@ -550,7 +550,7 @@ export class MockShell implements IShell {
     };
   }
 
-  getProfile(): ProfileBody {
+  getProfile(): AnchorProfile {
     // Return a default profile for testing
     return {
       name: "Test Owner",

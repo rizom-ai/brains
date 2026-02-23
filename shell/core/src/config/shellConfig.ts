@@ -2,8 +2,7 @@ import { z } from "@brains/utils";
 import type { Plugin, IEvalHandlerRegistry } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
-import type { IdentityBody } from "@brains/identity-service";
-import type { ProfileBody } from "@brains/profile-service";
+import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import { mkdir } from "fs/promises";
 
 export const STANDARD_PATHS = {
@@ -107,8 +106,8 @@ export const shellConfigSchema = z.object({
 export type ShellConfig = z.infer<typeof shellConfigSchema> & {
   plugins: Plugin[];
   permissions: PermissionConfig;
-  identity?: IdentityBody;
-  profile?: ProfileBody;
+  identity?: BrainCharacter;
+  profile?: AnchorProfile;
   evalHandlerRegistry?: IEvalHandlerRegistry;
 };
 

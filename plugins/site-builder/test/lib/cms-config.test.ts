@@ -241,14 +241,14 @@ describe("generateCmsConfig", () => {
   });
 
   describe("singleton entities", () => {
-    const identitySchema = z.object({
+    const characterSchema = z.object({
       name: z.string(),
       role: z.string(),
       purpose: z.string(),
       values: z.array(z.string()),
     });
 
-    const profileSchema = z.object({
+    const anchorSchema = z.object({
       name: z.string(),
       description: z.string().optional(),
     });
@@ -256,10 +256,13 @@ describe("generateCmsConfig", () => {
     it("should group singletons into a Settings files collection", () => {
       const config = generateCmsConfig(
         cmsOpts(
-          { identity: identitySchema, profile: profileSchema },
           {
-            identity: { isSingleton: true, hasBody: false },
-            profile: { isSingleton: true, hasBody: false },
+            "brain-character": characterSchema,
+            "anchor-profile": anchorSchema,
+          },
+          {
+            "brain-character": { isSingleton: true, hasBody: false },
+            "anchor-profile": { isSingleton: true, hasBody: false },
           },
         ),
       );
@@ -273,32 +276,32 @@ describe("generateCmsConfig", () => {
     it("should set file path to {entityType}/{entityType}.md", () => {
       const config = generateCmsConfig(
         cmsOpts(
-          { identity: identitySchema },
-          { identity: { isSingleton: true, hasBody: false } },
+          { "brain-character": characterSchema },
+          { "brain-character": { isSingleton: true, hasBody: false } },
         ),
       );
 
       const file = config.collections[0]?.files?.[0];
-      expect(file?.file).toBe("identity/identity.md");
+      expect(file?.file).toBe("brain-character/brain-character.md");
     });
 
     it("should use singular label for singleton file entries", () => {
       const config = generateCmsConfig(
         cmsOpts(
-          { identity: identitySchema },
-          { identity: { isSingleton: true, hasBody: false } },
+          { "brain-character": characterSchema },
+          { "brain-character": { isSingleton: true, hasBody: false } },
         ),
       );
 
       const file = config.collections[0]?.files?.[0];
-      expect(file?.label).toBe("Identity");
+      expect(file?.label).toBe("Brain Character");
     });
 
     it("should include fields from schema on singleton file entries", () => {
       const config = generateCmsConfig(
         cmsOpts(
-          { identity: identitySchema },
-          { identity: { isSingleton: true, hasBody: false } },
+          { "brain-character": characterSchema },
+          { "brain-character": { isSingleton: true, hasBody: false } },
         ),
       );
 
@@ -314,8 +317,8 @@ describe("generateCmsConfig", () => {
     it("should not have folder or create on the Settings collection", () => {
       const config = generateCmsConfig(
         cmsOpts(
-          { identity: identitySchema },
-          { identity: { isSingleton: true, hasBody: false } },
+          { "brain-character": characterSchema },
+          { "brain-character": { isSingleton: true, hasBody: false } },
         ),
       );
 
@@ -329,8 +332,8 @@ describe("generateCmsConfig", () => {
       const schema = z.object({ name: z.string() });
       const config = generateCmsConfig(
         cmsOpts(
-          { identity: schema },
-          { identity: { isSingleton: true, hasBody: false } },
+          { "brain-character": schema },
+          { "brain-character": { isSingleton: true, hasBody: false } },
         ),
       );
 
@@ -362,15 +365,15 @@ describe("generateCmsConfig", () => {
 
   describe("mixed collections", () => {
     it("should handle both singletons and multi-file entities", () => {
-      const identitySchema = z.object({
+      const characterSchema = z.object({
         name: z.string(),
         role: z.string(),
       });
 
       const config = generateCmsConfig(
         cmsOpts(
-          { post: postFrontmatterSchema, identity: identitySchema },
-          { identity: { isSingleton: true, hasBody: false } },
+          { post: postFrontmatterSchema, "brain-character": characterSchema },
+          { "brain-character": { isSingleton: true, hasBody: false } },
         ),
       );
 
@@ -384,7 +387,7 @@ describe("generateCmsConfig", () => {
       const settingsCollection = config.collections[1];
       expect(settingsCollection?.name).toBe("settings");
       expect(settingsCollection?.files).toHaveLength(1);
-      expect(settingsCollection?.files?.[0]?.name).toBe("identity");
+      expect(settingsCollection?.files?.[0]?.name).toBe("brain-character");
     });
   });
 });

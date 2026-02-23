@@ -55,41 +55,57 @@ describe("Entity cache invalidation", () => {
     it("should refresh cache when identity entity is created", async () => {
       const refreshCache = subscribeForEntity(
         "entity:created",
-        "identity",
-        "identity",
+        "brain-character",
+        "brain-character",
       );
-      await sendEntityEvent("entity:created", "identity", "identity");
+      await sendEntityEvent(
+        "entity:created",
+        "brain-character",
+        "brain-character",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when identity entity is updated", async () => {
       const refreshCache = subscribeForEntity(
         "entity:updated",
-        "identity",
-        "identity",
+        "brain-character",
+        "brain-character",
       );
-      await sendEntityEvent("entity:updated", "identity", "identity");
+      await sendEntityEvent(
+        "entity:updated",
+        "brain-character",
+        "brain-character",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when identity entity is deleted", async () => {
       const refreshCache = subscribeForEntity(
         "entity:deleted",
-        "identity",
-        "identity",
+        "brain-character",
+        "brain-character",
       );
-      await sendEntityEvent("entity:deleted", "identity", "identity");
+      await sendEntityEvent(
+        "entity:deleted",
+        "brain-character",
+        "brain-character",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should NOT refresh cache for non-identity entities", async () => {
       const refreshCache = subscribeForEntity(
         "entity:created",
-        "identity",
-        "identity",
+        "brain-character",
+        "brain-character",
       );
       await sendEntityEvent("entity:created", "note", "note-123");
-      await sendEntityEvent("entity:created", "profile", "profile");
+      await sendEntityEvent(
+        "entity:created",
+        "anchor-profile",
+        "anchor-profile",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(0);
     });
   });
@@ -98,40 +114,56 @@ describe("Entity cache invalidation", () => {
     it("should refresh cache when profile entity is created", async () => {
       const refreshCache = subscribeForEntity(
         "entity:created",
-        "profile",
-        "profile",
+        "anchor-profile",
+        "anchor-profile",
       );
-      await sendEntityEvent("entity:created", "profile", "profile");
+      await sendEntityEvent(
+        "entity:created",
+        "anchor-profile",
+        "anchor-profile",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when profile entity is updated", async () => {
       const refreshCache = subscribeForEntity(
         "entity:updated",
-        "profile",
-        "profile",
+        "anchor-profile",
+        "anchor-profile",
       );
-      await sendEntityEvent("entity:updated", "profile", "profile");
+      await sendEntityEvent(
+        "entity:updated",
+        "anchor-profile",
+        "anchor-profile",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should refresh cache when profile entity is deleted", async () => {
       const refreshCache = subscribeForEntity(
         "entity:deleted",
-        "profile",
-        "profile",
+        "anchor-profile",
+        "anchor-profile",
       );
-      await sendEntityEvent("entity:deleted", "profile", "profile");
+      await sendEntityEvent(
+        "entity:deleted",
+        "anchor-profile",
+        "anchor-profile",
+      );
       expect(refreshCache).toHaveBeenCalledTimes(1);
     });
 
     it("should NOT refresh cache for non-profile entities", async () => {
       const refreshCache = subscribeForEntity(
         "entity:updated",
-        "profile",
-        "profile",
+        "anchor-profile",
+        "anchor-profile",
       );
-      await sendEntityEvent("entity:updated", "identity", "identity");
+      await sendEntityEvent(
+        "entity:updated",
+        "brain-character",
+        "brain-character",
+      );
       await sendEntityEvent("entity:updated", "post", "post-123");
       expect(refreshCache).toHaveBeenCalledTimes(0);
     });
@@ -141,20 +173,28 @@ describe("Entity cache invalidation", () => {
     it("should refresh only the matching service cache", async () => {
       const identityRefresh = subscribeForEntity(
         "entity:updated",
-        "identity",
-        "identity",
+        "brain-character",
+        "brain-character",
       );
       const profileRefresh = subscribeForEntity(
         "entity:updated",
-        "profile",
-        "profile",
+        "anchor-profile",
+        "anchor-profile",
       );
 
-      await sendEntityEvent("entity:updated", "identity", "identity");
+      await sendEntityEvent(
+        "entity:updated",
+        "brain-character",
+        "brain-character",
+      );
       expect(identityRefresh).toHaveBeenCalledTimes(1);
       expect(profileRefresh).toHaveBeenCalledTimes(0);
 
-      await sendEntityEvent("entity:updated", "profile", "profile");
+      await sendEntityEvent(
+        "entity:updated",
+        "anchor-profile",
+        "anchor-profile",
+      );
       expect(identityRefresh).toHaveBeenCalledTimes(1);
       expect(profileRefresh).toHaveBeenCalledTimes(1);
     });

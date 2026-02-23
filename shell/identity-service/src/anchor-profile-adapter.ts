@@ -5,29 +5,31 @@ import {
 } from "@brains/entity-service";
 import { StructuredContentFormatter, type z } from "@brains/utils";
 import {
-  profileSchema,
-  profileBodySchema,
-  type ProfileEntity,
-  type ProfileBody,
-} from "./schema";
+  anchorProfileSchema,
+  anchorProfileBodySchema,
+  type AnchorProfileEntity,
+  type AnchorProfile,
+} from "./anchor-profile-schema";
 
 /**
- * Entity adapter for Profile entities
+ * Entity adapter for Anchor Profile entities
  * Uses frontmatter format for CMS compatibility
  * Supports reading legacy structured content format for backward compatibility
  */
-export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
-  public readonly entityType = "profile";
-  public readonly schema = profileSchema;
-  public readonly frontmatterSchema = profileBodySchema;
+export class AnchorProfileAdapter
+  implements EntityAdapter<AnchorProfileEntity>
+{
+  public readonly entityType = "anchor-profile";
+  public readonly schema = anchorProfileSchema;
+  public readonly frontmatterSchema = anchorProfileBodySchema;
   public readonly isSingleton = true;
   public readonly hasBody = true;
 
   // TODO: Remove legacy StructuredContentFormatter support once all sites are converted to frontmatter
   private readonly contentHelper = new FrontmatterContentHelper(
-    profileBodySchema,
+    anchorProfileBodySchema,
     () =>
-      new StructuredContentFormatter(profileBodySchema, {
+      new StructuredContentFormatter(anchorProfileBodySchema, {
         title: "Profile",
         mappings: [
           { key: "name", label: "Name", type: "string" },
@@ -55,16 +57,16 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
    * Validates input data through Zod schema
    */
   public createProfileContent(
-    params: z.input<typeof profileBodySchema>,
+    params: z.input<typeof anchorProfileBodySchema>,
   ): string {
-    const validatedData = profileBodySchema.parse(params);
+    const validatedData = anchorProfileBodySchema.parse(params);
     return this.contentHelper.format(validatedData);
   }
 
   /**
    * Parse profile body from content (handles both frontmatter and legacy formats)
    */
-  public parseProfileBody(content: string): ProfileBody {
+  public parseProfileBody(content: string): AnchorProfile {
     return this.contentHelper.parse(content);
   }
 
@@ -72,7 +74,7 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
    * Convert profile entity to markdown
    * Content is already stored in frontmatter format — pass through as-is
    */
-  public toMarkdown(entity: ProfileEntity): string {
+  public toMarkdown(entity: AnchorProfileEntity): string {
     return entity.content;
   }
 
@@ -81,19 +83,19 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
    * Preserves frontmatter as-is to avoid stripping extension fields (e.g., tagline, expertise)
    * Only converts legacy structured content format
    */
-  public fromMarkdown(markdown: string): Partial<ProfileEntity> {
+  public fromMarkdown(markdown: string): Partial<AnchorProfileEntity> {
     return {
       content: markdown.startsWith("---")
         ? markdown
         : this.contentHelper.convertToFrontmatter(markdown),
-      entityType: "profile",
+      entityType: "anchor-profile",
     };
   }
 
   /**
    * Extract metadata for search/filtering
    */
-  public extractMetadata(entity: ProfileEntity): Record<string, unknown> {
+  public extractMetadata(entity: AnchorProfileEntity): Record<string, unknown> {
     const data = this.contentHelper.parse(entity.content);
     return {
       name: data.name,
@@ -116,7 +118,7 @@ export class ProfileAdapter implements EntityAdapter<ProfileEntity> {
   /**
    * Generate frontmatter for the entity
    */
-  public generateFrontMatter(entity: ProfileEntity): string {
+  public generateFrontMatter(entity: AnchorProfileEntity): string {
     const data = this.contentHelper.parse(entity.content);
     return this.contentHelper.toFrontmatterString(data);
   }

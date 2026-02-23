@@ -31,7 +31,14 @@ import {
   type IEntityRegistry,
   type IEntityService,
 } from "@brains/entity-service";
-import { IdentityAdapter, IdentityService } from "@brains/identity-service";
+import {
+  BrainCharacterAdapter,
+  BrainCharacterService,
+} from "@brains/identity-service";
+import {
+  AnchorProfileAdapter,
+  AnchorProfileService,
+} from "@brains/identity-service";
 import { imageAdapter, imageSchema } from "@brains/image";
 import {
   BatchJobManager,
@@ -44,7 +51,6 @@ import {
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { MessageBus, type IMessageBus } from "@brains/messaging-service";
 import { PluginManager, type IShell } from "@brains/plugins";
-import { ProfileAdapter, ProfileService } from "@brains/profile-service";
 import {
   PermissionService,
   RenderService,
@@ -79,8 +85,8 @@ export interface ShellServices {
   batchJobManager: BatchJobManager;
   jobProgressMonitor: JobProgressMonitor;
   permissionService: PermissionService;
-  identityService: IdentityService;
-  profileService: ProfileService;
+  identityService: BrainCharacterService;
+  profileService: AnchorProfileService;
   agentService: IAgentService;
 }
 
@@ -189,24 +195,24 @@ export class ShellInitializer {
     this.logger.debug("Base entity support registered");
   }
 
-  public registerIdentitySupport(entityRegistry: IEntityRegistry): void {
-    const identityAdapter = new IdentityAdapter();
+  public registerBrainCharacterSupport(entityRegistry: IEntityRegistry): void {
+    const characterAdapter = new BrainCharacterAdapter();
     entityRegistry.registerEntityType(
-      SHELL_ENTITY_TYPES.IDENTITY,
-      identityAdapter.schema,
-      identityAdapter,
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      characterAdapter.schema,
+      characterAdapter,
     );
-    this.logger.debug("Identity entity support registered");
+    this.logger.debug("Brain character entity support registered");
   }
 
-  public registerProfileSupport(entityRegistry: IEntityRegistry): void {
-    const profileAdapter = new ProfileAdapter();
+  public registerAnchorProfileSupport(entityRegistry: IEntityRegistry): void {
+    const profileAdapter = new AnchorProfileAdapter();
     entityRegistry.registerEntityType(
-      SHELL_ENTITY_TYPES.PROFILE,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
       profileAdapter.schema,
       profileAdapter,
     );
-    this.logger.debug("Profile entity support registered");
+    this.logger.debug("Anchor profile entity support registered");
   }
 
   public registerImageSupport(entityRegistry: IEntityRegistry): void {
@@ -316,7 +322,7 @@ export class ShellInitializer {
         dataSourceRegistry,
       });
 
-    const identityService = IdentityService.getInstance(
+    const identityService = BrainCharacterService.getInstance(
       entityService,
       logger,
       this.config.identity,
@@ -324,13 +330,13 @@ export class ShellInitializer {
 
     subscribeToEntityCacheInvalidation(
       messageBus,
-      SHELL_ENTITY_TYPES.IDENTITY,
-      SHELL_ENTITY_TYPES.IDENTITY,
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
       () => identityService.refreshCache(),
       logger,
     );
 
-    const profileService = ProfileService.getInstance(
+    const profileService = AnchorProfileService.getInstance(
       entityService,
       logger,
       this.config.profile,
@@ -354,8 +360,8 @@ export class ShellInitializer {
 
     subscribeToEntityCacheInvalidation(
       messageBus,
-      SHELL_ENTITY_TYPES.PROFILE,
-      SHELL_ENTITY_TYPES.PROFILE,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
       () => profileService.refreshCache(),
       logger,
     );
@@ -453,8 +459,8 @@ export class ShellInitializer {
     try {
       this.registerShellTemplates(templateRegistry);
       this.registerBaseEntitySupport(entityRegistry, templateRegistry);
-      this.registerIdentitySupport(entityRegistry);
-      this.registerProfileSupport(entityRegistry);
+      this.registerBrainCharacterSupport(entityRegistry);
+      this.registerAnchorProfileSupport(entityRegistry);
       this.registerImageSupport(entityRegistry);
       await this.initializePlugins(pluginManager);
 

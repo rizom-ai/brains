@@ -3,7 +3,7 @@ import { AgentService } from "../src/agent-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import type { IMCPService, PluginTool } from "@brains/mcp-service";
-import type { IdentityService as IIdentityService } from "@brains/identity-service";
+import type { IBrainCharacterService } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
 import type { BrainAgentConfig, BrainCallOptions } from "../src/brain-agent";
@@ -39,15 +39,14 @@ const createMockMCPService = (): IMCPService => ({
   setPermissionLevel: mock(() => {}),
 });
 
-// Mock IdentityService
-const createMockIdentityService = (): Partial<IIdentityService> => ({
-  getIdentity: mock(() => ({
+// Mock BrainCharacterService
+const createMockCharacterService = (): IBrainCharacterService => ({
+  getCharacter: mock(() => ({
     name: "Test Brain",
     role: "Test assistant",
     purpose: "Help with testing",
     values: ["accuracy", "helpfulness"],
   })),
-  getIdentityContent: mock(() => "# Test Brain\n\nA test assistant."),
 });
 
 // Mock ConversationService
@@ -62,14 +61,14 @@ const createMockConversationService = (): Partial<IConversationService> => ({
 describe("AgentService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
   let mockMCPService: IMCPService;
-  let mockIdentityService: Partial<IIdentityService>;
+  let mockCharacterService: IBrainCharacterService;
   let mockConversationService: Partial<IConversationService>;
 
   beforeEach(() => {
     AgentService.resetInstance();
     logger = createSilentLogger();
     mockMCPService = createMockMCPService();
-    mockIdentityService = createMockIdentityService();
+    mockCharacterService = createMockCharacterService();
     mockConversationService = createMockConversationService();
 
     mockAgentGenerateResult = {
@@ -90,14 +89,14 @@ describe("AgentService", () => {
       const instance1 = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
       const instance2 = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -109,7 +108,7 @@ describe("AgentService", () => {
       const instance1 = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -119,7 +118,7 @@ describe("AgentService", () => {
       const instance2 = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -130,14 +129,14 @@ describe("AgentService", () => {
       const singleton = AgentService.getInstance(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
       const fresh = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -147,7 +146,7 @@ describe("AgentService", () => {
         AgentService.getInstance(
           mockMCPService,
           mockConversationService as IConversationService,
-          mockIdentityService as IIdentityService,
+          mockCharacterService,
           logger,
           { agentFactory: mockAgentFactory },
         ),
@@ -160,7 +159,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -180,7 +179,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -222,7 +221,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -246,7 +245,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -281,7 +280,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -328,7 +327,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -352,7 +351,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -378,7 +377,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -396,7 +395,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -411,7 +410,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -436,7 +435,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -459,7 +458,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -474,11 +473,11 @@ describe("AgentService", () => {
   });
 
   describe("agent creation", () => {
-    it("should create agent with identity from IdentityService", async () => {
+    it("should create agent with character from BrainCharacterService", async () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -525,7 +524,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -553,7 +552,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -613,7 +612,7 @@ describe("AgentService", () => {
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
-        mockIdentityService as IIdentityService,
+        mockCharacterService,
         logger,
         { agentFactory: mockAgentFactory },
       );

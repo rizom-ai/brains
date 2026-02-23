@@ -205,8 +205,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/ai-evaluation": "workspace:*",
+        "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/profile-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -430,8 +430,8 @@
       "dependencies": {
         "@brains/blog": "workspace:*",
         "@brains/decks": "workspace:*",
+        "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/profile-service": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
@@ -450,8 +450,8 @@
       "version": "0.0.1",
       "dependencies": {
         "@brains/default-site-content": "workspace:*",
+        "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/profile-service": "workspace:*",
         "@brains/theme-default": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
@@ -875,7 +875,6 @@
         "@brains/job-queue": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/messaging-service": "workspace:*",
-        "@brains/profile-service": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "eslint": "^8.56.0",
@@ -996,34 +995,19 @@
       "name": "@brains/plugins",
       "version": "1.0.0",
       "dependencies": {
+        "@brains/identity-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/messaging-service": "workspace:*",
-        "@brains/profile-service": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
         "@brains/ai-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
-        "@brains/identity-service": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.1.14",
         "eslint": "^8.56.0",
         "ts-pattern": "^5.0.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shell/profile-service": {
-      "name": "@brains/profile-service",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/entity-service": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
         "typescript": "^5.3.3",
       },
     },
@@ -1152,8 +1136,6 @@
     "@brains/professional-brain": ["@brains/professional-brain@workspace:apps/professional-brain"],
 
     "@brains/professional-site": ["@brains/professional-site@workspace:plugins/professional-site"],
-
-    "@brains/profile-service": ["@brains/profile-service@workspace:shell/profile-service"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 

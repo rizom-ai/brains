@@ -439,7 +439,7 @@ export class Shell implements IShell {
   }
 
   public getIdentity() {
-    return this.services.identityService.getIdentity();
+    return this.services.identityService.getCharacter();
   }
 
   public getProfile() {
@@ -490,7 +490,7 @@ export class Shell implements IShell {
         this.services.aiService,
         this.services.entityService,
         this.services.templateRegistry,
-        () => this.services.identityService.getIdentityContent(),
+        () => this.services.identityService.getCharacterContent(),
         () => this.services.profileService.getProfileContent(),
         this.config.siteBaseUrl,
       ),

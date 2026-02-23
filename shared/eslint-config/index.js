@@ -28,7 +28,7 @@ module.exports = {
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
               },
               {
-                name: "@brains/profile-service",
+                name: "@brains/identity-service",
                 message:
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
               },
@@ -49,11 +49,6 @@ module.exports = {
               },
               {
                 name: "@brains/messaging-service",
-                message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
-              },
-              {
-                name: "@brains/identity-service",
                 message:
                   "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
               },

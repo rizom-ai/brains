@@ -4,8 +4,8 @@ import type {
   BaseEntity,
   DefaultQueryResponse,
   SearchResult,
-  IdentityBody,
-  ProfileBody,
+  BrainCharacter,
+  AnchorProfile,
   AppInfo,
   BatchJobStatus,
   Batch,
@@ -347,7 +347,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get the brain's identity data
    */
-  public getIdentityData(): IdentityBody {
+  public getIdentityData(): BrainCharacter {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }
@@ -357,7 +357,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   /**
    * Get the owner's profile data
    */
-  public getProfileData(): ProfileBody {
+  public getProfileData(): AnchorProfile {
     if (!this.context) {
       throw new Error("Plugin not registered");
     }

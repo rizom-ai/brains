@@ -1,7 +1,7 @@
 import type {
   DataSource,
   BaseDataSourceContext,
-  ProfileService,
+  IAnchorProfileService,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { type z as zType } from "@brains/utils";
@@ -21,7 +21,7 @@ export class SiteInfoDataSource implements DataSource {
   constructor(
     private readonly routeRegistry: RouteRegistry,
     private readonly siteInfoService: SiteInfoService,
-    private readonly profileService: ProfileService,
+    private readonly profileService: IAnchorProfileService,
     private readonly logger: Logger,
   ) {
     this.logger.debug("SiteInfoDataSource initialized");

@@ -1,21 +1,32 @@
 import type { IEntityService } from "@brains/entity-service";
 import { SingletonEntityService } from "@brains/entity-service";
 import type { Logger } from "@brains/utils";
-import type { ProfileBody } from "./schema";
-import { ProfileAdapter } from "./adapter";
+import type { AnchorProfile } from "./anchor-profile-schema";
+import { AnchorProfileAdapter } from "./anchor-profile-adapter";
 
 /**
- * Profile Service
+ * Interface for consuming the anchor's profile data
+ * Use this in consumers instead of the concrete class
+ */
+export interface IAnchorProfileService {
+  getProfile(): AnchorProfile;
+}
+
+/**
+ * Anchor Profile Service
  * Provides the person/organization's public profile (name, bio, socialLinks)
  */
-export class ProfileService extends SingletonEntityService<ProfileBody> {
-  private static instance: ProfileService | null = null;
-  private adapter = new ProfileAdapter();
+export class AnchorProfileService
+  extends SingletonEntityService<AnchorProfile>
+  implements IAnchorProfileService
+{
+  private static instance: AnchorProfileService | null = null;
+  private adapter = new AnchorProfileAdapter();
 
   /**
    * Get the default profile for a new brain
    */
-  public static getDefaultProfile(): ProfileBody {
+  public static getDefaultProfile(): AnchorProfile {
     return {
       name: "Unknown",
     };
@@ -27,21 +38,21 @@ export class ProfileService extends SingletonEntityService<ProfileBody> {
   public static getInstance(
     entityService: IEntityService,
     logger: Logger,
-    defaultProfile?: ProfileBody,
-  ): ProfileService {
-    ProfileService.instance ??= new ProfileService(
+    defaultProfile?: AnchorProfile,
+  ): AnchorProfileService {
+    AnchorProfileService.instance ??= new AnchorProfileService(
       entityService,
       logger,
       defaultProfile,
     );
-    return ProfileService.instance;
+    return AnchorProfileService.instance;
   }
 
   /**
    * Reset the singleton instance (for testing)
    */
   public static resetInstance(): void {
-    ProfileService.instance = null;
+    AnchorProfileService.instance = null;
   }
 
   /**
@@ -50,9 +61,9 @@ export class ProfileService extends SingletonEntityService<ProfileBody> {
   public static createFresh(
     entityService: IEntityService,
     logger: Logger,
-    defaultProfile?: ProfileBody,
-  ): ProfileService {
-    return new ProfileService(entityService, logger, defaultProfile);
+    defaultProfile?: AnchorProfile,
+  ): AnchorProfileService {
+    return new AnchorProfileService(entityService, logger, defaultProfile);
   }
 
   /**
@@ -61,28 +72,28 @@ export class ProfileService extends SingletonEntityService<ProfileBody> {
   private constructor(
     entityService: IEntityService,
     logger: Logger,
-    defaultProfile?: ProfileBody,
+    defaultProfile?: AnchorProfile,
   ) {
     super(
       entityService,
       logger,
-      "profile",
-      defaultProfile ?? ProfileService.getDefaultProfile(),
+      "anchor-profile",
+      defaultProfile ?? AnchorProfileService.getDefaultProfile(),
     );
   }
 
-  protected parseBody(content: string): ProfileBody {
+  protected parseBody(content: string): AnchorProfile {
     return this.adapter.parseProfileBody(content);
   }
 
-  protected createContent(body: ProfileBody): string {
+  protected createContent(body: AnchorProfile): string {
     return this.adapter.createProfileContent(body);
   }
 
   /**
    * Get the profile data (from cache or default)
    */
-  public getProfile(): ProfileBody {
+  public getProfile(): AnchorProfile {
     return this.get();
   }
 

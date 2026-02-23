@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@brains/default-site-content": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/profile-service": "workspace:*",
     "@brains/theme-default": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@tailwindcss/cli": "^4.0.0",

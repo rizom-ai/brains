@@ -5,28 +5,30 @@ import {
 } from "@brains/entity-service";
 import { StructuredContentFormatter, type z } from "@brains/utils";
 import {
-  identitySchema,
-  identityBodySchema,
-  type IdentityEntity,
-  type IdentityBody,
-} from "./schema";
+  brainCharacterSchema,
+  brainCharacterBodySchema,
+  type BrainCharacterEntity,
+  type BrainCharacter,
+} from "./brain-character-schema";
 
 /**
- * Entity adapter for Identity entities
+ * Entity adapter for Brain Character entities
  * Uses frontmatter format for CMS compatibility
  * Supports reading legacy structured content format for backward compatibility
  */
-export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
-  public readonly entityType = "identity";
-  public readonly schema = identitySchema;
-  public readonly frontmatterSchema = identityBodySchema;
+export class BrainCharacterAdapter
+  implements EntityAdapter<BrainCharacterEntity>
+{
+  public readonly entityType = "brain-character";
+  public readonly schema = brainCharacterSchema;
+  public readonly frontmatterSchema = brainCharacterBodySchema;
   public readonly isSingleton = true;
   public readonly hasBody = false;
 
   private readonly contentHelper = new FrontmatterContentHelper(
-    identityBodySchema,
+    brainCharacterBodySchema,
     () =>
-      new StructuredContentFormatter(identityBodySchema, {
+      new StructuredContentFormatter(brainCharacterBodySchema, {
         title: "Brain Identity",
         mappings: [
           { key: "name", label: "Name", type: "string" },
@@ -43,9 +45,9 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
   );
 
   /**
-   * Create identity content in frontmatter format
+   * Create character content in frontmatter format
    */
-  public createIdentityContent(params: {
+  public createCharacterContent(params: {
     name: string;
     role: string;
     purpose: string;
@@ -55,16 +57,16 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
   }
 
   /**
-   * Parse identity body from content (handles both frontmatter and legacy formats)
+   * Parse character body from content (handles both frontmatter and legacy formats)
    */
-  public parseIdentityBody(content: string): IdentityBody {
+  public parseCharacterBody(content: string): BrainCharacter {
     return this.contentHelper.parse(content);
   }
 
   /**
-   * Convert identity entity to frontmatter markdown
+   * Convert character entity to frontmatter markdown
    */
-  public toMarkdown(entity: IdentityEntity): string {
+  public toMarkdown(entity: BrainCharacterEntity): string {
     const data = this.contentHelper.parse(entity.content);
     return this.contentHelper.format(data);
   }
@@ -73,17 +75,19 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
    * Create partial entity from markdown content
    * Auto-converts legacy structured content to frontmatter format
    */
-  public fromMarkdown(markdown: string): Partial<IdentityEntity> {
+  public fromMarkdown(markdown: string): Partial<BrainCharacterEntity> {
     return {
       content: this.contentHelper.convertToFrontmatter(markdown),
-      entityType: "identity",
+      entityType: "brain-character",
     };
   }
 
   /**
    * Extract metadata for search/filtering
    */
-  public extractMetadata(entity: IdentityEntity): Record<string, unknown> {
+  public extractMetadata(
+    entity: BrainCharacterEntity,
+  ): Record<string, unknown> {
     const data = this.contentHelper.parse(entity.content);
     return {
       role: data.role,
@@ -105,7 +109,7 @@ export class IdentityAdapter implements EntityAdapter<IdentityEntity> {
   /**
    * Generate frontmatter for the entity
    */
-  public generateFrontMatter(entity: IdentityEntity): string {
+  public generateFrontMatter(entity: BrainCharacterEntity): string {
     const data = this.contentHelper.parse(entity.content);
     return this.contentHelper.toFrontmatterString(data);
   }

@@ -32,7 +32,7 @@ export class AboutDataSource implements DataSource {
     const entityService = context.entityService;
 
     // Fetch profile entity
-    const profileEntities = await entityService.listEntities("profile", {
+    const profileEntities = await entityService.listEntities("anchor-profile", {
       limit: 1,
     });
     const profileEntity = profileEntities[0];

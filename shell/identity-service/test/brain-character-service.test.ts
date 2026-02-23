@@ -1,34 +1,34 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
-import { IdentityService } from "../src/identity-service";
+import { BrainCharacterService } from "../src/brain-character-service";
 import type { IEntityService } from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
   createTestEntity,
 } from "@brains/test-utils";
-import type { IdentityEntity } from "../src/schema";
+import type { BrainCharacterEntity } from "../src/brain-character-schema";
 
-describe("IdentityService", () => {
+describe("BrainCharacterService", () => {
   // Shared mock state that can be controlled per test
-  let mockGetEntityImpl: () => Promise<IdentityEntity | null>;
+  let mockGetEntityImpl: () => Promise<BrainCharacterEntity | null>;
   let mockCreateEntityImpl: () => Promise<{ entityId: string; jobId: string }>;
 
   let mockEntityService: IEntityService;
-  let identityService: IdentityService;
+  let characterService: BrainCharacterService;
   let getEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
   let createEntitySpy: Mock<(...args: unknown[]) => Promise<unknown>>;
 
   beforeEach(() => {
     // Reset singleton
-    IdentityService.resetInstance();
+    BrainCharacterService.resetInstance();
 
     // Default implementations
-    mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
+    mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> => null;
     mockCreateEntityImpl = async (): Promise<{
       entityId: string;
       jobId: string;
     }> => ({
-      entityId: "identity",
+      entityId: "brain-character",
       jobId: "job-123",
     });
 
@@ -47,17 +47,17 @@ describe("IdentityService", () => {
     createEntitySpy.mockImplementation(async () => mockCreateEntityImpl());
 
     // Create fresh instance with silent logger
-    identityService = IdentityService.createFresh(
+    characterService = BrainCharacterService.createFresh(
       mockEntityService,
       createSilentLogger(),
     );
   });
 
-  describe("getDefaultIdentity", () => {
-    it("should return default identity with name, role, purpose, and values", () => {
-      const defaultIdentity = IdentityService.getDefaultIdentity();
+  describe("getDefaultCharacter", () => {
+    it("should return default character with name, role, purpose, and values", () => {
+      const defaultCharacter = BrainCharacterService.getDefaultCharacter();
 
-      expect(defaultIdentity).toEqual({
+      expect(defaultCharacter).toEqual({
         name: "Personal Brain",
         role: "Personal knowledge assistant",
         purpose:
@@ -67,14 +67,14 @@ describe("IdentityService", () => {
     });
   });
 
-  describe("getIdentity", () => {
-    it("should return default identity when cache is null", () => {
-      const identity = identityService.getIdentity();
+  describe("getCharacter", () => {
+    it("should return default character when cache is null", () => {
+      const character = characterService.getCharacter();
 
-      expect(identity).toEqual(IdentityService.getDefaultIdentity());
+      expect(character).toEqual(BrainCharacterService.getDefaultCharacter());
     });
 
-    it("should parse and return identity from cache when entity exists", async () => {
+    it("should parse and return character from cache when entity exists", async () => {
       // Create a mock entity with content
       const mockContent = `# Brain Identity
 
@@ -91,32 +91,36 @@ Help with academic research
 
 - rigor
 - accuracy`;
-      const mockEntity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
-        content: mockContent,
-      });
+      const mockEntity = createTestEntity<BrainCharacterEntity>(
+        "brain-character",
+        {
+          id: "brain-character",
+          content: mockContent,
+        },
+      );
 
       // Control mock behavior to return the entity
-      mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity> => mockEntity;
 
       // Initialize to load the entity into cache
-      await identityService.initialize();
+      await characterService.initialize();
 
-      // Get identity should now return parsed content
-      const identity = identityService.getIdentity();
+      // Get character should now return parsed content
+      const character = characterService.getCharacter();
 
-      expect(identity.role).toBe("Research assistant");
-      expect(identity.purpose).toBe("Help with academic research");
-      expect(identity.values).toEqual(["rigor", "accuracy"]);
+      expect(character.role).toBe("Research assistant");
+      expect(character.purpose).toBe("Help with academic research");
+      expect(character.values).toEqual(["rigor", "accuracy"]);
     });
   });
 
   describe("initialize", () => {
-    it("should create default identity entity when none exists", async () => {
-      // Mock behavior: no existing identity
-      mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
+    it("should create default character entity when none exists", async () => {
+      // Mock behavior: no existing character
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> =>
+        null;
 
-      await identityService.initialize();
+      await characterService.initialize();
 
       // Should have called createEntity
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
@@ -127,11 +131,11 @@ Help with academic research
         | undefined;
       expect(createCall).toBeDefined();
       expect(createCall).toMatchObject({
-        id: "identity",
-        entityType: "identity",
+        id: "brain-character",
+        entityType: "brain-character",
       });
 
-      // Content should contain default identity data
+      // Content should contain default character data
       expect(createCall?.["content"]).toContain("Personal knowledge assistant");
       expect(createCall?.["content"]).toContain("clarity");
     });
@@ -152,22 +156,26 @@ Existing purpose
 ## Values
 
 - existing value`;
-      const mockEntity = createTestEntity<IdentityEntity>("identity", {
-        id: "identity",
-        content: existingContent,
-      });
+      const mockEntity = createTestEntity<BrainCharacterEntity>(
+        "brain-character",
+        {
+          id: "brain-character",
+          content: existingContent,
+        },
+      );
 
-      mockGetEntityImpl = async (): Promise<IdentityEntity> => mockEntity;
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity> => mockEntity;
 
-      await identityService.initialize();
+      await characterService.initialize();
 
       // Should NOT have called createEntity
       expect(mockEntityService.createEntity).not.toHaveBeenCalled();
     });
 
     it("should handle errors during entity creation gracefully", async () => {
-      // Mock behavior: no existing entity
-      mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
+      // Mock behavior: no existing character
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> =>
+        null;
 
       // Mock behavior: createEntity throws error
       mockCreateEntityImpl = async (): Promise<never> => {
@@ -175,32 +183,32 @@ Existing purpose
       };
 
       // Should not throw
-      await identityService.initialize();
+      await characterService.initialize();
     });
   });
 
   describe("refreshCache", () => {
-    it("should reload identity from database", async () => {
+    it("should reload character from database", async () => {
       // Mock behavior: return test entity
       const testContent = "test content";
-      mockGetEntityImpl = async (): Promise<IdentityEntity> =>
-        createTestEntity<IdentityEntity>("identity", {
-          id: "identity",
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity> =>
+        createTestEntity<BrainCharacterEntity>("brain-character", {
+          id: "brain-character",
           content: testContent,
         });
 
-      await identityService.refreshCache();
+      await characterService.refreshCache();
 
       expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "identity",
-        "identity",
+        "brain-character",
+        "brain-character",
       );
     });
   });
 
-  describe("custom default identity", () => {
-    it("should use provided custom default identity instead of hardcoded default", () => {
-      const customIdentity = {
+  describe("custom default character", () => {
+    it("should use provided custom default character instead of hardcoded default", () => {
+      const customCharacter = {
         name: "Tech Doc Brain",
         role: "Technical documentation assistant",
         purpose: "Help write and maintain technical documentation",
@@ -211,39 +219,40 @@ Existing purpose
       const freshMockEntityService = createMockEntityService();
       spyOn(freshMockEntityService, "getEntity").mockResolvedValue(null);
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
-        entityId: "identity",
+        entityId: "brain-character",
         jobId: "job-123",
       });
 
-      // Create a completely fresh service with custom identity
-      const customService = IdentityService.createFresh(
+      // Create a completely fresh service with custom character
+      const customService = BrainCharacterService.createFresh(
         freshMockEntityService,
         createSilentLogger(),
-        customIdentity,
+        customCharacter,
       );
 
       // Without any entity in database, should return custom default
-      const identity = customService.getIdentity();
+      const character = customService.getCharacter();
 
-      expect(identity).toEqual(customIdentity);
+      expect(character).toEqual(customCharacter);
     });
 
     it("should create entity with custom default when none exists", async () => {
-      const customIdentity = {
+      const customCharacter = {
         name: "Research Brain",
         role: "Research assistant",
         purpose: "Help with academic research",
         values: ["rigor", "thoroughness"],
       };
 
-      const customService = IdentityService.createFresh(
+      const customService = BrainCharacterService.createFresh(
         mockEntityService,
         createSilentLogger(),
-        customIdentity,
+        customCharacter,
       );
 
-      // Mock behavior: no existing identity
-      mockGetEntityImpl = async (): Promise<IdentityEntity | null> => null;
+      // Mock behavior: no existing character
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> =>
+        null;
 
       await customService.initialize();
 
@@ -261,16 +270,16 @@ Existing purpose
       );
     });
 
-    it("should fall back to hardcoded default when custom identity is not provided", () => {
-      const serviceWithoutCustom = IdentityService.createFresh(
+    it("should fall back to hardcoded default when custom character is not provided", () => {
+      const serviceWithoutCustom = BrainCharacterService.createFresh(
         mockEntityService,
         createSilentLogger(),
         undefined,
       );
 
-      const identity = serviceWithoutCustom.getIdentity();
+      const character = serviceWithoutCustom.getCharacter();
 
-      expect(identity).toEqual(IdentityService.getDefaultIdentity());
+      expect(character).toEqual(BrainCharacterService.getDefaultCharacter());
     });
   });
 });

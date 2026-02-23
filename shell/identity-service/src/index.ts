@@ -1,13 +1,26 @@
-// Export service
-export { IdentityService } from "./identity-service";
-
-// Export schema and types
+// Brain character (was: identity)
 export {
-  identitySchema,
-  identityBodySchema,
-  type IdentityEntity,
-  type IdentityBody,
-} from "./schema";
+  BrainCharacterService,
+  type IBrainCharacterService,
+} from "./brain-character-service";
+export { BrainCharacterAdapter } from "./brain-character-adapter";
+export {
+  brainCharacterSchema,
+  brainCharacterBodySchema,
+  brainCharacterFrontmatterSchema,
+  type BrainCharacter,
+  type BrainCharacterEntity,
+} from "./brain-character-schema";
 
-// Export adapter
-export { IdentityAdapter } from "./adapter";
+// Anchor profile (was: profile)
+export {
+  AnchorProfileService,
+  type IAnchorProfileService,
+} from "./anchor-profile-service";
+export { AnchorProfileAdapter } from "./anchor-profile-adapter";
+export {
+  anchorProfileSchema,
+  anchorProfileBodySchema,
+  type AnchorProfile,
+  type AnchorProfileEntity,
+} from "./anchor-profile-schema";

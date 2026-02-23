@@ -41,8 +41,8 @@ Building tools for thought
 ## Availability
 Open for consulting`;
 
-  const mockProfile = createTestEntity("profile", {
-    id: "profile-1",
+  const mockProfile = createTestEntity("anchor-profile", {
+    id: "anchor-profile",
     content: profileContent,
     metadata: {},
   });
@@ -51,7 +51,7 @@ Open for consulting`;
     mockEntityService = createMockEntityService();
     spyOn(mockEntityService, "listEntities").mockImplementation(
       <T extends BaseEntity>(entityType: string): Promise<T[]> => {
-        if (entityType === "profile")
+        if (entityType === "anchor-profile")
           return Promise.resolve([mockProfile]) as Promise<T[]>;
         return Promise.resolve([]) as Promise<T[]>;
       },
@@ -115,15 +115,15 @@ Open for consulting`;
 ## Name
 Test User`;
 
-    const minimalProfile = createTestEntity("profile", {
-      id: "profile-2",
+    const minimalProfile = createTestEntity("anchor-profile", {
+      id: "anchor-profile",
       content: minimalContent,
       metadata: {},
     });
 
     spyOn(mockEntityService, "listEntities").mockImplementation(
       <T extends BaseEntity>(entityType: string): Promise<T[]> => {
-        if (entityType === "profile")
+        if (entityType === "anchor-profile")
           return Promise.resolve([minimalProfile]) as Promise<T[]>;
         return Promise.resolve([]) as Promise<T[]>;
       },

@@ -2,24 +2,24 @@ import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/entity-service";
 
 /**
- * Profile entity schema
+ * Anchor profile entity schema
  * Profile data (name, description, socialLinks) is stored in content field as structured markdown
  */
-export const profileSchema = baseEntitySchema.extend({
-  id: z.literal("profile"),
-  entityType: z.literal("profile"),
+export const anchorProfileSchema = baseEntitySchema.extend({
+  id: z.literal("anchor-profile"),
+  entityType: z.literal("anchor-profile"),
 });
 
 /**
- * Profile entity type derived from schema
+ * Anchor profile entity type derived from schema
  */
-export type ProfileEntity = z.infer<typeof profileSchema>;
+export type AnchorProfileEntity = z.infer<typeof anchorProfileSchema>;
 
 /**
- * Profile body schema - structure of content within the markdown
+ * Anchor profile body schema - structure of content within the markdown
  * (Not stored as separate entity fields - parsed from content)
  */
-export const profileBodySchema = z.object({
+export const anchorProfileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
   description: z.string().optional().describe("Short description or biography"),
   avatar: z.string().optional().describe("URL or asset path to avatar/logo"),
@@ -40,6 +40,6 @@ export const profileBodySchema = z.object({
 });
 
 /**
- * Profile body type
+ * Anchor profile body type
  */
-export type ProfileBody = z.infer<typeof profileBodySchema>;
+export type AnchorProfile = z.infer<typeof anchorProfileBodySchema>;

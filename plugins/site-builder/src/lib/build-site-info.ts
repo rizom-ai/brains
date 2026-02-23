@@ -1,4 +1,4 @@
-import type { ProfileService } from "@brains/plugins";
+import type { IAnchorProfileService } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
 import type { SiteInfoService } from "../services/site-info-service";
 import type { SiteInfo } from "../types/site-info";
@@ -9,7 +9,7 @@ import type { SiteInfo } from "../types/site-info";
  */
 export async function buildSiteInfo(
   siteInfoService: SiteInfoService,
-  profileService: ProfileService,
+  profileService: IAnchorProfileService,
   routeRegistry: RouteRegistry,
 ): Promise<SiteInfo> {
   const siteInfoBody = await siteInfoService.getSiteInfo();

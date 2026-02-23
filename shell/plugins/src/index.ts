@@ -245,17 +245,29 @@ export type {
 export type { UserPermissionLevel } from "@brains/templates";
 export { PermissionService } from "@brains/templates";
 
-// From @brains/identity-service
-export type { IdentityBody } from "@brains/identity-service";
-export { identityBodySchema } from "@brains/identity-service";
-
-// From @brains/profile-service
-export type { ProfileBody } from "@brains/profile-service";
+// From @brains/identity-service (brain character + anchor profile)
+export type {
+  BrainCharacter,
+  BrainCharacterEntity,
+  IBrainCharacterService,
+} from "@brains/identity-service";
 export {
-  ProfileService,
-  ProfileAdapter,
-  profileBodySchema,
-} from "@brains/profile-service";
+  BrainCharacterService,
+  BrainCharacterAdapter,
+  brainCharacterBodySchema,
+  brainCharacterSchema,
+} from "@brains/identity-service";
+export type {
+  AnchorProfile,
+  AnchorProfileEntity,
+  IAnchorProfileService,
+} from "@brains/identity-service";
+export {
+  AnchorProfileService,
+  AnchorProfileAdapter,
+  anchorProfileBodySchema,
+  anchorProfileSchema,
+} from "@brains/identity-service";
 
 // From @brains/entity-service (datasource, merged)
 export type {

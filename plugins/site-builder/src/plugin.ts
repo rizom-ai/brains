@@ -4,7 +4,7 @@ import type {
   PluginResource,
   ServicePluginContext,
 } from "@brains/plugins";
-import { ServicePlugin, ProfileService } from "@brains/plugins";
+import { ServicePlugin, AnchorProfileService } from "@brains/plugins";
 import { SiteBuilder } from "./lib/site-builder.js";
 import { RouteRegistry } from "./lib/route-registry.js";
 import {
@@ -45,7 +45,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private _routeRegistry?: RouteRegistry;
   private _slotRegistry?: UISlotRegistry;
   private siteInfoService?: SiteInfoService;
-  private profileService?: ProfileService;
+  private profileService?: AnchorProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
 
@@ -122,7 +122,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger,
       this.config.siteInfo,
     );
-    this.profileService = ProfileService.getInstance(
+    this.profileService = AnchorProfileService.getInstance(
       context.entityService,
       context.logger,
     );
@@ -134,7 +134,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       await this.siteInfoService?.initialize();
       this.logger.info("SiteInfoService initialized");
       await this.profileService?.initialize();
-      this.logger.info("ProfileService initialized");
+      this.logger.info("AnchorProfileService initialized");
       return { success: true };
     });
 

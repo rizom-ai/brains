@@ -2,8 +2,8 @@ import type {
   BaseEntity,
   EntityAdapter,
   EntityInput,
-  IdentityBody,
-  ProfileBody,
+  BrainCharacter,
+  AnchorProfile,
 } from "@brains/plugins";
 
 /**
@@ -67,12 +67,12 @@ export interface IImagePlugin {
   /**
    * Get the brain's identity data
    */
-  getIdentityData(): IdentityBody;
+  getIdentityData(): BrainCharacter;
 
   /**
    * Get the owner's profile data
    */
-  getProfileData(): ProfileBody;
+  getProfileData(): AnchorProfile;
 }
 
 /**

@@ -14,7 +14,7 @@ import {
   type LanguageModel,
 } from "ai";
 import { z } from "@brains/utils";
-import type { IdentityBody } from "@brains/identity-service";
+import type { BrainCharacter } from "@brains/identity-service";
 import type { PluginTool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
@@ -44,7 +44,7 @@ export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
  * Model and provider options are set at factory creation time
  */
 export interface BrainAgentConfig {
-  identity: IdentityBody;
+  identity: BrainCharacter;
   tools: PluginTool[];
   stepLimit?: number;
   getToolsForPermission: (level: UserPermissionLevel) => PluginTool[];
@@ -117,7 +117,7 @@ function convertToSDKTools(
  * Build the system instructions/prompt from identity
  */
 function buildInstructions(
-  identity: IdentityBody,
+  identity: BrainCharacter,
   userPermissionLevel: UserPermissionLevel,
 ): string {
   let userContext = "";

@@ -34,8 +34,8 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { PermissionService } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/entity-service";
-import type { IdentityBody } from "@brains/identity-service";
-import type { ProfileBody } from "@brains/profile-service";
+import type { BrainCharacter } from "@brains/identity-service";
+import type { AnchorProfile } from "@brains/identity-service";
 import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
 import type { IAgentService } from "@brains/ai-service";
 import type {
@@ -127,8 +127,8 @@ export interface IShell {
   getAgentService(): IAgentService;
 
   // Identity and Profile
-  getIdentity(): IdentityBody;
-  getProfile(): ProfileBody;
+  getIdentity(): BrainCharacter;
+  getProfile(): AnchorProfile;
 
   // Data directory - where plugins should store entity files
   // Default: ./brain-data, can be overridden for evals or custom deployments

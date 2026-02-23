@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@brains/ai-evaluation": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/profile-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

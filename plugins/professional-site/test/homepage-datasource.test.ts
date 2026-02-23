@@ -33,8 +33,8 @@ Building tools for thought
 ## Intro
 Essays and presentations on technology`;
 
-  const mockProfile = createTestEntity("profile", {
-    id: "profile-1",
+  const mockProfile = createTestEntity("anchor-profile", {
+    id: "anchor-profile",
     content: profileContent,
     metadata: {},
   });
@@ -105,7 +105,7 @@ mailto:test@example.com`;
   });
 
   const entityStore: Record<string, BaseEntity[]> = {
-    profile: [mockProfile],
+    "anchor-profile": [mockProfile],
     post: [mockPost],
     deck: [mockDeck],
     "site-info": [mockSiteInfo],
@@ -166,7 +166,7 @@ mailto:test@example.com`;
     };
 
     const store: Record<string, BaseEntity[]> = {
-      profile: [mockProfile],
+      "anchor-profile": [mockProfile],
       post: [mockPost, draftPost],
       deck: [mockDeck],
       "site-info": [mockSiteInfo],

@@ -1,18 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { IdentityService } from "@brains/identity-service";
-import { ProfileService } from "@brains/profile-service";
+import {
+  BrainCharacterService,
+  AnchorProfileService,
+} from "@brains/identity-service";
 
 describe("Startup Initialization Order", () => {
   beforeEach(() => {
-    IdentityService.resetInstance();
-    ProfileService.resetInstance();
+    BrainCharacterService.resetInstance();
+    AnchorProfileService.resetInstance();
   });
 
   afterEach(() => {
-    IdentityService.resetInstance();
-    ProfileService.resetInstance();
+    BrainCharacterService.resetInstance();
+    AnchorProfileService.resetInstance();
   });
 
   describe("ShellInitializer must subscribe to sync:initial:completed", () => {

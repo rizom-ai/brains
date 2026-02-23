@@ -1,7 +1,7 @@
 import type {
   ProgressCallback,
   ServicePluginContext,
-  ProfileService,
+  IAnchorProfileService,
   ResolutionOptions,
 } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins";
@@ -58,7 +58,7 @@ export class SiteBuilder implements ISiteBuilder {
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private routeRegistry: RouteRegistry;
   private siteInfoService: SiteInfoService;
-  private profileService: ProfileService;
+  private profileService: IAnchorProfileService;
   private entityRouteConfig: EntityRouteConfig | undefined;
 
   /**
@@ -75,7 +75,7 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
-    profileService: ProfileService,
+    profileService: IAnchorProfileService,
     entityRouteConfig?: EntityRouteConfig,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
@@ -99,7 +99,7 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
-    profileService: ProfileService,
+    profileService: IAnchorProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
     entityRouteConfig?: EntityRouteConfig,
   ): SiteBuilder {
@@ -120,7 +120,7 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     siteInfoService: SiteInfoService,
-    profileService: ProfileService,
+    profileService: IAnchorProfileService,
     entityRouteConfig?: EntityRouteConfig,
   ) {
     this.logger = logger;

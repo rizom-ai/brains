@@ -15,8 +15,8 @@
   "dependencies": {
     "@brains/blog": "workspace:*",
     "@brains/decks": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/profile-service": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"

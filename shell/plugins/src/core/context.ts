@@ -16,8 +16,8 @@ import type {
   Message,
   GetMessagesOptions,
 } from "@brains/conversation-service";
-import type { IdentityBody } from "@brains/identity-service";
-import type { ProfileBody } from "@brains/profile-service";
+import type { BrainCharacter } from "@brains/identity-service";
+import type { AnchorProfile } from "@brains/identity-service";
 import type { AppInfo } from "../interfaces";
 import type {
   IJobsNamespace,
@@ -143,11 +143,11 @@ export interface IAINamespace {
  * Provides access to brain identity and profile information
  */
 export interface IIdentityNamespace {
-  /** Get the brain's identity configuration */
-  get: () => IdentityBody;
+  /** Get the brain's character configuration */
+  get: () => BrainCharacter;
 
-  /** Get the owner's profile */
-  getProfile: () => ProfileBody;
+  /** Get the anchor's profile */
+  getProfile: () => AnchorProfile;
 
   /** Get app metadata (version, model, plugins) */
   getAppInfo: () => Promise<AppInfo>;

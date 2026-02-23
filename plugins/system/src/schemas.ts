@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { appInfoSchema, identityBodySchema } from "@brains/plugins";
+import { appInfoSchema, brainCharacterBodySchema } from "@brains/plugins";
 
 /**
  * Configuration schema for the system plugin
@@ -30,6 +30,6 @@ export type SearchOptions = z.infer<typeof searchOptionsSchema>;
 /**
  * About info schema - combines app info and identity
  */
-export const aboutInfoSchema = identityBodySchema.merge(appInfoSchema);
+export const aboutInfoSchema = brainCharacterBodySchema.merge(appInfoSchema);
 
 export type AboutInfo = z.infer<typeof aboutInfoSchema>;

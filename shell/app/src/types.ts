@@ -4,7 +4,7 @@ import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
 import type { CLIConfig } from "@brains/cli";
 import type { PermissionConfig } from "@brains/templates";
-import { identityBodySchema } from "@brains/identity-service";
+import { brainCharacterBodySchema } from "@brains/identity-service";
 
 // Deployment configuration schema
 // This consolidates all deployment settings that were previously in deploy.config.json
@@ -77,7 +77,7 @@ export const appConfigSchema = z.object({
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
   // Identity - override default identity for this app
-  identity: identityBodySchema.optional(),
+  identity: brainCharacterBodySchema.optional(),
   // Deployment configuration
   deployment: deploymentConfigSchema.default({}),
 });

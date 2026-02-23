@@ -55,7 +55,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
   ): Promise<void> {
     // Extend profile frontmatter schema with professional fields for CMS
     context.entities.extendFrontmatterSchema(
-      "profile",
+      "anchor-profile",
       professionalProfileExtension,
     );
 
