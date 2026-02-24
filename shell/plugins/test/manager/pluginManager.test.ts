@@ -60,7 +60,10 @@ describe("PluginManager", (): void => {
     const logger = createSilentLogger();
     const mockShell = MockShell.createFresh({ logger });
 
-    pluginManager = PluginManager.createFresh(logger);
+    pluginManager = PluginManager.createFresh(
+      logger,
+      mockShell.getDaemonRegistry(),
+    );
     pluginManager.setShell(mockShell);
   });
 

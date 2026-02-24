@@ -10,7 +10,7 @@ import {
   createEnqueueBatchFn,
   createRegisterHandlerFn,
 } from "../shared/job-helpers";
-import type { Daemon } from "@brains/daemon-registry";
+import type { Daemon } from "../manager/daemon-types";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IAgentService } from "@brains/ai-service";
 import type {

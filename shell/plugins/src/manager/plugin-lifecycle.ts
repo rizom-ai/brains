@@ -2,7 +2,7 @@ import type { Logger } from "@brains/utils";
 import type { IShell } from "../interfaces";
 import type { EventEmitter } from "events";
 import type { PluginCapabilities } from "../interfaces";
-import type { DaemonRegistry } from "@brains/daemon-registry";
+import type { IDaemonRegistry } from "./daemon-types";
 import type { PluginInfo } from "./types";
 import { PluginStatus, PluginEvent } from "./types";
 import { PluginError } from "../errors";
@@ -17,7 +17,7 @@ export class PluginLifecycle {
   constructor(
     private plugins: Map<string, PluginInfo>,
     private events: EventEmitter,
-    private daemonRegistry: DaemonRegistry,
+    private daemonRegistry: IDaemonRegistry,
     logger: Logger,
   ) {
     this.logger = logger.child("PluginLifecycle");

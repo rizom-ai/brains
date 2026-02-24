@@ -223,7 +223,18 @@ export {
   GetRoutePayloadSchema,
 } from "./types/routes";
 
-// Note: DaemonRegistry is not exported as plugins should use IShell.registerDaemon()
+// Daemon types (merged from @brains/daemon-registry)
+export type {
+  Daemon,
+  DaemonHealth,
+  DaemonInfo,
+  DaemonStatusInfo,
+  IDaemonRegistry,
+} from "./manager/daemon-types";
+export {
+  DaemonHealthSchema,
+  DaemonStatusInfoSchema,
+} from "./manager/daemon-types";
 
 // From @brains/db
 export type {

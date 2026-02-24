@@ -2,7 +2,7 @@ import type { Logger } from "@brains/utils";
 import type { IShell } from "../interfaces";
 import { EventEmitter } from "events";
 import type { Plugin } from "../interfaces";
-import { DaemonRegistry } from "@brains/daemon-registry";
+import type { IDaemonRegistry } from "./daemon-types";
 import type {
   PluginManager as IPluginManager,
   PluginInfo,
@@ -27,7 +27,7 @@ export class PluginManager implements IPluginManager {
   private plugins: Map<string, PluginInfo> = new Map();
   private logger: Logger;
   private events = new EventEmitter();
-  private daemonRegistry: DaemonRegistry;
+  private daemonRegistry: IDaemonRegistry;
   private shell: IShell | null = null;
   private pluginLifecycle: PluginLifecycle;
   private dependencyResolver: DependencyResolver;
@@ -36,8 +36,11 @@ export class PluginManager implements IPluginManager {
   /**
    * Get the singleton instance of PluginManager
    */
-  public static getInstance(logger: Logger): PluginManager {
-    PluginManager.instance ??= new PluginManager(logger);
+  public static getInstance(
+    logger: Logger,
+    daemonRegistry: IDaemonRegistry,
+  ): PluginManager {
+    PluginManager.instance ??= new PluginManager(logger, daemonRegistry);
     return PluginManager.instance;
   }
 
@@ -51,8 +54,11 @@ export class PluginManager implements IPluginManager {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(logger: Logger): PluginManager {
-    return new PluginManager(logger);
+  public static createFresh(
+    logger: Logger,
+    daemonRegistry: IDaemonRegistry,
+  ): PluginManager {
+    return new PluginManager(logger, daemonRegistry);
   }
 
   /**
@@ -65,10 +71,10 @@ export class PluginManager implements IPluginManager {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(logger: Logger) {
+  private constructor(logger: Logger, daemonRegistry: IDaemonRegistry) {
     this.logger = logger.child("PluginManager");
     this.events = new EventEmitter();
-    this.daemonRegistry = DaemonRegistry.getInstance(logger);
+    this.daemonRegistry = daemonRegistry;
 
     // Initialize helper classes
     this.pluginLifecycle = new PluginLifecycle(

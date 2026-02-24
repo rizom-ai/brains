@@ -4,7 +4,7 @@ import {
   PluginError,
   parseConfirmationResponse,
 } from "@brains/plugins";
-import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
+import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
 import type { IAgentService } from "@brains/plugins";
 import type { Instance } from "ink";

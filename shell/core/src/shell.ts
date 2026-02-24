@@ -14,7 +14,7 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
-import type { Daemon } from "@brains/daemon-registry";
+import type { Daemon } from "@brains/plugins";
 import type { BatchJobStatus, IJobsNamespace } from "@brains/job-queue";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";

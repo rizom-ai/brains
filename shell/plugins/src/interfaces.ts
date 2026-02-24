@@ -11,7 +11,7 @@ import {
   type UpdateEntityResponse,
 } from "@brains/utils";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { Daemon } from "@brains/daemon-registry";
+import type { Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
@@ -36,7 +36,7 @@ import type { PermissionService } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/entity-service";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
-import { DaemonStatusInfoSchema } from "@brains/daemon-registry";
+import { DaemonStatusInfoSchema } from "./manager/daemon-types";
 import type { IAgentService } from "@brains/ai-service";
 import type {
   ImageGenerationOptions,

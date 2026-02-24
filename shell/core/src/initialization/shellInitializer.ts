@@ -14,7 +14,7 @@ import {
   ConversationService,
   type IConversationService,
 } from "@brains/conversation-service";
-import { DaemonRegistry } from "@brains/daemon-registry";
+import { DaemonRegistry } from "../daemon-registry";
 import { DataSourceRegistry } from "@brains/entity-service";
 import {
   EmbeddingService,
@@ -272,7 +272,8 @@ export class ShellInitializer {
     const daemonRegistry =
       dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
     const pluginManager =
-      dependencies?.pluginManager ?? PluginManager.getInstance(logger);
+      dependencies?.pluginManager ??
+      PluginManager.getInstance(logger, daemonRegistry);
     const permissionService = new PermissionService(this.config.permissions);
     const mcpService =
       dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);

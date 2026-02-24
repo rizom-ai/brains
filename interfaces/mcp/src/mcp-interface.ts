@@ -6,7 +6,7 @@ import {
   type JobProgressEvent,
   type JobContext,
 } from "@brains/plugins";
-import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
+import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";

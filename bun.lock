@@ -866,7 +866,6 @@
         "@brains/ai-service": "workspace:*",
         "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
-        "@brains/daemon-registry": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/identity-service": "workspace:*",
@@ -874,20 +873,6 @@
         "@brains/job-queue": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/messaging-service": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shell/daemon-registry": {
-      "name": "@brains/daemon-registry",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "eslint": "^8.56.0",
@@ -1067,8 +1052,6 @@
     "@brains/conversation-service": ["@brains/conversation-service@workspace:shell/conversation-service"],
 
     "@brains/core": ["@brains/core@workspace:shell/core"],
-
-    "@brains/daemon-registry": ["@brains/daemon-registry@workspace:shell/daemon-registry"],
 
     "@brains/dashboard": ["@brains/dashboard@workspace:plugins/dashboard"],
 

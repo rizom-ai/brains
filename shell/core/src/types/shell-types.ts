@@ -1,7 +1,7 @@
 import type { IAIService } from "@brains/ai-service";
 import type { ContentService } from "@brains/content-service";
 import type { IConversationService } from "@brains/conversation-service";
-import type { DaemonRegistry } from "@brains/daemon-registry";
+import type { DaemonRegistry } from "../daemon-registry";
 import type { DataSourceRegistry } from "@brains/entity-service";
 import type { IEmbeddingService } from "@brains/entity-service";
 import type { IEntityRegistry, IEntityService } from "@brains/entity-service";

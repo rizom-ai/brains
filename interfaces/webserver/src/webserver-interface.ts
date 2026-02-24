@@ -4,7 +4,7 @@ import {
   type JobProgressEvent,
   type JobContext,
 } from "@brains/plugins";
-import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
+import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
 import { existsSync } from "fs";
 import { join } from "path";

@@ -9,7 +9,7 @@ import type {
   EvalHandler,
   RegisteredApiRoute,
 } from "@brains/plugins";
-import type { Daemon } from "@brains/daemon-registry";
+import type { Daemon, IDaemonRegistry } from "../manager/daemon-types";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Plugin, ContentGenerationConfig } from "@brains/plugins";
 import type {
@@ -71,6 +71,7 @@ export class MockShell implements IShell {
   >();
   private mockAgentService: IAgentService;
   private _dataDir: string | undefined;
+  private _daemonRegistry: IDaemonRegistry;
 
   /** Jobs namespace - unified access to job queue and batch operations */
   public readonly jobs: IJobsNamespace;
@@ -130,28 +131,23 @@ export class MockShell implements IShell {
       getActiveBatches: async () => [],
     });
 
-    // Pre-register DaemonRegistry service with proper tracking
-    const registeredDaemons = new Set<string>();
-    this.services.set("daemonRegistry", {
-      register: (name: string) => {
-        registeredDaemons.add(name);
-      },
-      unregister: (name: string) => {
-        registeredDaemons.delete(name);
-      },
+    // Create mock DaemonRegistry implementing IDaemonRegistry
+    this._daemonRegistry = {
+      register: () => {},
+      has: () => false,
+      get: () => undefined,
       start: async () => {},
       stop: async () => {},
-      startAll: async () => {},
-      stopAll: async () => {},
-      has: (name: string) => registeredDaemons.has(name),
-      listDaemons: () => Array.from(registeredDaemons),
-      checkHealth: async (_name: string) => ({
-        healthy: false, // Daemons start as not healthy in tests
-        status: "error" as const,
-        message: "Daemon not started",
-        lastCheck: new Date(),
-      }),
-    });
+      checkHealth: async () => undefined,
+      getByPlugin: () => [],
+      getAll: () => [],
+      getAllInfo: () => [],
+      getStatuses: async () => [],
+      unregister: async () => {},
+      startPlugin: async () => {},
+      stopPlugin: async () => {},
+      clear: async () => {},
+    };
   }
 
   getMessageBus(): MessageBus {
@@ -388,6 +384,10 @@ export class MockShell implements IShell {
 
   getAgentService(): IAgentService {
     return this.mockAgentService;
+  }
+
+  getDaemonRegistry(): IDaemonRegistry {
+    return this._daemonRegistry;
   }
 
   /**

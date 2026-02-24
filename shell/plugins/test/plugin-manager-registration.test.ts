@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { CorePlugin } from "../src/core/core-plugin";
 import { PluginTestHarness } from "../src/test/harness";
-import type { PluginTool, PluginResource, IShell } from "../src/interfaces";
+import type { PluginTool, PluginResource } from "../src/interfaces";
+import type { MockShell } from "../src/test/mock-shell";
 import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -56,7 +57,7 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
 describe("PluginManager - Direct Registration", () => {
   let pluginManager: PluginManager;
   let mockMCPService: IMCPService;
-  let mockShell: IShell;
+  let mockShell: MockShell;
   let registeredTools: Array<{ pluginId: string; tool: PluginTool }> = [];
   let registeredResources: Array<{
     pluginId: string;
@@ -110,7 +111,10 @@ describe("PluginManager - Direct Registration", () => {
     );
 
     // Create plugin manager and wire shell
-    pluginManager = PluginManager.getInstance(createSilentLogger());
+    pluginManager = PluginManager.getInstance(
+      createSilentLogger(),
+      mockShell.getDaemonRegistry(),
+    );
     pluginManager.setShell(mockShell);
   });
 
@@ -213,7 +217,10 @@ describe("PluginManager - Direct Registration", () => {
 
     it("should use direct registration instead of MessageBus", async () => {
       // Create plugin manager (MessageBus no longer needed)
-      pluginManager = PluginManager.getInstance(createSilentLogger());
+      pluginManager = PluginManager.getInstance(
+        createSilentLogger(),
+        mockShell.getDaemonRegistry(),
+      );
       pluginManager.setShell(mockShell);
 
       const plugin = new TestPlugin();

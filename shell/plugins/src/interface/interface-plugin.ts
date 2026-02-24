@@ -4,7 +4,7 @@ import type {
   IShell,
   BaseJobTrackingInfo,
 } from "../interfaces";
-import type { Daemon } from "@brains/daemon-registry";
+import type { Daemon } from "../manager/daemon-types";
 import type { InterfacePluginContext } from "./context";
 import { createInterfacePluginContext } from "./context";
 import type {

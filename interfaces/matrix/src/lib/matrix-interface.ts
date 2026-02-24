@@ -3,7 +3,7 @@ import {
   type InterfacePluginContext,
   parseConfirmationResponse,
 } from "@brains/plugins";
-import type { Daemon, DaemonHealth } from "@brains/daemon-registry";
+import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { IAgentService } from "@brains/plugins";
 import { markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema } from "../schemas";
