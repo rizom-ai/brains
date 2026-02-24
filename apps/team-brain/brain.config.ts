@@ -15,10 +15,10 @@ import {
   MinimalLayout,
   CTAFooterLayout,
 } from "@brains/default-site-content";
-import { TopicsPlugin } from "@brains/topics";
-import { LinkPlugin } from "@brains/link";
-import { SummaryPlugin } from "@brains/summary";
-import { DecksPlugin } from "@brains/decks";
+import { topicsPlugin } from "@brains/topics";
+import { linkPlugin } from "@brains/link";
+import { summaryPlugin } from "@brains/summary";
+import { decksPlugin } from "@brains/decks";
 import defaultTheme from "@brains/theme-default";
 
 const config = defineConfig({
@@ -53,10 +53,10 @@ const config = defineConfig({
 
   plugins: [
     new SystemPlugin({}),
-    new TopicsPlugin({}),
-    new SummaryPlugin({}),
-    new LinkPlugin({}),
-    new DecksPlugin(),
+    topicsPlugin({}),
+    summaryPlugin({}),
+    linkPlugin({}),
+    decksPlugin(),
     new MCPInterface({
       authToken: process.env["MCP_AUTH_TOKEN"],
     }),

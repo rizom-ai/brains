@@ -360,5 +360,11 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
 
 export default TopicsPlugin;
 
+export function topicsPlugin(
+  config?: Partial<TopicsPluginConfig>,
+): TopicsPlugin {
+  return new TopicsPlugin(config);
+}
+
 export type { TopicsPluginConfig } from "./schemas/config";
 export type { TopicEntity } from "./types";

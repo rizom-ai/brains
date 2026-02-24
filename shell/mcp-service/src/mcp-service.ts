@@ -1,5 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { IMessageBus } from "@brains/messaging-service";
+import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
 import type { PluginTool, PluginResource } from "./types";
@@ -80,6 +80,20 @@ export class MCPService implements IMCPService {
   }
 
   /**
+   * Validate a message bus response and serialize its data as JSON
+   */
+  private serializeResponse(response: MessageResponse): string {
+    if ("success" in response && !response.success) {
+      throw new Error(response.error ?? "Operation failed");
+    }
+    return JSON.stringify(
+      "data" in response ? response.data : response,
+      null,
+      2,
+    );
+  }
+
+  /**
    * Set the permission level for this service
    */
   public setPermissionLevel(level: UserPermissionLevel): void {
@@ -141,23 +155,11 @@ export class MCPService implements IMCPService {
             "MCPService",
           );
 
-          if ("success" in response && !response.success) {
-            throw new Error(
-              (response as { error?: string }).error ?? "Tool execution failed",
-            );
-          }
-
           return {
             content: [
               {
                 type: "text" as const,
-                text: JSON.stringify(
-                  "data" in response
-                    ? (response as { data: unknown }).data
-                    : response,
-                  null,
-                  2,
-                ),
+                text: this.serializeResponse(response),
               },
             ],
           };
@@ -204,24 +206,12 @@ export class MCPService implements IMCPService {
             "MCPService",
           );
 
-          if ("success" in response && !response.success) {
-            throw new Error(
-              (response as { error?: string }).error ?? "Resource fetch failed",
-            );
-          }
-
           return {
             contents: [
               {
                 uri: resource.uri,
                 mimeType: resource.mimeType ?? "text/plain",
-                text: JSON.stringify(
-                  "data" in response
-                    ? (response as { data: unknown }).data
-                    : response,
-                  null,
-                  2,
-                ),
+                text: this.serializeResponse(response),
               },
             ],
           };

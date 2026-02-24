@@ -13,11 +13,11 @@ import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
-import TopicsPlugin from "@brains/topics";
-import { NotePlugin } from "@brains/note";
-import { LinkPlugin } from "@brains/link";
-import { PortfolioPlugin } from "@brains/portfolio";
-import { SocialMediaPlugin } from "@brains/social-media";
+import { topicsPlugin } from "@brains/topics";
+import { notePlugin } from "@brains/note";
+import { linkPlugin } from "@brains/link";
+import { portfolioPlugin } from "@brains/portfolio";
+import { socialMediaPlugin } from "@brains/social-media";
 import { createNewsletterPlugin } from "@brains/newsletter";
 import {
   professionalSitePlugin,
@@ -78,11 +78,11 @@ const config = defineConfig({
     }),
     blogPlugin({}),
     decksPlugin({}),
-    new TopicsPlugin({}),
-    new NotePlugin({}),
-    new LinkPlugin({}),
-    new PortfolioPlugin({}),
-    new SocialMediaPlugin({}),
+    topicsPlugin({}),
+    notePlugin({}),
+    linkPlugin({}),
+    portfolioPlugin({}),
+    socialMediaPlugin({}),
     createNewsletterPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,

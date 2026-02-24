@@ -51,8 +51,6 @@ export class DaemonRegistry {
    * Register a daemon
    */
   public register(name: string, daemon: Daemon, pluginId: string): void {
-    this.logger.debug(`Registering daemon: ${name} from plugin: ${pluginId}`);
-
     if (this.daemons.has(name)) {
       this.logger.warn(`Daemon already registered: ${name}, overwriting`);
     }
@@ -96,7 +94,6 @@ export class DaemonRegistry {
       return;
     }
 
-    this.logger.debug(`Starting daemon: ${name}`);
     daemonInfo.status = "starting";
     delete daemonInfo.error;
 
@@ -128,7 +125,6 @@ export class DaemonRegistry {
       return;
     }
 
-    this.logger.debug(`Stopping daemon: ${name}`);
     daemonInfo.status = "stopping";
 
     try {

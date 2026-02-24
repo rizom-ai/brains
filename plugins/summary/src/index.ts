@@ -1,4 +1,4 @@
-export { SummaryPlugin } from "./summary-plugin";
+export { SummaryPlugin, summaryPlugin } from "./summary-plugin";
 export { SummaryAdapter } from "./adapters/summary-adapter";
 export { SummaryExtractor } from "./lib/summary-extractor";
 export { DigestHandler } from "./handlers/digest-handler";

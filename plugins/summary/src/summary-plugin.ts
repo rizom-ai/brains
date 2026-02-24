@@ -218,3 +218,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     this.logger.info("Summary plugin cleaned up");
   }
 }
+
+export function summaryPlugin(config?: Partial<SummaryConfig>): SummaryPlugin {
+  return new SummaryPlugin(config);
+}

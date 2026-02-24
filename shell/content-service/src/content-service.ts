@@ -7,7 +7,7 @@ import type { IEntityService } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
 import type { Logger } from "@brains/utils";
 import type { ContentService as IContentService } from "./types";
-import type { TemplateRegistry } from "@brains/templates";
+import type { TemplateRegistry, Template } from "@brains/templates";
 import { TemplateCapabilities } from "@brains/templates";
 import type {
   DataSourceRegistry,
@@ -59,33 +59,28 @@ export class ContentService implements IContentService {
   }
 
   /**
-   * Get a registered template
+   * Convert a unified Template to ContentTemplate format
    */
-  getTemplate(name: string): ContentTemplate<unknown> | null {
-    const template = this.dependencies.templateRegistry.get(name);
-    if (!template) return null;
-
-    // Convert unified Template back to ContentTemplate format
-    const contentTemplate: ContentTemplate<unknown> = {
+  private toContentTemplate(template: Template): ContentTemplate<unknown> {
+    const ct: ContentTemplate<unknown> = {
       name: template.name,
       description: template.description,
       schema: template.schema,
       requiredPermission: template.requiredPermission,
     };
+    if (template.basePrompt) ct.basePrompt = template.basePrompt;
+    if (template.formatter) ct.formatter = template.formatter;
+    if (template.dataSourceId) ct.dataSourceId = template.dataSourceId;
+    return ct;
+  }
 
-    if (template.basePrompt) {
-      contentTemplate.basePrompt = template.basePrompt;
-    }
-
-    if (template.formatter) {
-      contentTemplate.formatter = template.formatter;
-    }
-
-    if (template.dataSourceId) {
-      contentTemplate.dataSourceId = template.dataSourceId;
-    }
-
-    return contentTemplate;
+  /**
+   * Get a registered template
+   */
+  getTemplate(name: string): ContentTemplate<unknown> | null {
+    const template = this.dependencies.templateRegistry.get(name);
+    if (!template) return null;
+    return this.toContentTemplate(template);
   }
 
   /**
@@ -94,29 +89,8 @@ export class ContentService implements IContentService {
   listTemplates(): ContentTemplate<unknown>[] {
     return this.dependencies.templateRegistry
       .list()
-      .filter((template) => template.basePrompt ?? template.formatter) // Only content templates
-      .map((template) => {
-        const contentTemplate: ContentTemplate<unknown> = {
-          name: template.name,
-          description: template.description,
-          schema: template.schema,
-          requiredPermission: template.requiredPermission,
-        };
-
-        if (template.basePrompt) {
-          contentTemplate.basePrompt = template.basePrompt;
-        }
-
-        if (template.formatter) {
-          contentTemplate.formatter = template.formatter;
-        }
-
-        if (template.dataSourceId) {
-          contentTemplate.dataSourceId = template.dataSourceId;
-        }
-
-        return contentTemplate;
-      });
+      .filter((template) => template.basePrompt ?? template.formatter)
+      .map((template) => this.toContentTemplate(template));
   }
 
   /**
