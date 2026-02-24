@@ -150,7 +150,6 @@ const GROUPS = {
   'shell-data':   { label: 'Shell Data',        color: '#bc8cff', bg: '#2a1840' },
   'shell-comms':  { label: 'Shell Comms & AI',  color: '#bc8cff', bg: '#2a1840' },
   'shell-support':{ label: 'Shell Support',     color: '#bc8cff', bg: '#2a1840' },
-  'shell-id':     { label: 'Shell Identity',    color: '#bc8cff', bg: '#2a1840' },
   publishing:     { label: 'Publishing',        color: '#8b8cf8', bg: '#1f2044' },
   sync:           { label: 'Sync & Storage',    color: '#f0883e', bg: '#3a2510' },
   system:         { label: 'System',            color: '#f85149', bg: '#3a1520' },
@@ -167,17 +166,16 @@ const CONN_TYPES = {
 // ── Cluster boxes (for background rendering) ──
 const CLUSTERS = {
   apps:             { x: 20,   y: 8,   w: 544,  h: 80  },
-  interfaces:       { x: 742,  y: 8,   w: 638,  h: 80  },
-  content:          { x: 20,   y: 108, w: 326,  h: 306 },
+  interfaces:       { x: 594,  y: 8,   w: 638,  h: 80  },
+  content:          { x: 20,   y: 108, w: 326,  h: 300 },
   'shell-runtime':  { x: 366,  y: 108, w: 490,  h: 68  },
   'shell-data':     { x: 366,  y: 176, w: 490,  h: 56  },
   'shell-comms':    { x: 366,  y: 232, w: 490,  h: 56  },
-  'shell-support':  { x: 366,  y: 288, w: 318,  h: 56  },
-  'shell-id':       { x: 366,  y: 344, w: 226,  h: 56  },
-  publishing:       { x: 994,  y: 108, w: 350,  h: 306 },
-  sync:             { x: 20,   y: 434, w: 285,  h: 80  },
-  shared:           { x: 320,  y: 434, w: 430,  h: 80  },
-  system:           { x: 770,  y: 434, w: 370,  h: 80  },
+  'shell-support':  { x: 366,  y: 288, w: 490,  h: 56  },
+  publishing:       { x: 876,  y: 108, w: 350,  h: 198 },
+  sync:             { x: 20,   y: 428, w: 285,  h: 80  },
+  shared:           { x: 320,  y: 428, w: 430,  h: 80  },
+  system:           { x: 770,  y: 428, w: 370,  h: 80  },
 };
 
 // ── Node data ──
@@ -188,10 +186,10 @@ const nodes = [
   { id:'col-brain',  label:'Collective Brain',   subtitle:'apps/collective-brain',   x:380, y:32, w:170, h:44, group:'apps' },
 
   // ─ Interfaces ─
-  { id:'cli',       label:'CLI',           subtitle:'interfaces/cli',       x:756,  y:32, w:130, h:44, group:'interfaces' },
-  { id:'matrix',    label:'Matrix',        subtitle:'interfaces/matrix',    x:900,  y:32, w:130, h:44, group:'interfaces' },
-  { id:'mcp-if',    label:'MCP Transport', subtitle:'interfaces/mcp',       x:1044, y:32, w:148, h:44, group:'interfaces' },
-  { id:'webserver', label:'Webserver',     subtitle:'interfaces/webserver', x:1206, y:32, w:138, h:44, group:'interfaces' },
+  { id:'cli',       label:'CLI',           subtitle:'interfaces/cli',       x:608,  y:32, w:130, h:44, group:'interfaces' },
+  { id:'matrix',    label:'Matrix',        subtitle:'interfaces/matrix',    x:752,  y:32, w:130, h:44, group:'interfaces' },
+  { id:'mcp-if',    label:'MCP Transport', subtitle:'interfaces/mcp',       x:896,  y:32, w:148, h:44, group:'interfaces' },
+  { id:'webserver', label:'Webserver',     subtitle:'interfaces/webserver', x:1058, y:32, w:138, h:44, group:'interfaces' },
 
   // ─ Content Creation (2×5 grid) ─
   { id:'note',         label:'Note',         subtitle:'plugins/note',         x:34,  y:132, w:142, h:44, group:'content' },
@@ -220,29 +218,28 @@ const nodes = [
   // ─ Shell Support ─
   { id:'conversation', label:'Conversations', subtitle:'shell/conversation-service', x:380, y:300, w:142, h:44, group:'shell-support' },
   { id:'templates',    label:'Templates',     subtitle:'shell/templates',            x:536, y:300, w:142, h:44, group:'shell-support' },
-  // ─ Shell Identity ─
-  { id:'identity',    label:'Identity',    subtitle:'shell/identity-service',   x:380, y:356, w:200, h:44, group:'shell-id' },
+  { id:'identity',     label:'Identity',      subtitle:'shell/identity-service',     x:692, y:300, w:142, h:44, group:'shell-support' },
 
   // ─ Publishing (2×3 grid, 5 filled) ─
-  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',      x:1008, y:132, w:154, h:44, group:'publishing' },
-  { id:'pro-site',     label:'Professional Site', subtitle:'plugins/professional-site', x:1176, y:132, w:154, h:44, group:'publishing' },
-  { id:'content-pipe', label:'Content Pipeline',  subtitle:'plugins/content-pipeline',  x:1008, y:188, w:154, h:44, group:'publishing' },
-  { id:'newsletter',   label:'Newsletter',        subtitle:'plugins/newsletter',        x:1176, y:188, w:154, h:44, group:'publishing' },
-  { id:'social',       label:'Social Media',      subtitle:'plugins/social-media',      x:1008, y:244, w:154, h:44, group:'publishing' },
+  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',      x:890, y:132, w:154, h:44, group:'publishing' },
+  { id:'pro-site',     label:'Professional Site', subtitle:'plugins/professional-site', x:1058, y:132, w:154, h:44, group:'publishing' },
+  { id:'content-pipe', label:'Content Pipeline',  subtitle:'plugins/content-pipeline',  x:890, y:188, w:154, h:44, group:'publishing' },
+  { id:'newsletter',   label:'Newsletter',        subtitle:'plugins/newsletter',        x:1058, y:188, w:154, h:44, group:'publishing' },
+  { id:'social',       label:'Social Media',      subtitle:'plugins/social-media',      x:890, y:244, w:154, h:44, group:'publishing' },
 
   // ─ Sync & Storage (row of 2) ─
-  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:458, w:125, h:44, group:'sync' },
-  { id:'git-sync', label:'Git Sync',       subtitle:'plugins/git-sync',      x:173, y:458, w:118, h:44, group:'sync' },
+  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', x:34,  y:452, w:125, h:44, group:'sync' },
+  { id:'git-sync', label:'Git Sync',       subtitle:'plugins/git-sync',      x:173, y:452, w:118, h:44, group:'sync' },
 
   // ─ Shared (row of 3) ─
-  { id:'utils',  label:'Utils',      subtitle:'shared/utils',      x:334, y:458, w:125, h:44, group:'shared' },
-  { id:'ui-lib', label:'UI Library', subtitle:'shared/ui-library', x:473, y:458, w:138, h:44, group:'shared' },
-  { id:'themes', label:'Themes',     subtitle:'shared/theme-*',    x:625, y:458, w:110, h:44, group:'shared' },
+  { id:'utils',  label:'Utils',      subtitle:'shared/utils',      x:334, y:452, w:125, h:44, group:'shared' },
+  { id:'ui-lib', label:'UI Library', subtitle:'shared/ui-library', x:473, y:452, w:138, h:44, group:'shared' },
+  { id:'themes', label:'Themes',     subtitle:'shared/theme-*',    x:625, y:452, w:110, h:44, group:'shared' },
 
   // ─ System (row of 3) ─
-  { id:'system',    label:'System',    subtitle:'plugins/system',    x:784,  y:458, w:108, h:44, group:'system' },
-  { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', x:906,  y:458, w:118, h:44, group:'system' },
-  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1038, y:458, w:108, h:44, group:'system' },
+  { id:'system',    label:'System',    subtitle:'plugins/system',    x:784,  y:452, w:108, h:44, group:'system' },
+  { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', x:906,  y:452, w:118, h:44, group:'system' },
+  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1038, y:452, w:108, h:44, group:'system' },
 ];
 
 // ── Connections ──
@@ -336,7 +333,7 @@ const connections = [
 // ── Presets ──
 const ALL_GROUPS = Object.keys(GROUPS);
 const ALL_CONNS = Object.keys(CONN_TYPES);
-const SHELL_GROUPS = ['shell-runtime','shell-data','shell-comms','shell-support','shell-id'];
+const SHELL_GROUPS = ['shell-runtime','shell-data','shell-comms','shell-support'];
 const PRESETS = {
   full:    { label:'Full System',   groups: ALL_GROUPS, conns: ALL_CONNS },
   data:    { label:'Data Flow',     groups:['content','publishing','sync','system',...SHELL_GROUPS,'shared'], conns:['data-flow'] },
@@ -403,7 +400,7 @@ function connPath(fromId, toId) {
 // ── Rendering ──
 function render() {
   const svg = document.getElementById('svg');
-  svg.setAttribute('viewBox', '0 0 1400 530');
+  svg.setAttribute('viewBox', '0 0 1260 520');
 
   let html = '<defs>';
   Object.entries(CONN_TYPES).forEach(([k, v]) => {
@@ -535,8 +532,7 @@ function updatePrompt() {
     text += '- Shell Runtime: Core (incl. Daemon Registry), App, Plugin Framework\n';
     text += '- Shell Data: Entity Service (incl. Embedding, Datasource), Content Service, Job Queue\n';
     text += '- Shell Communication & AI: Messaging, MCP Service, AI Service (incl. Agent)\n';
-    text += '- Shell Supporting: Conversations, Templates (incl. Render Service & Permissions)\n';
-    text += '- Shell Identity: Identity Service (Brain Character + Anchor Profile)\n';
+    text += '- Shell Supporting: Conversations, Templates (incl. Render Service & Permissions), Identity (Brain Character + Anchor Profile)\n';
     text += '- Publishing: Site Builder, Professional Site, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';
     text += '- Sync & Storage: Directory Sync, Git Sync\n';
     text += '- System: System, Dashboard, Analytics\n';
