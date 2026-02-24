@@ -169,11 +169,11 @@ const CLUSTERS = {
   apps:             { x: 20,   y: 8,   w: 544,  h: 80  },
   interfaces:       { x: 742,  y: 8,   w: 638,  h: 80  },
   content:          { x: 20,   y: 108, w: 326,  h: 306 },
-  'shell-runtime':  { x: 366,  y: 108, w: 608,  h: 68  },
-  'shell-data':     { x: 366,  y: 176, w: 462,  h: 56  },
-  'shell-comms':    { x: 366,  y: 232, w: 608,  h: 56  },
-  'shell-support':  { x: 366,  y: 288, w: 462,  h: 56  },
-  'shell-id':       { x: 366,  y: 344, w: 318,  h: 56  },
+  'shell-runtime':  { x: 366,  y: 108, w: 490,  h: 68  },
+  'shell-data':     { x: 366,  y: 176, w: 490,  h: 56  },
+  'shell-comms':    { x: 366,  y: 232, w: 490,  h: 56  },
+  'shell-support':  { x: 366,  y: 288, w: 318,  h: 56  },
+  'shell-id':       { x: 366,  y: 344, w: 226,  h: 56  },
   publishing:       { x: 994,  y: 108, w: 350,  h: 306 },
   sync:             { x: 20,   y: 434, w: 285,  h: 80  },
   shared:           { x: 320,  y: 434, w: 430,  h: 80  },
@@ -206,25 +206,22 @@ const nodes = [
   { id:'topics',       label:'Topics',       subtitle:'plugins/topics',       x:190, y:356, w:142, h:44, group:'content' },
 
   // ─ Shell Runtime ─
-  { id:'core',       label:'Core',             subtitle:'shell/core',            x:380, y:120, w:130, h:44, group:'shell-runtime' },
-  { id:'app',        label:'App',              subtitle:'shell/app',             x:524, y:120, w:130, h:44, group:'shell-runtime' },
-  { id:'plugin-fw',  label:'Plugin',  subtitle:'shell/plugins',         x:668, y:120, w:130, h:44, group:'shell-runtime' },
-  { id:'daemons',    label:'Daemons', subtitle:'shell/daemon-registry', x:812, y:120, w:130, h:44, group:'shell-runtime' },
+  { id:'core',       label:'Core',             subtitle:'shell/core',            x:380, y:120, w:142, h:44, group:'shell-runtime' },
+  { id:'app',        label:'App',              subtitle:'shell/app',             x:536, y:120, w:142, h:44, group:'shell-runtime' },
+  { id:'plugin-fw',  label:'Plugin',           subtitle:'shell/plugins',         x:692, y:120, w:142, h:44, group:'shell-runtime' },
   // ─ Shell Data ─
-  { id:'entity-svc',  label:'Entity Service',  subtitle:'shell/entity-service',  x:380, y:182, w:130, h:44, group:'shell-data' },
-  { id:'content-svc', label:'Content Service', subtitle:'shell/content-service', x:524, y:182, w:130, h:44, group:'shell-data' },
-  { id:'job-queue',   label:'Job Queue',       subtitle:'shell/job-queue',        x:668, y:182, w:130, h:44, group:'shell-data' },
+  { id:'entity-svc',  label:'Entity Service',  subtitle:'shell/entity-service',  x:380, y:182, w:142, h:44, group:'shell-data' },
+  { id:'content-svc', label:'Content Service', subtitle:'shell/content-service', x:536, y:182, w:142, h:44, group:'shell-data' },
+  { id:'job-queue',   label:'Job Queue',       subtitle:'shell/job-queue',       x:692, y:182, w:142, h:44, group:'shell-data' },
   // ─ Shell Comms & AI ─
-  { id:'messaging', label:'Messaging',     subtitle:'shell/messaging-service', x:380, y:244, w:130, h:44, group:'shell-comms' },
-  { id:'mcp-svc',   label:'MCP Service',   subtitle:'shell/mcp-service',      x:524, y:244, w:130, h:44, group:'shell-comms' },
-  { id:'ai-svc',    label:'AI Service',    subtitle:'shell/ai-service',       x:668, y:244, w:130, h:44, group:'shell-comms' },
+  { id:'messaging', label:'Messaging',     subtitle:'shell/messaging-service', x:380, y:244, w:142, h:44, group:'shell-comms' },
+  { id:'mcp-svc',   label:'MCP Service',   subtitle:'shell/mcp-service',      x:536, y:244, w:142, h:44, group:'shell-comms' },
+  { id:'ai-svc',    label:'AI Service',    subtitle:'shell/ai-service',       x:692, y:244, w:142, h:44, group:'shell-comms' },
   // ─ Shell Support ─
-  { id:'embedding',    label:'Embedding',     subtitle:'shell/embedding-service',    x:380, y:300, w:130, h:44, group:'shell-support' },
-  { id:'conversation', label:'Conversations', subtitle:'shell/conversation-service', x:524, y:300, w:130, h:44, group:'shell-support' },
-  { id:'templates',    label:'Templates',     subtitle:'shell/templates',            x:668, y:300, w:130, h:44, group:'shell-support' },
+  { id:'conversation', label:'Conversations', subtitle:'shell/conversation-service', x:380, y:300, w:142, h:44, group:'shell-support' },
+  { id:'templates',    label:'Templates',     subtitle:'shell/templates',            x:536, y:300, w:142, h:44, group:'shell-support' },
   // ─ Shell Identity ─
-  { id:'identity',    label:'Identity',    subtitle:'shell/identity-service',   x:380, y:356, w:130, h:44, group:'shell-id' },
-  { id:'profile',     label:'Profile',     subtitle:'shell/profile-service',    x:524, y:356, w:130, h:44, group:'shell-id' },
+  { id:'identity',    label:'Identity',    subtitle:'shell/identity-service',   x:380, y:356, w:200, h:44, group:'shell-id' },
 
   // ─ Publishing (2×3 grid, 5 filled) ─
   { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',      x:1008, y:132, w:154, h:44, group:'publishing' },
@@ -310,9 +307,7 @@ const connections = [
 
   // Shell internal
   { from:'core',       to:'plugin-fw',  type:'dependency' },
-  { from:'embedding',  to:'entity-svc', type:'dependency', label:'search' },
   { from:'mcp-svc',    to:'templates',  type:'dependency', label:'checks' },
-  { from:'identity',   to:'profile',    type:'dependency' },
 
   // Shell events
   { from:'entity-svc', to:'messaging', type:'event', label:'entity:*' },
@@ -537,11 +532,11 @@ function updatePrompt() {
   if (allVisible) {
     text += 'Showing the full system with clustered groups:\n';
     text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks, Image, Site Content, Summary, Topics\n';
-    text += '- Shell Runtime: Core, App, Plugin Framework, Daemon Registry\n';
-    text += '- Shell Data: Entity Service (incl. Datasource), Content Service, Job Queue\n';
+    text += '- Shell Runtime: Core (incl. Daemon Registry), App, Plugin Framework\n';
+    text += '- Shell Data: Entity Service (incl. Embedding, Datasource), Content Service, Job Queue\n';
     text += '- Shell Communication & AI: Messaging, MCP Service, AI Service (incl. Agent)\n';
-    text += '- Shell Supporting: Embedding, Conversations, Templates (incl. Render Service & Permissions)\n';
-    text += '- Shell Identity: Identity, Profile\n';
+    text += '- Shell Supporting: Conversations, Templates (incl. Render Service & Permissions)\n';
+    text += '- Shell Identity: Identity Service (Brain Character + Anchor Profile)\n';
     text += '- Publishing: Site Builder, Professional Site, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';
     text += '- Sync & Storage: Directory Sync, Git Sync\n';
     text += '- System: System, Dashboard, Analytics\n';
