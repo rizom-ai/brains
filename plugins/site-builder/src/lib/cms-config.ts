@@ -252,7 +252,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
       collections.push({
         name: entityType,
         label: pluralizeLabel(label),
-        folder: entityType,
+        folder: entityType === "base" ? "." : entityType,
         create: true,
         extension: "md",
         format: "frontmatter",

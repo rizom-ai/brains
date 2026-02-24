@@ -34,8 +34,8 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
   ): Promise<void> {
     this.pluginContext = context;
 
-    // Register note entity type
-    context.entities.register("note", noteSchema, noteAdapter);
+    // Register base entity type (notes are base entities)
+    context.entities.register("base", noteSchema, noteAdapter);
 
     // Register generation template
     context.templates.register({

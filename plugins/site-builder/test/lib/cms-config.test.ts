@@ -189,6 +189,12 @@ describe("generateCmsConfig", () => {
     expect(config.collections[0]?.folder).toBe("post");
   });
 
+  it("should set folder to '.' for base entity type", () => {
+    const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
+
+    expect(config.collections[0]?.folder).toBe(".");
+  });
+
   it("should set extension and format", () => {
     const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 

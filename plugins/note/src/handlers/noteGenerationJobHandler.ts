@@ -96,7 +96,7 @@ export class NoteGenerationJobHandler extends BaseJobHandler<
       // Create entity
       const result = await this.context.entityService.createEntity({
         id: title,
-        entityType: "note",
+        entityType: "base",
         content: noteContent,
         metadata: {
           title,

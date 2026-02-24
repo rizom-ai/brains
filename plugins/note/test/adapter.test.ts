@@ -4,7 +4,7 @@ import type { Note } from "../src/schemas/note";
 import { createTestEntity } from "@brains/test-utils";
 
 function createMockNote(overrides: Partial<Note> = {}): Note {
-  return createTestEntity<Note>("note", {
+  return createTestEntity<Note>("base", {
     content: "# Test Note\n\nContent here",
     metadata: { title: "Test Note" },
     ...overrides,
@@ -20,7 +20,7 @@ describe("NoteAdapter", () => {
 
   describe("schema", () => {
     it("should have correct entity type", () => {
-      expect(adapter.entityType).toBe("note");
+      expect(adapter.entityType).toBe("base");
     });
 
     it("should have a valid zod schema", () => {
@@ -38,7 +38,7 @@ Content here`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("note");
+      expect(result.entityType).toBe("base");
       expect(result.content).toBe(markdown);
       expect(result.metadata?.title).toBe("My Note Title");
     });
@@ -50,7 +50,7 @@ Some content here`;
 
       const result = adapter.fromMarkdown(markdown);
 
-      expect(result.entityType).toBe("note");
+      expect(result.entityType).toBe("base");
       expect(result.metadata?.title).toBe("Note From H1 Heading");
     });
 

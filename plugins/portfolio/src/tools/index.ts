@@ -36,7 +36,7 @@ export function createPortfolioTools(
       createInputSchema,
       async (input, toolContext) => {
         // Search for related content across entity types
-        const entityTypes = ["note", "link", "post", "topic"];
+        const entityTypes = ["base", "link", "post", "topic"];
         const relatedContent: string[] = [];
 
         // Search across all types at once

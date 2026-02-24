@@ -50,7 +50,7 @@ export function createNoteTools(
         // Create entity
         const result = await context.entityService.createEntity({
           id: input.title,
-          entityType: "note",
+          entityType: "base",
           content: noteContent,
           metadata: {
             title: input.title,

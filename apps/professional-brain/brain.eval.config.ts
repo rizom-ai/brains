@@ -40,7 +40,7 @@ const entityRouteConfig = {
     label: "Topic",
     navigation: { slot: "secondary" },
   },
-  note: {
+  base: {
     label: "Note",
     navigation: { show: false },
   },

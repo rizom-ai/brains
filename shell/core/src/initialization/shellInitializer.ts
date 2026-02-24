@@ -163,10 +163,24 @@ export class ShellInitializer {
     this.logger.debug("Shell system templates registered");
   }
 
-  public registerBaseEntitySupport(
-    entityRegistry: IEntityRegistry,
+  public registerBaseEntityDisplayTemplate(
     templateRegistry: TemplateRegistry,
   ): void {
+    templateRegistry.register(SHELL_TEMPLATE_NAMES.BASE_ENTITY_DISPLAY, {
+      name: "base-entity-display",
+      description: "Display template for base entities",
+      schema: baseEntitySchema,
+      formatter: new BaseEntityFormatter(),
+      requiredPermission: "public",
+    });
+    this.logger.debug("Base entity display template registered");
+  }
+
+  /**
+   * Register a fallback base entity adapter.
+   * Only called if no plugin (e.g. note plugin) has already registered "base".
+   */
+  public registerFallbackBaseEntity(entityRegistry: IEntityRegistry): void {
     const baseEntityAdapter: EntityAdapter<BaseEntity> = {
       entityType: "base",
       schema: baseEntitySchema,
@@ -184,15 +198,7 @@ export class ShellInitializer {
       baseEntityAdapter,
     );
 
-    templateRegistry.register(SHELL_TEMPLATE_NAMES.BASE_ENTITY_DISPLAY, {
-      name: "base-entity-display",
-      description: "Display template for base entities",
-      schema: baseEntitySchema,
-      formatter: new BaseEntityFormatter(),
-      requiredPermission: "public",
-    });
-
-    this.logger.debug("Base entity support registered");
+    this.logger.debug("Fallback base entity adapter registered");
   }
 
   public registerBrainCharacterSupport(entityRegistry: IEntityRegistry): void {
@@ -459,11 +465,16 @@ export class ShellInitializer {
 
     try {
       this.registerShellTemplates(templateRegistry);
-      this.registerBaseEntitySupport(entityRegistry, templateRegistry);
+      this.registerBaseEntityDisplayTemplate(templateRegistry);
       this.registerBrainCharacterSupport(entityRegistry);
       this.registerAnchorProfileSupport(entityRegistry);
       this.registerImageSupport(entityRegistry);
       await this.initializePlugins(pluginManager);
+
+      // Register fallback base entity adapter only if no plugin claimed "base"
+      if (!entityRegistry.hasEntityType(SHELL_ENTITY_TYPES.BASE)) {
+        this.registerFallbackBaseEntity(entityRegistry);
+      }
 
       this.logger.debug("Shell ready");
     } catch (error) {

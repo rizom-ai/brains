@@ -44,7 +44,7 @@ const entityRouteConfig = {
     label: "Link",
     navigation: { slot: "secondary" }, // Show in footer only
   },
-  note: {
+  base: {
     label: "Note",
     navigation: { show: false }, // Notes are personal, hide from navigation
   },
