@@ -1,6 +1,6 @@
 import { EmbeddingModel, FlagEmbedding } from "fastembed";
 import type { Logger } from "@brains/utils";
-import type { IEmbeddingService } from "./types";
+import type { IEmbeddingService } from "./embedding-types";
 
 /**
  * Local embedding service using FastEmbed

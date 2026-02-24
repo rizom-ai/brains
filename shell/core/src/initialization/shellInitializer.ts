@@ -19,7 +19,7 @@ import { DataSourceRegistry } from "@brains/entity-service";
 import {
   EmbeddingService,
   type IEmbeddingService,
-} from "@brains/embedding-service";
+} from "@brains/entity-service";
 import {
   BaseEntityFormatter,
   EntityRegistry,

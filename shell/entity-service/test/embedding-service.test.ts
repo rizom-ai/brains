@@ -8,7 +8,7 @@ import {
   spyOn,
   type Mock,
 } from "bun:test";
-import { EmbeddingService } from "@/embeddingService";
+import { EmbeddingService } from "../src/embedding-service";
 import { createSilentLogger } from "@brains/test-utils";
 import * as fastembed from "fastembed";
 

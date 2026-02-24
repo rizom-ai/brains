@@ -16,11 +16,11 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@brains/embedding-service": "workspace:*",
     "@brains/job-queue": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",
     "drizzle-orm": "^0.44.4",
+    "fastembed": "^1.14.4",
     "gray-matter": "^4.0.3"
   },
   "devDependencies": {

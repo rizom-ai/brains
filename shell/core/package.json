@@ -23,7 +23,6 @@
     "@brains/content-service": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/daemon-registry": "workspace:*",
-    "@brains/embedding-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/identity-service": "workspace:*",

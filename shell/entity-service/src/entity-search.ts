@@ -1,6 +1,6 @@
 import type { EntityDB } from "./db";
 import type { BaseEntity, SearchResult, SearchOptions } from "./types";
-import type { IEmbeddingService } from "@brains/embedding-service";
+import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { z, type Logger } from "@brains/utils";
 import { sql, eq, and, desc } from "drizzle-orm";

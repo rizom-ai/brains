@@ -867,7 +867,6 @@
         "@brains/content-service": "workspace:*",
         "@brains/conversation-service": "workspace:*",
         "@brains/daemon-registry": "workspace:*",
-        "@brains/embedding-service": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/identity-service": "workspace:*",
@@ -895,29 +894,15 @@
         "typescript": "^5.3.3",
       },
     },
-    "shell/embedding-service": {
-      "name": "@brains/embedding-service",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/utils": "workspace:*",
-        "fastembed": "^1.14.4",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "^5.3.3",
-      },
-    },
     "shell/entity-service": {
       "name": "@brains/entity-service",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/embedding-service": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
         "drizzle-orm": "^0.44.4",
+        "fastembed": "^1.14.4",
         "gray-matter": "^4.0.3",
       },
       "devDependencies": {
@@ -1092,8 +1077,6 @@
     "@brains/default-site-content": ["@brains/default-site-content@workspace:shared/default-site-content"],
 
     "@brains/directory-sync": ["@brains/directory-sync@workspace:plugins/directory-sync"],
-
-    "@brains/embedding-service": ["@brains/embedding-service@workspace:shell/embedding-service"],
 
     "@brains/entity-service": ["@brains/entity-service@workspace:shell/entity-service"],
 

@@ -4,7 +4,7 @@ import { EntityRegistry } from "../src/entityRegistry";
 import { EntitySerializer } from "../src/entity-serializer";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils";
-import type { IEmbeddingService } from "@brains/embedding-service";
+import type { IEmbeddingService } from "../src/embedding-types";
 import type { EntityDB } from "../src/db";
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "../src/types";

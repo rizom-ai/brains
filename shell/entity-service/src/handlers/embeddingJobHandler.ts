@@ -3,7 +3,7 @@ import type {
   EntityService as IEntityService,
   EmbeddingJobData,
 } from "../types";
-import type { IEmbeddingService } from "@brains/embedding-service";
+import type { IEmbeddingService } from "../embedding-types";
 import type { JobHandler } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";
 

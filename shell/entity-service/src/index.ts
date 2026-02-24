@@ -5,6 +5,10 @@ export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter } from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
 
+// Embedding (merged from @brains/embedding-service)
+export { EmbeddingService } from "./embedding-service";
+export type { IEmbeddingService } from "./embedding-types";
+
 export type {
   BaseEntity,
   EntityInput,

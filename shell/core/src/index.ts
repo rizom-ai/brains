@@ -10,7 +10,7 @@ export {
 } from "./config";
 export type { ShellConfig, StandardConfig } from "./config";
 
-export type { IEmbeddingService } from "@brains/embedding-service";
+export type { IEmbeddingService } from "@brains/entity-service";
 export type { SerializableEntity, SerializableQueryResult } from "./types";
 
 export {

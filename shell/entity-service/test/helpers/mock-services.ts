@@ -1,4 +1,4 @@
-import type { IEmbeddingService } from "@brains/embedding-service";
+import type { IEmbeddingService } from "../../src/embedding-types";
 
 /**
  * Mock embedding service that returns fixed 384-dim float arrays.
