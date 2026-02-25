@@ -10,7 +10,12 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z, type PublishProvider, type PublishResult } from "@brains/utils";
+import {
+  getErrorMessage,
+  z,
+  type PublishProvider,
+  type PublishResult,
+} from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import {
   projectSchema,
@@ -254,8 +259,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         this.logger.info(`Published project: ${entityId}`);
         return { success: true };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,

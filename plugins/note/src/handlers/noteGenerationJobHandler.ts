@@ -1,6 +1,6 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, generationResultSchema } from "@brains/utils";
+import { getErrorMessage, z, generationResultSchema } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { noteAdapter } from "../adapters/note-adapter";
 
@@ -123,7 +123,7 @@ export class NoteGenerationJobHandler extends BaseJobHandler<
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }

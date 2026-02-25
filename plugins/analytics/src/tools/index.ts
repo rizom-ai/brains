@@ -1,6 +1,11 @@
 import type { PluginTool, CorePluginContext } from "@brains/plugins";
 import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
-import { z, toISODateString, getYesterday } from "@brains/utils";
+import {
+  getErrorMessage,
+  z,
+  toISODateString,
+  getYesterday,
+} from "@brains/utils";
 import { CloudflareClient } from "../lib/cloudflare-client";
 import type { CloudflareConfig } from "../config";
 
@@ -152,7 +157,7 @@ Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
             `Website analytics for ${rangeDescription}`,
           );
         } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
+          const msg = getErrorMessage(error);
           return toolError(msg);
         }
       },

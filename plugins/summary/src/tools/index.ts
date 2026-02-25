@@ -5,7 +5,7 @@ import {
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import { SummaryService } from "../lib/summary-service";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryConfig } from "../schemas/summary";
@@ -86,7 +86,7 @@ export function createGetTool(
       } catch (error) {
         logger.error("Failed to retrieve summary", {
           conversationId: parsed.data.conversationId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         throw error;
       }

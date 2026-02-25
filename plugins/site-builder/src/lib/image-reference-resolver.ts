@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 
@@ -281,7 +282,7 @@ export class ImageReferenceResolver {
       } catch (error) {
         this.logger.warn("Failed to fetch image entity", {
           imageId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     }

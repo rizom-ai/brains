@@ -1,6 +1,11 @@
 import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify, generationResultSchema } from "@brains/utils";
+import {
+  getErrorMessage,
+  z,
+  slugify,
+  generationResultSchema,
+} from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { SocialPost, SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
@@ -296,8 +301,7 @@ ${sourceEntity.content}`,
         slug: metadata.slug,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       this.logger.error("Social post generation job failed", {
         error,
         jobId,

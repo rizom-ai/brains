@@ -1,7 +1,13 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, createId, PROGRESS_STEPS, JobResult } from "@brains/utils";
+import {
+  getErrorMessage,
+  z,
+  createId,
+  PROGRESS_STEPS,
+  JobResult,
+} from "@brains/utils";
 import { TopicExtractor } from "../lib/topic-extractor";
 
 // Schema for extraction job data
@@ -190,7 +196,7 @@ export class TopicExtractionHandler extends BaseJobHandler<
         jobId,
         entityId,
         entityType,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
 
       return {

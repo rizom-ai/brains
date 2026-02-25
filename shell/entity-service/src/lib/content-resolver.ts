@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { ICoreEntityService } from "../types";
 
@@ -129,7 +130,7 @@ export class ContentResolver {
       } catch (error) {
         this.logger.warn("Failed to fetch image entity", {
           imageId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     }

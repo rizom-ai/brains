@@ -1,6 +1,6 @@
 import type { Logger } from "@brains/utils";
 import type { ImportResult } from "../types.js";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import {
   existsSync,
   renameSync,
@@ -20,7 +20,7 @@ export class Quarantine {
     if (error instanceof z.ZodError) {
       return true;
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = getErrorMessage(error);
     return (
       message.includes("invalid_type") ||
       message.includes("invalid_enum_value") ||
@@ -46,8 +46,7 @@ export class Quarantine {
 
       const errorLogPath = join(this.syncPath, ".import-errors.log");
       const timestamp = new Date().toISOString();
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       const logEntry = `${timestamp} - ${filePath}: ${errorMessage}\n\u2192 ${filePath}.invalid\n\n`;
 
       appendFileSync(errorLogPath, logEntry);

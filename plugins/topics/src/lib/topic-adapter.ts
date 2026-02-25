@@ -1,10 +1,5 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type { z } from "@brains/utils";
-import { SourceListFormatter } from "@brains/utils";
+import { BaseEntityAdapter } from "@brains/plugins";
+import { type z, SourceListFormatter } from "@brains/utils";
 import {
   topicEntitySchema,
   topicFrontmatterSchema,
@@ -14,10 +9,20 @@ import {
   type TopicMetadata,
 } from "../schemas/topic";
 
-export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
-  public readonly entityType = "topic";
-  public readonly schema = topicEntitySchema;
-  public readonly frontmatterSchema = topicFrontmatterSchema;
+type TopicFrontmatter = z.infer<typeof topicFrontmatterSchema>;
+
+export class TopicAdapter extends BaseEntityAdapter<
+  TopicEntity,
+  TopicMetadata,
+  TopicFrontmatter
+> {
+  constructor() {
+    super({
+      entityType: "topic",
+      schema: topicEntitySchema,
+      frontmatterSchema: topicFrontmatterSchema,
+    });
+  }
 
   private buildBody(content: string, sources: TopicSource[]): string {
     if (sources.length === 0) return content;
@@ -37,7 +42,7 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
   public toMarkdown(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
     const body = this.buildBody(parsed.content, parsed.sources);
-    return generateMarkdownWithFrontmatter(
+    return this.buildMarkdown(
       body,
       this.buildFrontmatter(parsed.title, parsed.keywords),
     );
@@ -59,21 +64,13 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     };
   }
 
-  public extractMetadata(_entity: TopicEntity): TopicMetadata {
+  public override extractMetadata(_entity: TopicEntity): TopicMetadata {
     return {};
   }
 
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  public generateFrontMatter(entity: TopicEntity): string {
+  public override generateFrontMatter(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
-    const fullMarkdown = generateMarkdownWithFrontmatter(
+    const fullMarkdown = this.buildMarkdown(
       "",
       this.buildFrontmatter(parsed.title, parsed.keywords),
     );
@@ -88,10 +85,8 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     // Frontmatter format
     if (body.startsWith("---")) {
       try {
-        const { metadata, content: bodyText } = parseMarkdownWithFrontmatter(
-          body,
-          topicFrontmatterSchema,
-        );
+        const frontmatter = this.parseFrontmatter(body);
+        const bodyText = this.extractBody(body);
 
         // Extract content (everything before ## Sources)
         const contentText = bodyText
@@ -106,10 +101,10 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
 
         return {
           content: contentText,
-          keywords: metadata.keywords ?? [],
+          keywords: frontmatter.keywords ?? [],
           sources,
           formatted: body,
-          title: metadata.title,
+          title: frontmatter.title,
         };
       } catch {
         return {
@@ -139,7 +134,7 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
     sources: TopicSource[];
   }): string {
     const body = this.buildBody(params.content, params.sources);
-    return generateMarkdownWithFrontmatter(
+    return this.buildMarkdown(
       body,
       this.buildFrontmatter(params.title, params.keywords),
     );

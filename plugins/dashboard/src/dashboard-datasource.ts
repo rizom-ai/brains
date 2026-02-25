@@ -1,6 +1,6 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import {
   WIDGET_RENDERERS,
   type DashboardWidgetRegistry,
@@ -85,7 +85,7 @@ export class DashboardDataSource implements DataSource {
         this.logger.error("Widget data provider failed", {
           widgetId: widget.id,
           pluginId: widget.pluginId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         // Skip widgets that fail - don't include them in results
       }

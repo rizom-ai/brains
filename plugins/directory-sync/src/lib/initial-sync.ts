@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { DirectorySync } from "./directory-sync";
@@ -139,7 +140,7 @@ export function setupInitialSync(
         "sync:initial:completed",
         {
           success: false,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         },
         { broadcast: true },
       );

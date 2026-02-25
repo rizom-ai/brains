@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import type { PluginInfo } from "./types";
@@ -67,8 +68,7 @@ export class DependencyResolver {
             progress = true;
           } catch (error) {
             // Mark as error and continue with others
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
+            const errorMessage = getErrorMessage(error);
             this.logger.error(
               `Failed to initialize plugin ${pluginId}: ${errorMessage}`,
             );

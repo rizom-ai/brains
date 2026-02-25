@@ -4,7 +4,12 @@ import type {
   ApiRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z, type PublishProvider, type PublishResult } from "@brains/utils";
+import {
+  getErrorMessage,
+  z,
+  type PublishProvider,
+  type PublishResult,
+} from "@brains/utils";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";
 import { newsletterConfigSchema, type NewsletterConfig } from "./config";
@@ -123,10 +128,11 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.context) {
-      return [];
-    }
-    return createNewsletterTools(this.id, this.context, this.config.buttondown);
+    return createNewsletterTools(
+      this.id,
+      this.getContext(),
+      this.config.buttondown,
+    );
   }
 
   override getApiRoutes(): ApiRouteDefinition[] {
@@ -245,8 +251,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
         this.logger.info(`Published newsletter: ${entityId}`);
         return { success: true };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,
@@ -303,8 +308,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
 
           return { success: true };
         } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          const errorMessage = getErrorMessage(error);
           this.logger.error("Failed to handle generate:execute:", {
             error: errorMessage,
           });

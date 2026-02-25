@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type {
   PluginTestCase,
   EvaluationResult,
@@ -115,8 +116,7 @@ export class PluginRunner {
       };
     } catch (error) {
       const durationMs = Date.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
 
       return {
         testCaseId: testCase.id,

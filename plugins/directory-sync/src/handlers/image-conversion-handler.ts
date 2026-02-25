@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {
+  getErrorMessage,
   z,
   fetchImageAsBase64,
   parseMarkdown,
@@ -107,7 +108,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       } catch (error) {
         this.logger.error("Failed to read file", {
           filePath,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         return JobResult.failure(error);
       }
@@ -119,7 +120,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       } catch (error) {
         this.logger.warn("Failed to parse markdown", {
           filePath,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         return JobResult.failure(error);
       }
@@ -175,7 +176,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         } catch (error) {
           this.logger.error("Failed to fetch image", {
             sourceUrl,
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
           });
           return JobResult.failure(error);
         }
@@ -241,7 +242,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       } catch (error) {
         this.logger.error("Failed to write file", {
           filePath,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         return JobResult.failure(error);
       }
@@ -262,7 +263,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       this.logger.error("Image conversion job failed", {
         jobId,
         filePath,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return JobResult.failure(error);
     }

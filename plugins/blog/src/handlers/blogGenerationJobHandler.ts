@@ -1,6 +1,11 @@
 import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugify, generationResultSchema } from "@brains/utils";
+import {
+  getErrorMessage,
+  z,
+  slugify,
+  generationResultSchema,
+} from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
@@ -243,7 +248,7 @@ Add your conclusion here.`;
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }

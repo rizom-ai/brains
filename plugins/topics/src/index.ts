@@ -4,7 +4,7 @@ import {
   type PluginTool,
   type BaseEntity,
 } from "@brains/plugins";
-import { z, computeContentHash } from "@brains/utils";
+import { getErrorMessage, z, computeContentHash } from "@brains/utils";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -118,19 +118,13 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.context) {
-      return [];
-    }
-    return createTopicsTools(this.context, (options) =>
+    return createTopicsTools(this.getContext(), (options) =>
       this.getEntitiesToExtract(options),
     );
   }
 
   public getExtractableEntityTypes(): string[] {
-    if (!this.context) {
-      return [];
-    }
-    const allTypes = this.context.entityService.getEntityTypes();
+    const allTypes = this.getContext().entityService.getEntityTypes();
     return allTypes.filter((type) => this.shouldProcessEntityType(type));
   }
 
@@ -139,10 +133,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     limit?: number | undefined;
     force?: boolean | undefined;
   }): Promise<BaseEntity[]> {
-    if (!this.context) {
-      return [];
-    }
-
+    const context = this.getContext();
     const { entityTypes, limit, force = false } = options ?? {};
 
     // Determine which types to process
@@ -154,7 +145,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Get processed content hashes from existing topics (unless force=true)
     const processedHashes = new Set<string>();
     if (!force) {
-      const topics = await this.context.entityService.listEntities("topic");
+      const topics = await context.entityService.listEntities("topic");
       for (const topic of topics) {
         const metadata = topic.metadata as {
           sources?: Array<{ contentHash?: string }>;
@@ -172,7 +163,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     // Collect entities to extract
     const toExtract: BaseEntity[] = [];
     for (const type of typesToProcess) {
-      const entities = await this.context.entityService.listEntities(type);
+      const entities = await context.entityService.listEntities(type);
       for (const entity of entities) {
         // Skip drafts
         if (!this.isEntityPublished(entity)) {
@@ -258,7 +249,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       });
     } catch (error) {
       this.logger.error("Failed to queue topic extraction job", {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
         entityId: entity.id,
         entityType: entity.entityType,
       });

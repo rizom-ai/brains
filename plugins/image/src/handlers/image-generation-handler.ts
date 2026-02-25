@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {
+  getErrorMessage,
   z,
   slugify,
   setCoverImageId,
@@ -135,7 +136,7 @@ ${data.entityContent}`,
           finalPrompt = prompt + object.imagePrompt;
         } catch (error) {
           this.logger.warn("AI prompt distillation failed, using fallback", {
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
           });
           // Fall back to using the raw prompt
         }
@@ -155,7 +156,7 @@ ${data.entityContent}`,
       } catch (error) {
         this.logger.error("Image generation failed", {
           jobId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         return JobResult.failure(error);
       }
@@ -237,7 +238,7 @@ ${data.entityContent}`,
     } catch (error) {
       this.logger.error("Image generation job failed", {
         jobId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return JobResult.failure(error);
     }

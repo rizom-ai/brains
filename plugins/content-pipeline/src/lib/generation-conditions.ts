@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { ICoreEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { GenerationCondition } from "../types/config";
@@ -66,12 +67,12 @@ export async function checkGenerationConditions(
   } catch (error) {
     logger.error("Failed to check generation conditions", {
       entityType,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     });
 
     return {
       shouldGenerate: false,
-      reason: `Condition check failed: ${error instanceof Error ? error.message : String(error)}`,
+      reason: `Condition check failed: ${getErrorMessage(error)}`,
     };
   }
 }

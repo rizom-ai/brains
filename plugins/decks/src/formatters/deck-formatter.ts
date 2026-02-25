@@ -1,24 +1,31 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import { BaseEntityAdapter } from "@brains/plugins";
 import { type z, slugify } from "@brains/utils";
 import {
   deckSchema,
   deckFrontmatterSchema,
   type DeckEntity,
+  type DeckMetadata,
 } from "../schemas/deck";
+
+type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
 
 /**
  * Deck formatter for managing presentation deck entities
  * Validates that content contains proper slide separators (---) on both parse and serialize
  */
-export class DeckFormatter implements EntityAdapter<DeckEntity> {
-  public readonly entityType = "deck" as const;
-  public readonly schema = deckSchema;
-  public readonly supportsCoverImage = true;
-  public readonly frontmatterSchema = deckFrontmatterSchema;
+export class DeckFormatter extends BaseEntityAdapter<
+  DeckEntity,
+  DeckMetadata,
+  DeckFrontmatter
+> {
+  constructor() {
+    super({
+      entityType: "deck",
+      schema: deckSchema,
+      frontmatterSchema: deckFrontmatterSchema,
+      supportsCoverImage: true,
+    });
+  }
 
   /**
    * Validate that content has proper slide structure
@@ -54,7 +61,7 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
       }).filter(([, v]) => v !== undefined),
     );
 
-    return generateMarkdownWithFrontmatter(entity.content, frontmatter);
+    return this.buildMarkdown(entity.content, frontmatter);
   }
 
   /**
@@ -63,10 +70,8 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
    * Auto-generates slug from title if not provided in frontmatter
    */
   public fromMarkdown(markdown: string): Partial<DeckEntity> {
-    const { metadata: frontmatter, content } = parseMarkdownWithFrontmatter(
-      markdown,
-      deckFrontmatterSchema,
-    );
+    const frontmatter = this.parseFrontmatter(markdown);
+    const content = this.extractBody(markdown);
 
     // Validate presentation structure
     this.validateSlideStructure(content);
@@ -78,7 +83,7 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
 
     return {
       entityType: "deck",
-      content, // Store body WITHOUT frontmatter (like original)
+      content,
       title: frontmatter.title,
       description: frontmatter.description,
       author: frontmatter.author,
@@ -87,20 +92,13 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
       event: frontmatter.event,
       coverImageId: frontmatter.coverImageId,
       metadata: {
-        slug, // Generated from title if not in frontmatter
+        slug,
         title: frontmatter.title,
         status,
         publishedAt: frontmatter.publishedAt,
         coverImageId: frontmatter.coverImageId,
       },
     };
-  }
-
-  /**
-   * Extract metadata for search/filtering
-   */
-  public extractMetadata(entity: DeckEntity): Record<string, unknown> {
-    return entity.metadata;
   }
 
   /**
@@ -118,20 +116,9 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
   }
 
   /**
-   * Parse frontmatter from markdown
-   */
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  /**
    * Generate frontmatter for the entity
    */
-  public generateFrontMatter(entity: DeckEntity): string {
+  public override generateFrontMatter(entity: DeckEntity): string {
     return this.toMarkdown(entity);
   }
 }

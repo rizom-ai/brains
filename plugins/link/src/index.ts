@@ -101,10 +101,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
    * Get plugin tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.context) {
-      throw new Error("Plugin context not available");
-    }
-    return createLinkTools(this.id, this.context);
+    return createLinkTools(this.id, this.getContext());
   }
 }
 

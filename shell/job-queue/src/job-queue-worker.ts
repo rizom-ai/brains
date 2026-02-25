@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IJobProgressMonitor } from "@brains/utils";
 import type { JobResult } from "./schemas";
@@ -218,8 +219,7 @@ export class JobQueueWorker {
       }
     } catch (error) {
       this.logger.error("Error processing available jobs", { error });
-      this.stats.lastError =
-        error instanceof Error ? error.message : String(error);
+      this.stats.lastError = getErrorMessage(error);
     }
   }
 
@@ -262,8 +262,7 @@ export class JobQueueWorker {
         type: job.type,
         error,
       });
-      this.stats.lastError =
-        error instanceof Error ? error.message : String(error);
+      this.stats.lastError = getErrorMessage(error);
     } finally {
       this.activeJobs.delete(jobId);
       this.processingPromises.delete(jobId);

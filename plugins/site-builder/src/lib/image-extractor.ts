@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { promises as fs } from "fs";
@@ -158,7 +159,7 @@ export class ImageExtractor {
       } catch (error) {
         this.logger.warn("Failed to extract image", {
           imageId,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     }
@@ -275,7 +276,7 @@ export class ImageExtractor {
         });
       } catch (error) {
         this.logger.warn("Failed to extract data URL", {
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
       }
     }

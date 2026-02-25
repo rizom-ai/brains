@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { JobRequest } from "../types";
 import type { FrontmatterImageConverter } from "./frontmatter-image-converter";
@@ -25,7 +26,7 @@ function queueJob(
   deps.jobQueueCallback(job).catch((error) => {
     deps.logger.warn(`Failed to queue ${label} job`, {
       filePath,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     });
   });
 }

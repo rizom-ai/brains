@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
-import type { TopicSource } from "../../src/schemas/topic";
+import { topicEntitySchema, type TopicSource } from "../../src/schemas/topic";
 import { createMockTopicEntity } from "../fixtures/topic-entities";
 
 describe("TopicAdapter", () => {
@@ -262,7 +262,7 @@ metadata: {}
 
 # Content`;
 
-      const schema = adapter.schema.pick({ metadata: true });
+      const schema = topicEntitySchema.pick({ metadata: true });
       const result = adapter.parseFrontMatter(markdown, schema);
 
       expect(result.metadata).toEqual({});

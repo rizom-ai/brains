@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { DeckFormatter } from "../src/formatters/deck-formatter";
+import { deckSchema } from "../src/schemas/deck";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckFormatter", () => {
@@ -176,10 +177,9 @@ title: Minimal Deck
 
       const metadata = formatter.extractMetadata(entity);
 
-      // extractMetadata now returns entity.metadata (slug + title + status)
-      expect(metadata["slug"]).toBe("test-deck");
-      expect(metadata["title"]).toBe("Test Deck");
-      expect(metadata["status"]).toBe("published");
+      expect(metadata.slug).toBe("test-deck");
+      expect(metadata.title).toBe("Test Deck");
+      expect(metadata.status).toBe("published");
     });
 
     it("should handle missing optional metadata", () => {
@@ -191,9 +191,9 @@ title: Minimal Deck
 
       const metadata = formatter.extractMetadata(entity);
 
-      expect(metadata["title"]).toBe("Test Deck");
-      expect(metadata["description"]).toBeUndefined();
-      expect(metadata["author"]).toBeUndefined();
+      expect(metadata.title).toBe("Test Deck");
+      expect(metadata.publishedAt).toBeUndefined();
+      expect(metadata.coverImageId).toBeUndefined();
     });
   });
 
@@ -292,7 +292,7 @@ description: Test description
 
 # Slide 2`;
 
-      const schema = formatter.schema.pick({
+      const schema = deckSchema.pick({
         title: true,
         description: true,
       });

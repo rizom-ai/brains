@@ -5,7 +5,7 @@ import type {
 import type { Logger } from "@brains/utils";
 import type { SummaryLogEntry } from "../schemas/summary";
 import { SummaryAdapter } from "../adapters/summary-adapter";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 
 /**
  * Simple schema for AI response
@@ -168,7 +168,7 @@ Respond with a JSON object with these fields:
         : { action: "create", entry };
     } catch (error) {
       this.logger.error("Failed to generate summary", {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
 
       // Fallback: create a basic entry

@@ -174,9 +174,9 @@ export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
   }
 
   private async enqueueSync(): Promise<void> {
-    if (!this.context) return;
+    const context = this.getContext();
     try {
-      await this.context.jobs.enqueue(
+      await context.jobs.enqueue(
         "sync",
         { manualSync: false },
         { interfaceType: "system", userId: "git-sync" },
@@ -198,7 +198,6 @@ export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
    * Define the tools provided by this plugin
    */
   override async getTools(): Promise<PluginTool[]> {
-    if (!this.context) throw new Error("Plugin context not available");
     return createGitSyncTools(this.getGitSync(), this.id, () =>
       this.requestSync(),
     );

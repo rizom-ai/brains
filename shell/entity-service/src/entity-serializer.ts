@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { BaseEntity } from "./types";
 import type { EntityRegistry } from "./entityRegistry";
 import type { Logger } from "@brains/utils";
@@ -50,8 +51,7 @@ export class EntitySerializer {
     try {
       return this.reconstructEntity<T>(entityData);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       this.logger.error(
         `Failed to parse entity of type ${entityData.entityType} with ID ${entityData.id}: ${errorMessage}`,
       );
@@ -80,8 +80,7 @@ export class EntitySerializer {
       try {
         entityList.push(this.reconstructEntity<T>(entityData));
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         this.logger.error(
           `Failed to parse entity of type ${entityType} with ID ${entityData.id}: ${errorMessage}`,
         );

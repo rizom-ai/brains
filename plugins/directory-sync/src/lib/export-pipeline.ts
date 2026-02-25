@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { IEntityService, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ExportResult } from "../types";
@@ -95,7 +96,7 @@ export async function processEntityExport(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     };
   }
 }

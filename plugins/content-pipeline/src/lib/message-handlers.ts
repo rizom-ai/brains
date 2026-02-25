@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
@@ -119,7 +120,7 @@ async function handleRegister(
     }
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
     deps.logger.error(`Failed to register provider: ${errorMessage}`);
     return { success: false };
   }
@@ -148,7 +149,7 @@ async function handleQueue(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
     deps.logger.error(`Failed to queue entity: ${errorMessage}`);
     return { success: false };
   }
@@ -184,7 +185,7 @@ async function handleRemove(
     });
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
     deps.logger.error(`Failed to remove entity: ${errorMessage}`);
     return { success: false };
   }
@@ -204,7 +205,7 @@ async function handleReorder(
     });
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
     deps.logger.error(`Failed to reorder entity: ${errorMessage}`);
     return { success: false };
   }
@@ -231,7 +232,7 @@ async function handleList(
 
     return { success: true };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
     deps.logger.error(`Failed to list queue: ${errorMessage}`);
     return { success: false };
   }

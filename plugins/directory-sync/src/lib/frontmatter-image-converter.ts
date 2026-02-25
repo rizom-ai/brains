@@ -1,6 +1,7 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import {
+  getErrorMessage,
   isHttpUrl,
   fetchImageAsBase64,
   slugify,
@@ -179,7 +180,7 @@ export class FrontmatterImageConverter {
     } catch (error) {
       this.logger.warn("Failed to convert coverImageUrl", {
         url: coverImageUrl,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return { content, converted: false };
     }

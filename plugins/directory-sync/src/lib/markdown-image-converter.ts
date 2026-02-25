@@ -1,6 +1,7 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import {
+  getErrorMessage,
   isHttpUrl,
   fetchImageAsBase64,
   extractMarkdownImages,
@@ -148,7 +149,7 @@ export class MarkdownImageConverter {
       } catch (error) {
         this.logger.warn("Failed to convert inline image", {
           sourceUrl: detection.sourceUrl,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         // Continue with other images - don't fail entire conversion
       }

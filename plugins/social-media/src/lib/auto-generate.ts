@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 
@@ -59,8 +60,7 @@ export function subscribeToEntityUpdatedForAutoGenerate(
       );
       return { success: true };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       logger.error(`Failed to trigger auto-generate for ${entityId}:`, {
         error: errorMessage,
       });
@@ -107,8 +107,7 @@ export function subscribeToAutoGenerate(
 
       return { success: true, jobId };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       logger.error(
         `Failed to enqueue social post generation for ${sourceEntityId}:`,
         { error: errorMessage },
@@ -201,8 +200,7 @@ export function subscribeToGenerateExecute(
 
         return { success: true };
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         logger.error("Failed to handle generate:execute:", {
           error: errorMessage,
         });

@@ -4,7 +4,7 @@ import type {
   ToolContext,
 } from "@brains/plugins";
 import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import { ButtondownClient } from "../lib/buttondown-client";
 import type { ButtondownConfig } from "../config";
 
@@ -125,7 +125,7 @@ function createSubscriberTools(
               : `Subscribed ${input.email} successfully`,
           );
         } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
+          const msg = getErrorMessage(error);
           return toolError(msg);
         }
       },
@@ -148,7 +148,7 @@ function createSubscriberTools(
             `Unsubscribed ${input.email} successfully`,
           );
         } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
+          const msg = getErrorMessage(error);
           return toolError(msg);
         }
       },
@@ -181,7 +181,7 @@ function createSubscriberTools(
             `Found ${result.count} subscribers`,
           );
         } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
+          const msg = getErrorMessage(error);
           return toolError(msg);
         }
       },
@@ -237,7 +237,7 @@ function createGenerateTool(
           `Newsletter generation job queued (jobId: ${jobId})`,
         );
       } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
+        const msg = getErrorMessage(error);
         return toolError(msg);
       }
     },

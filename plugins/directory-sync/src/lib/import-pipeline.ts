@@ -1,6 +1,6 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { computeContentHash } from "@brains/utils";
+import { getErrorMessage, computeContentHash } from "@brains/utils";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";
 import type { Quarantine } from "./quarantine";
@@ -173,7 +173,7 @@ async function processEntityImport(
         path: filePath,
         entityType: rawEntity.entityType,
         id: rawEntity.id,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       },
     );
   }

@@ -10,6 +10,7 @@ import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
 import { ToolContextRoutingSchema } from "./interfaces";
 import {
+  getErrorMessage,
   Logger,
   type ProgressNotification,
   ProgressReporter,
@@ -162,7 +163,7 @@ export abstract class BasePlugin<
           this.logger.error("Tool execution error", error);
           return {
             success: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
           };
         }
       },
@@ -204,7 +205,7 @@ export abstract class BasePlugin<
           this.logger.error("Resource fetch error", error);
           return {
             success: false,
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
           };
         }
       },

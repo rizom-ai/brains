@@ -3,7 +3,7 @@ import {
   type ServicePluginContext,
   type PluginTool,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import { DeckFormatter } from "./formatters/deck-formatter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
@@ -127,8 +127,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
 
         this.logger.info(`Published deck: ${entityId}`);
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,

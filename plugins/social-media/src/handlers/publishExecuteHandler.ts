@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { Logger, PublishProvider, PublishImageData } from "@brains/utils";
 import type {
   IEntityService,
@@ -172,8 +173,7 @@ export class PublishExecuteHandler {
         });
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       this.logger.error("Unexpected error in publish handler", {
         entityId,
         error: errorMessage,

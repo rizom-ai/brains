@@ -4,7 +4,7 @@ import type {
   ToolResponse,
   ToolContext,
 } from "../interfaces";
-import { z, Logger } from "@brains/utils";
+import { getErrorMessage, z, Logger } from "@brains/utils";
 
 /**
  * Zod schema for tool result validation
@@ -124,8 +124,7 @@ export function createTypedTool<
         return result;
       } catch (error) {
         logger?.error(`Tool ${name} failed`, error);
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
+        const errorMessage = getErrorMessage(error);
         return {
           success: false,
           error: errorMessage,

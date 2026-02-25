@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 /**
  * ContentScheduler - Cron-based scheduler for content pipeline queues
  *
@@ -293,7 +294,7 @@ export class ContentScheduler {
       this.config.backend.validateCron(cronExpr);
     } catch (error) {
       throw new Error(
-        `Invalid ${scheduleType} cron expression for ${entityType}: "${cronExpr}" - ${error instanceof Error ? error.message : String(error)}`,
+        `Invalid ${scheduleType} cron expression for ${entityType}: "${cronExpr}" - ${getErrorMessage(error)}`,
       );
     }
   }

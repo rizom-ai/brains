@@ -7,7 +7,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z, computeContentHash } from "@brains/utils";
+import { getErrorMessage, z, computeContentHash } from "@brains/utils";
 import { SummaryExtractor } from "../lib/summary-extractor";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
@@ -173,7 +173,7 @@ export class DigestHandler {
     } catch (error) {
       this.logger.error("Failed to process digest", {
         conversationId: digest.conversationId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       throw error;
     }

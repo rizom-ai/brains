@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -93,8 +94,7 @@ export function subscribeToPublishExecute(
 
       logger.info(`Published post: ${entityId}`);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       await context.messaging.send("publish:report:failure", {
         entityType,
         entityId,

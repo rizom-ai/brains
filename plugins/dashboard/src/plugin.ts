@@ -5,7 +5,7 @@ import {
   toolSuccess,
   toolError,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
 import type { RegisteredWidget } from "./widget-registry";
 import {
@@ -128,7 +128,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           return { success: true };
         } catch (error) {
           this.logger.error("Failed to register widget", {
-            error: error instanceof Error ? error.message : String(error),
+            error: getErrorMessage(error),
             payload: message.payload,
           });
           return { success: false, error: "Widget registration failed" };
@@ -174,7 +174,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             });
             return toolSuccess(data, "Dashboard data retrieved");
           } catch (error) {
-            const msg = error instanceof Error ? error.message : String(error);
+            const msg = getErrorMessage(error);
             return toolError(msg);
           }
         },

@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import { ServicePlugin } from "@brains/plugins";
 import {
   conversationDigestPayloadSchema,
@@ -78,10 +79,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
    * Register MCP tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.context) {
-      throw new Error("Plugin not initialized");
-    }
-    return createSummaryTools(this.context, this.config, this.logger);
+    return createSummaryTools(this.getContext(), this.config, this.logger);
   }
 
   /**
@@ -100,7 +98,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     } catch (err) {
       this.logger.error("Failed to handle digest message", {
         messageId: message.id,
-        error: err instanceof Error ? err.message : String(err),
+        error: getErrorMessage(err),
       });
     }
   }
@@ -111,13 +109,10 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
   public async getSummary(
     conversationId: string,
   ): Promise<SummaryEntity | null> {
-    if (!this.context) {
-      this.logger.error("Plugin context not initialized");
-      throw new Error("Plugin not initialized");
-    }
+    const context = this.getContext();
 
     try {
-      const entity = await this.context.entityService.getEntity<SummaryEntity>(
+      const entity = await context.entityService.getEntity<SummaryEntity>(
         "summary",
         conversationId,
       );
@@ -125,7 +120,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
     } catch (error) {
       this.logger.debug("Summary not found", {
         conversationId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return null;
     }
@@ -135,18 +130,16 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
    * Delete summary for a conversation
    */
   public async deleteSummary(conversationId: string): Promise<boolean> {
-    if (!this.context) {
-      throw new Error("Plugin not initialized");
-    }
+    const context = this.getContext();
 
     try {
-      await this.context.entityService.deleteEntity("summary", conversationId);
+      await context.entityService.deleteEntity("summary", conversationId);
       this.logger.info("Summary deleted", { conversationId });
       return true;
     } catch (error) {
       this.logger.error("Failed to delete summary", {
         conversationId,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return false;
     }
@@ -156,12 +149,10 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
    * Get all summaries (for management/export purposes)
    */
   public async getAllSummaries(): Promise<SummaryEntity[]> {
-    if (!this.context) {
-      throw new Error("Plugin not initialized");
-    }
+    const context = this.getContext();
 
     try {
-      return await this.context.entityService.listEntities<SummaryEntity>(
+      return await context.entityService.listEntities<SummaryEntity>(
         "summary",
         {
           limit: 1000, // Get all summaries
@@ -169,7 +160,7 @@ export class SummaryPlugin extends ServicePlugin<SummaryConfig> {
       );
     } catch (error) {
       this.logger.error("Failed to get all summaries", {
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       return [];
     }

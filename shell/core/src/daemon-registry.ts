@@ -1,4 +1,4 @@
-import { Logger } from "@brains/utils";
+import { getErrorMessage, Logger } from "@brains/utils";
 import type {
   Daemon,
   DaemonHealth,
@@ -161,7 +161,7 @@ export class DaemonRegistry {
     } catch (error) {
       const errorHealth: DaemonHealth = {
         status: "error",
-        message: error instanceof Error ? error.message : String(error),
+        message: getErrorMessage(error),
         lastCheck: new Date(),
       };
       daemonInfo.health = errorHealth;

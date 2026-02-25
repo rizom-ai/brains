@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { ICoreEntityService } from "@brains/plugins";
 import { ButtondownClient } from "../lib/buttondown-client";
@@ -83,7 +84,7 @@ export async function handlePublishCompleted(
       emailId: email.id,
     };
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
+    const msg = getErrorMessage(error);
     logger.error("Failed to send newsletter for post", {
       postId: post.id,
       error: msg,

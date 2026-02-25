@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils";
 import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {
+  getErrorMessage,
   z,
   slugify,
   computeContentHash,
@@ -260,7 +261,7 @@ Add your conclusion here`;
 
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       };
     }
   }

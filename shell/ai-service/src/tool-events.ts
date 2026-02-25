@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 /**
  * Tool Events - Event emission for tool invocations
  *
@@ -107,7 +108,7 @@ export function createToolExecuteWrapper(
       if (emitter) {
         const failedPayload: ToolCompletionEvent = {
           toolName,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
           conversationId: contextInfo.conversationId,
           interfaceType: contextInfo.interfaceType,
           ...(contextInfo.channelId !== undefined && {

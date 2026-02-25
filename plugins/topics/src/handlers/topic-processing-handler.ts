@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, PROGRESS_STEPS, JobResult } from "@brains/utils";
+import { getErrorMessage, z, PROGRESS_STEPS, JobResult } from "@brains/utils";
 import { TopicService } from "../lib/topic-service";
 
 // Schema for processing single topic job data
@@ -157,7 +157,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
       this.logger.error("Topic processing failed", {
         jobId,
         title: topic.title,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
 
       return {

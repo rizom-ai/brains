@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicSource } from "../schemas/topic";
@@ -109,7 +110,7 @@ ${entity.content}`;
       this.logger.error("Failed to extract topics from entity", {
         entityId: entity.id,
         entityType: entity.entityType,
-        error: error instanceof Error ? error.message : String(error),
+        error: getErrorMessage(error),
       });
       throw error;
     }

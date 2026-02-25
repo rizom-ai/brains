@@ -3,7 +3,11 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import { fetchImageAsBase64, PROGRESS_STEPS } from "@brains/utils";
+import {
+  getErrorMessage,
+  fetchImageAsBase64,
+  PROGRESS_STEPS,
+} from "@brains/utils";
 import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";
 import { MarkdownImageConverter } from "../lib/markdown-image-converter";
@@ -74,7 +78,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       try {
         fileContent = readFileSync(filePath, "utf-8");
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         this.logger.error("Failed to read file", { filePath, error: message });
         return { success: false, error: message };
       }
@@ -130,7 +134,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       try {
         writeFileSync(filePath, result.content, "utf-8");
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = getErrorMessage(error);
         this.logger.error("Failed to write file", { filePath, error: message });
         return { success: false, error: message };
       }
@@ -147,7 +151,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
       return { success: true, convertedCount: result.convertedCount };
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = getErrorMessage(error);
       this.logger.error("Inline image conversion job failed", {
         jobId,
         filePath,

@@ -2,7 +2,7 @@ import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join, basename } from "path";
-import { z } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import type { CorePluginContext } from "@brains/plugins";
 
 /**
@@ -410,8 +410,7 @@ export class GitSync {
 
       return true;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       if (errorMessage.includes("couldn't find remote ref")) {
         this.logger.info("Remote branch doesn't exist yet, skipping pull");
         return false;
@@ -469,9 +468,7 @@ export class GitSync {
       this.logger.info("Sync completed successfully");
     } catch (error) {
       this.logger.error("Sync failed", { error });
-      throw new Error(
-        `Git synchronization failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      throw new Error(`Git synchronization failed: ${getErrorMessage(error)}`);
     }
   }
 

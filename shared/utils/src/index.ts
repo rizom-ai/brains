@@ -110,5 +110,8 @@ export {
   type GenerationResult,
 } from "./generation-result";
 
+// Error utilities
+export { getErrorMessage } from "./error";
+
 // Debounce utilities
 export { LeadingTrailingDebounce } from "./debounce";

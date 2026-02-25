@@ -2,7 +2,7 @@ import { BaseJobHandler } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
-import { computeContentHash } from "@brains/utils";
+import { getErrorMessage, computeContentHash } from "@brains/utils";
 import {
   directoryImportJobSchema,
   type ImportResult,
@@ -162,7 +162,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
         result.failed++;
         result.errors.push({
           path: filePath,
-          error: error instanceof Error ? error.message : String(error),
+          error: getErrorMessage(error),
         });
         return { success: false, error };
       }

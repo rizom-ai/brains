@@ -1,3 +1,4 @@
+import { getErrorMessage } from "@brains/utils";
 /**
  * Scheduler publish helpers - extracted from ContentScheduler
  *
@@ -103,7 +104,7 @@ export async function executeWithProvider(
       result,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = getErrorMessage(error);
 
     deps.retryTracker.recordFailure(entry.entityId, errorMessage);
     const retryInfo = deps.retryTracker.getRetryInfo(entry.entityId);

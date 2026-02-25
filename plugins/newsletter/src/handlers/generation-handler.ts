@@ -5,6 +5,7 @@ import {
 } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
+  getErrorMessage,
   z,
   slugify,
   PROGRESS_STEPS,
@@ -270,8 +271,7 @@ The newsletter should:
         entityId: result.entityId,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       this.logger.error("Newsletter generation job failed", {
         error,
       });
