@@ -76,21 +76,15 @@ describe("BrainCharacterService", () => {
 
     it("should parse and return character from cache when entity exists", async () => {
       // Create a mock entity with content
-      const mockContent = `# Brain Identity
-
-## Name
-Research Brain
-
-## Role
-Research assistant
-
-## Purpose
-Help with academic research
-
-## Values
-
-- rigor
-- accuracy`;
+      const mockContent = `---
+name: Research Brain
+role: Research assistant
+purpose: Help with academic research
+values:
+  - rigor
+  - accuracy
+---
+`;
       const mockEntity = createTestEntity<BrainCharacterEntity>(
         "brain-character",
         {
@@ -142,20 +136,14 @@ Help with academic research
 
     it("should not create entity when one already exists", async () => {
       // Mock behavior: existing entity with valid content
-      const existingContent = `# Brain Identity
-
-## Name
-Existing Brain
-
-## Role
-Existing role
-
-## Purpose
-Existing purpose
-
-## Values
-
-- existing value`;
+      const existingContent = `---
+name: Existing Brain
+role: Existing role
+purpose: Existing purpose
+values:
+  - existing value
+---
+`;
       const mockEntity = createTestEntity<BrainCharacterEntity>(
         "brain-character",
         {

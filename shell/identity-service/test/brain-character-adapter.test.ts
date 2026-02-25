@@ -136,38 +136,6 @@ values:
       ]);
     });
 
-    it("should parse legacy structured markdown to character body", () => {
-      const markdown = `# Brain Identity
-
-## Name
-Research Brain
-
-## Role
-Research assistant
-
-## Purpose
-Help organize research papers and maintain literature review notes.
-
-## Values
-
-- academic rigor
-- citation accuracy
-- critical thinking`;
-
-      const result = adapter.parseCharacterBody(markdown);
-
-      expect(result.name).toBe("Research Brain");
-      expect(result.role).toBe("Research assistant");
-      expect(result.purpose).toBe(
-        "Help organize research papers and maintain literature review notes.",
-      );
-      expect(result.values).toEqual([
-        "academic rigor",
-        "citation accuracy",
-        "critical thinking",
-      ]);
-    });
-
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
@@ -200,32 +168,6 @@ values:
       // Content should be stored as frontmatter format
       expect(result.content).toContain("---");
       expect(result.content).toContain("name: Research Brain");
-    });
-
-    it("should auto-convert legacy structured markdown to frontmatter", () => {
-      const markdown = `# Brain Identity
-
-## Name
-Research Brain
-
-## Role
-Research assistant
-
-## Purpose
-Help organize research papers.
-
-## Values
-
-- academic rigor
-- citation accuracy`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.entityType).toBe("brain-character");
-      // Legacy content should be converted to frontmatter format
-      expect(result.content).toContain("---");
-      expect(result.content).toContain("name: Research Brain");
-      expect(result.content).toContain("role: Research assistant");
     });
   });
 

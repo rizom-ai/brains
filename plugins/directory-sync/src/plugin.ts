@@ -133,3 +133,5 @@ export function directorySync(
 ): Plugin {
   return new DirectorySyncPlugin(config);
 }
+
+export const directorySyncPlugin = directorySync;

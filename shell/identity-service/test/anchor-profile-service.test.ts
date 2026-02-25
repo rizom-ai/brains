@@ -72,29 +72,16 @@ describe("AnchorProfileService", () => {
 
     it("should parse and return profile from cache when entity exists", async () => {
       // Create a mock entity with content
-      const mockContent = `# Profile
-
-## Name
-Rizom
-
-## Description
-Open-source collective building privacy-first tools
-
-## Website
-https://rizom.ai
-
-## Email
-contact@rizom.ai
-
-## Social Links
-
-### 1
-
-#### Platform
-github
-
-#### URL
-https://github.com/rizom-ai`;
+      const mockContent = `---
+name: Rizom
+description: Open-source collective building privacy-first tools
+website: 'https://rizom.ai'
+email: contact@rizom.ai
+socialLinks:
+  - platform: github
+    url: 'https://github.com/rizom-ai'
+---
+`;
       const mockEntity = createTestEntity<AnchorProfileEntity>(
         "anchor-profile",
         {
@@ -152,10 +139,10 @@ https://github.com/rizom-ai`;
 
     it("should not create entity when one already exists", async () => {
       // Mock behavior: existing entity with valid content
-      const existingContent = `# Profile
-
-## Name
-Existing Profile`;
+      const existingContent = `---
+name: Existing Profile
+---
+`;
       const mockEntity = createTestEntity<AnchorProfileEntity>(
         "anchor-profile",
         {
@@ -197,29 +184,16 @@ Existing Profile`;
       expect(profile.name).toBe("Unknown"); // Default name
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
-      const importedContent = `# Profile
-
-## Name
-Yeehaa
-
-## Description
-Professional developer, writer, and knowledge worker
-
-## Email
-yeehaa@rizom.ai
-
-## Social Links
-
-### Social Link 1
-
-#### Platform
-github
-
-#### URL
-https://github.com/yourusername
-
-#### Label
-View my code on GitHub`;
+      const importedContent = `---
+name: Yeehaa
+description: 'Professional developer, writer, and knowledge worker'
+email: yeehaa@rizom.ai
+socialLinks:
+  - platform: github
+    url: 'https://github.com/yourusername'
+    label: View my code on GitHub
+---
+`;
       const importedEntity = createTestEntity<AnchorProfileEntity>(
         "anchor-profile",
         {

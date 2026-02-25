@@ -1,10 +1,4 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/plugins";
-import { z } from "@brains/utils";
+import { BaseEntityAdapter } from "@brains/plugins";
 import { summarySchema, summaryMetadataSchema } from "../schemas/summary";
 import type {
   SummaryEntity,
@@ -15,16 +9,18 @@ import type {
 /**
  * Adapter for summary entities with simplified log-based structure
  * Entries are prepended (newest first) for optimization
- *
- * TODO: Refactor to extend BaseEntityAdapter — requires rethinking the
- * log entry parsing/formatting as structured body content so toMarkdown
- * and fromMarkdown can use the standard helpers.
  */
-export class SummaryAdapter
-  implements EntityAdapter<SummaryEntity, SummaryMetadata>
-{
-  public readonly entityType = "summary";
-  public readonly schema = summarySchema;
+export class SummaryAdapter extends BaseEntityAdapter<
+  SummaryEntity,
+  SummaryMetadata
+> {
+  constructor() {
+    super({
+      entityType: "summary",
+      schema: summarySchema,
+      frontmatterSchema: summaryMetadataSchema,
+    });
+  }
 
   /**
    * Format a single log entry to markdown
@@ -131,43 +127,29 @@ export class SummaryAdapter
    * Convert entity to markdown with frontmatter
    */
   public toMarkdown(entity: SummaryEntity): string {
-    // Parse existing content to get entries
-    let contentBody = entity.content;
-    try {
-      const parsed = parseMarkdownWithFrontmatter(entity.content, z.object({}));
-      contentBody = parsed.content;
-    } catch {
-      // Content doesn't have frontmatter, use as-is
-    }
-
-    // Parse to get entries and recreate body without metadata duplication
+    const contentBody = this.extractBody(entity.content);
     const entries = this.parseEntriesFromContent(contentBody);
     const cleanBody = this.createContentBody(entries);
-
-    // Always include metadata as frontmatter for roundtrip
-    return generateMarkdownWithFrontmatter(cleanBody, entity.metadata);
+    return this.buildMarkdown(
+      cleanBody,
+      entity.metadata as Record<string, unknown>,
+    );
   }
 
   /**
    * Create entity from markdown, extracting metadata from frontmatter
    */
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {
-    // Parse with required frontmatter fields
-    const { metadata, content: contentBody } = parseMarkdownWithFrontmatter(
-      markdown,
-      summaryMetadataSchema,
-    );
-
-    // Parse entries from content body
+    const metadata = this.parseFrontmatter(markdown);
+    const contentBody = this.extractBody(markdown);
     const entries = this.parseEntriesFromContent(contentBody);
 
-    // Get timestamps from entries
     const oldestEntry = entries[entries.length - 1];
     const newestEntry = entries[0];
 
     return {
       entityType: "summary",
-      content: markdown, // Store the FULL markdown including frontmatter
+      content: markdown,
       created: oldestEntry?.created ?? new Date().toISOString(),
       updated: newestEntry?.updated ?? new Date().toISOString(),
       metadata: {
@@ -179,35 +161,6 @@ export class SummaryAdapter
         totalMessages: metadata.totalMessages,
       },
     };
-  }
-
-  /**
-   * Extract metadata for storage
-   */
-  public extractMetadata(entity: SummaryEntity): SummaryMetadata {
-    return entity.metadata;
-  }
-
-  /**
-   * Parse frontmatter from markdown
-   * Summaries don't use frontmatter, everything is in the content
-   */
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    const { metadata } = parseMarkdownWithFrontmatter(markdown, schema);
-    return metadata;
-  }
-
-  /**
-   * Generate frontmatter for the entity
-   */
-  public generateFrontMatter(entity: SummaryEntity): string {
-    if (Object.keys(entity.metadata).length > 0) {
-      return generateFrontmatter(entity.metadata);
-    }
-    return "";
   }
 
   /**

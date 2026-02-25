@@ -3,7 +3,7 @@
  * Provides file-based entity synchronization
  */
 
-export { directorySync } from "./plugin";
+export { directorySync, directorySyncPlugin } from "./plugin";
 export { DirectorySyncPlugin } from "./plugin";
 export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";

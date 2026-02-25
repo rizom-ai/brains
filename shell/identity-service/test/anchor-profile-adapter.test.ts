@@ -148,54 +148,6 @@ socialLinks:
       });
     });
 
-    it("should parse legacy structured markdown to profile body", () => {
-      const markdown = `# Profile
-
-## Name
-Rizom
-
-## Description
-Open-source collective building privacy-first tools
-
-## Website
-https://rizom.ai
-
-## Email
-contact@rizom.ai
-
-## Social Links
-
-### 1
-
-#### Platform
-github
-
-#### URL
-https://github.com/rizom-ai
-
-### 2
-
-#### Platform
-linkedin
-
-#### URL
-https://linkedin.com/company/rizom-collective`;
-
-      const result = adapter.parseProfileBody(markdown);
-
-      expect(result.name).toBe("Rizom");
-      expect(result.description).toBe(
-        "Open-source collective building privacy-first tools",
-      );
-      expect(result.website).toBe("https://rizom.ai");
-      expect(result.email).toBe("contact@rizom.ai");
-      expect(result.socialLinks).toHaveLength(2);
-      expect(result.socialLinks?.[0]).toMatchObject({
-        platform: "github",
-        url: "https://github.com/rizom-ai",
-      });
-    });
-
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
@@ -216,22 +168,6 @@ name: Rizom
 description: Open-source collective
 ---
 `;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.entityType).toBe("anchor-profile");
-      expect(result.content).toContain("---");
-      expect(result.content).toContain("name: Rizom");
-    });
-
-    it("should auto-convert legacy structured markdown to frontmatter", () => {
-      const markdown = `# Profile
-
-## Name
-Rizom
-
-## Description
-Open-source collective building privacy-first tools`;
 
       const result = adapter.fromMarkdown(markdown);
 
