@@ -233,7 +233,7 @@ export class ContentService implements IContentService {
     // Use Proxy to intercept listEntities/countEntities while properly forwarding
     // all other methods (including prototype methods on class instances)
     return new Proxy(baseService, {
-      get(target, prop, receiver) {
+      get(target, prop, receiver): unknown {
         if (prop === "listEntities") {
           return (
             entityType: string,

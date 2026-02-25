@@ -35,7 +35,11 @@ plugins/my-plugin/
 
 ```typescript
 // Plugin framework
-import { ServicePlugin, createTool, BaseJobHandler } from "@brains/plugins";
+import {
+  ServicePlugin,
+  createTypedTool,
+  BaseJobHandler,
+} from "@brains/plugins";
 import type {
   ServicePluginContext,
   ToolContext,
@@ -234,35 +238,30 @@ return JobResult.failure(error);
 
 ### 6. Tool Definition
 
-Use `createTool` for all plugin tools:
+Use `createTypedTool` for all plugin tools — it auto-validates input and provides typed handler params:
 
 ```typescript
-import { createTool } from "@brains/plugins";
+import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
+
+const createInputSchema = z.object({
+  topic: z.string().describe("Topic to create entity about"),
+  year: z.number().describe("Year for the entity"),
+});
 
 export function createMyTools(
   pluginId: string,
   context: ServicePluginContext,
 ): PluginTool[] {
   return [
-    createTool(
+    createTypedTool(
       pluginId,
       "create", // Tool name becomes: my-plugin_create
       "Create a new entity from a topic",
-      {
-        topic: z.string().describe("Topic to create entity about"),
-        year: z.number().describe("Year for the entity"),
-      },
-      async (input: unknown, toolContext: ToolContext) => {
-        try {
-          const { topic, year } = inputSchema.parse(input);
-          // ... implementation
-          return { success: true, data: { entityId }, message: "Created" };
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          };
-        }
+      createInputSchema,
+      async (input, toolContext) => {
+        // input is typed as { topic: string; year: number }
+        // ... implementation
+        return toolSuccess({ entityId }, "Created");
       },
     ),
   ];

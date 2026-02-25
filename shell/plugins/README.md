@@ -21,8 +21,12 @@ All plugin dependencies are re-exported from this package, so you typically only
 Base class for plugins that provide tools and resources:
 
 ```typescript
-import { CorePlugin, createTool } from "@brains/plugins";
+import { CorePlugin, createTypedTool, toolSuccess } from "@brains/plugins";
 import { z } from "@brains/utils";
+
+const greetSchema = z.object({
+  name: z.string().describe("Name to greet"),
+});
 
 export class MyPlugin extends CorePlugin {
   constructor() {
@@ -31,14 +35,14 @@ export class MyPlugin extends CorePlugin {
 
   async getTools() {
     return [
-      createTool(
+      createTypedTool(
         this.id,
         "greet",
         "Greet a user by name",
-        { name: z.string().describe("Name to greet") },
+        greetSchema,
         async (input) => {
-          const { name } = z.object({ name: z.string() }).parse(input);
-          return { message: `Hello, ${name}!` };
+          // input is typed as { name: string }
+          return toolSuccess({ message: `Hello, ${input.name}!` });
         },
       ),
     ];
@@ -51,7 +55,7 @@ export class MyPlugin extends CorePlugin {
 Extended base class for plugins that need entity registration, job handling, and AI generation:
 
 ```typescript
-import { ServicePlugin, createTool } from "@brains/plugins";
+import { ServicePlugin, createTypedTool } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 
 export class MyServicePlugin extends ServicePlugin {
@@ -99,24 +103,25 @@ export class MyInterface extends InterfacePlugin {
 
 ## Creating Tools
 
-Use the `createTool` helper for consistent tool creation:
+Use the `createTypedTool` helper for consistent tool creation with auto-validation:
 
 ```typescript
-import { createTool } from "@brains/plugins";
+import { createTypedTool, toolSuccess } from "@brains/plugins";
 import { z } from "@brains/utils";
 
-const myTool = createTool(
+const actionSchema = z.object({
+  query: z.string().describe("Search query"),
+  limit: z.number().optional().describe("Max results"),
+});
+
+const myTool = createTypedTool(
   "my-plugin", // Plugin ID
   "action", // Tool name (becomes "my-plugin_action")
   "Description of tool", // Description shown to users/AI
-  {
-    // Input schema (Zod shape)
-    query: z.string().describe("Search query"),
-    limit: z.number().optional().describe("Max results"),
-  },
+  actionSchema, // Zod schema (input is auto-validated and typed)
   async (input, context) => {
-    // Handler implementation
-    return { status: "success", data: result };
+    // input is typed as { query: string; limit?: number }
+    return toolSuccess(result);
   },
   { visibility: "public" }, // Optional: "anchor" (default) or "public"
 );
@@ -330,7 +335,7 @@ class MyPlugin extends ServicePlugin<z.infer<typeof configSchema>> {
 
 ## Best Practices
 
-1. **Use `createTool` helper** - Ensures consistent naming and structure
+1. **Use `createTypedTool` helper** - Ensures consistent naming, auto-validation, and typed input
 2. **Use typed schemas** - Define Zod schemas for all inputs/outputs
 3. **Handle errors gracefully** - Return error objects, don't throw
 4. **Document tools clearly** - Descriptions are shown to AI and users
@@ -349,7 +354,7 @@ class MyPlugin extends ServicePlugin<z.infer<typeof configSchema>> {
 
 ### Utilities
 
-- `createTool(pluginId, name, description, schema, handler, options?)` - Create a tool
+- `createTypedTool(pluginId, name, description, schema, handler, options?)` - Create a tool with auto-validation
 - `createResource(pluginId, uri, name, description, handler)` - Create a resource
 - `createId()` - Generate unique IDs
 

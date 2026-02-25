@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { EntityDataSource } from "../src/datasources/entity-datasource";
 import { createMockEntityService } from "@brains/test-utils";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseEntity } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 const markdownSchema = z.object({ markdown: z.string() });
@@ -10,7 +10,7 @@ function createMockEntity(overrides: {
   id: string;
   entityType: string;
   content: string;
-}) {
+}): BaseEntity {
   return {
     id: overrides.id,
     entityType: overrides.entityType,

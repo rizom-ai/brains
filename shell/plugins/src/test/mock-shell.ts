@@ -132,7 +132,7 @@ export class MockShell implements IShell {
     });
 
     // Create mock DaemonRegistry implementing IDaemonRegistry
-    this._daemonRegistry = {
+    const daemonRegistry: IDaemonRegistry = {
       register: () => {},
       has: () => false,
       get: () => undefined,
@@ -148,6 +148,7 @@ export class MockShell implements IShell {
       stopPlugin: async () => {},
       clear: async () => {},
     };
+    this._daemonRegistry = daemonRegistry;
   }
 
   getMessageBus(): MessageBus {

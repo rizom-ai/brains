@@ -12,6 +12,7 @@
  */
 
 import type { PublishResult } from "@brains/utils";
+import type { GenerationCondition } from "./types/config";
 import type { QueueEntry } from "./queue-manager";
 import type { ScheduledJob } from "./scheduler-backend";
 import {
@@ -264,7 +265,7 @@ export class ContentScheduler {
       messageBus: this.config.messageBus,
       generationConditions: this.config.generationConditions as Record<
         string,
-        import("./types/config").GenerationCondition
+        GenerationCondition
       >,
       onCheckGenerationConditions: this.config.onCheckGenerationConditions,
       onGenerate: this.config.onGenerate,

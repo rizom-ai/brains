@@ -4,7 +4,11 @@ import {
   createMockServicePluginContext,
   createTestEntity,
 } from "@brains/test-utils";
-import type { ServicePluginContext, BatchOperation } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  BatchOperation,
+  MessageResponse,
+} from "@brains/plugins";
 import type { RouteDefinition } from "@brains/plugins";
 
 const testRoutes: RouteDefinition[] = [
@@ -40,7 +44,9 @@ const testRoutes: RouteDefinition[] = [
   },
 ];
 
-function createRoutesMessaging(routes: RouteDefinition[]) {
+function createRoutesMessaging(
+  routes: RouteDefinition[],
+): (channel: string) => Promise<MessageResponse> {
   return async (channel: string) => {
     if (channel === "site-builder:routes:list") {
       return { success: true, data: routes };

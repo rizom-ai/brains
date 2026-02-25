@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, SearchResult } from "@brains/plugins";
 import {
   createMockEntityService,
   createMockAIService,
@@ -11,6 +11,7 @@ import type { Template } from "@brains/templates";
 import { z, EntityUrlGenerator } from "@brains/utils";
 
 const messageSchema = z.object({ message: z.string() });
+type Message = z.infer<typeof messageSchema>;
 
 const defaultIdentityContent = `# Identity
 
@@ -40,7 +41,7 @@ function createSearchEntity(overrides: {
   content: string;
   metadata?: Record<string, unknown>;
   excerpt: string;
-}) {
+}): SearchResult {
   return {
     entity: {
       id: overrides.id,
@@ -100,7 +101,7 @@ describe("AIContentDataSource", () => {
     prompt: string,
     templateName = "test-template",
     conversationHistory?: string,
-  ) {
+  ): Promise<Message> {
     return aiContentDataSource.generate(
       { templateName, prompt, conversationHistory },
       messageSchema,

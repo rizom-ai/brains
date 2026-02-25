@@ -227,19 +227,3 @@ export const testCaseSchema = z.discriminatedUnion("type", [
 ]);
 
 export type TestCase = z.infer<typeof testCaseSchema>;
-
-/**
- * Legacy test case schema for backward compatibility
- * @deprecated Use testCaseSchema instead
- */
-export const legacyTestCaseSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  type: testCaseTypeSchema,
-  tags: z.array(z.string()).optional(),
-  setup: testSetupSchema.optional(),
-  turns: z.array(turnSchema).min(1),
-  successCriteria: successCriteriaSchema,
-  efficiency: efficiencySchema.optional(),
-});

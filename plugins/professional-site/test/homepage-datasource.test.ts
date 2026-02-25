@@ -19,19 +19,13 @@ describe("HomepageListDataSource", () => {
   let mockEntityService: IEntityService;
   let mockContext: BaseDataSourceContext;
 
-  const profileContent = `# Profile
-
-## Name
-Yeehaa
-
-## Description
-Professional developer
-
-## Tagline
-Building tools for thought
-
-## Intro
-Essays and presentations on technology`;
+  const profileContent = `---
+name: Yeehaa
+description: Professional developer
+tagline: Building tools for thought
+intro: Essays and presentations on technology
+---
+`;
 
   const mockProfile = createTestEntity("anchor-profile", {
     id: "anchor-profile",

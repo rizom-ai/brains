@@ -214,7 +214,9 @@ export function createMockServicePluginContext(
 
     // Messaging namespace
     messaging: {
-      send: mock(returns.messagingSend ?? (() => Promise.resolve())),
+      send: mock(
+        returns.messagingSend ?? ((): Promise<void> => Promise.resolve()),
+      ),
       subscribe: mock(() => () => {}),
     },
 

@@ -1,21 +1,37 @@
 import type {
   AppInfo,
+  BrainCharacter,
+  AnchorProfile,
   ContentGenerationConfig,
+  DataSourceRegistry,
   DefaultQueryResponse,
   EvalHandler,
+  IContentService,
+  IEntityRegistry,
+  IEntityService,
+  IMessageBus,
   IShell,
   Plugin,
+  PluginManager,
   PluginResource,
   PluginTool,
   QueryContext,
   RegisteredApiRoute,
 } from "@brains/plugins";
 import type {
+  IAIService,
+  IAgentService,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
 import type { Daemon } from "@brains/plugins";
-import type { BatchJobStatus, IJobsNamespace } from "@brains/job-queue";
+import type {
+  BatchJobStatus,
+  IJobsNamespace,
+  IJobQueueService,
+} from "@brains/job-queue";
+import type { IConversationService } from "@brains/conversation-service";
+import type { PermissionService, RenderService } from "@brains/templates";
 import type { IMCPTransport } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger, type z } from "@brains/utils";
@@ -264,15 +280,15 @@ export class Shell implements IShell {
     }
   }
 
-  public getEntityService() {
+  public getEntityService(): IEntityService {
     return this.services.entityService;
   }
 
-  public getConversationService() {
+  public getConversationService(): IConversationService {
     return this.services.conversationService;
   }
 
-  public getEntityRegistry() {
+  public getEntityRegistry(): IEntityRegistry {
     return this.services.entityRegistry;
   }
 
@@ -289,7 +305,7 @@ export class Shell implements IShell {
     return { object };
   }
 
-  public getAIService() {
+  public getAIService(): IAIService {
     return this.services.aiService;
   }
 
@@ -304,27 +320,27 @@ export class Shell implements IShell {
     return this.services.aiService.canGenerateImages();
   }
 
-  public getPluginManager() {
+  public getPluginManager(): PluginManager {
     return this.services.pluginManager;
   }
 
-  public getContentService() {
+  public getContentService(): IContentService {
     return this.services.contentService;
   }
 
-  public getRenderService() {
+  public getRenderService(): RenderService {
     return this.services.renderService;
   }
 
-  public getMessageBus() {
+  public getMessageBus(): IMessageBus {
     return this.services.messageBus;
   }
 
-  public getLogger() {
+  public getLogger(): Logger {
     return this.services.logger;
   }
 
-  public getJobQueueService() {
+  public getJobQueueService(): IJobQueueService {
     return this.services.jobQueueService;
   }
 
@@ -332,11 +348,11 @@ export class Shell implements IShell {
     return this.services.mcpService;
   }
 
-  public getPermissionService() {
+  public getPermissionService(): PermissionService {
     return this.services.permissionService;
   }
 
-  public getAgentService() {
+  public getAgentService(): IAgentService {
     return this.services.agentService;
   }
 
@@ -434,15 +450,15 @@ export class Shell implements IShell {
     return this.services.templateRegistry.get(name);
   }
 
-  public getDataSourceRegistry() {
+  public getDataSourceRegistry(): DataSourceRegistry {
     return this.services.dataSourceRegistry;
   }
 
-  public getIdentity() {
+  public getIdentity(): BrainCharacter {
     return this.services.identityService.getCharacter();
   }
 
-  public getProfile() {
+  public getProfile(): AnchorProfile {
     return this.services.profileService.getProfile();
   }
 

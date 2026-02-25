@@ -3,6 +3,7 @@ import { GitSyncPlugin } from "../src/plugin";
 import { GitSync } from "../src/lib/git-sync";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { createMockLogger } from "@brains/test-utils";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -100,7 +101,13 @@ describe("GitSync.pull() selective import", () => {
 
     importRequests = [];
 
-    const mockSend = async (_topic: string, payload?: unknown) => {
+    const mockSend = async (
+      _topic: string,
+      payload?: unknown,
+    ): Promise<{
+      success: true;
+      data: { imported: number; errors: never[] };
+    }> => {
       if (_topic === "entity:import:request") {
         importRequests.push(payload as { paths?: string[] });
       }
@@ -113,19 +120,7 @@ describe("GitSync.pull() selective import", () => {
       autoSync: false,
       syncInterval: 300,
       dataDir: testDir,
-      logger: {
-        info: () => {},
-        warn: () => {},
-        error: () => {},
-        debug: () => {},
-        child: () => ({
-          info: () => {},
-          warn: () => {},
-          error: () => {},
-          debug: () => {},
-          child: () => null as never,
-        }),
-      } as never,
+      logger: createMockLogger(),
       messaging: {
         send: mockSend as never,
         subscribe: (() => {}) as never,

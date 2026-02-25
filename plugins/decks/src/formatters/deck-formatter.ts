@@ -3,7 +3,7 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z, slugify } from "@brains/utils";
+import { type z, slugify } from "@brains/utils";
 import {
   deckSchema,
   deckFrontmatterSchema,

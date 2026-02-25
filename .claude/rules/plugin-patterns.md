@@ -139,7 +139,7 @@ import {
   type CorePluginContext,
   type InterfacePluginContext,
   type PluginTool,
-  createTool,
+  createTypedTool,
 } from "@brains/plugins";
 
 // Utilities

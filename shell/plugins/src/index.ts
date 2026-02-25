@@ -314,7 +314,6 @@ export { AgentService, createBrainAgentFactory } from "@brains/ai-service";
 // Utility functions
 export { createId } from "@brains/utils";
 export {
-  createTool,
   createTypedTool,
   createResource,
   toolSuccess,

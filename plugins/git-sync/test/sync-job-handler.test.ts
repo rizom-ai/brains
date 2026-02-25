@@ -65,7 +65,6 @@ describe("Git Sync Job Handler", () => {
   it("should still provide the status tool as synchronous", async () => {
     const result = await harness.executeTool("git-sync_status", {});
     expect(result.success).toBe(true);
-    const data = result.success ? result.data : undefined;
-    expect((data as { isRepo?: boolean })?.isRepo).toBe(true);
+    expect(result.data).toHaveProperty("isRepo", true);
   });
 });

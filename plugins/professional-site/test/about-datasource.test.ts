@@ -14,32 +14,21 @@ describe("AboutDataSource", () => {
   let mockEntityService: IEntityService;
   let mockContext: BaseDataSourceContext;
 
-  const profileContent = `# Profile
-
-## Name
-Yeehaa
-
-## Description
-Professional developer and educator
-
-## Intro
-Essays and presentations on technology
-
-## Story
+  const profileContent = `---
+name: Yeehaa
+description: Professional developer and educator
+intro: Essays and presentations on technology
+expertise:
+  - TypeScript
+  - Distributed Systems
+  - Education
+currentFocus: Building tools for thought
+availability: Open for consulting
+---
 This is my story.
 
 I've been building software for many years.
-
-## Expertise
-- TypeScript
-- Distributed Systems
-- Education
-
-## Current Focus
-Building tools for thought
-
-## Availability
-Open for consulting`;
+`;
 
   const mockProfile = createTestEntity("anchor-profile", {
     id: "anchor-profile",
@@ -110,10 +99,10 @@ Open for consulting`;
   });
 
   it("should handle profile with minimal fields", async () => {
-    const minimalContent = `# Profile
-
-## Name
-Test User`;
+    const minimalContent = `---
+name: Test User
+---
+`;
 
     const minimalProfile = createTestEntity("anchor-profile", {
       id: "anchor-profile",

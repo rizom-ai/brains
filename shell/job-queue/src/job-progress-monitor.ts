@@ -339,7 +339,7 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         } catch (error) {
           this.logger.warn("Failed to emit batch progress", {
             jobId,
-            rootJobId: metadata?.rootJobId,
+            rootJobId: metadata.rootJobId,
             error,
           });
         }
