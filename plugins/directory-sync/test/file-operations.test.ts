@@ -61,12 +61,12 @@ describe("FileOperations", () => {
     });
 
     it("should handle simple files without subdirectories", async () => {
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      writeFileSync(join(testDir, "note", "simple.md"), "# Note");
+      mkdirSync(join(testDir, "topic"), { recursive: true });
+      writeFileSync(join(testDir, "topic", "simple.md"), "# Topic");
 
-      const entity = await fileOps.readEntity("note/simple.md");
+      const entity = await fileOps.readEntity("topic/simple.md");
 
-      expect(entity.entityType).toBe("note");
+      expect(entity.entityType).toBe("topic");
       expect(entity.id).toBe("simple");
     });
 
@@ -111,14 +111,14 @@ describe("FileOperations", () => {
     describe("getEntityFilePath", () => {
       it("should map simple entity IDs to flat files", () => {
         const testContent = "test";
-        const entity = createTestEntity("note", {
+        const entity = createTestEntity("topic", {
           id: "simple-id",
           content: testContent,
           metadata: {},
         });
 
         const path = fileOps.getEntityFilePath(entity);
-        expect(path).toBe(join(testDir, "note", "simple-id.md"));
+        expect(path).toBe(join(testDir, "topic", "simple-id.md"));
       });
 
       it("should map entity IDs with colons to subdirectories", () => {
@@ -263,7 +263,7 @@ describe("FileOperations", () => {
           join(testDir, "summary", "daily", "2024", "01-27.md"),
           join(testDir, "summary", "daily", "2024", "01-28.md"),
           join(testDir, "topic", "tech", "ai", "llms.md"),
-          join(testDir, "note", "simple.md"),
+          join(testDir, "link", "simple.md"),
         ];
 
         paths.forEach((path) => {
@@ -276,23 +276,23 @@ describe("FileOperations", () => {
         expect(files).toContain("summary/daily/2024/01-27.md");
         expect(files).toContain("summary/daily/2024/01-28.md");
         expect(files).toContain("topic/tech/ai/llms.md");
-        expect(files).toContain("note/simple.md");
+        expect(files).toContain("link/simple.md");
         expect(files.length).toBe(4);
       });
 
       it("should handle mixed flat and nested files", () => {
         // Create mix of flat and nested files
-        mkdirSync(join(testDir, "note"), { recursive: true });
+        mkdirSync(join(testDir, "topic"), { recursive: true });
         mkdirSync(join(testDir, "summary", "daily"), { recursive: true });
 
-        writeFileSync(join(testDir, "note", "flat.md"), "flat");
+        writeFileSync(join(testDir, "topic", "flat.md"), "flat");
         writeFileSync(join(testDir, "summary", "daily", "nested.md"), "nested");
         writeFileSync(join(testDir, "root.md"), "root");
 
         const files = fileOps.getAllMarkdownFiles();
 
         expect(files).toContain("root.md");
-        expect(files).toContain("note/flat.md");
+        expect(files).toContain("topic/flat.md");
         expect(files).toContain("summary/daily/nested.md");
       });
     });
@@ -331,31 +331,31 @@ describe("FileOperations", () => {
 
     it("should include image files from image/ directory in getAllSyncFiles", () => {
       // Create mix of markdown and image files
-      mkdirSync(join(testDir, "note"), { recursive: true });
+      mkdirSync(join(testDir, "topic"), { recursive: true });
       mkdirSync(join(testDir, "image"), { recursive: true });
 
-      writeFileSync(join(testDir, "note", "test.md"), "# Note");
+      writeFileSync(join(testDir, "topic", "test.md"), "# Topic");
       writeFileSync(join(testDir, "image", "photo.png"), TINY_PNG_BYTES);
       writeFileSync(join(testDir, "image", "banner.jpg"), TINY_PNG_BYTES);
 
       const files = fileOps.getAllSyncFiles();
 
-      expect(files).toContain("note/test.md");
+      expect(files).toContain("topic/test.md");
       expect(files).toContain("image/photo.png");
       expect(files).toContain("image/banner.jpg");
     });
 
     it("should NOT include image files from non-image directories", () => {
       // Create image files in wrong directory
-      mkdirSync(join(testDir, "note"), { recursive: true });
+      mkdirSync(join(testDir, "topic"), { recursive: true });
 
-      writeFileSync(join(testDir, "note", "test.md"), "# Note");
-      writeFileSync(join(testDir, "note", "photo.png"), TINY_PNG_BYTES); // Wrong!
+      writeFileSync(join(testDir, "topic", "test.md"), "# Topic");
+      writeFileSync(join(testDir, "topic", "photo.png"), TINY_PNG_BYTES); // Wrong!
 
       const files = fileOps.getAllSyncFiles();
 
-      expect(files).toContain("note/test.md");
-      expect(files).not.toContain("note/photo.png"); // Should be ignored
+      expect(files).toContain("topic/test.md");
+      expect(files).not.toContain("topic/photo.png"); // Should be ignored
     });
 
     it("should handle different image formats in image/ directory", async () => {
@@ -428,7 +428,7 @@ describe("FileOperations", () => {
 
     it("should handle Windows-style paths correctly", () => {
       const entityContent = "test";
-      const entity = createTestEntity("note", {
+      const entity = createTestEntity("topic", {
         id: "path:to:file",
         content: entityContent,
         metadata: {},
@@ -439,24 +439,24 @@ describe("FileOperations", () => {
       // Should use proper path separator for the platform
       // and not have colons in filename
       expect(path).not.toContain("path:to:file.md");
-      expect(path).toContain(join("note", "path", "to", "file.md"));
+      expect(path).toContain(join("topic", "path", "to", "file.md"));
     });
   });
 
   describe("Stale Content Protection", () => {
     it("should skip write when serialized content matches file content", async () => {
       // Setup: Create a file with specific content
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      const filePath = join(testDir, "note", "test-note.md");
+      mkdirSync(join(testDir, "topic"), { recursive: true });
+      const filePath = join(testDir, "topic", "test-topic.md");
 
       // The mock serializeEntity returns "# {id}\n\n{content}"
-      // So for id="test-note" and content="Same content", it produces:
-      const expectedSerializedContent = "# test-note\n\nSame content";
+      // So for id="test-topic" and content="Same content", it produces:
+      const expectedSerializedContent = "# test-topic\n\nSame content";
       writeFileSync(filePath, expectedSerializedContent);
 
       // Create entity that will serialize to the SAME content
-      const entity = createTestEntity("note", {
-        id: "test-note",
+      const entity = createTestEntity("topic", {
+        id: "test-topic",
         content: "Same content",
         metadata: {},
       });
@@ -481,13 +481,13 @@ describe("FileOperations", () => {
 
     it("should write when serialized content differs from file content", async () => {
       // Setup: Create a file with OLD content
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      const filePath = join(testDir, "note", "test-note.md");
-      writeFileSync(filePath, "# test-note\n\nOld content");
+      mkdirSync(join(testDir, "topic"), { recursive: true });
+      const filePath = join(testDir, "topic", "test-topic.md");
+      writeFileSync(filePath, "# test-topic\n\nOld content");
 
       // Create entity with DIFFERENT content
-      const entity = createTestEntity("note", {
-        id: "test-note",
+      const entity = createTestEntity("topic", {
+        id: "test-topic",
         content: "New content",
         metadata: {},
       });
@@ -496,15 +496,15 @@ describe("FileOperations", () => {
 
       // Verify file WAS updated
       const actualContent = readFileSync(filePath, "utf-8");
-      expect(actualContent).toBe("# test-note\n\nNew content");
+      expect(actualContent).toBe("# test-topic\n\nNew content");
     });
 
     it("should write when file does not exist", async () => {
-      const filePath = join(testDir, "note", "new-note.md");
+      const filePath = join(testDir, "topic", "new-topic.md");
       expect(existsSync(filePath)).toBe(false);
 
-      const entity = createTestEntity("note", {
-        id: "new-note",
+      const entity = createTestEntity("topic", {
+        id: "new-topic",
         content: "Brand new content",
         metadata: {},
       });
@@ -514,7 +514,7 @@ describe("FileOperations", () => {
       // Verify file was created
       expect(existsSync(filePath)).toBe(true);
       const content = readFileSync(filePath, "utf-8");
-      expect(content).toBe("# new-note\n\nBrand new content");
+      expect(content).toBe("# new-topic\n\nBrand new content");
     });
 
     it("should skip write for image when content matches", async () => {

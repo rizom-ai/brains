@@ -103,15 +103,15 @@ describe("Seed Content Git Detection", () => {
       mkdirSync(brainDataPath, { recursive: true });
       execSync("git init", { cwd: brainDataPath, stdio: "ignore" });
 
-      mkdirSync(join(seedContentPath, "note"), { recursive: true });
+      mkdirSync(join(seedContentPath, "topic"), { recursive: true });
       writeFileSync(
-        join(seedContentPath, "note", "test-note.md"),
-        "---\ntitle: Seed Note\n---\nLocal-only repo should get seed content.",
+        join(seedContentPath, "topic", "test-topic.md"),
+        "---\ntitle: Seed Topic\n---\nLocal-only repo should get seed content.",
       );
 
-      await installAndTriggerReady("note");
+      await installAndTriggerReady("topic");
 
-      expect(existsSync(join(brainDataPath, "note", "test-note.md"))).toBe(
+      expect(existsSync(join(brainDataPath, "topic", "test-topic.md"))).toBe(
         true,
       );
     });

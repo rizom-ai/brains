@@ -108,7 +108,7 @@ export function createMockDirectorySync(
     processEntityExport: mock(() => Promise.resolve({ success: true })),
     fileOps: {
       readEntity: mock(() => Promise.resolve({} as never)),
-      parseEntityFromPath: mock(() => ({ entityType: "note", id: "test" })),
+      parseEntityFromPath: mock(() => ({ entityType: "topic", id: "test" })),
     },
     ...overrides,
   };

@@ -17,8 +17,8 @@ import {
  * Renderer lookup map
  *
  * TODO: Future enhancement - support dynamic renderer resolution
- * Currently uses static lookup. See docs/plans/extensible-dashboard.md
- * for future options including dynamic imports and client-side registry.
+ * Currently uses static lookup. Options include dynamic imports and
+ * a client-side registry for plugin-provided renderers.
  */
 const RENDERER_MAP: Record<
   WidgetRendererName,

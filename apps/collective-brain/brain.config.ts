@@ -21,8 +21,10 @@ const routes = defaultRoutes.map((route) => {
       title: "Rizom Collective",
       description: "The Rizom collective's knowledge hub",
       navigation: {
-        ...route.navigation,
         show: false, // Don't show home in navigation
+        slot: route.navigation?.slot ?? "primary",
+        priority: route.navigation?.priority ?? 50,
+        label: route.navigation?.label,
       },
       sections: [
         {

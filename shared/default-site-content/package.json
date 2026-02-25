@@ -11,6 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "lucide-preact": "^0.460.0",

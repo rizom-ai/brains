@@ -1,4 +1,4 @@
-import { EntityAdapter } from "@personal-brain/skeleton/src/entity/entityRegistry";
+import type { EntityAdapter } from "@brains/plugins";
 import { Note } from "./noteEntity";
 import matter from "gray-matter";
 
@@ -33,7 +33,7 @@ export class NoteAdapter implements EntityAdapter<Note> {
       created: data.created || new Date().toISOString(),
       updated: data.updated || new Date().toISOString(),
       tags: data.tags || [],
-      entityType: "note",
+      entityType: "base",
       title,
       content: content.trim(),
       format: data.format || "markdown",

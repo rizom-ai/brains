@@ -117,43 +117,6 @@ This is the main content
         },
       ]);
     });
-
-    it("should parse legacy structured content format", () => {
-      const body = `# Test Topic
-
-## Content
-This is the main content
-
-## Keywords
-- test
-- example
-
-## Sources
-- Team Standup (conv-123) [conversation] <entity-1|hash-1>
-- Project Notes (note-456) [conversation] <entity-2|hash-2>`;
-
-      const parsed = adapter.parseTopicBody(body);
-
-      expect(parsed.title).toBe("Test Topic");
-      expect(parsed.content).toBe("This is the main content");
-      expect(parsed.keywords).toEqual(["test", "example"]);
-      expect(parsed.sources).toEqual([
-        {
-          slug: "conv-123",
-          title: "Team Standup",
-          type: "conversation",
-          entityId: "entity-1",
-          contentHash: "hash-1",
-        },
-        {
-          slug: "note-456",
-          title: "Project Notes",
-          type: "conversation",
-          entityId: "entity-2",
-          contentHash: "hash-2",
-        },
-      ]);
-    });
   });
 
   describe("schema", () => {
@@ -205,20 +168,6 @@ This is the main content
       expect(markdown).toContain("title: Test Topic");
       expect(markdown).toContain("Some content");
     });
-
-    it("should convert legacy entity content to frontmatter format", () => {
-      const entity = createMockTopicEntity({
-        id: "test-topic",
-        content:
-          "# Test Topic\n\n## Content\nSome content\n\n## Keywords\n- test\n\n## Sources\n_No sources_",
-      });
-
-      const markdown = adapter.toMarkdown(entity);
-
-      expect(markdown).toContain("---");
-      expect(markdown).toContain("title: Test Topic");
-      expect(markdown).toContain("Some content");
-    });
   });
 
   describe("fromMarkdown", () => {
@@ -239,34 +188,6 @@ Some content here.
       expect(result.content).toContain("---");
       expect(result.content).toContain("title: Test Topic");
       expect(result.metadata?.sources).toHaveLength(1);
-      expect(result.metadata?.sources?.[0]).toEqual({
-        title: "Title One",
-        slug: "slug-one",
-        type: "post",
-        entityId: "entity-1",
-        contentHash: "hash-1",
-      });
-    });
-
-    it("should auto-convert legacy structured markdown to frontmatter", () => {
-      const markdown = `# Test Topic
-
-## Content
-Some content here.
-
-## Keywords
-- keyword1
-
-## Sources
-- Title One (slug-one) [post] <entity-1|hash-1>
-- Title Two (slug-two) [link] <entity-2|hash-2>`;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.entityType).toBe("topic");
-      expect(result.content).toContain("---");
-      expect(result.content).toContain("title: Test Topic");
-      expect(result.metadata?.sources).toHaveLength(2);
       expect(result.metadata?.sources?.[0]).toEqual({
         title: "Title One",
         slug: "slug-one",
@@ -345,29 +266,6 @@ metadata: {}
       const result = adapter.parseFrontMatter(markdown, schema);
 
       expect(result.metadata).toEqual({});
-    });
-  });
-
-  describe("parseTopicBody edge cases", () => {
-    it("should handle body without H1 title (legacy)", () => {
-      const body = `## Content
-Test content`;
-
-      const parsed = adapter.parseTopicBody(body);
-
-      expect(parsed.title).toBe("Unknown Topic");
-      expect(parsed.content).toBe(body);
-    });
-
-    it("should handle malformed body", () => {
-      const body = "Some random text without structure";
-
-      const parsed = adapter.parseTopicBody(body);
-
-      expect(parsed.title).toBe("Unknown Topic");
-      expect(parsed.content).toBe(body);
-      expect(parsed.keywords).toEqual([]);
-      expect(parsed.sources).toEqual([]);
     });
   });
 

@@ -15,7 +15,6 @@ export type WidgetDataProvider = () => Promise<unknown>;
  * 1. Allow plugins to register renderer components at runtime
  * 2. Use dynamic imports or a client-side registry
  * 3. Consider server-side rendering API for custom renderers
- * See: docs/plans/extensible-dashboard.md for roadmap
  */
 export const WIDGET_RENDERERS = [
   "StatsWidget",

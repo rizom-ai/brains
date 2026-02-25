@@ -30,9 +30,9 @@ describe("DirectorySyncPlugin", () => {
       new MockEntityAdapter(),
     );
     entityRegistry.registerEntityType(
-      "note",
+      "topic",
       baseEntitySchema,
-      new MockEntityAdapter(),
+      new MockEntityAdapter("topic"),
     );
 
     plugin = new DirectorySyncPlugin({

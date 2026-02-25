@@ -43,7 +43,7 @@ class MinimalInterfacePlugin extends InterfacePlugin {
   }
 
   public getJobMessagesSize(): number {
-    return this.jobMessages.size;
+    return this.jobTrackingEntries.size;
   }
 
   public setJobTrackingTtl(ttlMs: number): void {

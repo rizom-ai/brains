@@ -1,16 +1,12 @@
 import { z } from "@brains/utils";
-import {
-  baseEntitySchema,
-  BaseEntity,
-  EntityAdapter,
-  IContentModel,
-} from "@personal-brain/skeleton/src/entity/entityRegistry";
+import type { EntityAdapter } from "@brains/plugins";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Note schema
  */
 export const noteSchema = baseEntitySchema.extend({
-  entityType: z.literal("note"),
+  entityType: z.literal("base"),
   title: z.string(),
   content: z.string(),
   format: z.enum(["markdown", "text", "html"]).default("markdown"),
@@ -21,7 +17,7 @@ export const noteSchema = baseEntitySchema.extend({
 /**
  * Note type
  */
-export type Note = z.infer<typeof noteSchema> & IContentModel;
+export type Note = z.infer<typeof noteSchema>;
 
 /**
  * Create a new note
@@ -43,7 +39,7 @@ export function createNote(
     title,
     content,
     tags: options.tags || [],
-    entityType: "note",
+    entityType: "base",
     format: options.format || "markdown",
     starred: options.starred || false,
     metadata: options.metadata,
@@ -82,7 +78,7 @@ export class NoteAdapter implements EntityAdapter<Note> {
   fromStorageEntity(data: Record<string, any>): Note {
     return {
       id: data.id,
-      entityType: "note",
+      entityType: "base",
       created: data.created,
       updated: data.updated,
       tags: JSON.parse(data.tags || "[]"),

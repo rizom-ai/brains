@@ -474,15 +474,15 @@ protected override async onRegister(context: CorePluginContext): Promise<void> {
 ```typescript
 // EntityService usage (via context)
 const notes = await context.entityService.search({
-  entityType: "note",
+  entityType: "base",
   query: "meeting",
   limit: 10,
 });
 
-const note = await context.entityService.getEntity("note", "note-123");
+const note = await context.entityService.getEntity("base", "note-123");
 
 await context.entityService.createEntity({
-  entityType: "note",
+  entityType: "base",
   content: "New note content",
   metadata: { tags: ["important"] },
 });
@@ -555,7 +555,7 @@ describe("MyPlugin", () => {
     // Create test data using mock shell
     const mockShell = harness.getMockShell();
     await mockShell.entityService.createEntity({
-      entityType: "note",
+      entityType: "base",
       content: "Test note",
     });
 

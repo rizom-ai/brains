@@ -1,13 +1,9 @@
-import {
-  ContextPlugin,
-  PluginContext,
-  PluginLifecycle,
-} from "@personal-brain/skeleton/src/plugins/pluginManager";
+import type { CorePlugin, CorePluginContext } from "@brains/plugins";
 import { noteSchema, NoteAdapter } from "./entity/noteEntity";
 import { NoteService } from "./services/noteService";
 import { NoteTools } from "./tools/noteTools";
 import { NoteMessageHandlers } from "./messaging/noteMessageHandlers";
-import { Logger } from "@personal-brain/skeleton/src/utils/logger";
+import type { Logger } from "@brains/utils";
 
 /**
  * Note context configuration schema
@@ -28,7 +24,7 @@ export type NoteContextConfig = z.infer<typeof noteContextConfigSchema>;
 const noteContext: ContextPlugin = {
   id: "note-context",
   version: "1.0.0",
-  contextType: "note",
+  contextType: "base",
   dependencies: ["core"],
 
   /**
@@ -57,7 +53,7 @@ const noteContext: ContextPlugin = {
     );
 
     // Register note entity type
-    entityRegistry.registerEntityType("note", noteSchema, new NoteAdapter());
+    entityRegistry.registerEntityType("base", noteSchema, new NoteAdapter());
 
     // Register note message handlers
     Object.entries(NoteMessageHandlers).forEach(([messageType, handler]) => {

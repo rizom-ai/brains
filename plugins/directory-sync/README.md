@@ -32,7 +32,7 @@ const plugin = new DirectorySyncPlugin({
     {
       path: "~/Documents/notes",
       pattern: "**/*.md",
-      entityType: "note",
+      entityType: "base",
     },
     {
       path: "~/Documents/articles",
@@ -96,7 +96,7 @@ await plugin.importFile("/path/to/file.md");
 // Import directory
 await plugin.importDirectory("/path/to/directory", {
   pattern: "**/*.md",
-  entityType: "note",
+  entityType: "base",
 });
 
 // Batch import
@@ -110,7 +110,7 @@ await plugin.batchImport(["/path/to/file1.md", "/path/to/file2.md"]);
 await plugin.exportEntity(entityId, "/path/to/file.md");
 
 // Export all entities of type
-await plugin.exportByType("note", "/path/to/directory");
+await plugin.exportByType("base", "/path/to/directory");
 ```
 
 ## File Watching

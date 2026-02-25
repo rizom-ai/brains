@@ -47,25 +47,16 @@ export abstract class InterfacePlugin<
   /**
    * Internal job tracking with timestamps for TTL-based cleanup
    */
-  private jobTrackingEntries = new Map<string, TrackingEntry<TTrackingInfo>>();
+  protected jobTrackingEntries = new Map<
+    string,
+    TrackingEntry<TTrackingInfo>
+  >();
 
   /**
    * TTL for job tracking entries in milliseconds (default: 1 hour)
    * Override in subclasses if different TTL is needed
    */
   protected jobTrackingTtlMs = DEFAULT_JOB_TRACKING_TTL_MS;
-
-  /**
-   * Legacy accessor for backward compatibility
-   * Returns a view of current tracking info (without timestamps)
-   */
-  protected get jobMessages(): Map<string, TTrackingInfo> {
-    const result = new Map<string, TTrackingInfo>();
-    for (const [key, entry] of this.jobTrackingEntries) {
-      result.set(key, entry.info);
-    }
-    return result;
-  }
 
   /**
    * Register the plugin with shell - creates InterfacePluginContext internally

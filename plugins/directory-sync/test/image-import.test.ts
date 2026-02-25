@@ -22,7 +22,7 @@ describe("Image Import - Regression Tests", () => {
 
     upsertedEntities = [];
     mockEntityService = createMockEntityService({
-      entityTypes: ["note", "image", "post"],
+      entityTypes: ["topic", "image", "post"],
     });
 
     spyOn(mockEntityService, "serializeEntity").mockImplementation(
@@ -64,11 +64,11 @@ describe("Image Import - Regression Tests", () => {
 
   describe("importEntities should include image files", () => {
     it("should import image files from image/ directory when calling importEntities()", async () => {
-      // Create note markdown file
-      mkdirSync(join(testDir, "note"), { recursive: true });
+      // Create topic markdown file
+      mkdirSync(join(testDir, "topic"), { recursive: true });
       writeFileSync(
-        join(testDir, "note", "test-note.md"),
-        "# Test Note\n\nContent",
+        join(testDir, "topic", "test-topic.md"),
+        "# Test Topic\n\nContent",
       );
 
       // Create image files in image/ directory
@@ -79,20 +79,23 @@ describe("Image Import - Regression Tests", () => {
       // Import all entities (without specifying paths)
       const result = await dirSync.importEntities();
 
-      // Should have imported 3 entities: 1 note + 2 images
+      // Should have imported 3 entities: 1 topic + 2 images
       expect(result.imported).toBe(3);
       expect(result.failed).toBe(0);
 
       // Verify the entity types that were upserted
-      const noteEntities = upsertedEntities.filter(
-        (e) => e.entityType === "note",
+      const topicEntities = upsertedEntities.filter(
+        (e) => e.entityType === "topic",
       );
       const imageEntities = upsertedEntities.filter(
         (e) => e.entityType === "image",
       );
 
-      expect(noteEntities).toHaveLength(1);
-      expect(noteEntities[0]).toEqual({ entityType: "note", id: "test-note" });
+      expect(topicEntities).toHaveLength(1);
+      expect(topicEntities[0]).toEqual({
+        entityType: "topic",
+        id: "test-topic",
+      });
 
       expect(imageEntities).toHaveLength(2);
       expect(imageEntities.map((e) => e.id).sort()).toEqual([
@@ -134,12 +137,12 @@ describe("Image Import - Regression Tests", () => {
 
     it("should handle mixed import of markdown and images in single call", async () => {
       // Create various entity types
-      mkdirSync(join(testDir, "note"), { recursive: true });
+      mkdirSync(join(testDir, "topic"), { recursive: true });
       mkdirSync(join(testDir, "post"), { recursive: true });
       mkdirSync(join(testDir, "image"), { recursive: true });
 
-      writeFileSync(join(testDir, "note", "note1.md"), "# Note 1");
-      writeFileSync(join(testDir, "note", "note2.md"), "# Note 2");
+      writeFileSync(join(testDir, "topic", "topic1.md"), "# Topic 1");
+      writeFileSync(join(testDir, "topic", "topic2.md"), "# Topic 2");
       writeFileSync(join(testDir, "post", "blog-post.md"), "# Blog Post");
       writeFileSync(join(testDir, "image", "cover.webp"), TINY_PNG_BYTES);
       writeFileSync(join(testDir, "image", "inline.jpg"), TINY_PNG_BYTES);
@@ -150,27 +153,27 @@ describe("Image Import - Regression Tests", () => {
       expect(result.imported).toBe(5);
 
       // Verify counts by type
-      const notes = upsertedEntities.filter((e) => e.entityType === "note");
+      const topics = upsertedEntities.filter((e) => e.entityType === "topic");
       const posts = upsertedEntities.filter((e) => e.entityType === "post");
       const images = upsertedEntities.filter((e) => e.entityType === "image");
 
-      expect(notes).toHaveLength(2);
+      expect(topics).toHaveLength(2);
       expect(posts).toHaveLength(1);
       expect(images).toHaveLength(2);
     });
 
     it("should NOT import image files from non-image directories", async () => {
       // Create image file in wrong directory (should be ignored)
-      mkdirSync(join(testDir, "note"), { recursive: true });
-      writeFileSync(join(testDir, "note", "test.md"), "# Note");
-      writeFileSync(join(testDir, "note", "misplaced.png"), TINY_PNG_BYTES);
+      mkdirSync(join(testDir, "topic"), { recursive: true });
+      writeFileSync(join(testDir, "topic", "test.md"), "# Topic");
+      writeFileSync(join(testDir, "topic", "misplaced.png"), TINY_PNG_BYTES);
 
       const result = await dirSync.importEntities();
 
       // Should only import the markdown file, not the misplaced PNG
       expect(result.imported).toBe(1);
       expect(upsertedEntities).toHaveLength(1);
-      expect(upsertedEntities[0]).toEqual({ entityType: "note", id: "test" });
+      expect(upsertedEntities[0]).toEqual({ entityType: "topic", id: "test" });
     });
   });
 });
