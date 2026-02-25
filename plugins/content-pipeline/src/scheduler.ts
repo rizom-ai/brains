@@ -113,15 +113,8 @@ export class ContentScheduler {
   public async stop(): Promise<void> {
     this.running = false;
 
-    for (const job of this.publishJobs.values()) {
-      job.stop();
-    }
-    this.publishJobs.clear();
-
-    for (const job of this.generationJobs.values()) {
-      job.stop();
-    }
-    this.generationJobs.clear();
+    this.stopAndClearJobs(this.publishJobs);
+    this.stopAndClearJobs(this.generationJobs);
 
     if (this.immediateIntervalJob) {
       this.immediateIntervalJob.stop();
@@ -238,6 +231,13 @@ export class ContentScheduler {
   // -------------------------------------------------------------------
   // Internal helpers
   // -------------------------------------------------------------------
+
+  private stopAndClearJobs(jobs: Map<string, ScheduledJob>): void {
+    for (const job of jobs.values()) {
+      job.stop();
+    }
+    jobs.clear();
+  }
 
   private get entitySchedules(): Record<string, string> {
     return this.config.entitySchedules as Record<string, string>;

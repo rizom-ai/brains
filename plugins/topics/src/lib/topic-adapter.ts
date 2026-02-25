@@ -44,7 +44,7 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
   }
 
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
-    const content = this.convertToFrontmatter(markdown);
+    const content = markdown;
     const sourcesSection = SourceListFormatter.extractSection(content);
     const sources = sourcesSection
       ? SourceListFormatter.parse(sourcesSection)
@@ -143,9 +143,5 @@ export class TopicAdapter implements EntityAdapter<TopicEntity, TopicMetadata> {
       body,
       this.buildFrontmatter(params.title, params.keywords),
     );
-  }
-
-  private convertToFrontmatter(markdown: string): string {
-    return markdown;
   }
 }

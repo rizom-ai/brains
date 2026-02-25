@@ -1,4 +1,4 @@
-import { ServicePlugin } from "@brains/plugins";
+import { ServicePlugin, findEntityByIdentifier } from "@brains/plugins";
 import type {
   PluginTool,
   BaseEntity,
@@ -54,10 +54,7 @@ export class ImagePlugin
    * Get plugin tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return createImageTools(this.context, this, this.id);
+    return createImageTools(this.getContext(), this, this.id);
   }
 
   /**
@@ -84,11 +81,8 @@ export class ImagePlugin
     entityType: string,
     id: string,
   ): Promise<BaseEntity | null> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
     try {
-      return await this.context.entityService.getEntity(entityType, id);
+      return await this.getContext().entityService.getEntity(entityType, id);
     } catch {
       return null;
     }
@@ -101,39 +95,11 @@ export class ImagePlugin
     entityType: string,
     identifier: string,
   ): Promise<BaseEntity | null> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-
-    try {
-      // Try direct ID lookup first
-      const byId = await this.context.entityService.getEntity(
-        entityType,
-        identifier,
-      );
-      if (byId) return byId;
-
-      // Try by slug
-      const bySlug = await this.context.entityService.listEntities(entityType, {
-        limit: 1,
-        filter: { metadata: { slug: identifier } },
-      });
-      if (bySlug[0]) return bySlug[0];
-
-      // Try by title
-      const byTitle = await this.context.entityService.listEntities(
-        entityType,
-        {
-          limit: 1,
-          filter: { metadata: { title: identifier } },
-        },
-      );
-      if (byTitle[0]) return byTitle[0];
-
-      return null;
-    } catch {
-      return null;
-    }
+    return findEntityByIdentifier(
+      this.getContext().entityService,
+      entityType,
+      identifier,
+    );
   }
 
   /**
@@ -142,10 +108,7 @@ export class ImagePlugin
   public async createEntity<T extends BaseEntity>(
     entity: EntityInput<T>,
   ): Promise<{ entityId: string; jobId: string }> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.entityService.createEntity(entity);
+    return this.getContext().entityService.createEntity(entity);
   }
 
   /**
@@ -154,10 +117,7 @@ export class ImagePlugin
   public async updateEntity<T extends BaseEntity>(
     entity: T,
   ): Promise<{ entityId: string; jobId: string }> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.entities.update(entity);
+    return this.getContext().entities.update(entity);
   }
 
   /**
@@ -166,40 +126,28 @@ export class ImagePlugin
   public getAdapter<T extends BaseEntity>(
     entityType: string,
   ): EntityAdapter<T> | undefined {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.entities.getAdapter<T>(entityType);
+    return this.getContext().entities.getAdapter<T>(entityType);
   }
 
   /**
    * Check if image generation is available
    */
   public canGenerateImages(): boolean {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.ai.canGenerateImages();
+    return this.getContext().ai.canGenerateImages();
   }
 
   /**
    * Get the brain's identity data
    */
   public getIdentityData(): BrainCharacter {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.identity.get();
+    return this.getContext().identity.get();
   }
 
   /**
    * Get the owner's profile data
    */
   public getProfileData(): AnchorProfile {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.identity.getProfile();
+    return this.getContext().identity.getProfile();
   }
 }
 

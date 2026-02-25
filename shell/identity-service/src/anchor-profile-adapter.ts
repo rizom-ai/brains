@@ -1,9 +1,4 @@
-import type { EntityAdapter } from "@brains/entity-service";
-import {
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/entity-service";
+import { BaseEntityAdapter } from "@brains/entity-service";
 import type { z } from "@brains/utils";
 import {
   anchorProfileSchema,
@@ -16,14 +11,16 @@ import {
  * Entity adapter for Anchor Profile entities
  * Uses frontmatter format for CMS compatibility
  */
-export class AnchorProfileAdapter
-  implements EntityAdapter<AnchorProfileEntity>
-{
-  public readonly entityType = "anchor-profile";
-  public readonly schema = anchorProfileSchema;
-  public readonly frontmatterSchema = anchorProfileBodySchema;
-  public readonly isSingleton = true;
-  public readonly hasBody = true;
+export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity> {
+  constructor() {
+    super({
+      entityType: "anchor-profile",
+      schema: anchorProfileSchema,
+      frontmatterSchema: anchorProfileBodySchema,
+      isSingleton: true,
+      hasBody: true,
+    });
+  }
 
   /**
    * Create profile content in frontmatter format
@@ -33,15 +30,14 @@ export class AnchorProfileAdapter
     params: z.input<typeof anchorProfileBodySchema>,
   ): string {
     const validatedData = anchorProfileBodySchema.parse(params);
-    return generateMarkdownWithFrontmatter("", validatedData);
+    return this.buildMarkdown("", validatedData);
   }
 
   /**
    * Parse profile body from content
    */
   public parseProfileBody(content: string): AnchorProfile {
-    return parseMarkdownWithFrontmatter(content, anchorProfileBodySchema)
-      .metadata;
+    return this.parseFrontmatter(content) as AnchorProfile;
   }
 
   /**
@@ -66,11 +62,10 @@ export class AnchorProfileAdapter
   /**
    * Extract metadata for search/filtering
    */
-  public extractMetadata(entity: AnchorProfileEntity): Record<string, unknown> {
-    const data = parseMarkdownWithFrontmatter(
-      entity.content,
-      anchorProfileBodySchema,
-    ).metadata;
+  public override extractMetadata(
+    entity: AnchorProfileEntity,
+  ): Record<string, unknown> {
+    const data = this.parseFrontmatter(entity.content) as AnchorProfile;
     return {
       name: data.name,
       email: data.email,
@@ -79,23 +74,10 @@ export class AnchorProfileAdapter
   }
 
   /**
-   * Parse frontmatter from markdown
-   */
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    return parseMarkdownWithFrontmatter(markdown, schema).metadata;
-  }
-
-  /**
    * Generate frontmatter for the entity
    */
-  public generateFrontMatter(entity: AnchorProfileEntity): string {
-    const data = parseMarkdownWithFrontmatter(
-      entity.content,
-      anchorProfileBodySchema,
-    ).metadata;
-    return generateFrontmatter(data);
+  public override generateFrontMatter(entity: AnchorProfileEntity): string {
+    const data = this.parseFrontmatter(entity.content);
+    return this.buildMarkdown("", data as Record<string, unknown>);
   }
 }

@@ -295,6 +295,9 @@ export {
   buildPaginationInfo,
 } from "@brains/entity-service";
 
+// Utilities
+export { findEntityByIdentifier } from "./utils/find-entity";
+
 // From @brains/ai-service
 export type {
   ImageGenerationOptions,

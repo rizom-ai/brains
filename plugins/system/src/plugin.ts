@@ -1,4 +1,4 @@
-import { CorePlugin } from "@brains/plugins";
+import { CorePlugin, findEntityByIdentifier } from "@brains/plugins";
 import type {
   PluginTool,
   BaseEntity,
@@ -123,30 +123,14 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     query: string,
     options?: SearchOptions,
   ): Promise<SearchResult[]> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
+    const context = this.getContext();
 
     try {
-      const searchOptions: Parameters<
-        typeof this.context.entityService.search
-      >[1] = {
+      return await context.entityService.search(query, {
         limit: options?.limit ?? this.config.searchLimit,
-      };
-
-      if (options?.types) {
-        searchOptions.types = options.types;
-      }
-      if (options?.sortBy) {
-        searchOptions.sortBy = options.sortBy;
-      }
-
-      const results = await this.context.entityService.search(
-        query,
-        searchOptions,
-      );
-
-      return results;
+        ...(options?.types && { types: options.types }),
+        ...(options?.sortBy && { sortBy: options.sortBy }),
+      });
     } catch (error) {
       this.logger.error(`Failed to search entities: ${query}`, { error });
       return [];
@@ -158,13 +142,9 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
    */
   public async query(
     prompt: string,
-    context?: Record<string, unknown>,
+    queryContext?: Record<string, unknown>,
   ): Promise<DefaultQueryResponse> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-
-    return this.context.ai.query(prompt, context);
+    return this.getContext().ai.query(prompt, queryContext);
   }
 
   /**
@@ -174,13 +154,10 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     entityType: string,
     id: string,
   ): Promise<BaseEntity | null> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
+    const context = this.getContext();
 
     try {
-      const entity = await this.context.entityService.getEntity(entityType, id);
-      return entity;
+      return await context.entityService.getEntity(entityType, id);
     } catch (error) {
       this.logger.error(`Failed to get entity ${entityType}:${id}`, { error });
       return null;
@@ -194,42 +171,12 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     entityType: string,
     identifier: string,
   ): Promise<BaseEntity | null> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-
-    try {
-      // Try direct ID lookup first
-      const byId = await this.context.entityService.getEntity(
-        entityType,
-        identifier,
-      );
-      if (byId) return byId;
-
-      // Try by slug
-      const bySlug = await this.context.entityService.listEntities(entityType, {
-        limit: 1,
-        filter: { metadata: { slug: identifier } },
-      });
-      if (bySlug[0]) return bySlug[0];
-
-      // Try by title
-      const byTitle = await this.context.entityService.listEntities(
-        entityType,
-        {
-          limit: 1,
-          filter: { metadata: { title: identifier } },
-        },
-      );
-      if (byTitle[0]) return byTitle[0];
-
-      return null;
-    } catch (error) {
-      this.logger.error(`Failed to find entity ${entityType}:${identifier}`, {
-        error,
-      });
-      return null;
-    }
+    return findEntityByIdentifier(
+      this.getContext().entityService,
+      entityType,
+      identifier,
+      this.logger,
+    );
   }
 
   /**
@@ -242,26 +189,17 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
       filter?: Record<string, unknown>;
     },
   ): Promise<BaseEntity[]> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
+    const context = this.getContext();
 
     try {
-      const listOptions: {
-        limit: number;
-        filter?: { metadata?: Partial<Record<string, unknown>> };
-      } = {
+      return await context.entityService.listEntities(entityType, {
         limit: options?.limit ?? 20,
-      };
-      if (options?.filter) {
-        listOptions.filter = options.filter as {
-          metadata?: Partial<Record<string, unknown>>;
-        };
-      }
-      return await this.context.entityService.listEntities(
-        entityType,
-        listOptions,
-      );
+        ...(options?.filter && {
+          filter: options.filter as {
+            metadata?: Partial<Record<string, unknown>>;
+          },
+        }),
+      });
     } catch (error) {
       this.logger.error(`Failed to list entities of type ${entityType}`, {
         error,
@@ -281,19 +219,15 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     activeJobs?: JobInfo[];
     activeBatches?: Batch[];
   }> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
+    const context = this.getContext();
 
     try {
       if (batchId) {
-        // Get specific batch status
-        const batch = await this.context.jobs.getBatchStatus(batchId);
+        const batch = await context.jobs.getBatchStatus(batchId);
         return { batch };
       } else {
-        // Get all active operations
-        const activeJobs = await this.context.jobs.getActiveJobs(jobTypes);
-        const activeBatches = await this.context.jobs.getActiveBatches();
+        const activeJobs = await context.jobs.getActiveJobs(jobTypes);
+        const activeBatches = await context.jobs.getActiveBatches();
         return { activeJobs, activeBatches };
       }
     } catch (error) {
@@ -312,10 +246,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   public async getConversation(
     conversationId: string,
   ): Promise<Conversation | null> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.conversations.get(conversationId);
+    return this.getContext().conversations.get(conversationId);
   }
 
   /**
@@ -325,10 +256,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     conversationId: string,
     limit?: number,
   ): Promise<Message[]> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.conversations.getMessages(
+    return this.getContext().conversations.getMessages(
       conversationId,
       limit ? { limit } : undefined,
     );
@@ -338,40 +266,28 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
    * Search conversations
    */
   public async searchConversations(query: string): Promise<Conversation[]> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.conversations.search(query);
+    return this.getContext().conversations.search(query);
   }
 
   /**
    * Get the brain's identity data
    */
   public getIdentityData(): BrainCharacter {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.identity.get();
+    return this.getContext().identity.get();
   }
 
   /**
    * Get the owner's profile data
    */
   public getProfileData(): AnchorProfile {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.identity.getProfile();
+    return this.getContext().identity.getProfile();
   }
 
   /**
    * Get list of registered entity types
    */
   public getEntityTypes(): string[] {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.entityService.getEntityTypes();
+    return this.getContext().entityService.getEntityTypes();
   }
 
   /**
@@ -380,20 +296,14 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
   public async getEntityCounts(): Promise<
     Array<{ entityType: string; count: number }>
   > {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.entityService.getEntityCounts();
+    return this.getContext().entityService.getEntityCounts();
   }
 
   /**
    * Get app metadata (model and version)
    */
   public getAppInfo(): Promise<AppInfo> {
-    if (!this.context) {
-      throw new Error("Plugin not registered");
-    }
-    return this.context.identity.getAppInfo();
+    return this.getContext().identity.getAppInfo();
   }
 }
 

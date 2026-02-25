@@ -1,9 +1,4 @@
-import type { EntityAdapter } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  generateMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/plugins";
+import { BaseEntityAdapter } from "@brains/plugins";
 import type { z } from "@brains/utils";
 import {
   siteInfoSchema,
@@ -17,14 +12,19 @@ import {
  * Entity adapter for SiteInfo entities
  * Uses frontmatter format for CMS compatibility
  */
-export class SiteInfoAdapter
-  implements EntityAdapter<SiteInfoEntity, SiteInfoMetadata>
-{
-  public readonly entityType = "site-info";
-  public readonly schema = siteInfoSchema;
-  public readonly frontmatterSchema = siteInfoBodySchema;
-  public readonly isSingleton = true;
-  public readonly hasBody = false;
+export class SiteInfoAdapter extends BaseEntityAdapter<
+  SiteInfoEntity,
+  SiteInfoMetadata
+> {
+  constructor() {
+    super({
+      entityType: "site-info",
+      schema: siteInfoSchema,
+      frontmatterSchema: siteInfoBodySchema,
+      isSingleton: true,
+      hasBody: false,
+    });
+  }
 
   /**
    * Create site info content in frontmatter format
@@ -34,14 +34,14 @@ export class SiteInfoAdapter
     params: z.input<typeof siteInfoBodySchema>,
   ): string {
     const validatedData = siteInfoBodySchema.parse(params);
-    return generateMarkdownWithFrontmatter("", validatedData);
+    return this.buildMarkdown("", validatedData);
   }
 
   /**
    * Parse site info body from content
    */
   public parseSiteInfoBody(content: string): SiteInfoBody {
-    return parseMarkdownWithFrontmatter(content, siteInfoBodySchema).metadata;
+    return this.parseFrontmatter(content) as SiteInfoBody;
   }
 
   /**
@@ -66,28 +66,15 @@ export class SiteInfoAdapter
    * Extract metadata for search/filtering
    * Site-info doesn't use metadata for filtering
    */
-  public extractMetadata(_entity: SiteInfoEntity): SiteInfoMetadata {
+  public override extractMetadata(_entity: SiteInfoEntity): SiteInfoMetadata {
     return {};
-  }
-
-  /**
-   * Parse frontmatter from markdown
-   */
-  public parseFrontMatter<TFrontmatter>(
-    markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    return parseMarkdownWithFrontmatter(markdown, schema).metadata;
   }
 
   /**
    * Generate frontmatter for the entity
    */
-  public generateFrontMatter(entity: SiteInfoEntity): string {
-    const data = parseMarkdownWithFrontmatter(
-      entity.content,
-      siteInfoBodySchema,
-    ).metadata;
-    return generateFrontmatter(data);
+  public override generateFrontMatter(entity: SiteInfoEntity): string {
+    const data = this.parseFrontmatter(entity.content);
+    return this.buildMarkdown("", data as Record<string, unknown>);
   }
 }

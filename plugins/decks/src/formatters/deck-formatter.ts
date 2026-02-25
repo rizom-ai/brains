@@ -41,30 +41,18 @@ export class DeckFormatter implements EntityAdapter<DeckEntity> {
     this.validateSlideStructure(entity.content);
 
     // Build frontmatter, filtering out undefined values
-    const frontmatter: Record<string, string> = {
-      title: entity.title,
-      status: entity.status,
-    };
-
-    // Include slug from metadata if available
-    if (entity.metadata.slug) {
-      frontmatter["slug"] = entity.metadata.slug;
-    }
-    if (entity.description !== undefined) {
-      frontmatter["description"] = entity.description;
-    }
-    if (entity.author !== undefined) {
-      frontmatter["author"] = entity.author;
-    }
-    if (entity.publishedAt !== undefined) {
-      frontmatter["publishedAt"] = entity.publishedAt;
-    }
-    if (entity.event !== undefined) {
-      frontmatter["event"] = entity.event;
-    }
-    if (entity.coverImageId !== undefined) {
-      frontmatter["coverImageId"] = entity.coverImageId;
-    }
+    const frontmatter = Object.fromEntries(
+      Object.entries({
+        title: entity.title,
+        status: entity.status,
+        slug: entity.metadata.slug,
+        description: entity.description,
+        author: entity.author,
+        publishedAt: entity.publishedAt,
+        event: entity.event,
+        coverImageId: entity.coverImageId,
+      }).filter(([, v]) => v !== undefined),
+    );
 
     return generateMarkdownWithFrontmatter(entity.content, frontmatter);
   }
