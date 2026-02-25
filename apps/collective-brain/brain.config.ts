@@ -1,11 +1,11 @@
 #!/usr/bin/env bun
 import { defineConfig, handleCLI } from "@brains/app";
-import { SystemPlugin } from "@brains/system";
+import { systemPlugin } from "@brains/system";
 import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
-import { GitSyncPlugin } from "@brains/git-sync";
+import { gitSyncPlugin } from "@brains/git-sync";
 import { notePlugin } from "@brains/note";
 import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -74,7 +74,7 @@ const config = defineConfig({
   },
 
   plugins: [
-    new SystemPlugin({}),
+    systemPlugin({}),
     new MCPInterface({}),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
@@ -89,7 +89,7 @@ const config = defineConfig({
       },
     }),
     directorySync(),
-    new GitSyncPlugin({
+    gitSyncPlugin({
       repo: process.env["GIT_SYNC_REPO"],
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Rizom",

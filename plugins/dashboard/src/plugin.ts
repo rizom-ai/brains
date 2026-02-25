@@ -189,3 +189,9 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     return this.widgetRegistry;
   }
 }
+
+export function dashboardPlugin(
+  config?: Partial<DashboardConfig>,
+): DashboardPlugin {
+  return new DashboardPlugin(config);
+}

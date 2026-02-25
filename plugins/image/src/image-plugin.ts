@@ -202,3 +202,7 @@ export class ImagePlugin
     return this.context.identity.getProfile();
   }
 }
+
+export function imagePlugin(config?: Partial<ImageConfig>): ImagePlugin {
+  return new ImagePlugin(config);
+}

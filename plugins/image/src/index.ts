@@ -1,5 +1,5 @@
 // Main plugin export
-export { ImagePlugin } from "./image-plugin";
+export { ImagePlugin, imagePlugin } from "./image-plugin";
 
 // Types
 export type { IImagePlugin, ImageConfig } from "./types";

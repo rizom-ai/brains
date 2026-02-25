@@ -396,3 +396,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
     return this.context.identity.getAppInfo();
   }
 }
+
+export function systemPlugin(config?: Partial<SystemConfig>): SystemPlugin {
+  return new SystemPlugin(config);
+}

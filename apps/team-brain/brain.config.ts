@@ -1,10 +1,10 @@
 #!/usr/bin/env bun
 import { defineConfig, handleCLI } from "@brains/app";
-import { SystemPlugin } from "@brains/system";
+import { systemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
-import { GitSyncPlugin } from "@brains/git-sync";
+import { gitSyncPlugin } from "@brains/git-sync";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
@@ -52,7 +52,7 @@ const config = defineConfig({
   },
 
   plugins: [
-    new SystemPlugin({}),
+    systemPlugin({}),
     topicsPlugin({}),
     summaryPlugin({}),
     linkPlugin({}),
@@ -70,7 +70,7 @@ const config = defineConfig({
       seedContent: true, // Enable seed content for initial setup
       initialSync: true, // Export all entities on startup
     }),
-    new GitSyncPlugin({
+    gitSyncPlugin({
       repo: process.env["GIT_SYNC_REPO"] || "username/recall-backup",
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Recall",

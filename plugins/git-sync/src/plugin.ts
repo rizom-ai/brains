@@ -223,3 +223,5 @@ export class GitSyncPlugin extends ServicePlugin<GitSyncConfig> {
 export function gitSync(config: Partial<GitSyncConfig>): Plugin {
   return new GitSyncPlugin(config);
 }
+
+export const gitSyncPlugin = gitSync;

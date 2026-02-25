@@ -4,9 +4,9 @@
  * Git-sync included with empty URL and no auto-sync to register tools without syncing
  */
 import { defineConfig } from "@brains/app";
-import { SystemPlugin } from "@brains/system";
-import { ImagePlugin } from "@brains/image-plugin";
-import { GitSyncPlugin } from "@brains/git-sync";
+import { systemPlugin } from "@brains/system";
+import { imagePlugin } from "@brains/image-plugin";
+import { gitSyncPlugin } from "@brains/git-sync";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
@@ -62,12 +62,12 @@ const config = defineConfig({
   },
 
   plugins: [
-    new SystemPlugin({}),
-    new ImagePlugin(),
+    systemPlugin({}),
+    imagePlugin(),
     new MCPInterface({}),
     // No MatrixInterface - not needed for evals
     directorySync(),
-    new GitSyncPlugin({
+    gitSyncPlugin({
       gitUrl: "file:///tmp/brain-eval-git-remote",
       autoSync: false,
       autoPush: false,
@@ -77,7 +77,7 @@ const config = defineConfig({
       previewDistDir: "./dist/site-preview",
     }),
     blogPlugin({}),
-    decksPlugin({}),
+    decksPlugin(),
     topicsPlugin({}),
     notePlugin({}),
     linkPlugin({}),

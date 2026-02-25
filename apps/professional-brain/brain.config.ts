@@ -1,19 +1,19 @@
 #!/usr/bin/env bun
 import { defineConfig, handleCLI } from "@brains/app";
-import { SystemPlugin } from "@brains/system";
-import { ImagePlugin } from "@brains/image-plugin";
+import { systemPlugin } from "@brains/system";
+import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
-import { GitSyncPlugin } from "@brains/git-sync";
+import { gitSyncPlugin } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { portfolioPlugin } from "@brains/portfolio";
-import TopicsPlugin from "@brains/topics";
+import { topicsPlugin } from "@brains/topics";
 import { socialMediaPlugin } from "@brains/social-media";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import {
@@ -24,7 +24,7 @@ import {
 import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-brutalist";
 import { analyticsPlugin } from "@brains/analytics";
-import { DashboardPlugin } from "@brains/dashboard";
+import { dashboardPlugin } from "@brains/dashboard";
 import { createNewsletterPlugin } from "@brains/newsletter";
 
 // Entity route configuration
@@ -93,8 +93,8 @@ const config = defineConfig({
   },
 
   plugins: [
-    new SystemPlugin({}),
-    new ImagePlugin(),
+    systemPlugin({}),
+    imagePlugin(),
     new MCPInterface({}),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
@@ -102,7 +102,7 @@ const config = defineConfig({
       userId: process.env["MATRIX_USER_ID"] || "@yeehaa-brain-bot:rizom.ai",
     }),
     directorySync(),
-    new GitSyncPlugin({
+    gitSyncPlugin({
       repo: process.env["GIT_SYNC_REPO"],
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Yeehaa",
@@ -135,11 +135,11 @@ const config = defineConfig({
       },
     }),
     blogPlugin({}),
-    decksPlugin({}),
+    decksPlugin(),
     notePlugin({}),
     linkPlugin({}),
     portfolioPlugin({}),
-    new TopicsPlugin({
+    topicsPlugin({
       includeEntityTypes: ["post", "deck", "project", "link"],
     }),
     socialMediaPlugin({
@@ -153,7 +153,7 @@ const config = defineConfig({
         siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"] || "",
       },
     }),
-    new DashboardPlugin(),
+    dashboardPlugin(),
     createNewsletterPlugin({
       buttondown: {
         apiKey: process.env["BUTTONDOWN_API_KEY"] || "",
