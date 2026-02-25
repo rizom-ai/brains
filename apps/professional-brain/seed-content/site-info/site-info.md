@@ -1,27 +1,9 @@
-# Site Information
-
-## Title
-
-Yeehaa
-
-## Description
-
-Personal knowledge base and professional showcase
-
-## Theme Mode
-
-light
-
-## CTA
-
-### Heading
-
-Let's work together
-
-### Button Text
-
-Get in Touch
-
-### Button Link
-
-mailto:yeehaa@rizom.ai
+---
+title: Yeehaa
+description: Personal knowledge base and professional showcase
+themeMode: light
+cta:
+  heading: Let's work together
+  buttonText: Get in Touch
+  buttonLink: mailto:yeehaa@rizom.ai
+---

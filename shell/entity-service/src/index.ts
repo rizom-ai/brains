@@ -32,8 +32,6 @@ export {
   type FrontmatterConfig,
 } from "./frontmatter";
 
-export { FrontmatterContentHelper } from "./frontmatter-content-helper";
-
 // Datasource (merged from @brains/datasource)
 export { DataSourceRegistry } from "./datasource-registry";
 export type {

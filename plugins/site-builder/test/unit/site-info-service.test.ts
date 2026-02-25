@@ -48,30 +48,16 @@ describe("SiteInfoService", () => {
     it("should parse and return site info from cache when entity exists", async () => {
       // Create a mock entity with content
       const mockEntity = createMockSiteInfo({
-        content: `# Site Information
-
-## Title
-Rizom
-
-## Description
-The Rizom collective's knowledge hub
-
-## URL
-https://rizom.ai
-
-## Theme Mode
-dark
-
-## CTA
-
-### Heading
-Join us
-
-### Button Text
-Get Started
-
-### Button Link
-https://rizom.ai/join`,
+        content: `---
+title: Rizom
+description: The Rizom collective's knowledge hub
+themeMode: dark
+cta:
+  heading: Join us
+  buttonText: Get Started
+  buttonLink: https://rizom.ai/join
+---
+`,
       });
 
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockEntity);
@@ -94,13 +80,11 @@ https://rizom.ai/join`,
 
     it("should handle site info without optional fields", async () => {
       const mockEntity = createMockSiteInfo({
-        content: `# Site Information
-
-## Title
-My Site
-
-## Description
-A simple website`,
+        content: `---
+title: My Site
+description: A simple website
+---
+`,
       });
 
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockEntity);
@@ -139,13 +123,11 @@ A simple website`,
     it("should not create entity when one already exists", async () => {
       // Mock behavior: existing entity with valid content
       const mockEntity = createMockSiteInfo({
-        content: `# Site Information
-
-## Title
-Existing Site
-
-## Description
-Existing description`,
+        content: `---
+title: Existing Site
+description: Existing description
+---
+`,
       });
 
       spyOn(mockEntityService, "getEntity").mockResolvedValue(mockEntity);
@@ -183,13 +165,11 @@ Existing description`,
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
       const importedEntity = createMockSiteInfo({
-        content: `# Site Information
-
-## Title
-Yeehaa
-
-## Description
-Personal knowledge base and professional showcase`,
+        content: `---
+title: Yeehaa
+description: Personal knowledge base and professional showcase
+---
+`,
       });
 
       // Change mock to return imported entity (as if git-sync just imported it)

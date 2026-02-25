@@ -79,24 +79,15 @@ Content here`;
     },
   });
 
-  const siteInfoContent = `# Site Information
-
-## Title
-Test Site
-
-## Description
-A test professional site
-
-## CTA
-
-### Heading
-Let's work together
-
-### Button Text
-Get in Touch
-
-### Button Link
-mailto:test@example.com`;
+  const siteInfoContent = `---
+title: Test Site
+description: A test professional site
+cta:
+  heading: Let's work together
+  buttonText: Get in Touch
+  buttonLink: mailto:test@example.com
+---
+`;
 
   const mockSiteInfo = createTestEntity("site-info", {
     id: "site-info",

@@ -164,61 +164,6 @@ description: A simple website
       expect(result.cta).toBeUndefined();
     });
 
-    it("should parse legacy structured markdown with all fields", () => {
-      const markdown = `# Site Information
-
-## Title
-Rizom
-
-## Description
-The Rizom collective's knowledge hub
-
-## Copyright
-© 2025 Rizom
-
-## Theme Mode
-dark
-
-## CTA
-
-### Heading
-Unlock your full potential
-
-### Button Text
-Join Rizom
-
-### Button Link
-https://www.linkedin.com/company/rizom-collective`;
-
-      const result = adapter.parseSiteInfoBody(markdown);
-
-      expect(result.title).toBe("Rizom");
-      expect(result.description).toBe("The Rizom collective's knowledge hub");
-      expect(result.copyright).toBe("© 2025 Rizom");
-      expect(result.themeMode).toBe("dark");
-      expect(result.cta).toEqual({
-        heading: "Unlock your full potential",
-        buttonText: "Join Rizom",
-        buttonLink: "https://www.linkedin.com/company/rizom-collective",
-      });
-    });
-
-    it("should parse legacy structured markdown without CTA", () => {
-      const markdown = `# Site Information
-
-## Title
-My Site
-
-## Description
-A simple website`;
-
-      const result = adapter.parseSiteInfoBody(markdown);
-
-      expect(result.title).toBe("My Site");
-      expect(result.description).toBe("A simple website");
-      expect(result.cta).toBeUndefined();
-    });
-
     it("should throw error for markdown without proper structure", () => {
       const markdown = "Some random text without structure";
 
@@ -239,22 +184,6 @@ title: My Site
 description: A simple website
 ---
 `;
-
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.entityType).toBe("site-info");
-      expect(result.content).toContain("---");
-      expect(result.content).toContain("title: My Site");
-    });
-
-    it("should auto-convert legacy structured markdown to frontmatter", () => {
-      const markdown = `# Site Information
-
-## Title
-My Site
-
-## Description
-A simple website`;
 
       const result = adapter.fromMarkdown(markdown);
 
