@@ -201,23 +201,21 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     const msgtype = messageEvent.content?.msgtype;
     const body = messageEvent.content?.body;
 
-    // Check if bot is mentioned or if it's a DM
-    const isMentioned = this.isAddressedToBot(messageEvent);
-    const isDM = this.isDirectMessage(roomId);
-
-    // Only respond if mentioned or in DM
-    if (!isMentioned && !isDM) {
-      return;
-    }
-
-    // Handle text messages
-    if (msgtype === "m.text" && body) {
-      await this.routeToAgent(body, roomId, senderId, eventId, context);
-      return;
-    }
-
-    // Handle file uploads
+    // Handle file uploads — checked before mention/DM gate because
+    // Matrix file events don't support mentions. Permission-gated
+    // to anchor/trusted users to prevent prompt injection from untrusted uploads.
     if (msgtype === "m.file" && messageEvent.content?.url) {
+      const userPermissionLevel = context.permissions.getUserLevel(
+        "matrix",
+        senderId,
+      );
+      if (
+        userPermissionLevel !== "anchor" &&
+        userPermissionLevel !== "trusted"
+      ) {
+        return;
+      }
+
       const filename = body ?? "uploaded-file";
       const mxcUrl = messageEvent.content.url;
       const mimetype = messageEvent.content.info?.mimetype;
@@ -261,6 +259,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
         });
         await this.sendErrorResponse(roomId, error, eventId);
       }
+      return;
+    }
+
+    // Text messages require mention or DM
+    const isMentioned = this.isAddressedToBot(messageEvent);
+    const isDM = this.isDirectMessage(roomId);
+
+    if (!isMentioned && !isDM) {
+      return;
+    }
+
+    // Handle text messages
+    if (msgtype === "m.text" && body) {
+      await this.routeToAgent(body, roomId, senderId, eventId, context);
       return;
     }
   }

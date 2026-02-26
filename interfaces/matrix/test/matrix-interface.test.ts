@@ -621,9 +621,9 @@ describe("MatrixInterface", () => {
       messageHandler = messageCall[1];
     });
 
-    it("should handle m.file events for text files", async () => {
+    it("should handle m.file events from anchor users", async () => {
       const event = {
-        sender: "@user:example.org",
+        sender: "@admin:example.org",
         content: {
           msgtype: "m.file",
           body: "notes.md",
@@ -631,9 +631,6 @@ describe("MatrixInterface", () => {
           info: {
             mimetype: "text/markdown",
             size: 500,
-          },
-          "m.mentions": {
-            user_ids: ["@bot:example.org"],
           },
         },
         event_id: "event_123",
@@ -655,9 +652,51 @@ describe("MatrixInterface", () => {
       );
     });
 
+    it("should handle m.file events from trusted users", async () => {
+      const event = {
+        sender: "@trusted:example.org",
+        content: {
+          msgtype: "m.file",
+          body: "notes.md",
+          url: "mxc://example.org/abc123",
+          info: {
+            mimetype: "text/markdown",
+            size: 500,
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalled();
+    });
+
+    it("should reject m.file events from public users", async () => {
+      const event = {
+        sender: "@random:example.org",
+        content: {
+          msgtype: "m.file",
+          body: "notes.md",
+          url: "mxc://example.org/abc123",
+          info: {
+            mimetype: "text/markdown",
+            size: 500,
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
     it("should ignore m.file events for non-text files", async () => {
       const event = {
-        sender: "@user:example.org",
+        sender: "@admin:example.org",
         content: {
           msgtype: "m.file",
           body: "image.png",
@@ -665,9 +704,6 @@ describe("MatrixInterface", () => {
           info: {
             mimetype: "image/png",
             size: 500,
-          },
-          "m.mentions": {
-            user_ids: ["@bot:example.org"],
           },
         },
         event_id: "event_123",
@@ -681,7 +717,7 @@ describe("MatrixInterface", () => {
 
     it("should ignore m.file events for files that are too large", async () => {
       const event = {
-        sender: "@user:example.org",
+        sender: "@admin:example.org",
         content: {
           msgtype: "m.file",
           body: "huge.md",
@@ -689,9 +725,6 @@ describe("MatrixInterface", () => {
           info: {
             mimetype: "text/markdown",
             size: 200_000,
-          },
-          "m.mentions": {
-            user_ids: ["@bot:example.org"],
           },
         },
         event_id: "event_123",
@@ -705,7 +738,7 @@ describe("MatrixInterface", () => {
 
     it("should pass downloaded file content to agent", async () => {
       const event = {
-        sender: "@user:example.org",
+        sender: "@admin:example.org",
         content: {
           msgtype: "m.file",
           body: "notes.md",
@@ -713,9 +746,6 @@ describe("MatrixInterface", () => {
           info: {
             mimetype: "text/markdown",
             size: 500,
-          },
-          "m.mentions": {
-            user_ids: ["@bot:example.org"],
           },
         },
         event_id: "event_123",
