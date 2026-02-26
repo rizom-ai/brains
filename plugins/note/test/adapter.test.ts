@@ -131,15 +131,31 @@ Just content, no frontmatter.`;
   });
 
   describe("createNoteContent", () => {
-    it("should create markdown with frontmatter", () => {
+    it("should return content as-is when it has no frontmatter", () => {
       const markdown = adapter.createNoteContent(
         "New Note Title",
         "This is the body content.",
       );
 
-      expect(markdown).toContain("---");
-      expect(markdown).toContain("title: New Note Title");
-      expect(markdown).toContain("This is the body content.");
+      expect(markdown).toBe("This is the body content.");
+    });
+
+    it("should inject title into existing frontmatter", () => {
+      const content = "---\ntags:\n  - test\n---\n\nBody content";
+      const markdown = adapter.createNoteContent("My Title", content);
+
+      expect(markdown).toContain("title: My Title");
+      expect(markdown).toContain("tags:");
+      expect(markdown).toContain("- test");
+      expect(markdown).toContain("Body content");
+    });
+
+    it("should preserve existing title in frontmatter", () => {
+      const content = "---\ntitle: Original\n---\n\nBody";
+      const markdown = adapter.createNoteContent("Override", content);
+
+      expect(markdown).toContain("title: Original");
+      expect(markdown).not.toContain("title: Override");
     });
   });
 

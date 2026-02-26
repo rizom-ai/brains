@@ -1,6 +1,6 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import { noteAdapter } from "../adapters/note-adapter";
 
 /**
@@ -38,18 +38,18 @@ export function createNoteTools(
     createTypedTool(
       pluginId,
       "create",
-      "Create a new note for personal knowledge capture. Use when users want to save ideas, research, or reference material.",
+      "Create a new note for personal knowledge capture. Use when users want to save ideas, research, or reference material. Always use this tool to save uploaded file content as a note.",
       createInputSchema,
       async (input) => {
-        // Create markdown content with frontmatter
+        // Create markdown content — preserves existing frontmatter, injects title if missing
         const noteContent = noteAdapter.createNoteContent(
           input.title,
           input.content,
         );
 
-        // Create entity
+        // Create entity with slugified ID
         const result = await context.entityService.createEntity({
-          id: input.title,
+          id: slugify(input.title),
           entityType: "base",
           content: noteContent,
           metadata: {

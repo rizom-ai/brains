@@ -1,0 +1,38 @@
+id: note-tool-create-file-upload
+name: Note Create on File Upload
+description: Verifies that the agent calls note_create when a user uploads a text file
+type: tool_invocation
+tags:
+  - note
+  - tool-invocation
+  - file-upload
+
+turns:
+  - userMessage: |
+      User uploaded a file "meeting-notes.md":
+
+      ---
+      tags:
+        - meetings
+      ---
+
+      # Q1 Planning Meeting
+
+      Discussed roadmap priorities for next quarter.
+      Key decisions: focus on platform stability before new features.
+
+successCriteria:
+  expectedTools:
+    - toolName: note_create
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

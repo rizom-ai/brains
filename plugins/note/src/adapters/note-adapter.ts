@@ -1,4 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
+import { z } from "@brains/utils";
 import {
   noteSchema,
   noteFrontmatterSchema,
@@ -54,9 +55,27 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
     }
   }
 
-  /** Create note content with frontmatter */
-  public createNoteContent(title: string, body: string): string {
-    return this.buildMarkdown(body, { title });
+  /** Create note content, preserving existing structure.
+   *  If the content has frontmatter, injects title if missing.
+   *  If no frontmatter, returns content as-is. */
+  public createNoteContent(title: string, content: string): string {
+    try {
+      const existing = this.parseFrontMatter(
+        content,
+        z.record(z.unknown()),
+      ) as Record<string, unknown>;
+      // Empty record means no real frontmatter was present
+      if (Object.keys(existing).length === 0) {
+        return content;
+      }
+      // Content has frontmatter — inject title if missing, preserve the rest
+      const frontmatter = { ...existing, title: existing["title"] ?? title };
+      const body = this.extractBody(content);
+      return this.buildMarkdown(body, frontmatter);
+    } catch {
+      // Parse error — save as-is
+      return content;
+    }
   }
 
   /**

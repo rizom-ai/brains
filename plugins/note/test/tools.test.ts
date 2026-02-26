@@ -88,6 +88,82 @@ describe("Note Tools", () => {
       expect(context.entityService.createEntity).toHaveBeenCalled();
     });
 
+    it("should slugify the entity ID", async () => {
+      await createTool.handler(
+        { title: "My Note With Spaces", content: "Body" },
+        createMockToolContext(),
+      );
+
+      expect(context.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "my-note-with-spaces",
+        }),
+      );
+    });
+
+    it("should preserve existing frontmatter and inject title", async () => {
+      const contentWithFrontmatter =
+        "---\ntags:\n  - test\n---\n\nSome body content";
+
+      await createTool.handler(
+        { title: "My Note", content: contentWithFrontmatter },
+        createMockToolContext(),
+      );
+
+      const call = (
+        context.entityService.createEntity as ReturnType<
+          typeof import("bun:test").mock
+        >
+      ).mock.calls[0] as [{ content: string }];
+      const savedContent = call[0].content;
+
+      // Should contain the original tag
+      expect(savedContent).toContain("tags:");
+      expect(savedContent).toContain("- test");
+      // Should contain the title in frontmatter
+      expect(savedContent).toContain("title: My Note");
+      // Should contain the body
+      expect(savedContent).toContain("Some body content");
+    });
+
+    it("should save content as-is when it has no frontmatter", async () => {
+      await createTool.handler(
+        { title: "Plain Note", content: "Just plain text" },
+        createMockToolContext(),
+      );
+
+      const call = (
+        context.entityService.createEntity as ReturnType<
+          typeof import("bun:test").mock
+        >
+      ).mock.calls[0] as [{ content: string }];
+      const savedContent = call[0].content;
+
+      // No frontmatter should be injected
+      expect(savedContent).not.toContain("---");
+      expect(savedContent).toBe("Just plain text");
+    });
+
+    it("should not duplicate title if already in frontmatter", async () => {
+      const contentWithTitle = "---\ntitle: Original Title\n---\n\nBody";
+
+      await createTool.handler(
+        { title: "Original Title", content: contentWithTitle },
+        createMockToolContext(),
+      );
+
+      const call = (
+        context.entityService.createEntity as ReturnType<
+          typeof import("bun:test").mock
+        >
+      ).mock.calls[0] as [{ content: string }];
+      const savedContent = call[0].content;
+
+      // Title should appear exactly once in frontmatter
+      const titleMatches = savedContent.match(/title:/g);
+      expect(titleMatches).toHaveLength(1);
+    });
+
     it("should require title", async () => {
       const result = await createTool.handler(
         { content: "Content without title" },
