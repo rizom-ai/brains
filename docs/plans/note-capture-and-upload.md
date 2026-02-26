@@ -1,69 +1,29 @@
-# Plan: Note Capture & Upload from Chat Interface
+# Plan: Note Capture & File Upload from Chat Interface
 
 **Created**: 2026-02-26
 **Status**: Planned
 
 ## Context
 
-Users interact with the brain through client-side interfaces like Matrix. They want two capabilities during chat:
+Users interact with the brain through client-side interfaces like Matrix. Two capabilities are needed:
 
-1. **Quick capture** — Save conversation content as a note ("save this conversation as a note")
-2. **File upload** — Send a markdown file attachment in Matrix and have it passed to the AI agent
+1. **Note capture from chat** — The existing `note_create` tool already works for this. The AI agent has the full conversation in context and can extract whatever the user wants to save (a response, an insight, a code snippet) and call `note_create`. No new tool needed.
 
-Currently, Matrix silently ignores all non-text messages (`interfaces/matrix/src/lib/matrix-interface.ts:199-201`). The note plugin only has `note_create` (manual title+content) and `note_generate` (AI from prompt).
+2. **File upload via chat** — When a user sends a markdown file attachment in Matrix, the bot should download the content and pass it to the AI agent. The agent then decides what to do — save as a note via `note_create`, or any other action. Currently, Matrix silently ignores all non-text messages (`interfaces/matrix/src/lib/matrix-interface.ts:199-201`).
 
----
-
-## Part 1: Conversation Capture Tool (note plugin)
-
-Add `note_save-conversation` tool. The AI agent calls this when a user says "save this conversation" or similar.
-
-### File: `plugins/note/src/tools/index.ts`
-
-Add schema:
-
-```typescript
-const saveConversationInputSchema = z.object({
-  conversationId: z.string().describe("The conversation ID to save"),
-  title: z.string().optional().describe("Title (auto-generated if omitted)"),
-  messageLimit: z
-    .number()
-    .optional()
-    .describe("Max recent messages to include"),
-});
-```
-
-Handler:
-
-- Fetch messages via `context.conversations.getMessages(conversationId, { limit })` (available on `CorePluginContext` — `shell/plugins/src/core/context.ts:160-172`)
-- Return error if empty
-- Format as markdown: role headers + content, separated by `---`
-- Auto-generate title as `"Conversation — {date}"` if not provided
-- Create entity via `noteAdapter.createNoteContent(title, body)` + `entityService.createEntity()`
-- Synchronous — no job queue needed
-
-Also update `note_create` description for better AI routing when users say "save that as a note".
-
-### File: `plugins/note/test/tools.test.ts`
-
-Add tests for `note_save-conversation`:
-
-- Should save conversation messages as a note
-- Should handle empty conversation
-- Should respect messageLimit
-- Should auto-generate title
+A future "entity upgrade" feature could allow notes to be promoted to richer entity types (blog post, link, etc.), but that's out of scope here.
 
 ---
 
-## Part 2: File Upload Support (base class + Matrix)
+## File Upload Support (base class + Matrix)
 
-The file handling logic lives in the **base `MessageInterfacePlugin`** class. Matrix only handles the transport-specific part (detecting `m.file` events, downloading from `mxc://` URLs).
+The file handling logic lives in the **base `MessageInterfacePlugin`** class so any chat interface can reuse it. Matrix only handles the transport-specific part (detecting `m.file` events, downloading from `mxc://` URLs).
 
-### Step 2a: Add file upload utilities to `MessageInterfacePlugin`
+### Step 1: Add file upload utilities to `MessageInterfacePlugin`
 
 **File:** `shell/plugins/src/message-interface/message-interface-plugin.ts`
 
-Add protected methods and constants that any message interface can use:
+Add protected methods and constants:
 
 ```typescript
 /** Max file size for text uploads (100KB) */
@@ -91,15 +51,15 @@ protected isFileSizeAllowed(size: number): boolean
 protected formatFileUploadMessage(filename: string, content: string): string
 ```
 
-These are simple, stateless utilities — no refactoring of the existing message handling flow needed.
+Simple, stateless utilities — no refactoring of the existing message handling flow.
 
-### Step 2b: Add `downloadContent` to Matrix client wrapper
+### Step 2: Add `downloadContent` to Matrix client wrapper
 
 **File:** `interfaces/matrix/src/client/matrix-client.ts`
 
-Add method wrapping `matrix-bot-sdk`'s built-in `downloadContent(mxcUrl)` (returns `{ data: Buffer, contentType: string }`).
+Wrap `matrix-bot-sdk`'s built-in `downloadContent(mxcUrl)` (returns `{ data: Buffer, contentType: string }`).
 
-### Step 2c: Handle `m.file` in Matrix interface
+### Step 3: Handle `m.file` in Matrix interface
 
 **File:** `interfaces/matrix/src/lib/matrix-interface.ts`
 
@@ -119,8 +79,6 @@ Modify `handleRoomMessage`:
 
 | File                                                                    | Change                                                                     |
 | ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `plugins/note/src/tools/index.ts`                                       | Add `save-conversation` tool + schema; update `note_create` description    |
-| `plugins/note/test/tools.test.ts`                                       | Add tests for `save-conversation`                                          |
 | `shell/plugins/src/message-interface/message-interface-plugin.ts`       | Add `isUploadableTextFile`, `isFileSizeAllowed`, `formatFileUploadMessage` |
 | `interfaces/matrix/src/client/matrix-client.ts`                         | Add `downloadContent()` method                                             |
 | `interfaces/matrix/src/lib/matrix-interface.ts`                         | Handle `m.file` events; extract `routeToAgent` helper                      |
@@ -129,8 +87,7 @@ Modify `handleRoomMessage`:
 
 **No changes to:**
 
-- `plugins/note/src/plugin.ts` — `createNoteTools()` already called, new tool auto-included
-- `plugins/note/src/adapters/note-adapter.ts` — `createNoteContent()` already exists
+- Note plugin — `note_create` already handles capture; the agent decides when to call it
 - App configuration — no new plugin to register
 
 ---
@@ -138,9 +95,7 @@ Modify `handleRoomMessage`:
 ## Verification
 
 1. `bun run typecheck` — all packages clean
-2. `bun test plugins/note/` — note plugin tests
-3. `bun test shell/plugins/` — base class tests
-4. `bun test interfaces/matrix/` — matrix interface tests
-5. `bun run lint` — clean
-6. Manual: In Matrix, send "save this conversation as a note" — bot creates note entity
-7. Manual: In Matrix, upload a `.md` file — bot receives content, agent processes it
+2. `bun test shell/plugins/` — base class tests
+3. `bun test interfaces/matrix/` — matrix interface tests
+4. `bun run lint` — clean
+5. Manual: In Matrix, upload a `.md` file — bot receives content, agent processes it

@@ -33,11 +33,11 @@ Last Updated: 2026-02-21
 
 ## Current Focus: Post-v1.0 Improvements
 
-### Note Capture & Upload
+### Note Capture & File Upload
 
-- [ ] Conversation capture tool (`note_save-conversation`) — save chat as note entity
-- [ ] File upload support in `MessageInterfacePlugin` base class (validation, formatting)
-- [ ] Matrix file attachment handling (`m.file` → agent) (see `docs/plans/note-capture-and-upload.md`)
+- [ ] File upload utilities in `MessageInterfacePlugin` base class (validation, formatting)
+- [ ] Matrix file attachment handling (`m.file` → download → agent) (see `docs/plans/note-capture-and-upload.md`)
+- Note capture from chat already works via `note_create` — the agent extracts relevant content from conversation context
 
 ### Discord Interface
 
