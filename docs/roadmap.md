@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-02-21
+Last Updated: 2026-02-26
 
 ---
 
@@ -33,12 +33,6 @@ Last Updated: 2026-02-21
 
 ## Current Focus: Post-v1.0 Improvements
 
-### Note Capture & File Upload
-
-- [ ] File upload utilities in `MessageInterfacePlugin` base class (validation, formatting)
-- [ ] Matrix file attachment handling (`m.file` → download → agent) (see `docs/plans/note-capture-and-upload.md`)
-- Note capture from chat already works via `note_create` — the agent extracts relevant content from conversation context
-
 ### Discord Interface
 
 - [ ] Implement Discord bot with threads, attachments, and message chunking (see `docs/plans/discord-interface.md`)
@@ -60,6 +54,8 @@ Last Updated: 2026-02-21
 
 ## Completed (2026-02)
 
+- ✅ File upload support for chat interfaces (base class utilities, Matrix `m.file` handling, permission-gating, SDK 0.8.0)
+- ✅ Note plugin: slugified IDs, frontmatter-aware content handling, file upload eval
 - ✅ Extract site-content plugin from site-builder (entity, adapter, tools, orchestration via messaging)
 - ✅ BaseEntityAdapter abstract class — migrated all 10 adapters to reduce boilerplate
 - ✅ Route types moved to `@brains/plugins` (shared cross-plugin concern)
