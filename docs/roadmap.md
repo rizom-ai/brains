@@ -33,6 +33,12 @@ Last Updated: 2026-02-21
 
 ## Current Focus: Post-v1.0 Improvements
 
+### Note Capture & Upload
+
+- [ ] Conversation capture tool (`note_save-conversation`) — save chat as note entity
+- [ ] File upload support in `MessageInterfacePlugin` base class (validation, formatting)
+- [ ] Matrix file attachment handling (`m.file` → agent) (see `docs/plans/note-capture-and-upload.md`)
+
 ### Discord Interface
 
 - [ ] Implement Discord bot with threads, attachments, and message chunking (see `docs/plans/discord-interface.md`)
