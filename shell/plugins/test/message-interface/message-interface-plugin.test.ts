@@ -58,6 +58,25 @@ class TestMessageInterface extends MessageInterfacePlugin<{
   public override endProcessingInput(): void {
     super.endProcessingInput();
   }
+
+  // Expose file upload utilities for testing
+  public testIsUploadableTextFile(
+    filename: string,
+    mimetype?: string,
+  ): boolean {
+    return this.isUploadableTextFile(filename, mimetype);
+  }
+
+  public testIsFileSizeAllowed(size: number): boolean {
+    return this.isFileSizeAllowed(size);
+  }
+
+  public testFormatFileUploadMessage(
+    filename: string,
+    content: string,
+  ): string {
+    return this.formatFileUploadMessage(filename, content);
+  }
 }
 
 function createProgressEvent(
@@ -484,6 +503,100 @@ describe("MessageInterfacePlugin - completion message ordering", () => {
       expect(plugin.sentResponses).toHaveLength(2);
       expect(plugin.sentResponses[0]).toContain("✅");
       expect(plugin.sentResponses[1]).toContain("❌");
+    });
+  });
+});
+
+describe("MessageInterfacePlugin - file upload utilities", () => {
+  let plugin: TestMessageInterface;
+
+  beforeEach(() => {
+    plugin = new TestMessageInterface();
+  });
+
+  describe("isUploadableTextFile", () => {
+    it("should accept .md files", () => {
+      expect(plugin.testIsUploadableTextFile("notes.md")).toBe(true);
+    });
+
+    it("should accept .txt files", () => {
+      expect(plugin.testIsUploadableTextFile("notes.txt")).toBe(true);
+    });
+
+    it("should accept .markdown files", () => {
+      expect(plugin.testIsUploadableTextFile("notes.markdown")).toBe(true);
+    });
+
+    it("should reject non-text files", () => {
+      expect(plugin.testIsUploadableTextFile("image.png")).toBe(false);
+      expect(plugin.testIsUploadableTextFile("doc.pdf")).toBe(false);
+      expect(plugin.testIsUploadableTextFile("archive.zip")).toBe(false);
+    });
+
+    it("should accept text/plain mimetype", () => {
+      expect(plugin.testIsUploadableTextFile("file.bin", "text/plain")).toBe(
+        true,
+      );
+    });
+
+    it("should accept text/markdown mimetype", () => {
+      expect(plugin.testIsUploadableTextFile("file.bin", "text/markdown")).toBe(
+        true,
+      );
+    });
+
+    it("should accept text/x-markdown mimetype", () => {
+      expect(
+        plugin.testIsUploadableTextFile("file.bin", "text/x-markdown"),
+      ).toBe(true);
+    });
+
+    it("should reject non-text mimetypes with non-text extensions", () => {
+      expect(plugin.testIsUploadableTextFile("image.png", "image/png")).toBe(
+        false,
+      );
+    });
+
+    it("should be case-insensitive for extensions", () => {
+      expect(plugin.testIsUploadableTextFile("NOTES.MD")).toBe(true);
+      expect(plugin.testIsUploadableTextFile("file.TXT")).toBe(true);
+    });
+  });
+
+  describe("isFileSizeAllowed", () => {
+    it("should accept files under 100KB", () => {
+      expect(plugin.testIsFileSizeAllowed(50_000)).toBe(true);
+    });
+
+    it("should accept files exactly at the limit", () => {
+      expect(plugin.testIsFileSizeAllowed(100_000)).toBe(true);
+    });
+
+    it("should reject files over 100KB", () => {
+      expect(plugin.testIsFileSizeAllowed(100_001)).toBe(false);
+    });
+
+    it("should accept zero-byte files", () => {
+      expect(plugin.testIsFileSizeAllowed(0)).toBe(true);
+    });
+  });
+
+  describe("formatFileUploadMessage", () => {
+    it("should format file content with filename", () => {
+      const result = plugin.testFormatFileUploadMessage(
+        "notes.md",
+        "# Hello\n\nSome content",
+      );
+      expect(result).toContain("notes.md");
+      expect(result).toContain("# Hello\n\nSome content");
+    });
+
+    it("should include the filename in a way the agent can see", () => {
+      const result = plugin.testFormatFileUploadMessage(
+        "my-doc.txt",
+        "content",
+      );
+      expect(result).toContain("my-doc.txt");
     });
   });
 });

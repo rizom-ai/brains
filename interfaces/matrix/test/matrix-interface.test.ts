@@ -597,6 +597,142 @@ describe("MatrixInterface", () => {
     });
   });
 
+  describe("File upload handling", () => {
+    let matrixInterface: MatrixInterface;
+    let messageHandler: (roomId: string, event: unknown) => void;
+
+    beforeEach(async () => {
+      matrixInterface = new MatrixInterface(config);
+      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+
+      // Mock downloadContent on the underlying client
+      mockMatrixClient.downloadContent = mock(() =>
+        Promise.resolve({
+          data: Buffer.from("# My Notes\n\nSome content here"),
+          contentType: "text/markdown",
+        }),
+      );
+
+      await harness.installPlugin(matrixInterface);
+
+      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
+      const messageCall = calls.find((call) => call[0] === "room.message");
+      if (!messageCall) throw new Error("Message handler not found");
+      messageHandler = messageCall[1];
+    });
+
+    it("should handle m.file events for text files", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.file",
+          body: "notes.md",
+          url: "mxc://example.org/abc123",
+          info: {
+            mimetype: "text/markdown",
+            size: 500,
+          },
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should download the file and pass content to agent
+      expect(mockMatrixClient.downloadContent).toHaveBeenCalledWith(
+        "mxc://example.org/abc123",
+      );
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        expect.stringContaining("notes.md"),
+        "matrix-!room:example.org",
+        expect.objectContaining({
+          interfaceType: "matrix",
+        }),
+      );
+    });
+
+    it("should ignore m.file events for non-text files", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.file",
+          body: "image.png",
+          url: "mxc://example.org/abc123",
+          info: {
+            mimetype: "image/png",
+            size: 500,
+          },
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should ignore m.file events for files that are too large", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.file",
+          body: "huge.md",
+          url: "mxc://example.org/abc123",
+          info: {
+            mimetype: "text/markdown",
+            size: 200_000,
+          },
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should pass downloaded file content to agent", async () => {
+      const event = {
+        sender: "@user:example.org",
+        content: {
+          msgtype: "m.file",
+          body: "notes.md",
+          url: "mxc://example.org/abc123",
+          info: {
+            mimetype: "text/markdown",
+            size: 500,
+          },
+          "m.mentions": {
+            user_ids: ["@bot:example.org"],
+          },
+        },
+        event_id: "event_123",
+      };
+
+      messageHandler("!room:example.org", event);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // The agent should receive the file content
+      const chatCall = (mockAgentService.chat as ReturnType<typeof mock>).mock
+        .calls[0];
+      const agentMessage = chatCall?.[0] as string;
+      expect(agentMessage).toContain("# My Notes");
+      expect(agentMessage).toContain("Some content here");
+    });
+  });
+
   describe("Error handling", () => {
     it("should handle AgentService errors gracefully", async () => {
       // Set up an error-throwing agent service BEFORE installing the plugin

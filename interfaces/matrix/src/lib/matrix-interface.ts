@@ -178,6 +178,11 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       content?: {
         msgtype?: string;
         body?: string;
+        url?: string;
+        info?: {
+          mimetype?: string;
+          size?: number;
+        };
         "m.mentions"?: {
           user_ids?: string[];
         };
@@ -194,12 +199,7 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
     const senderId = messageEvent.sender ?? "unknown";
     const eventId = messageEvent.event_id ?? "unknown";
     const msgtype = messageEvent.content?.msgtype;
-    const message = messageEvent.content?.body;
-
-    // Only process text messages
-    if (msgtype !== "m.text" || !message) {
-      return;
-    }
+    const body = messageEvent.content?.body;
 
     // Check if bot is mentioned or if it's a DM
     const isMentioned = this.isAddressedToBot(messageEvent);
@@ -210,7 +210,71 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       return;
     }
 
-    // Build conversation ID
+    // Handle text messages
+    if (msgtype === "m.text" && body) {
+      await this.routeToAgent(body, roomId, senderId, eventId, context);
+      return;
+    }
+
+    // Handle file uploads
+    if (msgtype === "m.file" && messageEvent.content?.url) {
+      const filename = body ?? "uploaded-file";
+      const mxcUrl = messageEvent.content.url;
+      const mimetype = messageEvent.content.info?.mimetype;
+      const size = messageEvent.content.info?.size ?? 0;
+
+      // Validate using base class utilities
+      if (!this.isUploadableTextFile(filename, mimetype)) {
+        return;
+      }
+      if (!this.isFileSizeAllowed(size)) {
+        return;
+      }
+
+      if (!this.client) {
+        return;
+      }
+
+      try {
+        // Download file content (Matrix-specific transport)
+        const { data } = await this.client.downloadContent(mxcUrl);
+        const fileContent = data.toString("utf-8");
+
+        // Format using base class utility and route to agent
+        const agentMessage = this.formatFileUploadMessage(
+          filename,
+          fileContent,
+        );
+        await this.routeToAgent(
+          agentMessage,
+          roomId,
+          senderId,
+          eventId,
+          context,
+        );
+      } catch (error) {
+        this.logger.error("Error downloading file", {
+          error,
+          roomId,
+          filename,
+          mxcUrl,
+        });
+        await this.sendErrorResponse(roomId, error, eventId);
+      }
+      return;
+    }
+  }
+
+  /**
+   * Route a message to the AgentService
+   */
+  private async routeToAgent(
+    message: string,
+    roomId: string,
+    senderId: string,
+    eventId: string,
+    context: InterfacePluginContext,
+  ): Promise<void> {
     const conversationId = `matrix-${roomId}`;
 
     // Get room name for display
@@ -229,7 +293,6 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
       senderId,
       conversationId,
       channelName,
-      isMentioned,
       userPermissionLevel,
     });
 

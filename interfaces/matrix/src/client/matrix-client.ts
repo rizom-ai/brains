@@ -321,6 +321,15 @@ export class MatrixClientWrapper {
   }
 
   /**
+   * Download content from a Matrix content URI (mxc://)
+   */
+  async downloadContent(
+    mxcUrl: string,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    return this.client.downloadContent(mxcUrl);
+  }
+
+  /**
    * Get the underlying MatrixClient for advanced operations
    */
   getClient(): MatrixClient {

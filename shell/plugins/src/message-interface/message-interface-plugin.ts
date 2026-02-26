@@ -54,6 +54,48 @@ export abstract class MessageInterfacePlugin<
   TConfig = unknown,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
 > extends InterfacePlugin<TConfig, TTrackingInfo> {
+  /** Max file size for text uploads (100KB) */
+  protected static readonly MAX_FILE_UPLOAD_SIZE = 100_000;
+
+  /** Allowed text-based file extensions */
+  private static readonly TEXT_FILE_EXTENSIONS = [".md", ".txt", ".markdown"];
+
+  /** Allowed text-based MIME types */
+  private static readonly TEXT_MIME_TYPES = [
+    "text/plain",
+    "text/markdown",
+    "text/x-markdown",
+  ];
+
+  /**
+   * Check if a file is a supported text file for upload
+   */
+  protected isUploadableTextFile(filename: string, mimetype?: string): boolean {
+    if (
+      mimetype &&
+      MessageInterfacePlugin.TEXT_MIME_TYPES.some((t) => mimetype.startsWith(t))
+    ) {
+      return true;
+    }
+    return MessageInterfacePlugin.TEXT_FILE_EXTENSIONS.some((ext) =>
+      filename.toLowerCase().endsWith(ext),
+    );
+  }
+
+  /**
+   * Validate file size for upload
+   */
+  protected isFileSizeAllowed(size: number): boolean {
+    return size <= MessageInterfacePlugin.MAX_FILE_UPLOAD_SIZE;
+  }
+
+  /**
+   * Format uploaded file content as an agent message
+   */
+  protected formatFileUploadMessage(filename: string, content: string): string {
+    return `User uploaded a file "${filename}":\n\n${content}`;
+  }
+
   /**
    * Track progress events for UI state
    * Key: event ID, Value: latest event data
