@@ -1,0 +1,27 @@
+{
+  "name": "@brains/discord",
+  "version": "0.0.1",
+  "description": "Discord interface for Personal Brain",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "discord.js": "^14.14.1"
+  },
+  "devDependencies": {
+    "@brains/core": "workspace:*",
+    "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest"
+  }
+}

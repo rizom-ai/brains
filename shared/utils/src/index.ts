@@ -49,6 +49,9 @@ export {
   truncateText,
 } from "./string-utils";
 
+// Message chunking
+export { chunkMessage } from "./chunk-message";
+
 // URL generation utilities
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityRouteConfig } from "./entity-url-generator";
