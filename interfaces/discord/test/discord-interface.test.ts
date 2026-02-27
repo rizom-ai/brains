@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { IAgentService, AgentResponse } from "@brains/plugins";
+import type { AgentResponse, ChatContext } from "@brains/plugins";
 
 // ── Mock discord.js ──
 
@@ -93,16 +93,20 @@ const { DiscordInterface } = await import("../src/discord-interface");
 
 const mockFetchText = mock(() => Promise.resolve(""));
 
-const createMockAgentService = (): IAgentService => ({
+const createMockAgentService = () => ({
   chat: mock(
-    (): Promise<AgentResponse> =>
+    (
+      _message: string,
+      _conversationId: string,
+      _context?: ChatContext,
+    ): Promise<AgentResponse> =>
       Promise.resolve({
         text: "Agent response text.",
         usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
       }),
   ),
   confirmPendingAction: mock(
-    (): Promise<AgentResponse> =>
+    (_conversationId: string, _confirmed: boolean): Promise<AgentResponse> =>
       Promise.resolve({
         text: "Action confirmed.",
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
@@ -129,7 +133,7 @@ function createDiscordMessage(overrides: Record<string, unknown> = {}) {
 
 describe("DiscordInterface", () => {
   let harness: PluginTestHarness<InstanceType<typeof DiscordInterface>>;
-  let mockAgentService: IAgentService;
+  let mockAgentService: ReturnType<typeof createMockAgentService>;
   let discord: InstanceType<typeof DiscordInterface>;
 
   beforeEach(async () => {
@@ -173,7 +177,7 @@ describe("DiscordInterface", () => {
     });
 
     it("should reject missing bot token", () => {
-      expect(() => new DiscordInterface({} as { botToken: string })).toThrow();
+      expect(() => new DiscordInterface({})).toThrow();
     });
   });
 
@@ -321,7 +325,7 @@ describe("DiscordInterface", () => {
   describe("Confirmation flow", () => {
     it("should handle confirmation yes response", async () => {
       // First message triggers pending confirmation
-      (mockAgentService.chat as ReturnType<typeof mock>).mockResolvedValueOnce({
+      mockAgentService.chat.mockResolvedValueOnce({
         text: "Are you sure?",
         pendingConfirmation: {
           toolName: "dangerous_tool",
@@ -439,9 +443,8 @@ describe("DiscordInterface", () => {
       await new Promise((r) => setTimeout(r, 100));
 
       // Agent should receive both text and file content
-      const chatCall = (mockAgentService.chat as ReturnType<typeof mock>).mock
-        .calls[0];
-      const agentMsg = chatCall?.[0] as string;
+      const chatCall = mockAgentService.chat.mock.calls[0];
+      const agentMsg = String(chatCall?.[0]);
       expect(agentMsg).toContain("save this file");
       expect(agentMsg).toContain("doc.md");
       expect(agentMsg).toContain("File content");
@@ -450,9 +453,7 @@ describe("DiscordInterface", () => {
 
   describe("Error handling", () => {
     it("should send error message when agent fails", async () => {
-      (mockAgentService.chat as ReturnType<typeof mock>).mockRejectedValueOnce(
-        new Error("Agent error"),
-      );
+      mockAgentService.chat.mockRejectedValueOnce(new Error("Agent error"));
 
       const msg = createDiscordMessage();
       messageCreateHandler?.(msg);

@@ -1,29 +1,95 @@
-import "./mocks/setup";
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  mock,
-  afterEach,
-  spyOn,
-} from "bun:test";
-import { MatrixInterface } from "../src";
+import { describe, it, expect, beforeEach, mock, afterEach } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { IAgentService, AgentResponse } from "@brains/plugins";
+import type { AgentResponse, ChatContext } from "@brains/plugins";
 
-// Type for mock.on calls - [eventName, handler]
-type MockOnCall = [string, (roomId: string, event: unknown) => void];
+// ── Mock matrix-bot-sdk ──
 
-// Access the global mocks
-const mockMatrixClient = globalThis.mockMatrixClient;
-const mockAutoJoinMixin = globalThis.mockAutoJoinMixin;
+const mockOn = mock(
+  (_event: string, _handler: (roomId: string, event: unknown) => void) => {},
+);
+const mockOff = mock(
+  (_event: string, _handler: (roomId: string, event: unknown) => void) => {},
+);
+const mockSendMessage = mock((_roomId: string, _content: unknown) =>
+  Promise.resolve("event_123"),
+);
+const mockSetTyping = mock(
+  (_roomId: string, _typing: boolean, _timeout: number) => Promise.resolve(),
+);
+const mockJoinRoom = mock((_roomId: string) =>
+  Promise.resolve("!joined:example.org"),
+);
+const mockGetUserId = mock(() => Promise.resolve("@bot:example.org"));
+const mockGetAccountData = mock(
+  (): Promise<Record<string, string[]> | null> => Promise.resolve(null),
+);
+const mockDownloadContent = mock((_mxcUrl: string) =>
+  Promise.resolve({
+    data: Buffer.from(""),
+    contentType: "application/octet-stream",
+  }),
+);
+const mockSetupOnClient = mock(() => {});
 
-// Mock AgentService
-const createMockAgentService = (): IAgentService => ({
+const mockMatrixClient = {
+  start: mock(() => Promise.resolve()),
+  stop: mock(() => Promise.resolve()),
+  on: mockOn,
+  off: mockOff,
+  sendMessage: mockSendMessage,
+  sendTyping: mock(() => Promise.resolve()),
+  setTyping: mockSetTyping,
+  sendReaction: mock(() => Promise.resolve()),
+  sendReply: mock(() => Promise.resolve("event_123")),
+  sendFormattedMessage: mock(() => Promise.resolve("event_123")),
+  joinRoom: mockJoinRoom,
+  leaveRoom: mock(() => Promise.resolve()),
+  getUserId: mockGetUserId,
+  sendEvent: mock(() => Promise.resolve("event_123")),
+  setDisplayName: mock(() => Promise.resolve()),
+  getJoinedRooms: mock(() =>
+    Promise.resolve(["!room1:example.org", "!room2:example.org"]),
+  ),
+  getRoomStateEvent: mock(() => Promise.resolve({})),
+  getAccountData: mockGetAccountData,
+  downloadContent: mockDownloadContent,
+};
+
+void mock.module("matrix-bot-sdk", () => ({
+  MatrixClient: class MockMatrixClient {
+    constructor() {
+      return mockMatrixClient;
+    }
+  },
+  AutojoinRoomsMixin: {
+    setupOnClient: mockSetupOnClient,
+  },
+  SimpleFsStorageProvider: class MockStorageProvider {
+    constructor() {}
+  },
+  LogLevel: {
+    INFO: "info",
+  },
+  LogService: {
+    setLogger: mock(() => {}),
+    setLevel: mock(() => {}),
+  },
+  RichConsoleLogger: class MockLogger {},
+}));
+
+// Import after mock
+const { MatrixInterface } = await import("../src");
+
+// ── Helpers ──
+
+const createMockAgentService = () => ({
   chat: mock(
-    (_message: string, _conversationId: string): Promise<AgentResponse> =>
+    (
+      _message: string,
+      _conversationId: string,
+      _context?: ChatContext,
+    ): Promise<AgentResponse> =>
       Promise.resolve({
         text: "I found some results for you.",
         usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
@@ -38,6 +104,14 @@ const createMockAgentService = (): IAgentService => ({
   ),
 });
 
+function getHandler(event: string) {
+  const call = mockOn.mock.calls.find((c) => c[0] === event);
+  if (!call) throw new Error(`${event} handler not found`);
+  return call[1];
+}
+
+// ── Tests ──
+
 describe("MatrixInterface", () => {
   let config: {
     homeserver: string;
@@ -45,28 +119,30 @@ describe("MatrixInterface", () => {
     userId: string;
     [key: string]: unknown;
   };
-  let harness: PluginTestHarness<MatrixInterface>;
-  let mockAgentService: IAgentService;
+  let harness: PluginTestHarness<InstanceType<typeof MatrixInterface>>;
+  let mockAgentService: ReturnType<typeof createMockAgentService>;
 
   beforeEach(() => {
     // Reset mocks
     mockMatrixClient.start.mockClear();
     mockMatrixClient.stop.mockClear();
-    mockMatrixClient.on.mockClear();
-    mockMatrixClient.off.mockClear();
-    mockMatrixClient.sendMessage.mockClear();
+    mockOn.mockClear();
+    mockOff.mockClear();
+    mockSendMessage.mockClear();
     mockMatrixClient.sendTyping.mockClear();
-    mockMatrixClient.setTyping.mockClear();
-    mockMatrixClient.joinRoom.mockClear();
+    mockSetTyping.mockClear();
+    mockJoinRoom.mockClear();
     mockMatrixClient.leaveRoom.mockClear();
-    mockMatrixClient.getUserId.mockClear();
+    mockGetUserId.mockClear();
     mockMatrixClient.sendEvent.mockClear();
     mockMatrixClient.setDisplayName.mockClear();
     mockMatrixClient.getJoinedRooms.mockClear();
     mockMatrixClient.sendReaction.mockClear();
     mockMatrixClient.sendReply.mockClear();
     mockMatrixClient.sendFormattedMessage.mockClear();
-    mockAutoJoinMixin.setupOnClient.mockClear();
+    mockSetupOnClient.mockClear();
+    mockGetAccountData.mockClear();
+    mockDownloadContent.mockClear();
 
     config = {
       homeserver: "https://matrix.example.org",
@@ -77,7 +153,7 @@ describe("MatrixInterface", () => {
     mockAgentService = createMockAgentService();
 
     // Create plugin harness with permission configuration
-    harness = createPluginHarness<MatrixInterface>();
+    harness = createPluginHarness<InstanceType<typeof MatrixInterface>>();
 
     // Configure mock shell with permissions and agent service
     const mockShell = harness.getShell();
@@ -102,9 +178,7 @@ describe("MatrixInterface", () => {
 
     it("should throw error for invalid config", () => {
       expect(() => {
-        new MatrixInterface(
-          {} as unknown as ConstructorParameters<typeof MatrixInterface>[0],
-        );
+        new MatrixInterface({});
       }).toThrow();
     });
   });
@@ -112,15 +186,12 @@ describe("MatrixInterface", () => {
   describe("Lifecycle methods", () => {
     it("should register the interface and set up event handlers", async () => {
       const matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
       // Event handlers are registered during plugin registration
-      expect(mockMatrixClient.on).toHaveBeenCalledWith(
-        "room.message",
-        expect.any(Function),
-      );
+      expect(mockOn).toHaveBeenCalledWith("room.message", expect.any(Function));
     });
 
     it("should setup autojoin when enabled", async () => {
@@ -134,7 +205,7 @@ describe("MatrixInterface", () => {
       await harness.installPlugin(matrixInterface);
 
       // Auto-join is set up during client construction in registration
-      expect(mockAutoJoinMixin.setupOnClient).toHaveBeenCalled();
+      expect(mockSetupOnClient).toHaveBeenCalled();
     });
 
     it("should provide daemon capability", async () => {
@@ -148,20 +219,16 @@ describe("MatrixInterface", () => {
   });
 
   describe("Message handling with AgentService", () => {
-    let matrixInterface: MatrixInterface;
+    let matrixInterface: InstanceType<typeof MatrixInterface>;
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
       matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
-      // Get the message handler that was registered
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1];
+      messageHandler = getHandler("room.message");
     });
 
     it("should send all messages to AgentService.chat()", async () => {
@@ -245,10 +312,7 @@ describe("MatrixInterface", () => {
       matrixInterface = new MatrixInterface(typingConfig);
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1];
+      messageHandler = getHandler("room.message");
 
       const event = {
         sender: "@user:example.org",
@@ -265,7 +329,7 @@ describe("MatrixInterface", () => {
       messageHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(mockMatrixClient.setTyping).toHaveBeenCalledWith(
+      expect(mockSetTyping).toHaveBeenCalledWith(
         "!room:example.org",
         true,
         expect.any(Number),
@@ -289,7 +353,7 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should send the agent's response via sendMessage (sendFormattedMessage uses sendMessage internally)
-      expect(mockMatrixClient.sendMessage).toHaveBeenCalledWith(
+      expect(mockSendMessage).toHaveBeenCalledWith(
         "!room:example.org",
         expect.objectContaining({
           body: "I found some results for you.",
@@ -300,35 +364,30 @@ describe("MatrixInterface", () => {
   });
 
   describe("Confirmation flow", () => {
-    let matrixInterface: MatrixInterface;
+    let matrixInterface: InstanceType<typeof MatrixInterface>;
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
       // Set up agent to return pending confirmation
-      mockAgentService.chat = mock(() =>
-        Promise.resolve({
-          text: "I'll delete the note 'Meeting Notes'. Confirm? (yes/no)",
-          pendingConfirmation: {
-            toolName: "delete_note",
-            description: "Delete note 'Meeting Notes'",
-            args: { noteId: "123" },
-          },
-          usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
-        }),
-      );
+      mockAgentService.chat.mockResolvedValue({
+        text: "I'll delete the note 'Meeting Notes'. Confirm? (yes/no)",
+        pendingConfirmation: {
+          toolName: "delete_note",
+          description: "Delete note 'Meeting Notes'",
+          args: { noteId: "123" },
+        },
+        usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
+      });
 
       // Update the mock agent service with the confirmation response
       harness.getShell().setAgentService(mockAgentService);
 
       matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1];
+      messageHandler = getHandler("room.message");
     });
 
     it("should track pending confirmation from AgentService", async () => {
@@ -348,7 +407,7 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should send the confirmation prompt via sendMessage
-      expect(mockMatrixClient.sendMessage).toHaveBeenCalledWith(
+      expect(mockSendMessage).toHaveBeenCalledWith(
         "!room:example.org",
         expect.objectContaining({
           body: expect.stringContaining("Confirm?"),
@@ -374,14 +433,12 @@ describe("MatrixInterface", () => {
       messageHandler("!room:example.org", deleteEvent);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Reset mock for confirmation
-      spyOn(mockAgentService, "chat").mockClear();
-      mockAgentService.confirmPendingAction = mock(() =>
-        Promise.resolve({
-          text: "Note deleted successfully.",
-          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-        }),
-      );
+      // Reset and set up confirmation response
+      mockAgentService.chat.mockClear();
+      mockAgentService.confirmPendingAction.mockResolvedValue({
+        text: "Note deleted successfully.",
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
 
       // User confirms
       const confirmEvent = {
@@ -423,14 +480,12 @@ describe("MatrixInterface", () => {
       messageHandler("!room:example.org", deleteEvent);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Reset mock for cancellation
-      spyOn(mockAgentService, "chat").mockClear();
-      mockAgentService.confirmPendingAction = mock(() =>
-        Promise.resolve({
-          text: "Action cancelled.",
-          usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-        }),
-      );
+      // Reset and set up cancellation response
+      mockAgentService.chat.mockClear();
+      mockAgentService.confirmPendingAction.mockResolvedValue({
+        text: "Action cancelled.",
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      });
 
       // User declines
       const cancelEvent = {
@@ -457,19 +512,16 @@ describe("MatrixInterface", () => {
   });
 
   describe("Direct messages and mentions", () => {
-    let matrixInterface: MatrixInterface;
+    let matrixInterface: InstanceType<typeof MatrixInterface>;
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
       matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1];
+      messageHandler = getHandler("room.message");
     });
 
     it("should respond when bot is mentioned", async () => {
@@ -511,17 +563,17 @@ describe("MatrixInterface", () => {
     it("should respond in direct message room without mention", async () => {
       // Set up m.direct account data to indicate DM room
       const dmRoomId = "!dm-room:example.org";
-      mockMatrixClient.getAccountData.mockResolvedValue({
+      mockGetAccountData.mockResolvedValue({
         "@user:example.org": [dmRoomId],
       });
 
       // Reset harness and mocks to start fresh
       harness.reset();
-      mockMatrixClient.on.mockClear();
+      mockOn.mockClear();
 
       // Create new interface - DM rooms are loaded during registration
       const dmInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
       // Reconfigure mock shell with agent service
       const mockShell = harness.getShell();
@@ -529,10 +581,7 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(dmInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      const dmMessageHandler = messageCall[1];
+      const dmMessageHandler = getHandler("room.message");
 
       const event = {
         sender: "@user:example.org",
@@ -553,7 +602,7 @@ describe("MatrixInterface", () => {
   });
 
   describe("Room invite handling", () => {
-    let matrixInterface: MatrixInterface;
+    let matrixInterface: InstanceType<typeof MatrixInterface>;
     let inviteHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
@@ -566,10 +615,7 @@ describe("MatrixInterface", () => {
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const inviteCall = calls.find((call) => call[0] === "room.invite");
-      if (!inviteCall) throw new Error("Invite handler not found");
-      inviteHandler = inviteCall[1];
+      inviteHandler = getHandler("room.invite");
     });
 
     it("should accept invites from anchor user", async () => {
@@ -580,9 +626,7 @@ describe("MatrixInterface", () => {
       inviteHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockMatrixClient.joinRoom).toHaveBeenCalledWith(
-        "!room:example.org",
-      );
+      expect(mockJoinRoom).toHaveBeenCalledWith("!room:example.org");
     });
 
     it("should ignore invites from non-anchor users", async () => {
@@ -593,32 +637,27 @@ describe("MatrixInterface", () => {
       inviteHandler("!room:example.org", event);
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      expect(mockMatrixClient.joinRoom).not.toHaveBeenCalled();
+      expect(mockJoinRoom).not.toHaveBeenCalled();
     });
   });
 
   describe("File upload handling", () => {
-    let matrixInterface: MatrixInterface;
+    let matrixInterface: InstanceType<typeof MatrixInterface>;
     let messageHandler: (roomId: string, event: unknown) => void;
 
     beforeEach(async () => {
       matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
-      // Mock downloadContent on the underlying client
-      mockMatrixClient.downloadContent = mock(() =>
-        Promise.resolve({
-          data: Buffer.from("# My Notes\n\nSome content here"),
-          contentType: "text/markdown",
-        }),
-      );
+      // Mock downloadContent to return file content
+      mockDownloadContent.mockResolvedValue({
+        data: Buffer.from("# My Notes\n\nSome content here"),
+        contentType: "text/markdown",
+      });
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      messageHandler = messageCall[1];
+      messageHandler = getHandler("room.message");
     });
 
     it("should handle m.file events from anchor users", async () => {
@@ -640,7 +679,7 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should download the file and pass content to agent
-      expect(mockMatrixClient.downloadContent).toHaveBeenCalledWith(
+      expect(mockDownloadContent).toHaveBeenCalledWith(
         "mxc://example.org/abc123",
       );
       expect(mockAgentService.chat).toHaveBeenCalledWith(
@@ -755,9 +794,8 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // The agent should receive the file content
-      const chatCall = (mockAgentService.chat as ReturnType<typeof mock>).mock
-        .calls[0];
-      const agentMessage = chatCall?.[0] as string;
+      const chatCall = mockAgentService.chat.mock.calls[0];
+      const agentMessage = String(chatCall?.[0]);
       expect(agentMessage).toContain("# My Notes");
       expect(agentMessage).toContain("Some content here");
     });
@@ -767,20 +805,15 @@ describe("MatrixInterface", () => {
     it("should handle AgentService errors gracefully", async () => {
       // Set up an error-throwing agent service BEFORE installing the plugin
       const errorAgentService = createMockAgentService();
-      errorAgentService.chat = mock(() =>
-        Promise.reject(new Error("Agent error")),
-      );
+      errorAgentService.chat.mockRejectedValue(new Error("Agent error"));
       harness.getShell().setAgentService(errorAgentService);
 
       const matrixInterface = new MatrixInterface(config);
-      mockMatrixClient.getUserId.mockResolvedValue("@bot:example.org");
+      mockGetUserId.mockResolvedValue("@bot:example.org");
 
       await harness.installPlugin(matrixInterface);
 
-      const calls = mockMatrixClient.on.mock.calls as MockOnCall[];
-      const messageCall = calls.find((call) => call[0] === "room.message");
-      if (!messageCall) throw new Error("Message handler not found");
-      const messageHandler = messageCall[1];
+      const messageHandler = getHandler("room.message");
 
       const event = {
         sender: "@user:example.org",
@@ -799,7 +832,7 @@ describe("MatrixInterface", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should send error message to user via sendMessage
-      expect(mockMatrixClient.sendMessage).toHaveBeenCalledWith(
+      expect(mockSendMessage).toHaveBeenCalledWith(
         "!room:example.org",
         expect.objectContaining({
           body: expect.stringContaining("Error"),
