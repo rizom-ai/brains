@@ -4,6 +4,7 @@ import { systemPlugin } from "@brains/system";
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
+import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { gitSyncPlugin } from "@brains/git-sync";
@@ -89,6 +90,8 @@ const config = defineConfig({
       { pattern: "mcp:http", level: "public" },
       // Matrix interface: anchor users get full access, others get public
       { pattern: "matrix:*", level: "public" },
+      // Discord interface: default public, add your Discord user ID to anchors above
+      { pattern: "discord:*", level: "public" },
     ],
   },
 
@@ -100,6 +103,9 @@ const config = defineConfig({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@yeehaa-brain-bot:rizom.ai",
+    }),
+    new DiscordInterface({
+      botToken: process.env["DISCORD_BOT_TOKEN"] || "",
     }),
     directorySync(),
     gitSyncPlugin({

@@ -27,6 +27,7 @@
     "@brains/decks": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
+    "@brains/discord": "workspace:*",
     "@brains/git-sync": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/matrix": "workspace:*",
