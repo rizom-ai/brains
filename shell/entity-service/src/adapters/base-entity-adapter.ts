@@ -6,6 +6,15 @@ import {
   generateFrontmatter,
 } from "../frontmatter";
 
+/** Interface for objects that can generate a body template. */
+export interface BodyTemplateProvider {
+  generateBodyTemplate(): string;
+}
+
+const defaultBodyFormatter: BodyTemplateProvider = {
+  generateBodyTemplate: () => "",
+};
+
 export interface BaseEntityAdapterConfig<
   TEntity extends BaseEntity<TMetadata>,
   TMetadata,
@@ -16,6 +25,7 @@ export interface BaseEntityAdapterConfig<
   isSingleton?: boolean;
   hasBody?: boolean;
   supportsCoverImage?: boolean;
+  bodyFormatter?: BodyTemplateProvider;
 }
 
 /**
@@ -43,6 +53,7 @@ export abstract class BaseEntityAdapter<
   // Stored separately with output type preserved for type-safe parsing.
   // ZodObject<ZodRawShape> erases the output type; this recovers it.
   private readonly fmSchema: z.ZodSchema<TFrontmatter>;
+  private readonly bodyFormatter: BodyTemplateProvider;
 
   constructor(config: BaseEntityAdapterConfig<TEntity, TMetadata>) {
     this.entityType = config.entityType;
@@ -52,6 +63,7 @@ export abstract class BaseEntityAdapter<
     // Safe because the runtime object IS a ZodSchema<TFrontmatter>.
     this.fmSchema =
       config.frontmatterSchema as unknown as z.ZodSchema<TFrontmatter>;
+    this.bodyFormatter = config.bodyFormatter ?? defaultBodyFormatter;
     if (config.isSingleton !== undefined) this.isSingleton = config.isSingleton;
     if (config.hasBody !== undefined) this.hasBody = config.hasBody;
     if (config.supportsCoverImage !== undefined)
@@ -71,6 +83,10 @@ export abstract class BaseEntityAdapter<
 
   public parseFrontMatter<T>(markdown: string, schema: z.ZodSchema<T>): T {
     return parseMarkdownWithFrontmatter(markdown, schema).metadata;
+  }
+
+  public getBodyTemplate(): string {
+    return this.bodyFormatter.generateBodyTemplate();
   }
 
   public generateFrontMatter(entity: TEntity): string {

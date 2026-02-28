@@ -5,9 +5,9 @@
  * used across multiple test files.
  */
 import { mock } from "bun:test";
-import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
-import { baseEntitySchema } from "@brains/plugins/test";
-import type { z } from "@brains/utils";
+import type { BaseEntity } from "@brains/plugins/test";
+import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
+import { z } from "@brains/utils";
 import type { IDirectorySync, ImportResult, ExportResult } from "../src/types";
 
 // ---------------------------------------------------------------------------
@@ -58,35 +58,21 @@ export function emptyExportResult(
 // MockEntityAdapter – minimal adapter for test harness registration
 // ---------------------------------------------------------------------------
 
-export class MockEntityAdapter implements EntityAdapter<BaseEntity> {
-  public readonly entityType: string;
-  public readonly schema = baseEntitySchema;
-
+export class MockEntityAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor(entityType = "base") {
-    this.entityType = entityType;
+    super({
+      entityType,
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({}),
+    });
   }
 
-  fromMarkdown(markdown: string): Partial<BaseEntity> {
-    return { content: markdown };
-  }
-
-  toMarkdown(entity: BaseEntity): string {
+  public toMarkdown(entity: BaseEntity): string {
     return entity.content;
   }
 
-  extractMetadata(_entity: BaseEntity): Record<string, unknown> {
-    return {};
-  }
-
-  parseFrontMatter<TFrontmatter>(
-    _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    return schema.parse({});
-  }
-
-  generateFrontMatter(_entity: BaseEntity): string {
-    return "";
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { content: markdown };
   }
 }
 

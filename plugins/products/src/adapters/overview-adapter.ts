@@ -6,6 +6,7 @@ import {
   type Overview,
   type OverviewMetadata,
 } from "../schemas/overview";
+import { OverviewBodyFormatter } from "../formatters/overview-formatter";
 
 /**
  * Entity adapter for products-overview entities.
@@ -22,6 +23,7 @@ export class OverviewAdapter extends BaseEntityAdapter<
       entityType: "products-overview",
       schema: overviewSchema,
       frontmatterSchema: overviewFrontmatterSchema,
+      bodyFormatter: new OverviewBodyFormatter(),
     });
   }
 

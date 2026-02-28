@@ -234,7 +234,7 @@ These are the results.`;
       expect(structured.outcome).toContain("the results");
     });
 
-    it("should handle missing sections gracefully", () => {
+    it("should throw when sections are missing", () => {
       const content = `---
 title: Test
 status: draft
@@ -247,12 +247,8 @@ year: 2024
 Just context, no other sections.`;
 
       const entity = createMockProject({ content });
-      const structured = adapter.parseStructuredContent(entity);
 
-      expect(structured.context).toContain("Just context");
-      expect(structured.problem).toBe("");
-      expect(structured.solution).toBe("");
-      expect(structured.outcome).toBe("");
+      expect(() => adapter.parseStructuredContent(entity)).toThrow();
     });
   });
 

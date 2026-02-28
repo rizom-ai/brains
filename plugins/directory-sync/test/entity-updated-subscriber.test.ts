@@ -1,22 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { BaseEntity, EntityAdapter } from "@brains/plugins/test";
-import { baseEntitySchema } from "@brains/plugins/test";
-import type { z } from "@brains/utils";
+import type { BaseEntity } from "@brains/plugins/test";
+import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
+import { z } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
 import { join } from "path";
 import { tmpdir } from "os";
 import { existsSync, rmSync, readFileSync, mkdirSync } from "fs";
 
 // Series adapter that preserves coverImageId in frontmatter
-class SeriesTestAdapter implements EntityAdapter<BaseEntity> {
-  public readonly entityType = "series";
-  public readonly schema = baseEntitySchema;
-  public readonly supportsCoverImage = true;
+class SeriesTestAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "series",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({}),
+      supportsCoverImage: true,
+    });
+  }
 
-  fromMarkdown(markdown: string): Partial<BaseEntity> {
-    // Store full markdown including frontmatter
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
     return {
       content: markdown,
       entityType: "series",
@@ -24,19 +28,12 @@ class SeriesTestAdapter implements EntityAdapter<BaseEntity> {
     };
   }
 
-  toMarkdown(entity: BaseEntity): string {
-    // Parse existing frontmatter to preserve coverImageId
+  public toMarkdown(entity: BaseEntity): string {
     const frontmatterMatch = entity.content.match(/^---\n([\s\S]*?)\n---/);
     if (frontmatterMatch) {
-      // Content already has frontmatter, return as-is
       return entity.content;
     }
-    // No frontmatter, just return content
     return entity.content;
-  }
-
-  extractMetadata(_entity: BaseEntity): Record<string, unknown> {
-    return {};
   }
 
   private extractMetadataFromMarkdown(
@@ -54,17 +51,6 @@ class SeriesTestAdapter implements EntityAdapter<BaseEntity> {
       }
     }
     return metadata;
-  }
-
-  parseFrontMatter<TFrontmatter>(
-    _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter {
-    return schema.parse({});
-  }
-
-  generateFrontMatter(_entity: BaseEntity): string {
-    return "";
   }
 }
 

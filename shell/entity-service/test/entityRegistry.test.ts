@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeEach } from "bun:test";
 import { z } from "@brains/utils";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { EntityAdapter } from "../src/types";
 import { baseEntitySchema } from "../src/types";
+import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { createSilentLogger, createTestEntity } from "@brains/test-utils";
 import { type Logger, createId } from "@brains/utils";
 import matter from "gray-matter";
@@ -48,11 +48,19 @@ const markdownParseSchema = z
     tags: [],
   });
 
-class NoteAdapter implements EntityAdapter<Note> {
-  entityType = "note";
-  schema = noteSchema;
+class NoteAdapter extends BaseEntityAdapter<Note> {
+  constructor(entityType = "note") {
+    super({
+      entityType,
+      schema: noteSchema,
+      frontmatterSchema: z.object({
+        category: z.string().default("general"),
+        tags: z.array(z.string()).default([]),
+      }),
+    });
+  }
 
-  fromMarkdown(markdown: string): Partial<Note> {
+  public fromMarkdown(markdown: string): Partial<Note> {
     const { data, content } = matter(markdown);
     const frontmatter = markdownParseSchema.parse(data);
 
@@ -105,7 +113,7 @@ class NoteAdapter implements EntityAdapter<Note> {
     return result;
   }
 
-  extractMetadata(entity: Note): Record<string, unknown> {
+  public override extractMetadata(entity: Note): Record<string, unknown> {
     return {
       id: entity.id,
       title: entity.title,
@@ -117,7 +125,7 @@ class NoteAdapter implements EntityAdapter<Note> {
     };
   }
 
-  parseFrontMatter<TFrontmatter>(
+  public override parseFrontMatter<TFrontmatter>(
     markdown: string,
     schema: z.ZodSchema<TFrontmatter>,
   ): TFrontmatter {
@@ -125,13 +133,13 @@ class NoteAdapter implements EntityAdapter<Note> {
     return schema.parse(data);
   }
 
-  generateFrontMatter(entity: Note): string {
+  public override generateFrontMatter(entity: Note): string {
     const metadata = this.extractMetadata(entity);
     const yamlOutput = matter.stringify("", metadata);
     return yamlOutput.split("\n\n")[0] ?? "---\n---";
   }
 
-  toMarkdown(entity: Note): string {
+  public toMarkdown(entity: Note): string {
     const frontmatter = {
       title: entity.title,
       tags: entity.tags,
@@ -144,7 +152,7 @@ class NoteAdapter implements EntityAdapter<Note> {
 describe("EntityRegistry", (): void => {
   let logger: Logger;
   let registry: EntityRegistry;
-  let adapter: EntityAdapter<Note>;
+  let adapter: NoteAdapter;
 
   beforeEach((): void => {
     EntityRegistry.resetInstance();
@@ -267,13 +275,12 @@ This note has frontmatter metadata.`;
         weight: 2.0,
       });
 
-      const anotherAdapter = new NoteAdapter();
-      anotherAdapter.entityType = "post";
+      const postAdapter = new NoteAdapter("post");
       const postSchema = noteSchema.extend({
         entityType: z.literal("post"),
       });
 
-      freshRegistry.registerEntityType("post", postSchema, anotherAdapter, {
+      freshRegistry.registerEntityType("post", postSchema, postAdapter, {
         weight: 1.5,
       });
 
@@ -285,13 +292,12 @@ This note has frontmatter metadata.`;
       const freshRegistry = EntityRegistry.createFresh(logger);
       freshRegistry.registerEntityType("note", noteSchema, adapter);
 
-      const anotherAdapter = new NoteAdapter();
-      anotherAdapter.entityType = "post";
+      const postAdapter = new NoteAdapter("post");
       const postSchema = noteSchema.extend({
         entityType: z.literal("post"),
       });
 
-      freshRegistry.registerEntityType("post", postSchema, anotherAdapter, {
+      freshRegistry.registerEntityType("post", postSchema, postAdapter, {
         weight: 1.5,
       });
 
@@ -312,30 +318,23 @@ This note has frontmatter metadata.`;
       description: z.string().optional(),
     });
 
-    class AdapterWithFrontmatter implements EntityAdapter<Note> {
-      entityType = "profile";
-      schema = noteSchema;
-      frontmatterSchema = baseFrontmatterSchema;
-      isSingleton = true;
-      hasBody = false;
+    class AdapterWithFrontmatter extends BaseEntityAdapter<Note> {
+      constructor() {
+        super({
+          entityType: "profile",
+          schema: noteSchema,
+          frontmatterSchema: baseFrontmatterSchema,
+          isSingleton: true,
+          hasBody: false,
+        });
+      }
 
-      fromMarkdown(markdown: string): Partial<Note> {
-        return { content: markdown };
-      }
-      extractMetadata(_entity: Note): Record<string, unknown> {
-        return {};
-      }
-      parseFrontMatter<TFrontmatter>(
-        _markdown: string,
-        schema: z.ZodSchema<TFrontmatter>,
-      ): TFrontmatter {
-        return schema.parse({});
-      }
-      generateFrontMatter(_entity: Note): string {
-        return "---\n---";
-      }
-      toMarkdown(entity: Note): string {
+      public toMarkdown(entity: Note): string {
         return entity.content;
+      }
+
+      public fromMarkdown(markdown: string): Partial<Note> {
+        return { content: markdown };
       }
     }
 
@@ -408,13 +407,15 @@ This note has frontmatter metadata.`;
       }).toThrow();
     });
 
-    test("should throw when extending entity type without frontmatterSchema", () => {
-      expect(() => {
-        registry.extendFrontmatterSchema(
-          "note",
-          z.object({ extra: z.string() }),
-        );
-      }).toThrow();
+    test("should allow extending any adapter that has frontmatterSchema", () => {
+      registry.extendFrontmatterSchema(
+        "note",
+        z.object({ extra: z.string().optional() }),
+      );
+
+      const effective = registry.getEffectiveFrontmatterSchema("note");
+      expect(effective).toBeDefined();
+      expect(effective?.shape).toHaveProperty("extra");
     });
 
     test("should not mutate original adapter's frontmatterSchema", () => {
@@ -464,9 +465,11 @@ This note has frontmatter metadata.`;
       expect(effective).toBe(adapterWithSchema.frontmatterSchema);
     });
 
-    test("should return undefined for type without frontmatterSchema", () => {
+    test("should return base schema for type with no extensions", () => {
       const effective = registry.getEffectiveFrontmatterSchema("note");
-      expect(effective).toBeUndefined();
+      expect(effective).toBeDefined();
+      expect(effective?.shape).toHaveProperty("category");
+      expect(effective?.shape).toHaveProperty("tags");
     });
   });
 });

@@ -62,10 +62,14 @@ function getDefaultValue(field: FieldInfo, entityType: string): string {
  * Generate an Obsidian template markdown file for an entity type.
  * The template has YAML frontmatter with sensible defaults and
  * Obsidian template variables ({{title}}, {{date}}).
+ *
+ * When a bodyTemplate is provided (from the adapter's formatter),
+ * it is used as the body content. Otherwise the body is left empty.
  */
 export function generateTemplate(
   entityType: string,
   fields: FieldInfo[],
+  bodyTemplate = "",
 ): string {
   const lines: string[] = ["---"];
 
@@ -80,8 +84,13 @@ export function generateTemplate(
 
   lines.push("---");
   lines.push("");
-  lines.push("<!-- Write your content here -->");
-  lines.push("");
+
+  if (bodyTemplate) {
+    lines.push(bodyTemplate);
+  } else {
+    lines.push("<!-- Write your content here -->");
+    lines.push("");
+  }
 
   return lines.join("\n");
 }

@@ -26,6 +26,7 @@ export type {
 export type { Logger } from "@brains/utils";
 export {
   baseEntitySchema,
+  BaseEntityAdapter,
   createServicePluginContext,
   createCorePluginContext,
   createInterfacePluginContext,

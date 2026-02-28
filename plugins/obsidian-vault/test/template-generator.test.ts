@@ -96,10 +96,21 @@ describe("generateTemplate", () => {
     expect(result).toContain("\n---\n");
   });
 
-  it("should include content placeholder in body", () => {
+  it("should include placeholder for free-form entities", () => {
     const fields: FieldInfo[] = [];
     const result = generateTemplate("post", fields);
     expect(result).toContain("<!-- Write your content here -->");
+  });
+
+  it("should include body template when provided", () => {
+    const fields: FieldInfo[] = [
+      { name: "title", type: "string", required: true },
+    ];
+    const bodyTemplate = "## Context\n\n## Problem\n\n## Solution\n";
+    const result = generateTemplate("project", fields, bodyTemplate);
+    expect(result).toContain("## Context");
+    expect(result).toContain("## Problem");
+    expect(result).toContain("## Solution");
   });
 
   it("should handle a full blog post schema", () => {
@@ -133,7 +144,6 @@ describe("generateTemplate", () => {
     expect(result).toContain('coverImage: ""');
     expect(result).toContain('created: "{{date}}"');
     expect(result).toContain('updated: "{{date}}"');
-    expect(result).toContain("<!-- Write your content here -->");
   });
 
   it("should use non-draft enum first value for non-status fields", () => {

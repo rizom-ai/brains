@@ -106,6 +106,9 @@ export interface EntityAdapter<
   /** Optional: Whether this entity has a free-form markdown body below frontmatter. Defaults to true. When false, CMS omits the body widget. */
   hasBody?: boolean;
 
+  /** Returns a markdown body template with section headings for this entity type. Empty string for free-form entities. */
+  getBodyTemplate(): string;
+
   /** Optional: Declares that this entity type supports cover images via coverImageId in frontmatter */
   supportsCoverImage?: boolean;
 

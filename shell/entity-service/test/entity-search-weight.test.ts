@@ -8,7 +8,7 @@ import type { IEmbeddingService } from "../src/embedding-types";
 import type { EntityDB } from "../src/db";
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "../src/types";
-import type { EntityAdapter } from "../src/types";
+import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 
 const testEntitySchema = baseEntitySchema.extend({
   entityType: z.string(),
@@ -17,25 +17,23 @@ const testEntitySchema = baseEntitySchema.extend({
 
 type TestEntity = z.infer<typeof testEntitySchema>;
 
-const mockAdapter: EntityAdapter<TestEntity> = {
-  entityType: "test",
-  schema: testEntitySchema,
-  fromMarkdown(): Partial<TestEntity> {
-    return {};
-  },
-  toMarkdown(): string {
+class TestAdapter extends BaseEntityAdapter<TestEntity> {
+  constructor(entityType: string) {
+    super({
+      entityType,
+      schema: testEntitySchema,
+      frontmatterSchema: z.object({}),
+    });
+  }
+
+  public toMarkdown(): string {
     return "";
-  },
-  extractMetadata(): Record<string, unknown> {
+  }
+
+  public fromMarkdown(): Partial<TestEntity> {
     return {};
-  },
-  parseFrontMatter<T>(): T {
-    throw new Error("parseFrontMatter not implemented in mock");
-  },
-  generateFrontMatter(): string {
-    return "---\n---";
-  },
-};
+  }
+}
 
 interface MockDbResult {
   id: string;
@@ -79,18 +77,21 @@ describe("EntitySearch weight behavior", () => {
     EntityRegistry.resetInstance();
     const entityRegistry = EntityRegistry.createFresh(logger);
 
-    entityRegistry.registerEntityType("post", testEntitySchema, {
-      ...mockAdapter,
-      entityType: "post",
-    });
-    entityRegistry.registerEntityType("topic", testEntitySchema, {
-      ...mockAdapter,
-      entityType: "topic",
-    });
-    entityRegistry.registerEntityType("deck", testEntitySchema, {
-      ...mockAdapter,
-      entityType: "deck",
-    });
+    entityRegistry.registerEntityType(
+      "post",
+      testEntitySchema,
+      new TestAdapter("post"),
+    );
+    entityRegistry.registerEntityType(
+      "topic",
+      testEntitySchema,
+      new TestAdapter("topic"),
+    );
+    entityRegistry.registerEntityType(
+      "deck",
+      testEntitySchema,
+      new TestAdapter("deck"),
+    );
 
     const mockEmbeddingService = {
       generateEmbedding: mock(() =>

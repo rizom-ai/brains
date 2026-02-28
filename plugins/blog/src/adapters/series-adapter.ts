@@ -21,6 +21,7 @@ export class SeriesAdapter extends BaseEntityAdapter<Series, SeriesMetadata> {
       schema: seriesSchema,
       frontmatterSchema: seriesFrontmatterSchema,
       supportsCoverImage: true,
+      bodyFormatter: createSeriesBodyFormatter(""),
     });
   }
 

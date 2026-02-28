@@ -98,7 +98,9 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
         }
 
         const fields = introspectSchema(schema);
-        const content = generateTemplate(entityType, fields);
+        const adapter = context.entities.getAdapter(entityType);
+        const bodyTemplate = adapter?.getBodyTemplate() ?? "";
+        const content = generateTemplate(entityType, fields, bodyTemplate);
         const filePath = join(templateDir, `${entityType}.md`);
 
         this.deps.writeFile(filePath, content);

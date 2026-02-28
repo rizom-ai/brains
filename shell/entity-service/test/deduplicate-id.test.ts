@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "../src/types";
-import type { EntityAdapter } from "../src/types";
+import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import {
   noteSchema,
   noteAdapter,
@@ -106,27 +106,27 @@ describe("deduplicateId option", () => {
 
     type Article = z.infer<typeof articleSchema>;
 
-    const articleAdapter: EntityAdapter<Article> = {
-      entityType: "article",
-      schema: articleSchema,
-      toMarkdown: (entity: Article): string =>
-        `---\ntitle: ${entity.title}\n---\n\n${entity.content}`,
-      fromMarkdown: (markdown: string): Partial<Article> => {
+    class ArticleTestAdapter extends BaseEntityAdapter<Article> {
+      constructor() {
+        super({
+          entityType: "article",
+          schema: articleSchema,
+          frontmatterSchema: z.object({ title: z.string() }),
+        });
+      }
+
+      public toMarkdown(entity: Article): string {
+        return `---\ntitle: ${entity.title}\n---\n\n${entity.content}`;
+      }
+
+      public fromMarkdown(markdown: string): Partial<Article> {
         const titleMatch = markdown.match(/title:\s*(.+)/);
         const title = titleMatch?.[1] ?? "Untitled";
         return { title, content: markdown };
-      },
-      extractMetadata: (entity: Article): Record<string, unknown> => ({
-        title: entity.title,
-      }),
-      parseFrontMatter: <TFrontmatter>(
-        _markdown: string,
-        schema: z.ZodSchema<TFrontmatter>,
-      ): TFrontmatter => schema.parse({}),
-      generateFrontMatter: (entity: Article): string => {
-        return `---\ntitle: ${entity.title}\n---\n`;
-      },
-    };
+      }
+    }
+
+    const articleAdapter = new ArticleTestAdapter();
 
     ctx.entityRegistry.registerEntityType(
       "article",

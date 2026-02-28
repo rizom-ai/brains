@@ -24,10 +24,8 @@ import {
   BaseEntityFormatter,
   EntityRegistry,
   EntityService,
+  FallbackEntityAdapter,
   baseEntitySchema,
-  parseMarkdownWithFrontmatter,
-  type BaseEntity,
-  type EntityAdapter,
   type IEntityRegistry,
   type IEntityService,
 } from "@brains/entity-service";
@@ -56,7 +54,7 @@ import {
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
-import { Logger, LogLevel, type z } from "@brains/utils";
+import { Logger, LogLevel } from "@brains/utils";
 
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 import type { ShellConfig } from "../config";
@@ -181,21 +179,10 @@ export class ShellInitializer {
    * Only called if no plugin (e.g. note plugin) has already registered "base".
    */
   public registerFallbackBaseEntity(entityRegistry: IEntityRegistry): void {
-    const baseEntityAdapter: EntityAdapter<BaseEntity> = {
-      entityType: "base",
-      schema: baseEntitySchema,
-      toMarkdown: (entity) => entity.content,
-      fromMarkdown: (markdown) => ({ content: markdown }),
-      extractMetadata: () => ({}),
-      parseFrontMatter: <T>(md: string, schema: z.ZodSchema<T>): T =>
-        parseMarkdownWithFrontmatter(md, schema).metadata,
-      generateFrontMatter: () => "",
-    };
-
     entityRegistry.registerEntityType(
       SHELL_ENTITY_TYPES.BASE,
       baseEntitySchema,
-      baseEntityAdapter,
+      new FallbackEntityAdapter(),
     );
 
     this.logger.debug("Fallback base entity adapter registered");

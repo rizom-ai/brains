@@ -1,6 +1,7 @@
 import { z } from "@brains/utils";
-import type { EntityAdapter, BaseEntity } from "../../src/types";
+import type { BaseEntity } from "../../src/types";
 import { baseEntitySchema } from "../../src/types";
+import { BaseEntityAdapter } from "../../src/adapters/base-entity-adapter";
 
 // -- Note entity (used in: immediate-persistence, deduplicate-id, embeddable-config) --
 
@@ -35,30 +36,34 @@ export function createNoteInput(
   };
 }
 
-export const noteAdapter: EntityAdapter<Note> = {
-  entityType: "note",
-  schema: noteSchema,
-  toMarkdown: (entity: Note): string =>
-    `---\ntitle: ${entity.title}\ntags: ${JSON.stringify(entity.tags)}\n---\n\n${entity.content}`,
-  fromMarkdown: (markdown: string): Partial<Note> => {
+const noteFrontmatterSchema = z.object({
+  title: z.string(),
+  tags: z.array(z.string()),
+});
+
+class NoteTestAdapter extends BaseEntityAdapter<Note> {
+  constructor() {
+    super({
+      entityType: "note",
+      schema: noteSchema,
+      frontmatterSchema: noteFrontmatterSchema,
+    });
+  }
+
+  public toMarkdown(entity: Note): string {
+    return `---\ntitle: ${entity.title}\ntags: ${JSON.stringify(entity.tags)}\n---\n\n${entity.content}`;
+  }
+
+  public fromMarkdown(markdown: string): Partial<Note> {
     const titleMatch = markdown.match(/title:\s*(.+)/);
     const title = titleMatch?.[1] ?? "Untitled";
     const bodyMatch = markdown.match(/---\n\n(.+)/s);
     const content = bodyMatch?.[1] ?? markdown;
     return { title, content, tags: [] };
-  },
-  extractMetadata: (entity: Note): Record<string, unknown> => ({
-    title: entity.title,
-    tags: entity.tags,
-  }),
-  parseFrontMatter: <TFrontmatter>(
-    _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter => schema.parse({}),
-  generateFrontMatter: (entity: Note): string => {
-    return `---\ntitle: ${entity.title}\ntags: ${JSON.stringify(entity.tags)}\n---\n`;
-  },
-};
+  }
+}
+
+export const noteAdapter = new NoteTestAdapter();
 
 // -- Post entity (used in: count-entities, sort-fields) --
 
@@ -75,16 +80,29 @@ export type Post = z.infer<typeof postSchema>;
 
 export type PostMetadata = z.infer<typeof postSchema>["metadata"];
 
-export const postAdapter: EntityAdapter<Post, PostMetadata> = {
-  entityType: "post",
-  schema: postSchema,
-  toMarkdown: (entity) => entity.content,
-  fromMarkdown: () => ({}),
-  extractMetadata: (entity) => entity.metadata,
-  parseFrontMatter: <T>(_markdown: string, schema: z.ZodSchema<T>) =>
-    schema.parse({}),
-  generateFrontMatter: () => "",
-};
+const postFrontmatterSchema = z.object({
+  status: z.string().optional(),
+});
+
+class PostTestAdapter extends BaseEntityAdapter<Post, PostMetadata> {
+  constructor() {
+    super({
+      entityType: "post",
+      schema: postSchema,
+      frontmatterSchema: postFrontmatterSchema,
+    });
+  }
+
+  public toMarkdown(entity: Post): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(): Partial<Post> {
+    return {};
+  }
+}
+
+export const postAdapter = new PostTestAdapter();
 
 // -- Minimal test entity (used in: storeEmbedding) --
 
@@ -92,16 +110,27 @@ export const minimalTestSchema = baseEntitySchema.extend({
   entityType: z.literal("test"),
 });
 
-export const minimalTestAdapter: EntityAdapter<BaseEntity> = {
-  entityType: "test",
-  schema: minimalTestSchema,
-  toMarkdown: (entity) => entity.content,
-  fromMarkdown: () => ({}),
-  extractMetadata: () => ({}),
-  parseFrontMatter: <T>(_markdown: string, schema: z.ZodSchema<T>) =>
-    schema.parse({}),
-  generateFrontMatter: () => "",
-};
+const minimalFrontmatterSchema = z.object({});
+
+class MinimalTestAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "test",
+      schema: minimalTestSchema,
+      frontmatterSchema: minimalFrontmatterSchema,
+    });
+  }
+
+  public toMarkdown(entity: BaseEntity): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(): Partial<BaseEntity> {
+    return {};
+  }
+}
+
+export const minimalTestAdapter = new MinimalTestAdapter();
 
 // -- Image entity (used in: embeddable-config) --
 
@@ -111,19 +140,28 @@ export const imageSchema = baseEntitySchema.extend({
 
 export type ImageEntity = z.infer<typeof imageSchema>;
 
-export const imageAdapter: EntityAdapter<ImageEntity> = {
-  entityType: "image",
-  schema: imageSchema,
-  toMarkdown: (entity: ImageEntity): string => entity.content,
-  fromMarkdown: (content: string): Partial<ImageEntity> => ({
-    entityType: "image",
-    content,
-    metadata: {},
-  }),
-  extractMetadata: (): Record<string, unknown> => ({}),
-  parseFrontMatter: <TFrontmatter>(
-    _markdown: string,
-    schema: z.ZodSchema<TFrontmatter>,
-  ): TFrontmatter => schema.parse({}),
-  generateFrontMatter: (): string => "",
-};
+const imageFrontmatterSchema = z.object({});
+
+class ImageTestAdapter extends BaseEntityAdapter<ImageEntity> {
+  constructor() {
+    super({
+      entityType: "image",
+      schema: imageSchema,
+      frontmatterSchema: imageFrontmatterSchema,
+    });
+  }
+
+  public toMarkdown(entity: ImageEntity): string {
+    return entity.content;
+  }
+
+  public fromMarkdown(content: string): Partial<ImageEntity> {
+    return {
+      entityType: "image",
+      content,
+      metadata: {},
+    };
+  }
+}
+
+export const imageAdapter = new ImageTestAdapter();

@@ -353,6 +353,50 @@ Jane Smith
     });
   });
 
+  describe("generateBodyTemplate", () => {
+    it("should generate heading skeleton from mappings", () => {
+      const formatter = new StructuredContentFormatter(simpleSchema, {
+        title: "Simple Configuration",
+        mappings: simpleMappings,
+      });
+
+      const template = formatter.generateBodyTemplate();
+
+      expect(template).toContain("## Title");
+      expect(template).toContain("<!-- Write your title here -->");
+      expect(template).toContain("## Description");
+      expect(template).toContain("<!-- Write your description here -->");
+      expect(template).toContain("## Count");
+      expect(template).toContain("<!-- Write your count here -->");
+    });
+
+    it("should return empty for formatter with no mappings", () => {
+      const emptySchema = z.object({});
+      const formatter = new StructuredContentFormatter(emptySchema, {
+        title: "Empty",
+        mappings: [],
+      });
+
+      expect(formatter.generateBodyTemplate()).toBe("");
+    });
+
+    it("should only include top-level headings for nested schemas", () => {
+      const formatter = new StructuredContentFormatter(nestedSchema, {
+        title: "Nested Configuration",
+        mappings: nestedMappings,
+      });
+
+      const template = formatter.generateBodyTemplate();
+
+      expect(template).toContain("## Name");
+      expect(template).toContain("<!-- Write your name here -->");
+      expect(template).toContain("## Metadata");
+      expect(template).toContain("<!-- Write your metadata here -->");
+      expect(template).not.toContain("### Author");
+      expect(template).not.toContain("### Version");
+    });
+  });
+
   describe("error handling", () => {
     const formatter = new StructuredContentFormatter(simpleSchema, {
       title: "Test",

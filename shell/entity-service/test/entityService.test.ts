@@ -2,8 +2,9 @@ import { describe, expect, test, beforeEach, mock } from "bun:test";
 import { z } from "@brains/utils";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { EntityAdapter, BaseEntity } from "../src/types";
+import type { BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
+import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import {
   createSilentLogger,
   createMockJobQueueService,
@@ -29,6 +30,27 @@ function createNote(input: Partial<Note>): Note {
     category: undefined,
     ...input,
   });
+}
+
+class NoteSerializerAdapter extends BaseEntityAdapter<Note> {
+  constructor() {
+    super({
+      entityType: "note",
+      schema: noteSchema,
+      frontmatterSchema: z.object({ category: z.string().optional() }),
+    });
+  }
+
+  public toMarkdown(entity: Note): string {
+    return `# ${entity.title}\n\n${entity.content}`;
+  }
+
+  public fromMarkdown(markdown: string): Partial<Note> {
+    const lines = markdown.split("\n");
+    const title = lines[0]?.replace(/^#\s*/, "") ?? "Untitled";
+    const content = lines.slice(2).join("\n");
+    return { title, content };
+  }
 }
 
 describe("EntityService", (): void => {
@@ -165,30 +187,11 @@ describe("EntityService", (): void => {
   });
 
   test("serializeEntity converts entities to markdown", () => {
-    const testAdapter: EntityAdapter<Note> = {
-      entityType: "note",
-      schema: noteSchema,
-      toMarkdown: (entity: Note): string =>
-        `# ${entity.title}\n\n${entity.content}`,
-      fromMarkdown: (_markdown: string): Partial<Note> => {
-        const lines = _markdown.split("\n");
-        const title = lines[0]?.replace(/^#\s*/, "") ?? "Untitled";
-        const content = lines.slice(2).join("\n");
-        return { title, content };
-      },
-      extractMetadata: (entity: Note): Record<string, unknown> => ({
-        category: entity.category,
-      }),
-      parseFrontMatter: <TFrontmatter>(
-        _markdown: string,
-        schema: z.ZodSchema<TFrontmatter>,
-      ): TFrontmatter => schema.parse({}),
-      generateFrontMatter: (entity: Note): string => {
-        return `---\ncategory: ${entity.category ?? ""}\n---\n`;
-      },
-    };
-
-    entityRegistry.registerEntityType("note", noteSchema, testAdapter);
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
 
     const testEntity = createNote({
       id: "test-id",
@@ -204,30 +207,11 @@ describe("EntityService", (): void => {
   });
 
   test("deserializeEntity converts markdown to entities", () => {
-    const testAdapter: EntityAdapter<Note> = {
-      entityType: "note",
-      schema: noteSchema,
-      toMarkdown: (entity: Note): string =>
-        `# ${entity.title}\n\n${entity.content}`,
-      fromMarkdown: (_markdown: string): Partial<Note> => {
-        const lines = _markdown.split("\n");
-        const title = lines[0]?.replace(/^#\s*/, "") ?? "Untitled";
-        const content = lines.slice(2).join("\n");
-        return { title, content };
-      },
-      extractMetadata: (entity: Note): Record<string, unknown> => ({
-        category: entity.category,
-      }),
-      parseFrontMatter: <TFrontmatter>(
-        _markdown: string,
-        schema: z.ZodSchema<TFrontmatter>,
-      ): TFrontmatter => schema.parse({}),
-      generateFrontMatter: (entity: Note): string => {
-        return `---\ncategory: ${entity.category ?? ""}\n---\n`;
-      },
-    };
-
-    entityRegistry.registerEntityType("note", noteSchema, testAdapter);
+    entityRegistry.registerEntityType(
+      "note",
+      noteSchema,
+      new NoteSerializerAdapter(),
+    );
 
     const markdown = "# Test Note\n\nTest content";
     const parsedEntity = entityService.deserializeEntity(

@@ -1,7 +1,14 @@
 import type { ContentFormatter } from "../types";
 import { z } from "../../zod";
 import { remark } from "remark";
-import type { Root, Heading, Paragraph, Content, List, ListItem } from "mdast";
+import type {
+  Root,
+  Heading,
+  Paragraph,
+  RootContent,
+  List,
+  ListItem,
+} from "mdast";
 
 /**
  * Field mapping configuration for structured content formatting
@@ -57,6 +64,24 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
       labels[mapping.key] = mapping.label;
     }
     return labels;
+  }
+
+  /**
+   * Generate a markdown body template with section headings.
+   * Produces only the ## heading skeleton from mappings — no data, no nested subheadings.
+   */
+  public generateBodyTemplate(): string {
+    if (this.config.mappings.length === 0) return "";
+    const lines: string[] = [];
+    for (const mapping of this.config.mappings) {
+      lines.push(
+        `## ${mapping.label}`,
+        "",
+        `<!-- Write your ${mapping.label.toLowerCase()} here -->`,
+        "",
+      );
+    }
+    return lines.join("\n").trimEnd() + "\n";
   }
 
   /**
@@ -193,10 +218,10 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   private extractSections(
     tree: Root,
     targetDepth: number,
-  ): Map<string, Content[]> {
-    const sections = new Map<string, Content[]>();
+  ): Map<string, RootContent[]> {
+    const sections = new Map<string, RootContent[]>();
     let currentSection: string | null = null;
-    let currentContent: Content[] = [];
+    let currentContent: RootContent[] = [];
 
     for (const node of tree.children) {
       if (node.type === "heading" && node.depth === targetDepth) {
@@ -225,12 +250,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    * Extract subsections from content array
    */
   private extractSubsections(
-    content: Content[],
+    content: RootContent[],
     targetDepth: number,
-  ): Map<string, Content[]> {
-    const subsections = new Map<string, Content[]>();
+  ): Map<string, RootContent[]> {
+    const subsections = new Map<string, RootContent[]>();
     let currentSubsection: string | null = null;
-    let currentContent: Content[] = [];
+    let currentContent: RootContent[] = [];
 
     for (const node of content) {
       if (node.type === "heading" && node.depth === targetDepth) {
@@ -281,7 +306,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    * Build data object from sections based on mappings
    */
   private buildDataFromSections(
-    sections: Map<string, Content[]>,
+    sections: Map<string, RootContent[]>,
     mappings: FieldMapping[],
     depth: number = 2,
   ): Record<string, unknown> {
@@ -360,7 +385,7 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   /**
    * Extract text content from a section
    */
-  private getTextFromSection(content: Content[]): string {
+  private getTextFromSection(content: RootContent[]): string {
     const textParts: string[] = [];
 
     for (const node of content) {
@@ -403,12 +428,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   /**
    * Extract simple array items from list nodes
    */
-  private extractSimpleArrayItems(content: Content[]): string[] {
+  private extractSimpleArrayItems(content: RootContent[]): string[] {
     const items: string[] = [];
 
     for (const node of content) {
       if (node.type === "list") {
-        // TypeScript doesn't narrow Content to List automatically
+        // TypeScript doesn't narrow RootContent to List automatically
         // so we need to help it understand
         const listNode = node as List;
         for (const item of listNode.children) {
@@ -428,12 +453,12 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
    * Extract array of objects from structured subsections
    */
   private extractObjectArrayItems(
-    content: Content[],
+    content: RootContent[],
     targetDepth: number,
     itemMappings: FieldMapping[],
   ): Record<string, unknown>[] {
     const items: Record<string, unknown>[] = [];
-    let currentItemContent: Content[] = [];
+    let currentItemContent: RootContent[] = [];
     let inItem = false;
 
     for (const node of content) {

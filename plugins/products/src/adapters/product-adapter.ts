@@ -6,6 +6,7 @@ import {
   type Product,
   type ProductMetadata,
 } from "../schemas/product";
+import { ProductBodyFormatter } from "../formatters/product-formatter";
 
 /**
  * Entity adapter for product entities
@@ -22,6 +23,7 @@ export class ProductAdapter extends BaseEntityAdapter<
       entityType: "product",
       schema: productSchema,
       frontmatterSchema: productFrontmatterSchema,
+      bodyFormatter: new ProductBodyFormatter(),
     });
   }
 
