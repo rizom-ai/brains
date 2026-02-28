@@ -10,29 +10,27 @@ import {
 } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { IEntityService, BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import type { FileOperationsEntityService } from "../src/lib/file-operations";
 import { createTestEntity } from "@brains/test-utils";
 import { TINY_PNG_BYTES, TINY_PNG_DATA_URL } from "./fixtures";
 
 describe("FileOperations", () => {
   let fileOps: FileOperations;
   let testDir: string;
-  let mockEntityService: IEntityService;
+  let mockEntityService: FileOperationsEntityService;
 
   beforeEach(() => {
     // Create a unique test directory
     testDir = join(tmpdir(), `test-file-ops-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
 
-    // Create a minimal mock entity service
     mockEntityService = {
       serializeEntity: (entity: BaseEntity) => {
         return `# ${entity.id}\n\n${entity.content}`;
       },
-      deserializeEntity: (_content: string, _entityType: string) => {
-        return { metadata: {} };
-      },
-    } as IEntityService;
+      hasEntityType: () => true,
+    };
 
     fileOps = new FileOperations(testDir, mockEntityService);
   });
@@ -294,6 +292,30 @@ describe("FileOperations", () => {
         expect(files).toContain("root.md");
         expect(files).toContain("topic/flat.md");
         expect(files).toContain("summary/daily/nested.md");
+      });
+
+      it("should skip root directories that are not registered entity types", () => {
+        const selectiveService: FileOperationsEntityService = {
+          serializeEntity: () => "",
+          hasEntityType: (type: string) => ["post", "link"].includes(type),
+        };
+        const selectiveFileOps = new FileOperations(testDir, selectiveService);
+
+        mkdirSync(join(testDir, "post"), { recursive: true });
+        mkdirSync(join(testDir, "link"), { recursive: true });
+        mkdirSync(join(testDir, "templates"), { recursive: true });
+
+        writeFileSync(join(testDir, "post", "hello.md"), "post");
+        writeFileSync(join(testDir, "link", "ref.md"), "link");
+        writeFileSync(join(testDir, "templates", "post.md"), "template");
+        writeFileSync(join(testDir, "root.md"), "root");
+
+        const files = selectiveFileOps.getAllMarkdownFiles();
+
+        expect(files).toContain("post/hello.md");
+        expect(files).toContain("link/ref.md");
+        expect(files).toContain("root.md");
+        expect(files).not.toContain("templates/post.md");
       });
     });
   });

@@ -97,9 +97,10 @@ Show entity metadata inline — publish status, last sync time, or AI suggestion
 
 ## Summary
 
-| Priority | Opportunity               | Effort     | Depends On              |
-| -------- | ------------------------- | ---------- | ----------------------- |
-| 1        | Content creation frontend | Low        | Nothing — can start now |
-| 2        | Bases integration         | Low-Medium | Nothing — can start now |
-| 3        | Sync improvements         | Medium     | Nothing — can start now |
-| 4        | Obsidian community plugin | High       | MCP HTTP transport      |
+| Priority | Opportunity                       | Effort     | Status      | Depends On              |
+| -------- | --------------------------------- | ---------- | ----------- | ----------------------- |
+| 1a       | Content creation frontend         | Low        | Done        | Nothing                 |
+| 1b       | Frontmatter entity type detection | Low        | Planned     | 1a                      |
+| 2        | Bases integration                 | Low-Medium | Not started | Nothing — can start now |
+| 3        | Sync improvements                 | Medium     | Not started | Nothing — can start now |
+| 4        | Obsidian community plugin         | High       | Not started | MCP HTTP transport      |

@@ -62,6 +62,12 @@ async function importFile(
       return;
     }
 
+    // Skip files from unregistered entity types (e.g., templates/ directory)
+    if (!deps.entityService.hasEntityType(rawEntity.entityType)) {
+      result.skipped++;
+      return;
+    }
+
     await processEntityImport(deps, rawEntity, filePath, result);
   } catch {
     const importError = new Error("Failed to import entity from file");

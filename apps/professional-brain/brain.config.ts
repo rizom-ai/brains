@@ -27,6 +27,7 @@ import yeehaaTheme from "@brains/theme-brutalist";
 import { analyticsPlugin } from "@brains/analytics";
 import { dashboardPlugin } from "@brains/dashboard";
 import { createNewsletterPlugin } from "@brains/newsletter";
+import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 
 // Entity route configuration
 const entityRouteConfig = {
@@ -166,6 +167,7 @@ const config = defineConfig({
         doubleOptIn: true,
       },
     }),
+    obsidianVaultPlugin({ autoSync: true }),
     professionalSitePlugin({
       entityRouteConfig,
     }),

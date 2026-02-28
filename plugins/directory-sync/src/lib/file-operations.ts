@@ -1,4 +1,4 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 import { join, dirname, extname } from "path";
 import {
   mkdirSync,
@@ -56,14 +56,19 @@ function getExtensionForFormat(format: string): string {
   }
 }
 
+export interface FileOperationsEntityService {
+  serializeEntity(entity: BaseEntity): string;
+  hasEntityType(type: string): boolean;
+}
+
 /**
  * Handles file I/O operations for directory sync
  */
 export class FileOperations {
   private readonly syncPath: string;
-  private readonly entityService: IEntityService;
+  private readonly entityService: FileOperationsEntityService;
 
-  constructor(syncPath: string, entityService: IEntityService) {
+  constructor(syncPath: string, entityService: FileOperationsEntityService) {
     this.syncPath = syncPath;
     this.entityService = entityService;
   }
@@ -295,6 +300,13 @@ export class FileOperations {
             files.push(rel);
           }
         } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
+          // At root level, only walk into registered entity type directories
+          if (
+            relativePath === "" &&
+            !this.entityService.hasEntityType(entry.name)
+          ) {
+            continue;
+          }
           const isImgDir = entry.name === "image" && relativePath === "";
           walk(entryPath, rel, inImageDir || isImgDir);
         }

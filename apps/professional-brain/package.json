@@ -34,6 +34,7 @@
     "@brains/mcp": "workspace:*",
     "@brains/newsletter": "workspace:*",
     "@brains/note": "workspace:*",
+    "@brains/obsidian-vault": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/professional-site": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
