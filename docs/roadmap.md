@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-02-26
+Last Updated: 2026-02-28
 
 ---
 
@@ -33,9 +33,11 @@ Last Updated: 2026-02-26
 
 ## Current Focus: Post-v1.0 Improvements
 
-### Discord Interface
+### Obsidian Integration
 
-- [ ] Implement Discord bot with threads, attachments, and message chunking (see `docs/plans/discord-interface.md`)
+- [ ] Content creation frontend: shared frontmatter conventions, template sync (see `docs/plans/obsidian-integration.md`)
+- [ ] Bases integration: ship `.base` files with entity views
+- [ ] Sync improvements: conflict resolution, reliability, performance
 
 ### Sveltia CMS
 
@@ -54,6 +56,8 @@ Last Updated: 2026-02-26
 
 ## Completed (2026-02)
 
+- ✅ Discord bot interface with threads, attachments, message chunking, constructor DI
+- ✅ Interface test cleanup: removed type casts and global mocks from Discord + Matrix tests
 - ✅ File upload support for chat interfaces (base class utilities, Matrix `m.file` handling, permission-gating, SDK 0.8.0)
 - ✅ Note plugin: slugified IDs, frontmatter-aware content handling, file upload eval
 - ✅ Extract site-content plugin from site-builder (entity, adapter, tools, orchestration via messaging)
@@ -109,4 +113,5 @@ Last Updated: 2026-02-26
 - **Team Brain**: Shared knowledge bases
 - **Collective Brain**: Community knowledge networks
 - **Web UI**: Browser interface beyond static site
-- **Additional Interfaces**: Slack, WhatsApp
+- **Obsidian Community Plugin**: Chat, publish, generate from inside Obsidian via MCP HTTP (see `docs/plans/obsidian-integration.md`)
+- **Additional Interfaces**: Slack, WhatsApp, Telegram
