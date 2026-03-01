@@ -3,6 +3,25 @@ import chokidar from "chokidar";
 import type { Logger } from "@brains/utils";
 import { IMAGE_EXTENSIONS } from "./file-operations";
 
+function isImageInImageDir(path: string, syncPath: string): boolean {
+  const relativePath = path.replace(syncPath + "/", "");
+  if (!relativePath.startsWith("image/")) return false;
+  return IMAGE_EXTENSIONS.some((ext) => path.toLowerCase().endsWith(ext));
+}
+
+/**
+ * Determine whether a file change should be processed by directory sync.
+ * Rejects files in underscore-prefixed directories (e.g., _obsidian/)
+ * and non-entity files (non-.md, non-image).
+ */
+export function shouldProcessPath(path: string, syncPath: string): boolean {
+  const relativePath = path.replace(syncPath + "/", "");
+  const firstSegment = relativePath.split("/")[0];
+  if (firstSegment?.startsWith("_")) return false;
+  if (path.endsWith(".md")) return true;
+  return isImageInImageDir(path, syncPath);
+}
+
 export interface FileWatcherOptions {
   syncPath: string;
   watchInterval: number;
@@ -85,14 +104,8 @@ export class FileWatcher {
     }
   }
 
-  private isImageInImageDir(path: string): boolean {
-    const relativePath = path.replace(this.syncPath + "/", "");
-    if (!relativePath.startsWith("image/")) return false;
-    return IMAGE_EXTENSIONS.some((ext) => path.toLowerCase().endsWith(ext));
-  }
-
   private async handleFileChange(event: string, path: string): Promise<void> {
-    if (!path.endsWith(".md") && !this.isImageInImageDir(path)) {
+    if (!shouldProcessPath(path, this.syncPath)) {
       return;
     }
 

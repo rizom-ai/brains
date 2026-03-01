@@ -43,9 +43,6 @@ describe("ObsidianVaultPlugin", () => {
       logContext: "obsidian-vault-test",
     });
 
-    // Set up entity types BEFORE installPlugin so the context captures them.
-    // getEntityRegistry() returns a new object each call, so we patch
-    // the shell method to return a consistent object with our schema override.
     const shell = harness.getShell();
     const registry = shell.getEntityRegistry();
     registry.registerEntityType("post", {} as never, {} as never);
@@ -54,10 +51,7 @@ describe("ObsidianVaultPlugin", () => {
       schemas.get(type);
     shell.getEntityRegistry = () => registry;
 
-    const plugin = new ObsidianVaultPlugin(
-      { templateFolder: "templates" },
-      deps,
-    );
+    const plugin = new ObsidianVaultPlugin({}, deps);
     await harness.installPlugin(plugin);
   });
 
@@ -79,14 +73,15 @@ describe("ObsidianVaultPlugin", () => {
   it("should write template files to the correct directory", async () => {
     await harness.executeTool("obsidian-vault_sync-templates");
 
-    expect(deps.mkdir).toHaveBeenCalledWith("/tmp/test-vault/templates", {
-      recursive: true,
-    });
+    expect(deps.mkdir).toHaveBeenCalledWith(
+      "/tmp/test-vault/_obsidian/templates",
+      { recursive: true },
+    );
 
     const writeCalls = deps.writeFile.mock.calls;
     const paths = writeCalls.map((call) => call[0]);
-    expect(paths).toContain("/tmp/test-vault/templates/post.md");
-    expect(paths).toContain("/tmp/test-vault/templates/base.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/base.md");
   });
 
   it("should generate valid template content", async () => {
@@ -94,7 +89,7 @@ describe("ObsidianVaultPlugin", () => {
 
     const writeCalls = deps.writeFile.mock.calls;
     const postCall = writeCalls.find(
-      (call) => call[0] === "/tmp/test-vault/templates/post.md",
+      (call) => call[0] === "/tmp/test-vault/_obsidian/templates/post.md",
     );
     expect(postCall).toBeDefined();
 
@@ -127,5 +122,45 @@ describe("ObsidianVaultPlugin", () => {
     const data = result.data as { generated: string[]; skipped: string[] };
     expect(data.skipped).toContain("image");
     expect(data.generated).not.toContain("image");
+  });
+
+  it("should write fileClass files to the correct directory", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    expect(deps.mkdir).toHaveBeenCalledWith(
+      "/tmp/test-vault/_obsidian/fileClasses",
+      { recursive: true },
+    );
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/base.md");
+  });
+
+  it("should generate fileClass with enum options", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const postFileClass = writeCalls.find(
+      (call) => call[0] === "/tmp/test-vault/_obsidian/fileClasses/post.md",
+    );
+    expect(postFileClass).toBeDefined();
+
+    const content = String(postFileClass?.[1]);
+    expect(content).toContain("name: status");
+    expect(content).toContain("type: Select");
+    expect(content).toContain('"0": draft');
+    expect(content).toContain('"1": queued');
+    expect(content).toContain('"2": published');
+  });
+
+  it("should return fileClasses in result data", async () => {
+    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    expect(result.success).toBe(true);
+
+    const data = result.data as { fileClasses: string[] };
+    expect(data.fileClasses).toContain("post");
+    expect(data.fileClasses).toContain("base");
   });
 });
