@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-02-28
+Last Updated: 2026-03-01
 
 ---
 
@@ -35,7 +35,7 @@ Last Updated: 2026-02-28
 
 ### Obsidian Integration
 
-- [ ] Content creation frontend: shared frontmatter conventions, template sync (see `docs/plans/obsidian-integration.md`)
+- [x] Content creation frontend: template sync, body templates, Metadata Menu fileClasses with enum dropdowns
 - [ ] Bases integration: ship `.base` files with entity views
 - [ ] Sync improvements: conflict resolution, reliability, performance
 
@@ -53,6 +53,13 @@ Last Updated: 2026-02-28
 - Accessibility audit
 
 ---
+
+## Completed (2026-03)
+
+- ✅ Obsidian vault plugin: template sync, body templates from StructuredContentFormatter
+- ✅ Metadata Menu fileClass generation with enum dropdowns, folder-based mapping, field IDs
+- ✅ Directory restructure: templates and fileClasses under `_obsidian/` base folder
+- ✅ Directory-sync fix: skip underscore-prefixed directories (`_obsidian/`, `_config/`)
 
 ## Completed (2026-02)
 
