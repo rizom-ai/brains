@@ -19,10 +19,9 @@ Obsidian vault integration — generates templates and fileClass definitions fro
 Install [Metadata Menu](https://github.com/mdelobelle/metadatamenu) to enable fileClass support (enum dropdowns, field type enforcement).
 
 1. **Settings > Community plugins > Browse** > search "Metadata Menu" > Install > Enable
-2. **Settings > Metadata Menu > FileClass folder** > set to `_obsidian/fileClasses`
-3. **Settings > Metadata Menu > FileClass field alias** > set to `entityType`
+2. **Settings > Metadata Menu > Class files path** > set to `_obsidian/fileClasses`
 
-The alias setting tells Metadata Menu to use the existing `entityType` field (e.g., `entityType: post`) to match notes with their fileClass definitions. No extra frontmatter needed.
+Each fileClass includes a `Files Paths` mapping that automatically associates all files in an entity folder (e.g., `post/`) with the corresponding fileClass. No extra frontmatter or manual mapping needed.
 
 ## Usage
 

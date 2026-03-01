@@ -12,19 +12,27 @@ describe("generateFileClass", () => {
         enumValues: ["draft", "queued", "published"],
       },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result).toContain("name: status");
     expect(result).toContain("type: Select");
-    expect(result).toContain('"0": draft');
-    expect(result).toContain('"1": queued');
-    expect(result).toContain('"2": published');
+    expect(result).toContain("- '0': draft");
+    expect(result).toContain("- '1': queued");
+    expect(result).toContain("- '2': published");
+  });
+
+  it("should include Files Paths mapping to entity folder", () => {
+    const fields: FieldInfo[] = [
+      { name: "title", type: "string", required: true },
+    ];
+    const result = generateFileClass("post", fields);
+    expect(result).toContain("Files Paths: post");
   });
 
   it("should map string fields to Input type", () => {
     const fields: FieldInfo[] = [
       { name: "title", type: "string", required: true },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result).toContain("name: title");
     expect(result).toContain("type: Input");
   });
@@ -33,7 +41,7 @@ describe("generateFileClass", () => {
     const fields: FieldInfo[] = [
       { name: "order", type: "number", required: false },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result).toContain("name: order");
     expect(result).toContain("type: Number");
   });
@@ -42,7 +50,7 @@ describe("generateFileClass", () => {
     const fields: FieldInfo[] = [
       { name: "embeddable", type: "boolean", required: false },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result).toContain("name: embeddable");
     expect(result).toContain("type: Boolean");
   });
@@ -51,7 +59,7 @@ describe("generateFileClass", () => {
     const fields: FieldInfo[] = [
       { name: "created", type: "date", required: false },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result).toContain("name: created");
     expect(result).toContain("type: Date");
   });
@@ -60,7 +68,7 @@ describe("generateFileClass", () => {
     const fields: FieldInfo[] = [
       { name: "tags", type: "array", required: false, defaultValue: [] },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result).toContain("name: tags");
     expect(result).toContain("type: Multi");
   });
@@ -69,7 +77,7 @@ describe("generateFileClass", () => {
     const fields: FieldInfo[] = [
       { name: "title", type: "string", required: true },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
     expect(result.startsWith("---\n")).toBe(true);
     expect(result.trimEnd().endsWith("---")).toBe(true);
   });
@@ -93,8 +101,9 @@ describe("generateFileClass", () => {
       { name: "tags", type: "array", required: false, defaultValue: [] },
       { name: "created", type: "date", required: false },
     ];
-    const result = generateFileClass(fields);
+    const result = generateFileClass("post", fields);
 
+    expect(result).toContain("Files Paths: post");
     expect(result).toContain("name: title");
     expect(result).toContain("name: slug");
     expect(result).toContain("name: status");
@@ -103,13 +112,14 @@ describe("generateFileClass", () => {
     expect(result).toContain("name: created");
 
     // Enum should have options
-    expect(result).toContain('"0": draft');
-    expect(result).toContain('"1": queued');
-    expect(result).toContain('"2": published');
+    expect(result).toContain("- '0': draft");
+    expect(result).toContain("- '1': queued");
+    expect(result).toContain("- '2': published");
   });
 
   it("should handle empty fields array", () => {
-    const result = generateFileClass([]);
+    const result = generateFileClass("note", []);
+    expect(result).toContain("Files Paths: note");
     expect(result).toContain("fields:");
     expect(result.startsWith("---\n")).toBe(true);
   });

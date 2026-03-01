@@ -123,7 +123,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
         generated.push(entityType);
 
         // Generate fileClass
-        const fileClassContent = generateFileClass(fields);
+        const fileClassContent = generateFileClass(entityType, fields);
         this.deps.writeFile(
           join(fileClassDir, `${entityType}.md`),
           fileClassContent,
