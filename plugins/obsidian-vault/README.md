@@ -21,7 +21,7 @@ Install [Metadata Menu](https://github.com/mdelobelle/metadatamenu) to enable fi
 1. **Settings > Community plugins > Browse** > search "Metadata Menu" > Install > Enable
 2. **Settings > Metadata Menu > Class files path** > set to `_obsidian/fileClasses`
 
-Each fileClass includes a `Files Paths` mapping that automatically associates all files in an entity folder (e.g., `post/`) with the corresponding fileClass. No extra frontmatter or manual mapping needed.
+Each fileClass includes a `filesPaths` mapping that automatically associates all files in an entity folder (e.g., `post/`) with the corresponding fileClass. No extra frontmatter or manual mapping needed.
 
 ## Usage
 

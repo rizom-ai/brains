@@ -14,13 +14,16 @@ const typeMap: Record<FieldInfo["type"], string> = {
 function buildField(field: FieldInfo): Record<string, unknown> {
   const entry: Record<string, unknown> = {
     name: field.name,
+    id: field.name,
     type: typeMap[field.type],
   };
 
   if (field.type === "enum" && field.enumValues) {
-    entry["options"] = field.enumValues.map((value, i) => ({
-      [String(i)]: value,
-    }));
+    const options: Record<string, string> = {};
+    field.enumValues.forEach((value, i) => {
+      options[String(i)] = value;
+    });
+    entry["options"] = options;
   }
 
   return entry;
@@ -31,7 +34,7 @@ function buildField(field: FieldInfo): Record<string, unknown> {
  * The fileClass declares field types and enum options so Obsidian
  * shows dropdowns for Select fields instead of free-text inputs.
  *
- * Includes a "Files Paths" mapping so all files in the entity type's
+ * Includes a "filesPaths" mapping so all files in the entity type's
  * folder are automatically associated with this fileClass.
  */
 export function generateFileClass(
@@ -39,7 +42,7 @@ export function generateFileClass(
   fields: FieldInfo[],
 ): string {
   const data: Record<string, unknown> = {
-    "Files Paths": entityType,
+    filesPaths: entityType,
     fields: fields.map(buildField),
   };
 

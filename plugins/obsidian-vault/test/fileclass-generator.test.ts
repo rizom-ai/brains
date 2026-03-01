@@ -15,17 +15,17 @@ describe("generateFileClass", () => {
     const result = generateFileClass("post", fields);
     expect(result).toContain("name: status");
     expect(result).toContain("type: Select");
-    expect(result).toContain("- '0': draft");
-    expect(result).toContain("- '1': queued");
-    expect(result).toContain("- '2': published");
+    expect(result).toContain("'0': draft");
+    expect(result).toContain("'1': queued");
+    expect(result).toContain("'2': published");
   });
 
-  it("should include Files Paths mapping to entity folder", () => {
+  it("should include filesPaths mapping to entity folder", () => {
     const fields: FieldInfo[] = [
       { name: "title", type: "string", required: true },
     ];
     const result = generateFileClass("post", fields);
-    expect(result).toContain("Files Paths: post");
+    expect(result).toContain("filesPaths: post");
   });
 
   it("should map string fields to Input type", () => {
@@ -103,7 +103,7 @@ describe("generateFileClass", () => {
     ];
     const result = generateFileClass("post", fields);
 
-    expect(result).toContain("Files Paths: post");
+    expect(result).toContain("filesPaths: post");
     expect(result).toContain("name: title");
     expect(result).toContain("name: slug");
     expect(result).toContain("name: status");
@@ -112,14 +112,14 @@ describe("generateFileClass", () => {
     expect(result).toContain("name: created");
 
     // Enum should have options
-    expect(result).toContain("- '0': draft");
-    expect(result).toContain("- '1': queued");
-    expect(result).toContain("- '2': published");
+    expect(result).toContain("'0': draft");
+    expect(result).toContain("'1': queued");
+    expect(result).toContain("'2': published");
   });
 
   it("should handle empty fields array", () => {
     const result = generateFileClass("note", []);
-    expect(result).toContain("Files Paths: note");
+    expect(result).toContain("filesPaths: note");
     expect(result).toContain("fields:");
     expect(result.startsWith("---\n")).toBe(true);
   });

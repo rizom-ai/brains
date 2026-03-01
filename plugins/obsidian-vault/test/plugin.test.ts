@@ -150,9 +150,9 @@ describe("ObsidianVaultPlugin", () => {
     const content = String(postFileClass?.[1]);
     expect(content).toContain("name: status");
     expect(content).toContain("type: Select");
-    expect(content).toContain("- '0': draft");
-    expect(content).toContain("- '1': queued");
-    expect(content).toContain("- '2': published");
+    expect(content).toContain("'0': draft");
+    expect(content).toContain("'1': queued");
+    expect(content).toContain("'2': published");
   });
 
   it("should return fileClasses in result data", async () => {
