@@ -28,6 +28,7 @@ function createMockDeps() {
       (_path: string, _options?: { recursive: boolean }) => undefined,
     ),
     writeFile: mock((_path: string, _content: string) => undefined),
+    existsFile: mock((_path: string) => false),
   };
 }
 
@@ -162,5 +163,46 @@ describe("ObsidianVaultPlugin", () => {
     const data = result.data as { fileClasses: string[] };
     expect(data.fileClasses).toContain("post");
     expect(data.fileClasses).toContain("base");
+  });
+
+  it("should generate .base files at vault root", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Posts.base");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Notes.base");
+  });
+
+  it("should generate Pipeline.base when status fields exist", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Pipeline.base");
+  });
+
+  it("should not overwrite existing .base files", async () => {
+    deps.existsFile.mockImplementation(
+      (path: string) => path === "/tmp/test-vault/_obsidian/bases/Posts.base",
+    );
+
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).not.toContain("/tmp/test-vault/_obsidian/bases/Posts.base");
+    // Other bases should still be generated
+    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Notes.base");
+  });
+
+  it("should return bases in result data", async () => {
+    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    expect(result.success).toBe(true);
+
+    const data = result.data as { bases: string[] };
+    expect(data.bases).toContain("post");
+    expect(data.bases).toContain("base");
+    expect(data.bases).toContain("Pipeline");
   });
 });

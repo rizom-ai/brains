@@ -1,5 +1,10 @@
 import { describe, it, expect } from "bun:test";
-import { slugify, generateIdFromText, pluralize } from "../src/string-utils";
+import {
+  slugify,
+  generateIdFromText,
+  pluralize,
+  toDisplayName,
+} from "../src/string-utils";
 
 describe("string-utils", () => {
   describe("slugify", () => {
@@ -134,6 +139,28 @@ describe("string-utils", () => {
     it("should handle invariant words case-insensitively", () => {
       expect(pluralize("Series")).toBe("Series");
       expect(pluralize("SERIES")).toBe("SERIES");
+    });
+  });
+
+  describe("toDisplayName", () => {
+    it("should title-case and pluralize single words", () => {
+      expect(toDisplayName("post")).toBe("Posts");
+      expect(toDisplayName("link")).toBe("Links");
+      expect(toDisplayName("deck")).toBe("Decks");
+    });
+
+    it("should handle hyphenated entity types", () => {
+      expect(toDisplayName("social-post")).toBe("Social Posts");
+      expect(toDisplayName("site-info")).toBe("Site Infos");
+    });
+
+    it("should handle invariant words", () => {
+      expect(toDisplayName("series")).toBe("Series");
+    });
+
+    it("should only pluralize the last word", () => {
+      expect(toDisplayName("anchor-profile")).toBe("Anchor Profiles");
+      expect(toDisplayName("brain-character")).toBe("Brain Characters");
     });
   });
 });

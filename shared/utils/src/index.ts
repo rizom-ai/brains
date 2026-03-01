@@ -45,6 +45,7 @@ export {
   slugify,
   generateIdFromText,
   pluralize,
+  toDisplayName,
   calculateReadingTime,
   truncateText,
 } from "./string-utils";

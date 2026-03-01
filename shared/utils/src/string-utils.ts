@@ -57,6 +57,20 @@ export function pluralize(word: string): string {
 }
 
 /**
+ * Convert a kebab-case entity type to a human-friendly display name.
+ * Splits on hyphens, title-cases each word, pluralizes the last word.
+ */
+export function toDisplayName(entityType: string): string {
+  const words = entityType.split("-");
+  const titleCased = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+  const lastWord = titleCased.pop();
+  if (lastWord) {
+    titleCased.push(pluralize(lastWord));
+  }
+  return titleCased.join(" ");
+}
+
+/**
  * Calculate estimated reading time in minutes
  * Based on average reading speed of 200 words per minute
  */

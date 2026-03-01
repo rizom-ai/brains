@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import {
   ServicePlugin,
@@ -16,16 +16,19 @@ import { obsidianVaultConfigSchema, type ObsidianVaultConfig } from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
 import { generateTemplate } from "./lib/template-generator";
 import { generateFileClass } from "./lib/fileclass-generator";
+import { generateBase, generatePipelineBase } from "./lib/base-generator";
 import packageJson from "../package.json";
 
 export interface ObsidianVaultDeps {
   mkdir: (path: string, options?: { recursive: boolean }) => void;
   writeFile: (path: string, content: string) => void;
+  existsFile: (path: string) => boolean;
 }
 
 const defaultDeps: ObsidianVaultDeps = {
   mkdir: mkdirSync,
   writeFile: writeFileSync,
+  existsFile: existsSync,
 };
 
 const syncInputSchema = z.object({
@@ -50,7 +53,9 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
     context: ServicePluginContext,
   ): Promise<void> {
     context.messaging.subscribe("system:plugins:ready", async () => {
-      this.logger.info("Auto-syncing Obsidian templates and fileClasses");
+      this.logger.info(
+        "Auto-syncing Obsidian templates, fileClasses, and bases",
+      );
       await this.sync(context);
       return { success: true };
     });
@@ -62,7 +67,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
       createTypedTool(
         this.id,
         "sync-templates",
-        "Generate Obsidian templates and Metadata Menu fileClass definitions for all registered entity types. Templates go to _obsidian/templates/, fileClasses to _obsidian/fileClasses/.",
+        "Generate Obsidian templates, Metadata Menu fileClass definitions, and Bases views for all registered entity types.",
         syncInputSchema,
         async (input) => {
           return this.sync(context, input.entityTypes);
@@ -79,6 +84,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
       generated: string[];
       skipped: string[];
       fileClasses: string[];
+      bases: string[];
     }>
   > {
     try {
@@ -90,12 +96,19 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
       const baseDir = join(context.dataDir, this.config.baseFolder);
       const templateDir = join(baseDir, "templates");
       const fileClassDir = join(baseDir, "fileClasses");
+      const basesDir = join(baseDir, "bases");
       this.deps.mkdir(templateDir, { recursive: true });
       this.deps.mkdir(fileClassDir, { recursive: true });
+      this.deps.mkdir(basesDir, { recursive: true });
 
       const generated: string[] = [];
       const skipped: string[] = [];
       const fileClasses: string[] = [];
+      const bases: string[] = [];
+      const statusBearingTypes: {
+        entityType: string;
+        fields: ReturnType<typeof introspectSchema>;
+      }[] = [];
 
       for (const entityType of targetTypes) {
         const schema =
@@ -130,14 +143,38 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
         );
         fileClasses.push(entityType);
 
+        // Generate base (only if missing)
+        const baseResult = generateBase(entityType, fields);
+        const basePath = join(basesDir, baseResult.filename);
+        if (!this.deps.existsFile(basePath)) {
+          this.deps.writeFile(basePath, baseResult.content);
+          bases.push(entityType);
+          this.logger.debug(`Generated base: ${baseResult.filename}`);
+        }
+
+        if (baseResult.hasStatus) {
+          statusBearingTypes.push({ entityType, fields });
+        }
+
         this.logger.debug(`Generated template + fileClass: ${entityType}`);
       }
 
+      // Generate Pipeline.base (only if missing)
+      const pipelineContent = generatePipelineBase(statusBearingTypes);
+      if (pipelineContent) {
+        const pipelinePath = join(basesDir, "Pipeline.base");
+        if (!this.deps.existsFile(pipelinePath)) {
+          this.deps.writeFile(pipelinePath, pipelineContent);
+          bases.push("Pipeline");
+          this.logger.debug("Generated Pipeline.base");
+        }
+      }
+
       this.logger.info(
-        `Synced ${generated.length} templates, ${fileClasses.length} fileClasses (${skipped.length} skipped)`,
+        `Synced ${generated.length} templates, ${fileClasses.length} fileClasses, ${bases.length} bases (${skipped.length} skipped)`,
       );
 
-      return toolSuccess({ generated, skipped, fileClasses });
+      return toolSuccess({ generated, skipped, fileClasses, bases });
     } catch (error) {
       this.logger.error("Failed to sync", { error });
       return toolError(
