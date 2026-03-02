@@ -54,19 +54,28 @@ async function importFile(
     return;
   }
 
+  // Skip git rename-format paths (e.g., "{old.md => new.md}")
+  if (filePath.includes("{")) {
+    result.skipped++;
+    return;
+  }
+
+  // Validate entity type before reading file to avoid noisy errors
+  // for paths in non-entity directories (e.g., _obsidian/)
+  const { entityType } = deps.fileOperations.parseEntityFromPath(filePath);
+
+  if (deps.entityTypes && !deps.entityTypes.includes(entityType)) {
+    result.skipped++;
+    return;
+  }
+
+  if (!deps.entityService.hasEntityType(entityType)) {
+    result.skipped++;
+    return;
+  }
+
   try {
     const rawEntity = await deps.fileOperations.readEntity(filePath);
-
-    if (deps.entityTypes && !deps.entityTypes.includes(rawEntity.entityType)) {
-      result.skipped++;
-      return;
-    }
-
-    // Skip files from unregistered entity types (e.g., templates/ directory)
-    if (!deps.entityService.hasEntityType(rawEntity.entityType)) {
-      result.skipped++;
-      return;
-    }
 
     await processEntityImport(deps, rawEntity, filePath, result);
   } catch {
