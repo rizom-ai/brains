@@ -3,6 +3,7 @@ import { defineConfig, handleCLI } from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { MatrixInterface } from "@brains/matrix";
 import { MCPInterface } from "@brains/mcp";
+import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { gitSyncPlugin } from "@brains/git-sync";
@@ -72,6 +73,8 @@ const config = defineConfig({
       { pattern: "mcp:http", level: "public" },
       // Matrix gets public permissions (chat access)
       { pattern: "matrix:*", level: "public" },
+      // Discord interface: default public
+      { pattern: "discord:*", level: "public" },
     ],
   },
 
@@ -82,6 +85,9 @@ const config = defineConfig({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
       userId: process.env["MATRIX_USER_ID"] || "@ranger-local:rizom.ai",
+    }),
+    new DiscordInterface({
+      botToken: process.env["DISCORD_BOT_TOKEN"] || "",
     }),
     notePlugin({}),
     socialMediaPlugin({
