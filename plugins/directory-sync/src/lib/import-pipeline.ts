@@ -1,4 +1,4 @@
-import type { IEntityService } from "@brains/plugins";
+import type { IEntityService, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage, computeContentHash } from "@brains/utils";
 import type { ImportResult, RawEntity } from "../types";
@@ -142,16 +142,23 @@ async function processEntityImport(
       return;
     }
 
-    const entity = {
-      id: rawEntity.id,
-      entityType: rawEntity.entityType,
-      content: rawEntity.content,
-      contentHash: computeContentHash(rawEntity.content),
-      ...parsedEntity,
+    // Construct entity explicitly (no spread) so TypeScript can verify BaseEntity
+    // and we can compute contentHash from the canonical (serialized) form.
+    const entity: BaseEntity = {
+      id: parsedEntity.id ?? rawEntity.id,
+      entityType: parsedEntity.entityType ?? rawEntity.entityType,
+      content: parsedEntity.content ?? rawEntity.content,
       metadata: parsedEntity.metadata ?? {},
       created: existing?.created ?? rawEntity.created.toISOString(),
       updated: rawEntity.updated.toISOString(),
+      contentHash: "",
     };
+    // Store canonical hash so auto-sync writes don't trigger a re-import:
+    // after auto-sync writes serializeEntity(entity) to disk, the file hash
+    // matches this hash and shouldUpdateEntity returns false.
+    entity.contentHash = computeContentHash(
+      deps.entityService.serializeEntity(entity),
+    );
 
     const upsertResult = await deps.entityService.upsertEntity(entity);
     result.imported++;

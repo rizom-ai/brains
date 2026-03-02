@@ -26,10 +26,9 @@ describe("FileOperations", () => {
     mkdirSync(testDir, { recursive: true });
 
     mockEntityService = {
-      serializeEntity: (entity: BaseEntity) => {
-        return `# ${entity.id}\n\n${entity.content}`;
-      },
-      hasEntityType: () => true,
+      serializeEntity: (entity: BaseEntity): string =>
+        `# ${entity.id}\n\n${entity.content}`,
+      hasEntityType: (): boolean => true,
     };
 
     fileOps = new FileOperations(testDir, mockEntityService);
