@@ -39,38 +39,34 @@ export class BatchOperationsManager {
   }
 
   /**
-   * Prepare batch operations for sync
-   * Returns the operations needed without executing them
+   * Prepare batch operations for sync.
+   *
+   * Only creates import operations (file→DB). Export (DB→file) is handled
+   * by auto-sync's entity:created/entity:updated subscribers — batch export
+   * would overwrite user edits with stale DB content before imports run.
    */
   prepareBatchOperations(
-    entityTypes: string[],
+    _entityTypes: string[],
     files: string[],
   ): BatchOperationResult {
     const operations: BatchOperation[] = [];
-    let exportOperationsCount = 0;
-    let importOperationsCount = 0;
 
-    // Create export operations for each entity type
-    const exportOps = this.createExportOperations(entityTypes);
-    operations.push(...exportOps);
-    exportOperationsCount = exportOps.length;
-
-    // Create import operations for files
+    // Import operations only — exports are handled by auto-sync subscribers
     const importOps = this.createImportOperations(files);
     operations.push(...importOps);
-    importOperationsCount = importOps.length;
+    const importOperationsCount = importOps.length;
 
     const totalFiles = files.length;
 
     this.logger.debug("Prepared batch operations", {
-      exportOperationsCount,
+      exportOperationsCount: 0,
       importOperationsCount,
       totalFiles,
     });
 
     return {
       operations,
-      exportOperationsCount,
+      exportOperationsCount: 0,
       importOperationsCount,
       totalFiles,
     };
@@ -118,24 +114,6 @@ export class BatchOperationsManager {
       importOperationsCount: batchData.importOperationsCount,
       totalFiles: batchData.totalFiles,
     };
-  }
-
-  /**
-   * Create export operations for entity types
-   */
-  private createExportOperations(entityTypes: string[]): BatchOperation[] {
-    if (entityTypes.length === 0) {
-      return [];
-    }
-
-    // Export operations - process each entity type as a separate batch
-    return entityTypes.map((entityType) => ({
-      type: "directory-export",
-      data: {
-        entityTypes: [entityType],
-        batchSize: 100,
-      },
-    }));
   }
 
   /**

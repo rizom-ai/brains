@@ -57,30 +57,6 @@ async function waitForJobs(
 }
 
 /**
- * Queue a full sync batch via DirectorySync.
- */
-async function queueSyncJob(
-  context: ServicePluginContext,
-  directorySync: DirectorySync,
-  pluginId: string,
-  operation: "initial" | "scheduled" | "manual",
-  logger: Logger,
-): Promise<string> {
-  const result = await directorySync.queueSyncBatch(
-    context,
-    `directory-sync-${operation}`,
-    { pluginId },
-  );
-
-  if (!result) {
-    logger.info("No sync operations needed", { operation });
-    return `empty-sync-${Date.now()}`;
-  }
-
-  return result.batchId;
-}
-
-/**
  * Wire up initial-sync orchestration: subscribe to startup messages,
  * optionally copy seed content, run the first sync, and wait for
  * embedding jobs before broadcasting sync:initial:completed.
@@ -89,7 +65,7 @@ export function setupInitialSync(
   context: ServicePluginContext,
   getDirectorySync: () => DirectorySync,
   config: DirectorySyncConfig,
-  pluginId: string,
+  _pluginId: string,
   logger: Logger,
 ): void {
   let initialSyncStarted = false;
@@ -105,8 +81,6 @@ export function setupInitialSync(
       const syncPath = config.syncPath ?? context.dataDir;
       await copySeedContentIfNeeded(syncPath, logger);
     }
-
-    await queueSyncJob(context, directorySync, pluginId, "initial", logger);
 
     try {
       logger.debug("Starting initial bidirectional sync");
