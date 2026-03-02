@@ -16,7 +16,11 @@ import { obsidianVaultConfigSchema, type ObsidianVaultConfig } from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
 import { generateTemplate } from "./lib/template-generator";
 import { generateFileClass } from "./lib/fileclass-generator";
-import { generateBase, generatePipelineBase } from "./lib/base-generator";
+import {
+  generateBase,
+  generatePipelineBase,
+  generateSettingsBase,
+} from "./lib/base-generator";
 import packageJson from "../package.json";
 
 export interface ObsidianVaultDeps {
@@ -105,6 +109,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
       const skipped: string[] = [];
       const fileClasses: string[] = [];
       const bases: string[] = [];
+      const singletonTypes: string[] = [];
       const statusBearingTypes: {
         entityType: string;
         fields: ReturnType<typeof introspectSchema>;
@@ -120,9 +125,24 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
         }
 
         const fields = introspectSchema(schema);
-
-        // Generate template
         const adapter = context.entities.getAdapter(entityType);
+        const isSingleton = adapter?.isSingleton === true;
+
+        // Generate fileClass (for all entity types)
+        const fileClassContent = generateFileClass(entityType, fields);
+        this.deps.writeFile(
+          join(fileClassDir, `${entityType}.md`),
+          fileClassContent,
+        );
+        fileClasses.push(entityType);
+
+        if (isSingleton) {
+          singletonTypes.push(entityType);
+          this.logger.debug(`Generated fileClass (singleton): ${entityType}`);
+          continue;
+        }
+
+        // Generate template (non-singletons only)
         const bodyTemplate = adapter?.getBodyTemplate() ?? "";
         const templateContent = generateTemplate(
           entityType,
@@ -135,15 +155,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
         );
         generated.push(entityType);
 
-        // Generate fileClass
-        const fileClassContent = generateFileClass(entityType, fields);
-        this.deps.writeFile(
-          join(fileClassDir, `${entityType}.md`),
-          fileClassContent,
-        );
-        fileClasses.push(entityType);
-
-        // Generate base (only if missing)
+        // Generate base (non-singletons only, if missing)
         const baseResult = generateBase(entityType, fields);
         const basePath = join(basesDir, baseResult.filename);
         if (!this.deps.existsFile(basePath)) {
@@ -157,6 +169,17 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
         }
 
         this.logger.debug(`Generated template + fileClass: ${entityType}`);
+      }
+
+      // Generate Settings.base for singletons (only if missing)
+      const settingsContent = generateSettingsBase(singletonTypes);
+      if (settingsContent) {
+        const settingsPath = join(basesDir, "Settings.base");
+        if (!this.deps.existsFile(settingsPath)) {
+          this.deps.writeFile(settingsPath, settingsContent);
+          bases.push("Settings");
+          this.logger.debug("Generated Settings.base");
+        }
       }
 
       // Generate Pipeline.base (only if missing)

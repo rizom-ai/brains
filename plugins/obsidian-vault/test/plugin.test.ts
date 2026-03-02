@@ -17,9 +17,16 @@ const noteSchema = z.object({
   entityType: z.literal("base"),
 });
 
+const siteInfoSchema = z.object({
+  title: z.string(),
+  url: z.string().optional(),
+  entityType: z.literal("site-info"),
+});
+
 const schemas = new Map<string, z.ZodObject<z.ZodRawShape>>([
   ["post", postSchema],
   ["base", noteSchema],
+  ["site-info", siteInfoSchema],
 ]);
 
 function createMockDeps() {
@@ -48,8 +55,15 @@ describe("ObsidianVaultPlugin", () => {
     const registry = shell.getEntityRegistry();
     registry.registerEntityType("post", {} as never, {} as never);
     registry.registerEntityType("base", {} as never, {} as never);
+    registry.registerEntityType("site-info", {} as never, {} as never);
     registry.getEffectiveFrontmatterSchema = (type: string) =>
       schemas.get(type);
+    registry.getAdapter = (entityType: string) => {
+      if (entityType === "site-info") {
+        return { isSingleton: true, getBodyTemplate: () => "" } as never;
+      }
+      return { getBodyTemplate: () => "" } as never;
+    };
     shell.getEntityRegistry = () => registry;
 
     const plugin = new ObsidianVaultPlugin({}, deps);
@@ -204,5 +218,55 @@ describe("ObsidianVaultPlugin", () => {
     expect(data.bases).toContain("post");
     expect(data.bases).toContain("base");
     expect(data.bases).toContain("Pipeline");
+  });
+
+  it("should not generate templates for singleton entity types", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).not.toContain(
+      "/tmp/test-vault/_obsidian/templates/site-info.md",
+    );
+  });
+
+  it("should still generate fileClasses for singleton entity types", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).toContain(
+      "/tmp/test-vault/_obsidian/fileClasses/site-info.md",
+    );
+  });
+
+  it("should not generate individual .base for singleton entity types", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    // No individual Site Infos.base
+    expect(
+      paths.some(
+        (p) =>
+          typeof p === "string" &&
+          p.includes("bases/") &&
+          p.includes("Site Info"),
+      ),
+    ).toBe(false);
+  });
+
+  it("should generate Settings.base grouping all singletons", async () => {
+    await harness.executeTool("obsidian-vault_sync-templates");
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).toContain("/tmp/test-vault/_obsidian/bases/Settings.base");
+  });
+
+  it("should not include singletons in generated list", async () => {
+    const result = await harness.executeTool("obsidian-vault_sync-templates");
+    const data = result.data as { generated: string[] };
+    expect(data.generated).not.toContain("site-info");
   });
 });

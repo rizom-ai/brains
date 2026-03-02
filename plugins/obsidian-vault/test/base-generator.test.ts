@@ -1,5 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { generateBase, generatePipelineBase } from "../src/lib/base-generator";
+import {
+  generateBase,
+  generatePipelineBase,
+  generateSettingsBase,
+} from "../src/lib/base-generator";
 import type { FieldInfo } from "../src/lib/schema-introspector";
 import { fromYaml } from "@brains/utils";
 
@@ -246,5 +250,51 @@ describe("generatePipelineBase", () => {
     const firstFilter = parsed.filters.and[0];
     // Single type should not need an or-clause
     expect(firstFilter).toBe('file.inFolder("post")');
+  });
+});
+
+describe("generateSettingsBase", () => {
+  it("should combine multiple singleton types with or-clause", () => {
+    const entries = ["brain-character", "anchor-profile", "site-info"];
+    const result = generateSettingsBase(entries);
+    expect(result).not.toBeNull();
+    expect(result).toContain('file.inFolder("brain-character")');
+    expect(result).toContain('file.inFolder("anchor-profile")');
+    expect(result).toContain('file.inFolder("site-info")');
+  });
+
+  it("should produce valid YAML", () => {
+    const entries = ["brain-character", "site-info"];
+    const result = generateSettingsBase(entries);
+    expect(result).not.toBeNull();
+    const parsed = fromYaml(result as string);
+    expect(parsed).toBeDefined();
+  });
+
+  it("should include generic columns", () => {
+    const entries = ["brain-character"];
+    const result = generateSettingsBase(entries);
+    expect(result).not.toBeNull();
+    expect(result).toContain("file.name");
+    expect(result).toContain("file.folder");
+  });
+
+  it("should return null when no entries", () => {
+    expect(generateSettingsBase([])).toBeNull();
+  });
+
+  it("should skip or-clause for single singleton type", () => {
+    const entries = ["site-info"];
+    const result = generateSettingsBase(entries);
+    expect(result).not.toBeNull();
+    const parsed = fromYaml<{ filters: { and: unknown[] } }>(result as string);
+    const firstFilter = parsed.filters.and[0];
+    expect(firstFilter).toBe('file.inFolder("site-info")');
+  });
+
+  it("should use Settings as the view name", () => {
+    const entries = ["brain-character"];
+    const result = generateSettingsBase(entries);
+    expect(result).toContain("name: Settings");
   });
 });

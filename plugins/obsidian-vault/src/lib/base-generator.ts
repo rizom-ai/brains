@@ -78,6 +78,33 @@ export function generateBase(
 }
 
 /**
+ * Generate a Settings.base file grouping all singleton entity types.
+ * Returns null if no entries provided.
+ */
+export function generateSettingsBase(singletonTypes: string[]): string | null {
+  if (singletonTypes.length === 0) return null;
+
+  const folderFilters = singletonTypes.map((t) => `file.inFolder("${t}")`);
+
+  const data: Record<string, unknown> = {
+    filters: {
+      and: [
+        folderFilters.length === 1 ? folderFilters[0] : { or: folderFilters },
+      ],
+    },
+    views: [
+      {
+        type: "table",
+        name: "Settings",
+        order: ["file.name", "file.folder"],
+      },
+    ],
+  };
+
+  return toYaml(data);
+}
+
+/**
  * Generate a Pipeline.base file combining all entity types with status fields.
  * Shows non-published items grouped by status.
  * Returns null if no entries provided.
