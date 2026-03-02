@@ -198,7 +198,46 @@ describe("DiscordInterface", () => {
     });
 
     it("should ignore bot's own messages", async () => {
-      const msg = createDiscordMessage({ author: { id: "bot-user-123" } });
+      const msg = createDiscordMessage({
+        author: { id: "bot-user-123", bot: true },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should ignore other bots in threads unless mentioned", async () => {
+      const msg = createDiscordMessage({
+        author: { id: "other-bot-456", bot: true },
+        channel: mockThreadChannel,
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should respond to other bots in threads when explicitly mentioned", async () => {
+      const msg = createDiscordMessage({
+        author: { id: "other-bot-456", bot: true },
+        channel: mockThreadChannel,
+        content: "<@bot-user-123> hello from another bot",
+        mentions: { has: mock(() => true) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalled();
+    });
+
+    it("should ignore bot DMs", async () => {
+      const msg = createDiscordMessage({
+        author: { id: "other-bot-456", bot: true },
+        guild: null,
+        mentions: { has: mock(() => false) },
+      });
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 50));
 

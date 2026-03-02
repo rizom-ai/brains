@@ -196,6 +196,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     if (message.author.id === this.client?.user?.id) return;
     if (!this.context) return;
 
+    // Ignore other bots unless they explicitly mention this bot
+    if (
+      message.author.bot &&
+      (!this.client?.user || !message.mentions.has(this.client.user))
+    )
+      return;
+
     const isDM = !message.guild;
     const isThread = message.channel.isThread();
 
