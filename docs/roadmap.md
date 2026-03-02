@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-02
+Last Updated: 2026-03-03
 
 ---
 
@@ -37,7 +37,7 @@ Last Updated: 2026-03-02
 
 - [x] Content creation frontend: template sync, body templates, Metadata Menu fileClasses with enum dropdowns
 - [x] Bases integration: per-entity views, Pipeline, Settings for singletons
-- [ ] Sync improvements: conflict resolution, reliability, performance
+- [x] Sync improvements: disk edits win, canonical hash eliminates re-import cycle
 
 ### Sveltia CMS
 
@@ -56,6 +56,8 @@ Last Updated: 2026-03-02
 
 ## Completed (2026-03)
 
+- ✅ Directory-sync: canonical contentHash breaks unnecessary re-import cycle after auto-sync
+- ✅ Directory-sync: remove batch export so disk edits always win during sync
 - ✅ Obsidian vault plugin: template sync, body templates from StructuredContentFormatter
 - ✅ Metadata Menu fileClass generation with enum dropdowns, folder-based mapping, field IDs
 - ✅ Directory restructure: templates and fileClasses under `_obsidian/` base folder
