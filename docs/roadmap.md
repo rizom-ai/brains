@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-01
+Last Updated: 2026-03-02
 
 ---
 
@@ -36,7 +36,7 @@ Last Updated: 2026-03-01
 ### Obsidian Integration
 
 - [x] Content creation frontend: template sync, body templates, Metadata Menu fileClasses with enum dropdowns
-- [ ] Bases integration: ship `.base` files with entity views
+- [x] Bases integration: per-entity views, Pipeline, Settings for singletons
 - [ ] Sync improvements: conflict resolution, reliability, performance
 
 ### Sveltia CMS
@@ -60,6 +60,8 @@ Last Updated: 2026-03-01
 - ✅ Metadata Menu fileClass generation with enum dropdowns, folder-based mapping, field IDs
 - ✅ Directory restructure: templates and fileClasses under `_obsidian/` base folder
 - ✅ Directory-sync fix: skip underscore-prefixed directories (`_obsidian/`, `_config/`)
+- ✅ Bases generation: per-entity table views, status grouping, Pipeline.base, generate-if-missing
+- ✅ Singleton entity handling: skip templates/individual bases, Settings.base grouping
 
 ## Completed (2026-02)
 

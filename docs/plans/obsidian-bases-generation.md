@@ -1,5 +1,7 @@
 # Plan: Obsidian Bases (.base file) Generation
 
+**Status: Completed** (2026-03-02)
+
 ## Context
 
 The obsidian-vault plugin generates templates and Metadata Menu fileClasses from entity schemas. We want to also generate Obsidian Bases `.base` files — YAML files that create database-like views (tables, grouped views) over entity notes. This gives users instant table/kanban views of their content without manual setup.
