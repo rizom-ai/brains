@@ -126,6 +126,102 @@ describe("GenerationJobHandler", () => {
     });
   });
 
+  describe("process - failure notifications", () => {
+    let sentMessages: Array<{ type: string; payload: unknown }>;
+
+    beforeEach(() => {
+      sentMessages = [];
+      const messageBus = mockShell.getMessageBus();
+      messageBus.subscribe("generate:report:success", async (msg) => {
+        sentMessages.push({
+          type: "generate:report:success",
+          payload: msg.payload,
+        });
+        return { success: true };
+      });
+      messageBus.subscribe("generate:report:failure", async (msg) => {
+        sentMessages.push({
+          type: "generate:report:failure",
+          payload: msg.payload,
+        });
+        return { success: true };
+      });
+    });
+
+    it("should send generate:report:failure when content is provided without title", async () => {
+      const jobData: GenerationJobData = {
+        content: "My direct LinkedIn post content",
+        // title intentionally omitted
+        platform: "linkedin",
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(false);
+      // Bug: currently no failure message is sent for controlled early returns —
+      // only catch-block errors trigger generate:report:failure
+      const failureMsg = sentMessages.find(
+        (m) => m.type === "generate:report:failure",
+      );
+      expect(failureMsg).toBeDefined();
+    });
+
+    it("should send generate:report:failure when no content source is provided", async () => {
+      const jobData: GenerationJobData = { platform: "linkedin" };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(false);
+      const failureMsg = sentMessages.find(
+        (m) => m.type === "generate:report:failure",
+      );
+      expect(failureMsg).toBeDefined();
+    });
+
+    it("should not create any entity when handler fails with controlled error", async () => {
+      const jobData: GenerationJobData = {
+        content: "Content without title",
+        platform: "linkedin",
+      };
+
+      await handler.process(jobData, "job-123", progressReporter);
+
+      const entities = await context.entityService.listEntities(
+        "social-post",
+        {},
+      );
+      expect(entities).toHaveLength(0);
+    });
+
+    it("should send generate:report:success when post is created successfully", async () => {
+      const jobData: GenerationJobData = {
+        title: "My Post Title",
+        content: "My direct LinkedIn post content",
+        platform: "linkedin",
+      };
+
+      const result = await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      const successMsg = sentMessages.find(
+        (m) => m.type === "generate:report:success",
+      );
+      expect(successMsg).toBeDefined();
+    });
+  });
+
   describe("process", () => {
     it("should fail when no content source provided", async () => {
       const jobData: GenerationJobData = {

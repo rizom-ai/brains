@@ -77,10 +77,12 @@ export class GenerationJobHandler extends BaseJobHandler<
       // Case 1: Direct content provided (no AI needed)
       if (content) {
         if (!title) {
-          return {
-            success: false,
-            error: "Title is required when providing content directly",
-          };
+          const error = "Title is required when providing content directly";
+          await this.context.messaging.send("generate:report:failure", {
+            entityType: "social-post",
+            error,
+          });
+          return { success: false, error };
         }
         await progressReporter.report({
           progress: 50,
@@ -167,11 +169,13 @@ ${sourceEntity.content}`,
           message: "Social post generated",
         });
       } else {
-        return {
-          success: false,
-          error:
-            "No content source provided (prompt, sourceEntityId, or content)",
-        };
+        const error =
+          "No content source provided (prompt, sourceEntityId, or content)";
+        await this.context.messaging.send("generate:report:failure", {
+          entityType: "social-post",
+          error,
+        });
+        return { success: false, error };
       }
 
       // Create social post entity
