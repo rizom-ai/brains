@@ -49,3 +49,16 @@ export async function fetchAsBase64DataUrl(
 export async function fetchImageAsBase64(url: string): Promise<string> {
   return fetchAsBase64DataUrl(url, "image/");
 }
+
+/**
+ * Fetch a resource from URL and return as plain text
+ */
+export async function fetchAsText(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch: ${response.status} ${response.statusText}`,
+    );
+  }
+  return response.text();
+}

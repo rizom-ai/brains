@@ -4,7 +4,7 @@ import {
   type InterfacePluginContext,
 } from "@brains/plugins";
 import type { Daemon } from "@brains/plugins";
-import { chunkMessage, truncateText } from "@brains/utils";
+import { chunkMessage, truncateText, fetchAsText } from "@brains/utils";
 import {
   Client,
   Events,
@@ -44,16 +44,6 @@ function isSendable(channel: unknown): channel is SendableChannel {
   );
 }
 
-async function defaultFetchText(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch: ${response.status} ${response.statusText}`,
-    );
-  }
-  return response.text();
-}
-
 export interface DiscordDeps {
   fetchText?: (url: string) => Promise<string>;
 }
@@ -74,7 +64,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
   constructor(config: Partial<DiscordConfig>, deps: DiscordDeps = {}) {
     super("discord", packageJson, config, discordConfigSchema);
-    this.fetchText = deps.fetchText ?? defaultFetchText;
+    this.fetchText = deps.fetchText ?? fetchAsText;
   }
 
   protected override async onRegister(
@@ -207,7 +197,15 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     // Ignore other bots unless they explicitly mention this bot
     if (message.author.bot && !botIsMentioned) return;
 
-    if (!isDM && !isThread && this.config.requireMention) {
+    const isOwnThread =
+      isThread &&
+      "ownerId" in message.channel &&
+      message.channel.ownerId === this.client?.user?.id;
+
+    // In server channels: require mention
+    // In foreign threads (not created by this bot): require mention
+    // In own threads: respond freely (user continuing a conversation)
+    if (!isDM && !isOwnThread && this.config.requireMention) {
       if (!botIsMentioned) return;
     }
 

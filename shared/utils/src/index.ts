@@ -71,6 +71,7 @@ export {
   isHttpUrl,
   fetchAsBase64DataUrl,
   fetchImageAsBase64,
+  fetchAsText,
 } from "./http-utils";
 
 // Response types

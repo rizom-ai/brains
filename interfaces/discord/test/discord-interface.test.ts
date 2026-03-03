@@ -31,6 +31,16 @@ const mockChannel = {
 
 const mockThreadChannel = {
   id: "thread-456",
+  ownerId: "bot-user-123", // owned by this bot
+  send: mockSend,
+  sendTyping: mockSendTyping,
+  isThread: () => true,
+  messages: { fetch: mockMessagesFetch },
+};
+
+const mockForeignThreadChannel = {
+  id: "thread-789",
+  ownerId: "other-bot-456", // owned by another bot
   send: mockSend,
   sendTyping: mockSendTyping,
   isThread: () => true,
@@ -297,10 +307,33 @@ describe("DiscordInterface", () => {
       expect(mockAgentService.chat).toHaveBeenCalled();
     });
 
-    it("should always respond in threads", async () => {
+    it("should always respond in own threads without mention", async () => {
       const msg = createDiscordMessage({
-        channel: mockThreadChannel,
+        channel: mockThreadChannel, // ownerId === bot-user-123
         mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalled();
+    });
+
+    it("should ignore messages in foreign threads unless mentioned", async () => {
+      const msg = createDiscordMessage({
+        channel: mockForeignThreadChannel, // ownerId === other-bot-456
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should respond in foreign threads when explicitly mentioned", async () => {
+      const msg = createDiscordMessage({
+        channel: mockForeignThreadChannel,
+        content: "<@bot-user-123> hello",
+        mentions: { has: mock(() => true) },
       });
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 100));
