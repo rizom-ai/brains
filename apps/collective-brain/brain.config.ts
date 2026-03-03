@@ -8,6 +8,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 import { gitSyncPlugin } from "@brains/git-sync";
 import { notePlugin } from "@brains/note";
+import { linkPlugin } from "@brains/link";
 import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { productsPlugin } from "@brains/products";
@@ -89,8 +90,10 @@ const config = defineConfig({
     }),
     new DiscordInterface({
       botToken: process.env["DISCORD_BOT_TOKEN"] || "",
+      captureUrls: true,
     }),
     notePlugin({}),
+    linkPlugin({}),
     socialMediaPlugin({
       linkedin: {
         accessToken: process.env["LINKEDIN_ACCESS_TOKEN"],

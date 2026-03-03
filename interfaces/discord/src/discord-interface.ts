@@ -203,18 +203,47 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       "ownerId" in message.channel &&
       message.channel.ownerId === this.client?.user?.id;
 
-    // In server channels: require mention
-    // In foreign threads (not created by this bot): require mention
-    // In own threads: respond freely (user continuing a conversation)
-    if (!isDM && !isOwnThread && this.config.requireMention) {
-      if (!botIsMentioned) return;
-    }
-
+    // allowedChannels gates both chat and URL capture
     if (
       this.config.allowedChannels.length > 0 &&
       !isDM &&
       !this.config.allowedChannels.includes(message.channel.id)
     ) {
+      return;
+    }
+
+    // In server channels / foreign threads: require mention.
+    // In own threads: respond freely (user continuing a conversation).
+    // At this fallback, try URL capture before returning.
+    if (
+      !isDM &&
+      !isOwnThread &&
+      this.config.requireMention &&
+      !botIsMentioned
+    ) {
+      if (this.config.captureUrls) {
+        const urls = this.extractCaptureableUrls(
+          message.content,
+          this.config.blockedUrlDomains,
+        );
+        if (urls.length > 0) {
+          await message
+            .react(this.config.captureUrlEmoji)
+            .catch((e: unknown) =>
+              this.logger.debug("React failed", { error: e }),
+            );
+          for (const url of urls) {
+            await this.captureUrlViaAgent(
+              url,
+              message.channel.id,
+              message.author.id,
+              "discord",
+            ).catch((e: unknown) =>
+              this.logger.error("URL capture failed", { error: e, url }),
+            );
+          }
+        }
+      }
       return;
     }
 

@@ -124,6 +124,8 @@ const createMockAgentService = () => ({
   ),
 });
 
+const mockReact = mock(() => Promise.resolve());
+
 function createDiscordMessage(overrides: Record<string, unknown> = {}) {
   return {
     author: { id: "user-789" },
@@ -135,6 +137,7 @@ function createDiscordMessage(overrides: Record<string, unknown> = {}) {
     },
     attachments: new Map(),
     startThread: mockStartThread,
+    react: mockReact,
     ...overrides,
   };
 }
@@ -156,6 +159,7 @@ describe("DiscordInterface", () => {
     mockClientOn.mockClear();
     mockClientOnce.mockClear();
     mockFetchText.mockClear();
+    mockReact.mockClear();
     messageCreateHandler = null;
 
     mockAgentService = createMockAgentService();
@@ -582,6 +586,87 @@ describe("DiscordInterface", () => {
 
       // Should send error message to channel
       expect(mockSend).toHaveBeenCalledWith(expect.stringContaining("Error"));
+    });
+  });
+
+  describe("URL auto-capture", () => {
+    let captureDiscord: InstanceType<typeof DiscordInterface>;
+
+    beforeEach(async () => {
+      captureDiscord = new DiscordInterface({
+        botToken: "test-token",
+        captureUrls: true,
+      });
+      await harness.installPlugin(captureDiscord);
+    });
+
+    it("should react with bookmark emoji when URL is shared without mention", async () => {
+      const msg = createDiscordMessage({
+        content: "Check this out https://example.com/article",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockReact).toHaveBeenCalledWith("🔖");
+    });
+
+    it("should send URL to agent for saving", async () => {
+      const msg = createDiscordMessage({
+        content: "Check this out https://example.com/article",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalledWith(
+        expect.stringContaining("https://example.com/article"),
+        expect.stringContaining("links-"),
+        expect.any(Object),
+      );
+    });
+
+    it("should not capture URLs when captureUrls is false (default)", async () => {
+      // Default discord (captureUrls: false) is set up in outer beforeEach
+      await harness.installPlugin(discord);
+
+      const msg = createDiscordMessage({
+        content: "Check this out https://example.com/article",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockReact).not.toHaveBeenCalled();
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should not capture blocked domains", async () => {
+      const msg = createDiscordMessage({
+        content: "Join the call https://meet.google.com/abc-def-ghi",
+        mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockReact).not.toHaveBeenCalled();
+    });
+
+    it("should not URL-capture when bot is directly mentioned (normal routing)", async () => {
+      const msg = createDiscordMessage({
+        content: "<@bot-user-123> save https://example.com",
+        mentions: {
+          has: mock((_user: unknown, options?: { ignoreEveryone?: boolean }) =>
+            options?.ignoreEveryone ? true : true,
+          ),
+        },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Normal agent routing — no emoji react for URL capture
+      expect(mockReact).not.toHaveBeenCalled();
+      expect(mockAgentService.chat).toHaveBeenCalled();
     });
   });
 });

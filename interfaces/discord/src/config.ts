@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { urlCaptureConfigSchema } from "@brains/plugins";
 
 /**
  * Discord interface configuration schema
@@ -22,6 +23,10 @@ export const discordConfigSchema = z.object({
   threadAutoArchive: z
     .union([z.literal(60), z.literal(1440), z.literal(4320), z.literal(10080)])
     .default(1440),
+  // URL capture (shared config) + Discord-specific emoji reaction
+  ...urlCaptureConfigSchema.shape,
+  /** Emoji to react with when capturing a URL */
+  captureUrlEmoji: z.string().default("🔖"),
 });
 
 export type DiscordConfig = z.infer<typeof discordConfigSchema>;

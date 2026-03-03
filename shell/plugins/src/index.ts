@@ -55,6 +55,7 @@ export { createInterfacePluginContext } from "./interface/context";
 export {
   MessageInterfacePlugin,
   type MessageJobTrackingInfo,
+  urlCaptureConfigSchema,
   setupProgressHandler,
   formatCompletionMessage,
   formatProgressMessage,

@@ -7,6 +7,36 @@ import {
   formatCompletionMessage,
   formatProgressMessage,
 } from "./progress-handler";
+import { z } from "@brains/utils";
+
+/**
+ * Shared URL capture config schema — spread into any MessageInterfacePlugin config.
+ * Interfaces add platform-specific options (e.g. captureUrlEmoji for Discord).
+ */
+export const urlCaptureConfigSchema = z.object({
+  /** Auto-capture URLs shared in channels (without mention) */
+  captureUrls: z.boolean().default(false),
+  /** Domains to skip for URL auto-capture (meetings, scheduling, media, etc.) */
+  blockedUrlDomains: z
+    .array(z.string())
+    .default([
+      "meet.google.com",
+      "zoom.us",
+      "teams.microsoft.com",
+      "whereby.com",
+      "gather.town",
+      "calendly.com",
+      "cal.com",
+      "discord.com",
+      "discord.gg",
+      "cdn.discordapp.com",
+      "media.discordapp.net",
+      "giphy.com",
+      "tenor.com",
+      "wetransfer.com",
+      "file.io",
+    ]),
+});
 
 /**
  * Tracked progress message for editing
@@ -94,6 +124,58 @@ export abstract class MessageInterfacePlugin<
    */
   protected formatFileUploadMessage(filename: string, content: string): string {
     return `User uploaded a file "${filename}":\n\n${content}`;
+  }
+
+  // ── URL capture ──
+
+  private static readonly URL_PATTERN =
+    /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/gi;
+
+  /**
+   * Extract HTTP(S) URLs from message content, filtering out blocked domains.
+   * Used by interfaces that support URL auto-capture.
+   */
+  protected extractCaptureableUrls(
+    content: string,
+    blockedDomains: string[],
+  ): string[] {
+    const matches = content.match(MessageInterfacePlugin.URL_PATTERN) ?? [];
+    return [...new Set(matches)].filter((url) => {
+      try {
+        const { hostname } = new URL(url);
+        return !blockedDomains.some(
+          (d) => hostname === d || hostname.endsWith(`.${d}`),
+        );
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * Save a URL via the agent (delegates to link_capture tool). Silent — no reply sent.
+   * Uses a dedicated conversation ID to avoid polluting the user's chat history.
+   */
+  protected async captureUrlViaAgent(
+    url: string,
+    channelId: string,
+    authorId: string,
+    interfaceType: string,
+  ): Promise<void> {
+    if (!this.context) return;
+    const userPermissionLevel = this.context.permissions.getUserLevel(
+      interfaceType,
+      authorId,
+    );
+    await this.context.agentService.chat(
+      `Save this link: ${url}`,
+      `links-${channelId}`,
+      {
+        userPermissionLevel,
+        interfaceType,
+        channelId,
+      },
+    );
   }
 
   /**

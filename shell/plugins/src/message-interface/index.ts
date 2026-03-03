@@ -1,6 +1,7 @@
 export {
   MessageInterfacePlugin,
   type MessageJobTrackingInfo,
+  urlCaptureConfigSchema,
 } from "./message-interface-plugin";
 
 export {
