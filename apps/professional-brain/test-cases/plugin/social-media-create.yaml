@@ -1,0 +1,24 @@
+id: plugin-social-media-create
+name: Social media post creation persists entity
+description: Verifies that creating a LinkedIn post actually persists the entity to the database (regression for the "Done! I created a post" but no entity bug)
+type: plugin
+tags:
+  - social-media
+  - generation
+  - regression
+plugin: social-media
+handler: create
+
+input:
+  title: "AI and Knowledge Work"
+  content: "The way we work with information is changing radically. What used to require teams of researchers can now be done by a single person with the right tools. This shift isn't just about efficiency — it's about what becomes possible when friction disappears."
+  platform: linkedin
+
+expectedOutput:
+  validateEach:
+    - path: success
+      equals: true
+    - path: entityId
+      exists: true
+    - path: entityExists
+      equals: true
