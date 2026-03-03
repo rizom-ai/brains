@@ -296,6 +296,23 @@ describe("DiscordInterface", () => {
       expect(mockAgentService.chat).not.toHaveBeenCalled();
     });
 
+    it("should ignore @everyone messages (not a direct mention of the bot)", async () => {
+      // Discord.js mentions.has() returns true for @everyone unless ignoreEveryone is passed
+      // Simulate the raw Discord.js behavior: has() returns true because of @everyone
+      const msg = createDiscordMessage({
+        content: "Hi @everyone! Check this out.",
+        mentions: {
+          has: mock((_user: unknown, options?: { ignoreEveryone?: boolean }) =>
+            options?.ignoreEveryone ? false : true,
+          ),
+        },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
     it("should respond to DMs without mention", async () => {
       const msg = createDiscordMessage({
         guild: null, // DM

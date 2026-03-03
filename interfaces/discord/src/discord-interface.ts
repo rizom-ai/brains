@@ -192,7 +192,8 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     if (isDM && !this.config.allowDMs) return;
 
     const botIsMentioned =
-      !!this.client?.user && message.mentions.has(this.client.user);
+      !!this.client?.user &&
+      message.mentions.has(this.client.user, { ignoreEveryone: true });
 
     // Ignore other bots unless they explicitly mention this bot
     if (message.author.bot && !botIsMentioned) return;
