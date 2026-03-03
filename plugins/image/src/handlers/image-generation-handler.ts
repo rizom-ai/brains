@@ -11,6 +11,7 @@ import {
   JobResult,
 } from "@brains/utils";
 import { imageAdapter } from "@brains/image";
+import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
 
 /**
  * Schema for AI-distilled image prompt
@@ -147,10 +148,16 @@ ${data.entityContent}`,
         message: "Generating image",
       });
 
-      // Step 2: Generate image
+      // Step 2: Apply base style prompt
+      const identity = this.context.identity.get();
+      const profile = this.context.identity.getProfile();
+      const basePrompt = buildImageBasePrompt(identity, profile);
+      const styledPrompt = basePrompt + finalPrompt;
+
+      // Step 3: Generate image
       let generationResult;
       try {
-        generationResult = await this.context.ai.generateImage(finalPrompt, {
+        generationResult = await this.context.ai.generateImage(styledPrompt, {
           ...(aspectRatio && { aspectRatio }),
         });
       } catch (error) {

@@ -225,7 +225,7 @@ describe("ImageGenerationJobHandler", () => {
       await handler.process(jobData, "job-123", progressReporter);
 
       expect(context.ai.generateImage).toHaveBeenCalledWith(
-        "A beautiful sunset over mountains",
+        expect.stringContaining("A beautiful sunset over mountains"),
         { aspectRatio: "1:1" },
       );
     });
@@ -412,6 +412,22 @@ describe("ImageGenerationJobHandler", () => {
       );
     });
 
+    it("should prepend base style prompt to all generated images", async () => {
+      const jobData = createValidJobData();
+
+      await handler.process(jobData, "job-123", progressReporter);
+
+      // Verify the prompt includes both the style prefix and the user's subject
+      expect(context.ai.generateImage).toHaveBeenCalledWith(
+        expect.stringContaining("editorial illustration"),
+        expect.any(Object),
+      );
+      expect(context.ai.generateImage).toHaveBeenCalledWith(
+        expect.stringContaining("A beautiful sunset over mountains"),
+        expect.any(Object),
+      );
+    });
+
     it("should use prompt directly when entityContent is not provided", async () => {
       const jobData = createValidJobData({
         prompt: "A beautiful sunset over mountains",
@@ -421,9 +437,9 @@ describe("ImageGenerationJobHandler", () => {
 
       // Should NOT call generateObject
       expect(context.ai.generateObject).not.toHaveBeenCalled();
-      // Should use the prompt directly
+      // Should use the prompt with base style prepended
       expect(context.ai.generateImage).toHaveBeenCalledWith(
-        "A beautiful sunset over mountains",
+        expect.stringContaining("A beautiful sunset over mountains"),
         expect.any(Object),
       );
     });
