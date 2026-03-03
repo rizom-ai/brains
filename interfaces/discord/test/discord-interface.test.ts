@@ -232,11 +232,43 @@ describe("DiscordInterface", () => {
       expect(mockAgentService.chat).toHaveBeenCalled();
     });
 
-    it("should ignore bot DMs", async () => {
+    it("should ignore bots that don't mention this bot, even in DMs", async () => {
       const msg = createDiscordMessage({
         author: { id: "other-bot-456", bot: true },
         guild: null,
         mentions: { has: mock(() => false) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
+    });
+
+    it("should respond to bots that explicitly mention this bot in DMs", async () => {
+      const msg = createDiscordMessage({
+        author: { id: "other-bot-456", bot: true },
+        guild: null,
+        content: "<@bot-user-123> hello from another bot",
+        mentions: { has: mock(() => true) },
+      });
+      messageCreateHandler?.(msg);
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(mockAgentService.chat).toHaveBeenCalled();
+    });
+
+    it("should block bot DMs when allowDMs is false, even with mention", async () => {
+      const noDMDiscord = new DiscordInterface({
+        botToken: "test-token",
+        allowDMs: false,
+      });
+      await harness.installPlugin(noDMDiscord);
+
+      const msg = createDiscordMessage({
+        author: { id: "other-bot-456", bot: true },
+        guild: null,
+        content: "<@bot-user-123> hello",
+        mentions: { has: mock(() => true) },
       });
       messageCreateHandler?.(msg);
       await new Promise((r) => setTimeout(r, 50));
