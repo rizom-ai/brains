@@ -65,7 +65,8 @@ const config = defineConfig({
 
   // Configure centralized permissions
   permissions: {
-    anchors: ["matrix:@yeehaa:rizom.ai"],
+    anchors: ["matrix:@yeehaa:rizom.ai", "discord:1442828818493735015"],
+    trusted: ["discord:624315360157499422"],
     rules: [
       // MCP stdio transport gets anchor permissions (local access)
       { pattern: "mcp:stdio", level: "anchor" },
@@ -118,6 +119,7 @@ const config = defineConfig({
     siteBuilderPlugin({
       routes, // Custom routes with Rizom branding
       previewOutputDir: "./dist/site-preview", // Build to preview by default
+      analyticsScript: process.env["CLOUDFLARE_ANALYTICS_SCRIPT"],
       entityRouteConfig: {
         "social-post": {
           label: "Social Post",
