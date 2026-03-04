@@ -28,6 +28,7 @@ import {
   exportEntities as runExport,
   processEntityExport as runProcessEntityExport,
 } from "./export-pipeline";
+import { removeOrphanedEntities as runCleanup } from "./cleanup-pipeline";
 
 export const directorySyncOptionsSchema = z.object({
   syncPath: z.string(),
@@ -161,12 +162,29 @@ export class DirectorySync {
 
     const importResult = await this.importEntities();
 
+    // Remove DB entities whose files no longer exist on disk
+    // (e.g., files deleted via git pull before the file watcher started)
+    const cleanupResult = await runCleanup({
+      entityService: this.entityService,
+      logger: this.logger,
+      fileOperations: this.fileOperations,
+      deleteOnFileRemoval: this.deleteOnFileRemoval,
+      entityTypes: this.entityTypes,
+    });
+
+    if (cleanupResult.deleted > 0) {
+      this.logger.info("Cleaned up orphaned entities", {
+        deleted: cleanupResult.deleted,
+      });
+    }
+
     const duration = Date.now() - startTime;
     this.lastSync = new Date();
 
     this.logger.debug("Sync completed", {
       duration,
       imported: importResult.imported,
+      orphansDeleted: cleanupResult.deleted,
     });
 
     return {
