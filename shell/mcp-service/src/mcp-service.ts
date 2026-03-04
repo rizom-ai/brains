@@ -25,6 +25,9 @@ export class MCPService implements IMCPService {
     { pluginId: string; resource: PluginResource }
   >();
 
+  // Track plugin instructions for agent system prompt
+  private pluginInstructions = new Map<string, string>();
+
   // Default permission level for the service
   private permissionLevel: UserPermissionLevel = "anchor";
 
@@ -259,5 +262,17 @@ export class MCPService implements IMCPService {
     resource: PluginResource;
   }> {
     return Array.from(this.registeredResources.values());
+  }
+
+  public registerPluginInstructions(
+    pluginId: string,
+    instructions: string,
+  ): void {
+    this.pluginInstructions.set(pluginId, instructions);
+    this.logger.debug(`Registered instructions from plugin: ${pluginId}`);
+  }
+
+  public getPluginInstructions(): string[] {
+    return Array.from(this.pluginInstructions.values());
   }
 }

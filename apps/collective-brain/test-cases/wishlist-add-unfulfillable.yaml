@@ -1,0 +1,25 @@
+id: wishlist-add-unfulfillable-request
+name: Log unfulfillable request to wishlist
+description: Tests that the agent calls wishlist_add when it cannot fulfill a user request (real-world action)
+type: tool_invocation
+tags:
+  - wishlist
+  - tool-invocation
+  - proactive-behavior
+
+turns:
+  - userMessage: "Can you water my plants for me?"
+
+successCriteria:
+  expectedTools:
+    - toolName: wishlist_add
+      shouldBeCalled: true
+
+  # Should NOT pretend it can do it
+  responseNotContains:
+    - "I've watered"
+    - "watering your plants now"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

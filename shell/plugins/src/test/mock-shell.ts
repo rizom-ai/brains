@@ -523,6 +523,10 @@ export class MockShell implements IShell {
     );
   }
 
+  registerPluginInstructions(pluginId: string, _instructions: string): void {
+    this.logger.debug(`Mock: Registered instructions for ${pluginId}`);
+  }
+
   // Additional methods for testing
   registerPlugin(plugin: Plugin): void {
     this.plugins.set(plugin.id, plugin);

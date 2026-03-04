@@ -11,11 +11,13 @@
     "migrate:entities": "brain-migrate-entities",
     "migrate:job-queue": "brain-migrate-job-queue",
     "migrate:conversations": "brain-migrate-conversations",
+    "eval": "brain-eval",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/ai-evaluation": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
@@ -31,6 +33,7 @@
     "@brains/system": "workspace:*",
     "@brains/theme-default": "workspace:*",
     "@brains/webserver": "workspace:*",
+    "@brains/wishlist": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

@@ -46,6 +46,7 @@ export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
 export interface BrainAgentConfig {
   identity: BrainCharacter;
   tools: PluginTool[];
+  pluginInstructions?: string[];
   stepLimit?: number;
   getToolsForPermission: (level: UserPermissionLevel) => PluginTool[];
 }
@@ -119,6 +120,7 @@ function convertToSDKTools(
 function buildInstructions(
   identity: BrainCharacter,
   userPermissionLevel: UserPermissionLevel,
+  pluginInstructions?: string[],
 ): string {
   let userContext = "";
   if (userPermissionLevel === "anchor") {
@@ -137,7 +139,8 @@ You are speaking with a **trusted user** who has elevated access but is not the 
 You are speaking with a **public user** with limited access.`;
   }
 
-  return `# ${identity.name}
+  return (
+    `# ${identity.name}
 
 **Role:** ${identity.role}
 **Purpose:** ${identity.purpose}
@@ -164,7 +167,11 @@ You are an AI assistant with access to tools for managing a personal knowledge s
 - **Prefer single-step operations** - use tool parameters to combine actions rather than chaining multiple tool calls (e.g., use \`generateImage: true\` instead of generating and attaching separately)
 - **Always specify target entities** - when an operation relates to an existing entity, pass its type and ID so the tool can act on it directly
 - **Always attempt tool calls** - when the user asks for an action on a specific entity, call the tool with the given parameters. Let the tool validate inputs and report errors rather than refusing preemptively. Never skip a tool call because you think an entity might not exist
-- Summarize tool results concisely rather than showing raw output
+- Summarize tool results concisely rather than showing raw output` +
+    (pluginInstructions && pluginInstructions.length > 0
+      ? `\n\n### Plugin-Specific Behavior (MANDATORY)\n\n${pluginInstructions.join("\n\n")}`
+      : "") +
+    `
 
 ### Proactive Search Behavior
 - **ALWAYS search automatically** when the user asks about their content, usage, or knowledge
@@ -198,8 +205,8 @@ When asking for confirmation, clearly describe what will happen.
 - Don't repeat information - state things once
 - For empty results, a brief acknowledgment is enough (e.g., "No items found yet")
 - Use markdown sparingly - avoid excessive headers and bullet points for simple responses
-- If you cannot fulfill a request, briefly explain what you CAN do instead
-- If you don't know something, say so concisely`;
+- If you don't know something, say so concisely`
+  );
 }
 
 /**
@@ -257,6 +264,7 @@ export function createBrainAgentFactory(
           instructions: buildInstructions(
             config.identity,
             callOptions.userPermissionLevel,
+            config.pluginInstructions,
           ),
           tools: toolsWithContext,
           activeTools: allowedToolNames,

@@ -385,6 +385,13 @@ export class Shell implements IShell {
     }
   }
 
+  public registerPluginInstructions(
+    pluginId: string,
+    instructions: string,
+  ): void {
+    this.services.mcpService.registerPluginInstructions(pluginId, instructions);
+  }
+
   public getPluginPackageName(pluginId: string): string | undefined {
     return this.services.pluginManager.getPluginPackageName(pluginId);
   }

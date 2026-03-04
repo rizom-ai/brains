@@ -31,6 +31,17 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
   protected override async getTools(): Promise<PluginTool[]> {
     return createWishlistTools(this.id, this.getContext());
   }
+
+  protected override async getInstructions(): Promise<string> {
+    return (
+      "**CRITICAL — Unfulfilled requests**: ALWAYS call `wishlist_add` BEFORE responding " +
+      "when you cannot fulfill a user's request. This applies to ALL unfulfillable requests: " +
+      'physical actions ("water my plants", "clean my house"), missing integrations ' +
+      '("send an email", "post to Instagram"), and any capability you lack. ' +
+      "Do NOT just explain you can't do it — call `wishlist_add` first, THEN respond. " +
+      "Every unfulfilled request is valuable product feedback that must be tracked."
+    );
+  }
 }
 
 export function createWishlistPlugin(

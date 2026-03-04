@@ -237,6 +237,14 @@ export abstract class BasePlugin<
   }
 
   /**
+   * Get behavioral instructions for the agent's system prompt
+   * Override this to provide plugin-specific agent guidance
+   */
+  protected async getInstructions(): Promise<string | undefined> {
+    return undefined;
+  }
+
+  /**
    * Optional shutdown method for cleanup
    * Override this if your plugin needs cleanup
    */

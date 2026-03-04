@@ -7,6 +7,7 @@ import {
   wishPrioritySchema,
   type WishEntity,
 } from "../schemas/wish";
+import { findExistingWish } from "../lib/wish-dedup";
 
 const addSchema = z.object({
   title: z.string().describe("Short title for the wish"),
@@ -42,20 +43,25 @@ export function createWishlistTools(
     createTypedTool(
       pluginId,
       "add",
-      "Log an unfulfilled user request to the wishlist. Use this when you cannot fulfill a request because the capability doesn't exist yet. If the same wish already exists, its request count is incremented.",
+      "Log an unfulfilled user request to the wishlist. Use this whenever you cannot fulfill a request — whether the feature doesn't exist, it requires real-world actions, or it's outside your capabilities. If a similar wish already exists, its request count is incremented.",
       addSchema,
       async (input) => {
-        const slug = slugify(input.title);
-        const existing = await context.entityService.getEntity<WishEntity>(
-          "wish",
-          slug,
+        const existing = await findExistingWish(
+          {
+            search: (query, options) =>
+              context.entityService.search<WishEntity>(query, options),
+            getEntity: (entityType, id) =>
+              context.entityService.getEntity<WishEntity>(entityType, id),
+            similarityThreshold: 0.85,
+          },
+          { title: input.title, description: input.description },
         );
 
         if (existing) {
           const { frontmatter, description } = adapter.parseWishContent(
             existing.content,
           );
-          const newRequested = (frontmatter.requested ?? 1) + 1;
+          const newRequested = frontmatter.requested + 1;
           const updatedContent = adapter.createWishContent(
             { ...frontmatter, requested: newRequested },
             description,
@@ -69,11 +75,16 @@ export function createWishlistTools(
 
           return {
             success: true,
-            data: { id: slug, existed: true, requested: newRequested },
+            data: {
+              id: existing.id,
+              existed: true,
+              requested: newRequested,
+            },
             message: `This wish is already on the wishlist — requested ${newRequested} times.`,
           };
         }
 
+        const slug = slugify(input.title);
         const content = adapter.createWishContent(
           {
             title: input.title,

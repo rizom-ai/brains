@@ -36,5 +36,11 @@ export class CapabilityRegistrar {
         `Registered ${capabilities.resources.length} resources from ${pluginId}`,
       );
     }
+
+    // Register instructions
+    if (capabilities.instructions) {
+      shell.registerPluginInstructions(pluginId, capabilities.instructions);
+      this.logger.debug(`Registered instructions from ${pluginId}`);
+    }
   }
 }

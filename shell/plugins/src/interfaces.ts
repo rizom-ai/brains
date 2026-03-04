@@ -161,6 +161,7 @@ export interface IShell {
   // Plugin capability registration
   registerPluginTools(pluginId: string, tools: PluginTool[]): void;
   registerPluginResources(pluginId: string, resources: PluginResource[]): void;
+  registerPluginInstructions(pluginId: string, instructions: string): void;
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;
@@ -260,6 +261,7 @@ export const pluginMetadataSchema = z.object({
 export interface PluginCapabilities {
   tools: PluginTool[];
   resources: PluginResource[];
+  instructions?: string;
 }
 
 /**

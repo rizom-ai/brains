@@ -37,6 +37,8 @@ const createMockMCPService = (): IMCPService => ({
   registerResource: mock(() => {}),
   getMcpServer: mock(() => ({}) as ReturnType<IMCPService["getMcpServer"]>),
   setPermissionLevel: mock(() => {}),
+  registerPluginInstructions: mock(() => {}),
+  getPluginInstructions: mock(() => []),
 });
 
 // Mock BrainCharacterService
@@ -489,6 +491,28 @@ describe("AgentService", () => {
           identity: expect.objectContaining({ name: "Test Brain" }),
         }),
       );
+    });
+
+    it("should pass plugin instructions from MCPService to agent factory", async () => {
+      const mcpWithInstructions = createMockMCPService();
+      mcpWithInstructions.getPluginInstructions = mock(() => [
+        "Always log unfulfilled requests.",
+      ]);
+
+      const service = AgentService.createFresh(
+        mcpWithInstructions,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      const createCallArgs = mockAgentFactory.mock.calls[0]?.[0];
+      expect(createCallArgs?.pluginInstructions).toEqual([
+        "Always log unfulfilled requests.",
+      ]);
     });
   });
 

@@ -145,6 +145,16 @@ export interface IMCPService extends IMCPTransport {
    * List all registered resources
    */
   listResources(): Array<{ pluginId: string; resource: PluginResource }>;
+
+  /**
+   * Register behavioral instructions from a plugin for the agent system prompt
+   */
+  registerPluginInstructions(pluginId: string, instructions: string): void;
+
+  /**
+   * Get all registered plugin instructions
+   */
+  getPluginInstructions(): string[];
 }
 
 /**

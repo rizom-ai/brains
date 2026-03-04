@@ -1,0 +1,24 @@
+id: wishlist-add-missing-capability
+name: Log missing capability to wishlist
+description: Tests that the agent calls wishlist_add when a feature does not exist
+type: tool_invocation
+tags:
+  - wishlist
+  - tool-invocation
+  - proactive-behavior
+
+turns:
+  - userMessage: "Can you send an email to my girlfriend?"
+
+successCriteria:
+  expectedTools:
+    - toolName: wishlist_add
+      shouldBeCalled: true
+
+  responseNotContains:
+    - "I've sent"
+    - "email sent"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

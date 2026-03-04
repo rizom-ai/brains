@@ -10,6 +10,16 @@ describe("WishlistPlugin", () => {
     await harness.installPlugin(new WishlistPlugin());
   });
 
+  describe("plugin instructions", () => {
+    it("should provide agent instructions", async () => {
+      const harness2 = createPluginHarness();
+      const capabilities = await harness2.installPlugin(new WishlistPlugin());
+
+      expect(capabilities.instructions).toBeDefined();
+      expect(capabilities.instructions).toContain("wishlist_add");
+    });
+  });
+
   describe("wishlist_add", () => {
     it("should create a new wish entity", async () => {
       const result = await harness.executeTool("wishlist_add", {
