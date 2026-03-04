@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IJobProgressMonitor } from "@brains/utils";
 import type { JobResult } from "./schemas";
@@ -9,6 +9,15 @@ import type {
   JobQueueWorkerStats,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
+
+/**
+ * Schema for detecting controlled handler failures
+ * Handlers return { success: false, error?: string } for known error conditions
+ */
+const handlerFailureSchema = z.object({
+  success: z.literal(false),
+  error: z.string().optional(),
+});
 
 /**
  * Generic job queue worker that processes jobs from the queue
@@ -324,6 +333,27 @@ export class JobQueueWorker {
         job.id,
         progressReporter,
       );
+
+      // Check if handler returned a controlled failure
+      const failure = handlerFailureSchema.safeParse(result);
+      if (failure.success) {
+        const errorMessage = failure.data.error ?? "Handler returned failure";
+
+        await this.jobQueueService.fail(job.id, new Error(errorMessage));
+
+        await this.progressMonitor.handleJobStatusChange(
+          job.id,
+          "failed",
+          job.metadata,
+        );
+
+        return {
+          jobId: job.id,
+          type: job.type,
+          status: JOB_STATUS.FAILED,
+          error: errorMessage,
+        };
+      }
 
       await this.jobQueueService.complete(job.id, result);
 

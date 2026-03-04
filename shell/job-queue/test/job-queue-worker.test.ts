@@ -263,4 +263,94 @@ describe("JobQueueWorker", () => {
       expect(stats.processedJobs).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe("Handler failure propagation", () => {
+    it("should call fail() when handler returns { success: false }", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(() =>
+        Promise.resolve({ success: false, error: "Title is required" }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      worker = result.worker;
+
+      await worker.start();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(result.mockService.fail).toHaveBeenCalled();
+      expect(result.mockService.complete).not.toHaveBeenCalled();
+    });
+
+    it("should call complete() when handler returns { success: true }", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(() =>
+        Promise.resolve({ success: true, entityId: "abc" }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      worker = result.worker;
+
+      await worker.start();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(result.mockService.complete).toHaveBeenCalled();
+      expect(result.mockService.fail).not.toHaveBeenCalled();
+    });
+
+    it("should report failed status to progress monitor when handler returns failure", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(() =>
+        Promise.resolve({ success: false, error: "No content source" }),
+      );
+
+      const progressMonitor = new MockProgressMonitor();
+      const handleStatusChange = spyOn(
+        progressMonitor,
+        "handleJobStatusChange",
+      );
+
+      let callCount = 0;
+      const service = createMockJobQueueService({
+        returns: { getHandler: handler },
+      });
+      spyOn(service, "dequeue").mockImplementation(() => {
+        callCount++;
+        return callCount === 1
+          ? Promise.resolve(testJob)
+          : Promise.resolve(null);
+      });
+
+      worker = JobQueueWorker.createFresh(
+        service,
+        progressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 50,
+        },
+      );
+
+      await worker.start();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(handleStatusChange).toHaveBeenCalledWith(
+        testJob.id,
+        "failed",
+        testJob.metadata,
+      );
+    });
+
+    it("should count handler { success: false } as a failed job in stats", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(() =>
+        Promise.resolve({ success: false, error: "Missing title" }),
+      );
+      const result = createWorkerWithSingleJob(handler);
+      worker = result.worker;
+
+      await worker.start();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      const stats = worker.getStats();
+      expect(stats.failedJobs).toBe(1);
+      expect(stats.processedJobs).toBe(0);
+    });
+  });
 });
