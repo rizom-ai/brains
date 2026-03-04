@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   GenerationJobHandler,
   generationJobSchema,
@@ -148,10 +148,11 @@ describe("GenerationJobHandler", () => {
       });
     });
 
-    it("should send generate:report:failure when content is provided without title", async () => {
+    it("should send generate:report:failure when AI fails to generate title or content", async () => {
+      // Content without title goes through AI — mock AI returns empty object
       const jobData: GenerationJobData = {
         content: "My direct LinkedIn post content",
-        // title intentionally omitted
+        // title intentionally omitted — triggers AI generation
         platform: "linkedin",
       };
 
@@ -162,8 +163,6 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(false);
-      // Bug: currently no failure message is sent for controlled early returns —
-      // only catch-block errors trigger generate:report:failure
       const failureMsg = sentMessages.find(
         (m) => m.type === "generate:report:failure",
       );
@@ -186,7 +185,8 @@ describe("GenerationJobHandler", () => {
       expect(failureMsg).toBeDefined();
     });
 
-    it("should not create any entity when handler fails with controlled error", async () => {
+    it("should not create any entity when AI fails to generate title or content", async () => {
+      // Content without title triggers AI, but mock AI returns no title/content
       const jobData: GenerationJobData = {
         content: "Content without title",
         platform: "linkedin",
@@ -288,11 +288,17 @@ describe("GenerationJobHandler", () => {
       expect(createdStatus).toBe("draft");
     });
 
-    it("should fail when content provided without title", async () => {
+    it("should pass content through AI generation when title is not provided", async () => {
+      spyOn(mockShell, "generateContent").mockResolvedValue({
+        title: "AI Generated Title",
+        content: "AI-shaped LinkedIn post content",
+      });
+      context = createServicePluginContext(mockShell, "social-media");
+      handler = new GenerationJobHandler(logger, context);
+
       const jobData: GenerationJobData = {
-        content: "My direct LinkedIn post content",
+        content: "Raw user content that needs shaping",
         platform: "linkedin",
-        addToQueue: false,
       };
 
       const result = await handler.process(
@@ -301,10 +307,8 @@ describe("GenerationJobHandler", () => {
         progressReporter,
       );
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain(
-        "Title is required when providing content directly",
-      );
+      expect(result.success).toBe(true);
+      expect(result.entityId).toBeDefined();
     });
 
     it("should report progress during generation", async () => {

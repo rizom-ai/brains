@@ -1,0 +1,22 @@
+id: plugin-social-media-create-from-content
+name: Social media post creation from raw content (no title)
+description: Verifies that providing content without a title goes through AI generation to shape the content and auto-generate a title — the actual production path when users share text via Discord
+type: plugin
+tags:
+  - social-media
+  - generation
+  - regression
+plugin: social-media
+handler: create
+
+input:
+  content: "Knowledge gets trapped — either locked in key people's heads or scattered across tools. New team members repeatedly ask the same questions. Critical context disappears when decisions need to be made. We're building infrastructure that lets knowledge flow instead of extracting and controlling it."
+
+expectedOutput:
+  validateEach:
+    - path: success
+      equals: true
+    - path: entityId
+      exists: true
+    - path: entityExists
+      equals: true

@@ -74,20 +74,37 @@ export class GenerationJobHandler extends BaseJobHandler<
         message: "Starting social post generation",
       });
 
-      // Case 1: Direct content provided (no AI needed)
-      if (content) {
-        if (!title) {
-          const error = "Title is required when providing content directly";
-          await this.context.messaging.send("generate:report:failure", {
-            entityType: "social-post",
-            error,
-          });
-          return { success: false, error };
-        }
+      // Case 1: Direct content with title (no AI needed)
+      if (content && title) {
         await progressReporter.report({
           progress: 50,
           total: 100,
           message: "Using provided content",
+        });
+      }
+      // Case 1b: Content without title — pass through AI to shape and generate title
+      else if (content && !title) {
+        await progressReporter.report({
+          progress: 10,
+          total: 100,
+          message: "Shaping content with AI",
+        });
+
+        const generated = await this.context.ai.generate<{
+          title: string;
+          content: string;
+        }>({
+          prompt: content,
+          templateName: getTemplateName(platform),
+        });
+
+        title = generated.title;
+        content = generated.content;
+
+        await progressReporter.report({
+          progress: 50,
+          total: 100,
+          message: "Social post shaped from content",
         });
       }
       // Case 2: Generate from source entity
@@ -203,10 +220,12 @@ ${sourceEntity.content}`,
 
       // At this point content and title are guaranteed to be set from one of the branches
       if (!content || !title) {
-        return {
-          success: false,
-          error: "Content or title was not generated",
-        };
+        const error = "Content or title was not generated";
+        await this.context.messaging.send("generate:report:failure", {
+          entityType: "social-post",
+          error,
+        });
+        return { success: false, error };
       }
 
       // Create frontmatter (content fields only, operational state lives in memory)
