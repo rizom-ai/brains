@@ -12,6 +12,7 @@ import { linkPlugin } from "@brains/link";
 import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { productsPlugin } from "@brains/products";
+import { wishlistPlugin } from "@brains/wishlist";
 import { routes as defaultRoutes } from "@brains/default-site-content";
 
 // Customize routes for Rizom collective
@@ -119,6 +120,7 @@ const config = defineConfig({
       previewPort: 4321,
     }),
     productsPlugin(),
+    wishlistPlugin({}),
     siteBuilderPlugin({
       routes, // Custom routes with Rizom branding
       previewOutputDir: "./dist/site-preview", // Build to preview by default
