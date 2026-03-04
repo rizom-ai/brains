@@ -39,7 +39,7 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
       'physical actions ("water my plants", "clean my house"), missing integrations ' +
       '("send an email", "post to Instagram"), and any capability you lack. ' +
       "Do NOT just explain you can't do it — call `wishlist_add` first, THEN respond. " +
-      "Every unfulfilled request is valuable product feedback that must be tracked."
+      "In your response, tell the user their request has been added to the wishlist."
     );
   }
 }
