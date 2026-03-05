@@ -4,6 +4,7 @@ import {
   wishlistConfigSchema,
   wishSchema,
   type WishlistConfig,
+  type WishEntity,
 } from "./schemas/wish";
 import { WishAdapter } from "./adapters/wish-adapter";
 import { createWishlistTools } from "./tools/index";
@@ -25,6 +26,50 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
     context: ServicePluginContext,
   ): Promise<void> {
     context.entities.register("wish", wishSchema, new WishAdapter());
+
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await context.messaging.send("dashboard:register-widget", {
+        id: "top-wishes",
+        pluginId: this.id,
+        title: "Top Wishes",
+        section: "secondary",
+        priority: 30,
+        rendererName: "ListWidget",
+        dataProvider: async () => {
+          const wishes = await context.entityService.listEntities<WishEntity>(
+            "wish",
+            {
+              limit: 10,
+            },
+          );
+
+          const priorityOrder: Record<string, number> = {
+            critical: 0,
+            high: 1,
+            medium: 2,
+            low: 3,
+          };
+          wishes.sort((a, b) => {
+            const reqDiff = b.metadata.requested - a.metadata.requested;
+            if (reqDiff !== 0) return reqDiff;
+            return (
+              (priorityOrder[a.metadata.priority] ?? 2) -
+              (priorityOrder[b.metadata.priority] ?? 2)
+            );
+          });
+
+          return {
+            items: wishes.map((w) => ({
+              id: w.id,
+              name: `${w.metadata.title} (×${w.metadata.requested})`,
+              type: w.metadata.priority,
+            })),
+          };
+        },
+      });
+      return { success: true };
+    });
+
     this.logger.debug("Wishlist plugin registered");
   }
 
