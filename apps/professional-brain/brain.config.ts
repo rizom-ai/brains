@@ -119,6 +119,12 @@ const config = defineConfig({
       syncInterval: 5,
     }),
     new WebserverInterface({
+      productionDomain: process.env["DOMAIN"]
+        ? `https://${process.env["DOMAIN"]}`
+        : undefined,
+      previewDomain: process.env["PREVIEW_DOMAIN"]
+        ? `https://${process.env["PREVIEW_DOMAIN"]}`
+        : undefined,
       previewPort: 4321,
       previewDistDir: "./dist/site-preview",
     }),
