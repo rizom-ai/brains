@@ -1,6 +1,7 @@
 // @ts-ignore TS6133 - h is required for JSX compilation
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "preact";
+import { useState } from "preact/hooks";
 import type { VNode } from "preact";
 import { z } from "@brains/utils";
 import type { BaseWidgetProps } from "./index";
@@ -69,8 +70,46 @@ function PipelineItemRow({ item }: { item: PipelineItem }): VNode {
   );
 }
 
+const STATUSES = ["draft", "queued", "published", "failed"] as const;
+type Status = (typeof STATUSES)[number];
+
+const STATUS_LABELS: Record<Status, string> = {
+  draft: "drafts",
+  queued: "queued",
+  published: "published",
+  failed: "failed",
+};
+
+function StatusTab({
+  status,
+  count,
+  active,
+  onClick,
+}: {
+  status: Status;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}): VNode {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1.5 text-xs cursor-pointer px-2 py-1 rounded-md transition-colors ${
+        active
+          ? "bg-theme text-theme font-semibold"
+          : "text-theme-muted hover:text-theme"
+      }`}
+    >
+      <StatusDot status={status} />
+      <strong className="tabular-nums">{count}</strong> {STATUS_LABELS[status]}
+    </button>
+  );
+}
+
 export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
   const parsed = pipelineDataSchema.safeParse(data);
+  const [activeStatus, setActiveStatus] = useState<Status>("draft");
 
   if (!parsed.success) {
     return (
@@ -86,7 +125,7 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
   }
 
   const { summary, items } = parsed.data;
-  const totalQueued = summary.queued;
+  const filtered = items.filter((item) => item.status === activeStatus);
 
   return (
     <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
@@ -94,53 +133,29 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
         <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">
           {title}
         </span>
-        {totalQueued > 0 && (
-          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-warning text-status-warning font-medium">
-            {totalQueued} queued
-          </span>
-        )}
       </div>
 
-      {/* Summary counts */}
-      <div className="flex gap-4 mb-3 pb-2.5 border-b border-theme">
-        <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-          <StatusDot status="draft" />
-          <strong className="text-theme tabular-nums">
-            {summary.draft}
-          </strong>{" "}
-          drafts
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-          <StatusDot status="queued" />
-          <strong className="text-theme tabular-nums">
-            {summary.queued}
-          </strong>{" "}
-          queued
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-          <StatusDot status="published" />
-          <strong className="text-theme tabular-nums">
-            {summary.published}
-          </strong>{" "}
-          published
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-theme-muted">
-          <StatusDot status="failed" />
-          <strong className="text-theme tabular-nums">
-            {summary.failed}
-          </strong>{" "}
-          failed
-        </div>
+      {/* Status tabs */}
+      <div className="flex gap-1 mb-3 pb-2.5 border-b border-theme">
+        {STATUSES.map((status) => (
+          <StatusTab
+            key={status}
+            status={status}
+            count={summary[status]}
+            active={activeStatus === status}
+            onClick={() => setActiveStatus(status)}
+          />
+        ))}
       </div>
 
-      {/* Item list */}
-      {items.length === 0 ? (
+      {/* Filtered item list */}
+      {filtered.length === 0 ? (
         <p className="text-center py-4 text-theme-muted text-sm italic">
-          No items in pipeline
+          No {STATUS_LABELS[activeStatus]} items
         </p>
       ) : (
         <div className="flex flex-col gap-1">
-          {items.map((item) => (
+          {filtered.map((item) => (
             <PipelineItemRow key={item.id} item={item} />
           ))}
         </div>

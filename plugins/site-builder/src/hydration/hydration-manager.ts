@@ -274,12 +274,12 @@ var __require = function(mod) {
         .replace(/import\s*{[^}]+}\s*from\s*["']preact["'];?/g, "")
         .replace(/import\s*{[^}]+}\s*from\s*["']preact\/hooks["'];?/g, "")
         // Remove require variable declarations for preact and preact/hooks
-        .replace(/var import_hooks = __require\("preact\/hooks"\);/g, "")
+        .replace(/var import_hooks\d* = __require\("preact\/hooks"\);/g, "")
         .replace(/var import_preact\d* = __require\("preact"\);/g, "")
         .replace(/var import_preact\d* = require\("preact"\);/g, "")
         // Replace (0, import_preact.X) call patterns and bare import_preact.X access
         .replace(/(?:\(0, )?import_preact\d*\.(\w+)\)?/g, "window.preact.$1")
-        .replace(/(?:\(0, )?import_hooks\.(\w+)\)?/g, "window.preact.$1")
+        .replace(/(?:\(0, )?import_hooks\d*\.(\w+)\)?/g, "window.preact.$1")
         // Remove any __require calls for preact
         .replace(/__require\("preact[^"]*"\)/g, "window.preact");
 

@@ -76,28 +76,35 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         priority: 15,
         rendererName: "PipelineWidget",
         dataProvider: async () => {
-          const types = this.queueManager.getRegisteredTypes();
-          const allEntries = [];
+          const entityTypes = context.entityService.getEntityTypes();
+          const allEntries: Array<{
+            id: string;
+            title: string;
+            type: string;
+            status: "draft" | "queued" | "published" | "failed";
+          }> = [];
           const summary = { draft: 0, queued: 0, published: 0, failed: 0 };
 
-          for (const entityType of types) {
-            const entries = await this.queueManager.list(entityType);
-            for (const entry of entries) {
-              const retryInfo = this.retryTracker.getRetryInfo(entry.entityId);
+          for (const entityType of entityTypes) {
+            const entities =
+              await context.entityService.listEntities(entityType);
+            for (const entity of entities) {
+              const status = entity.metadata["status"];
+              if (
+                status !== "draft" &&
+                status !== "queued" &&
+                status !== "published" &&
+                status !== "failed"
+              )
+                continue;
+              summary[status]++;
+              const title = entity.metadata["title"];
               allEntries.push({
-                id: entry.entityId,
-                title: entry.entityId,
-                type: entry.entityType,
-                status: retryInfo ? "failed" : "queued",
-                ...(retryInfo && {
-                  retryInfo: `retry ${retryInfo.retryCount}/${this.config.maxRetries}`,
-                }),
+                id: entity.id,
+                title: typeof title === "string" ? title : entity.id,
+                type: entityType,
+                status,
               });
-              if (retryInfo) {
-                summary.failed++;
-              } else {
-                summary.queued++;
-              }
             }
           }
 
