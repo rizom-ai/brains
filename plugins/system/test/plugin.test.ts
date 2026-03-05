@@ -55,29 +55,41 @@ describe("SystemPlugin", () => {
       freshHarness.reset();
     });
 
-    it("should register job-status widget after system:plugins:ready", async () => {
+    it("should register identity widget with IdentityWidget renderer", async () => {
       const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
-      const registeredWidgets: Array<{ id: string; pluginId: string }> = [];
+      const registeredWidgets: Array<{
+        id: string;
+        pluginId: string;
+        rendererName: string;
+      }> = [];
 
       freshHarness.subscribe("dashboard:register-widget", (message) => {
-        const payload = message.payload as { id: string; pluginId: string };
-        registeredWidgets.push({ id: payload.id, pluginId: payload.pluginId });
+        const payload = message.payload as {
+          id: string;
+          pluginId: string;
+          rendererName: string;
+        };
+        registeredWidgets.push({
+          id: payload.id,
+          pluginId: payload.pluginId,
+          rendererName: payload.rendererName,
+        });
         return { success: true };
       });
 
       await freshHarness.installPlugin(new SystemPlugin());
 
-      // Emit system:plugins:ready - this triggers widget registration
       await freshHarness.sendMessage("system:plugins:ready", {
         timestamp: new Date().toISOString(),
         pluginCount: 1,
       });
 
       expect(registeredWidgets).toContainEqual({
-        id: "job-status",
+        id: "identity",
         pluginId: "system",
+        rendererName: "IdentityWidget",
       });
       freshHarness.reset();
     });

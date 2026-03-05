@@ -24,7 +24,7 @@ export function CustomWidget({
 
   if (!parsed.success) {
     return (
-      <div className="widget-container">
+      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
         <h3 className="text-lg font-semibold mb-3 text-theme">{title}</h3>
         {description && (
           <p className="text-sm text-theme-muted mb-3">{description}</p>
@@ -35,7 +35,7 @@ export function CustomWidget({
   }
 
   return (
-    <div className="widget-container">
+    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
       <h3 className="text-lg font-semibold mb-3 text-theme">{title}</h3>
       {description && (
         <p className="text-sm text-theme-muted mb-3">{description}</p>

@@ -132,10 +132,18 @@ export { NewsletterSignup, newsletterSignupVariants } from "./NewsletterSignup";
 export type { NewsletterSignupProps } from "./NewsletterSignup";
 
 // Widget renderers for dashboard
-export { StatsWidget, ListWidget, CustomWidget } from "./widgets";
+export {
+  StatsWidget,
+  ListWidget,
+  CustomWidget,
+  PipelineWidget,
+  IdentityWidget,
+} from "./widgets";
 export type {
   BaseWidgetProps,
   StatsWidgetProps,
   ListWidgetProps,
   CustomWidgetProps,
+  PipelineWidgetProps,
+  IdentityWidgetProps,
 } from "./widgets";

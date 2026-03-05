@@ -3,33 +3,24 @@
 import { h } from "preact";
 import type { VNode } from "preact";
 import { z } from "@brains/utils";
-import { StatBox } from "../StatBox";
 import type { BaseWidgetProps } from "./index";
 
-/**
- * Schema for stats widget data - accepts flat or nested stats
- */
 const statsDataSchema = z.record(z.unknown());
 
 export type StatsWidgetProps = BaseWidgetProps;
 
 /**
- * Stats widget renderer - displays key-value statistics using StatBox
+ * Stats widget renderer - displays key-value statistics in a dense horizontal row
  */
-export function StatsWidget({
-  title,
-  description,
-  data,
-}: StatsWidgetProps): VNode {
+export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
   const parsed = statsDataSchema.safeParse(data);
 
   if (!parsed.success) {
     return (
-      <div className="widget-container">
-        <h3 className="text-lg font-semibold mb-3 text-theme">{title}</h3>
-        {description && (
-          <p className="text-sm text-theme-muted mb-3">{description}</p>
-        )}
+      <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
+        <div className="text-xs font-semibold uppercase tracking-wider text-theme-muted mb-4">
+          {title}
+        </div>
         <p className="text-sm text-theme-muted">No data available</p>
       </div>
     );
@@ -37,10 +28,8 @@ export function StatsWidget({
 
   // Flatten nested stats object if present
   const stats: Record<string, number> = {};
-
   for (const [key, value] of Object.entries(parsed.data)) {
     if (key === "stats" && typeof value === "object" && value !== null) {
-      // Handle nested stats object (from system plugin)
       for (const [statKey, statValue] of Object.entries(
         value as Record<string, unknown>,
       )) {
@@ -53,15 +42,37 @@ export function StatsWidget({
     }
   }
 
+  const entries = Object.entries(stats);
+  const total = entries.reduce((sum, [, v]) => sum + v, 0);
+
   return (
-    <div className="widget-container">
-      <h3 className="text-lg font-semibold mb-3 text-theme">{title}</h3>
-      {description && (
-        <p className="text-sm text-theme-muted mb-3">{description}</p>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        {Object.entries(stats).map(([key, value]) => (
-          <StatBox key={key} title={key} count={value} />
+    <div className="bg-theme-subtle border border-theme rounded-[10px] p-5">
+      <div className="flex items-center justify-between mb-4">
+        <span className="text-xs font-semibold uppercase tracking-wider text-theme-muted">
+          {title}
+        </span>
+        {total > 0 && (
+          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-info-bg text-status-info-text font-medium">
+            {total} total
+          </span>
+        )}
+      </div>
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(5rem, 1fr))" }}
+      >
+        {entries.map(([key, value], i) => (
+          <div
+            key={key}
+            className={`text-center p-3 ${i > 0 ? "border-l border-theme" : ""}`}
+          >
+            <div className="text-[1.75rem] font-bold text-heading leading-none mb-1 tabular-nums">
+              {value}
+            </div>
+            <div className="text-[0.7rem] text-theme-muted font-medium">
+              {key}
+            </div>
+          </div>
         ))}
       </div>
     </div>

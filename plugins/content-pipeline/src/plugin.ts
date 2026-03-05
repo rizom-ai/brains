@@ -66,6 +66,47 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       return { success: true };
     });
 
+    // Register dashboard widget after all plugins are ready
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await context.messaging.send("dashboard:register-widget", {
+        id: "publication-pipeline",
+        pluginId: this.id,
+        title: "Publication Pipeline",
+        section: "secondary",
+        priority: 15,
+        rendererName: "PipelineWidget",
+        dataProvider: async () => {
+          const types = this.queueManager.getRegisteredTypes();
+          const allEntries = [];
+          const summary = { draft: 0, queued: 0, published: 0, failed: 0 };
+
+          for (const entityType of types) {
+            const entries = await this.queueManager.list(entityType);
+            for (const entry of entries) {
+              const retryInfo = this.retryTracker.getRetryInfo(entry.entityId);
+              allEntries.push({
+                id: entry.entityId,
+                title: entry.entityId,
+                type: entry.entityType,
+                status: retryInfo ? "failed" : "queued",
+                ...(retryInfo && {
+                  retryInfo: `retry ${retryInfo.retryCount}/${this.config.maxRetries}`,
+                }),
+              });
+              if (retryInfo) {
+                summary.failed++;
+              } else {
+                summary.queued++;
+              }
+            }
+          }
+
+          return { summary, items: allEntries };
+        },
+      });
+      return { success: true };
+    });
+
     await this.scheduler.start();
 
     this.logger.info("Content pipeline plugin started");

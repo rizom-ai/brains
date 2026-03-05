@@ -623,13 +623,6 @@
 
 /* Component utilities for consistency and code reduction */
 @layer utilities {
-  /* Widget containers - standardized with rounded-lg */
-  .widget-container {
-    background-color: var(--color-bg-subtle);
-    border-radius: var(--radius-lg);
-    padding: 1rem;
-  }
-
   /* Form inputs - consistent styling */
   .form-input {
     padding: 0.5rem 1rem;

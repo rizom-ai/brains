@@ -49,8 +49,10 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
           return {
             items: wishes.map((w) => ({
               id: w.id,
-              name: `${w.metadata.title} (×${w.metadata.requested})`,
-              type: w.metadata.priority,
+              name: w.metadata.title,
+              count: w.metadata.requested,
+              priority: w.metadata.priority,
+              status: w.metadata.status,
             })),
           };
         },

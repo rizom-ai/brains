@@ -15,3 +15,9 @@ export type { ListWidgetProps } from "./ListWidget";
 
 export { CustomWidget } from "./CustomWidget";
 export type { CustomWidgetProps } from "./CustomWidget";
+
+export { PipelineWidget } from "./PipelineWidget";
+export type { PipelineWidgetProps } from "./PipelineWidget";
+
+export { IdentityWidget } from "./IdentityWidget";
+export type { IdentityWidgetProps } from "./IdentityWidget";

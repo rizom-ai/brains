@@ -52,6 +52,16 @@ const routes = defaultRoutes.map((route) => {
   return route;
 });
 
+// Shared config values used by multiple plugins
+const domain = "rizom.ai";
+const productionDomain = process.env["DOMAIN"]
+  ? `https://${process.env["DOMAIN"]}`
+  : undefined;
+const previewDomain = process.env["PREVIEW_DOMAIN"]
+  ? `https://${process.env["PREVIEW_DOMAIN"]}`
+  : undefined;
+const gitRepo = process.env["GIT_SYNC_REPO"];
+
 const config = defineConfig({
   name: "collective-brain",
   version: "0.1.0",
@@ -59,7 +69,7 @@ const config = defineConfig({
 
   // Deployment configuration
   deployment: {
-    domain: "rizom.ai",
+    domain,
     cdn: {
       enabled: true,
       provider: "bunny",
@@ -83,13 +93,19 @@ const config = defineConfig({
   },
 
   plugins: [
-    systemPlugin({}),
+    systemPlugin({
+      dashboardLinks: [
+        ...(previewDomain ? [{ label: "Preview", url: previewDomain }] : []),
+        ...(gitRepo ? [{ label: "Repository", url: gitRepo }] : []),
+      ],
+    }),
     dashboardPlugin(),
     new MCPInterface({}),
     new MatrixInterface({
-      homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
+      homeserver:
+        process.env["MATRIX_HOMESERVER"] || `https://matrix.${domain}`,
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",
-      userId: process.env["MATRIX_USER_ID"] || "@ranger-local:rizom.ai",
+      userId: process.env["MATRIX_USER_ID"] || `@ranger-local:${domain}`,
     }),
     new DiscordInterface({
       botToken: process.env["DISCORD_BOT_TOKEN"] || "",
@@ -105,19 +121,15 @@ const config = defineConfig({
     }),
     directorySync(),
     gitSyncPlugin({
-      repo: process.env["GIT_SYNC_REPO"],
+      repo: gitRepo,
       authToken: process.env["GIT_SYNC_TOKEN"],
       authorName: "Rizom",
-      authorEmail: "collective@rizom.ai",
+      authorEmail: `collective@${domain}`,
       autoPush: true,
     }),
     new WebserverInterface({
-      productionDomain: process.env["DOMAIN"]
-        ? `https://${process.env["DOMAIN"]}`
-        : undefined,
-      previewDomain: process.env["PREVIEW_DOMAIN"]
-        ? `https://${process.env["PREVIEW_DOMAIN"]}`
-        : undefined,
+      productionDomain,
+      previewDomain,
       previewDistDir: "./dist/site-preview",
       previewPort: 4321,
     }),

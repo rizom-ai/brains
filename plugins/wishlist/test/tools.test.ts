@@ -59,14 +59,19 @@ describe("WishlistPlugin", () => {
       const widget = registered[0] as Record<string, unknown>;
       const dataProvider = widget["dataProvider"] as () => Promise<unknown>;
       const data = (await dataProvider()) as {
-        items: Array<{ id: string; name: string }>;
+        items: Array<{
+          id: string;
+          name: string;
+          count: number;
+          priority: string;
+        }>;
       };
 
       expect(data.items).toHaveLength(2);
       // Most requested first
-      expect(data.items.at(0)?.name).toContain("Calendar integration");
-      expect(data.items.at(0)?.name).toContain("2");
-      expect(data.items.at(1)?.name).toContain("Email sending");
+      expect(data.items.at(0)?.name).toBe("Calendar integration");
+      expect(data.items.at(0)?.count).toBe(2);
+      expect(data.items.at(1)?.name).toBe("Email sending");
     });
   });
 

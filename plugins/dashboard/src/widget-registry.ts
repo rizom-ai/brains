@@ -20,6 +20,8 @@ export const WIDGET_RENDERERS = [
   "StatsWidget",
   "ListWidget",
   "CustomWidget",
+  "PipelineWidget",
+  "IdentityWidget",
 ] as const;
 export type WidgetRendererName = (typeof WIDGET_RENDERERS)[number];
 

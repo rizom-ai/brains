@@ -73,35 +73,43 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
         },
       });
 
-      // Register job status widget
-      await context.messaging.send("dashboard:register-widget", {
-        id: "job-status",
-        pluginId: this.id,
-        title: "Active Jobs",
-        section: "secondary",
-        priority: 20,
-        rendererName: "ListWidget",
-        dataProvider: async () => {
-          const { activeJobs, activeBatches } = await this.getJobStatus();
-          return {
-            jobs: activeJobs ?? [],
-            batches: activeBatches ?? [],
-          };
-        },
-      });
-
-      // Register identity widget
+      // Register identity widget with character, links, and system info
       await context.messaging.send("dashboard:register-widget", {
         id: "identity",
         pluginId: this.id,
         title: "Brain Identity",
         section: "sidebar",
         priority: 5,
-        rendererName: "CustomWidget",
-        dataProvider: async () => ({
-          identity: this.getIdentityData(),
-          profile: this.getProfileData(),
-        }),
+        rendererName: "IdentityWidget",
+        dataProvider: async () => {
+          const character = this.getIdentityData();
+          const profile = this.getProfileData();
+          const entityTypes = this.getEntityTypes();
+
+          // Build links from profile + config
+          const links: Array<{ label: string; url: string }> = [];
+          if (profile.website) {
+            links.push({ label: "Site", url: profile.website });
+          }
+          if (this.config.dashboardLinks) {
+            links.push(...this.config.dashboardLinks);
+          }
+
+          return {
+            name: character.name,
+            tagline: profile.description,
+            owner: profile.name,
+            character: {
+              role: character.role,
+              purpose: character.purpose,
+              values: character.values,
+            },
+            links: links.length > 0 ? links : undefined,
+            system: {
+              Plugins: `${entityTypes.length} entity types`,
+            },
+          };
+        },
       });
 
       this.logger.debug("System plugin registered dashboard widgets");

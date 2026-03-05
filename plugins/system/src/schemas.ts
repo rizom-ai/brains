@@ -4,6 +4,11 @@ import { appInfoSchema, brainCharacterBodySchema } from "@brains/plugins";
 /**
  * Configuration schema for the system plugin
  */
+export const dashboardLinkSchema = z.object({
+  label: z.string().describe("Display label for the link"),
+  url: z.string().describe("URL for the link"),
+});
+
 export const systemConfigSchema = z.object({
   searchLimit: z
     .number()
@@ -12,6 +17,10 @@ export const systemConfigSchema = z.object({
     .describe("Default number of search results to return")
     .default(10),
   debug: z.boolean().describe("Enable debug logging").default(false),
+  dashboardLinks: z
+    .array(dashboardLinkSchema)
+    .optional()
+    .describe("Additional links to show on the dashboard identity widget"),
 });
 
 export type SystemConfig = z.infer<typeof systemConfigSchema>;

@@ -1,7 +1,6 @@
 // @ts-ignore TS6133 - h is required for JSX compilation
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { h } from "preact";
-import { useState, useMemo } from "preact/hooks";
 import type { VNode } from "preact";
 import type { DashboardData, WidgetData } from "./schema";
 import type { WidgetRendererName } from "../../widget-registry";
@@ -9,16 +8,13 @@ import {
   StatsWidget,
   ListWidget,
   CustomWidget,
+  PipelineWidget,
+  IdentityWidget,
   type BaseWidgetProps,
-  Button,
 } from "@brains/ui-library";
 
 /**
  * Renderer lookup map
- *
- * TODO: Future enhancement - support dynamic renderer resolution
- * Currently uses static lookup. Options include dynamic imports and
- * a client-side registry for plugin-provided renderers.
  */
 const RENDERER_MAP: Record<
   WidgetRendererName,
@@ -27,6 +23,8 @@ const RENDERER_MAP: Record<
   StatsWidget,
   ListWidget,
   CustomWidget,
+  PipelineWidget,
+  IdentityWidget,
 };
 
 /**
@@ -34,29 +32,10 @@ const RENDERER_MAP: Record<
  */
 export type DashboardLayoutProps = DashboardData;
 
-interface DashboardRenderProps {
-  groups: {
-    primary: WidgetData[];
-    secondary: WidgetData[];
-    sidebar: WidgetData[];
-  };
-  buildInfo: DashboardData["buildInfo"];
-  filter: string;
-  sortBy: "priority" | "title";
-  showSidebar: boolean;
-  onFilterChange?: (value: string) => void;
-  onSortChange?: () => void;
-  onToggleSidebar?: () => void;
-}
-
 /**
- * Group and filter widgets by section
+ * Group widgets by section, sorted by priority
  */
-function groupWidgetsBySection(
-  widgets: Record<string, WidgetData>,
-  filter: string,
-  sortBy: "priority" | "title",
-): {
+function groupWidgetsBySection(widgets: Record<string, WidgetData>): {
   primary: WidgetData[];
   secondary: WidgetData[];
   sidebar: WidgetData[];
@@ -67,31 +46,16 @@ function groupWidgetsBySection(
     sidebar: [] as WidgetData[],
   };
 
-  const filterLower = filter.toLowerCase();
-
   for (const widgetData of Object.values(widgets)) {
-    // Apply filter
-    if (
-      filter &&
-      !widgetData.widget.title.toLowerCase().includes(filterLower)
-    ) {
-      continue;
-    }
-
     const section = widgetData.widget.section;
     groups[section].push(widgetData);
   }
 
-  // Sort each group
-  const sortFn =
-    sortBy === "priority"
-      ? (a: WidgetData, b: WidgetData): number =>
-          a.widget.priority - b.widget.priority
-      : (a: WidgetData, b: WidgetData): number =>
-          a.widget.title.localeCompare(b.widget.title);
+  const sortByPriority = (a: WidgetData, b: WidgetData): number =>
+    a.widget.priority - b.widget.priority;
 
   for (const section of Object.keys(groups) as Array<keyof typeof groups>) {
-    groups[section].sort(sortFn);
+    groups[section].sort(sortByPriority);
   }
 
   return groups;
@@ -100,13 +64,14 @@ function groupWidgetsBySection(
 /**
  * Render a single widget using its registered renderer
  */
-function renderWidget(widgetData: WidgetData): VNode {
+function renderWidget(widgetData: WidgetData, spanCols?: boolean): VNode {
   const { widget, data } = widgetData;
   const key = `${widget.pluginId}:${widget.id}`;
   const Renderer = RENDERER_MAP[widget.rendererName];
+  const spanClass = spanCols ? "col-span-1 lg:col-span-2" : "";
 
   return (
-    <div key={key}>
+    <div key={key} className={spanClass}>
       <Renderer
         title={widget.title}
         description={widget.description}
@@ -117,136 +82,58 @@ function renderWidget(widgetData: WidgetData): VNode {
 }
 
 /**
- * Pure functional component for rendering dashboard - works in SSR
+ * Dashboard layout component
+ *
+ * Flat 3-column grid matching the prototype design:
+ * - Primary widgets span 2 columns (top row)
+ * - Sidebar spans all rows (right column)
+ * - Secondary widgets span 2 columns (below primary)
  */
-const DashboardRender = ({
-  groups,
+export function DashboardLayout({
+  widgets,
   buildInfo,
-  filter,
-  sortBy,
-  showSidebar,
-  onFilterChange,
-  onSortChange,
-  onToggleSidebar,
-}: DashboardRenderProps): VNode => {
+}: DashboardLayoutProps): VNode {
+  const groups = groupWidgetsBySection(widgets);
+
   return (
     <div
-      className="dashboard p-6 bg-theme"
+      className="dashboard max-w-[1200px] mx-auto px-6 py-8 bg-theme"
       data-component="dashboard:dashboard"
     >
-      <h2 className="text-2xl font-bold mb-4 text-theme">System Dashboard</h2>
-
-      {/* Interactive controls */}
-      <div
-        className="mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4"
-        data-hydrate-controls="true"
-      >
-        <input
-          type="text"
-          placeholder="Filter widgets..."
-          value={filter}
-          onInput={
-            onFilterChange
-              ? (e): void =>
-                  onFilterChange((e.target as HTMLInputElement).value)
-              : undefined
-          }
-          className="form-input sm:flex-1"
-        />
-        <Button onClick={onSortChange}>
-          Sort by {sortBy === "priority" ? "Title" : "Priority"}
-        </Button>
-        <Button onClick={onToggleSidebar} variant="secondary">
-          {showSidebar ? "Hide" : "Show"} Sidebar
-        </Button>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Main content area */}
-        <div className="flex-1 space-y-6">
-          {/* Primary section */}
-          {groups.primary.length > 0 && (
-            <section className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {groups.primary.map((w) => renderWidget(w))}
-              </div>
-            </section>
-          )}
-
-          {/* Secondary section */}
-          {groups.secondary.length > 0 && (
-            <section className="space-y-4">
-              {groups.secondary.map((w) => renderWidget(w))}
-            </section>
-          )}
+      {/* Header */}
+      <header className="flex items-baseline justify-between mb-8 pb-4 border-b border-theme">
+        <h1 className="text-lg font-semibold text-heading tracking-tight">
+          Dashboard
+        </h1>
+        <div className="flex items-center gap-4 font-mono text-[0.7rem] text-theme-muted">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <span>v{buildInfo.version}</span>
+          <span>built {new Date(buildInfo.timestamp).toLocaleString()}</span>
         </div>
+      </header>
 
-        {/* Sidebar */}
-        {showSidebar && groups.sidebar.length > 0 && (
-          <aside className="lg:w-80 space-y-4">
+      {/* Grid: 3 columns on desktop, flat layout with col-spanning */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_280px] gap-4">
+        {/* Primary widgets — span 2 cols */}
+        {groups.primary.map((w) => renderWidget(w, true))}
+
+        {/* Sidebar — spans all rows */}
+        {groups.sidebar.length > 0 && (
+          <aside className="row-span-3 space-y-4">
             {groups.sidebar.map((w) => renderWidget(w))}
           </aside>
         )}
-      </div>
 
-      {/* Build info */}
-      <div className="mt-6 text-sm text-theme-muted">
-        Built: {new Date(buildInfo.timestamp).toLocaleString()} • v
-        {buildInfo.version}
+        {/* Secondary widgets — span 2 cols */}
+        {groups.secondary.map((w) => renderWidget(w, true))}
       </div>
     </div>
   );
-};
+}
 
 /**
- * Interactive wrapper component with hooks for hydration
+ * Interactive wrapper — currently no client-side interactivity needed
  */
 export const DashboardWidget = (data: DashboardLayoutProps): VNode => {
-  const isBrowser = typeof window !== "undefined";
-
-  if (!isBrowser) {
-    // SSR: render without hooks
-    const groups = groupWidgetsBySection(data.widgets, "", "priority");
-    return (
-      <DashboardRender
-        groups={groups}
-        buildInfo={data.buildInfo}
-        filter=""
-        sortBy="priority"
-        showSidebar={true}
-      />
-    );
-  }
-
-  // Browser: use hooks for interactivity
-  const [sortBy, setSortBy] = useState<"priority" | "title">("priority");
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [filter, setFilter] = useState("");
-
-  const groups = useMemo(
-    () => groupWidgetsBySection(data.widgets, filter, sortBy),
-    [data.widgets, filter, sortBy],
-  );
-
-  return (
-    <DashboardRender
-      groups={groups}
-      buildInfo={data.buildInfo}
-      filter={filter}
-      sortBy={sortBy}
-      showSidebar={showSidebar}
-      onFilterChange={setFilter}
-      onSortChange={() =>
-        setSortBy(sortBy === "priority" ? "title" : "priority")
-      }
-      onToggleSidebar={() => setShowSidebar(!showSidebar)}
-    />
-  );
+  return DashboardLayout(data);
 };
-
-/**
- * Static layout export (for SSR without interactivity)
- */
-export function DashboardLayout(props: DashboardLayoutProps): VNode {
-  return DashboardWidget(props);
-}
