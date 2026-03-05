@@ -7,7 +7,8 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { getErrorMessage, z, computeContentHash } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { SummaryExtractor } from "../lib/summary-extractor";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";

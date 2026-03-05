@@ -55,11 +55,14 @@ export function ListWidget({
           {allItems.map((item) => (
             <div
               key={item.id}
-              className="bg-theme p-2 rounded-lg border border-theme text-sm"
+              className="bg-theme p-2 rounded-lg border border-theme text-sm flex justify-between items-center"
             >
               <span className="text-theme">
-                {item.type ?? item.name ?? item.id}
+                {item.name ?? item.type ?? item.id}
               </span>
+              {item.name && item.type && (
+                <span className="text-theme-muted text-xs">{item.type}</span>
+              )}
             </div>
           ))}
         </div>

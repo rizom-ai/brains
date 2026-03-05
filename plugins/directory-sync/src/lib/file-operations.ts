@@ -9,7 +9,7 @@ import {
   statSync,
   utimesSync,
 } from "fs";
-import { computeContentHash } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 
 export const IMAGE_EXTENSIONS = [

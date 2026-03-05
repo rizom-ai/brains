@@ -8,7 +8,7 @@ import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 
 /**
  * Regression tests: contentHash should be hash of canonical (serialized) form,

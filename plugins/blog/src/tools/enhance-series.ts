@@ -4,7 +4,8 @@ import {
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
-import { z, slugify, computeContentHash } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { BlogPost } from "../schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 import type { Series } from "../schemas/series";

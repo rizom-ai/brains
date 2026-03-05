@@ -13,6 +13,7 @@ import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
+import { dashboardPlugin } from "@brains/dashboard";
 import { routes as defaultRoutes } from "@brains/default-site-content";
 
 // Customize routes for Rizom collective
@@ -83,6 +84,7 @@ const config = defineConfig({
 
   plugins: [
     systemPlugin({}),
+    dashboardPlugin(),
     new MCPInterface({}),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",

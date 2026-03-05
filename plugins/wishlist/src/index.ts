@@ -8,6 +8,7 @@ import {
 } from "./schemas/wish";
 import { WishAdapter } from "./adapters/wish-adapter";
 import { createWishlistTools } from "./tools/index";
+import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
 
 /**
@@ -43,20 +44,7 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
             },
           );
 
-          const priorityOrder: Record<string, number> = {
-            critical: 0,
-            high: 1,
-            medium: 2,
-            low: 3,
-          };
-          wishes.sort((a, b) => {
-            const reqDiff = b.metadata.requested - a.metadata.requested;
-            if (reqDiff !== 0) return reqDiff;
-            return (
-              (priorityOrder[a.metadata.priority] ?? 2) -
-              (priorityOrder[b.metadata.priority] ?? 2)
-            );
-          });
+          sortWishesByDemand(wishes);
 
           return {
             items: wishes.map((w) => ({

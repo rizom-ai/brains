@@ -1,4 +1,4 @@
-import { computeContentHash } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { BaseEntity } from "@brains/entity-service";
 
 /**

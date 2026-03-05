@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { EntityDbConfig } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
 import { createSilentLogger } from "@brains/test-utils";
-import { computeContentHash } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "../../src/schema/entities";
 import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";

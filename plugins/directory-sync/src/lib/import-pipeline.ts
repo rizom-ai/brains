@@ -1,6 +1,7 @@
 import type { IEntityService, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { getErrorMessage, computeContentHash } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { ImportResult, RawEntity } from "../types";
 import type { FileOperations } from "./file-operations";
 import type { Quarantine } from "./quarantine";

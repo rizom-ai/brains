@@ -57,8 +57,7 @@ export { chunkMessage } from "./chunk-message";
 export { EntityUrlGenerator } from "./entity-url-generator";
 export type { EntityRouteConfig } from "./entity-url-generator";
 
-// Hash utilities
-export { computeContentHash } from "./hash";
+// Hash utilities — import from "@brains/utils/hash" (uses Node crypto)
 
 // Sort utilities
 export { sortByPublicationDate } from "./sort";

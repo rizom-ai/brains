@@ -175,7 +175,7 @@ const CLUSTERS = {
   publishing:       { x: 876,  y: 108, w: 350,  h: 198 },
   sync:             { x: 20,   y: 428, w: 400,  h: 80  },
   shared:           { x: 435,  y: 428, w: 380,  h: 80  },
-  system:           { x: 830,  y: 428, w: 340,  h: 80  },
+  system:           { x: 830,  y: 428, w: 340,  h: 140 },
 };
 
 // ── Node data ──
@@ -241,7 +241,8 @@ const nodes = [
   // ─ System (row of 3) ─
   { id:'system',    label:'System',    subtitle:'plugins/system',    x:844,  y:452, w:100, h:44, group:'system' },
   { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', x:958,  y:452, w:108, h:44, group:'system' },
-  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1080, y:452, w:96,  h:44, group:'system' },
+  { id:'wishlist',  label:'Wishlist',  subtitle:'plugins/wishlist',  x:1080, y:452, w:96,  h:44, group:'system' },
+  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', x:1080, y:508, w:96,  h:44, group:'system' },
 ];
 
 // ── Connections ──
@@ -307,6 +308,8 @@ const connections = [
   // System → Shell
   { from:'system',    to:'entity-svc', type:'data-flow', label:'search' },
   { from:'dashboard', to:'messaging',  type:'event', label:'widget:*' },
+  { from:'wishlist',  to:'entity-svc', type:'data-flow' },
+  { from:'wishlist',  to:'messaging',  type:'event', label:'widget:register' },
 
   // Shell internal
   { from:'core',       to:'plugin-fw',  type:'dependency' },
@@ -407,7 +410,7 @@ function connPath(fromId, toId) {
 // ── Rendering ──
 function render() {
   const svg = document.getElementById('svg');
-  svg.setAttribute('viewBox', '0 0 1260 520');
+  svg.setAttribute('viewBox', '0 0 1260 580');
 
   let html = '<defs>';
   Object.entries(CONN_TYPES).forEach(([k, v]) => {
@@ -542,7 +545,7 @@ function updatePrompt() {
     text += '- Shell Supporting: Conversations, Templates (incl. Render Service & Permissions), Identity (Brain Character + Anchor Profile)\n';
     text += '- Publishing: Site Builder, Professional Site, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';
     text += '- Sync & Storage: Directory Sync, Git Sync, Obsidian Vault (templates, fileClasses, Bases views, singleton Settings.base)\n';
-    text += '- System: System, Dashboard, Analytics\n';
+    text += '- System: System, Dashboard, Wishlist, Analytics\n';
     text += '- Shared: Utils, UI Library, Themes';
   } else {
     text += `Currently focusing on: ${visible.join(', ')}.`;

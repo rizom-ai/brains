@@ -3,7 +3,8 @@ import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata, TopicSource } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
-import { generateIdFromText, computeContentHash } from "@brains/utils";
+import { generateIdFromText } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 
 export class TopicService {
   private adapter: TopicAdapter;

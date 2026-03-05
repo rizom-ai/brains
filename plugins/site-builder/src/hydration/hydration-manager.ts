@@ -114,6 +114,7 @@ export class HydrationManager {
       render: preact.render,
       Component: preact.Component,
       Fragment: preact.Fragment,
+      createContext: preact.createContext,
       // Automatic JSX runtime functions (allows ui-library components)
       jsx: jsxRuntime.jsx,
       jsxs: jsxRuntime.jsxs,
@@ -123,7 +124,8 @@ export class HydrationManager {
       useEffect: preactHooks.useEffect,
       useMemo: preactHooks.useMemo,
       useCallback: preactHooks.useCallback,
-      useRef: preactHooks.useRef
+      useRef: preactHooks.useRef,
+      useContext: preactHooks.useContext
     };
   </script>
 `;
@@ -234,7 +236,7 @@ export class HydrationManager {
         `Compiling hydration script from ${sourceFile} to ${targetScript}`,
       );
 
-      // Compile using esbuild with the same config as build:hydration.ts
+      // Compile using esbuild
       await esbuild.build({
         entryPoints: [sourceFile],
         outfile: targetScript,
@@ -252,7 +254,7 @@ export class HydrationManager {
         banner: {
           js: `
 // Use global preact from window
-const { h, hydrate, useState, useMemo, jsx, jsxs } = window.preact;
+const { h, hydrate, useState, useMemo, useEffect, useCallback, useRef, useContext, createContext, jsx, jsxs } = window.preact;
 // Shim for Node modules that aren't available in browser
 var __require = function(mod) {
   if (mod === "crypto") return { randomUUID: () => window.crypto.randomUUID() };
@@ -271,15 +273,14 @@ var __require = function(mod) {
       outputCode = outputCode
         .replace(/import\s*{[^}]+}\s*from\s*["']preact["'];?/g, "")
         .replace(/import\s*{[^}]+}\s*from\s*["']preact\/hooks["'];?/g, "")
+        // Remove require variable declarations for preact and preact/hooks
         .replace(/var import_hooks = __require\("preact\/hooks"\);/g, "")
-        .replace(/\(0, import_hooks\.useState\)/g, "window.preact.useState")
-        .replace(/\(0, import_hooks\.useMemo\)/g, "window.preact.useMemo")
-        .replace(/\(0, import_hooks\.useEffect\)/g, "window.preact.useEffect")
-        .replace(
-          /\(0, import_hooks\.useCallback\)/g,
-          "window.preact.useCallback",
-        )
-        .replace(/\(0, import_hooks\.useRef\)/g, "window.preact.useRef")
+        .replace(/var import_preact\d* = __require\("preact"\);/g, "")
+        .replace(/var import_preact\d* = require\("preact"\);/g, "")
+        // Replace (0, import_preact.X) call patterns and bare import_preact.X access
+        .replace(/(?:\(0, )?import_preact\d*\.(\w+)\)?/g, "window.preact.$1")
+        .replace(/(?:\(0, )?import_hooks\.(\w+)\)?/g, "window.preact.$1")
+        // Remove any __require calls for preact
         .replace(/__require\("preact[^"]*"\)/g, "window.preact");
 
       await fs.writeFile(targetScript, outputCode, "utf8");

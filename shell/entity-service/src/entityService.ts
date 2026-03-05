@@ -15,7 +15,8 @@ import type {
   EntityService as IEntityService,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
-import { Logger, createId, computeContentHash } from "@brains/utils";
+import { Logger, createId } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
 import type { MessageBus } from "@brains/messaging-service";

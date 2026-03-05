@@ -10,7 +10,8 @@ import {
   type ServicePluginContext,
   type Logger,
 } from "@brains/plugins/test";
-import { ProgressReporter, computeContentHash } from "@brains/utils";
+import { ProgressReporter } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { BaseEntity } from "@brains/plugins";
 
 describe("TopicExtractionHandler", () => {

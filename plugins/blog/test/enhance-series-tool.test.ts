@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { computeContentHash } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { BlogPlugin } from "../src/plugin";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockSeries } from "./fixtures/blog-entities";

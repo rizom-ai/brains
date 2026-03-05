@@ -4,7 +4,8 @@ import {
   type PluginTool,
   type BaseEntity,
 } from "@brains/plugins";
-import { getErrorMessage, z, computeContentHash } from "@brains/utils";
+import { getErrorMessage, z } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,

@@ -1,4 +1,5 @@
-import { z, computeContentHash, slugify } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import { baseEntitySchema } from "@brains/plugins";
 
 /**

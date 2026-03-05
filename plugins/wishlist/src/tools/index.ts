@@ -8,6 +8,7 @@ import {
   type WishEntity,
 } from "../schemas/wish";
 import { findExistingWish } from "../lib/wish-dedup";
+import { sortWishesByDemand } from "../lib/sort-wishes";
 
 const addSchema = z.object({
   title: z.string().describe("Short title for the wish"),
@@ -139,16 +140,7 @@ export function createWishlistTools(
           wishes = wishes.filter((w) => w.metadata.priority === input.priority);
         }
 
-        // Sort by requested count (descending), then priority
-        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        wishes.sort((a, b) => {
-          const reqDiff = b.metadata.requested - a.metadata.requested;
-          if (reqDiff !== 0) return reqDiff;
-          return (
-            priorityOrder[a.metadata.priority] -
-            priorityOrder[b.metadata.priority]
-          );
-        });
+        sortWishesByDemand(wishes);
 
         return {
           success: true,

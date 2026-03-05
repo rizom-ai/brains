@@ -6,9 +6,9 @@ import {
   getErrorMessage,
   z,
   slugify,
-  computeContentHash,
   generationResultSchema,
 } from "@brains/utils";
+import { computeContentHash } from "@brains/utils/hash";
 import type { DeckEntity } from "../schemas/deck";
 import { DeckFormatter } from "../formatters/deck-formatter";
 

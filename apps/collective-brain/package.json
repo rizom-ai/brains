@@ -19,6 +19,7 @@
   "dependencies": {
     "@brains/ai-evaluation": "workspace:*",
     "@brains/app": "workspace:*",
+    "@brains/dashboard": "workspace:*",
     "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
