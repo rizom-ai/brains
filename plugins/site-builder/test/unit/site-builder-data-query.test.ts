@@ -34,7 +34,6 @@ describe("SiteBuilder dataQuery handling", () => {
       pluginId: "test",
       schema: z.object({}),
       renderers: {},
-      interactive: false,
     });
 
     // Create mock route registry

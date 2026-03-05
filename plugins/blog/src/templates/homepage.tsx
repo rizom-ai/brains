@@ -69,6 +69,5 @@ export const homepageTemplate = createTemplate({
   requiredPermission: "public",
   layout: {
     component: HomepageTemplate,
-    interactive: false,
   },
 });

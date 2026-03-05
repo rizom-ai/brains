@@ -11,8 +11,6 @@ export type {
 export { dashboardWidgetSchema } from "./widget-registry";
 
 // DataSource exports
-export {
-  DashboardDataSource,
-  dashboardDataSchema,
-} from "./dashboard-datasource";
-export type { DashboardData, WidgetData } from "./dashboard-datasource";
+export { DashboardDataSource } from "./dashboard-datasource";
+export { dashboardDataSchema } from "./templates/dashboard/schema";
+export type { DashboardData, WidgetData } from "./templates/dashboard/schema";

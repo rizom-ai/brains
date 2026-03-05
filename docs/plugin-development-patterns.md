@@ -497,7 +497,6 @@ context.templates.register({
     renderers: {
       web: MyComponent,
     },
-    interactive: false,
   },
 });
 

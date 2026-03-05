@@ -77,7 +77,6 @@ export class PreactBuilder implements StaticSiteBuilder {
     const hydrationManager = new HydrationManager(
       this.logger.child("HydrationManager"),
       context.getViewTemplate,
-      context.pluginContext,
       this.outputDir,
     );
 

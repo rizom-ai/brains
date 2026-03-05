@@ -10,6 +10,8 @@ import {
   CustomWidget,
   PipelineWidget,
   IdentityWidget,
+  ProfileWidget,
+  SystemWidget,
   type BaseWidgetProps,
 } from "@brains/ui-library";
 
@@ -25,6 +27,8 @@ const RENDERER_MAP: Record<
   CustomWidget,
   PipelineWidget,
   IdentityWidget,
+  ProfileWidget,
+  SystemWidget,
 };
 
 /**
@@ -89,37 +93,22 @@ function renderWidget(widgetData: WidgetData, spanCols?: boolean): VNode {
  * - Sidebar spans all rows (right column)
  * - Secondary widgets span 2 columns (below primary)
  */
-export function DashboardLayout({
-  widgets,
-  buildInfo,
-}: DashboardLayoutProps): VNode {
+export function DashboardLayout({ widgets }: DashboardLayoutProps): VNode {
   const groups = groupWidgetsBySection(widgets);
 
   return (
     <div
-      className="dashboard max-w-[1200px] mx-auto px-6 py-8 bg-theme"
+      className="dashboard w-full max-w-layout mx-auto px-6 py-8 bg-theme"
       data-component="dashboard:dashboard"
     >
-      {/* Header */}
-      <header className="flex items-baseline justify-between mb-8 pb-4 border-b border-theme">
-        <h1 className="text-lg font-semibold text-heading tracking-tight">
-          Dashboard
-        </h1>
-        <div className="flex items-center gap-4 font-mono text-[0.7rem] text-theme-muted">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span>v{buildInfo.version}</span>
-          <span>built {new Date(buildInfo.timestamp).toLocaleString()}</span>
-        </div>
-      </header>
-
       {/* Grid: 3 columns on desktop, flat layout with col-spanning */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_280px] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_280px] gap-4">
         {/* Primary widgets — span 2 cols */}
         {groups.primary.map((w) => renderWidget(w, true))}
 
         {/* Sidebar — spans all rows */}
         {groups.sidebar.length > 0 && (
-          <aside className="row-span-3 space-y-4">
+          <aside className="row-span-3 lg:col-start-3 space-y-4">
             {groups.sidebar.map((w) => renderWidget(w))}
           </aside>
         )}

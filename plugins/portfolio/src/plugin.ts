@@ -92,7 +92,6 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         requiredPermission: "public",
         layout: {
           component: ProjectListTemplate,
-          interactive: false,
         },
       }),
       "project-detail": createTemplate<
@@ -114,7 +113,6 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         requiredPermission: "public",
         layout: {
           component: ProjectDetailTemplate,
-          interactive: false,
         },
       }),
       generation: projectGenerationTemplate,

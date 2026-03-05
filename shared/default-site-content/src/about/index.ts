@@ -16,6 +16,5 @@ export const aboutTemplate = createTemplate<AboutContent>({
   formatter: new AboutFormatter(),
   layout: {
     component: AboutLayout,
-    interactive: false,
   },
 });

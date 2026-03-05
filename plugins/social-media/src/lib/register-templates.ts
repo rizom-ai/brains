@@ -41,7 +41,6 @@ export function registerTemplates(context: ServicePluginContext): void {
       requiredPermission: "public",
       layout: {
         component: SocialPostListTemplate,
-        interactive: false,
       },
     }),
     "social-post-detail": createTemplate<
@@ -55,7 +54,6 @@ export function registerTemplates(context: ServicePluginContext): void {
       requiredPermission: "public",
       layout: {
         component: SocialPostDetailTemplate,
-        interactive: false,
       },
     }),
   });

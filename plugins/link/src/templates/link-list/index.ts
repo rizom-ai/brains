@@ -12,7 +12,6 @@ export const linkListTemplate = createTemplate<LinkListData>({
   formatter: new LinkListFormatter(),
   layout: {
     component: LinkListLayout,
-    interactive: false,
   },
 });
 

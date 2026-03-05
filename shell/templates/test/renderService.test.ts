@@ -19,7 +19,6 @@ const testTemplate: Template = {
   requiredPermission: "public",
   layout: {
     component: () => h("span", null, "Test component"),
-    interactive: false,
   },
 };
 

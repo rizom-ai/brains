@@ -95,7 +95,9 @@ const config = defineConfig({
   plugins: [
     systemPlugin({}),
     dashboardPlugin(),
-    new MCPInterface({}),
+    new MCPInterface({
+      domain: process.env["DOMAIN"] ?? domain,
+    }),
     new MatrixInterface({
       homeserver:
         process.env["MATRIX_HOMESERVER"] || `https://matrix.${domain}`,
@@ -141,6 +143,12 @@ const config = defineConfig({
             show: true,
             slot: "secondary",
             priority: 40,
+          },
+        },
+        link: {
+          label: "Link",
+          navigation: {
+            slot: "secondary",
           },
         },
       },

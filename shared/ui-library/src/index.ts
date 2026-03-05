@@ -138,6 +138,8 @@ export {
   CustomWidget,
   PipelineWidget,
   IdentityWidget,
+  ProfileWidget,
+  SystemWidget,
 } from "./widgets";
 export type {
   BaseWidgetProps,
@@ -146,4 +148,6 @@ export type {
   CustomWidgetProps,
   PipelineWidgetProps,
   IdentityWidgetProps,
+  ProfileWidgetProps,
+  SystemWidgetProps,
 } from "./widgets";

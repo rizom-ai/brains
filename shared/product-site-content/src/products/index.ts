@@ -18,6 +18,5 @@ export const productsTemplate = createTemplate<ProductsSection>({
   formatter: new ProductsSectionFormatter(),
   layout: {
     component: ProductsLayout,
-    interactive: false,
   },
 });

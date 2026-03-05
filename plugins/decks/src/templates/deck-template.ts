@@ -23,7 +23,6 @@ export const deckTemplate = createTemplate<DeckTemplateData>({
   requiredPermission: "public",
   layout: {
     component: PresentationLayout,
-    interactive: false,
     routeLayout: "minimal",
   },
 });

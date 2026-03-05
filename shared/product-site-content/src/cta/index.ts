@@ -18,6 +18,5 @@ export const ctaTemplate = createTemplate<CTASection>({
   formatter: new CTASectionFormatter(),
   layout: {
     component: CTALayout,
-    interactive: false,
   },
 });

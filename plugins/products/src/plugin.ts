@@ -73,7 +73,6 @@ export class ProductsPlugin extends ServicePlugin<ProductsConfig> {
         requiredPermission: "public",
         layout: {
           component: ProductsPageTemplate,
-          interactive: false,
           routeLayout: "default-cta",
         },
       }),
@@ -88,7 +87,6 @@ export class ProductsPlugin extends ServicePlugin<ProductsConfig> {
         requiredPermission: "public",
         layout: {
           component: ProductDetailTemplate,
-          interactive: false,
           routeLayout: "default-cta",
         },
       }),

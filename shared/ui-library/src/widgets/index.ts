@@ -21,3 +21,9 @@ export type { PipelineWidgetProps } from "./PipelineWidget";
 
 export { IdentityWidget } from "./IdentityWidget";
 export type { IdentityWidgetProps } from "./IdentityWidget";
+
+export { ProfileWidget } from "./ProfileWidget";
+export type { ProfileWidgetProps } from "./ProfileWidget";
+
+export { SystemWidget } from "./SystemWidget";
+export type { SystemWidgetProps } from "./SystemWidget";

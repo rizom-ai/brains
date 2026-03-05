@@ -4,6 +4,9 @@
 /* Theme Layer - CSS Custom Properties for theming */
 @layer theme {
   :root {
+    /* Layout */
+    --layout-max-width: 64rem; /* 1024px = max-w-5xl */
+
     /* ============================================
        BASE COLOR PALETTE - Brutalist: Raw, High Contrast
        Neon green on near-black. No compromise.
@@ -203,6 +206,9 @@
    use manual utilities below in @layer utilities.
    ============================================ */
 @theme inline {
+  /* Layout */
+  --max-width-layout: var(--layout-max-width);
+
   /* Brand colors - same color for bg/text/border */
   --color-brand: var(--color-brand);
   --color-brand-dark: var(--color-brand-dark);

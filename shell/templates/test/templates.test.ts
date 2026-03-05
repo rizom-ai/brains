@@ -23,7 +23,7 @@ describe("Templates", () => {
       requiredPermission: "trusted",
       basePrompt: "Generate content",
       layout: {
-        interactive: true,
+        interactive: "mock-hydration-script",
       },
       dataSourceId: "test-provider",
     };
@@ -52,9 +52,7 @@ describe("Templates", () => {
       schema: z.object({ data: z.string() }),
       requiredPermission: "public",
       dataSourceId: "static-provider",
-      layout: {
-        interactive: false,
-      },
+      layout: {},
     };
 
     const result = TemplateSchema.safeParse(template);

@@ -18,6 +18,5 @@ export const heroTemplate = createTemplate<LandingHeroData>({
   formatter: new HeroSectionFormatter(),
   layout: {
     component: HeroLayout,
-    interactive: false,
   },
 });

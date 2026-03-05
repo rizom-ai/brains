@@ -66,7 +66,6 @@ describe("SiteBuilderPlugin", () => {
       },
       layout: {
         component: ({ title }: { title: string }) => h("div", {}, title),
-        interactive: false,
       },
     });
 

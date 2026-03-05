@@ -10,6 +10,7 @@ import asyncHandler from "express-async-handler";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
@@ -37,6 +38,7 @@ export class StreamableHTTPServer {
   private app: Express;
   private transports: Record<string, StreamableHTTPServerTransport> = {};
   private mcpServer: McpServer | null = null;
+  private mcpTransport: IMCPTransport | null = null;
   private agentService: IAgentService | null = null;
   private server: ReturnType<Express["listen"]> | null = null;
   private boundPort: number | null = null;
@@ -193,6 +195,7 @@ export class StreamableHTTPServer {
           return;
         }
 
+        const mcpServer = this.mcpServer;
         this.logger.debug(
           `POST /mcp - Session: ${req.headers["mcp-session-id"] ?? "new"}`,
         );
@@ -218,8 +221,11 @@ export class StreamableHTTPServer {
               },
             });
 
-            // Connect transport to MCP server
-            await this.mcpServer.connect(transport);
+            // Create a fresh MCP server per session (SDK requires one server per transport)
+            const sessionServer = this.mcpTransport
+              ? this.mcpTransport.createMcpServer()
+              : mcpServer;
+            await sessionServer.connect(transport);
 
             // Handle the initialization request
             await transport.handleRequest(req, res, req.body);
@@ -330,8 +336,12 @@ export class StreamableHTTPServer {
   /**
    * Connect an MCP server to this transport
    */
-  public connectMCPServer(mcpServer: McpServer): void {
+  public connectMCPServer(
+    mcpServer: McpServer,
+    mcpTransport?: IMCPTransport,
+  ): void {
     this.mcpServer = mcpServer;
+    this.mcpTransport = mcpTransport ?? null;
     this.logger.debug("MCP server connected to StreamableHTTP transport");
   }
 

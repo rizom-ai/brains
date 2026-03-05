@@ -5,6 +5,7 @@
   "private": true,
   "main": "./brain.config.ts",
   "scripts": {
+    "precompile": "brain-precompile",
     "dev": "bun --watch brain.config.ts",
     "start": "bun brain.config.ts",
     "migrate": "brain-migrate",

@@ -20,6 +20,5 @@ Valid icon names include: Brain, Search, Shield, Zap, Database, Users, etc.`,
   formatter: new IntroSectionFormatter(),
   layout: {
     component: IntroLayout,
-    interactive: false,
   },
 });

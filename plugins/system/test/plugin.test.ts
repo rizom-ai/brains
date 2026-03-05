@@ -55,7 +55,7 @@ describe("SystemPlugin", () => {
       freshHarness.reset();
     });
 
-    it("should register identity widget with IdentityWidget renderer", async () => {
+    it("should register widgets with correct renderers", async () => {
       const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
@@ -87,14 +87,24 @@ describe("SystemPlugin", () => {
       });
 
       expect(registeredWidgets).toContainEqual({
-        id: "identity",
+        id: "character",
         pluginId: "system",
         rendererName: "IdentityWidget",
+      });
+      expect(registeredWidgets).toContainEqual({
+        id: "profile",
+        pluginId: "system",
+        rendererName: "ProfileWidget",
+      });
+      expect(registeredWidgets).toContainEqual({
+        id: "system-info",
+        pluginId: "system",
+        rendererName: "SystemWidget",
       });
       freshHarness.reset();
     });
 
-    it("should register identity widget after system:plugins:ready", async () => {
+    it("should register character, profile, and system widgets after system:plugins:ready", async () => {
       const freshHarness = createPluginHarness({
         dataDir: "/tmp/test-datadir",
       });
@@ -115,7 +125,15 @@ describe("SystemPlugin", () => {
       });
 
       expect(registeredWidgets).toContainEqual({
-        id: "identity",
+        id: "character",
+        pluginId: "system",
+      });
+      expect(registeredWidgets).toContainEqual({
+        id: "profile",
+        pluginId: "system",
+      });
+      expect(registeredWidgets).toContainEqual({
+        id: "system-info",
         pluginId: "system",
       });
       freshHarness.reset();

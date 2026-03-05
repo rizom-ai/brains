@@ -1,30 +1,28 @@
 import type { Logger } from "@brains/utils";
-import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
+import type { ViewTemplate } from "@brains/plugins";
 import type { RouteDefinition, SectionDefinition } from "@brains/plugins";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 import { promises as fs } from "fs";
-import * as esbuild from "esbuild";
 
 /**
- * Simplified hydration manager - only handles Preact script injection
- * Components now handle their own hydration
+ * Hydration manager - injects Preact scripts and writes pre-compiled
+ * hydration JS for interactive templates.
+ *
+ * Templates provide their compiled hydration script via the `interactive`
+ * field (compiled by scripts/compile-hydration.ts at build time).
  */
 export class HydrationManager {
   private logger: Logger;
   private getViewTemplate: (name: string) => ViewTemplate | undefined;
-  private pluginContext: ServicePluginContext;
   private outputDir: string;
 
   constructor(
     logger: Logger,
     getViewTemplate: (name: string) => ViewTemplate | undefined,
-    pluginContext: ServicePluginContext,
     outputDir: string,
   ) {
     this.logger = logger;
     this.getViewTemplate = getViewTemplate;
-    this.pluginContext = pluginContext;
     this.outputDir = outputDir;
   }
 
@@ -49,7 +47,7 @@ export class HydrationManager {
           this.logger.warn(`Template not found: ${section.template}`);
         } else {
           this.logger.debug(
-            `Template ${section.template}: interactive=${template.interactive}`,
+            `Template ${section.template}: interactive=${!!template.interactive}`,
           );
           if (template.interactive) {
             interactiveComponents.add(section.template);
@@ -66,14 +64,14 @@ export class HydrationManager {
     }
 
     this.logger.debug(
-      `Found ${interactiveComponents.size} interactive components using self-hydration`,
+      `Found ${interactiveComponents.size} interactive components`,
     );
 
     return Array.from(interactiveComponents);
   }
 
   /**
-   * Update HTML files to include Preact scripts and compile hydration scripts
+   * Update HTML files to include Preact scripts and write hydration scripts
    */
   async updateHTMLFiles(
     routes: RouteDefinition[],
@@ -165,19 +163,13 @@ export class HydrationManager {
             hydrationScripts += `\n<script type="application/json" data-${templateName}-props="true">${JSON.stringify(content)}</script>`;
             hydrationScripts += `\n<script src="/${templateName}-hydration.js"></script>`;
 
-            // Get the plugin package name for hydration script resolution
-            const packageName = this.pluginContext.plugins.getPackageName(
-              template.pluginId,
+            // Write pre-compiled hydration script to output directory
+            const targetScript = join(
+              this.outputDir,
+              `${templateName}-hydration.js`,
             );
-            if (!packageName) {
-              this.logger.error(
-                `Plugin ${template.pluginId} missing packageName for template ${section.template}`,
-              );
-              continue;
-            }
-
-            // Compile hydration script for this template from source
-            await this.compileHydrationScript(templateName, packageName);
+            await fs.writeFile(targetScript, template.interactive, "utf8");
+            this.logger.info(`Wrote hydration script for ${templateName}`);
           }
         }
 
@@ -190,110 +182,6 @@ export class HydrationManager {
         this.logger.info(`Added Preact scripts to ${route.path}`);
       } catch (error) {
         this.logger.error(`Failed to update HTML file ${route.path}:`, error);
-      }
-    }
-  }
-
-  /**
-   * Compile hydration script from source at build time
-   *
-   * This compiles the plugin's hydration.tsx source file directly,
-   * eliminating the need for each plugin to have its own build step.
-   */
-  private async compileHydrationScript(
-    templateName: string,
-    packageName: string,
-  ): Promise<void> {
-    try {
-      // Resolve the plugin's package location
-      const packageUrl = import.meta.resolve(packageName);
-      const packagePath = fileURLToPath(packageUrl);
-      const packageDir = dirname(packagePath);
-
-      // Source file: {packageDir}/templates/{templateName}/hydration.tsx
-      const sourceFile = join(
-        packageDir,
-        "templates",
-        templateName,
-        "hydration.tsx",
-      );
-
-      // Check if source file exists
-      try {
-        await fs.access(sourceFile);
-      } catch {
-        this.logger.error(
-          `Hydration source file not found: ${sourceFile}. ` +
-            `Expected at: src/templates/${templateName}/hydration.tsx in package ${packageName}`,
-        );
-        return;
-      }
-
-      // Destination: output directory where website is built
-      const targetScript = join(this.outputDir, `${templateName}-hydration.js`);
-
-      this.logger.debug(
-        `Compiling hydration script from ${sourceFile} to ${targetScript}`,
-      );
-
-      // Compile using esbuild
-      await esbuild.build({
-        entryPoints: [sourceFile],
-        outfile: targetScript,
-        bundle: true,
-        format: "iife",
-        platform: "browser",
-        target: ["es2020"],
-        external: ["preact", "preact/hooks", "preact/jsx-runtime", "crypto"],
-        jsx: "transform",
-        jsxFactory: "window.preact.h",
-        jsxFragment: "window.preact.Fragment",
-        define: {
-          "import.meta.env.SSR": "false",
-        },
-        banner: {
-          js: `
-// Use global preact from window
-const { h, hydrate, useState, useMemo, useEffect, useCallback, useRef, useContext, createContext, jsx, jsxs } = window.preact;
-// Shim for Node modules that aren't available in browser
-var __require = function(mod) {
-  if (mod === "crypto") return { randomUUID: () => window.crypto.randomUUID() };
-  throw new Error("Cannot require " + mod + " in browser");
-};
-`,
-        },
-        write: true,
-        sourcemap: false,
-        minify: false,
-      });
-
-      // Post-process to fix any remaining import statements and hook usage
-      let outputCode = await fs.readFile(targetScript, "utf8");
-
-      outputCode = outputCode
-        .replace(/import\s*{[^}]+}\s*from\s*["']preact["'];?/g, "")
-        .replace(/import\s*{[^}]+}\s*from\s*["']preact\/hooks["'];?/g, "")
-        // Remove require variable declarations for preact and preact/hooks
-        .replace(/var import_hooks\d* = __require\("preact\/hooks"\);/g, "")
-        .replace(/var import_preact\d* = __require\("preact"\);/g, "")
-        .replace(/var import_preact\d* = require\("preact"\);/g, "")
-        // Replace (0, import_preact.X) call patterns and bare import_preact.X access
-        .replace(/(?:\(0, )?import_preact\d*\.(\w+)\)?/g, "window.preact.$1")
-        .replace(/(?:\(0, )?import_hooks\d*\.(\w+)\)?/g, "window.preact.$1")
-        // Remove any __require calls for preact
-        .replace(/__require\("preact[^"]*"\)/g, "window.preact");
-
-      await fs.writeFile(targetScript, outputCode, "utf8");
-
-      this.logger.info(`Compiled hydration script for ${templateName}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to compile hydration script for ${templateName}:`,
-        error,
-      );
-      if (error instanceof Error) {
-        this.logger.error(`Error details: ${error.message}`);
-        this.logger.error(`Stack trace: ${error.stack}`);
       }
     }
   }

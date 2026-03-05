@@ -372,6 +372,9 @@ export class MockShell implements IShell {
       getMcpServer: (): McpServer => {
         throw new Error("Mock MCP server not implemented");
       },
+      createMcpServer: (): McpServer => {
+        throw new Error("Mock MCP server not implemented");
+      },
       setPermissionLevel: (): void => {
         // No-op for testing
       },

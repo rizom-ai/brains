@@ -32,17 +32,17 @@ export function createTypedComponent<TSchema, TComponent = TSchema>(
  * Unified template interface that bundles content generation and view rendering
  * This is the single source of truth for what constitutes a template
  */
-export interface Template
-  extends Omit<
-    z.infer<typeof TemplateSchema>,
-    "schema" | "layout" | "formatter"
-  > {
+export interface Template extends Omit<
+  z.infer<typeof TemplateSchema>,
+  "schema" | "layout" | "formatter"
+> {
   schema: z.ZodSchema;
 
   // View rendering capability (optional)
   layout?: {
     component?: ComponentType<unknown>;
-    interactive?: boolean;
+    // Pre-compiled hydration JS for client-side interactivity (undefined = not interactive)
+    interactive?: string;
     // Route/page layout to use when rendering this template (e.g., "minimal", "default")
     routeLayout?: string;
   };
@@ -63,7 +63,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
     schema: z.ZodType<TSchema>;
     layout?: {
       component?: ComponentType<TComponent>;
-      interactive?: boolean;
+      interactive?: string;
       routeLayout?: string;
     };
   },
@@ -107,7 +107,7 @@ export const TemplateSchema = z.object({
   layout: z
     .object({
       component: z.any(), // ComponentType or string
-      interactive: z.boolean().optional(),
+      interactive: z.string().optional(),
     })
     .optional(),
   dataSourceId: z.string().optional(),

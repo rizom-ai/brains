@@ -2,6 +2,8 @@ import { DashboardWidget } from "./layout";
 import { dashboardDataSchema, type DashboardData } from "./schema";
 import { DashboardFormatter } from "./formatter";
 import { createTemplate } from "@brains/templates";
+// Pre-compiled by scripts/compile-hydration.ts (run via turbo precompile)
+import hydrationScript from "./hydration.compiled.js" with { type: "text" };
 
 /**
  * Dashboard template definition
@@ -16,7 +18,7 @@ export const dashboardTemplate = createTemplate<DashboardData>({
   dataSourceId: "dashboard:dashboard",
   layout: {
     component: DashboardWidget,
-    interactive: true,
+    interactive: hydrationScript,
   },
 });
 

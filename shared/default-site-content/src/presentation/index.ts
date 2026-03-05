@@ -17,6 +17,5 @@ export const presentationTemplate = createTemplate<PresentationContent>({
   requiredPermission: "public",
   layout: {
     component: PresentationLayout,
-    interactive: false,
   },
 });

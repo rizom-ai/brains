@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { DashboardWidgetRegistry } from "../src/widget-registry";
-import {
-  DashboardDataSource,
-  dashboardDataSchema,
-} from "../src/dashboard-datasource";
+import { DashboardDataSource } from "../src/dashboard-datasource";
 import type { RegisteredWidget } from "../src/widget-registry";
-import type { DashboardData } from "../src/dashboard-datasource";
+import {
+  dashboardDataSchema,
+  type DashboardData,
+} from "../src/templates/dashboard/schema";
 import type { BaseDataSourceContext } from "@brains/plugins";
 
 describe("DashboardDataSource", () => {
@@ -31,9 +31,6 @@ describe("DashboardDataSource", () => {
       );
 
       expect(result.widgets).toEqual({});
-      expect(result.buildInfo).toBeDefined();
-      expect(result.buildInfo.timestamp).toBeDefined();
-      expect(result.buildInfo.version).toBe("1.0.0");
     });
 
     it("should aggregate data from all widgets", async () => {
@@ -156,23 +153,6 @@ describe("DashboardDataSource", () => {
         // dataProvider should not be in the returned metadata
         expect(widgetData.widget).not.toHaveProperty("dataProvider");
       }
-    });
-
-    it("should include buildInfo with timestamp and version", async () => {
-      const before = new Date();
-
-      const result = await datasource.fetch<DashboardData>(
-        {},
-        dashboardDataSchema,
-        mockContext,
-      );
-
-      const after = new Date();
-      const timestamp = new Date(result.buildInfo.timestamp);
-
-      expect(timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime());
-      expect(timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
-      expect(result.buildInfo.version).toBe("1.0.0");
     });
   });
 

@@ -3,7 +3,7 @@
   "globalDependencies": ["**/.env.*local"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["precompile", "^build"],
       "outputs": ["dist/**"],
       "cache": true
     },
@@ -21,7 +21,12 @@
       "persistent": true
     },
     "test": {
-      "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"],
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "test/**/*.tsx"
+      ],
       "outputs": ["coverage/**"],
       "cache": true
     },
@@ -34,7 +39,7 @@
       "cache": false
     },
     "precompile": {
-      "outputs": ["src/content-schemas.txt"],
+      "outputs": ["src/content-schemas.txt", "**/hydration.compiled.js"],
       "cache": true
     },
     "compile": {

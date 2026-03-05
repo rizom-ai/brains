@@ -13,7 +13,6 @@ export const summaryDetailTemplate = createTemplate<SummaryDetailData>({
   formatter: new SummaryDetailFormatter(),
   layout: {
     component: SummaryDetailLayout,
-    interactive: false,
   },
 });
 

@@ -125,6 +125,5 @@ export const newsletterListTemplate = createTemplate<
   requiredPermission: "public",
   layout: {
     component: NewsletterListTemplate,
-    interactive: false,
   },
 });

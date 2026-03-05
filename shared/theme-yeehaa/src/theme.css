@@ -98,6 +98,9 @@
     --color-status-warning-bg: #fef9c3;
     --color-status-warning-text: #a16207;
 
+    /* Layout */
+    --layout-max-width: 72rem;
+
     /* Typography */
     --font-sans: 'Jost', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-heading: 'Jost', ui-sans-serif, system-ui, sans-serif;
@@ -195,6 +198,9 @@
    use manual utilities below in @layer utilities.
    ============================================ */
 @theme inline {
+  /* Layout */
+  --max-width-layout: var(--layout-max-width);
+
   /* Brand colors - same color for bg/text/border */
   --color-brand: var(--color-brand);
   --color-brand-dark: var(--color-brand-dark);

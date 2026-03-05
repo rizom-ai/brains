@@ -23,7 +23,7 @@ export const ViewTemplateSchema = z.object({
     web: z.union([z.function(), z.string()]).optional(),
     // Future formats can be added here
   }),
-  interactive: z.boolean(),
+  interactive: z.string().optional(),
 });
 
 /**
@@ -55,8 +55,8 @@ export interface ViewTemplate<T = unknown> {
     // email?: EmailRenderer<T>;
   };
 
-  // Mark components that need client-side hydration
-  interactive: boolean;
+  // Pre-compiled hydration JS for client-side interactivity (undefined = not interactive)
+  interactive?: string;
 
   // Route layout preference for dynamically generated routes
   routeLayout?: string;

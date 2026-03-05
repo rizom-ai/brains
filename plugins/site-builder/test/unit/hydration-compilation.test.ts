@@ -4,39 +4,48 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { HydrationManager } from "../../src/hydration/hydration-manager";
 import { createSilentLogger } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { ViewTemplate } from "@brains/plugins";
 
-describe("HydrationManager - compileHydrationScript", () => {
+describe("HydrationManager - writes pre-compiled hydration scripts", () => {
   let outputDir: string;
   let hydrationManager: HydrationManager;
+  const MOCK_HYDRATION_JS = '(function() { console.log("hydrated"); })();';
 
   beforeEach(async () => {
-    // Create a temporary output directory
     outputDir = join(tmpdir(), `hydration-test-${Date.now()}`);
     await fs.mkdir(outputDir, { recursive: true });
 
-    // Create HydrationManager with minimal dependencies
+    // Write a dummy HTML file for the dashboard route
+    const dashboardDir = join(outputDir, "dashboard");
+    await fs.mkdir(dashboardDir, { recursive: true });
+    await fs.writeFile(
+      join(dashboardDir, "index.html"),
+      '<html><head></head><body><div data-component="dashboard:dashboard"></div></body></html>',
+      "utf8",
+    );
+
     const logger = createSilentLogger("hydration-test");
-    const mockGetViewTemplate = (): undefined => undefined;
-    const mockPluginContext: Pick<ServicePluginContext, "plugins"> = {
-      plugins: {
-        getPackageName: (pluginId: string): string | undefined => {
-          if (pluginId === "dashboard") return "@brains/dashboard";
-          return undefined;
-        },
-      },
+    const mockGetViewTemplate = (name: string): ViewTemplate | undefined => {
+      if (name === "dashboard:dashboard") {
+        return {
+          name: "dashboard:dashboard",
+          schema: {} as ViewTemplate["schema"],
+          pluginId: "dashboard",
+          renderers: {},
+          interactive: MOCK_HYDRATION_JS,
+        };
+      }
+      return undefined;
     };
 
     hydrationManager = new HydrationManager(
       logger,
       mockGetViewTemplate,
-      mockPluginContext as ServicePluginContext,
       outputDir,
     );
   });
 
   afterEach(async () => {
-    // Clean up temporary directory
     try {
       await fs.rm(outputDir, { recursive: true, force: true });
     } catch {
@@ -44,65 +53,63 @@ describe("HydrationManager - compileHydrationScript", () => {
     }
   });
 
-  it("should compile dashboard hydration.tsx to valid JavaScript", async () => {
-    // Access the private method for testing
-    const compileMethod = (
-      hydrationManager as unknown as {
-        compileHydrationScript: (
-          templateName: string,
-          packageName: string,
-        ) => Promise<void>;
-      }
-    ).compileHydrationScript.bind(hydrationManager);
+  it("should write pre-compiled hydration script to output directory", async () => {
+    const routes = [
+      {
+        id: "dashboard",
+        path: "/dashboard",
+        title: "Dashboard",
+        description: "Dashboard",
+        layout: "default",
+        sections: [
+          {
+            id: "main",
+            template: "dashboard:dashboard",
+            content: { widgets: {} },
+          },
+        ],
+      },
+    ];
 
-    // Compile the dashboard hydration script
-    await compileMethod("dashboard", "@brains/dashboard");
+    await hydrationManager.updateHTMLFiles(routes);
 
-    // Verify the output file exists
     const outputFile = join(outputDir, "dashboard-hydration.js");
     const exists = await fs
       .access(outputFile)
       .then(() => true)
       .catch(() => false);
-
     expect(exists).toBe(true);
 
-    // Verify the output contains expected content
     const content = await fs.readFile(outputFile, "utf8");
-
-    // Should contain window.preact references (from banner and post-processing)
-    expect(content).toContain("window.preact");
-
-    // Should contain the hydration function name or marker
-    expect(content).toContain("hydrateDashboard");
-
-    // Should contain the component selector
-    expect(content).toContain('data-component="dashboard:dashboard"');
-
-    // Should NOT contain raw preact imports (they should be removed)
-    expect(content).not.toMatch(/from\s*["']preact["']/);
-    expect(content).not.toMatch(/from\s*["']preact\/hooks["']/);
+    expect(content).toBe(MOCK_HYDRATION_JS);
   });
 
-  it("should produce JavaScript that can be parsed without syntax errors", async () => {
-    const compileMethod = (
-      hydrationManager as unknown as {
-        compileHydrationScript: (
-          templateName: string,
-          packageName: string,
-        ) => Promise<void>;
-      }
-    ).compileHydrationScript.bind(hydrationManager);
+  it("should inject Preact scripts and hydration reference into HTML", async () => {
+    const routes = [
+      {
+        id: "dashboard",
+        path: "/dashboard",
+        title: "Dashboard",
+        description: "Dashboard",
+        layout: "default",
+        sections: [
+          {
+            id: "main",
+            template: "dashboard:dashboard",
+            content: { widgets: {} },
+          },
+        ],
+      },
+    ];
 
-    await compileMethod("dashboard", "@brains/dashboard");
+    await hydrationManager.updateHTMLFiles(routes);
 
-    const outputFile = join(outputDir, "dashboard-hydration.js");
-    const content = await fs.readFile(outputFile, "utf8");
-
-    // Verify the JavaScript is syntactically valid by attempting to parse it
-    // This will throw if there are syntax errors
-    expect(() => {
-      new Function(content);
-    }).not.toThrow();
+    const html = await fs.readFile(
+      join(outputDir, "dashboard", "index.html"),
+      "utf8",
+    );
+    expect(html).toContain("preact.min.js");
+    expect(html).toContain("dashboard-hydration.js");
+    expect(html).toContain("data-dashboard-props");
   });
 });

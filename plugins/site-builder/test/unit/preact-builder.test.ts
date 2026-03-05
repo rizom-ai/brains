@@ -63,7 +63,6 @@ describe("PreactBuilder", () => {
             schema: z.object({ title: z.string() }),
             pluginId: "test-plugin",
             renderers: { web: TestComponent },
-            interactive: false,
           };
         }
         return undefined;
@@ -150,7 +149,6 @@ describe("PreactBuilder", () => {
             return h("div", {}, content);
           },
         },
-        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -296,7 +294,6 @@ describe("PreactBuilder", () => {
             return h("div", {}, title);
           },
         },
-        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -420,7 +417,6 @@ describe("PreactBuilder", () => {
         schema: z.object({ coverImageUrl: z.string() }),
         pluginId: "test-plugin",
         renderers: { web: BlogPostComponent },
-        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -536,7 +532,6 @@ describe("PreactBuilder", () => {
         schema: z.object({ coverImageId: z.string() }),
         pluginId: "test-plugin",
         renderers: { web: BlogPostComponent },
-        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -648,7 +643,6 @@ describe("PreactBuilder", () => {
         schema: z.object({ imageId: z.string() }),
         pluginId: "test-plugin",
         renderers: { web: ContentComponent },
-        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,
@@ -768,7 +762,6 @@ describe("PreactBuilder", () => {
               return h("div", {}, title);
             },
           },
-          interactive: false,
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,
@@ -871,7 +864,6 @@ describe("PreactBuilder", () => {
           schema: z.object({}),
           pluginId: "test-plugin",
           renderers: { web: (): VNode => h("div", {}, "Content") },
-          interactive: false,
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,
@@ -950,7 +942,6 @@ describe("PreactBuilder", () => {
           schema: z.object({}),
           pluginId: "test-plugin",
           renderers: { web: (): VNode => h("div", {}, "Content") },
-          interactive: false,
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,
@@ -1023,7 +1014,6 @@ describe("PreactBuilder", () => {
           schema: z.object({}),
           pluginId: "test-plugin",
           renderers: { web: (): VNode => h("div", {}, "Content") },
-          interactive: false,
         }),
         registerRoute: (): void => {},
         getRoute: (): undefined => undefined,
@@ -1114,7 +1104,6 @@ describe("PreactBuilder", () => {
         schema: z.object({}),
         pluginId: "test-plugin",
         renderers: { web: ImageComponent },
-        interactive: false,
       }),
       registerRoute: (): void => {},
       getRoute: (): undefined => undefined,

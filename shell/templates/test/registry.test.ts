@@ -211,7 +211,7 @@ describe("TemplateRegistry", () => {
         layout: {
           component: ({ title, content }: { title: string; content: string }) =>
             h("div", {}, h("h1", {}, title), h("p", {}, content)),
-          interactive: true,
+          interactive: "mock-hydration-script",
         },
       });
 
@@ -221,7 +221,7 @@ describe("TemplateRegistry", () => {
       expect(retrieved).toBeDefined();
       expect(retrieved?.layout).toBeDefined();
       expect(retrieved?.layout?.component).toBeDefined();
-      expect(retrieved?.layout?.interactive).toBe(true);
+      expect(retrieved?.layout?.interactive).toBe("mock-hydration-script");
     });
 
     it("should handle templates with formatters", () => {

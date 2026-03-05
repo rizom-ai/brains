@@ -18,6 +18,5 @@ export const featuresTemplate = createTemplate<FeaturesSection>({
   formatter: new FeaturesSectionFormatter(),
   layout: {
     component: FeaturesLayout,
-    interactive: false,
   },
 });

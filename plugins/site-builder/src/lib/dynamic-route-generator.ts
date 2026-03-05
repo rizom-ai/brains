@@ -405,9 +405,12 @@ export class DynamicRouteGenerator {
   }
 
   /**
-   * Capitalize first letter of a string
+   * Capitalize first letter of each word
    */
   private capitalize(str: string): string {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    return str
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   }
 }

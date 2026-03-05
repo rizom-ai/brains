@@ -99,7 +99,9 @@ const config = defineConfig({
   plugins: [
     systemPlugin({}),
     imagePlugin(),
-    new MCPInterface({}),
+    new MCPInterface({
+      domain: process.env["DOMAIN"],
+    }),
     new MatrixInterface({
       homeserver: process.env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
       accessToken: process.env["MATRIX_ACCESS_TOKEN"] || "",

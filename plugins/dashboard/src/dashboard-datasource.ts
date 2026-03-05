@@ -1,45 +1,12 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage } from "@brains/utils";
+import type { z } from "@brains/utils";
+import { type DashboardWidgetRegistry } from "./widget-registry";
 import {
-  WIDGET_RENDERERS,
-  type DashboardWidgetRegistry,
-  type DashboardWidgetMeta,
-} from "./widget-registry";
-
-/**
- * Widget data as returned by the datasource
- */
-export interface WidgetData {
-  widget: DashboardWidgetMeta;
-  data: unknown;
-}
-
-/**
- * Dashboard data schema
- */
-export const dashboardDataSchema = z.object({
-  widgets: z.record(
-    z.object({
-      widget: z.object({
-        id: z.string(),
-        pluginId: z.string(),
-        title: z.string(),
-        description: z.string().optional(),
-        priority: z.number(),
-        section: z.enum(["primary", "secondary", "sidebar"]),
-        rendererName: z.enum(WIDGET_RENDERERS),
-      }),
-      data: z.unknown(),
-    }),
-  ),
-  buildInfo: z.object({
-    timestamp: z.string(),
-    version: z.string(),
-  }),
-});
-
-export type DashboardData = z.infer<typeof dashboardDataSchema>;
+  type DashboardData,
+  type WidgetData,
+} from "./templates/dashboard/schema";
 
 /**
  * Dashboard DataSource
@@ -68,35 +35,39 @@ export class DashboardDataSource implements DataSource {
     const widgets: Record<string, WidgetData> = {};
     const registeredWidgets = this.registry.list();
 
-    for (const widget of registeredWidgets) {
-      const key = `${widget.pluginId}:${widget.id}`;
-
-      try {
+    // Fetch all widget data in parallel
+    const results = await Promise.allSettled(
+      registeredWidgets.map(async (widget) => {
         const data = await widget.dataProvider();
-
-        // Extract metadata without dataProvider (rendererName stays in output)
         const { dataProvider: _, ...widgetMeta } = widget;
-
-        widgets[key] = {
+        return {
+          key: `${widget.pluginId}:${widget.id}`,
           widget: widgetMeta,
           data,
         };
-      } catch (error) {
+      }),
+    );
+
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const widget = registeredWidgets[i];
+      if (!result || !widget) continue;
+      if (result.status === "fulfilled") {
+        widgets[result.value.key] = {
+          widget: result.value.widget,
+          data: result.value.data,
+        };
+      } else {
         this.logger.error("Widget data provider failed", {
           widgetId: widget.id,
           pluginId: widget.pluginId,
-          error: getErrorMessage(error),
+          error: getErrorMessage(result.reason),
         });
-        // Skip widgets that fail - don't include them in results
       }
     }
 
     const result: DashboardData = {
       widgets,
-      buildInfo: {
-        timestamp: new Date().toISOString(),
-        version: "1.0.0",
-      },
     };
 
     return result as T;

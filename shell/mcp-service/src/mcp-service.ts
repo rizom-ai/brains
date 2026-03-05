@@ -83,6 +83,82 @@ export class MCPService implements IMCPService {
   }
 
   /**
+   * Create a fresh MCP server instance with all registered tools/resources.
+   * Required for Streamable HTTP where each session needs its own server.
+   */
+  public createMcpServer(): McpServer {
+    const server = new McpServer({
+      name: "brain-mcp",
+      version: "1.0.0",
+    });
+
+    // Re-register all tools
+    for (const [, { pluginId, tool }] of this.registeredTools) {
+      server.tool(
+        tool.name,
+        tool.description,
+        tool.inputSchema,
+        async (params, extra) => {
+          const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
+          const userId = extra._meta?.["userId"] ?? "mcp-user";
+          const channelId = extra._meta?.["channelId"];
+          const progressToken = extra._meta?.progressToken;
+
+          const response = await this.messageBus.send(
+            `plugin:${pluginId}:tool:execute`,
+            {
+              toolName: tool.name,
+              args: params,
+              progressToken,
+              hasProgress: progressToken !== undefined,
+              interfaceType,
+              userId,
+              channelId,
+            },
+            "MCPService",
+          );
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: this.serializeResponse(response),
+              },
+            ],
+          };
+        },
+      );
+    }
+
+    // Re-register all resources
+    for (const [, { pluginId, resource }] of this.registeredResources) {
+      server.resource(
+        resource.uri,
+        resource.description ?? `Resource from ${pluginId}`,
+        async () => {
+          const response = await this.messageBus.send(
+            `plugin:${pluginId}:resource:get`,
+            { resourceUri: resource.uri },
+            "MCPService",
+          );
+
+          return {
+            contents: [
+              {
+                uri: resource.uri,
+                mimeType: resource.mimeType ?? "text/plain",
+                text: this.serializeResponse(response),
+              },
+            ],
+          };
+        },
+      );
+    }
+
+    return server;
+  }
+
+  /**
    * Validate a message bus response and serialize its data as JSON
    */
   private serializeResponse(response: MessageResponse): string {

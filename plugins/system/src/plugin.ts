@@ -73,31 +73,84 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
         },
       });
 
-      // Register identity widget with character, links, and system info
+      // Register brain character widget
       await context.messaging.send("dashboard:register-widget", {
-        id: "identity",
+        id: "character",
         pluginId: this.id,
-        title: "Brain Identity",
+        title: "Brain Character",
         section: "sidebar",
         priority: 5,
         rendererName: "IdentityWidget",
         dataProvider: async () => {
           const character = this.getIdentityData();
+          return {
+            name: character.name,
+            role: character.role,
+            purpose: character.purpose,
+            values: character.values,
+          };
+        },
+      });
+
+      // Register anchor profile widget
+      await context.messaging.send("dashboard:register-widget", {
+        id: "profile",
+        pluginId: this.id,
+        title: "Anchor Profile",
+        section: "sidebar",
+        priority: 10,
+        rendererName: "ProfileWidget",
+        dataProvider: async () => {
           const profile = this.getProfileData();
-          // Build links from existing data sources
           const links: Array<{ label: string; url: string }> = [];
+          if (profile.website) {
+            links.push({ label: "Website", url: profile.website });
+          }
+          if (profile.socialLinks) {
+            for (const social of profile.socialLinks) {
+              links.push({ label: social.platform, url: social.url });
+            }
+          }
+          return {
+            name: profile.name,
+            description: profile.description,
+            links: links.length > 0 ? links : undefined,
+          };
+        },
+      });
+
+      // Register system info widget
+      await context.messaging.send("dashboard:register-widget", {
+        id: "system-info",
+        pluginId: this.id,
+        title: "System",
+        section: "sidebar",
+        priority: 15,
+        rendererName: "SystemWidget",
+        dataProvider: async () => {
+          const appInfo = await this.getAppInfo();
+          const links: Array<{ label: string; url: string }> = [];
+
+          // Site URL
+          const profile = this.getProfileData();
           if (profile.website) {
             links.push({ label: "Site", url: profile.website });
           }
 
-          // Preview URL from webserver daemon health details
-          const appInfo = await this.getAppInfo();
+          // Preview URL from webserver
           const webserver = appInfo.interfaces.find((i) =>
             i.name.startsWith("webserver"),
           );
           const previewUrl = webserver?.health?.details?.["previewUrl"];
           if (typeof previewUrl === "string") {
             links.push({ label: "Preview", url: previewUrl });
+          }
+
+          // MCP endpoint URL
+          const mcp = appInfo.interfaces.find((i) => i.name.startsWith("mcp"));
+          const mcpUrl = mcp?.health?.details?.["url"];
+          if (typeof mcpUrl === "string") {
+            links.push({ label: "MCP", url: mcpUrl });
           }
 
           // Repo URL from git-sync
@@ -114,18 +167,10 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
           }
 
           return {
-            name: character.name,
-            tagline: profile.description,
-            owner: profile.name,
-            character: {
-              role: character.role,
-              purpose: character.purpose,
-              values: character.values,
-            },
+            version: appInfo.version,
+            plugins: `${appInfo.plugins.length} active`,
+            rendered: new Date().toLocaleString(),
             links: links.length > 0 ? links : undefined,
-            system: {
-              Plugins: `${appInfo.plugins.length} active`,
-            },
           };
         },
       });

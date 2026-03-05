@@ -6,6 +6,7 @@
   "main": "./brain.config.ts",
   "scripts": {
     "build": "brain-build",
+    "precompile": "brain-precompile",
     "dev": "bun --watch brain.config.ts",
     "start": "bun brain.config.ts",
     "start:prod": "bun dist/brain.config.js",

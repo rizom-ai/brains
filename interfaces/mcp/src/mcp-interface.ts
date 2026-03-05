@@ -125,7 +125,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
             transport: this.config.transport,
             url:
               this.config.transport === "http"
-                ? `http://localhost:${this.config.httpPort}/mcp`
+                ? this.config.domain
+                  ? `https://${this.config.domain}/mcp`
+                  : `http://localhost:${this.config.httpPort}/mcp`
                 : undefined,
             running: isRunning,
           },
@@ -210,7 +212,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
 
       // Connect MCP server from service to HTTP transport
       const mcpServer = this.mcpTransport.getMcpServer();
-      this.httpServer.connectMCPServer(mcpServer);
+      this.httpServer.connectMCPServer(mcpServer, this.mcpTransport);
 
       // Connect agent service for /api/chat endpoint
       this.httpServer.connectAgentService(this.context.agentService);

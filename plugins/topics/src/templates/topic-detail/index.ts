@@ -12,7 +12,6 @@ export const topicDetailTemplate = createTemplate<TopicDetailData>({
   formatter: new TopicDetailFormatter(),
   layout: {
     component: TopicDetailLayout,
-    interactive: false,
   },
 });
 

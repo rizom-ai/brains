@@ -127,7 +127,7 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
         layout: {
           component: mockComponent,
-          interactive: true,
+          interactive: "mock-hydration-script",
         },
       });
 
@@ -199,7 +199,7 @@ describe("TemplateCapabilities", () => {
         formatter: mockFormatter,
         layout: {
           component: mockComponent,
-          interactive: true,
+          interactive: "mock-hydration-script",
         },
       });
 
@@ -324,7 +324,7 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
         layout: {
           component: mockComponent,
-          interactive: true,
+          interactive: "mock-hydration-script",
         },
       });
 

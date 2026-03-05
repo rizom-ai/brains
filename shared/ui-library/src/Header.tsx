@@ -90,7 +90,7 @@ export function Header({
 
   return (
     <header className={headerClass}>
-      <div className="container mx-auto px-6 max-w-6xl">
+      <div className="container mx-auto px-6 max-w-layout">
         <div className="flex flex-row justify-between items-center">
           {titleElement}
 

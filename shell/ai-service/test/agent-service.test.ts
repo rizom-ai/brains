@@ -36,6 +36,9 @@ const createMockMCPService = (): IMCPService => ({
   registerTool: mock(() => {}),
   registerResource: mock(() => {}),
   getMcpServer: mock(() => ({}) as ReturnType<IMCPService["getMcpServer"]>),
+  createMcpServer: mock(
+    () => ({}) as ReturnType<IMCPService["createMcpServer"]>,
+  ),
   setPermissionLevel: mock(() => {}),
   registerPluginInstructions: mock(() => {}),
   getPluginInstructions: mock(() => []),

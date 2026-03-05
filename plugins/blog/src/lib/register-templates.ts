@@ -43,7 +43,6 @@ export function registerTemplates(context: ServicePluginContext): void {
       requiredPermission: "public",
       layout: {
         component: BlogListTemplate,
-        interactive: false,
       },
     }),
     "post-detail": createTemplate<
@@ -67,7 +66,6 @@ export function registerTemplates(context: ServicePluginContext): void {
       requiredPermission: "public",
       layout: {
         component: BlogPostTemplate,
-        interactive: false,
       },
     }),
     "series-list": createTemplate<
@@ -85,7 +83,6 @@ export function registerTemplates(context: ServicePluginContext): void {
       requiredPermission: "public",
       layout: {
         component: SeriesListTemplate,
-        interactive: false,
       },
     }),
     "series-detail": createTemplate<
@@ -99,7 +96,6 @@ export function registerTemplates(context: ServicePluginContext): void {
       requiredPermission: "public",
       layout: {
         component: SeriesDetailTemplate,
-        interactive: false,
       },
     }),
     homepage: homepageTemplate,

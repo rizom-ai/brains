@@ -10,7 +10,6 @@ export const linkDetailTemplate = createTemplate<LinkDetailData>({
   requiredPermission: "public",
   layout: {
     component: LinkDetailLayout,
-    interactive: false,
   },
 });
 

@@ -22,6 +22,8 @@ export const WIDGET_RENDERERS = [
   "CustomWidget",
   "PipelineWidget",
   "IdentityWidget",
+  "ProfileWidget",
+  "SystemWidget",
 ] as const;
 export type WidgetRendererName = (typeof WIDGET_RENDERERS)[number];
 

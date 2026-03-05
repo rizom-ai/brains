@@ -12,7 +12,6 @@ export const summaryListTemplate = createTemplate<SummaryListData>({
   formatter: new SummaryListFormatter(),
   layout: {
     component: SummaryListLayout,
-    interactive: false,
   },
 });
 

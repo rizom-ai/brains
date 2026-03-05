@@ -27,21 +27,10 @@ export const widgetDataSchema = z.object({
 export type WidgetData = z.infer<typeof widgetDataSchema>;
 
 /**
- * Schema for build information
- */
-export const buildInfoSchema = z.object({
-  timestamp: z.string(),
-  version: z.string(),
-});
-
-export type BuildInfo = z.infer<typeof buildInfoSchema>;
-
-/**
  * Schema for extensible dashboard data
  */
 export const dashboardDataSchema = z.object({
   widgets: z.record(widgetDataSchema),
-  buildInfo: buildInfoSchema,
 });
 
 export type DashboardData = z.infer<typeof dashboardDataSchema>;

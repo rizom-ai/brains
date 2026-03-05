@@ -108,7 +108,6 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
         requiredPermission: "public",
         layout: {
           component: HomepageListLayout,
-          interactive: false,
         },
       }),
       about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({
@@ -119,7 +118,6 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
         requiredPermission: "public",
         layout: {
           component: AboutPageLayout,
-          interactive: false,
         },
       }),
       "subscribe-thanks": createTemplate<
@@ -132,7 +130,6 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
         requiredPermission: "public",
         layout: {
           component: SubscribeThanksLayout,
-          interactive: false,
         },
       }),
       "subscribe-error": createTemplate<
@@ -145,7 +142,6 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
         requiredPermission: "public",
         layout: {
           component: SubscribeErrorLayout,
-          interactive: false,
         },
       }),
     });

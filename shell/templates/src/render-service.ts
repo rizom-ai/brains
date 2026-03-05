@@ -43,9 +43,11 @@ export class RenderService implements IViewTemplateRegistry {
       description: template.description,
       pluginId,
       renderers: { web: template.layout.component },
-      interactive: template.layout.interactive ?? false,
     };
 
+    if (template.layout.interactive) {
+      viewTemplate.interactive = template.layout.interactive;
+    }
     if (template.layout.routeLayout) {
       viewTemplate.routeLayout = template.layout.routeLayout;
     }

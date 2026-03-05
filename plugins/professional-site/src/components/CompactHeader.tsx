@@ -34,8 +34,8 @@ export function CompactHeader({
 }: CompactHeaderProps): VNode {
   return (
     <header className="py-4 border-b border-theme">
-      <div className="container mx-auto px-6 md:px-8">
-        <div className="max-w-5xl mx-auto flex flex-row justify-between items-center">
+      <div className="max-w-layout mx-auto px-6 md:px-8">
+        <div className="flex flex-row justify-between items-center">
           <a
             href="/"
             className="text-brand hover:text-brand-dark transition-colors"

@@ -84,14 +84,12 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "topics:topic-detail",
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -119,7 +117,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "topics",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       await generator.generateEntityRoutes();
@@ -142,28 +139,24 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "topics:topic-detail",
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "profiles:profile-list",
           pluginId: "profiles",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "profiles:profile-detail",
           pluginId: "profiles",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -190,14 +183,12 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "blog:blog-detail",
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -253,14 +244,12 @@ describe("DynamicRouteGenerator", () => {
             pluginId: "test",
             schema: z.object({}),
             renderers: {},
-            interactive: false,
           },
           {
             name: `test:${entity}-detail`,
             pluginId: "test",
             schema: z.object({}),
             renderers: {},
-            interactive: false,
           },
         ]);
 
@@ -286,14 +275,12 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "topic-detail",
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -309,21 +296,18 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "old-plugin",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "new-plugin:topic-list",
           pluginId: "new-plugin",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "new-plugin:topic-detail",
           pluginId: "new-plugin",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -348,14 +332,12 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "blog:post-detail",
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -391,14 +373,12 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "decks",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "decks:deck-detail",
           pluginId: "decks",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -434,28 +414,24 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "blog:post-detail",
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "topics:topic-list",
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "topics:topic-detail",
           pluginId: "topics",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -495,14 +471,12 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "blog:post-detail",
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 
@@ -539,7 +513,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       await generator.generateEntityRoutes();
@@ -569,7 +542,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       await generator.generateEntityRoutes();
@@ -593,7 +565,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       await generator.generateEntityRoutes();
@@ -622,7 +593,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       const configuredGenerator = new DynamicRouteGenerator(
@@ -659,7 +629,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       const configuredGenerator = new DynamicRouteGenerator(
@@ -696,7 +665,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       await generator.generateEntityRoutes();
@@ -715,7 +683,6 @@ describe("DynamicRouteGenerator", () => {
         pluginId: "blog",
         schema: z.object({}),
         renderers: {},
-        interactive: false,
       });
 
       await generator.generateEntityRoutes();
@@ -742,28 +709,24 @@ describe("DynamicRouteGenerator", () => {
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "blog:post-detail",
           pluginId: "blog",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "social-media:social-post-list",
           pluginId: "social-media",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
         {
           name: "social-media:social-post-detail",
           pluginId: "social-media",
           schema: z.object({}),
           renderers: {},
-          interactive: false,
         },
       );
 

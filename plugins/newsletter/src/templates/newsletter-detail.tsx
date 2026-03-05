@@ -184,6 +184,5 @@ export const newsletterDetailTemplate = createTemplate<
   requiredPermission: "public",
   layout: {
     component: NewsletterDetailTemplate,
-    interactive: false,
   },
 });

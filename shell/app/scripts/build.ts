@@ -23,6 +23,17 @@ if (!existsSync(entrypoint)) {
 
 console.log(`Building ${appName}...`);
 
+// Find monorepo root (directory containing bun.lock)
+let monorepoRoot = cwd;
+while (!existsSync(join(monorepoRoot, "bun.lock"))) {
+  const parent = dirname(monorepoRoot);
+  if (parent === monorepoRoot) {
+    console.error("Could not find monorepo root");
+    process.exit(1);
+  }
+  monorepoRoot = parent;
+}
+
 const result = await build({
   entrypoints: [entrypoint],
   outdir: join(cwd, "dist"),
@@ -45,17 +56,6 @@ const result = await build({
 if (!result.success) {
   console.error("Build failed:", result.logs);
   process.exit(1);
-}
-
-// Find monorepo root (directory containing bun.lock)
-let monorepoRoot = cwd;
-while (!existsSync(join(monorepoRoot, "bun.lock"))) {
-  const parent = dirname(monorepoRoot);
-  if (parent === monorepoRoot) {
-    console.error("Could not find monorepo root");
-    process.exit(1);
-  }
-  monorepoRoot = parent;
 }
 
 // Copy migration folders to dist

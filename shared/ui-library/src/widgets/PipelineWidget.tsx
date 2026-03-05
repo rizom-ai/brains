@@ -53,7 +53,7 @@ function PipelineItemRow({ item }: { item: PipelineItem }): VNode {
   return (
     <div className="flex items-center gap-2.5 px-3 py-2 bg-theme rounded-md border border-theme text-sm">
       <StatusDot status={item.status} />
-      <span className="flex-1 font-medium text-theme truncate">
+      <span className="flex-1 min-w-0 font-medium text-theme truncate">
         {item.title}
       </span>
       <span className="font-mono text-[0.65rem] text-theme-muted">
@@ -154,7 +154,7 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
           No {STATUS_LABELS[activeStatus]} items
         </p>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className="max-h-[300px] overflow-y-auto flex flex-col gap-1">
           {filtered.map((item) => (
             <PipelineItemRow key={item.id} item={item} />
           ))}

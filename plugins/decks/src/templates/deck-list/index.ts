@@ -19,7 +19,6 @@ export const deckListTemplate = createTemplate<
   formatter: new DeckListFormatter(),
   layout: {
     component: DeckListLayout, // Component receives enriched data
-    interactive: false,
   },
 });
 

@@ -12,7 +12,6 @@ export const topicListTemplate = createTemplate<TopicListData>({
   formatter: new TopicListFormatter(),
   layout: {
     component: TopicListLayout,
-    interactive: false,
   },
 });
 

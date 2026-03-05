@@ -8,10 +8,8 @@ import {
 import { getErrorMessage, z } from "@brains/utils";
 import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
 import type { RegisteredWidget } from "./widget-registry";
-import {
-  DashboardDataSource,
-  dashboardDataSchema,
-} from "./dashboard-datasource";
+import { DashboardDataSource } from "./dashboard-datasource";
+import { dashboardDataSchema } from "./templates/dashboard/schema";
 import { dashboardTemplate } from "./templates/dashboard";
 import packageJson from "../package.json";
 
@@ -87,7 +85,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           path: "/dashboard",
           title: "System Dashboard",
           description: "Monitor your Brain system statistics and activity",
-          layout: "minimal",
+          layout: "default",
           navigation: {
             show: true,
             label: "Dashboard",

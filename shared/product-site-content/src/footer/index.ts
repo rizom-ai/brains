@@ -14,6 +14,5 @@ export const footerTemplate = createTemplate<FooterData>({
   // No formatter needed - footer data is never stored, always dynamic from DataSource
   layout: {
     component: FooterLayout,
-    interactive: false,
   },
 });

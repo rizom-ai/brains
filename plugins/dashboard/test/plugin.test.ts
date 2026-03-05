@@ -129,7 +129,6 @@ describe("DashboardPlugin", () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveProperty("widgets", {});
-      expect(result.data).toHaveProperty("buildInfo");
     });
 
     it("should return registered widgets with their data", async () => {

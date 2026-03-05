@@ -44,7 +44,6 @@ describe("SiteBuilder - URL Enrichment", () => {
       pluginId: "test",
       schema: z.object({}),
       renderers: {},
-      interactive: false,
     });
 
     mockRouteRegistry = {
