@@ -84,7 +84,7 @@ export function IdentityWidget({ data }: IdentityWidgetProps): VNode {
             {character.values.map((v) => (
               <span
                 key={v}
-                className="text-[0.625rem] font-medium px-1.5 py-0.5 rounded bg-status-info-bg text-status-info-text"
+                className="text-[0.625rem] font-medium px-1.5 py-0.5 rounded bg-status-info text-status-info"
               >
                 {v}
               </span>

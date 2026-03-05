@@ -25,10 +25,10 @@ type ListItem = z.infer<typeof listItemSchema>;
 export type ListWidgetProps = BaseWidgetProps;
 
 const PRIORITY_STYLES: Record<string, string> = {
-  critical: "bg-status-danger-bg text-status-danger-text",
-  high: "bg-status-warning-bg text-status-warning-text",
-  medium: "bg-status-info-bg text-status-info-text",
-  low: "bg-status-neutral-bg text-status-neutral-text",
+  critical: "bg-status-danger text-status-danger",
+  high: "bg-status-warning text-status-warning",
+  medium: "bg-status-info text-status-info",
+  low: "bg-status-neutral text-status-neutral",
 };
 
 function PriorityBadge({ priority }: { priority: string }): VNode {
@@ -47,8 +47,8 @@ function PriorityBadge({ priority }: { priority: string }): VNode {
 function StatusChip({ status }: { status: string }): VNode {
   const isNew = status === "new";
   const style = isNew
-    ? "bg-status-success-bg text-status-success-text"
-    : "bg-status-neutral-bg text-status-neutral-text";
+    ? "bg-status-success text-status-success"
+    : "bg-status-neutral text-status-neutral";
   return (
     <span
       className={`text-[0.6rem] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${style}`}
@@ -104,7 +104,7 @@ export function ListWidget({ title, data }: ListWidgetProps): VNode {
           {title}
         </span>
         {allItems.length > 0 && (
-          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-neutral-bg text-status-neutral-text font-medium">
+          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-neutral text-status-neutral font-medium">
             {allItems.length} items
           </span>
         )}

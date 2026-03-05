@@ -28,18 +28,19 @@ type PipelineItem = z.infer<typeof pipelineItemSchema>;
 
 export type PipelineWidgetProps = BaseWidgetProps;
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-theme-muted",
-  queued: "bg-status-warning-text",
-  published: "bg-status-success-text",
-  failed: "bg-status-danger-text",
+const STATUS_DOT_COLORS: Record<string, string> = {
+  draft: "var(--color-text-muted)",
+  queued: "#f59e0b",
+  published: "#10b981",
+  failed: "#ef4444",
 };
 
 function StatusDot({ status }: { status: string }): VNode {
-  const color = STATUS_COLORS[status] ?? "bg-theme-muted";
+  const color = STATUS_DOT_COLORS[status] ?? "var(--color-text-muted)";
   return (
     <span
-      className={`inline-block w-[7px] h-[7px] rounded-full flex-shrink-0 ${color}`}
+      className="inline-block w-[7px] h-[7px] rounded-full flex-shrink-0"
+      style={{ backgroundColor: color }}
     />
   );
 }
@@ -59,7 +60,7 @@ function PipelineItemRow({ item }: { item: PipelineItem }): VNode {
       </span>
       {timeText && (
         <span
-          className={`font-mono text-[0.6rem] ${isFailure ? "text-status-danger-text" : "text-theme-muted"}`}
+          className={`font-mono text-[0.6rem] ${isFailure ? "text-status-danger" : "text-theme-muted"}`}
         >
           {timeText}
         </span>
@@ -94,7 +95,7 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
           {title}
         </span>
         {totalQueued > 0 && (
-          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-warning-bg text-status-warning-text font-medium">
+          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-warning text-status-warning font-medium">
             {totalQueued} queued
           </span>
         )}

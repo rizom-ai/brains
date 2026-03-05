@@ -52,7 +52,7 @@ export function StatsWidget({ title, data }: StatsWidgetProps): VNode {
           {title}
         </span>
         {total > 0 && (
-          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-info-bg text-status-info-text font-medium">
+          <span className="font-mono text-[0.625rem] px-2 py-0.5 rounded-full bg-status-info text-status-info font-medium">
             {total} total
           </span>
         )}
