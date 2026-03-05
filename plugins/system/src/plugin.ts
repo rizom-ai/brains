@@ -84,15 +84,33 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
         dataProvider: async () => {
           const character = this.getIdentityData();
           const profile = this.getProfileData();
-          const entityTypes = this.getEntityTypes();
-
-          // Build links from profile + config
+          // Build links from existing data sources
           const links: Array<{ label: string; url: string }> = [];
           if (profile.website) {
             links.push({ label: "Site", url: profile.website });
           }
-          if (this.config.dashboardLinks) {
-            links.push(...this.config.dashboardLinks);
+
+          // Preview URL from webserver daemon health details
+          const appInfo = await this.getAppInfo();
+          const webserver = appInfo.interfaces.find((i) =>
+            i.name.startsWith("webserver"),
+          );
+          const previewUrl = webserver?.health?.details?.["previewUrl"];
+          if (typeof previewUrl === "string") {
+            links.push({ label: "Preview", url: previewUrl });
+          }
+
+          // Repo URL from git-sync
+          const gitInfo = await context.messaging.send<
+            Record<string, never>,
+            { repo?: string; branch?: string }
+          >("git-sync:get-repo-info", {});
+          if (!("noop" in gitInfo) && gitInfo.success && gitInfo.data?.repo) {
+            const repo = gitInfo.data.repo;
+            const repoUrl = repo.startsWith("http")
+              ? repo
+              : `https://github.com/${repo}`;
+            links.push({ label: "Repository", url: repoUrl });
           }
 
           return {
@@ -106,7 +124,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
             },
             links: links.length > 0 ? links : undefined,
             system: {
-              Plugins: `${entityTypes.length} entity types`,
+              Plugins: `${appInfo.plugins.length} active`,
             },
           };
         },

@@ -93,12 +93,7 @@ const config = defineConfig({
   },
 
   plugins: [
-    systemPlugin({
-      dashboardLinks: [
-        ...(previewDomain ? [{ label: "Preview", url: previewDomain }] : []),
-        ...(gitRepo ? [{ label: "Repository", url: gitRepo }] : []),
-      ],
-    }),
+    systemPlugin({}),
     dashboardPlugin(),
     new MCPInterface({}),
     new MatrixInterface({
