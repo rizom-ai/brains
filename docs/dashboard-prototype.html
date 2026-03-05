@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Redesign — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Simulating theme tokens */
+    --color-bg: #faf9f7;
+    --color-bg-subtle: #f3f1ed;
+    --color-bg-muted: #e8e5df;
+    --color-text: #1a1a1a;
+    --color-text-muted: #6b6560;
+    --color-text-light: #9a958f;
+    --color-heading: #0e0027;
+    --color-border: #ddd9d3;
+    --color-border-light: #eae7e2;
+    --color-brand: #3921d7;
+    --color-brand-dark: #2e007d;
+    --color-accent: #e7640a;
+    --color-status-success-bg: #ecfdf5;
+    --color-status-success-text: #065f46;
+    --color-status-warning-bg: #fffbeb;
+    --color-status-warning-text: #92400e;
+    --color-status-danger-bg: #fef2f2;
+    --color-status-danger-text: #991b1b;
+    --color-status-info-bg: #eff6ff;
+    --color-status-info-text: #1e40af;
+    --color-status-neutral-bg: #f3f1ed;
+    --color-status-neutral-text: #6b6560;
+  }
+
+  [data-theme="dark"] {
+    --color-bg: #0e0027;
+    --color-bg-subtle: #1a0a3a;
+    --color-bg-muted: #2a1555;
+    --color-text: #e8e5df;
+    --color-text-muted: #9a958f;
+    --color-text-light: #6b6560;
+    --color-heading: #ffe0bd;
+    --color-border: #3a2570;
+    --color-border-light: #2a1555;
+    --color-brand: #7c6cff;
+    --color-brand-dark: #a094ff;
+    --color-accent: #ff8a3d;
+    --color-status-success-bg: #052e16;
+    --color-status-success-text: #6ee7b7;
+    --color-status-warning-bg: #451a03;
+    --color-status-warning-text: #fcd34d;
+    --color-status-danger-bg: #450a0a;
+    --color-status-danger-text: #fca5a5;
+    --color-status-info-bg: #1e1b4b;
+    --color-status-info-text: #93c5fd;
+    --color-status-neutral-bg: #1a0a3a;
+    --color-status-neutral-text: #9a958f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', -apple-system, system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  .dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* ── Header ── */
+  .dash-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .dash-header h1 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    letter-spacing: -0.02em;
+  }
+
+  .dash-header h1 span {
+    color: var(--color-text-muted);
+    font-weight: 400;
+    margin-left: 0.5rem;
+  }
+
+  .dash-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--color-text-light);
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .dash-meta .pulse {
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Grid ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 280px;
+    grid-template-rows: auto auto;
+    gap: 1rem;
+  }
+
+  @media (max-width: 1024px) {
+    .dash-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dash-grid .card-identity {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .dash-grid {
+      grid-template-columns: 1fr;
+    }
+    .dash-grid .card-identity {
+      grid-column: span 1;
+    }
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border-light);
+    border-radius: 10px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--color-border);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  .card-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.625rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 100px;
+    font-weight: 500;
+  }
+
+  /* ── Stats Card ── */
+  .card-stats {
+    grid-column: span 2;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 0;
+    margin: 0 -0.25rem;
+  }
+
+  .stat {
+    flex: 1;
+    padding: 0.75rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .stat + .stat::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 1px;
+    background: var(--color-border-light);
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-heading);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+  }
+
+  /* ── Identity Card ── */
+  .card-identity {
+    grid-row: span 3;
+  }
+
+  .identity-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin-bottom: 0.25rem;
+  }
+
+  .identity-tagline {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+
+  .identity-detail {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-top: 1px solid var(--color-border-light);
+    font-size: 0.75rem;
+  }
+
+  .identity-detail dt {
+    color: var(--color-text-muted);
+  }
+
+  .identity-detail dd {
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .identity-role {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin-bottom: 0.25rem;
+  }
+
+  .identity-purpose {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+  }
+
+  .identity-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .value-tag {
+    font-size: 0.625rem;
+    font-weight: 500;
+    padding: 0.15rem 0.45rem;
+    border-radius: 3px;
+    background: var(--color-status-info-bg);
+    color: var(--color-status-info-text);
+  }
+
+  .identity-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .identity-link {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.375rem 0;
+    border-top: 1px solid var(--color-border-light);
+    text-decoration: none;
+    font-size: 0.75rem;
+  }
+
+  .identity-link dt {
+    color: var(--color-text-muted);
+  }
+
+  .identity-link dd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--color-brand);
+  }
+
+  .identity-link:hover dd {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ── Pipeline Card ── */
+  .pipeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .pipeline-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-bg);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border-light);
+  }
+
+  .pipeline-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .pipeline-dot.published { background: #10b981; }
+  .pipeline-dot.queued { background: #f59e0b; }
+  .pipeline-dot.failed { background: #ef4444; }
+  .pipeline-dot.draft { background: var(--color-text-light); }
+
+  .pipeline-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pipeline-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--color-text-light);
+  }
+
+  .pipeline-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--color-text-light);
+  }
+
+  .pipeline-summary {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+
+  .pipeline-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .pipeline-stat strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+  }
+
+  /* ── Wishlist Card ── */
+  .card-wishlist {
+    grid-column: span 2;
+  }
+
+  .wish-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .wish-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-bg);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    border: 1px solid var(--color-border-light);
+    transition: border-color 0.15s;
+  }
+
+  .wish-item:hover {
+    border-color: var(--color-border);
+  }
+
+  .wish-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-brand);
+    min-width: 2rem;
+    text-align: center;
+  }
+
+  .wish-title {
+    flex: 1;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  .wish-priority {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.125rem 0.4rem;
+    border-radius: 3px;
+  }
+
+  .wish-priority.critical {
+    background: var(--color-status-danger-bg);
+    color: var(--color-status-danger-text);
+  }
+  .wish-priority.high {
+    background: var(--color-status-warning-bg);
+    color: var(--color-status-warning-text);
+  }
+  .wish-priority.medium {
+    background: var(--color-status-info-bg);
+    color: var(--color-status-info-text);
+  }
+  .wish-priority.low {
+    background: var(--color-status-neutral-bg);
+    color: var(--color-status-neutral-text);
+  }
+
+  .wish-status {
+    font-size: 0.6rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.125rem 0.4rem;
+    border-radius: 3px;
+    background: var(--color-status-neutral-bg);
+    color: var(--color-status-neutral-text);
+  }
+
+  .wish-status.new {
+    background: var(--color-status-success-bg);
+    color: var(--color-status-success-text);
+  }
+
+  /* ── Theme toggle (for prototype only) ── */
+  .theme-toggle {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    z-index: 100;
+  }
+
+  .theme-toggle:hover {
+    background: var(--color-bg-subtle);
+  }
+
+  /* ── Subtle card accent lines ── */
+  .card-stats::before { background: var(--color-brand); opacity: 0.6; }
+  .card-identity::before { background: var(--color-accent); opacity: 0.6; }
+  .card:hover::before { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+  <!-- Header -->
+  <header class="dash-header">
+    <h1>Rizom Collective <span>dashboard</span></h1>
+    <div class="dash-meta">
+      <div class="pulse"></div>
+      <span>v1.0.0</span>
+      <span>built 5 Mar 2026, 14:23</span>
+    </div>
+  </header>
+
+  <!-- Grid -->
+  <div class="dash-grid">
+
+    <!-- Entity Stats (primary, spans 2 cols) -->
+    <div class="card card-stats">
+      <div class="card-header">
+        <span class="card-title">Entities</span>
+        <span class="card-badge" style="background:var(--color-status-info-bg);color:var(--color-status-info-text);">142 total</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-value">34</div>
+          <div class="stat-label">Notes</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">18</div>
+          <div class="stat-label">Blog Posts</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">12</div>
+          <div class="stat-label">Links</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">45</div>
+          <div class="stat-label">Topics</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">8</div>
+          <div class="stat-label">Decks</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value">25</div>
+          <div class="stat-label">Images</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Brain Identity (sidebar, spans all rows) -->
+    <div class="card card-identity">
+      <div class="card-header">
+        <span class="card-title">Identity</span>
+      </div>
+      <div class="identity-name">Rizom Collective</div>
+      <div class="identity-tagline">A cooperative for digital education, building tools and curricula for self-directed learners.</div>
+      <dl>
+        <div class="identity-detail">
+          <dt>Owner</dt>
+          <dd>Jan Hein Hoogstad</dd>
+        </div>
+        <div class="identity-detail">
+          <dt>Anchor</dt>
+          <dd>yeehaa</dd>
+        </div>
+      </dl>
+
+      <div class="card-header" style="margin-top:1.25rem;">
+        <span class="card-title">Character</span>
+      </div>
+      <div class="identity-role">Community Knowledge Curator</div>
+      <div class="identity-purpose">Help the Rizom community organize, share, and grow their collective knowledge.</div>
+      <div class="identity-values">
+        <span class="value-tag">collaboration</span>
+        <span class="value-tag">open knowledge</span>
+        <span class="value-tag">self-direction</span>
+        <span class="value-tag">accessibility</span>
+      </div>
+
+      <div class="card-header" style="margin-top:1.25rem;">
+        <span class="card-title">Links</span>
+      </div>
+      <dl class="identity-links">
+        <a href="https://rizom.ai" class="identity-link" target="_blank">
+          <dt>Site</dt>
+          <dd>rizom.ai</dd>
+        </a>
+        <a href="http://localhost:4321" class="identity-link" target="_blank">
+          <dt>Preview</dt>
+          <dd>localhost:4321</dd>
+        </a>
+        <a href="http://localhost:3000/mcp" class="identity-link" target="_blank">
+          <dt>MCP</dt>
+          <dd>localhost:3000/mcp</dd>
+        </a>
+        <a href="https://github.com/rizom-ai/brains" class="identity-link" target="_blank">
+          <dt>Repo</dt>
+          <dd>rizom-ai/brains</dd>
+        </a>
+        <a href="http://localhost:4321/cms" class="identity-link" target="_blank">
+          <dt>CMS</dt>
+          <dd>localhost:4321/cms</dd>
+        </a>
+      </dl>
+
+      <dl style="margin-top:1rem;">
+        <div class="identity-detail">
+          <dt>Plugins</dt>
+          <dd>12 active</dd>
+        </div>
+        <div class="identity-detail">
+          <dt>Theme</dt>
+          <dd>default</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Publication Pipeline -->
+    <div class="card card-pipeline" style="grid-column: span 2;">
+      <div class="card-header">
+        <span class="card-title">Publication Pipeline</span>
+        <span class="card-badge" style="background:var(--color-status-warning-bg);color:var(--color-status-warning-text);">3 queued</span>
+      </div>
+      <div class="pipeline-summary">
+        <div class="pipeline-stat"><div class="pipeline-dot draft"></div> <strong>4</strong> drafts</div>
+        <div class="pipeline-stat"><div class="pipeline-dot queued"></div> <strong>3</strong> queued</div>
+        <div class="pipeline-stat"><div class="pipeline-dot published"></div> <strong>28</strong> published</div>
+        <div class="pipeline-stat"><div class="pipeline-dot failed"></div> <strong>1</strong> failed</div>
+      </div>
+      <div class="pipeline-list">
+        <div class="pipeline-item">
+          <div class="pipeline-dot queued"></div>
+          <span class="pipeline-name">Weekly digest: March edition</span>
+          <span class="pipeline-type">newsletter</span>
+          <span class="pipeline-time">Fri 08:00</span>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-dot queued"></div>
+          <span class="pipeline-name">Self-directed learning frameworks</span>
+          <span class="pipeline-type">post</span>
+          <span class="pipeline-time">Mon 09:00</span>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-dot queued"></div>
+          <span class="pipeline-name">New blog post announcement</span>
+          <span class="pipeline-type">social</span>
+          <span class="pipeline-time">Mon 09:15</span>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-dot failed"></div>
+          <span class="pipeline-name">Instagram: portfolio highlight</span>
+          <span class="pipeline-type">social</span>
+          <span class="pipeline-time" style="color:var(--color-status-danger-text);">retry 2/3</span>
+        </div>
+        <div class="pipeline-item">
+          <div class="pipeline-dot published"></div>
+          <span class="pipeline-name">Open source education tools</span>
+          <span class="pipeline-type">post</span>
+          <span class="pipeline-time">2 Mar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wishlist (spans 2 cols) -->
+    <div class="card card-wishlist">
+      <div class="card-header">
+        <span class="card-title">Wishlist</span>
+        <span class="card-badge" style="background:var(--color-status-neutral-bg);color:var(--color-status-neutral-text);">7 open</span>
+      </div>
+      <div class="wish-list">
+        <div class="wish-item">
+          <span class="wish-count">&times;5</span>
+          <span class="wish-title">Email integration for newsletter delivery</span>
+          <span class="wish-priority high">high</span>
+          <span class="wish-status new">new</span>
+        </div>
+        <div class="wish-item">
+          <span class="wish-count">&times;3</span>
+          <span class="wish-title">Calendar sync for scheduling posts</span>
+          <span class="wish-priority medium">med</span>
+          <span class="wish-status new">new</span>
+        </div>
+        <div class="wish-item">
+          <span class="wish-count">&times;2</span>
+          <span class="wish-title">Instagram posting from social-media plugin</span>
+          <span class="wish-priority medium">med</span>
+          <span class="wish-status">planned</span>
+        </div>
+        <div class="wish-item">
+          <span class="wish-count">&times;1</span>
+          <span class="wish-title">Water my plants automatically</span>
+          <span class="wish-priority low">low</span>
+          <span class="wish-status new">new</span>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</div>
+
+<button class="theme-toggle" onclick="document.body.parentElement.toggleAttribute('data-theme'); this.textContent = document.documentElement.hasAttribute('data-theme') ? 'light mode' : 'dark mode'">dark mode</button>
+
+<script>
+  // Toggle dark mode via attribute
+  document.querySelector('.theme-toggle').addEventListener('click', function() {
+    const html = document.documentElement;
+    if (html.getAttribute('data-theme') === 'dark') {
+      html.removeAttribute('data-theme');
+      this.textContent = 'dark mode';
+    } else {
+      html.setAttribute('data-theme', 'dark');
+      this.textContent = 'light mode';
+    }
+  });
+</script>
+</body>
+</html>
