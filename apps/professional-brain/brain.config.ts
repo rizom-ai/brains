@@ -28,6 +28,7 @@ import { analyticsPlugin } from "@brains/analytics";
 import { dashboardPlugin } from "@brains/dashboard";
 import { createNewsletterPlugin } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
+import { wishlistPlugin } from "@brains/wishlist";
 
 // Entity route configuration
 const entityRouteConfig = {
@@ -176,6 +177,7 @@ const config = defineConfig({
       },
     }),
     obsidianVaultPlugin({ autoSync: true }),
+    wishlistPlugin({}),
     professionalSitePlugin({
       entityRouteConfig,
     }),

@@ -136,7 +136,7 @@ export function PipelineWidget({ title, data }: PipelineWidgetProps): VNode {
       </div>
 
       {/* Status tabs */}
-      <div className="flex gap-1 mb-3 pb-2.5 border-b border-theme">
+      <div className="flex flex-wrap gap-1 mb-3 pb-2.5 border-b border-theme">
         {STATUSES.map((status) => (
           <StatusTab
             key={status}

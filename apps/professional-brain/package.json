@@ -50,6 +50,7 @@
     "@brains/theme-yeehaa": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/webserver": "workspace:*",
+    "@brains/wishlist": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {
