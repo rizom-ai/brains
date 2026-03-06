@@ -21,20 +21,19 @@ export const Footer = ({
   socialLinks,
   children,
 }: FooterProps): JSX.Element => {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="footer py-8 bg-footer">
-      <div className="container mx-auto px-4 max-w-layout">
-        {children && <div className="mb-8">{children}</div>}
+    <footer className="footer pt-8 sm:pt-14 pb-7 sm:pb-10 bg-footer">
+      <div className="container mx-auto px-6 max-w-layout">
         <FooterContent
           primaryNav={primaryNavigation}
           secondaryNav={secondaryNavigation}
-          copyright={copyright ?? `Powered by Rizom • © ${currentYear}`}
+          copyright={copyright ?? "Powered by Rizom"}
           socialLinks={socialLinks}
           showThemeToggle={true}
           variant="default"
-        />
+        >
+          {children}
+        </FooterContent>
       </div>
     </footer>
   );

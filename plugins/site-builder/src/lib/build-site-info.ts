@@ -18,8 +18,7 @@ export async function buildSiteInfo(
   const primaryItems = routeRegistry.getNavigationItems("primary");
   const secondaryItems = routeRegistry.getNavigationItems("secondary");
 
-  const currentYear = new Date().getFullYear();
-  const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
+  const defaultCopyright = "Powered by Rizom";
 
   return {
     ...siteInfoBody,

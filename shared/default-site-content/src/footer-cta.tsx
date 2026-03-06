@@ -78,7 +78,7 @@ export const FooterCTA = ({ siteInfo }: FooterCTAProps): JSX.Element | null => {
           </div>
 
           {/* Footer content (navigation, copyright, social links) */}
-          <div className="mt-16">
+          <div className="mt-20 pt-10 border-t border-white/10">
             <FooterContent
               primaryNav={siteInfo.navigation.primary}
               secondaryNav={siteInfo.navigation.secondary}

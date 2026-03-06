@@ -1081,9 +1081,10 @@ a[class*="bg-brand"][class*="text-theme-inverse"] {
   color: var(--color-brand);
 }
 
-/* 10. Footer — scoped semantic tokens for always-dark context.
+/* 10. Footer — scan line texture + scoped semantic tokens for always-dark context.
       Any component inside the footer automatically gets correct colors. */
 footer.bg-footer {
+  position: relative;
   --color-bg: var(--palette-gray-900);
   --color-bg-subtle: var(--palette-gray-800);
   --color-bg-muted: var(--palette-gray-700);
@@ -1092,14 +1093,32 @@ footer.bg-footer {
   --color-text-inverse: var(--palette-near-black);
   --color-heading: var(--color-footer-text);
   --color-border: var(--palette-gray-600);
-  --color-border-light: var(--palette-gray-700);
+  --color-border-light: var(--palette-gray-800);
   --color-brand: var(--palette-neon-green);
   --color-brand-dark: var(--palette-neon-green-dark);
   --color-brand-light: var(--palette-neon-green-light);
   color: var(--color-footer-text);
 }
+footer.bg-footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 3px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+footer.bg-footer > * {
+  position: relative;
+  z-index: 1;
+}
 footer.bg-footer a {
-  color: var(--color-footer-text);
+  color: var(--palette-gray-300);
 }
 footer.bg-footer a:hover {
   color: var(--palette-neon-green);
@@ -1111,12 +1130,14 @@ footer.bg-footer button:not(.bg-theme-toggle) {
 footer.bg-footer button:not(.bg-theme-toggle):hover {
   color: var(--palette-neon-green);
 }
-/* Theme toggle: no background, just the icon */
+/* Theme toggle: bordered box, icon only */
 footer.bg-footer .bg-theme-toggle {
   background-color: transparent;
-  color: var(--color-footer-text);
+  border: 1px solid var(--palette-gray-700);
+  color: var(--palette-gray-400);
 }
 footer.bg-footer .bg-theme-toggle:hover {
   background-color: transparent;
+  border-color: var(--palette-neon-green);
   color: var(--palette-neon-green);
 }

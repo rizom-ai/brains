@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Footer Prototype — Brutalist Theme</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Work+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Reset */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* Theme tokens — matching brutalist theme */
+:root {
+  --palette-neon-green: #00FF66;
+  --palette-neon-green-dark: #00CC52;
+  --palette-near-black: #0A0A0A;
+  --palette-black: #000000;
+  --palette-gray-100: #E0E0E0;
+  --palette-gray-300: #A0A0A0;
+  --palette-gray-400: #888888;
+  --palette-gray-500: #666666;
+  --palette-gray-600: #555555;
+  --palette-gray-700: #333333;
+  --palette-gray-800: #1A1A1A;
+  --palette-gray-900: #111111;
+  --palette-text-light: #E0E0E0;
+
+  --font-sans: 'Work Sans', system-ui, sans-serif;
+  --font-heading: 'Space Mono', monospace;
+  --font-mono: 'Space Mono', monospace;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--palette-near-black);
+  color: var(--palette-text-light);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* Simulate page content above */
+.page-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--palette-gray-500);
+  font-size: 14px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ============================================
+   WAVE DIVIDER — Neon bar (brutalist override)
+   ============================================ */
+.wave-divider {
+  height: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--palette-neon-green) 0%,
+    var(--palette-neon-green) 38%,
+    #FFD700 50%,
+    var(--palette-neon-green) 62%,
+    var(--palette-neon-green) 100%
+  );
+  background-size: 200% 100%;
+  animation:
+    scan-sweep 2s steps(8) infinite,
+    neon-flicker 6s steps(1) infinite;
+  box-shadow:
+    0 -1px 0 rgba(0, 200, 255, 0.4),
+    0 1px 0 rgba(255, 0, 100, 0.4),
+    0 0 10px rgba(0, 255, 102, 0.5),
+    0 0 30px rgba(0, 255, 102, 0.2);
+}
+
+@keyframes scan-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+@keyframes neon-flicker {
+  0%, 84%, 88%, 92%, 100% { opacity: 1; }
+  85% { opacity: 0.5; }
+  87% { opacity: 0.9; }
+  89% { opacity: 0.6; }
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+footer {
+  background: var(--palette-black);
+  position: relative;
+}
+
+/* Scan line texture overlay */
+footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 3px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.footer-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 3.5rem 1.5rem 2.5rem;
+}
+
+/* Main grid: nav columns left, newsletter right */
+.footer-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 3rem;
+}
+
+/* Nav columns row */
+.footer-nav-row {
+  display: flex;
+  gap: 4rem;
+}
+
+/* Newsletter pushed right */
+.footer-newsletter {
+  margin-left: auto;
+  max-width: 320px;
+  width: 100%;
+}
+
+/* Section labels */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--palette-neon-green);
+  margin-bottom: 1.25rem;
+  opacity: 0.6;
+}
+
+/* Nav links */
+.nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.nav-list a {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--palette-gray-300);
+  text-decoration: none;
+  transition: color 100ms steps(1);
+  display: inline-block;
+}
+
+.nav-list a:hover {
+  color: var(--palette-neon-green);
+}
+
+/* Newsletter form */
+.newsletter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.newsletter-input-row {
+  display: flex;
+  gap: 0;
+}
+
+.newsletter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid var(--palette-gray-600);
+  color: var(--palette-text-light);
+  outline: none;
+  transition: border-color 100ms;
+}
+
+.newsletter-input::placeholder {
+  color: var(--palette-gray-500);
+}
+
+.newsletter-input:focus {
+  border-color: var(--palette-neon-green);
+}
+
+.newsletter-btn {
+  padding: 0.5rem 1.25rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: var(--palette-neon-green);
+  color: var(--palette-black);
+  border: 1px solid var(--palette-neon-green);
+  border-left: none;
+  cursor: pointer;
+  transition: background 100ms steps(1), color 100ms steps(1);
+  white-space: nowrap;
+}
+
+.newsletter-btn:hover {
+  background: transparent;
+  color: var(--palette-neon-green);
+}
+
+/* ============================================
+   STATUS BAR — bottom row
+   ============================================ */
+.footer-status {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--palette-gray-800);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.footer-copyright {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--palette-gray-500);
+  letter-spacing: 0.04em;
+}
+
+.footer-status-right {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* Social icons */
+.social-links {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.social-links a {
+  color: var(--palette-gray-500);
+  transition: color 100ms steps(1);
+  display: flex;
+}
+
+.social-links a:hover {
+  color: var(--palette-neon-green);
+}
+
+.social-links svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--palette-gray-700);
+  color: var(--palette-gray-400);
+  padding: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 100ms steps(1), border-color 100ms steps(1);
+}
+
+.theme-toggle:hover {
+  color: var(--palette-neon-green);
+  border-color: var(--palette-neon-green);
+}
+
+.theme-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ============================================
+   MOBILE — Stacked terminal blocks with
+   structural borders between sections
+   ============================================ */
+@media (max-width: 640px) {
+  .footer-inner {
+    padding: 2rem 1.5rem 1.75rem;
+  }
+
+  /* Vertical stack, no outer gap — borders define rhythm */
+  .footer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Newsletter first — primary interaction block */
+  .footer-newsletter {
+    order: -1;
+    margin-left: 0;
+    max-width: 100%;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid var(--palette-gray-800);
+  }
+
+  /* Nav columns — dual-pane terminal layout, equal halves */
+  .footer-nav-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding-top: 1.75rem;
+  }
+
+  /* Keep section labels — they're part of the terminal voice */
+  .footer-nav-row .section-label {
+    margin-bottom: 1rem;
+  }
+
+  .footer-nav-row .nav-list a {
+    font-size: 13px;
+  }
+
+  /* Status bar — match the border-gap rhythm above */
+  .footer-status {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+  }
+}
+
+/* ============================================
+   LIGHT MODE VARIANT
+   ============================================ */
+[data-theme="light"] body {
+  background: #F0F0F0;
+}
+
+[data-theme="light"] .wave-divider {
+  box-shadow:
+    0 -1px 0 rgba(0, 200, 255, 0.3),
+    0 1px 0 rgba(255, 0, 100, 0.3);
+}
+
+[data-theme="light"] footer {
+  background: var(--palette-near-black);
+}
+
+/* Theme switcher */
+.theme-switch-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--palette-gray-800);
+  padding: 8px 16px;
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.theme-switch-bar button {
+  background: var(--palette-gray-700);
+  border: 1px solid var(--palette-gray-600);
+  color: var(--palette-gray-300);
+  padding: 4px 12px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.theme-switch-bar button:hover,
+.theme-switch-bar button.active {
+  background: var(--palette-neon-green);
+  color: var(--palette-black);
+  border-color: var(--palette-neon-green);
+}
+</style>
+</head>
+<body>
+
+<!-- Theme switcher for prototyping -->
+<div class="theme-switch-bar">
+  <button class="active" onclick="setTheme('dark')">Dark</button>
+  <button onclick="setTheme('light')">Light</button>
+</div>
+
+<div class="page-content">[ page content above ]</div>
+
+<!-- Neon bar divider -->
+<div class="wave-divider"></div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+
+    <!-- Main grid -->
+    <div class="footer-grid">
+
+      <!-- Nav columns -->
+      <div class="footer-nav-row">
+        <div>
+          <div class="section-label">Navigate</div>
+          <ul class="nav-list">
+            <li><a href="/">Home</a></li>
+            <li><a href="/blog">Blog</a></li>
+            <li><a href="/portfolio">Portfolio</a></li>
+            <li><a href="/decks">Decks</a></li>
+            <li><a href="/about">About</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="section-label">More</div>
+          <ul class="nav-list">
+            <li><a href="/feed.xml">RSS</a></li>
+            <li><a href="/admin/">Admin</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Newsletter -->
+      <div class="footer-newsletter">
+        <div class="section-label">Stay Updated</div>
+        <form class="newsletter-form">
+          <div class="newsletter-input-row">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              class="newsletter-input"
+              required
+            />
+            <button type="submit" class="newsletter-btn">Subscribe</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- Status bar -->
+    <div class="footer-status">
+      <span class="footer-copyright">Powered by Rizom</span>
+
+      <div class="footer-status-right">
+        <div class="social-links">
+          <a href="#" aria-label="GitHub">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          </a>
+          <a href="#" aria-label="LinkedIn">
+            <svg fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          </a>
+          <a href="#" aria-label="Email">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </a>
+        </div>
+
+        <button class="theme-toggle" aria-label="Toggle theme">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</footer>
+
+<script>
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-switch-bar button').forEach(b => {
+    b.classList.toggle('active', b.textContent.toLowerCase() === t);
+  });
+}
+</script>
+</body>
+</html>

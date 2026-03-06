@@ -6,8 +6,7 @@ export const FooterLayout = ({
   navigation,
   copyright,
 }: FooterData): JSX.Element => {
-  const currentYear = new Date().getFullYear();
-  const defaultCopyright = `© ${currentYear} Rizom Brains. All rights reserved.`;
+  const defaultCopyright = "Powered by Rizom";
 
   return (
     <footer className="footer-section bg-theme-dark text-theme-inverse py-12">

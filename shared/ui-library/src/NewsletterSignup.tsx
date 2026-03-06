@@ -136,35 +136,31 @@ export function NewsletterSignup({
 })();
 `;
 
-  // Inline variant: horizontal layout for footer (adapts to footer background)
+  // Inline variant: terminal-style form for footer
   if (variant === "inline") {
     return (
       <div
         className={cn(
           newsletterSignupVariants({ variant }),
-          "max-w-md mx-auto",
+          "max-w-full sm:max-w-xs",
           className,
         )}
       >
-        <form
-          action={action}
-          method="POST"
-          className="newsletter-signup-form flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl bg-theme-subtle border border-theme"
-        >
-          <span className="text-heading font-medium whitespace-nowrap">
+        <form action={action} method="POST" className="newsletter-signup-form">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-brand opacity-60 block mb-5">
             {displayTitle}
           </span>
-          <div className="flex flex-1 w-full sm:w-auto gap-2 min-w-0">
+          <div className="flex w-full min-w-0">
             <input
               type="email"
               name="email"
               placeholder="your@email.com"
               required
-              className="flex-1 min-w-0 px-4 py-2.5 rounded-lg bg-theme border border-theme text-theme placeholder:text-theme-muted focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
+              className="flex-1 min-w-0 px-3 py-2 font-mono text-[13px] bg-transparent border border-theme text-theme placeholder-theme-muted focus:outline-none focus:border-brand"
             />
             <Button
               type="submit"
-              className="shrink-0 whitespace-nowrap font-semibold"
+              className="shrink-0 whitespace-nowrap font-mono text-xs font-bold uppercase tracking-[0.08em] border border-l-0 border-brand bg-brand text-theme-inverse hover:bg-transparent hover:text-brand px-4"
             >
               {buttonText}
             </Button>

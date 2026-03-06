@@ -51,8 +51,7 @@ export class SiteInfoDataSource implements DataSource {
     const secondaryItems = this.routeRegistry.getNavigationItems("secondary");
 
     // Generate default copyright if not provided
-    const currentYear = new Date().getFullYear();
-    const defaultCopyright = `© ${currentYear} ${siteInfoBody.title}. All rights reserved.`;
+    const defaultCopyright = "Powered by Rizom";
 
     // Build complete site info (merge site-info, profile.socialLinks, and navigation)
     const siteInfo = {

@@ -6,7 +6,7 @@ const navLinksVariants = cva("flex flex-wrap", {
   variants: {
     orientation: {
       horizontal: "justify-center gap-6 items-center",
-      vertical: "flex-col gap-3",
+      vertical: "flex-col gap-2.5",
     },
   },
   defaultVariants: {
