@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-03
+Last Updated: 2026-03-06
 
 ---
 
@@ -56,6 +56,15 @@ Last Updated: 2026-03-03
 
 ## Completed (2026-03)
 
+- ✅ External routes: navigation-only links (e.g. CMS admin) excluded from site builds
+- ✅ RouteDefinitionInput type for route construction with Zod defaults
+- ✅ Wishlist plugin added to professional brain
+- ✅ Pipeline widget mobile overflow fix (flex-wrap on status tabs)
+- ✅ Dashboard auto-discovered URLs (replaced manual dashboardLinks config with AppInfo + git-sync)
+- ✅ Pre-compiled hydration for faster site builds
+- ✅ MCP multi-session support fix
+- ✅ ESLint centralized configuration
+- ✅ Interactive pipeline widget on dashboard
 - ✅ Directory-sync: canonical contentHash breaks unnecessary re-import cycle after auto-sync
 - ✅ Directory-sync: remove batch export so disk edits always win during sync
 - ✅ Obsidian vault plugin: template sync, body templates from StructuredContentFormatter
