@@ -6,7 +6,7 @@ import {
   createMockServicePluginContext,
 } from "@brains/test-utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { IAnchorProfileService } from "@brains/plugins";
 import { TestLayout } from "../test-helpers";
@@ -82,7 +82,7 @@ describe("SiteBuilder dataQuery handling", () => {
 
   describe("getContentForSection", () => {
     it("should use dataQuery params for dynamic content", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "topics",
         path: "/topics",
         title: "Topics",
@@ -136,7 +136,7 @@ describe("SiteBuilder dataQuery handling", () => {
     });
 
     it("should detect detail format when query.id is present", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "topic-detail",
         path: "/topics/test-topic",
         title: "Test Topic",
@@ -193,7 +193,7 @@ describe("SiteBuilder dataQuery handling", () => {
     });
 
     it("should handle sections with static content and dataQuery", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "mixed",
         path: "/mixed",
         title: "Mixed Content",
@@ -271,7 +271,7 @@ describe("SiteBuilder dataQuery handling", () => {
     });
 
     it("should handle dataQuery without query field", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "no-query",
         path: "/topics",
         title: "Topics",
@@ -325,7 +325,7 @@ describe("SiteBuilder dataQuery handling", () => {
     });
 
     it("should set publishedOnly=true for list sections in production", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "topics",
         path: "/topics",
         title: "Topics",
@@ -371,7 +371,7 @@ describe("SiteBuilder dataQuery handling", () => {
     });
 
     it("should set publishedOnly=true for detail sections in production", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "topic-detail",
         path: "/topics/test-topic",
         title: "Test Topic",
@@ -417,7 +417,7 @@ describe("SiteBuilder dataQuery handling", () => {
     });
 
     it("should handle dataQuery with additional query params", async () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "custom-query",
         path: "/topics/filtered",
         title: "Filtered Topics",

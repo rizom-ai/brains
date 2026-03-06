@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
 import { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
@@ -27,7 +27,7 @@ describe("NavigationDataSource", () => {
 
   it("should provide navigation data for footer component", async () => {
     // Setup: Register routes that should appear in navigation
-    const homeRoute: RouteDefinition = {
+    const homeRoute: RouteDefinitionInput = {
       id: "home",
       path: "/",
       title: "Home",
@@ -42,7 +42,7 @@ describe("NavigationDataSource", () => {
       sections: [],
     };
 
-    const linksRoute: RouteDefinition = {
+    const linksRoute: RouteDefinitionInput = {
       id: "links",
       path: "/links",
       title: "Links",
@@ -72,7 +72,7 @@ describe("NavigationDataSource", () => {
   });
 
   it("should exclude routes not marked for navigation", async () => {
-    const publicRoute: RouteDefinition = {
+    const publicRoute: RouteDefinitionInput = {
       id: "public",
       path: "/public",
       title: "Public",
@@ -86,7 +86,7 @@ describe("NavigationDataSource", () => {
       sections: [],
     };
 
-    const privateRoute: RouteDefinition = {
+    const privateRoute: RouteDefinitionInput = {
       id: "private",
       path: "/private",
       title: "Private",
@@ -100,7 +100,7 @@ describe("NavigationDataSource", () => {
       sections: [],
     };
 
-    const noNavRoute: RouteDefinition = {
+    const noNavRoute: RouteDefinitionInput = {
       id: "no-nav",
       path: "/no-nav",
       title: "No Nav",

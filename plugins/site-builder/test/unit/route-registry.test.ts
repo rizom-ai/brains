@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("RouteRegistry", () => {
@@ -11,9 +11,62 @@ describe("RouteRegistry", () => {
     registry = new RouteRegistry(logger);
   });
 
+  describe("external routes", () => {
+    it("should exclude external routes from list()", () => {
+      registry.register({
+        id: "home",
+        path: "/",
+        title: "Home",
+        description: "Home page",
+        sections: [],
+      });
+      registry.register({
+        id: "admin",
+        path: "/admin/",
+        title: "Admin",
+        external: true,
+      });
+
+      const routes = registry.list();
+      expect(routes).toHaveLength(1);
+      expect(routes[0]?.id).toBe("home");
+    });
+
+    it("should include external routes in get()", () => {
+      registry.register({
+        id: "admin",
+        path: "/admin/",
+        title: "Admin",
+        external: true,
+      });
+
+      const route = registry.get("/admin/");
+      expect(route).toBeDefined();
+      expect(route?.external).toBe(true);
+    });
+
+    it("should count external routes in size()", () => {
+      registry.register({
+        id: "home",
+        path: "/",
+        title: "Home",
+        description: "Home page",
+        sections: [],
+      });
+      registry.register({
+        id: "admin",
+        path: "/admin/",
+        title: "Admin",
+        external: true,
+      });
+
+      expect(registry.size()).toBe(2);
+    });
+  });
+
   describe("navigation functionality", () => {
     it("should return empty array when no routes have navigation", () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "test",
         path: "/test",
         title: "Test",
@@ -29,7 +82,7 @@ describe("RouteRegistry", () => {
     });
 
     it("should return navigation items for routes with navigation metadata", () => {
-      const routes: RouteDefinition[] = [
+      const routes: RouteDefinitionInput[] = [
         {
           id: "home",
           path: "/",
@@ -89,7 +142,7 @@ describe("RouteRegistry", () => {
     });
 
     it("should sort navigation items by priority", () => {
-      const routes: RouteDefinition[] = [
+      const routes: RouteDefinitionInput[] = [
         {
           id: "third",
           path: "/third",
@@ -141,7 +194,7 @@ describe("RouteRegistry", () => {
     });
 
     it("should only return items for the specified slot", () => {
-      const routes: RouteDefinition[] = [
+      const routes: RouteDefinitionInput[] = [
         {
           id: "main-item",
           path: "/main",
@@ -178,8 +231,31 @@ describe("RouteRegistry", () => {
       expect(mainItems[0]?.href).toBe("/main");
     });
 
+    it("should include external routes in navigation", () => {
+      registry.register({
+        id: "admin",
+        path: "/admin/",
+        title: "Admin",
+        external: true,
+        navigation: {
+          show: true,
+          slot: "secondary",
+          label: "Admin",
+          priority: 100,
+        },
+      });
+
+      const items = registry.getNavigationItems("secondary");
+      expect(items).toHaveLength(1);
+      expect(items[0]).toEqual({
+        label: "Admin",
+        href: "/admin/",
+        priority: 100,
+      });
+    });
+
     it("should use default priority when not specified", () => {
-      const route: RouteDefinition = {
+      const route: RouteDefinitionInput = {
         id: "test",
         path: "/test",
         title: "Test",

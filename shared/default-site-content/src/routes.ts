@@ -1,7 +1,7 @@
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 
 // Default routes for the minimal site
-export const routes: RouteDefinition[] = [
+export const routes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",

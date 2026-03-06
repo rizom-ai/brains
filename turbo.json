@@ -27,7 +27,7 @@
         "test/**/*.ts",
         "test/**/*.tsx"
       ],
-      "outputs": ["coverage/**"],
+      "outputs": [],
       "cache": true
     },
     "typecheck": {

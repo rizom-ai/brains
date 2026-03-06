@@ -9,9 +9,9 @@ import type {
   BatchOperation,
   MessageResponse,
 } from "@brains/plugins";
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 
-const testRoutes: RouteDefinition[] = [
+const testRoutes: RouteDefinitionInput[] = [
   {
     id: "landing",
     path: "/",
@@ -45,7 +45,7 @@ const testRoutes: RouteDefinition[] = [
 ];
 
 function createRoutesMessaging(
-  routes: RouteDefinition[],
+  routes: RouteDefinitionInput[],
 ): (channel: string) => Promise<MessageResponse> {
   return async (channel: string) => {
     if (channel === "site-builder:routes:list") {

@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
-import type { RouteDefinition, NavigationSlot } from "@brains/plugins";
+import type { RouteDefinitionInput, NavigationSlot } from "@brains/plugins";
 import type { EntityRouteConfig } from "../config";
 import { pluralize } from "@brains/utils";
 
@@ -92,7 +92,7 @@ export class DynamicRouteGenerator {
         const listTemplate = templates.find((t) => t.name === listTemplateName);
         const listLayout = listTemplate?.routeLayout ?? "default";
 
-        const indexRoute: RouteDefinition = {
+        const indexRoute: RouteDefinitionInput = {
           id: `${entityType}-index`,
           path: `/${pluralName}`,
           title: label,
@@ -159,7 +159,7 @@ export class DynamicRouteGenerator {
               ? (entity.metadata["slug"] as string)
               : entity.id;
 
-          const detailRoute: RouteDefinition = {
+          const detailRoute: RouteDefinitionInput = {
             id: `${entityType}-${entity.id}`,
             path: `/${pluralName}/${urlSlug}`,
             title: `${this.capitalize(entityType)}: ${urlSlug}`,
@@ -241,7 +241,7 @@ export class DynamicRouteGenerator {
         ? `/${pluralName}`
         : `/${pluralName}/page/${page}`;
 
-      const pageRoute: RouteDefinition = {
+      const pageRoute: RouteDefinitionInput = {
         id: `${entityType}-index${isFirstPage ? "" : `-page-${page}`}`,
         path,
         title: isFirstPage ? label : `${label} - Page ${page}`,

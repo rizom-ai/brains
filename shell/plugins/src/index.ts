@@ -200,6 +200,7 @@ export type { ViewTemplate, OutputFormat } from "@brains/templates";
 // Route types (cross-cutting concern used by site-builder, site-content, decks, etc.)
 export type {
   RouteDefinition,
+  RouteDefinitionInput,
   SectionDefinition,
   NavigationMetadata,
   NavigationSlot,

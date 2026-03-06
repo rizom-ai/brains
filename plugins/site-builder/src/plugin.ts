@@ -197,6 +197,22 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.rebuildManager.setupAutoRebuild();
     }
 
+    // Register CMS admin nav link if CMS is enabled
+    if (this.config.cms) {
+      this._routeRegistry.register({
+        id: "cms-admin",
+        path: "/admin/",
+        title: "Admin",
+        external: true,
+        navigation: {
+          show: true,
+          slot: "secondary",
+          label: "Admin",
+          priority: 100,
+        },
+      });
+    }
+
     // Subscribe to build-completed for SEO + CMS file generation
     subscribeBuildCompleted({
       context,

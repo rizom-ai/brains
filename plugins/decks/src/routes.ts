@@ -1,11 +1,11 @@
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 
 /**
  * Generate deck routes with fullscreen layout
  * These routes will be registered dynamically by the DeckSPlugin
  * based on discovered deck entities
  */
-export function createDeckRoutes(deckIds: string[]): RouteDefinition[] {
+export function createDeckRoutes(deckIds: string[]): RouteDefinitionInput[] {
   return deckIds.map((id) => ({
     id: `deck-${id}`,
     path: `/decks/${id}`,

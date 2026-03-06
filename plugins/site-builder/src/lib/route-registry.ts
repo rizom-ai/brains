@@ -1,5 +1,6 @@
 import type {
   RouteDefinition,
+  RouteDefinitionInput,
   NavigationItem,
   NavigationSlot,
 } from "@brains/plugins";
@@ -19,7 +20,7 @@ export class RouteRegistry {
    * Register one or more route definitions
    * @throws Error if any route path is already registered
    */
-  register(routes: RouteDefinition | RouteDefinition[]): void {
+  register(routes: RouteDefinitionInput | RouteDefinitionInput[]): void {
     const routeArray = Array.isArray(routes) ? routes : [routes];
 
     for (const route of routeArray) {
@@ -68,7 +69,7 @@ export class RouteRegistry {
    * List all routes with optional filtering
    */
   list(filter?: { pluginId?: string | undefined }): RouteDefinition[] {
-    let routes = Array.from(this.routes.values());
+    let routes = Array.from(this.routes.values()).filter((r) => !r.external);
 
     if (filter?.pluginId) {
       routes = routes.filter((r) => r.pluginId === filter.pluginId);

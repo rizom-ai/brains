@@ -1,4 +1,4 @@
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
 
 /**
@@ -6,9 +6,9 @@ import type { RouteRegistry } from "./route-registry";
  * Templates that already contain ":" (e.g. "other-plugin:hero") are left as-is.
  */
 function prefixSections(
-  sections: RouteDefinition["sections"],
+  sections: NonNullable<RouteDefinitionInput["sections"]>,
   pluginId: string,
-): RouteDefinition["sections"] {
+): NonNullable<RouteDefinitionInput["sections"]> {
   return sections.map((section) => ({
     ...section,
     template: section.template.includes(":")
@@ -22,7 +22,7 @@ function prefixSections(
  * names with the given plugin ID.
  */
 export function registerConfigRoutes(
-  routes: RouteDefinition[],
+  routes: RouteDefinitionInput[],
   pluginId: string,
   registry: RouteRegistry,
 ): void {
@@ -30,7 +30,7 @@ export function registerConfigRoutes(
     registry.register({
       ...route,
       pluginId,
-      sections: prefixSections(route.sections, pluginId),
+      sections: route.sections ? prefixSections(route.sections, pluginId) : [],
     });
   }
 }

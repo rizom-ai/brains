@@ -50,17 +50,19 @@ export const RouteDefinitionSchema = z.object({
   id: z.string(), // Unique route identifier
   path: z.string(), // URL path
   title: z.string(), // Route title
-  description: z.string(), // Route description
-  sections: z.array(SectionDefinitionSchema), // Page sections
+  description: z.string().default(""), // Route description
+  sections: z.array(SectionDefinitionSchema).default([]), // Page sections
   layout: z.string().default("default"), // Layout to use for this route
   pluginId: z.string().optional(), // Plugin that registered this route
   sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
+  external: z.boolean().optional(), // Navigation-only, not rendered as a page
   navigation: NavigationMetadataSchema, // Optional navigation metadata
 });
 
 // Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
+export type RouteDefinitionInput = z.input<typeof RouteDefinitionSchema>;
 export type NavigationMetadata = z.infer<typeof NavigationMetadataSchema>;
 
 // Navigation item interface for extracted navigation data
