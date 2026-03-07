@@ -28,6 +28,8 @@ export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema> & {
   layouts: Record<string, LayoutComponent>;
   // Optional slot registry for plugin-registered UI components
   slots?: LayoutSlots | undefined;
+  // Head scripts registered by other plugins (e.g., analytics beacon)
+  headScripts?: string[] | undefined;
 };
 
 /**

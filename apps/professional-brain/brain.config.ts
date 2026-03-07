@@ -169,6 +169,7 @@ const config = defineConfig({
         siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"] || "",
       },
     }),
+    // Analytics plugin auto-injects Cloudflare beacon script via head-script hook
     dashboardPlugin(),
     createNewsletterPlugin({
       buttondown: {
@@ -189,7 +190,6 @@ const config = defineConfig({
         minimal: MinimalLayout,
       },
       themeCSS: yeehaaTheme,
-      analyticsScript: process.env["CLOUDFLARE_ANALYTICS_SCRIPT"],
       previewOutputDir: "./dist/site-preview",
       productionOutputDir: "./dist/site-production",
       previewUrl: process.env["PREVIEW_DOMAIN"],

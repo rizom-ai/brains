@@ -32,6 +32,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     private previewUrl?: string,
     private productionUrl?: string,
     private slots?: LayoutSlots,
+    private getHeadScripts?: () => string[],
   ) {
     super(logger, {
       schema: siteBuildJobSchema,
@@ -82,6 +83,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           layouts: this.layouts,
           themeCSS: this.themeCSS,
           slots: this.slots,
+          headScripts: this.getHeadScripts?.(),
         },
         buildProgressReporter.toCallback(),
       );

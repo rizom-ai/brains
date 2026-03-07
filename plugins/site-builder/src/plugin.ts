@@ -48,6 +48,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private profileService?: AnchorProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
+  private headScripts = new Map<string, string>();
 
   private get routeRegistry(): RouteRegistry {
     if (!this._routeRegistry) {
@@ -98,6 +99,17 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         render,
         ...(priority !== undefined && { priority }),
       });
+      return { success: true };
+    });
+
+    // Subscribe to head script registration messages from other plugins
+    context.messaging.subscribe<
+      { pluginId: string; script: string },
+      { success: boolean }
+    >("plugin:site-builder:head-script:register", async (message) => {
+      const { pluginId, script } = message.payload;
+      // Use pluginId as key so re-registration replaces (no duplicates)
+      this.headScripts.set(pluginId, script);
       return { success: true };
     });
 
@@ -181,6 +193,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         this.config.previewUrl,
         this.config.productionUrl,
         this._slotRegistry,
+        () => this.getRegisteredHeadScripts(),
       ),
     );
 
@@ -220,6 +233,14 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       config: this.config,
       logger: this.logger,
     });
+  }
+
+  /**
+   * Get all head scripts registered by other plugins.
+   * Used by the build pipeline to inject scripts into the HTML <head>.
+   */
+  public getRegisteredHeadScripts(): string[] {
+    return Array.from(this.headScripts.values());
   }
 
   protected override async getTools(): Promise<PluginTool[]> {

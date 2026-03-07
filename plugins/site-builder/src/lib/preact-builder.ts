@@ -181,6 +181,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       context.siteConfig.title,
       context.siteConfig.themeMode,
       context.siteConfig.analyticsScript,
+      context.headScripts,
     );
 
     // Determine output path

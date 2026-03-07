@@ -34,6 +34,8 @@ export interface BuildContext {
   themeCSS?: string;
   /** Optional UI slot registry for plugin-registered components */
   slots?: LayoutSlots;
+  /** Head scripts registered by other plugins (e.g., analytics beacon) */
+  headScripts?: string[] | undefined;
 }
 
 /**

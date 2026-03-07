@@ -8,6 +8,7 @@ export function createHTMLShell(
   defaultTitle?: string,
   themeMode?: "light" | "dark",
   analyticsScript?: string,
+  headScripts?: string[],
 ): string {
   // Default head content if none provided
   const defaultHead = `
@@ -123,14 +124,20 @@ export function createHTMLShell(
       })();
     </script>`;
 
-  // Analytics script (Cloudflare Web Analytics, etc.)
+  // Analytics script (legacy — prefer headScripts from plugin registration)
   const analyticsTag = analyticsScript ? `\n    ${analyticsScript}` : "";
+
+  // Head scripts registered by plugins (e.g., analytics, newsletter)
+  const headScriptTags =
+    headScripts && headScripts.length > 0
+      ? "\n    " + headScripts.join("\n    ")
+      : "";
 
   return `<!DOCTYPE html>
 <html lang="en" class="h-full"${themeAttr}>
 <head>
     ${headContent ?? defaultHead}
-    ${uiScript}${analyticsTag}
+    ${uiScript}${analyticsTag}${headScriptTags}
 </head>
 <body class="h-full font-sans">
   <div id="root" class="min-h-screen">

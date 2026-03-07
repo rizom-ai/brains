@@ -11,6 +11,7 @@ import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { analyticsPlugin } from "@brains/analytics";
 import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
 import { dashboardPlugin } from "@brains/dashboard";
@@ -132,10 +133,16 @@ const config = defineConfig({
     }),
     productsPlugin(),
     wishlistPlugin({}),
+    analyticsPlugin({
+      cloudflare: {
+        accountId: process.env["CLOUDFLARE_ACCOUNT_ID"] || "",
+        apiToken: process.env["CLOUDFLARE_API_TOKEN"] || "",
+        siteTag: process.env["CLOUDFLARE_ANALYTICS_SITE_TAG"] || "",
+      },
+    }),
     siteBuilderPlugin({
       routes, // Custom routes with Rizom branding
       previewOutputDir: "./dist/site-preview", // Build to preview by default
-      analyticsScript: process.env["CLOUDFLARE_ANALYTICS_SCRIPT"],
       entityRouteConfig: {
         "social-post": {
           label: "Social Post",

@@ -213,6 +213,7 @@ export class SiteBuilder implements ISiteBuilder {
             analyticsScript: siteConfig.analyticsScript,
           }),
         },
+        headScripts: options.headScripts,
         getContent: async (
           route: RouteDefinition,
           section: SectionDefinition,
