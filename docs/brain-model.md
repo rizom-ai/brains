@@ -91,9 +91,22 @@ ANTHROPIC_API_KEY=sk-ant-...
 MATRIX_ACCESS_TOKEN=syt_...
 GIT_SYNC_TOKEN=ghp_...
 MCP_AUTH_TOKEN=...
+CLOUDFLARE_API_TOKEN=...
 ```
 
-Everything else belongs in `brain.yaml`.
+Everything else belongs in `brain.yaml`. Non-secret config like homeserver URLs, user IDs, repos, domains — all go in `brain.yaml` under `plugins:`.
+
+### What counts as a secret?
+
+Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If no → `brain.yaml`.
+
+| Secret (`.env`)        | Config (`brain.yaml`)                |
+| ---------------------- | ------------------------------------ |
+| `ANTHROPIC_API_KEY`    | `domain: recall.rizom.ai`            |
+| `MATRIX_ACCESS_TOKEN`  | `plugins.matrix.homeserver`          |
+| `GIT_SYNC_TOKEN`       | `plugins.matrix.userId`              |
+| `MCP_AUTH_TOKEN`       | `plugins.webserver.productionDomain` |
+| `CLOUDFLARE_API_TOKEN` | `logLevel: debug`                    |
 
 ## Brain Model Definition
 
@@ -118,26 +131,30 @@ export default defineBrain({
 
   capabilities: [
     // [factory, config] tuples
-    // Config can be static or (env) => config for env-mapped values
+    // Use static defaults for non-secret config
+    // Use env mappers ONLY for actual secrets
     [systemPlugin, {}],
     [
       gitSyncPlugin,
       (env: BrainEnvironment) => ({
-        repo: env["GIT_SYNC_REPO"] || "default/repo",
+        repo: "my-org/brain-backup", // static default — override in brain.yaml
         authToken: env["GIT_SYNC_TOKEN"], // secret from .env
+        autoSync: true,
       }),
     ],
   ],
 
   interfaces: [
     // [constructor, envMapper] tuples
+    // Non-secret config: use static defaults, override in brain.yaml plugins:
     [MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
+    [WebserverInterface, () => ({})], // domain set via brain.yaml plugins.webserver
     [
-      WebserverInterface,
+      MatrixInterface,
       (env) => ({
-        productionDomain: env["DOMAIN"]
-          ? `https://${env["DOMAIN"]}`
-          : undefined,
+        homeserver: "https://matrix.example.com", // override in brain.yaml
+        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "", // secret from .env
+        userId: "@bot-dev:example.com", // override in brain.yaml
       }),
     ],
   ],
@@ -163,16 +180,31 @@ export default defineBrain({
 - **Interfaces** are `[constructor, envMapper]` tuples — the constructor is called with `new` and the env mapper provides config from environment variables.
 - Both support env-mapped configs: `(env: BrainEnvironment) => config` for values that come from the deployment environment.
 
-### Env Mappers
+### Env Mappers — Secrets Only
 
-Env mapper functions receive a `BrainEnvironment` (a `Record<string, string | undefined>`) which contains both `.env` secrets and system environment variables. Use them to wire secrets to plugin configs:
+Env mapper functions receive a `BrainEnvironment` (a `Record<string, string | undefined>`) which contains `.env` secrets and system environment variables. **Use env mappers only for actual secrets.** Non-secret config should be static defaults in the brain model, overridable via `brain.yaml`:
 
 ```typescript
+// ✅ Good: env mapper only wires the secret
 [gitSyncPlugin, (env: BrainEnvironment) => ({
-  repo: "my-org/brain-backup",          // static config
-  authToken: env["GIT_SYNC_TOKEN"],     // secret from .env
-  autoSync: true,                        // static config
+  repo: "my-org/brain-backup",       // static default (override in brain.yaml)
+  authToken: env["GIT_SYNC_TOKEN"],  // secret from .env
+  autoSync: true,                     // static default
 })],
+
+// ❌ Bad: using env for non-secret config
+[gitSyncPlugin, (env: BrainEnvironment) => ({
+  repo: env["GIT_SYNC_REPO"] || "default/repo",  // not a secret!
+  authToken: env["GIT_SYNC_TOKEN"],
+})],
+```
+
+To override non-secret defaults per instance, use `brain.yaml`:
+
+```yaml
+plugins:
+  git-sync:
+    repo: "other-org/other-repo"
 ```
 
 ## Running
@@ -262,6 +294,41 @@ domain: my-brain.example.com
 7. Add secrets in `apps/my-brain-prod/.env`
 
 8. Run: `cd apps/my-brain-prod && bun run start`
+
+## Dev vs Production Instances
+
+The same brain model can power both dev and production with different `brain.yaml` + `.env` files:
+
+```
+apps/team-brain/              # Dev instance
+├── brain.yaml                # Dev config
+│   brain: "@brains/team"
+│   logLevel: debug
+│   plugins:
+│     matrix:
+│       userId: "@teambot-dev:rizom.ai"
+├── .env                      # Dev secrets
+│   ANTHROPIC_API_KEY=...
+│   MATRIX_ACCESS_TOKEN=...   # dev bot token
+
+apps/team-brain/deploy/       # Production deploy artifacts
+├── brain.yaml                # Production config
+│   brain: "@brains/team"
+│   domain: recall.rizom.ai
+│   plugins:
+│     matrix:
+│       userId: "@teambot:rizom.ai"
+│     webserver:
+│       productionDomain: https://recall.rizom.ai
+├── .env.production           # Production secrets
+│   ANTHROPIC_API_KEY=...
+│   MATRIX_ACCESS_TOKEN=...   # prod bot token
+```
+
+The build script (`brain-build`) handles both flows:
+
+- **brain.yaml present**: generates a static entrypoint, bundles with the brain package, copies `brain.yaml` to `dist/`
+- **brain.config.ts present** (legacy): bundles directly as before
 
 ## Backward Compatibility
 
