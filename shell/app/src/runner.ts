@@ -3,13 +3,14 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
+import { parseInstanceOverrides } from "./instance-overrides";
+import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 
 /**
- * Load brain.yaml from the current working directory and return the
- * brain package name declared in it.
+ * Load and parse brain.yaml from the current working directory.
  */
-function loadBrainYaml(): string {
+function loadBrainYaml(): InstanceOverrides {
   const yamlPath = join(process.cwd(), "brain.yaml");
 
   if (!existsSync(yamlPath)) {
@@ -18,19 +19,16 @@ function loadBrainYaml(): string {
   }
 
   const content = readFileSync(yamlPath, "utf-8");
+  const overrides = parseInstanceOverrides(content);
 
-  // Minimal YAML parser — we only need `brain: <package-name>`
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("#") || trimmed === "") continue;
-    const match = trimmed.match(/^brain:\s*["']?([^"'\s#]+)["']?/);
-    if (match?.[1]) return match[1];
+  if (!overrides.brain) {
+    console.error(
+      '❌ brain.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/team"',
+    );
+    process.exit(1);
   }
 
-  console.error(
-    '❌ brain.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/team"',
-  );
-  process.exit(1);
+  return overrides;
 }
 
 /**
@@ -57,12 +55,14 @@ async function loadBrainDefinition(
 /**
  * Main entry point for the `brains` CLI.
  *
- * Reads brain.yaml → imports brain definition → resolves config → runs.
+ * Reads brain.yaml → imports brain definition → resolves with overrides → runs.
  */
 async function main(): Promise<void> {
-  const packageName = loadBrainYaml();
-  const definition = await loadBrainDefinition(packageName);
-  const config = resolve(definition, process.env);
+  const overrides = loadBrainYaml();
+  // brain is guaranteed to exist by loadBrainYaml validation above
+  const brainPackage = overrides.brain ?? "";
+  const definition = await loadBrainDefinition(brainPackage);
+  const config = resolve(definition, process.env, overrides);
   await handleCLI(config);
 }
 

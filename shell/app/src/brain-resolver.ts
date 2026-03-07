@@ -1,6 +1,7 @@
 import type { Plugin } from "@brains/plugins";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
-import type { AppConfig } from "./types";
+import type { AppConfig, DeploymentConfigInput } from "./types";
+import type { InstanceOverrides } from "./instance-overrides";
 import { defineConfig } from "./config";
 
 /**
@@ -12,39 +13,59 @@ import { defineConfig } from "./config";
  * independent brain instances.
  *
  * @param definition - The brain model (what the brain IS)
- * @param env - The deployment environment (credentials, domains, etc.)
+ * @param env - The deployment environment (secrets)
+ * @param overrides - Instance overrides from brain.yaml (optional)
  * @returns A fully resolved AppConfig ready for handleCLI() or App.create()
- *
- * @example
- * ```typescript
- * import definition from "@brains/my-brain";
- * import { resolve, handleCLI } from "@brains/app";
- *
- * const config = resolve(definition, process.env);
- * if (import.meta.main) handleCLI(config);
- * ```
  */
 export function resolve(
   definition: BrainDefinition,
   env: BrainEnvironment,
+  overrides?: Omit<InstanceOverrides, "brain">,
 ): AppConfig {
+  const disableSet = new Set(overrides?.disable ?? []);
+  const pluginOverrides = overrides?.plugins ?? {};
+
   // Instantiate capabilities — fresh plugin instances every time
-  // Config can be static or a function that receives the environment
-  const capabilities: Plugin[] = definition.capabilities.map(
-    ([factory, config]) => {
-      const resolvedConfig =
-        typeof config === "function" ? config(env) : config;
-      return factory(resolvedConfig);
-    },
-  );
+  const capabilities: Plugin[] = [];
+  for (const [factory, config] of definition.capabilities) {
+    const resolvedConfig = typeof config === "function" ? config(env) : config;
+
+    // First instantiation — get the plugin ID
+    let plugin = factory(resolvedConfig);
+
+    // Skip disabled plugins
+    if (disableSet.has(plugin.id)) continue;
+
+    // Re-instantiate with merged config if overrides exist
+    const pluginOvr = pluginOverrides[plugin.id];
+    if (pluginOvr) {
+      const mergedConfig = { ...(resolvedConfig as object), ...pluginOvr };
+      plugin = factory(mergedConfig);
+    }
+
+    capabilities.push(plugin);
+  }
 
   // Instantiate interfaces — pass env through mapper
-  const interfaces: Plugin[] = definition.interfaces.map(
-    ([ctor, envMapper]) => {
-      const config = envMapper(env);
-      return new ctor(config);
-    },
-  );
+  const interfaces: Plugin[] = [];
+  for (const [ctor, envMapper] of definition.interfaces) {
+    const config = envMapper(env);
+
+    // First instantiation — get the plugin ID
+    let plugin = new ctor(config);
+
+    // Skip disabled interfaces
+    if (disableSet.has(plugin.id)) continue;
+
+    // Re-instantiate with merged config if overrides exist
+    const pluginOvr = pluginOverrides[plugin.id];
+    if (pluginOvr) {
+      const mergedConfig = { ...(config as object), ...pluginOvr };
+      plugin = new ctor(mergedConfig);
+    }
+
+    interfaces.push(plugin);
+  }
 
   // Map identity to the format AppConfig expects
   const identity = definition.identity
@@ -56,9 +77,23 @@ export function resolve(
       }
     : undefined;
 
+  // Start with definition's deployment config, apply overrides
+  const deployment: DeploymentConfigInput = {
+    ...(definition.deployment ?? {}),
+  };
+  if (overrides?.domain) {
+    deployment.domain = overrides.domain;
+  }
+  if (overrides?.port) {
+    deployment.ports = {
+      ...(deployment.ports ?? {}),
+      production: overrides.port,
+    };
+  }
+
   // Build the app config
   const appConfig: AppConfig = {
-    name: definition.name,
+    name: overrides?.name ?? definition.name,
     version: definition.version,
     plugins: [...capabilities, ...interfaces],
 
@@ -70,11 +105,23 @@ export function resolve(
     // Optional fields
     ...(identity && { identity }),
     ...(definition.permissions && { permissions: definition.permissions }),
-    ...(definition.deployment && { deployment: definition.deployment }),
-    ...(env["LOG_LEVEL"] && {
-      logLevel: env["LOG_LEVEL"] as "debug" | "info" | "warn" | "error",
-    }),
-    ...(env["DATABASE_URL"] && { database: env["DATABASE_URL"] }),
+    deployment,
+
+    // Log level: yaml overrides > env > undefined
+    ...(overrides?.logLevel
+      ? { logLevel: overrides.logLevel }
+      : env["LOG_LEVEL"]
+        ? {
+            logLevel: env["LOG_LEVEL"] as "debug" | "info" | "warn" | "error",
+          }
+        : {}),
+
+    // Database: yaml overrides > env > undefined
+    ...(overrides?.database
+      ? { database: overrides.database }
+      : env["DATABASE_URL"]
+        ? { database: env["DATABASE_URL"] }
+        : {}),
   };
 
   // Merge any extra config (escape hatch)

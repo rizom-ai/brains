@@ -1,1 +1,5 @@
 brain: "@brains/team"
+
+# Instance settings
+logLevel: debug
+database: file:./data/team-brain.db
