@@ -2,7 +2,6 @@ brain: "@brains/team"
 
 # Production instance
 domain: recall.rizom.ai
-database: file:./data/team-brain.db
 
 plugins:
   matrix:

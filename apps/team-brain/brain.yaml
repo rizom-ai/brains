@@ -2,7 +2,6 @@ brain: "@brains/team"
 
 # Instance settings
 logLevel: debug
-database: file:./data/team-brain.db
 
 # Matrix (dev instance uses dev bot)
 plugins:
