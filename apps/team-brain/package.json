@@ -26,9 +26,5 @@
   "dependencies": {
     "@brains/app": "workspace:*",
     "@brains/team": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.3.3"
   }
 }
