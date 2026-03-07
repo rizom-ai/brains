@@ -8,6 +8,10 @@ anchors:
   - "matrix:@yeehaa:rizom.ai"
 
 plugins:
+  git-sync:
+    repo: rizom-ai/team-brain-content
+    authorName: Recall
+    authorEmail: yeehaa@rizom.ai
   matrix:
     userId: "@teambot:rizom.ai"
     homeserver: https://matrix.rizom.ai

@@ -52,10 +52,7 @@ export default defineBrain({
     [
       gitSyncPlugin,
       (env: BrainEnvironment) => ({
-        repo: "rizom-ai/team-brain-content",
         authToken: env["GIT_SYNC_TOKEN"],
-        authorName: "Recall",
-        authorEmail: "yeehaa@rizom.ai",
         autoSync: true,
         autoPush: true,
       }),
