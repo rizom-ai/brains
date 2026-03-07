@@ -9,6 +9,11 @@ build/
 # Git sync repository
 brain-repo/
 
+# Runtime data
+cache/
+data/
+brain-data/
+
 # Dependencies
 node_modules/
 
