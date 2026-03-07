@@ -55,6 +55,12 @@ export const directorySyncConfigSchema = z.object({
     .optional()
     .describe("Copy seed content on first initialization")
     .default(true),
+  seedContentPath: z
+    .string()
+    .optional()
+    .describe(
+      "Custom path to seed content directory (defaults to CWD/seed-content)",
+    ),
   deleteOnFileRemoval: z
     .boolean()
     .optional()

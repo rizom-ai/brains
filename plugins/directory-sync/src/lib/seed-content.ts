@@ -74,14 +74,20 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 
 /**
  * Copy seed content into the brain-data directory if it is empty and
- * a seed-content directory exists at the project root.
+ * a seed-content directory exists.
+ *
+ * When seedContentPath is provided (e.g. from a brain model package),
+ * it is used directly. Otherwise falls back to `${CWD}/seed-content`.
  */
 export async function copySeedContentIfNeeded(
   dataDir: string,
   logger: Logger,
+  seedContentPath?: string,
 ): Promise<void> {
   const brainDataPath = resolve(process.cwd(), dataDir);
-  const seedContentPath = resolve(process.cwd(), "seed-content");
+  seedContentPath = seedContentPath
+    ? resolve(seedContentPath)
+    : resolve(process.cwd(), "seed-content");
 
   const isEmpty = isBrainDataEmpty(brainDataPath, logger);
 

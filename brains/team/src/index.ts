@@ -4,6 +4,7 @@ import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
 import { gitSyncPlugin } from "@brains/git-sync";
+import { join } from "path";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
@@ -44,7 +45,14 @@ export default defineBrain({
     [summaryPlugin, {}],
     [linkPlugin, {}],
     [decksPlugin, undefined],
-    [directorySync, { seedContent: true, initialSync: true }],
+    [
+      directorySync,
+      {
+        seedContent: true,
+        seedContentPath: join(import.meta.dir, "..", "seed-content"),
+        initialSync: true,
+      },
+    ],
     [
       gitSyncPlugin,
       (env: BrainEnvironment) => ({

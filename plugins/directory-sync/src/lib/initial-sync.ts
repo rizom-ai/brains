@@ -79,7 +79,7 @@ export function setupInitialSync(
 
     if (config.seedContent) {
       const syncPath = config.syncPath ?? context.dataDir;
-      await copySeedContentIfNeeded(syncPath, logger);
+      await copySeedContentIfNeeded(syncPath, logger, config.seedContentPath);
     }
 
     try {
