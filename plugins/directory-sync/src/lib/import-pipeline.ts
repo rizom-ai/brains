@@ -196,9 +196,10 @@ async function processEntityImport(
       return;
     }
 
-    // Construct entity explicitly (no spread) so TypeScript can verify BaseEntity
-    // and we can compute contentHash from the canonical (serialized) form.
+    // Spread parsedEntity first so type-specific fields (e.g., title, status
+    // for decks) are preserved, then override with canonical BaseEntity fields.
     const entity: BaseEntity = {
+      ...parsedEntity,
       id: parsedEntity.id ?? rawEntity.id,
       entityType: parsedEntity.entityType ?? rawEntity.entityType,
       content: parsedEntity.content ?? rawEntity.content,
