@@ -15,10 +15,6 @@
     "migrate:entities": "brain-migrate-entities",
     "migrate:job-queue": "brain-migrate-job-queue",
     "migrate:conversations": "brain-migrate-conversations",
-    "db:studio": "bun scripts/studio.ts",
-    "db:studio:entities": "bun scripts/studio.ts entities",
-    "db:studio:conversations": "bun scripts/studio.ts conversations",
-    "db:studio:jobs": "bun scripts/studio.ts jobs",
     "test": "echo 'no tests'",
     "typecheck": "echo 'no source files'",
     "lint": "echo 'no source files'"

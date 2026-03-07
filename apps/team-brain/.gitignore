@@ -13,6 +13,8 @@ brain-repo/
 cache/
 data/
 brain-data/
+.matrix-storage/
+.preact-work/
 
 # Dependencies
 node_modules/
