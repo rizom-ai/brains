@@ -79,16 +79,15 @@ async function importFile(
     const rawEntity = await deps.fileOperations.readEntity(filePath);
 
     await processEntityImport(deps, rawEntity, filePath, result);
-  } catch {
-    const importError = new Error("Failed to import entity from file");
+  } catch (error) {
     result.failed++;
     result.errors.push({
       path: filePath,
-      error: importError.message,
+      error: error instanceof Error ? error.message : "Failed to import entity",
     });
     deps.logger.error("Failed to import entity", {
       path: filePath,
-      error: importError,
+      error,
     });
   }
 }
