@@ -104,7 +104,20 @@ export function resolve(
 
     // Optional fields
     ...(identity && { identity }),
-    ...(definition.permissions && { permissions: definition.permissions }),
+    ...(definition.permissions && {
+      permissions: {
+        ...definition.permissions,
+        ...(overrides?.anchors && { anchors: overrides.anchors }),
+        ...(overrides?.trusted && { trusted: overrides.trusted }),
+      },
+    }),
+    ...(!definition.permissions &&
+      (overrides?.anchors || overrides?.trusted) && {
+        permissions: {
+          ...(overrides?.anchors && { anchors: overrides.anchors }),
+          ...(overrides?.trusted && { trusted: overrides.trusted }),
+        },
+      }),
     deployment,
 
     // Log level: yaml overrides > env > undefined

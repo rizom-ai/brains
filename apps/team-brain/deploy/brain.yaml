@@ -3,6 +3,10 @@ brain: "@brains/team"
 # Production instance
 domain: recall.rizom.ai
 
+# Permissions
+anchors:
+  - "matrix:@yeehaa:rizom.ai"
+
 plugins:
   matrix:
     userId: "@teambot:rizom.ai"

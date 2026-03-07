@@ -27,6 +27,12 @@ export interface InstanceOverrides {
   /** Plugin IDs to disable for this instance */
   disable?: string[];
 
+  /** Anchor users (full admin access) — overrides brain model */
+  anchors?: string[];
+
+  /** Trusted users (elevated access) — overrides brain model */
+  trusted?: string[];
+
   /** Per-plugin config overrides, keyed by plugin ID */
   plugins?: Record<string, Record<string, unknown>>;
 }
@@ -87,7 +93,13 @@ export function parseInstanceOverrides(yaml: string): InstanceOverrides {
     } else if (key === "database") {
       result.database = unquote(value);
     } else if (key === "disable") {
-      i = parseDisableList(lines, i, value, result);
+      i = parseStringList(lines, i, value, result, "disable");
+      continue;
+    } else if (key === "anchors") {
+      i = parseStringList(lines, i, value, result, "anchors");
+      continue;
+    } else if (key === "trusted") {
+      i = parseStringList(lines, i, value, result, "trusted");
       continue;
     } else if (key === "plugins") {
       i = parsePluginsSection(lines, i, result);
@@ -100,17 +112,18 @@ export function parseInstanceOverrides(yaml: string): InstanceOverrides {
   return result;
 }
 
-/** Parse the disable: field (inline or block list) */
-function parseDisableList(
+/** Parse a string list field (inline or block list) */
+function parseStringList(
   lines: string[],
   i: number,
   value: string,
   result: InstanceOverrides,
+  field: "disable" | "anchors" | "trusted",
 ): number {
   // Inline list: [a, b, c]
   const inlineMatch = value.match(/^\[([^\]]*)\]$/);
   if (inlineMatch) {
-    result.disable = (inlineMatch[1] ?? "")
+    result[field] = (inlineMatch[1] ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
@@ -118,12 +131,12 @@ function parseDisableList(
   }
 
   // Block list follows
-  result.disable = [];
+  const items: string[] = [];
   i++;
   while (i < lines.length) {
     const item = (lines[i] ?? "").trim();
     if (item.startsWith("- ")) {
-      result.disable.push(item.slice(2).trim());
+      items.push(unquote(item.slice(2).trim()));
       i++;
     } else if (item === "" || item.startsWith("#")) {
       i++;
@@ -131,6 +144,7 @@ function parseDisableList(
       break;
     }
   }
+  result[field] = items;
   return i;
 }
 

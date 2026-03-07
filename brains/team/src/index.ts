@@ -94,7 +94,7 @@ export default defineBrain({
   ],
 
   permissions: {
-    anchors: ["matrix:@yeehaa:rizom.ai"],
+    // Anchor/trusted users are instance-specific — set in brain.yaml
     rules: [
       { pattern: "cli:*", level: "anchor" },
       { pattern: "mcp:stdio", level: "anchor" },

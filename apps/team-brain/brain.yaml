@@ -3,6 +3,10 @@ brain: "@brains/team"
 # Instance settings
 logLevel: debug
 
+# Permissions
+anchors:
+  - "matrix:@yeehaa:rizom.ai"
+
 # Matrix (dev instance uses dev bot)
 plugins:
   matrix:
