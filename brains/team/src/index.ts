@@ -25,6 +25,11 @@ import defaultTheme from "@brains/theme-default";
  *
  * A collaborative knowledge management brain for team use.
  * Focused on knowledge capture, summarization, and sharing.
+ *
+ * Non-secret config uses static defaults here. Instance-specific
+ * overrides (homeserver URLs, user IDs, repos, domains) go in
+ * brain.yaml's `plugins:` section. Only actual secrets (tokens,
+ * API keys) are wired from env.
  */
 export default defineBrain({
   name: "team-brain",
@@ -47,7 +52,7 @@ export default defineBrain({
     [
       gitSyncPlugin,
       (env: BrainEnvironment) => ({
-        repo: env["GIT_SYNC_REPO"] || "username/recall-backup",
+        repo: "rizom-ai/team-brain-content",
         authToken: env["GIT_SYNC_TOKEN"],
         authorName: "Recall",
         authorEmail: "yeehaa@rizom.ai",
@@ -72,24 +77,20 @@ export default defineBrain({
   ],
 
   interfaces: [
-    [MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
+    [
+      MCPInterface,
+      (env: BrainEnvironment) => ({ authToken: env["MCP_AUTH_TOKEN"] }),
+    ],
     [
       MatrixInterface,
-      (env) => ({
-        homeserver: env["MATRIX_HOMESERVER"] || "https://matrix.rizom.ai",
-        accessToken: env["MATRIX_ACCESS_TOKEN"] || "",
-        userId: env["MATRIX_USER_ID"] || "@teambrain-dev:rizom.ai",
+      (env: BrainEnvironment) => ({
+        homeserver: "https://matrix.rizom.ai",
+        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
+        userId: "@teambot-dev:rizom.ai",
         deviceDisplayName: "Recall",
       }),
     ],
-    [
-      WebserverInterface,
-      (env) => ({
-        productionDomain: env["DOMAIN"]
-          ? `https://${env["DOMAIN"]}`
-          : undefined,
-      }),
-    ],
+    [WebserverInterface, () => ({})],
   ],
 
   permissions: {

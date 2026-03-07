@@ -3,3 +3,9 @@ brain: "@brains/team"
 # Instance settings
 logLevel: debug
 database: file:./data/team-brain.db
+
+# Matrix (dev instance uses dev bot)
+plugins:
+  matrix:
+    userId: "@teambot-dev:rizom.ai"
+    homeserver: https://matrix.rizom.ai

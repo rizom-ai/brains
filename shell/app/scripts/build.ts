@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { build } from "bun";
-import { existsSync, readFileSync, cpSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync } from "fs";
 import { join, basename, dirname } from "path";
 
 const cwd = process.cwd();
@@ -14,14 +14,48 @@ if (!existsSync(packageJsonPath)) {
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
 const appName = packageJson.name?.replace("@brains/", "") ?? basename(cwd);
 
-const entrypoint = join(cwd, "brain.config.ts");
+// Determine entrypoint: brain.yaml (new) or brain.config.ts (legacy)
+const brainYamlPath = join(cwd, "brain.yaml");
+const brainConfigPath = join(cwd, "brain.config.ts");
+let entrypoint: string;
+let generatedEntrypoint = false;
 
-if (!existsSync(entrypoint)) {
-  console.error(`Entry point not found: ${entrypoint}`);
+if (existsSync(brainYamlPath)) {
+  // New brain.yaml flow — generate a static entrypoint
+  const yamlContent = readFileSync(brainYamlPath, "utf-8");
+  const brainMatch = yamlContent.match(/^brain:\s*["']?([^"'\n]+)["']?/m);
+  if (!brainMatch?.[1]) {
+    console.error('❌ brain.yaml must contain a "brain" field');
+    process.exit(1);
+  }
+  const brainPackage = brainMatch[1].trim();
+
+  // Generate a static entrypoint that the bundler can analyze
+  const generatedCode = `
+import definition from "${brainPackage}";
+import { resolve, handleCLI, parseInstanceOverrides } from "@brains/app";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");
+const overrides = parseInstanceOverrides(yaml);
+const config = resolve(definition, process.env, overrides);
+await handleCLI(config);
+`;
+  entrypoint = join(cwd, ".brain-entrypoint.ts");
+  writeFileSync(entrypoint, generatedCode);
+  generatedEntrypoint = true;
+  console.log(`Building ${appName} (brain.yaml → ${brainPackage})...`);
+} else if (existsSync(brainConfigPath)) {
+  // Legacy brain.config.ts flow
+  entrypoint = brainConfigPath;
+  console.log(`Building ${appName} (legacy brain.config.ts)...`);
+} else {
+  console.error(
+    "❌ No brain.yaml or brain.config.ts found in current directory",
+  );
   process.exit(1);
 }
-
-console.log(`Building ${appName}...`);
 
 // Find monorepo root (directory containing bun.lock)
 let monorepoRoot = cwd;
@@ -34,28 +68,36 @@ while (!existsSync(join(monorepoRoot, "bun.lock"))) {
   monorepoRoot = parent;
 }
 
-const result = await build({
-  entrypoints: [entrypoint],
-  outdir: join(cwd, "dist"),
-  target: "bun",
-  format: "esm",
-  minify: true,
-  sourcemap: "external",
-  external: [
-    // Native modules that cannot be bundled
-    "@matrix-org/matrix-sdk-crypto-nodejs",
-    "@libsql/client",
-    "libsql",
-    "lightningcss",
-    "onnxruntime-node",
-    "fastembed",
-    "@tailwindcss/oxide",
-  ],
-});
+try {
+  const result = await build({
+    entrypoints: [entrypoint],
+    outdir: join(cwd, "dist"),
+    target: "bun",
+    format: "esm",
+    minify: true,
+    sourcemap: "external",
+    external: [
+      // Native modules that cannot be bundled
+      "@matrix-org/matrix-sdk-crypto-nodejs",
+      "@libsql/client",
+      "libsql",
+      "lightningcss",
+      "onnxruntime-node",
+      "fastembed",
+      "@tailwindcss/oxide",
+    ],
+  });
 
-if (!result.success) {
-  console.error("Build failed:", result.logs);
-  process.exit(1);
+  if (!result.success) {
+    console.error("Build failed:", result.logs);
+    process.exit(1);
+  }
+} finally {
+  // Clean up generated entrypoint
+  if (generatedEntrypoint && existsSync(entrypoint)) {
+    const { unlinkSync } = await import("fs");
+    unlinkSync(entrypoint);
+  }
 }
 
 // Copy migration folders to dist
@@ -82,11 +124,20 @@ for (const { name, path } of migrationSources) {
   }
 }
 
-// Copy seed-content if it exists
+// Copy brain.yaml to dist (needed at runtime)
+if (existsSync(brainYamlPath)) {
+  cpSync(brainYamlPath, join(distDir, "brain.yaml"));
+  console.log("Copied brain.yaml");
+}
+
+// Copy seed-content if it exists (check brain package too)
 const seedContentPath = join(cwd, "seed-content");
 if (existsSync(seedContentPath)) {
   cpSync(seedContentPath, join(distDir, "seed-content"), { recursive: true });
   console.log("Copied seed-content");
 }
 
-console.log(`Build complete: dist/brain.config.js`);
+const outputName = existsSync(brainYamlPath)
+  ? ".brain-entrypoint.js"
+  : "brain.config.js";
+console.log(`Build complete: dist/${outputName}`);
