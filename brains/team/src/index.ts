@@ -35,12 +35,8 @@ export default defineBrain({
   name: "team-brain",
   version: "1.0.0",
 
-  identity: {
-    characterName: "Recall",
-    role: "Team knowledge coordinator",
-    purpose: "Capture, organize, and share team knowledge",
-    values: ["clarity", "collaboration", "accessibility"],
-  },
+  // Identity is defined in seed-content/brain-character/brain-character.md
+  // — editable at runtime, single source of truth.
 
   capabilities: [
     [systemPlugin, {}],
