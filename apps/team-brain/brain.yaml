@@ -1,4 +1,4 @@
-brain: "@brains/team"
+brain: "@brains/relay"
 
 # Instance settings
 logLevel: debug
@@ -11,7 +11,7 @@ anchors:
 plugins:
   git-sync:
     repo: rizom-ai/team-brain-content
-    authorName: Recall
+    authorName: Relay
     authorEmail: yeehaa@rizom.ai
   matrix:
     userId: "@teambot-dev:rizom.ai"

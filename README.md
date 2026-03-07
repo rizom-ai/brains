@@ -144,7 +144,7 @@ The project follows a **tool-first architecture** where all functionality is exp
 #### Applications
 
 - **@brains/app**: High-level application framework
-- **@brains/team-brain**: Team collaboration instance
+- **@brains/relay-brain**: Team collaboration instance
 - **@brains/professional-brain**: Professional personal brain
 - **@brains/collective-brain**: Collective knowledge brain
 

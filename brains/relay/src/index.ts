@@ -33,7 +33,7 @@ import defaultTheme from "@brains/theme-default";
  * API keys) are wired from env.
  */
 export default defineBrain({
-  name: "team-brain",
+  name: "relay",
   version: "1.0.0",
 
   // Identity is defined in seed-content/brain-character/brain-character.md

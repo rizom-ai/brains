@@ -1,6 +1,6 @@
 # Team Brain
 
-Deployment instance of the [`@brains/team`](../../brains/team/) brain model.
+Deployment instance of the [`@brains/relay`](../../brains/relay/) brain model.
 
 ## Setup
 

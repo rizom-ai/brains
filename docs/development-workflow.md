@@ -28,10 +28,10 @@ cp example.env .env
 # Minimum required: ANTHROPIC_API_KEY
 
 # Initialize the database
-bun run --filter @brains/team-brain init
+bun run --filter @brains/relay-brain init
 
 # Run the development server
-bun run --filter @brains/team-brain dev
+bun run --filter @brains/relay-brain dev
 ```
 
 ### Development Tools
@@ -56,7 +56,7 @@ bun run --filter @brains/mcp dev
 bun run --filter @brains/webserver dev
 
 # Start all interfaces (using team-brain app)
-bun run --filter @brains/team-brain dev
+bun run --filter @brains/relay-brain dev
 ```
 
 ## Iteration Cycles

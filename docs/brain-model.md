@@ -13,7 +13,7 @@ This means the same brain model can power multiple deployments (dev, staging, pr
 
 ```
 brains/
-  team/                     # Brain model package (@brains/team)
+  team/                     # Brain model package (@brains/relay)
     src/index.ts            # Brain definition (defineBrain)
     seed-content/           # Default content
     package.json
@@ -31,7 +31,7 @@ The instance configuration file. Declarative, no code, committable to git.
 
 ```yaml
 # Required — which brain model to use
-brain: "@brains/team"
+brain: "@brains/relay"
 
 # Instance overrides (all optional)
 name: team-brain-staging
@@ -302,7 +302,7 @@ The same brain model can power both dev and production with different `brain.yam
 ```
 apps/team-brain/              # Dev instance
 ├── brain.yaml                # Dev config
-│   brain: "@brains/team"
+│   brain: "@brains/relay"
 │   logLevel: debug
 │   plugins:
 │     matrix:
@@ -313,7 +313,7 @@ apps/team-brain/              # Dev instance
 
 apps/team-brain/deploy/       # Production deploy artifacts
 ├── brain.yaml                # Production config
-│   brain: "@brains/team"
+│   brain: "@brains/relay"
 │   domain: recall.rizom.ai
 │   plugins:
 │     matrix:

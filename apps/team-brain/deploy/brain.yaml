@@ -1,4 +1,4 @@
-brain: "@brains/team"
+brain: "@brains/relay"
 
 # Production instance
 domain: recall.rizom.ai
@@ -10,7 +10,7 @@ anchors:
 plugins:
   git-sync:
     repo: rizom-ai/team-brain-content
-    authorName: Recall
+    authorName: Relay
     authorEmail: yeehaa@rizom.ai
   matrix:
     userId: "@teambot:rizom.ai"

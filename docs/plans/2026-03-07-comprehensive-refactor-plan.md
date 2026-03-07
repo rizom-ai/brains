@@ -317,7 +317,7 @@ brains/                              ← brain MODELS (the what)
     seed-content/
       ...
   team/
-    package.json                     ← @brains/team
+    package.json                     ← @brains/relay
     src/
       index.ts
     seed-content/

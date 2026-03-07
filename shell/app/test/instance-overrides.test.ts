@@ -75,60 +75,60 @@ class MockMCP {
 
 describe("parseInstanceOverrides", () => {
   test("should parse brain field", () => {
-    const result = parseInstanceOverrides('brain: "@brains/team"');
-    expect(result.brain).toBe("@brains/team");
+    const result = parseInstanceOverrides('brain: "@brains/relay"');
+    expect(result.brain).toBe("@brains/relay");
   });
 
   test("should parse name override", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\nname: team-staging',
+      'brain: "@brains/relay"\nname: team-staging',
     );
     expect(result.name).toBe("team-staging");
   });
 
   test("should parse logLevel", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\nlogLevel: debug',
+      'brain: "@brains/relay"\nlogLevel: debug',
     );
     expect(result.logLevel).toBe("debug");
   });
 
   test("should parse port as number", () => {
-    const result = parseInstanceOverrides('brain: "@brains/team"\nport: 9090');
+    const result = parseInstanceOverrides('brain: "@brains/relay"\nport: 9090');
     expect(result.port).toBe(9090);
   });
 
   test("should parse domain", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\ndomain: staging.recall.ai',
+      'brain: "@brains/relay"\ndomain: staging.recall.ai',
     );
     expect(result.domain).toBe("staging.recall.ai");
   });
 
   test("should parse database", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\ndatabase: file:./data/brain.db',
+      'brain: "@brains/relay"\ndatabase: file:./data/brain.db',
     );
     expect(result.database).toBe("file:./data/brain.db");
   });
 
   test("should parse disable list", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\ndisable:\n  - matrix\n  - git-sync',
+      'brain: "@brains/relay"\ndisable:\n  - matrix\n  - git-sync',
     );
     expect(result.disable).toEqual(["matrix", "git-sync"]);
   });
 
   test("should parse inline disable list", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\ndisable: [matrix, git-sync]',
+      'brain: "@brains/relay"\ndisable: [matrix, git-sync]',
     );
     expect(result.disable).toEqual(["matrix", "git-sync"]);
   });
 
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\nplugins:\n  webserver:\n    productionPort: 9090',
+      'brain: "@brains/relay"\nplugins:\n  webserver:\n    productionPort: 9090',
     );
     expect(result.plugins).toEqual({
       webserver: { productionPort: 9090 },
@@ -137,7 +137,7 @@ describe("parseInstanceOverrides", () => {
 
   test("should parse plugins section with multiple plugins", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
+      'brain: "@brains/relay"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
     );
     expect(result.plugins).toEqual({
       webserver: { productionPort: 9090 },
@@ -147,26 +147,26 @@ describe("parseInstanceOverrides", () => {
 
   test("should skip comments and empty lines", () => {
     const yaml = `# This is a comment
-brain: "@brains/team"
+brain: "@brains/relay"
 
 # Another comment
 logLevel: debug
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/team");
+    expect(result.brain).toBe("@brains/relay");
     expect(result.logLevel).toBe("debug");
   });
 
   test("should handle quoted string values", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/team"\nname: "my-brain"',
+      'brain: "@brains/relay"\nname: "my-brain"',
     );
     expect(result.name).toBe("my-brain");
   });
 
   test("should return empty overrides for minimal yaml", () => {
-    const result = parseInstanceOverrides('brain: "@brains/team"');
-    expect(result.brain).toBe("@brains/team");
+    const result = parseInstanceOverrides('brain: "@brains/relay"');
+    expect(result.brain).toBe("@brains/relay");
     expect(result.name).toBeUndefined();
     expect(result.logLevel).toBeUndefined();
     expect(result.port).toBeUndefined();

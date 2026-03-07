@@ -21,6 +21,6 @@
   },
   "dependencies": {
     "@brains/app": "workspace:*",
-    "@brains/team": "workspace:*"
+    "@brains/relay": "workspace:*"
   }
 }
