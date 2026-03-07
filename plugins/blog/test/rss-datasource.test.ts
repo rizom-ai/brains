@@ -7,7 +7,7 @@ import {
 } from "@brains/test-utils";
 import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
-import { z } from "zod";
+import { z } from "@brains/utils";
 
 const outputSchema = z.object({ xml: z.string() });
 

@@ -9,3 +9,16 @@ export type {
   DeploymentConfigInput,
 } from "./types";
 export { deploymentConfigSchema } from "./types";
+
+// Brain definition / resolver API
+export { defineBrain } from "./brain-definition";
+export { resolve } from "./brain-resolver";
+export type {
+  BrainDefinition,
+  BrainIdentity,
+  BrainContentModel,
+  BrainEnvironment,
+  CapabilityEntry,
+  InterfaceEntry,
+  EntityRouteEntry,
+} from "./brain-definition";

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(bun run:*)",
+      "Bash(timeout 5 tsc:*)",
+      "WebSearch",
+      "Read(//home/yeehaa/Documents/rizom/apps/rizom.ai/**)",
+      "Bash(git -C /home/yeehaa/Documents/brains diff --name-only)",
+      "Bash(bun test:*)",
+      "Bash(timeout 30 bun tsc:*)",
+      "Bash(find:*)",
+      "Bash(for dir in plugins/*/)",
+      "Bash(do [ -d \"$dir/test\" ])",
+      "Bash(done)",
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(for i in 1 2 3 4 5)",
+      "Bash(do echo \"Run $i:\")",
+      "Bash(grep:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && grep -A 5 -B 2 \"\"\"\"array\\\\|Array\"\"\"\" {}')",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:docs.obsidian.md)",
+      "WebFetch(domain:publish-01.obsidian.md)",
+      "WebFetch(domain:practicalpkm.com)",
+      "WebFetch(domain:obsidian.md)",
+      "WebFetch(domain:releasebot.io)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

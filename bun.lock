@@ -96,21 +96,34 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/app": "workspace:*",
-        "@brains/cli": "workspace:*",
-        "@brains/default-site-content": "workspace:*",
-        "@brains/directory-sync": "workspace:*",
-        "@brains/entity-service": "workspace:*",
-        "@brains/job-queue": "workspace:*",
-        "@brains/matrix": "workspace:*",
-        "@brains/product-site-content": "workspace:*",
-        "@brains/site-builder-plugin": "workspace:*",
-        "@brains/site-content": "workspace:*",
-        "@brains/summary": "workspace:*",
-        "@brains/webserver": "workspace:*",
-        "preact": "^10.27.2",
+        "@brains/team": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
+    "brains/team": {
+      "name": "@brains/team",
+      "version": "1.0.0",
+      "dependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/decks": "workspace:*",
+        "@brains/default-site-content": "workspace:*",
+        "@brains/directory-sync": "workspace:*",
+        "@brains/git-sync": "workspace:*",
+        "@brains/link": "workspace:*",
+        "@brains/matrix": "workspace:*",
+        "@brains/mcp": "workspace:*",
+        "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-content": "workspace:*",
+        "@brains/summary": "workspace:*",
+        "@brains/system": "workspace:*",
+        "@brains/theme-default": "workspace:*",
+        "@brains/topics": "workspace:*",
+        "@brains/webserver": "workspace:*",
+      },
+      "devDependencies": {
         "typescript": "^5.3.3",
       },
     },
@@ -1173,6 +1186,8 @@
     "@brains/summary": ["@brains/summary@workspace:plugins/summary"],
 
     "@brains/system": ["@brains/system@workspace:plugins/system"],
+
+    "@brains/team": ["@brains/team@workspace:brains/team"],
 
     "@brains/team-brain": ["@brains/team-brain@workspace:apps/team-brain"],
 
@@ -2776,11 +2791,9 @@
 
     "@brains/professional-site/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
-    "@brains/site-content/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
+    "@brains/site-content/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
     "@brains/social-media/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
-
-    "@brains/team-brain/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
 
     "@brains/templates/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
@@ -3003,6 +3016,8 @@
     "@brains/products/bun-types/@types/node": ["@types/node@22.18.6", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-r8uszLPpeIWbNKtvWRt/DbVi5zbqZyj1PTmhRMqBMvDnaz1QpmSKujUtJLrqGZeoM8v72MfYggDceY4K1itzWQ=="],
 
     "@brains/professional-site/bun-types/@types/node": ["@types/node@22.18.6", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-r8uszLPpeIWbNKtvWRt/DbVi5zbqZyj1PTmhRMqBMvDnaz1QpmSKujUtJLrqGZeoM8v72MfYggDceY4K1itzWQ=="],
+
+    "@brains/site-content/bun-types/@types/node": ["@types/node@22.18.6", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-r8uszLPpeIWbNKtvWRt/DbVi5zbqZyj1PTmhRMqBMvDnaz1QpmSKujUtJLrqGZeoM8v72MfYggDceY4K1itzWQ=="],
 
     "@brains/social-media/bun-types/@types/node": ["@types/node@22.18.6", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-r8uszLPpeIWbNKtvWRt/DbVi5zbqZyj1PTmhRMqBMvDnaz1QpmSKujUtJLrqGZeoM8v72MfYggDceY4K1itzWQ=="],
 

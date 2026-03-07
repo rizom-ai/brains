@@ -1,15 +1,7 @@
 import { describe, expect, it, mock, beforeEach, afterEach } from "bun:test";
 import { handleCLI } from "../src/cli";
+import { App } from "../src/app";
 import type { AppConfig } from "../src/types";
-
-// Mock the App import to avoid circular dependencies in tests
-const mockApp = {
-  run: mock(() => Promise.resolve()),
-};
-
-void mock.module("../src/app", () => ({
-  App: mockApp,
-}));
 
 describe("handleCLI", () => {
   const testConfig: AppConfig = {
@@ -32,9 +24,14 @@ describe("handleCLI", () => {
   const mockConsoleLog = mock(() => {});
   const mockConsoleError = mock(() => {});
 
+  let runSpy: ReturnType<typeof mock>;
+
   beforeEach(() => {
+    // Spy on App.run
+    runSpy = mock(() => Promise.resolve());
+    App.run = runSpy as typeof App.run;
+
     // Reset mocks
-    mockApp.run.mockClear();
     mockExit.mockClear();
     mockConsoleLog.mockClear();
     mockConsoleError.mockClear();
@@ -58,7 +55,7 @@ describe("handleCLI", () => {
 
     await handleCLI(testConfig);
 
-    expect(mockApp.run).toHaveBeenCalledWith(testConfig);
+    expect(runSpy).toHaveBeenCalledWith(testConfig);
   });
 
   it("should show help with --help flag", async () => {
@@ -109,7 +106,7 @@ describe("handleCLI", () => {
 
     await handleCLI(testConfig);
 
-    expect(mockApp.run).toHaveBeenCalledWith(testConfig);
+    expect(runSpy).toHaveBeenCalledWith(testConfig);
   });
 
   it("should handle multiple flags", async () => {
@@ -129,7 +126,7 @@ describe("handleCLI", () => {
 
     await handleCLI(testConfig);
 
-    expect(mockApp.run).toHaveBeenCalledWith(testConfig);
+    expect(runSpy).toHaveBeenCalledWith(testConfig);
   });
 });
 
