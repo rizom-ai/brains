@@ -80,6 +80,15 @@ async function importFile(
 
     await processEntityImport(deps, rawEntity, filePath, result);
   } catch (error) {
+    // File disappeared between scan and read (e.g., git-sync pull race)
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      deps.logger.debug("File disappeared before import, skipping", {
+        path: filePath,
+      });
+      result.skipped++;
+      return;
+    }
+
     result.failed++;
     result.errors.push({
       path: filePath,
