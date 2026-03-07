@@ -1,9 +1,5 @@
 ---
-title: Team Brain
-description: Team knowledge hub for collaboration
+title: Recall
+description: Your team's AI-powered knowledge hub
 themeMode: dark
-cta:
-  heading: Join the team
-  buttonText: Get Started
-  buttonLink: https://team.example.com/signup
 ---
