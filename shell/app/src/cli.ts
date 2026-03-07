@@ -98,7 +98,7 @@ function showHelp(config: AppConfig): void {
 ${config.name} v${config.version}
 
 Usage:
-  bun brain.config.ts [options]
+  brains [options]
 
 Options:
   --help, -h              Show this help message
@@ -107,9 +107,9 @@ Options:
   --export-deploy-config  Export deployment config as JSON (for deploy scripts)
 
 Examples:
-  bun brain.config.ts                      # Start the app
-  bun brain.config.ts --cli                # Start with CLI interface
-  bun brain.config.ts --export-deploy-config  # Output deployment JSON
+  brains                      # Start the app
+  brains --cli                # Start with CLI interface
+  brains --export-deploy-config  # Output deployment JSON
 `);
   process.exit(0);
 }

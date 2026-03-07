@@ -3,14 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "main": "./brain.config.ts",
   "scripts": {
     "build": "brain-build",
     "precompile": "brain-precompile",
-    "dev": "bun --watch brain.config.ts",
-    "dev:cli": "bun --watch brain.config.ts --cli",
-    "start": "bun brain.config.ts",
-    "start:cli": "bun brain.config.ts --cli",
+    "dev": "bun --watch node_modules/.bin/brains",
+    "dev:cli": "bun --watch node_modules/.bin/brains --cli",
+    "start": "brains",
+    "start:cli": "brains --cli",
     "start:prod": "bun dist/brain.config.js",
     "migrate": "brain-migrate",
     "migrate:entities": "brain-migrate-entities",
@@ -20,11 +19,9 @@
     "db:studio:entities": "bun scripts/studio.ts entities",
     "db:studio:conversations": "bun scripts/studio.ts conversations",
     "db:studio:jobs": "bun scripts/studio.ts jobs",
-    "test": "bun test",
-    "matrix:setup": "bun scripts/matrix-setup.ts",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist"
+    "test": "echo 'no tests'",
+    "typecheck": "echo 'no source files'",
+    "lint": "echo 'no source files'"
   },
   "dependencies": {
     "@brains/app": "workspace:*",
