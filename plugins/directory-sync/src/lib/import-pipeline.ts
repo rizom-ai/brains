@@ -107,6 +107,28 @@ async function processEntityImport(
   filePath: string,
   result: ImportResult,
 ): Promise<void> {
+  // Skip files with empty or near-empty content — this happens when a file
+  // is read mid-write during a git pull (transient state, not invalid data)
+  if (!rawEntity.content || rawEntity.content.trim().length === 0) {
+    deps.logger.debug("Skipping file with empty content (likely mid-write)", {
+      path: filePath,
+      entityType: rawEntity.entityType,
+    });
+    result.skipped++;
+    return;
+  }
+
+  // Skip files where frontmatter is just delimiters with no actual fields
+  const trimmed = rawEntity.content.trim();
+  if (trimmed === "---" || trimmed === "---\n---" || trimmed === "---\r\n---") {
+    deps.logger.debug(
+      "Skipping file with empty frontmatter (likely mid-write)",
+      { path: filePath, entityType: rawEntity.entityType },
+    );
+    result.skipped++;
+    return;
+  }
+
   // Queue non-blocking image conversions
   queueCoverImageConversionIfNeeded(
     deps.imageJobQueue,
@@ -120,7 +142,7 @@ async function processEntityImport(
     rawEntity.id,
   );
 
-  // Deserialize -- validation errors quarantine the file
+  // Deserialize -- validation errors quarantine the file, transient errors just fail
   let parsedEntity;
   try {
     parsedEntity = deps.entityService.deserializeEntity(
@@ -128,10 +150,33 @@ async function processEntityImport(
       rawEntity.entityType,
     );
   } catch (error) {
-    deps.quarantine.quarantineInvalidFile(filePath, error, result, (fp) =>
-      fp.startsWith(deps.imageJobQueue.syncPath)
-        ? fp
-        : `${deps.imageJobQueue.syncPath}/${fp}`,
+    if (deps.quarantine.isValidationError(error)) {
+      deps.quarantine.quarantineInvalidFile(filePath, error, result, (fp) =>
+        fp.startsWith(deps.imageJobQueue.syncPath)
+          ? fp
+          : `${deps.imageJobQueue.syncPath}/${fp}`,
+      );
+      return;
+    }
+
+    // Non-validation errors (e.g., "No adapter registered") are transient —
+    // don't quarantine the file, just record the failure
+    result.failed++;
+    result.errors.push({
+      path: filePath,
+      error:
+        error instanceof Error
+          ? `Deserialization error (file not quarantined): ${error.message}`
+          : String(error),
+    });
+    deps.logger.warn(
+      "Failed to deserialize entity (transient error, not quarantined)",
+      {
+        path: filePath,
+        entityType: rawEntity.entityType,
+        id: rawEntity.id,
+        error: getErrorMessage(error),
+      },
     );
     return;
   }
