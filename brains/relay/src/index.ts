@@ -22,22 +22,21 @@ import { decksPlugin } from "@brains/decks";
 import defaultTheme from "@brains/theme-default";
 
 /**
- * Team Brain Model
+ * Relay Brain Model
  *
- * A collaborative knowledge management brain for team use.
- * Focused on knowledge capture, summarization, and sharing.
+ * A collaborative knowledge management brain for teams.
+ * Captures, organizes, and shares knowledge through topics,
+ * summaries, decks, and links.
  *
- * Non-secret config uses static defaults here. Instance-specific
- * overrides (homeserver URLs, user IDs, repos, domains) go in
- * brain.yaml's `plugins:` section. Only actual secrets (tokens,
- * API keys) are wired from env.
+ * Identity is defined in seed-content/ (brain-character, site-info,
+ * anchor-profile) — editable at runtime, single source of truth.
+ *
+ * Instance-specific config (homeserver, userId, repo, domain) goes
+ * in brain.yaml. Only secrets (tokens, API keys) come from .env.
  */
 export default defineBrain({
   name: "relay",
   version: "1.0.0",
-
-  // Identity is defined in seed-content/brain-character/brain-character.md
-  // — editable at runtime, single source of truth.
 
   capabilities: [
     [systemPlugin, {}],
@@ -85,10 +84,8 @@ export default defineBrain({
     [
       MatrixInterface,
       (env: BrainEnvironment) => ({
-        homeserver: "https://matrix.rizom.ai",
         accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
-        userId: "@teambot-dev:rizom.ai",
-        deviceDisplayName: "Recall",
+        // homeserver, userId, deviceDisplayName: set in brain.yaml
       }),
     ],
     [WebserverInterface, () => ({})],
@@ -104,10 +101,10 @@ export default defineBrain({
   },
 
   deployment: {
-    domain: "recall.rizom.ai",
     cdn: {
       enabled: true,
       provider: "bunny",
     },
+    // domain: set in brain.yaml
   },
 });
