@@ -1,0 +1,23 @@
+brain: "@brains/rover"
+
+# Instance settings
+logLevel: debug
+
+# Permissions
+anchors:
+  - "matrix:@yeehaa:rizom.ai"
+  - "discord:1442828818493735015"
+
+# Plugin overrides
+plugins:
+  git-sync:
+    repo: rizom-ai/professional-brain-content
+    authorName: Yeehaa
+    authorEmail: yeehaa@rizom.ai
+  matrix:
+    userId: "@rover-local:rizom.ai"
+    homeserver: https://matrix.rizom.ai
+    deviceDisplayName: Rover
+  webserver:
+    productionDomain: https://yeehaa.io
+    previewDomain: https://preview.yeehaa.io

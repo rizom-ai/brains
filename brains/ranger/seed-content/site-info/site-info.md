@@ -1,10 +1,9 @@
 ---
-title: Rizom
-description: The Rizom collective's knowledge hub
-logo: true
+title: My Organization
+description: Our shared knowledge hub
 themeMode: dark
 cta:
-  heading: Unlock your full potential
-  buttonText: Join Rizom
-  buttonLink: https://www.linkedin.com/company/rizom-collective
+  heading: Join our community
+  buttonText: Get Involved
+  buttonLink: https://example.com/join
 ---

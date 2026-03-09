@@ -22,3 +22,5 @@ export const professionalSiteConfigSchema = z.object({
 export type ProfessionalSiteConfig = z.infer<
   typeof professionalSiteConfigSchema
 >;
+
+export type ProfessionalSiteConfigInput = Partial<ProfessionalSiteConfig>;

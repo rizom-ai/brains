@@ -1,0 +1,23 @@
+brain: "@brains/rover"
+
+# Production instance
+domain: yeehaa.io
+
+# Permissions
+anchors:
+  - "matrix:@yeehaa:rizom.ai"
+  - "discord:1442828818493735015"
+
+plugins:
+  git-sync:
+    repo: rizom-ai/professional-brain-content
+    authorName: Yeehaa
+    authorEmail: yeehaa@rizom.ai
+  matrix:
+    userId: "@yeehaa-brain-bot:rizom.ai"
+    homeserver: https://matrix.rizom.ai
+    deviceDisplayName: Rover
+  discord: {}
+  webserver:
+    productionDomain: https://yeehaa.io
+    previewDomain: https://preview.yeehaa.io

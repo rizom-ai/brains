@@ -23,5 +23,3 @@ plugins:
   webserver:
     productionDomain: https://rizom.ai
     previewDomain: https://preview.rizom.ai
-    previewDistDir: ./dist/site-preview
-    previewPort: 4321

@@ -27,6 +27,7 @@ import {
 } from "./templates/subscribe-result";
 import {
   type ProfessionalSiteConfig,
+  type ProfessionalSiteConfigInput,
   professionalSiteConfigSchema,
 } from "./config";
 import packageJson from "../package.json";
@@ -38,7 +39,7 @@ import packageJson from "../package.json";
 export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig> {
   public readonly dependencies = ["blog", "decks"];
 
-  constructor(config: ProfessionalSiteConfig) {
+  constructor(config: ProfessionalSiteConfigInput) {
     super(
       "professional-site",
       packageJson,
@@ -167,6 +168,8 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
 /**
  * Factory function to create the plugin
  */
-export function professionalSitePlugin(config: ProfessionalSiteConfig): Plugin {
+export function professionalSitePlugin(
+  config: ProfessionalSiteConfigInput,
+): Plugin {
   return new ProfessionalSitePlugin(config);
 }

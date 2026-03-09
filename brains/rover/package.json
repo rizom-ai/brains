@@ -1,0 +1,44 @@
+{
+  "name": "@brains/rover",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@brains/analytics": "workspace:*",
+    "@brains/app": "workspace:*",
+    "@brains/blog": "workspace:*",
+    "@brains/content-pipeline": "workspace:*",
+    "@brains/dashboard": "workspace:*",
+    "@brains/decks": "workspace:*",
+    "@brains/default-site-content": "workspace:*",
+    "@brains/directory-sync": "workspace:*",
+    "@brains/discord": "workspace:*",
+    "@brains/git-sync": "workspace:*",
+    "@brains/image-plugin": "workspace:*",
+    "@brains/link": "workspace:*",
+    "@brains/matrix": "workspace:*",
+    "@brains/mcp": "workspace:*",
+    "@brains/newsletter": "workspace:*",
+    "@brains/note": "workspace:*",
+    "@brains/obsidian-vault": "workspace:*",
+    "@brains/portfolio": "workspace:*",
+    "@brains/professional-site": "workspace:*",
+    "@brains/site-builder-plugin": "workspace:*",
+    "@brains/social-media": "workspace:*",
+    "@brains/system": "workspace:*",
+    "@brains/theme-brutalist": "workspace:*",
+    "@brains/topics": "workspace:*",
+    "@brains/webserver": "workspace:*",
+    "@brains/wishlist": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
+    "typescript": "^5.3.3"
+  }
+}

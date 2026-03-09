@@ -1,0 +1,21 @@
+brain: "@brains/rover"
+
+# Eval-specific config — safe subset for automated testing
+# No chat interfaces, no git auto-push
+
+disable:
+  - matrix
+  - discord
+  - analytics
+  - dashboard
+  - webserver
+  - content-pipeline
+  - newsletter
+  - obsidian-vault
+  - wishlist
+
+plugins:
+  git-sync:
+    gitUrl: "file:///tmp/brain-eval-git-remote"
+    autoSync: false
+    autoPush: false
