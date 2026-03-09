@@ -38,19 +38,13 @@ export function resolve(
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
     const merged = mergeOverrides(baseConfig, pluginOverrides);
-
-    let plugin: Plugin;
-    try {
-      plugin = factory(merged);
-    } catch (error) {
-      // Can't determine plugin ID without constructing — check if
-      // factory name hints at a disabled plugin.
-      const fnName = factory.name.replace(/Plugin$/, "").toLowerCase();
-      if (disableSet.has(fnName)) continue;
-      throw error;
-    }
-
-    if (disableSet.has(plugin.id)) continue;
+    const plugin = tryConstruct(
+      () => factory(merged),
+      factory.name,
+      /Plugin$/,
+      disableSet,
+    );
+    if (!plugin || disableSet.has(plugin.id)) continue;
     capabilities.push(plugin);
   }
 
@@ -62,21 +56,13 @@ export function resolve(
   for (const [ctor, envMapper] of definition.interfaces) {
     const baseConfig = envMapper(env);
     const merged = mergeOverrides(baseConfig, pluginOverrides);
-
-    let plugin: Plugin;
-    try {
-      plugin = new ctor(merged);
-    } catch (error) {
-      // If construction fails, check if this would have been disabled.
-      // We can't know the ID without constructing, so we check if the
-      // class name (e.g. "MatrixInterface") matches any disable entry
-      // when lowercased and stripped of "Interface" suffix.
-      const className = ctor.name.replace(/Interface$/, "").toLowerCase();
-      if (disableSet.has(className)) continue;
-      throw error;
-    }
-
-    if (disableSet.has(plugin.id)) continue;
+    const plugin = tryConstruct(
+      () => new ctor(merged),
+      ctor.name,
+      /Interface$/,
+      disableSet,
+    );
+    if (!plugin || disableSet.has(plugin.id)) continue;
     interfaces.push(plugin);
   }
 
@@ -155,6 +141,26 @@ export function resolve(
   }
 
   return defineConfig(appConfig);
+}
+
+/**
+ * Try to construct a plugin. If construction fails and the name
+ * (with suffix stripped) is in the disable set, silently skip it.
+ * Otherwise re-throw the error.
+ */
+function tryConstruct(
+  construct: () => Plugin,
+  name: string,
+  suffix: RegExp,
+  disableSet: Set<string>,
+): Plugin | null {
+  try {
+    return construct();
+  } catch (error) {
+    const normalized = name.replace(suffix, "").toLowerCase();
+    if (disableSet.has(normalized)) return null;
+    throw error;
+  }
 }
 
 function mergeOverrides(

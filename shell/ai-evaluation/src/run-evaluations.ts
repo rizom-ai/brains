@@ -14,9 +14,24 @@
  */
 
 import { resolve as resolvePath } from "path";
+import {
+  existsSync,
+  readFileSync,
+  mkdirSync,
+  rmSync,
+  copyFileSync,
+  cpSync,
+} from "fs";
+import { execSync } from "child_process";
 import type { IAgentService } from "@brains/ai-service";
 import type { IAIService } from "@brains/ai-service";
-import type { AppConfig } from "@brains/app";
+import {
+  type AppConfig,
+  type BrainDefinition,
+  resolve as resolveConfig,
+  parseInstanceOverrides,
+  App,
+} from "@brains/app";
 import { EvaluationService } from "./evaluation-service";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
@@ -164,14 +179,9 @@ Examples:
  * brain.eval.config.ts uses the legacy defineConfig() pattern.
  */
 async function loadEvalConfig(): Promise<AppConfig> {
-  const { existsSync, readFileSync } = await import("fs");
-
   // Try brain.eval.yaml first (new pattern)
   const yamlPath = resolvePath(process.cwd(), "brain.eval.yaml");
   if (existsSync(yamlPath)) {
-    const { resolve: resolveConfig, parseInstanceOverrides } =
-      await import("@brains/app");
-
     const content = readFileSync(yamlPath, "utf-8");
     const overrides = parseInstanceOverrides(content);
 
@@ -183,7 +193,7 @@ async function loadEvalConfig(): Promise<AppConfig> {
     }
 
     const mod = (await import(overrides.brain)) as {
-      default: import("@brains/app").BrainDefinition;
+      default: BrainDefinition;
     };
     if (!mod.default) {
       console.error(`❌ ${overrides.brain} does not have a default export`);
@@ -249,15 +259,10 @@ export async function main(): Promise<void> {
     // Create and initialize the app (needed for AI service in both modes)
     // Use a temp database and data directory for evals to avoid polluting real data
     // Temp files are cleaned up on system reboot
-    const { App } = await import("@brains/app");
     const evalDbBase = `/tmp/brain-eval-${Date.now()}`;
 
     // Get the eval handler registry - plugins will register their handlers here
     const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
-
-    const { existsSync, mkdirSync, rmSync, copyFileSync, cpSync } =
-      await import("fs");
-    const { execSync } = await import("child_process");
 
     // Check if we should clone existing data (--clone-data flag)
     const cloneData = process.argv.includes("--clone-data");
