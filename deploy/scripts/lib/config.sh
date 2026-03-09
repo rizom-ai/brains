@@ -5,14 +5,29 @@
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$LIB_DIR/common.sh"
 
-# Extract deployment config from brain.yaml via the brains CLI
-# Uses deploy/brain.yaml if it exists, otherwise brain.yaml
+# Extract deployment config as JSON.
+# Supports both brain.yaml (new) and brain.config.ts (legacy).
+# For brain.yaml apps, prefers deploy/brain.yaml when present.
 extract_deploy_config() {
     local app_name="$1"
     local app_dir="apps/$app_name"
 
+    # TODO: Remove brain.config.ts fallback after professional-brain migrates to brain.yaml
+    # Legacy path: brain.config.ts
+    if [ -f "$app_dir/brain.config.ts" ]; then
+        local config_json
+        config_json=$(cd "$app_dir" && bun brain.config.ts --export-deploy-config 2>/dev/null)
+        if [ $? -ne 0 ] || [ -z "$config_json" ]; then
+            log_error "Failed to extract deploy config from $app_dir/brain.config.ts"
+            return 1
+        fi
+        echo "$config_json"
+        return 0
+    fi
+
+    # New path: brain.yaml
     if [ ! -f "$app_dir/brain.yaml" ] && [ ! -f "$app_dir/deploy/brain.yaml" ]; then
-        log_error "No brain.yaml found in $app_dir or $app_dir/deploy/"
+        log_error "No brain.yaml or brain.config.ts found in $app_dir"
         return 1
     fi
 
@@ -29,7 +44,7 @@ extract_deploy_config() {
 
     # Run brains CLI with export flag - outputs JSON
     local config_json
-    config_json=$(cd "$app_dir" && bun node_modules/.bin/brains --export-deploy-config 2>/dev/null)
+    config_json=$(cd "$app_dir" && bunx brains --export-deploy-config 2>/dev/null)
     local exit_code=$?
 
     # Restore original brain.yaml
@@ -49,7 +64,8 @@ extract_deploy_config() {
     echo "$config_json"
 }
 
-# Validate app exists and has brain.yaml
+# Validate app exists and has brain.yaml or brain.config.ts
+# TODO: Remove brain.config.ts check after professional-brain migrates
 validate_app() {
     local app_name="$1"
     local app_dir="apps/$app_name"
@@ -59,12 +75,14 @@ validate_app() {
         return 1
     fi
 
-    if [ ! -f "$app_dir/brain.yaml" ] && [ ! -f "$app_dir/deploy/brain.yaml" ]; then
-        log_error "No brain.yaml found in $app_dir or $app_dir/deploy/"
+    if [ -f "$app_dir/brain.config.ts" ]; then
+        echo "$app_dir/brain.config.ts"
+    elif [ -f "$app_dir/brain.yaml" ] || [ -f "$app_dir/deploy/brain.yaml" ]; then
+        echo "$app_dir/brain.yaml"
+    else
+        log_error "No brain.yaml or brain.config.ts found in $app_dir"
         return 1
     fi
-
-    echo "$app_dir/brain.yaml"
 }
 
 # Get configuration value with default
@@ -82,7 +100,7 @@ get_config_value() {
     fi
 }
 
-# Load app configuration from brain.yaml
+# Load app configuration
 load_app_config() {
     local app_name="$1"
     local config_path=$(validate_app "$app_name") || return 1
@@ -139,9 +157,10 @@ get_available_apps() {
         return
     fi
 
-    # List directories that have brain.yaml
+    # List directories that have brain.yaml or brain.config.ts
+    # TODO: Remove brain.config.ts check after professional-brain migrates
     for app_dir in "$apps_dir"/*; do
-        if [ -d "$app_dir" ] && { [ -f "$app_dir/brain.yaml" ] || [ -f "$app_dir/deploy/brain.yaml" ]; }; then
+        if [ -d "$app_dir" ] && { [ -f "$app_dir/brain.yaml" ] || [ -f "$app_dir/deploy/brain.yaml" ] || [ -f "$app_dir/brain.config.ts" ]; }; then
             basename "$app_dir"
         fi
     done

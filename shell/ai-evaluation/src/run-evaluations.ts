@@ -13,9 +13,10 @@
  *   bun run eval --url http://localhost:3333 --token <token>  # With auth
  */
 
-import { resolve } from "path";
+import { resolve as resolvePath } from "path";
 import type { IAgentService } from "@brains/ai-service";
 import type { IAIService } from "@brains/ai-service";
+import type { AppConfig } from "@brains/app";
 import { EvaluationService } from "./evaluation-service";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
@@ -52,8 +53,8 @@ export async function runEvaluations(
   const {
     agentService,
     aiService,
-    testCasesDir = resolve(process.cwd(), "test-cases"),
-    resultsDir = resolve(process.cwd(), "data/evaluation-results"),
+    testCasesDir = resolvePath(process.cwd(), "test-cases"),
+    resultsDir = resolvePath(process.cwd(), "data/evaluation-results"),
     skipLLMJudge = false,
     tags,
     testCaseIds,
@@ -154,8 +155,71 @@ Examples:
 }
 
 /**
+ * Load eval config from brain.eval.yaml (preferred) or brain.eval.config.ts (legacy).
+ *
+ * brain.eval.yaml uses the brain model pattern:
+ *   - Loads brain model package
+ *   - Resolves with eval-specific overrides (disable dangerous plugins)
+ *
+ * brain.eval.config.ts uses the legacy defineConfig() pattern.
+ */
+async function loadEvalConfig(): Promise<AppConfig> {
+  const { existsSync, readFileSync } = await import("fs");
+
+  // Try brain.eval.yaml first (new pattern)
+  const yamlPath = resolvePath(process.cwd(), "brain.eval.yaml");
+  if (existsSync(yamlPath)) {
+    const { resolve: resolveConfig, parseInstanceOverrides } =
+      await import("@brains/app");
+
+    const content = readFileSync(yamlPath, "utf-8");
+    const overrides = parseInstanceOverrides(content);
+
+    if (!overrides.brain) {
+      console.error(
+        '❌ brain.eval.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/ranger"',
+      );
+      process.exit(1);
+    }
+
+    const mod = (await import(overrides.brain)) as {
+      default: import("@brains/app").BrainDefinition;
+    };
+    if (!mod.default) {
+      console.error(`❌ ${overrides.brain} does not have a default export`);
+      process.exit(1);
+    }
+
+    console.log(`Loaded eval config from brain.eval.yaml (${overrides.brain})`);
+    return resolveConfig(mod.default, process.env, overrides);
+  }
+
+  // Fall back to brain.eval.config.ts (legacy pattern)
+  const configPath = resolvePath(process.cwd(), "brain.eval.config.ts");
+  if (!existsSync(configPath)) {
+    console.error(
+      "❌ No brain.eval.yaml or brain.eval.config.ts found in current directory",
+    );
+    console.error(
+      "Run this command from an app directory (e.g., apps/collective-brain)",
+    );
+    process.exit(1);
+  }
+
+  const configModule = await import(configPath);
+  const config = configModule.default;
+  if (!config) {
+    console.error("❌ No default export found in brain.eval.config.ts");
+    process.exit(1);
+  }
+
+  console.log("Loaded eval config from brain.eval.config.ts (legacy)");
+  return config as AppConfig;
+}
+
+/**
  * CLI entry point - parses args and runs evaluations
- * Expects to be called from an app directory with access to brain.config.ts
+ * Expects to be called from an app directory with access to brain.eval.yaml or brain.eval.config.ts
  */
 export async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -179,18 +243,8 @@ export async function main(): Promise<void> {
   const remoteUrl = parseSingleFlag(args, "--url");
   const authToken = parseSingleFlag(args, "--token");
 
-  // Load eval-specific config (required - no fallback to brain.config.ts)
-  // This ensures evals use a dedicated config that excludes dangerous plugins like git-sync
-  const configPath = resolve(process.cwd(), "brain.eval.config.ts");
-
   try {
-    const configModule = await import(configPath);
-    const config = configModule.default;
-
-    if (!config) {
-      console.error("No default export found in brain.eval.config.ts");
-      process.exit(1);
-    }
+    const config = await loadEvalConfig();
 
     // Create and initialize the app (needed for AI service in both modes)
     // Use a temp database and data directory for evals to avoid polluting real data
@@ -212,8 +266,8 @@ export async function main(): Promise<void> {
       // Copy existing brain.db and brain-data to temp location
       // This allows evals to use existing indexed content without re-syncing
       // Note: jobs and conversations are NOT cloned (fresh for each eval run)
-      const sourceDataDir = resolve(process.cwd(), "data");
-      const sourceBrainData = resolve(process.cwd(), "brain-data");
+      const sourceDataDir = resolvePath(process.cwd(), "data");
+      const sourceBrainData = resolvePath(process.cwd(), "brain-data");
 
       // Copy main entity database if it exists
       if (existsSync(`${sourceDataDir}/brain.db`)) {
@@ -230,7 +284,7 @@ export async function main(): Promise<void> {
     }
 
     // Copy seed content into eval data dir so directory-sync picks it up
-    const seedContentDir = resolve(process.cwd(), "seed-content");
+    const seedContentDir = resolvePath(process.cwd(), "seed-content");
     const evalDataDir = `${evalDbBase}-data`;
     if (existsSync(seedContentDir)) {
       mkdirSync(evalDataDir, { recursive: true });
@@ -290,14 +344,7 @@ export async function main(): Promise<void> {
 
     process.exit(0);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ERR_MODULE_NOT_FOUND") {
-      console.error(`Could not find brain.config.ts in ${process.cwd()}`);
-      console.error(
-        "Run this command from an app directory (e.g., apps/professional-brain)",
-      );
-    } else {
-      console.error("Failed to run evaluations:", error);
-    }
+    console.error("Failed to run evaluations:", error);
     process.exit(1);
   }
 }

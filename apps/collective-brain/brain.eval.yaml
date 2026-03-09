@@ -8,6 +8,7 @@ disable:
   - discord
   - analytics
   - dashboard
+  - webserver
 
 plugins:
   git-sync:

@@ -19,6 +19,7 @@ import {
   templates,
   routes as defaultRoutes,
   DefaultLayout,
+  DefaultCTALayout,
   MinimalLayout,
   CTAFooterLayout,
 } from "@brains/default-site-content";
@@ -122,6 +123,7 @@ export default defineBrain({
         templates,
         layouts: {
           default: DefaultLayout,
+          "default-cta": DefaultCTALayout,
           minimal: MinimalLayout,
           "cta-footer": CTAFooterLayout,
         },

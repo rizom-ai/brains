@@ -25,6 +25,7 @@
       "name": "@brains/collective-brain",
       "version": "0.1.0",
       "dependencies": {
+        "@brains/ai-evaluation": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/ranger": "workspace:*",
         "preact": "^10.27.2",

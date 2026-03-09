@@ -30,10 +30,14 @@ COPY dist ./dist
 COPY seed-content ./seed-content
 COPY public ./public
 
-# Layer 7: Create writable directories for site builder output
+# Layer 7: Copy brain.yaml to workdir if present (brains CLI reads from cwd)
+RUN test -f /app/dist/brain.yaml && cp /app/dist/brain.yaml /app/brain.yaml || true
+
+# Layer 8: Create writable directories for site builder output
 RUN mkdir -p /app/dist/site-production /app/dist/site-preview && \
     chmod -R 777 /app/dist/site-production /app/dist/site-preview
 
 EXPOSE 3333
 
-CMD ["bun", "dist/brain.config.js"]
+# TODO: Remove brain.config.js fallback after professional-brain migrates to brain.yaml
+CMD ["sh", "-c", "if [ -f dist/.brain-entrypoint.js ]; then exec bun dist/.brain-entrypoint.js; else exec bun dist/brain.config.js; fi"]

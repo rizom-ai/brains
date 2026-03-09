@@ -30,25 +30,51 @@ export function resolve(
   const disableSet = new Set(overrides?.disable ?? []);
   const pluginOverrides = overrides?.plugins ?? {};
 
-  // Instantiate capabilities — fresh plugin instances every time
+  // Instantiate capabilities — fresh plugin instances every time.
   // Merge overrides before construction so Zod validation sees the full config.
+  // Disabled plugins that fail validation are silently skipped.
   const capabilities: Plugin[] = [];
   for (const [factory, config] of definition.capabilities) {
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
     const merged = mergeOverrides(baseConfig, pluginOverrides);
-    const plugin = factory(merged);
+
+    let plugin: Plugin;
+    try {
+      plugin = factory(merged);
+    } catch (error) {
+      // Can't determine plugin ID without constructing — check if
+      // factory name hints at a disabled plugin.
+      const fnName = factory.name.replace(/Plugin$/, "").toLowerCase();
+      if (disableSet.has(fnName)) continue;
+      throw error;
+    }
 
     if (disableSet.has(plugin.id)) continue;
     capabilities.push(plugin);
   }
 
-  // Instantiate interfaces — merge overrides before construction
+  // Instantiate interfaces — merge overrides before construction.
+  // Construction is wrapped in try/catch so that disabled plugins
+  // with missing required config (e.g. Matrix without homeserver in
+  // eval mode) don't crash the resolver.
   const interfaces: Plugin[] = [];
   for (const [ctor, envMapper] of definition.interfaces) {
     const baseConfig = envMapper(env);
     const merged = mergeOverrides(baseConfig, pluginOverrides);
-    const plugin = new ctor(merged);
+
+    let plugin: Plugin;
+    try {
+      plugin = new ctor(merged);
+    } catch (error) {
+      // If construction fails, check if this would have been disabled.
+      // We can't know the ID without constructing, so we check if the
+      // class name (e.g. "MatrixInterface") matches any disable entry
+      // when lowercased and stripped of "Interface" suffix.
+      const className = ctor.name.replace(/Interface$/, "").toLowerCase();
+      if (disableSet.has(className)) continue;
+      throw error;
+    }
 
     if (disableSet.has(plugin.id)) continue;
     interfaces.push(plugin);
