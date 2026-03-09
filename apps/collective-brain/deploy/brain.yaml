@@ -1,0 +1,27 @@
+brain: "@brains/ranger"
+
+# Production instance
+domain: rizom.ai
+
+# Permissions
+anchors:
+  - "matrix:@yeehaa:rizom.ai"
+  - "discord:1442828818493735015"
+trusted:
+  - "discord:624315360157499422"
+
+plugins:
+  git-sync:
+    repo: rizom-ai/collective-brain-content
+    authorName: Ranger
+    authorEmail: collective@rizom.ai
+  matrix:
+    userId: "@ranger:rizom.ai"
+    homeserver: https://matrix.rizom.ai
+    deviceDisplayName: Ranger
+  discord: {}
+  webserver:
+    productionDomain: https://rizom.ai
+    previewDomain: https://preview.rizom.ai
+    previewDistDir: ./dist/site-preview
+    previewPort: 4321

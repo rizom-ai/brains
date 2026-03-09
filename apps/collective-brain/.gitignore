@@ -1,0 +1,11 @@
+# Runtime directories
+cache/
+data/
+brain-data/
+dist/
+.matrix-storage/
+node_modules/
+
+# Secrets
+.env
+deploy/.env.production

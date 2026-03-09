@@ -1,0 +1,36 @@
+{
+  "name": "@brains/ranger",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "dependencies": {
+    "@brains/analytics": "workspace:*",
+    "@brains/app": "workspace:*",
+    "@brains/dashboard": "workspace:*",
+    "@brains/default-site-content": "workspace:*",
+    "@brains/directory-sync": "workspace:*",
+    "@brains/discord": "workspace:*",
+    "@brains/git-sync": "workspace:*",
+    "@brains/link": "workspace:*",
+    "@brains/matrix": "workspace:*",
+    "@brains/mcp": "workspace:*",
+    "@brains/note": "workspace:*",
+    "@brains/products": "workspace:*",
+    "@brains/site-builder-plugin": "workspace:*",
+    "@brains/social-media": "workspace:*",
+    "@brains/system": "workspace:*",
+    "@brains/theme-default": "workspace:*",
+    "@brains/webserver": "workspace:*",
+    "@brains/wishlist": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/typescript-config": "workspace:*",
+    "typescript": "^5.3.3"
+  }
+}
