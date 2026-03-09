@@ -8,7 +8,8 @@ export type {
   DeploymentConfig,
   DeploymentConfigInput,
 } from "./types";
-export { deploymentConfigSchema } from "./types";
+export { deploymentConfigSchema, logLevelSchema } from "./types";
+export type { LogLevel } from "./types";
 
 // Brain definition / resolver API
 export { defineBrain } from "./brain-definition";

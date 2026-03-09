@@ -6,6 +6,10 @@ import type { CLIConfig } from "@brains/cli";
 import type { PermissionConfig } from "@brains/templates";
 import { brainCharacterBodySchema } from "@brains/identity-service";
 
+// Log level schema — shared between AppConfig and brain-resolver
+export const logLevelSchema = z.enum(["debug", "info", "warn", "error"]);
+export type LogLevel = z.infer<typeof logLevelSchema>;
+
 // Deployment configuration schema
 // This consolidates all deployment settings that were previously in deploy.config.json
 export const deploymentConfigSchema = z.object({
@@ -73,7 +77,7 @@ export const appConfigSchema = z.object({
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   openaiApiKey: z.string().optional(), // Maps to ai.openaiApiKey in Shell
   googleApiKey: z.string().optional(), // Maps to ai.googleApiKey in Shell
-  logLevel: z.enum(["debug", "info", "warn", "error"]).optional(), // Maps to logging.level
+  logLevel: logLevelSchema.optional(), // Maps to logging.level
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
   // Identity - override default identity for this app

@@ -7,6 +7,7 @@ import type {
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
 import { defineConfig } from "./config";
+import { logLevelSchema } from "./types";
 
 /**
  * Resolve a brain definition + environment into a runnable AppConfig.
@@ -110,10 +111,8 @@ export function resolve(
     // Log level: yaml overrides > env > undefined
     ...(overrides?.logLevel
       ? { logLevel: overrides.logLevel }
-      : env["LOG_LEVEL"]
-        ? {
-            logLevel: env["LOG_LEVEL"] as "debug" | "info" | "warn" | "error",
-          }
+      : logLevelSchema.safeParse(env["LOG_LEVEL"]).success
+        ? { logLevel: logLevelSchema.parse(env["LOG_LEVEL"]) }
         : {}),
 
     // Database: yaml overrides > env > undefined
