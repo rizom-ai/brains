@@ -2,73 +2,91 @@ import { describe, expect, test } from "bun:test";
 import {
   defineBrain,
   type InterfaceConstructor,
+  type PluginConfig,
+  type PluginFactory,
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
 import { parseInstanceOverrides } from "../src/instance-overrides";
-import type { Plugin } from "@brains/plugins";
+import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 
 // --- Test helpers ---
 
-function createMockPlugin(id: string, config: unknown): Plugin {
+interface MockPlugin extends Plugin {
+  config: PluginConfig;
+}
+
+function createMockPlugin(id: string, config: PluginConfig): MockPlugin {
   return {
     id,
     version: "1.0.0",
     description: `${id} plugin`,
     packageName: `@brains/${id}`,
     type: "service",
-    register: async (): Promise<void> => {},
+    register: async (_shell: IShell): Promise<PluginCapabilities> => ({
+      tools: [],
+      resources: [],
+    }),
     config,
-  } as unknown as Plugin;
+  };
 }
 
-function createMockFactory(
-  id: string,
-): [(config: unknown) => Plugin, unknown[]] {
-  const configs: unknown[] = [];
-  const factory = (config: unknown): Plugin => {
+function createMockFactory(id: string): [PluginFactory, PluginConfig[]] {
+  const configs: PluginConfig[] = [];
+  const factory: PluginFactory = (config) => {
     configs.push(config);
     return createMockPlugin(id, config);
   };
   return [factory, configs];
 }
 
-class MockWebserver {
+class MockWebserver implements Plugin {
   public readonly id = "webserver";
   public readonly version = "1.0.0";
   public readonly description = "Mock webserver";
   public readonly packageName = "@brains/webserver";
-  public readonly type = "interface";
-  public config: unknown;
-  constructor(config: unknown) {
+  public readonly type = "interface" as const;
+  public config: PluginConfig;
+  constructor(config: PluginConfig) {
     this.config = config;
   }
-  async register(): Promise<void> {}
+  async register(_shell: IShell): Promise<PluginCapabilities> {
+    return { tools: [], resources: [] };
+  }
 }
 
-class MockMatrix {
+class MockMatrix implements Plugin {
   public readonly id = "matrix";
   public readonly version = "1.0.0";
   public readonly description = "Mock matrix";
   public readonly packageName = "@brains/matrix";
-  public readonly type = "interface";
-  public config: unknown;
-  constructor(config: unknown) {
+  public readonly type = "interface" as const;
+  public config: PluginConfig;
+  constructor(config: PluginConfig) {
     this.config = config;
   }
-  async register(): Promise<void> {}
+  async register(_shell: IShell): Promise<PluginCapabilities> {
+    return { tools: [], resources: [] };
+  }
 }
 
-class MockMCP {
+class MockMCP implements Plugin {
   public readonly id = "mcp";
   public readonly version = "1.0.0";
   public readonly description = "Mock MCP";
   public readonly packageName = "@brains/mcp";
-  public readonly type = "interface";
-  public config: unknown;
-  constructor(config: unknown) {
+  public readonly type = "interface" as const;
+  public config: PluginConfig;
+  constructor(config: PluginConfig) {
     this.config = config;
   }
-  async register(): Promise<void> {}
+  async register(_shell: IShell): Promise<PluginCapabilities> {
+    return { tools: [], resources: [] };
+  }
+}
+
+function getConfig(plugin: Plugin | undefined): PluginConfig {
+  expect(plugin).toBeDefined();
+  return (plugin as MockPlugin).config;
 }
 
 // --- parseInstanceOverrides ---
@@ -284,12 +302,12 @@ describe("resolve with instance overrides", () => {
       version: "1.0.0",
       capabilities: [],
       interfaces: [
-        [MockMCP as unknown as InterfaceConstructor, () => ({ port: 3333 })],
+        [MockMCP as InterfaceConstructor, () => ({ port: 3333 })],
         [
-          MockMatrix as unknown as InterfaceConstructor,
+          MockMatrix as InterfaceConstructor,
           () => ({ homeserver: "https://matrix.org" }),
         ],
-        [MockWebserver as unknown as InterfaceConstructor, () => ({})],
+        [MockWebserver as InterfaceConstructor, () => ({})],
       ],
     });
 
@@ -308,7 +326,7 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [[gitSyncFactory, {}]],
-      interfaces: [[MockMatrix as unknown as InterfaceConstructor, () => ({})]],
+      interfaces: [[MockMatrix as InterfaceConstructor, () => ({})]],
     });
 
     const config = resolve(def, {}, { disable: ["git-sync", "matrix"] });
@@ -317,7 +335,7 @@ describe("resolve with instance overrides", () => {
 
   test("should apply plugin config overrides to capabilities", () => {
     const configs: unknown[] = [];
-    const factory = (config: unknown): Plugin => {
+    const factory: PluginFactory = (config) => {
       configs.push(config);
       return createMockPlugin("git-sync", config);
     };
@@ -339,13 +357,9 @@ describe("resolve with instance overrides", () => {
       },
     );
 
-    // Should have been instantiated twice: once to get ID, once with merged config
-    // The final plugin should have the merged config
     const gitSync = config.plugins?.find((p) => p.id === "git-sync");
     expect(gitSync).toBeDefined();
-    expect(
-      (gitSync as unknown as { config: Record<string, unknown> }).config,
-    ).toEqual({
+    expect(getConfig(gitSync)).toMatchObject({
       repo: "user/repo",
       autoSync: false,
       autoPush: true,
@@ -359,7 +373,7 @@ describe("resolve with instance overrides", () => {
       capabilities: [],
       interfaces: [
         [
-          MockWebserver as unknown as InterfaceConstructor,
+          MockWebserver as InterfaceConstructor,
           () => ({ productionPort: 8080 }),
         ],
       ],
@@ -375,14 +389,69 @@ describe("resolve with instance overrides", () => {
 
     const webserver = config.plugins?.find((p) => p.id === "webserver");
     expect(webserver).toBeDefined();
-    expect(
-      (webserver as unknown as { config: Record<string, unknown> }).config,
-    ).toEqual({ productionPort: 9090 });
+    expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
+  });
+
+  test("should apply targeted override after construction", () => {
+    // Plugin constructs successfully with empty config,
+    // then resolver applies matching override by plugin ID.
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [[MockWebserver as InterfaceConstructor, () => ({})]],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        plugins: { webserver: { productionPort: 9090 } },
+      },
+    );
+
+    const webserver = config.plugins?.find((p) => p.id === "webserver");
+    expect(webserver).toBeDefined();
+    expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
+  });
+
+  test("should not bleed overrides between plugins", () => {
+    // Override for git-sync should NOT appear in system's config.
+    // This is the key collision regression: merging all overrides into
+    // every plugin could cause wrong values when keys overlap.
+    const [systemFactory, systemConfigs] = createMockFactory("system");
+    const [gitSyncFactory] = createMockFactory("git-sync");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        [systemFactory, { systemKey: "original" }],
+        [gitSyncFactory, { autoSync: true }],
+      ],
+      interfaces: [],
+    });
+
+    resolve(
+      def,
+      {},
+      {
+        plugins: {
+          "git-sync": { autoSync: false, repo: "user/repo" },
+        },
+      },
+    );
+
+    // system should have only its own config, not git-sync's override keys
+    const systemConfig = systemConfigs[0];
+    expect(systemConfig).toEqual({ systemKey: "original" });
+    expect(systemConfig).not.toHaveProperty("autoSync");
+    expect(systemConfig).not.toHaveProperty("repo");
   });
 
   test("should not re-instantiate plugins without overrides", () => {
     let callCount = 0;
-    const factory = (config: unknown): Plugin => {
+    const factory: PluginFactory = (config) => {
       callCount++;
       return createMockPlugin("system", config);
     };
@@ -397,14 +466,14 @@ describe("resolve with instance overrides", () => {
     // Plugin overrides only for git-sync, not system
     resolve(def, {}, { plugins: { "git-sync": { autoSync: false } } });
 
-    // system factory should only be called once (no re-instantiation needed)
+    // system factory should only be called once
     expect(callCount).toBe(1);
   });
 
   test("should combine disable and plugin overrides", () => {
     const [systemFactory] = createMockFactory("system");
     const configs: unknown[] = [];
-    const gitSyncFactory = (config: unknown): Plugin => {
+    const gitSyncFactory: PluginFactory = (config) => {
       configs.push(config);
       return createMockPlugin("git-sync", config);
     };
@@ -416,7 +485,7 @@ describe("resolve with instance overrides", () => {
         [systemFactory, {}],
         [gitSyncFactory, { autoSync: true }],
       ],
-      interfaces: [[MockMatrix as unknown as InterfaceConstructor, () => ({})]],
+      interfaces: [[MockMatrix as InterfaceConstructor, () => ({})]],
     });
 
     const config = resolve(
@@ -434,9 +503,7 @@ describe("resolve with instance overrides", () => {
     expect(pluginIds).not.toContain("matrix");
 
     const gitSync = config.plugins?.find((p) => p.id === "git-sync");
-    expect(
-      (gitSync as unknown as { config: Record<string, unknown> }).config,
-    ).toEqual({ autoSync: false });
+    expect(getConfig(gitSync)).toMatchObject({ autoSync: false });
   });
 
   test("should ignore plugin overrides for disabled plugins", () => {
@@ -459,7 +526,7 @@ describe("resolve with instance overrides", () => {
     );
 
     expect(config.plugins).toHaveLength(0);
-    // Factory called once for the initial instantiation (to get ID), then skipped
+    // Factory called once, then skipped because it's disabled
     expect(configs).toHaveLength(1);
   });
 

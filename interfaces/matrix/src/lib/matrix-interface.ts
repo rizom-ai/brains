@@ -7,7 +7,7 @@ import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { IAgentService } from "@brains/plugins";
 import { markdownToHtml } from "@brains/utils";
 import { matrixConfigSchema } from "../schemas";
-import type { MatrixConfig } from "../schemas";
+import type { MatrixConfig, ConnectedMatrixConfig } from "../schemas";
 import { MatrixClientWrapper } from "../client/matrix-client";
 import packageJson from "../../package.json";
 
@@ -21,7 +21,7 @@ import packageJson from "../../package.json";
  * - Extends MessageInterfacePlugin for progress event handling
  */
 export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
-  declare protected config: MatrixConfig;
+  declare protected config: ConnectedMatrixConfig;
   private client?: MatrixClientWrapper;
   private agentService?: IAgentService;
 
@@ -53,10 +53,20 @@ export class MatrixInterface extends MessageInterfacePlugin<MatrixConfig> {
   ): Promise<void> {
     await super.onRegister(context);
 
+    // Validate connection fields are present at register time
+    if (
+      !this.config.homeserver ||
+      !this.config.accessToken ||
+      !this.config.userId
+    ) {
+      throw new Error(
+        "Matrix interface requires homeserver, accessToken, and userId to be configured",
+      );
+    }
     // Get AgentService from context
     this.agentService = context.agentService;
 
-    // Create Matrix client
+    // Create Matrix client (connection fields validated above)
     this.client = new MatrixClientWrapper(this.config, this.logger);
 
     // Set up event handlers

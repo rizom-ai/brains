@@ -7,7 +7,7 @@ import {
   RichConsoleLogger,
 } from "matrix-bot-sdk";
 import type { Logger } from "@brains/utils";
-import type { MatrixConfig } from "../types";
+import type { ConnectedMatrixConfig } from "../types";
 import { join } from "path";
 import { existsSync, mkdirSync } from "fs";
 
@@ -16,11 +16,11 @@ import { existsSync, mkdirSync } from "fs";
  */
 export class MatrixClientWrapper {
   private client: MatrixClient;
-  private readonly config: MatrixConfig;
+  private readonly config: ConnectedMatrixConfig;
   private readonly logger: Logger;
   private connected = false;
 
-  constructor(config: MatrixConfig, logger: Logger) {
+  constructor(config: ConnectedMatrixConfig, logger: Logger) {
     this.config = config;
     this.logger = logger;
 

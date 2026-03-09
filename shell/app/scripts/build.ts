@@ -14,8 +14,11 @@ if (!existsSync(packageJsonPath)) {
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
 const appName = packageJson.name?.replace("@brains/", "") ?? basename(cwd);
 
-// Determine entrypoint: brain.yaml (new) or brain.config.ts (legacy)
-const brainYamlPath = join(cwd, "brain.yaml");
+// Allow overriding brain.yaml path (e.g. --brain-yaml deploy/brain.yaml)
+const brainYamlFlagIdx = process.argv.indexOf("--brain-yaml");
+const brainYamlArg =
+  brainYamlFlagIdx !== -1 ? process.argv[brainYamlFlagIdx + 1] : undefined;
+const brainYamlPath = join(cwd, brainYamlArg ?? "brain.yaml");
 const brainConfigPath = join(cwd, "brain.config.ts");
 let entrypoint: string;
 let generatedEntrypoint = false;

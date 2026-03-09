@@ -220,19 +220,16 @@ describe("resolve", () => {
     expect(config.openaiApiKey).toBe("sk-oai-456");
   });
 
-  test("should merge brain.yaml overrides into interface config before validation", () => {
-    // Regression: interfaces whose constructors run Zod validation with
-    // required fields would crash before overrides were merged.
+  test("should apply targeted override to interface after construction", () => {
+    // Override is matched by plugin ID and applied via reconstruction.
+    // Construction with base config must succeed (no required-field throws).
     let capturedConfig: PluginConfig | undefined;
 
-    class ValidatingInterface extends MockInterface {
-      override readonly id = "validating";
-      override readonly packageName = "validating";
+    class ConfigCapture extends MockInterface {
+      override readonly id = "config-capture";
+      override readonly packageName = "config-capture";
       constructor(config: PluginConfig) {
         super(config);
-        if (!config["homeserver"]) {
-          throw new Error("homeserver is required");
-        }
         capturedConfig = config;
       }
     }
@@ -243,19 +240,18 @@ describe("resolve", () => {
       capabilities: [],
       interfaces: [
         [
-          ValidatingInterface,
+          ConfigCapture,
           (env: BrainEnvironment) => ({ accessToken: env["TOKEN"] ?? "" }),
         ],
       ],
     });
 
-    // Should not throw — overrides provide the required homeserver field
     const config = resolve(
       def,
       { TOKEN: "secret" },
       {
         plugins: {
-          validating: {
+          "config-capture": {
             homeserver: "https://example.com",
             userId: "@bot:example.com",
           },
@@ -263,17 +259,18 @@ describe("resolve", () => {
       },
     );
 
-    expect(config.plugins?.find((p) => p.id === "validating")).toBeDefined();
+    expect(
+      config.plugins?.find((p) => p.id === "config-capture"),
+    ).toBeDefined();
     expect(capturedConfig?.["homeserver"]).toBe("https://example.com");
     expect(capturedConfig?.["accessToken"]).toBe("secret");
   });
 
-  test("should merge brain.yaml overrides into capability config before validation", () => {
-    const validatingCapFactory: PluginFactory = (config) => {
-      if (!config["repo"]) {
-        throw new Error("repo is required");
-      }
-      return createMockPluginFactory("validating-cap")(config);
+  test("should apply targeted override to capability after construction", () => {
+    let capturedConfig: PluginConfig | undefined;
+    const capFactory: PluginFactory = (config) => {
+      capturedConfig = config;
+      return createMockPluginFactory("my-cap")(config);
     };
 
     const def = defineBrain({
@@ -281,7 +278,7 @@ describe("resolve", () => {
       version: "1.0.0",
       capabilities: [
         [
-          validatingCapFactory,
+          capFactory,
           (env: BrainEnvironment) => ({ token: env["TOKEN"] ?? "" }),
         ],
       ],
@@ -293,14 +290,15 @@ describe("resolve", () => {
       { TOKEN: "tok" },
       {
         plugins: {
-          "validating-cap": { repo: "user/repo" },
+          "my-cap": { repo: "user/repo" },
         },
       },
     );
 
-    expect(
-      config.plugins?.find((p) => p.id === "validating-cap"),
-    ).toBeDefined();
+    expect(config.plugins?.find((p) => p.id === "my-cap")).toBeDefined();
+    // Override merged with base config
+    expect(capturedConfig?.["repo"]).toBe("user/repo");
+    expect(capturedConfig?.["token"]).toBe("tok");
   });
 
   test("should disable interfaces via disable list", () => {

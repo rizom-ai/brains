@@ -1,9 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import type {
-  BrainDefinition,
-  BrainEnvironment,
-  PluginConfig,
-} from "./brain-definition";
+import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
 import { defineConfig } from "./config";
@@ -30,40 +26,34 @@ export function resolve(
   const disableSet = new Set(overrides?.disable ?? []);
   const pluginOverrides = overrides?.plugins ?? {};
 
-  // Instantiate capabilities — fresh plugin instances every time.
-  // Merge overrides before construction so Zod validation sees the full config.
-  // Disabled plugins that fail validation are silently skipped.
+  // Instantiate capabilities — each plugin gets only its own
+  // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [];
   for (const [factory, config] of definition.capabilities) {
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
-    const merged = mergeOverrides(baseConfig, pluginOverrides);
-    const plugin = tryConstruct(
-      () => factory(merged),
-      factory.name,
-      /Plugin$/,
+
+    const plugin = resolvePlugin(
+      (cfg) => factory(cfg),
+      baseConfig,
+      pluginOverrides,
       disableSet,
     );
-    if (!plugin || disableSet.has(plugin.id)) continue;
-    capabilities.push(plugin);
+    if (plugin) capabilities.push(plugin);
   }
 
-  // Instantiate interfaces — merge overrides before construction.
-  // Construction is wrapped in try/catch so that disabled plugins
-  // with missing required config (e.g. Matrix without homeserver in
-  // eval mode) don't crash the resolver.
+  // Instantiate interfaces — same targeted-override approach.
   const interfaces: Plugin[] = [];
   for (const [ctor, envMapper] of definition.interfaces) {
     const baseConfig = envMapper(env);
-    const merged = mergeOverrides(baseConfig, pluginOverrides);
-    const plugin = tryConstruct(
-      () => new ctor(merged),
-      ctor.name,
-      /Interface$/,
+
+    const plugin = resolvePlugin(
+      (cfg) => new ctor(cfg),
+      baseConfig,
+      pluginOverrides,
       disableSet,
     );
-    if (!plugin || disableSet.has(plugin.id)) continue;
-    interfaces.push(plugin);
+    if (plugin) interfaces.push(plugin);
   }
 
   // Map identity to the format AppConfig expects
@@ -144,33 +134,28 @@ export function resolve(
 }
 
 /**
- * Try to construct a plugin. If construction fails and the name
- * (with suffix stripped) is in the disable set, silently skip it.
- * Otherwise re-throw the error.
+ * Construct a plugin with targeted override matching.
+ *
+ * 1. Construct with base config → get plugin.id
+ * 2. If disabled → skip
+ * 3. If a matching override exists → reconstruct with merged config
+ *
+ * Only the override keyed by the plugin's own ID is applied,
+ * so overrides for other plugins never leak in.
  */
-function tryConstruct(
-  construct: () => Plugin,
-  name: string,
-  suffix: RegExp,
+function resolvePlugin(
+  construct: (config: Record<string, unknown>) => Plugin,
+  baseConfig: Record<string, unknown>,
+  pluginOverrides: Record<string, Record<string, unknown>>,
   disableSet: Set<string>,
 ): Plugin | null {
-  try {
-    return construct();
-  } catch (error) {
-    const normalized = name.replace(suffix, "").toLowerCase();
-    if (disableSet.has(normalized)) return null;
-    throw error;
-  }
-}
+  const plugin = construct(baseConfig);
+  if (disableSet.has(plugin.id)) return null;
 
-function mergeOverrides(
-  baseConfig: PluginConfig,
-  pluginOverrides: Record<string, Record<string, unknown>>,
-): PluginConfig {
-  if (Object.keys(pluginOverrides).length === 0) return baseConfig;
-  let merged = { ...baseConfig };
-  for (const ovr of Object.values(pluginOverrides)) {
-    merged = { ...merged, ...ovr };
+  const override = pluginOverrides[plugin.id];
+  if (override) {
+    return construct({ ...baseConfig, ...override });
   }
-  return merged;
+
+  return plugin;
 }

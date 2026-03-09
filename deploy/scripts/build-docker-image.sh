@@ -37,11 +37,17 @@ fi
 
 log_step "Building $APP_NAME"
 
-# Step 1: Build the app bundle
+# Require deploy/brain.yaml for production builds
+DEPLOY_YAML="deploy/brain.yaml"
+if [ ! -f "$APP_DIR/$DEPLOY_YAML" ]; then
+    log_error "Missing $APP_DIR/$DEPLOY_YAML — production builds require a deploy/brain.yaml"
+    exit 1
+fi
+
+# Step 1: Build the app bundle using deploy/brain.yaml
 log_info "Building app bundle for $APP_DIR..."
 cd "$APP_DIR"
-# Call the build script directly (avoid relying on bin linking)
-bun "$PROJECT_ROOT/shell/app/scripts/build.ts"
+bun "$PROJECT_ROOT/shell/app/scripts/build.ts" --brain-yaml "$DEPLOY_YAML"
 cd "$PROJECT_ROOT"
 
 # Step 2: Prepare build context

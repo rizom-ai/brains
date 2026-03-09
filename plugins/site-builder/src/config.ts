@@ -53,8 +53,8 @@ export type EntityRouteConfig = Record<
 export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
     .string()
-    .optional()
-    .describe("Output directory for preview builds"),
+    .describe("Output directory for preview builds")
+    .default("./dist/site-preview"),
   productionOutputDir: z
     .string()
     .describe("Output directory for production builds")

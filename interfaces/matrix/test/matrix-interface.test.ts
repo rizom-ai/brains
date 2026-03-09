@@ -176,10 +176,21 @@ describe("MatrixInterface", () => {
       expect(matrixInterface).toBeDefined();
     });
 
-    it("should throw error for invalid config", () => {
-      expect(() => {
-        new MatrixInterface({});
-      }).toThrow();
+    it("should construct with empty config (validates at register time)", () => {
+      const matrixInterface = new MatrixInterface({});
+      expect(matrixInterface).toBeDefined();
+    });
+
+    it("should throw at register when connection fields are missing", async () => {
+      const matrixInterface = new MatrixInterface({});
+      try {
+        await harness.installPlugin(matrixInterface);
+        expect.unreachable("should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toContain(
+          "Matrix interface requires homeserver, accessToken, and userId",
+        );
+      }
     });
   });
 

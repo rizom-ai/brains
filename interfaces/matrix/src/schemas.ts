@@ -12,13 +12,14 @@ export const perRoomRateLimitSchema = z.object({
  * Matrix interface configuration schema
  */
 export const matrixConfigSchema = z.object({
-  // Required fields
-  homeserver: z.string().url().describe("Matrix homeserver URL"),
-  accessToken: z.string().min(1).describe("Matrix access token"),
+  // Connection fields — optional at construction, validated at register()
+  homeserver: z.string().url().describe("Matrix homeserver URL").optional(),
+  accessToken: z.string().min(1).describe("Matrix access token").optional(),
   userId: z
     .string()
     .regex(/^@.+:.+$/)
-    .describe("Matrix user ID"),
+    .describe("Matrix user ID")
+    .optional(),
 
   // Optional fields
   deviceId: z.string().optional().describe("Device ID for E2E encryption"),
@@ -115,4 +116,15 @@ export const matrixConfigSchema = z.object({
  * Type exports
  */
 export type MatrixConfig = z.infer<typeof matrixConfigSchema>;
+
+/** Config with connection fields validated (after register()) */
+export type ConnectedMatrixConfig = Omit<
+  MatrixConfig,
+  "homeserver" | "accessToken" | "userId"
+> & {
+  homeserver: string;
+  accessToken: string;
+  userId: string;
+};
+
 export type PerRoomRateLimit = z.infer<typeof perRoomRateLimitSchema>;

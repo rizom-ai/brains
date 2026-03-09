@@ -63,6 +63,19 @@ describe("MatrixConfig", () => {
       expect(result.maxContextMessages).toBe(10);
     });
 
+    it("should construct with empty config (connection fields optional at construction)", () => {
+      const result = matrixConfigSchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.homeserver).toBeUndefined();
+        expect(result.data.accessToken).toBeUndefined();
+        expect(result.data.userId).toBeUndefined();
+        // Defaults still applied
+        expect(result.data.autoJoinRooms).toBe(true);
+        expect(result.data.enableEncryption).toBe(true);
+      }
+    });
+
     it("should accept config with all options", () => {
       const config = {
         homeserver: "https://matrix.example.org",
