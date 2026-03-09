@@ -1,5 +1,9 @@
 import type { Plugin } from "@brains/plugins";
-import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
+import type {
+  BrainDefinition,
+  BrainEnvironment,
+  PluginConfig,
+} from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
 import { defineConfig } from "./config";
@@ -26,48 +30,31 @@ export function resolve(
   const pluginOverrides = overrides?.plugins ?? {};
 
   // Instantiate capabilities — fresh plugin instances every time
+  // Merge overrides before construction so Zod validation sees the full config.
   const capabilities: Plugin[] = [];
   for (const [factory, config] of definition.capabilities) {
-    const resolvedConfig = typeof config === "function" ? config(env) : config;
+    const baseConfig =
+      typeof config === "function" ? config(env) : (config ?? {});
+    const merged = mergeOverrides(baseConfig, pluginOverrides);
+    const plugin = factory(merged);
 
-    // First instantiation — get the plugin ID
-    let plugin = factory(resolvedConfig);
-
-    // Skip disabled plugins
     if (disableSet.has(plugin.id)) continue;
-
-    // Re-instantiate with merged config if overrides exist
-    const pluginOvr = pluginOverrides[plugin.id];
-    if (pluginOvr) {
-      const mergedConfig = { ...(resolvedConfig as object), ...pluginOvr };
-      plugin = factory(mergedConfig);
-    }
-
     capabilities.push(plugin);
   }
 
-  // Instantiate interfaces — pass env through mapper
+  // Instantiate interfaces — merge overrides before construction
   const interfaces: Plugin[] = [];
   for (const [ctor, envMapper] of definition.interfaces) {
-    const config = envMapper(env);
+    const baseConfig = envMapper(env);
+    const merged = mergeOverrides(baseConfig, pluginOverrides);
+    const plugin = new ctor(merged);
 
-    // First instantiation — get the plugin ID
-    let plugin = new ctor(config);
-
-    // Skip disabled interfaces
     if (disableSet.has(plugin.id)) continue;
-
-    // Re-instantiate with merged config if overrides exist
-    const pluginOvr = pluginOverrides[plugin.id];
-    if (pluginOvr) {
-      const mergedConfig = { ...(config as object), ...pluginOvr };
-      plugin = new ctor(mergedConfig);
-    }
-
     interfaces.push(plugin);
   }
 
   // Map identity to the format AppConfig expects
+
   const identity = definition.identity
     ? {
         name: definition.identity.characterName,
@@ -143,4 +130,16 @@ export function resolve(
   }
 
   return defineConfig(appConfig);
+}
+
+function mergeOverrides(
+  baseConfig: PluginConfig,
+  pluginOverrides: Record<string, Record<string, unknown>>,
+): PluginConfig {
+  if (Object.keys(pluginOverrides).length === 0) return baseConfig;
+  let merged = { ...baseConfig };
+  for (const ovr of Object.values(pluginOverrides)) {
+    merged = { ...merged, ...ovr };
+  }
+  return merged;
 }

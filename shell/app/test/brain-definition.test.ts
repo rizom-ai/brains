@@ -2,35 +2,50 @@ import { describe, expect, test } from "bun:test";
 import {
   defineBrain,
   type BrainEnvironment,
-  type InterfaceConstructor,
+  type PluginConfig,
+  type PluginFactory,
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
-import type { Plugin } from "@brains/plugins";
+import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 
 // Minimal mock plugin factory
-const mockPluginFactory = (config: unknown): Plugin =>
-  ({
-    id: "mock-plugin",
-    version: "1.0.0",
-    description: "Mock plugin",
-    packageName: "mock-plugin",
-    type: "service",
-    register: async (): Promise<void> => {},
-    config,
-  }) as unknown as Plugin;
+function createMockPluginFactory(
+  id = "mock-plugin",
+): PluginFactory & { lastConfig: PluginConfig | undefined } {
+  const factory = ((config: PluginConfig): Plugin => {
+    factory.lastConfig = config;
+    return {
+      id,
+      version: "1.0.0",
+      type: "service",
+      packageName: id,
+      register: async (_shell: IShell): Promise<PluginCapabilities> => ({
+        tools: [],
+        resources: [],
+      }),
+      config,
+    } as Plugin;
+  }) as PluginFactory & { lastConfig: PluginConfig | undefined };
+  factory.lastConfig = undefined;
+  return factory;
+}
 
-// Minimal mock interface constructor
-class MockInterface {
-  public readonly id = "mock-interface";
-  public readonly version = "1.0.0";
-  public readonly description = "Mock interface";
-  public readonly packageName = "mock-interface";
-  public readonly type = "interface";
-  public config: unknown;
-  constructor(config: unknown) {
+const mockPluginFactory = createMockPluginFactory();
+
+// Minimal mock interface constructor — satisfies InterfaceConstructor
+class MockInterface implements Plugin {
+  public readonly id: string = "mock-interface";
+  public readonly version: string = "1.0.0";
+  public readonly description: string = "Mock interface";
+  public readonly packageName: string = "mock-interface";
+  public readonly type = "interface" as const;
+  public config: PluginConfig;
+  constructor(config: PluginConfig) {
     this.config = config;
   }
-  async register(): Promise<void> {}
+  async register(_shell: IShell): Promise<PluginCapabilities> {
+    return { tools: [], resources: [] };
+  }
 }
 
 describe("defineBrain", () => {
@@ -58,10 +73,7 @@ describe("defineBrain", () => {
       },
       capabilities: [[mockPluginFactory, { key: "value" }]],
       interfaces: [
-        [
-          MockInterface as unknown as InterfaceConstructor,
-          (env: BrainEnvironment) => ({ token: env["TOKEN"] }),
-        ],
+        [MockInterface, (env: BrainEnvironment) => ({ token: env["TOKEN"] })],
       ],
       permissions: {
         anchors: ["test:user"],
@@ -88,7 +100,7 @@ describe("defineBrain", () => {
 describe("resolve", () => {
   test("should create fresh plugin instances from factories", () => {
     const instances: Plugin[] = [];
-    const trackingFactory = (config: unknown): Plugin => {
+    const trackingFactory: PluginFactory = (config) => {
       const plugin = mockPluginFactory(config);
       instances.push(plugin);
       return plugin;
@@ -109,10 +121,10 @@ describe("resolve", () => {
   });
 
   test("should pass env to interface env mappers", () => {
-    let capturedConfig: unknown;
+    let capturedConfig: PluginConfig | undefined;
 
     class TrackingInterface extends MockInterface {
-      constructor(config: unknown) {
+      constructor(config: PluginConfig) {
         super(config);
         capturedConfig = config;
       }
@@ -124,7 +136,7 @@ describe("resolve", () => {
       capabilities: [],
       interfaces: [
         [
-          TrackingInterface as unknown as InterfaceConstructor,
+          TrackingInterface,
           (env: BrainEnvironment) => ({
             token: env["MY_TOKEN"],
             host: env["MY_HOST"],
@@ -135,26 +147,21 @@ describe("resolve", () => {
 
     resolve(def, { MY_TOKEN: "secret123", MY_HOST: "example.com" });
 
-    expect(capturedConfig).toEqual({
+    expect(capturedConfig).toMatchObject({
       token: "secret123",
       host: "example.com",
     });
   });
 
   test("should resolve env-mapped capability configs", () => {
-    let capturedConfig: unknown;
-
-    const trackingFactory = (config: unknown): Plugin => {
-      capturedConfig = config;
-      return mockPluginFactory(config);
-    };
+    const factory = createMockPluginFactory();
 
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
       capabilities: [
         [
-          trackingFactory,
+          factory,
           (env: BrainEnvironment) => ({
             repo: env["GIT_REPO"],
             token: env["GIT_TOKEN"],
@@ -166,7 +173,7 @@ describe("resolve", () => {
 
     resolve(def, { GIT_REPO: "user/repo", GIT_TOKEN: "tok_123" });
 
-    expect(capturedConfig).toEqual({
+    expect(factory.lastConfig).toMatchObject({
       repo: "user/repo",
       token: "tok_123",
     });
@@ -211,6 +218,104 @@ describe("resolve", () => {
 
     expect(config.aiApiKey).toBe("sk-ant-123");
     expect(config.openaiApiKey).toBe("sk-oai-456");
+  });
+
+  test("should merge brain.yaml overrides into interface config before validation", () => {
+    // Regression: interfaces whose constructors run Zod validation with
+    // required fields would crash before overrides were merged.
+    let capturedConfig: PluginConfig | undefined;
+
+    class ValidatingInterface extends MockInterface {
+      override readonly id = "validating";
+      override readonly packageName = "validating";
+      constructor(config: PluginConfig) {
+        super(config);
+        if (!config["homeserver"]) {
+          throw new Error("homeserver is required");
+        }
+        capturedConfig = config;
+      }
+    }
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [
+        [
+          ValidatingInterface,
+          (env: BrainEnvironment) => ({ accessToken: env["TOKEN"] ?? "" }),
+        ],
+      ],
+    });
+
+    // Should not throw — overrides provide the required homeserver field
+    const config = resolve(
+      def,
+      { TOKEN: "secret" },
+      {
+        plugins: {
+          validating: {
+            homeserver: "https://example.com",
+            userId: "@bot:example.com",
+          },
+        },
+      },
+    );
+
+    expect(config.plugins?.find((p) => p.id === "validating")).toBeDefined();
+    expect(capturedConfig?.["homeserver"]).toBe("https://example.com");
+    expect(capturedConfig?.["accessToken"]).toBe("secret");
+  });
+
+  test("should merge brain.yaml overrides into capability config before validation", () => {
+    const validatingCapFactory: PluginFactory = (config) => {
+      if (!config["repo"]) {
+        throw new Error("repo is required");
+      }
+      return createMockPluginFactory("validating-cap")(config);
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        [
+          validatingCapFactory,
+          (env: BrainEnvironment) => ({ token: env["TOKEN"] ?? "" }),
+        ],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      { TOKEN: "tok" },
+      {
+        plugins: {
+          "validating-cap": { repo: "user/repo" },
+        },
+      },
+    );
+
+    expect(
+      config.plugins?.find((p) => p.id === "validating-cap"),
+    ).toBeDefined();
+  });
+
+  test("should disable interfaces via disable list", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [[MockInterface, () => ({})]],
+    });
+
+    const config = resolve(def, {}, { disable: ["mock-interface"] });
+
+    expect(
+      config.plugins?.find((p) => p.id === "mock-interface"),
+    ).toBeUndefined();
   });
 
   test("should pass through permissions and deployment", () => {

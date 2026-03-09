@@ -8,6 +8,9 @@ import type { DeploymentConfigInput } from "./types";
  */
 export type BrainEnvironment = Record<string, string | undefined>;
 
+/** Plugin config objects — always key/value records. */
+export type PluginConfig = Record<string, unknown>;
+
 /**
  * A capability is a [factory, config] tuple.
  * The factory is called with the config at resolve time to create a fresh plugin instance.
@@ -16,11 +19,14 @@ export type BrainEnvironment = Record<string, string | undefined>;
  * - A static value (passed directly to the factory)
  * - A function `(env) => config` that receives the deployment environment
  *   (use this when the plugin needs credentials or env-specific settings)
+ * - undefined (plugin uses its own defaults)
  */
-export type CapabilityConfig = unknown | ((env: BrainEnvironment) => unknown);
+export type CapabilityConfig =
+  | PluginConfig
+  | ((env: BrainEnvironment) => PluginConfig)
+  | undefined;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type PluginFactory = (config: any) => Plugin;
+export type PluginFactory = (config: PluginConfig) => Plugin;
 
 export type CapabilityEntry = [
   factory: PluginFactory,
@@ -32,12 +38,11 @@ export type CapabilityEntry = [
  * The envMapper receives the deployment environment and returns the interface config.
  * The constructor is called with `new` to create a fresh interface instance.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type InterfaceConstructor = new (config: any) => Plugin;
+export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
 
 export type InterfaceEntry = [
   constructor: InterfaceConstructor,
-  envMapper: (env: BrainEnvironment) => unknown,
+  envMapper: (env: BrainEnvironment) => PluginConfig,
 ];
 
 /**
