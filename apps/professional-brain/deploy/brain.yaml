@@ -17,6 +17,7 @@ plugins:
     userId: "@yeehaa-brain-bot:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Rover
+  discord: {}
   webserver:
     productionDomain: https://yeehaa.io
     previewDomain: https://preview.yeehaa.io

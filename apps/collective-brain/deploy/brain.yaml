@@ -19,6 +19,7 @@ plugins:
     userId: "@ranger:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Ranger
+  discord: {}
   webserver:
     productionDomain: https://rizom.ai
     previewDomain: https://preview.rizom.ai
