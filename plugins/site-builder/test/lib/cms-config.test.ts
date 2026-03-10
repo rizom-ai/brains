@@ -172,6 +172,18 @@ describe("generateCmsConfig", () => {
     expect(config.collections[1]?.name).toBe("note");
   });
 
+  it("should exclude base entity type from collections", () => {
+    const config = generateCmsConfig(
+      cmsOpts({
+        base: noteFrontmatterSchema,
+        post: postFrontmatterSchema,
+      }),
+    );
+
+    expect(config.collections).toHaveLength(1);
+    expect(config.collections[0]?.name).toBe("post");
+  });
+
   it("should skip entity types without schema", () => {
     const schemas: SchemaMap = { post: postFrontmatterSchema };
     const config = generateCmsConfig({
@@ -189,10 +201,10 @@ describe("generateCmsConfig", () => {
     expect(config.collections[0]?.folder).toBe("post");
   });
 
-  it("should set folder to '.' for base entity type", () => {
+  it("should produce no collections for base-only config", () => {
     const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
 
-    expect(config.collections[0]?.folder).toBe(".");
+    expect(config.collections).toHaveLength(0);
   });
 
   it("should set extension and format", () => {

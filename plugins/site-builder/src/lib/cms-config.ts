@@ -233,6 +233,10 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
   const singletonFiles: CmsFileEntry[] = [];
 
   for (const entityType of options.entityTypes) {
+    // Skip base notes — free-form markdown that may contain --- thematic
+    // breaks which the CMS frontmatter parser cannot handle.
+    if (entityType === "base") continue;
+
     const frontmatterSchema = options.getFrontmatterSchema(entityType);
     if (!frontmatterSchema) continue;
 
