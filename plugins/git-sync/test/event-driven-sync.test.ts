@@ -188,23 +188,20 @@ describe("Event-Driven Commit/Push", () => {
   });
 });
 
-describe("AutoSync Pull-Only", () => {
-  it("should call pull() instead of sync() in startAutoSync", () => {
+describe("AutoSync Full Sync", () => {
+  it("should call sync() in startAutoSync to ensure push happens", () => {
     const source = readFileSync(
       join(__dirname, "../src/lib/git-sync.ts"),
       "utf-8",
     );
 
-    // The auto-sync timer should call pull, not sync
-    // Look for the pattern: the setInterval callback should reference pull
-    // and NOT call this.sync() inside the timer
+    // The auto-sync timer should call full sync (pull + commit + push),
+    // not just pull. Pull-only caused unpushed commits to accumulate.
     const autoSyncSection = source.substring(
       source.indexOf("startAutoSync"),
       source.indexOf("stopAutoSync"),
     );
 
-    expect(autoSyncSection).toContain("pull");
-    // Should not call full sync in the timer
-    expect(autoSyncSection).not.toContain("this.sync()");
+    expect(autoSyncSection).toContain("this.sync()");
   });
 });

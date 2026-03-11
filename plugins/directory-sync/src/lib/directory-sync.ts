@@ -164,19 +164,7 @@ export class DirectorySync {
 
     // Remove DB entities whose files no longer exist on disk
     // (e.g., files deleted via git pull before the file watcher started)
-    const cleanupResult = await runCleanup({
-      entityService: this.entityService,
-      logger: this.logger,
-      fileOperations: this.fileOperations,
-      deleteOnFileRemoval: this.deleteOnFileRemoval,
-      entityTypes: this.entityTypes,
-    });
-
-    if (cleanupResult.deleted > 0) {
-      this.logger.info("Cleaned up orphaned entities", {
-        deleted: cleanupResult.deleted,
-      });
-    }
+    const cleanupResult = await this.removeOrphanedEntities();
 
     const duration = Date.now() - startTime;
     this.lastSync = new Date();
@@ -262,6 +250,24 @@ export class DirectorySync {
       },
       paths,
     );
+  }
+
+  async removeOrphanedEntities(): Promise<{ deleted: number }> {
+    const result = await runCleanup({
+      entityService: this.entityService,
+      logger: this.logger,
+      fileOperations: this.fileOperations,
+      deleteOnFileRemoval: this.deleteOnFileRemoval,
+      entityTypes: this.entityTypes,
+    });
+
+    if (result.deleted > 0) {
+      this.logger.info("Cleaned up orphaned entities", {
+        deleted: result.deleted,
+      });
+    }
+
+    return result;
   }
 
   get fileOps(): FileOperations {

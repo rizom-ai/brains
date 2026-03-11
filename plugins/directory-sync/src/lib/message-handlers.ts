@@ -41,6 +41,11 @@ export function registerMessageHandlers(
     try {
       const ds = getDirectorySync();
       const result = await ds.importEntities(message.payload.paths);
+
+      // Clean up DB entities whose files no longer exist on disk
+      // (e.g., files deleted by a git pull).
+      await ds.removeOrphanedEntities();
+
       return { success: true, data: result };
     } catch (error) {
       return {

@@ -486,6 +486,8 @@ export class GitSync {
       }
 
       // STEP 2: Commit any local changes (after pulling)
+      // Note: pull() may have already committed uncommitted changes
+      // as a pre-pull step, so the working tree may already be clean.
       const status = await this.git.status();
       if (!status.isClean()) {
         await this.commit();
@@ -494,17 +496,17 @@ export class GitSync {
 
       // STEP 3: Push if needed
       if (this.remoteUrl) {
-        const postCommitStatus = await this.git.status();
-        const shouldPush =
-          manualSync ||
-          (this.autoPush && postCommitStatus.ahead > 0) ||
-          !remoteBranchExists;
+        // Always push when autoPush is enabled. We can't rely on
+        // git status `ahead` count because it's 0 when the local
+        // branch has no upstream tracking branch — even if there
+        // are unpushed commits. Pushing with nothing new is a
+        // harmless no-op ("Everything up-to-date").
+        const shouldPush = manualSync || this.autoPush || !remoteBranchExists;
 
         if (shouldPush) {
           await this.push();
           this.logger.info("Pushed changes to remote", {
             manual: manualSync,
-            ahead: postCommitStatus.ahead,
           });
         }
       }
@@ -529,9 +531,9 @@ export class GitSync {
     this.syncTimer = setInterval((): void => {
       void (async (): Promise<void> => {
         try {
-          await this.pull();
+          await this.sync();
         } catch (error) {
-          this.logger.error("Auto-pull failed", { error });
+          this.logger.error("Auto-sync failed", { error });
         }
       })();
     }, this.syncInterval * 1000);
