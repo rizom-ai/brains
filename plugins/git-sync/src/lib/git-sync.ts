@@ -474,6 +474,11 @@ export class GitSync {
     this.logger.debug("Starting sync", { manual: manualSync });
 
     try {
+      // Snapshot HEAD before pull+commit to detect new local commits.
+      // We can't rely on git status `ahead` because it's always 0
+      // when the local branch has no upstream tracking branch.
+      const headBefore = await this.git.revparse(["HEAD"]);
+
       // STEP 1: Pull from remote if configured
       let remoteBranchExists = true;
       if (this.remoteUrl) {
@@ -496,12 +501,10 @@ export class GitSync {
 
       // STEP 3: Push if needed
       if (this.remoteUrl) {
-        // Always push when autoPush is enabled. We can't rely on
-        // git status `ahead` count because it's 0 when the local
-        // branch has no upstream tracking branch — even if there
-        // are unpushed commits. Pushing with nothing new is a
-        // harmless no-op ("Everything up-to-date").
-        const shouldPush = manualSync || this.autoPush || !remoteBranchExists;
+        const headAfter = await this.git.revparse(["HEAD"]);
+        const hasNewCommits = headBefore !== headAfter;
+        const shouldPush =
+          manualSync || (this.autoPush && hasNewCommits) || !remoteBranchExists;
 
         if (shouldPush) {
           await this.push();

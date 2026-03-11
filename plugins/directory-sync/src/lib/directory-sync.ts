@@ -28,7 +28,10 @@ import {
   exportEntities as runExport,
   processEntityExport as runProcessEntityExport,
 } from "./export-pipeline";
-import { removeOrphanedEntities as runCleanup } from "./cleanup-pipeline";
+import {
+  removeOrphanedEntities as runCleanup,
+  type CleanupResult,
+} from "./cleanup-pipeline";
 
 export const directorySyncOptionsSchema = z.object({
   syncPath: z.string(),
@@ -252,7 +255,7 @@ export class DirectorySync {
     );
   }
 
-  async removeOrphanedEntities(): Promise<{ deleted: number }> {
+  async removeOrphanedEntities(): Promise<CleanupResult> {
     const result = await runCleanup({
       entityService: this.entityService,
       logger: this.logger,

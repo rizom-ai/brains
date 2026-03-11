@@ -40,11 +40,15 @@ export function registerMessageHandlers(
   subscribe<{ paths?: string[] }>("entity:import:request", async (message) => {
     try {
       const ds = getDirectorySync();
-      const result = await ds.importEntities(message.payload.paths);
+      const paths = message.payload.paths;
+      const result = await ds.importEntities(paths);
 
-      // Clean up DB entities whose files no longer exist on disk
-      // (e.g., files deleted by a git pull).
-      await ds.removeOrphanedEntities();
+      // When specific paths are provided (e.g., from git-sync after a pull),
+      // some of those paths may be deletions. Run orphan cleanup to remove
+      // DB entities whose files no longer exist on disk.
+      if (paths && paths.length > 0) {
+        await ds.removeOrphanedEntities();
+      }
 
       return { success: true, data: result };
     } catch (error) {
