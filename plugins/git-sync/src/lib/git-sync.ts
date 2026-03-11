@@ -376,12 +376,56 @@ export class GitSync {
       }
 
       // Pull (includes fetch + merge). Fast when nothing to merge.
-      const pullResult = await this.git.pull("origin", this.branch, {
-        "--no-rebase": null,
-        "--allow-unrelated-histories": null,
-        "--strategy=recursive": null,
-        "-Xtheirs": null,
-      });
+      let pullResult;
+      try {
+        pullResult = await this.git.pull("origin", this.branch, {
+          "--no-rebase": null,
+          "--allow-unrelated-histories": null,
+          "--strategy=recursive": null,
+          "-Xtheirs": null,
+        });
+      } catch (pullError) {
+        const pullMessage = getErrorMessage(pullError);
+
+        // Handle modify/delete conflicts that -Xtheirs can't resolve.
+        // Accept the remote's deletion: remove conflicted files and commit.
+        if (pullMessage.includes("CONFLICT")) {
+          this.logger.warn(
+            "Merge conflict during pull, resolving automatically",
+            { error: pullMessage },
+          );
+
+          const mergeStatus = await this.git.status();
+          if (mergeStatus.conflicted.length > 0) {
+            for (const file of mergeStatus.conflicted) {
+              // Accept remote version (deletion or content)
+              try {
+                await this.git.raw(["checkout", "--theirs", file]);
+              } catch {
+                // File was deleted on remote — remove it locally
+                await this.git.raw(["rm", "--force", file]);
+              }
+            }
+            await this.git.add(["-A"]);
+            await this.git.commit("Auto-resolve merge conflict (remote wins)");
+            this.logger.info("Resolved merge conflict", {
+              files: mergeStatus.conflicted,
+            });
+          }
+
+          // After resolution, determine changed files from the merge
+          const diffOutput = await this.git.diff(["HEAD~1", "--name-only"]);
+          const changedFiles = diffOutput.split("\n").filter((f) => f.trim());
+
+          if (changedFiles.length === 0) {
+            return true;
+          }
+
+          pullResult = { files: changedFiles };
+        } else {
+          throw pullError;
+        }
+      }
 
       // Skip import if nothing changed
       if (pullResult.files.length === 0) {
