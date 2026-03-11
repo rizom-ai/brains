@@ -153,7 +153,14 @@ export class MockShell implements IShell {
 
   getMessageBus(): MessageBus {
     return {
-      send: async (type: string, payload: unknown, source: string) => {
+      send: async (
+        type: string,
+        payload: unknown,
+        source: string,
+        _target?: string,
+        _metadata?: Record<string, unknown>,
+        broadcast?: boolean,
+      ) => {
         const handlers = this.messageHandlers.get(type) ?? new Set();
         let result: MessageResponse<unknown> = { success: true };
 
@@ -165,10 +172,16 @@ export class MockShell implements IShell {
             id: `msg-${Date.now()}`,
             timestamp: new Date().toISOString(),
           });
+          if (broadcast) {
+            continue; // Broadcast: call all handlers
+          }
           result = response;
-          break; // Only process first handler
+          break; // Non-broadcast: only process first handler
         }
 
+        if (broadcast) {
+          return { success: true } as MessageResponse<unknown>;
+        }
         return result;
       },
       subscribe: (type: string, handler: MessageHandler<unknown, unknown>) => {

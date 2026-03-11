@@ -116,10 +116,15 @@ describe("NewsletterPlugin", () => {
       expect(receivedPayload).toBeUndefined();
 
       // Emit system:plugins:ready to trigger slot registration
-      await harness.sendMessage("system:plugins:ready", {
-        timestamp: new Date().toISOString(),
-        pluginCount: 1,
-      });
+      await harness.sendMessage(
+        "system:plugins:ready",
+        {
+          timestamp: new Date().toISOString(),
+          pluginCount: 1,
+        },
+        "test",
+        true,
+      );
 
       expect(receivedPayload).toBeDefined();
       expect(receivedPayload).toMatchObject({
@@ -153,10 +158,15 @@ describe("NewsletterPlugin", () => {
       await harness.installPlugin(plugin);
 
       // Emit system:plugins:ready to trigger slot registration
-      await harness.sendMessage("system:plugins:ready", {
-        timestamp: new Date().toISOString(),
-        pluginCount: 1,
-      });
+      await harness.sendMessage(
+        "system:plugins:ready",
+        {
+          timestamp: new Date().toISOString(),
+          pluginCount: 1,
+        },
+        "test",
+        true,
+      );
 
       const vnode = receivedPayload?.render() as { type?: unknown } | undefined;
 
@@ -180,10 +190,15 @@ describe("NewsletterPlugin", () => {
       await harness.installPlugin(plugin);
 
       // Emit system:plugins:ready
-      await harness.sendMessage("system:plugins:ready", {
-        timestamp: new Date().toISOString(),
-        pluginCount: 1,
-      });
+      await harness.sendMessage(
+        "system:plugins:ready",
+        {
+          timestamp: new Date().toISOString(),
+          pluginCount: 1,
+        },
+        "test",
+        true,
+      );
 
       expect(messageReceived).toBe(false);
 

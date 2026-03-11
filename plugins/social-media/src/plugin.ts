@@ -55,7 +55,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     );
     context.jobs.registerHandler("generation", generationHandler);
 
-    await registerWithPublishPipeline(context, this.providers, this.logger);
+    registerWithPublishPipeline(context, this.providers, this.logger);
     subscribeToPublishExecute(context, this.providers, this.logger);
 
     if (this.config.autoGenerateOnBlogPublish) {

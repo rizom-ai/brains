@@ -22,11 +22,20 @@ export function setupAutoSync(
     async (message) => {
       const { entity } = message.payload;
 
-      await directorySync.fileOps.writeEntity(entity);
-      logger.debug("Auto-exported created entity", {
-        id: entity.id,
-        entityType: entity.entityType,
-      });
+      try {
+        await directorySync.fileOps.writeEntity(entity);
+        logger.debug("Auto-exported created entity", {
+          id: entity.id,
+          entityType: entity.entityType,
+        });
+      } catch (error) {
+        logger.error("Auto-export FAILED for created entity", {
+          id: entity?.id,
+          entityType: entity?.entityType,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
       return { success: true };
     },
   );
@@ -37,20 +46,32 @@ export function setupAutoSync(
     async (message) => {
       const { entityType, entityId } = message.payload;
 
-      const currentEntity = await entityService.getEntity(entityType, entityId);
-      if (!currentEntity) {
-        logger.debug("Entity not found in DB, skipping export", {
+      try {
+        const currentEntity = await entityService.getEntity(
           entityType,
           entityId,
-        });
-        return { success: false };
-      }
+        );
+        if (!currentEntity) {
+          logger.debug("Entity not found in DB, skipping export", {
+            entityType,
+            entityId,
+          });
+          return { success: false };
+        }
 
-      await directorySync.fileOps.writeEntity(currentEntity);
-      logger.debug("Auto-exported updated entity", {
-        id: currentEntity.id,
-        entityType: currentEntity.entityType,
-      });
+        await directorySync.fileOps.writeEntity(currentEntity);
+        logger.debug("Auto-exported updated entity", {
+          id: currentEntity.id,
+          entityType: currentEntity.entityType,
+        });
+      } catch (error) {
+        logger.error("Auto-export FAILED for updated entity", {
+          entityType,
+          entityId,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
       return { success: true };
     },
   );

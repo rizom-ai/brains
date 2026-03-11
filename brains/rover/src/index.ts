@@ -90,13 +90,6 @@ export default defineBrain({
     [portfolioPlugin, {}],
     [topicsPlugin, { includeEntityTypes: ["post", "deck", "project", "link"] }],
     [
-      socialMediaPlugin,
-      (env: BrainEnvironment) => ({
-        linkedin: { accessToken: env["LINKEDIN_ACCESS_TOKEN"] },
-        autoGenerateOnBlogPublish: true,
-      }),
-    ],
-    [
       contentPipelinePlugin,
       {
         generationSchedules: {
@@ -115,6 +108,13 @@ export default defineBrain({
           },
         },
       },
+    ],
+    [
+      socialMediaPlugin,
+      (env: BrainEnvironment) => ({
+        linkedin: { accessToken: env["LINKEDIN_ACCESS_TOKEN"] },
+        autoGenerateOnBlogPublish: true,
+      }),
     ],
     [
       createNewsletterPlugin,

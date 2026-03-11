@@ -27,13 +27,24 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
   });
 
   describe("provider registration", () => {
-    it("should send publish:register message on init with linkedin provider", async () => {
+    it("should send publish:register message after system:plugins:ready with linkedin provider", async () => {
       plugin = new SocialMediaPlugin({
         linkedin: {
           accessToken: "test-token",
         },
       });
       await plugin.register(mockShell);
+
+      // publish:register is deferred to system:plugins:ready
+      const messageBus = mockShell.getMessageBus();
+      await messageBus.send(
+        "system:plugins:ready",
+        { timestamp: new Date().toISOString(), pluginCount: 1 },
+        "shell",
+        undefined,
+        undefined,
+        true,
+      );
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",

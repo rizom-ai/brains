@@ -59,7 +59,7 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
   });
 
   describe("provider registration", () => {
-    it("should send publish:register message on init with buttondown provider", async () => {
+    it("should send publish:register after system:plugins:ready with buttondown provider", async () => {
       plugin = new NewsletterPlugin({
         buttondown: {
           apiKey: "test-api-key",
@@ -67,6 +67,17 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
         },
       });
       await plugin.register(mockShell);
+
+      // publish:register is deferred to system:plugins:ready
+      const messageBus = mockShell.getMessageBus();
+      await messageBus.send(
+        "system:plugins:ready",
+        { timestamp: new Date().toISOString(), pluginCount: 1 },
+        "shell",
+        undefined,
+        undefined,
+        true,
+      );
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",
@@ -78,9 +89,19 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
       });
     });
 
-    it("should send publish:register with internal provider when no buttondown config", async () => {
+    it("should send publish:register with internal provider after system:plugins:ready when no buttondown config", async () => {
       plugin = new NewsletterPlugin({});
       await plugin.register(mockShell);
+
+      const messageBus = mockShell.getMessageBus();
+      await messageBus.send(
+        "system:plugins:ready",
+        { timestamp: new Date().toISOString(), pluginCount: 1 },
+        "shell",
+        undefined,
+        undefined,
+        true,
+      );
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",

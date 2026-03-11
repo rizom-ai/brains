@@ -5,11 +5,11 @@ import {
   type PublishExecutePayload,
 } from "../handlers/publishExecuteHandler";
 
-export async function registerWithPublishPipeline(
+export function registerWithPublishPipeline(
   context: ServicePluginContext,
   providers: Map<string, PublishProvider>,
   logger: Logger,
-): Promise<void> {
+): void {
   if (providers.size === 0) {
     logger.debug(
       "No providers configured, skipping publish-pipeline registration",
@@ -17,14 +17,19 @@ export async function registerWithPublishPipeline(
     return;
   }
 
-  const provider = providers.values().next().value;
+  // Defer to system:plugins:ready so content-pipeline has subscribed
+  // to publish:register before we send it (order-independent)
+  context.messaging.subscribe("system:plugins:ready", async () => {
+    const provider = providers.values().next().value;
 
-  await context.messaging.send("publish:register", {
-    entityType: "social-post",
-    provider: provider,
+    await context.messaging.send("publish:register", {
+      entityType: "social-post",
+      provider: provider,
+    });
+
+    logger.info("Registered social-post with publish-pipeline");
+    return { success: true };
   });
-
-  logger.info("Registered social-post with publish-pipeline");
 }
 
 export function subscribeToPublishExecute(

@@ -53,7 +53,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
       "newsletter-detail": newsletterDetailTemplate,
     });
 
-    await this.registerWithPublishPipeline(context);
+    this.deferPublishRegistration(context);
     this.subscribeToPublishExecute(context);
     this.subscribeToGenerateExecute(context);
 
@@ -152,9 +152,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
     ];
   }
 
-  private async registerWithPublishPipeline(
-    context: ServicePluginContext,
-  ): Promise<void> {
+  private deferPublishRegistration(context: ServicePluginContext): void {
     const { buttondown } = this.config;
     const provider: PublishProvider = buttondown
       ? {
@@ -179,9 +177,14 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
           },
         };
 
-    await context.messaging.send("publish:register", {
-      entityType: "newsletter",
-      provider,
+    // Defer to system:plugins:ready so content-pipeline has subscribed
+    // to publish:register before we send it (order-independent)
+    context.messaging.subscribe("system:plugins:ready", async () => {
+      await context.messaging.send("publish:register", {
+        entityType: "newsletter",
+        provider,
+      });
+      return { success: true };
     });
   }
 
