@@ -4,6 +4,7 @@ import {
   z,
   PROGRESS_STEPS,
   JobResult,
+  getErrorMessage,
   type GenerationResult,
 } from "@brains/utils";
 import type { ServicePluginContext } from "./context";
@@ -135,6 +136,7 @@ export abstract class BaseGenerationJobHandler<
     _data: TInput,
     _entityId: string,
     _progressReporter: ProgressReporter,
+    _generated: GeneratedContent,
   ): Promise<void> {
     // Default: no-op
   }
@@ -181,7 +183,12 @@ export abstract class BaseGenerationJobHandler<
       );
 
       // Step 3: Post-creation hook
-      await this.afterCreate(data, result.entityId, progressReporter);
+      await this.afterCreate(
+        data,
+        result.entityId,
+        progressReporter,
+        generated,
+      );
 
       // Step 4: Done
       await this.reportProgress(progressReporter, {
@@ -200,8 +207,7 @@ export abstract class BaseGenerationJobHandler<
         return { success: false, error: error.message } as TResult;
       }
 
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
       this.logger.error(`${this.jobTypeName} job failed`, {
         error,
         jobId,

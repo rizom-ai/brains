@@ -199,14 +199,24 @@ ${sourceEntity.content}`,
       context: this.context,
     });
 
+    let finalContent = postContent;
     if (finalTitle !== title) {
       metadata.title = finalTitle;
       metadata.slug = `${platform}-${slugify(finalTitle)}`;
+      // Rebuild content with updated title in frontmatter
+      const updatedFrontmatter: SocialPostFrontmatter = {
+        ...frontmatter,
+        title: finalTitle,
+      };
+      finalContent = socialPostAdapter.createPostContent(
+        updatedFrontmatter,
+        content,
+      );
     }
 
     return {
       id: metadata.slug,
-      content: postContent,
+      content: finalContent,
       metadata,
       title: finalTitle,
       resultExtras: { slug: metadata.slug },
@@ -228,6 +238,7 @@ ${sourceEntity.content}`,
     data: GenerationJobData,
     entityId: string,
     progressReporter: ProgressReporter,
+    generated: GeneratedContent,
   ): Promise<void> {
     // Queue image generation if requested
     if (data.generateImage) {
@@ -236,11 +247,12 @@ ${sourceEntity.content}`,
         message: "Queueing image generation",
       });
 
+      const title = generated.title ?? "Social Post";
       await this.context.jobs.enqueue(
         "image:image-generate",
         {
-          prompt: `Social media graphic for: ${data.title}`,
-          title: `${data.title} Image`,
+          prompt: `Social media graphic for: ${title}`,
+          title: `${title} Image`,
           aspectRatio: "16:9",
           targetEntityType: "social-post",
           targetEntityId: entityId,

@@ -84,16 +84,12 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         message: `Fetching ${sourceEntityIds.length} source entities`,
       });
 
-      const posts: BlogPost[] = [];
-      for (const id of sourceEntityIds) {
-        const entity = await this.context.entityService.getEntity<BlogPost>(
-          entityType,
-          id,
-        );
-        if (entity) {
-          posts.push(entity);
-        }
-      }
+      const results = await Promise.all(
+        sourceEntityIds.map((id) =>
+          this.context.entityService.getEntity<BlogPost>(entityType, id),
+        ),
+      );
+      const posts = results.filter((e): e is BlogPost => e != null);
 
       if (posts.length === 0) {
         this.failEarly(
@@ -221,6 +217,8 @@ The newsletter should:
   protected override async afterCreate(
     _data: GenerationJobData,
     entityId: string,
+    _progressReporter: ProgressReporter,
+    _generated: GeneratedContent,
   ): Promise<void> {
     await this.context.messaging.send("generate:report:success", {
       entityType: "newsletter",
