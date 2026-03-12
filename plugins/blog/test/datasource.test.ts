@@ -219,7 +219,7 @@ describe("BlogDataSource", () => {
           singlePostSchema,
           mockContext,
         ),
-      ).rejects.toThrow("Blog post not found with slug: nonexistent-slug");
+      ).rejects.toThrow("not found with slug: nonexistent-slug");
     });
 
     it("should include series posts when post is part of a series", async () => {
@@ -800,7 +800,10 @@ describe("BlogDataSource", () => {
         sortFields: [{ field: "publishedAt", direction: "desc" }],
       });
 
-      expect(mockEntityService.countEntities).toHaveBeenCalledWith("post");
+      expect(mockEntityService.countEntities).toHaveBeenCalledWith(
+        "post",
+        undefined,
+      );
 
       expect(result.pagination?.totalItems).toBe(3);
       expect(result.pagination?.totalPages).toBe(2);

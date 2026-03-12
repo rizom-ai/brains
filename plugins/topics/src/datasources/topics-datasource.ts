@@ -1,52 +1,103 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z, EntityUrlGenerator, truncateText } from "@brains/utils";
+import { BaseEntityDataSource } from "@brains/plugins";
+import type {
+  BaseQuery,
+  NavigationResult,
+  PaginationInfo,
+  BaseDataSourceContext,
+} from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import type { Logger, z } from "@brains/utils";
+import { EntityUrlGenerator, truncateText } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
 
-// Schema for fetch query parameters
-const entityFetchQuerySchema = z.object({
-  entityType: z.string(),
-  query: z
-    .object({
-      id: z.string().optional(),
-      limit: z.number().optional(),
-    })
-    .optional(),
-});
+/** List-view representation of a topic. */
+interface TopicListItem {
+  id: string;
+  title: string;
+  summary: string;
+  keywords: string[];
+  sourceCount: number;
+  created: string;
+  updated: string;
+}
 
 /**
- * DataSource for fetching and transforming topic entities
- * Handles both list and detail views for topics
+ * DataSource for fetching and transforming topic entities.
+ * Handles both list and detail views for topics.
  */
-export class TopicsDataSource implements DataSource {
-  public readonly id = "topics:entities";
-  public readonly name = "Topics Entity DataSource";
-  public readonly description =
-    "Fetches and transforms topic entities for rendering";
+export class TopicsDataSource extends BaseEntityDataSource<
+  BaseEntity,
+  TopicListItem
+> {
+  readonly id = "topics:entities";
+  readonly name = "Topics Entity DataSource";
+  readonly description = "Fetches and transforms topic entities for rendering";
 
-  constructor(private readonly logger: Logger) {
+  protected readonly config = {
+    entityType: "topic",
+    defaultSort: [{ field: "updated" as const, direction: "desc" as const }],
+    defaultLimit: 100,
+    lookupField: "id" as const,
+  };
+
+  private readonly adapter = new TopicAdapter();
+
+  constructor(logger: Logger) {
+    super(logger);
     this.logger.debug("TopicsDataSource initialized");
   }
 
+  protected transformEntity(entity: BaseEntity): TopicListItem {
+    const parsed = this.adapter.parseTopicBody(entity.content);
+    return {
+      id: entity.id,
+      title: parsed.title,
+      summary: truncateText(parsed.content, 200),
+      keywords: parsed.keywords,
+      sourceCount: parsed.sources.length,
+      created: entity.created,
+      updated: entity.updated,
+    };
+  }
+
+  protected buildDetailResult(
+    _item: TopicListItem,
+    _navigation: NavigationResult<TopicListItem> | null,
+  ) {
+    // Detail is handled by override below
+    return {};
+  }
+
+  protected buildListResult(
+    items: TopicListItem[],
+    _pagination: PaginationInfo | null,
+    _query: BaseQuery,
+  ) {
+    return {
+      topics: items,
+      totalCount: items.length,
+    };
+  }
+
   /**
-   * Fetch and transform topic entities to template-ready format
-   * Returns TopicDetailData for single topic or TopicListData for multiple
-   * @param context - Context with scoped entityService
+   * Override fetch to handle detail view differently — detail needs
+   * full content + source URLs, not the list summary.
    */
-  async fetch<T>(
+  override async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Parse and validate query parameters
-    const params = entityFetchQuerySchema.parse(query);
-    const adapter = new TopicAdapter();
-    const entityService = context.entityService;
+    const params = query as {
+      entityType?: string;
+      query?: BaseQuery;
+    };
 
+    // Detail view: custom transform with source URL resolution
     if (params.query?.id) {
-      // Fetch and transform single entity to TopicDetailData
+      const entityService = context.entityService;
       const entity = await entityService.getEntity(
-        params.entityType,
+        this.config.entityType,
         params.query.id,
       );
 
@@ -54,17 +105,14 @@ export class TopicsDataSource implements DataSource {
         throw new Error(`Entity not found: ${params.query.id}`);
       }
 
-      // Transform to TopicDetailData
-      const parsed = adapter.parseTopicBody(entity.content);
-
-      // Add href to each source using EntityUrlGenerator
+      const parsed = this.adapter.parseTopicBody(entity.content);
       const urlGenerator = EntityUrlGenerator.getInstance();
       const sources = parsed.sources.map((source) => ({
         ...source,
         href: urlGenerator.generateUrl(source.type, source.slug),
       }));
 
-      const detailData = {
+      return outputSchema.parse({
         id: entity.id,
         title: parsed.title,
         content: parsed.content,
@@ -72,50 +120,10 @@ export class TopicsDataSource implements DataSource {
         sources,
         created: entity.created,
         updated: entity.updated,
-      };
-
-      return outputSchema.parse(detailData);
+      });
     }
 
-    // Fetch and transform entity list to TopicListData
-    const listOptions: Parameters<typeof entityService.listEntities>[1] = {};
-    if (params.query?.limit !== undefined) {
-      listOptions.limit = params.query.limit;
-    } else {
-      listOptions.limit = 100;
-    }
-
-    const entities = await entityService.listEntities(
-      params.entityType,
-      listOptions,
-    );
-
-    // Transform to TopicListData
-    const topics = entities.map((entity) => {
-      const parsed = adapter.parseTopicBody(entity.content);
-      // Derive summary from content (first 200 chars)
-      const summary = truncateText(parsed.content, 200);
-      return {
-        id: entity.id,
-        title: parsed.title,
-        summary,
-        keywords: parsed.keywords,
-        sourceCount: parsed.sources.length,
-        created: entity.created,
-        updated: entity.updated,
-      };
-    });
-
-    // Sort by updated date, newest first
-    topics.sort(
-      (a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime(),
-    );
-
-    const listData = {
-      topics,
-      totalCount: topics.length,
-    };
-
-    return outputSchema.parse(listData);
+    // List view: use base class
+    return super.fetch(query, outputSchema, context);
   }
 }

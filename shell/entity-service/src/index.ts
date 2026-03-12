@@ -25,6 +25,7 @@ export type {
   CreateEntityOptions,
   EntityMutationResult,
   StoreEmbeddingData,
+  SortField,
 } from "./types";
 
 export { baseEntitySchema } from "./types";

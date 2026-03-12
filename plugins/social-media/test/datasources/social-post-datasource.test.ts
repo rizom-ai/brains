@@ -129,7 +129,7 @@ describe("SocialPostDataSource", () => {
         error = e as Error;
       }
       expect(error).not.toBeNull();
-      expect(error?.message).toContain("Social post not found");
+      expect(error?.message).toContain("not found");
     });
 
     it("should accept limit option", async () => {

@@ -1,109 +1,71 @@
-import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
-import { LinkAdapter } from "../adapters/link-adapter";
-import type { LinkListData, LinkSummary } from "../templates/link-list/schema";
+import { BaseEntityDataSource } from "@brains/plugins";
 import type {
-  LinkDetailData,
-  LinkDetail,
-} from "../templates/link-detail/schema";
-
-// Schema for fetch query parameters
-const entityFetchQuerySchema = z.object({
-  entityType: z.string(),
-  query: z
-    .object({
-      id: z.string().optional(),
-      limit: z.number().optional(),
-    })
-    .optional(),
-});
+  BaseQuery,
+  NavigationResult,
+  PaginationInfo,
+} from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
+import { LinkAdapter } from "../adapters/link-adapter";
+import type { LinkSummary } from "../templates/link-list/schema";
 
 /**
- * DataSource for fetching and transforming link entities
+ * DataSource for fetching and transforming link entities.
+ * Handles list views and detail views with prev/next navigation.
  */
-export class LinksDataSource implements DataSource {
-  public readonly id = "link:entities";
-  public readonly name = "Links Entity DataSource";
-  public readonly description =
-    "Fetches and transforms link entities for rendering";
+export class LinksDataSource extends BaseEntityDataSource<
+  BaseEntity,
+  LinkSummary
+> {
+  readonly id = "link:entities";
+  readonly name = "Links Entity DataSource";
+  readonly description = "Fetches and transforms link entities for rendering";
 
-  constructor(private readonly logger: Logger) {
+  protected readonly config = {
+    entityType: "link",
+    defaultSort: [{ field: "capturedAt" as const, direction: "desc" as const }],
+    defaultLimit: 1000,
+    lookupField: "id" as const,
+    enableNavigation: true,
+  };
+
+  private readonly adapter = new LinkAdapter();
+
+  constructor(logger: Logger) {
+    super(logger);
     this.logger.debug("LinksDataSource initialized");
   }
 
-  /**
-   * Fetch and transform link entities to template-ready format
-   */
-  async fetch<T>(
-    query: unknown,
-    outputSchema: z.ZodSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const params = entityFetchQuerySchema.parse(query);
-    const adapter = new LinkAdapter();
-
-    // Use context.entityService for automatic publishedOnly filtering
-    const entityService = context.entityService;
-    const entities = await entityService.listEntities(params.entityType, {
-      limit: 1000,
-    });
-
-    // Transform entities to LinkSummary
-    const links: LinkSummary[] = entities.map((entity) => {
-      const { frontmatter, summary } = adapter.parseLinkContent(entity.content);
-      return {
-        id: entity.id,
-        ...frontmatter,
-        summary,
-      };
-    });
-
-    // Sort by captured date, newest first
-    links.sort(
-      (a, b) =>
-        new Date(b.capturedAt).getTime() - new Date(a.capturedAt).getTime(),
+  protected transformEntity(entity: BaseEntity): LinkSummary {
+    const { frontmatter, summary } = this.adapter.parseLinkContent(
+      entity.content,
     );
-
-    // Handle detail view
-    if (params.query?.id) {
-      return this.fetchDetail(params.query.id, links, outputSchema);
-    }
-
-    // Handle list view
-    const listData: LinkListData = {
-      links,
-      totalCount: links.length,
+    return {
+      id: entity.id,
+      ...frontmatter,
+      summary,
     };
-
-    return outputSchema.parse(listData);
   }
 
-  /**
-   * Fetch detail view with prev/next navigation
-   */
-  private fetchDetail<T>(
-    id: string,
-    sortedLinks: LinkSummary[],
-    outputSchema: z.ZodSchema<T>,
-  ): T {
-    const linkIndex = sortedLinks.findIndex((l) => l.id === id);
-
-    if (linkIndex === -1) {
-      throw new Error(`Link with id "${id}" not found`);
-    }
-
-    const link = sortedLinks[linkIndex];
-    const prevLink = linkIndex > 0 ? sortedLinks[linkIndex - 1] : null;
-    const nextLink =
-      linkIndex < sortedLinks.length - 1 ? sortedLinks[linkIndex + 1] : null;
-
-    const detailData: LinkDetailData = {
-      link: link as LinkDetail,
-      prevLink: prevLink as LinkDetail | null,
-      nextLink: nextLink as LinkDetail | null,
+  protected buildDetailResult(
+    item: LinkSummary,
+    navigation: NavigationResult<LinkSummary> | null,
+  ) {
+    return {
+      link: item,
+      prevLink: navigation?.prev ?? null,
+      nextLink: navigation?.next ?? null,
     };
+  }
 
-    return outputSchema.parse(detailData);
+  protected buildListResult(
+    items: LinkSummary[],
+    _pagination: PaginationInfo | null,
+    _query: BaseQuery,
+  ) {
+    return {
+      links: items,
+      totalCount: items.length,
+    };
   }
 }

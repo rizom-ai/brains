@@ -2,7 +2,7 @@ import type { EntityDB } from "./db";
 import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
-import { eq, and, desc, asc, sql, type SQL } from "drizzle-orm";
+import { eq, and, desc, asc, sql, isNotNull, type SQL } from "drizzle-orm";
 import { z, type Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
 
@@ -12,6 +12,7 @@ import type { EntitySerializer } from "./entity-serializer";
 const sortFieldSchema = z.object({
   field: z.string(),
   direction: z.enum(["asc", "desc"]),
+  nullsFirst: z.boolean().optional(),
 });
 
 /**
@@ -179,27 +180,44 @@ export class EntityQueries {
    * Build ORDER BY clauses from sortFields.
    * Supports system fields (created, updated) and metadata fields via json_extract.
    */
-  private buildOrderByClauses(
-    sortFields?: Array<{ field: string; direction: "asc" | "desc" }>,
-  ): SQL[] {
+  private buildOrderByClauses(sortFields?: ListOptions["sortFields"]): SQL[] {
     // Default: sort by updated desc
     if (!sortFields || sortFields.length === 0) {
       return [desc(entities.updated)];
     }
 
-    return sortFields.map(({ field, direction }) => {
+    return sortFields.flatMap(({ field, direction, nullsFirst }) => {
       const orderFn = direction === "desc" ? desc : asc;
 
       // System fields
       if (field === "created") {
-        return orderFn(entities.created);
+        const fieldExpr = entities.created;
+        if (nullsFirst) {
+          return [asc(isNotNull(fieldExpr)), orderFn(fieldExpr)];
+        }
+        return [orderFn(fieldExpr)];
       }
+
       if (field === "updated") {
-        return orderFn(entities.updated);
+        const fieldExpr = entities.updated;
+        if (nullsFirst) {
+          return [asc(isNotNull(fieldExpr)), orderFn(fieldExpr)];
+        }
+        return [orderFn(fieldExpr)];
       }
 
       // Metadata fields - use json_extract
-      return orderFn(sql`json_extract(${entities.metadata}, '$.' || ${field})`);
+      const fieldExpression = sql`json_extract(${entities.metadata}, '$.' || ${field})`;
+
+      // Handle nullsFirst: put NULL values before non-NULL values
+      if (nullsFirst) {
+        return [
+          asc(isNotNull(fieldExpression)), // Always ASC: false (NULL) before true (NOT NULL)
+          orderFn(fieldExpression),
+        ];
+      }
+
+      return [orderFn(fieldExpression)];
     });
   }
 

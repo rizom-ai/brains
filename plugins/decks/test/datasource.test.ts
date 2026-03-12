@@ -52,8 +52,7 @@ describe("DeckDataSource", () => {
       decks: z.array(z.any()),
     });
 
-    it("should show only published decks when context entityService is scoped to published", async () => {
-      // When the context entityService is scoped (production mode), it returns only published decks
+    it("should return decks from entityService", async () => {
       const publishedDecks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -85,15 +84,9 @@ describe("DeckDataSource", () => {
       expect(
         result.decks.every((d: DeckEntity) => d.status === "published"),
       ).toBe(true);
-
-      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("deck", {
-        limit: 100,
-      });
     });
 
-    it("should show all decks when context entityService returns all", async () => {
-      // When the context entityService is not scoped (preview mode), it returns all decks
+    it("should include both published and draft decks when entityService returns all", async () => {
       const decks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
@@ -115,54 +108,22 @@ describe("DeckDataSource", () => {
       );
 
       expect(result.decks).toHaveLength(3);
-      // Verify we have both published and draft decks
       const statuses = result.decks.map((d: DeckEntity) => d.status);
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
-
-      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("deck", {
-        limit: 100,
-      });
     });
 
-    it("should sort decks by publishedAt date, newest first", async () => {
-      const decks: DeckEntity[] = [
-        createMockDeck(
-          "deck-1",
-          "Oldest",
-          "oldest",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
-        createMockDeck(
-          "deck-2",
-          "Newest",
-          "newest",
-          "published",
-          "2025-01-03T10:00:00.000Z",
-        ),
-        createMockDeck(
-          "deck-3",
-          "Middle",
-          "middle",
-          "published",
-          "2025-01-02T10:00:00.000Z",
-        ),
-      ];
+    it("should request DB-level sorting by publishedAt desc", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(decks);
+      await datasource.fetch({ entityType: "deck" }, listSchema, mockContext);
 
-      const result = await datasource.fetch(
-        { entityType: "deck" },
-        listSchema,
-        { ...mockContext, publishedOnly: true },
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "deck",
+        expect.objectContaining({
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        }),
       );
-
-      expect(result.decks).toHaveLength(3);
-      expect(result.decks[0].id).toBe("deck-2"); // Newest first
-      expect(result.decks[1].id).toBe("deck-3");
-      expect(result.decks[2].id).toBe("deck-1"); // Oldest last
     });
 
     it("should handle empty deck list", async () => {
@@ -212,7 +173,7 @@ describe("DeckDataSource", () => {
           detailSchema,
           mockContext,
         ),
-      ).rejects.toThrow("Deck not found with slug: nonexistent-slug");
+      ).rejects.toThrow("not found with slug: nonexistent-slug");
     });
   });
 

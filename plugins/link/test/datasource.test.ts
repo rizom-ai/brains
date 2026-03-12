@@ -98,15 +98,9 @@ Summary for ${title}`;
         result.links.every((l: { status: string }) => l.status === "published"),
       ).toBe(true);
       expect(result.totalCount).toBe(2);
-
-      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("link", {
-        limit: 1000,
-      });
     });
 
-    it("should show all links when context entityService returns all", async () => {
-      // When the context entityService is not scoped (preview mode), it returns all links
+    it("should include all link statuses when entityService returns all", async () => {
       const links = [
         createMockLink(
           "link-1",
@@ -138,37 +132,23 @@ Summary for ${title}`;
 
       expect(result.links).toHaveLength(3);
       expect(result.totalCount).toBe(3);
-      // Verify we have multiple statuses
       const statuses = result.links.map((l: { status: string }) => l.status);
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
       expect(statuses).toContain("pending");
-
-      // Datasource calls listEntities without publishedOnly - filtering is handled by scoped entityService
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("link", {
-        limit: 1000,
-      });
     });
 
-    it("should sort links by captured date, newest first", async () => {
-      const links = [
-        createMockLink("link-1", "Oldest", "draft", "2025-01-01T10:00:00.000Z"),
-        createMockLink("link-2", "Newest", "draft", "2025-01-03T10:00:00.000Z"),
-        createMockLink("link-3", "Middle", "draft", "2025-01-02T10:00:00.000Z"),
-      ];
+    it("should request DB-level sorting by capturedAt desc", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
-      spyOn(mockEntityService, "listEntities").mockResolvedValue(links);
+      await datasource.fetch({ entityType: "link" }, listSchema, mockContext);
 
-      const result = await datasource.fetch(
-        { entityType: "link" },
-        listSchema,
-        mockContext,
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "link",
+        expect.objectContaining({
+          sortFields: [{ field: "capturedAt", direction: "desc" }],
+        }),
       );
-
-      expect(result.links).toHaveLength(3);
-      expect(result.links[0].title).toBe("Newest");
-      expect(result.links[1].title).toBe("Middle");
-      expect(result.links[2].title).toBe("Oldest");
     });
   });
 

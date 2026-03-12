@@ -33,6 +33,13 @@ export {
   type GenerationJobHandlerConfig,
   type GeneratedContent,
 } from "./service/base-generation-job-handler";
+export {
+  BaseEntityDataSource,
+  type EntityDataSourceConfig,
+  type BaseQuery,
+  type NavigationResult,
+  type SortField,
+} from "./service/base-entity-datasource";
 export type { EnsureUniqueTitleParams } from "./service/create-entity-with-unique-title";
 
 // API routes

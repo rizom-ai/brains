@@ -101,7 +101,7 @@ ${body}`;
           schema,
           mockContext,
         ),
-      ).rejects.toThrow("Social post not found with slug: nonexistent");
+      ).rejects.toThrow("not found with slug: nonexistent");
     });
   });
 
@@ -141,7 +141,10 @@ ${body}`;
       expect(mockEntityService.listEntities).toHaveBeenCalledWith(
         "social-post",
         {
-          sortFields: [{ field: "created", direction: "desc" }],
+          sortFields: [
+            { field: "publishedAt", direction: "desc", nullsFirst: true },
+            { field: "created", direction: "desc" },
+          ],
           limit: 100,
           offset: 0,
         },
@@ -176,7 +179,10 @@ ${body}`;
         "social-post",
         {
           filter: { metadata: { status: "queued" } },
-          sortFields: [{ field: "created", direction: "desc" }],
+          sortFields: [
+            { field: "publishedAt", direction: "desc", nullsFirst: true },
+            { field: "created", direction: "desc" },
+          ],
           limit: 100,
           offset: 0,
         },
@@ -282,7 +288,10 @@ ${body}`;
       expect(mockEntityService.listEntities).toHaveBeenCalledWith(
         "social-post",
         {
-          sortFields: [{ field: "created", direction: "desc" }],
+          sortFields: [
+            { field: "publishedAt", direction: "desc", nullsFirst: true },
+            { field: "created", direction: "desc" },
+          ],
           limit: 10,
           offset: 10,
         },

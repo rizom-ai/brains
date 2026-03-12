@@ -1,36 +1,23 @@
-import type {
-  DataSource,
-  BaseDataSourceContext,
-  IEntityService,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils";
 import {
-  buildPaginationInfo,
-  parseMarkdownWithFrontmatter,
+  BaseEntityDataSource,
+  type BaseQuery,
+  type NavigationResult,
+  type PaginationInfo,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
+import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
+import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import type { Logger, z } from "@brains/utils";
 import {
   type Newsletter,
   newsletterFrontmatterSchema,
 } from "../schemas/newsletter";
 
-// Schema for fetch query parameters
-const entityFetchQuerySchema = z.object({
-  entityType: z.string(),
-  query: z
-    .object({
-      id: z.string().optional(),
-      status: z.enum(["draft", "queued", "published", "failed"]).optional(),
-      limit: z.number().optional(),
-      page: z.number().optional(),
-      pageSize: z.number().optional(),
-      baseUrl: z.string().optional(),
-    })
-    .optional(),
-});
+interface NewsletterQuery extends BaseQuery {
+  status?: "draft" | "queued" | "published" | "failed";
+}
 
 /**
- * Extract body content from newsletter (strips frontmatter)
+ * Extract body content from newsletter (strips frontmatter).
  */
 function getNewsletterBody(newsletter: Newsletter): string {
   try {
@@ -40,19 +27,16 @@ function getNewsletterBody(newsletter: Newsletter): string {
     );
     return content;
   } catch {
-    // Content doesn't have frontmatter, return as-is
     return newsletter.content;
   }
 }
 
 /**
- * Generate excerpt from content
- * Takes first ~150 characters, truncating at word boundary
+ * Generate excerpt from content.
+ * Takes first ~150 characters, truncating at word boundary.
  */
 function generateExcerpt(content: string, maxLength = 150): string {
-  if (content.length <= maxLength) {
-    return content;
-  }
+  if (content.length <= maxLength) return content;
   const truncated = content.slice(0, maxLength);
   const lastSpace = truncated.lastIndexOf(" ");
   if (lastSpace > maxLength * 0.7) {
@@ -61,33 +45,98 @@ function generateExcerpt(content: string, maxLength = 150): string {
   return truncated + "...";
 }
 
+/** Enriched newsletter summary for list views. */
+interface NewsletterListItem {
+  id: string;
+  subject: string;
+  status: string;
+  excerpt: string;
+  created: string;
+  sentAt?: string;
+  url: string;
+}
+
 /**
- * DataSource for fetching and transforming newsletter entities
- * Handles list views and detail views for newsletters
+ * DataSource for fetching and transforming newsletter entities.
+ * Handles list views with pagination/status filtering and detail views
+ * with prev/next navigation and source entity resolution.
  */
-export class NewsletterDataSource implements DataSource {
-  public readonly id = "newsletter:entities";
-  public readonly name = "Newsletter Entity DataSource";
-  public readonly description =
+export class NewsletterDataSource extends BaseEntityDataSource<
+  Newsletter,
+  NewsletterListItem
+> {
+  readonly id = "newsletter:entities";
+  readonly name = "Newsletter Entity DataSource";
+  readonly description =
     "Fetches and transforms newsletter entities for rendering";
 
-  constructor(private readonly logger: Logger) {
+  protected readonly config = {
+    entityType: "newsletter",
+    defaultSort: [{ field: "created" as const, direction: "desc" as const }],
+    defaultLimit: 10,
+    lookupField: "id" as const,
+    enableNavigation: true,
+  };
+
+  constructor(logger: Logger) {
+    super(logger);
     this.logger.debug("NewsletterDataSource initialized");
   }
 
+  protected transformEntity(entity: Newsletter): NewsletterListItem {
+    const body = getNewsletterBody(entity);
+    const item: NewsletterListItem = {
+      id: entity.id,
+      subject: entity.metadata.subject,
+      status: entity.metadata.status,
+      excerpt: generateExcerpt(body),
+      created: entity.created,
+      url: `/newsletters/${entity.id}`,
+    };
+    if (entity.metadata.sentAt) {
+      item.sentAt = entity.metadata.sentAt;
+    }
+    return item;
+  }
+
+  protected buildDetailResult(
+    _item: NewsletterListItem,
+    _navigation: NavigationResult<NewsletterListItem> | null,
+  ) {
+    // Detail view is handled by the override below — this won't be called
+    return {};
+  }
+
+  protected buildListResult(
+    items: NewsletterListItem[],
+    pagination: PaginationInfo | null,
+    _query: BaseQuery,
+  ) {
+    return {
+      newsletters: items,
+      totalCount: pagination?.totalItems ?? items.length,
+      pagination,
+    };
+  }
+
   /**
-   * Fetch and transform newsletter entities to template-ready format
+   * Override fetch to handle:
+   * - Detail view with source entity resolution (richer than base)
+   * - List view with status filtering
    */
-  async fetch<T>(
+  override async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = entityFetchQuerySchema.parse(query);
-    // Use context.entityService for automatic publishedOnly filtering
+    const params = query as {
+      entityType?: string;
+      query?: NewsletterQuery;
+    };
+
     const entityService = context.entityService;
 
-    // Case 1: Fetch single newsletter by ID
+    // Detail view — custom because it resolves source entities
     if (params.query?.id) {
       return this.fetchSingleNewsletter(
         params.query.id,
@@ -96,27 +145,33 @@ export class NewsletterDataSource implements DataSource {
       );
     }
 
-    // Case 2: Fetch list of newsletters
-    return this.fetchNewsletterList(
-      params.query?.limit,
-      params.query?.page,
-      params.query?.pageSize,
-      params.query?.status,
-      params.query?.baseUrl,
-      outputSchema,
+    // List view — use base fetchList with optional status filter
+    const statusFilter = params.query?.status;
+    const filterOpts = statusFilter
+      ? { filter: { metadata: { status: statusFilter } } }
+      : undefined;
+
+    const baseQuery: BaseQuery = params.query ?? {};
+    const { items, pagination } = await this.fetchList(
+      baseQuery,
       entityService,
+      filterOpts,
+    );
+
+    return outputSchema.parse(
+      this.buildListResult(items, pagination, baseQuery),
     );
   }
 
   /**
-   * Fetch a single newsletter by ID with navigation
+   * Fetch a single newsletter with full detail data including
+   * navigation and source entity resolution.
    */
   private async fetchSingleNewsletter<T>(
     id: string,
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    // Fetch newsletter by ID
     const newsletter = await entityService.getEntity<Newsletter>(
       "newsletter",
       id,
@@ -126,20 +181,8 @@ export class NewsletterDataSource implements DataSource {
       throw new Error(`Newsletter not found: ${id}`);
     }
 
-    // Fetch all newsletters for navigation (sorted by created desc)
-    const allNewsletters: Newsletter[] =
-      await entityService.listEntities<Newsletter>("newsletter", {
-        limit: 1000,
-        sortFields: [{ field: "created", direction: "desc" }],
-      });
-
-    const currentIndex = allNewsletters.findIndex((n) => n.id === id);
-    const prevNewsletter =
-      currentIndex > 0 ? allNewsletters[currentIndex - 1] : null;
-    const nextNewsletter =
-      currentIndex < allNewsletters.length - 1
-        ? allNewsletters[currentIndex + 1]
-        : null;
+    // Use base class utility for prev/next navigation
+    const navigation = await this.resolveNavigation(newsletter, entityService);
 
     // Resolve source entities if present
     let sourceEntities: Array<{ id: string; title: string; url: string }> = [];
@@ -167,7 +210,6 @@ export class NewsletterDataSource implements DataSource {
       );
     }
 
-    // Parse content to strip frontmatter
     const body = getNewsletterBody(newsletter);
 
     const detailData = {
@@ -179,92 +221,24 @@ export class NewsletterDataSource implements DataSource {
       updated: newsletter.updated,
       sentAt: newsletter.metadata.sentAt,
       scheduledFor: newsletter.metadata.scheduledFor,
-      newsletter, // Include full newsletter for template access
-      prevNewsletter: prevNewsletter
+      newsletter,
+      prevNewsletter: navigation.prev
         ? {
-            id: prevNewsletter.id,
-            subject: prevNewsletter.metadata.subject,
-            url: `/newsletters/${prevNewsletter.id}`,
+            id: navigation.prev.id,
+            subject: navigation.prev.subject,
+            url: navigation.prev.url,
           }
         : null,
-      nextNewsletter: nextNewsletter
+      nextNewsletter: navigation.next
         ? {
-            id: nextNewsletter.id,
-            subject: nextNewsletter.metadata.subject,
-            url: `/newsletters/${nextNewsletter.id}`,
+            id: navigation.next.id,
+            subject: navigation.next.subject,
+            url: navigation.next.url,
           }
         : null,
       sourceEntities: sourceEntities.length > 0 ? sourceEntities : undefined,
     };
 
     return outputSchema.parse(detailData);
-  }
-
-  /**
-   * Fetch list of newsletters with optional pagination and filtering
-   */
-  private async fetchNewsletterList<T>(
-    limit: number | undefined,
-    page: number | undefined,
-    pageSize: number | undefined,
-    status: "draft" | "queued" | "published" | "failed" | undefined,
-    _baseUrl: string | undefined,
-    outputSchema: z.ZodSchema<T>,
-    entityService: IEntityService,
-  ): Promise<T> {
-    const currentPage = page ?? 1;
-    const itemsPerPage = pageSize ?? limit ?? 10;
-    const offset = (currentPage - 1) * itemsPerPage;
-
-    // Build query options
-    const queryOptions: {
-      limit: number;
-      offset: number;
-      sortFields: Array<{ field: string; direction: "asc" | "desc" }>;
-      filter?: { metadata: { status: string } };
-    } = {
-      limit: itemsPerPage,
-      offset,
-      sortFields: [{ field: "created", direction: "desc" }],
-    };
-
-    if (status) {
-      queryOptions.filter = { metadata: { status } };
-    }
-
-    const newsletters: Newsletter[] =
-      await entityService.listEntities<Newsletter>("newsletter", queryOptions);
-
-    // Get total count for pagination
-    let pagination = null;
-    if (page !== undefined) {
-      const totalItems = await entityService.countEntities(
-        "newsletter",
-        status ? { filter: { metadata: { status } } } : undefined,
-      );
-      pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
-    }
-
-    // Enrich newsletters with excerpt (from body, not frontmatter) and URL
-    const enrichedNewsletters = newsletters.map((newsletter) => {
-      const body = getNewsletterBody(newsletter);
-      return {
-        id: newsletter.id,
-        subject: newsletter.metadata.subject,
-        status: newsletter.metadata.status,
-        excerpt: generateExcerpt(body),
-        created: newsletter.created,
-        sentAt: newsletter.metadata.sentAt,
-        url: `/newsletters/${newsletter.id}`,
-      };
-    });
-
-    const listData = {
-      newsletters: enrichedNewsletters,
-      totalCount: pagination?.totalItems ?? newsletters.length,
-      pagination,
-    };
-
-    return outputSchema.parse(listData);
   }
 }

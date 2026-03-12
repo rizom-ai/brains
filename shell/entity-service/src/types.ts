@@ -157,6 +157,8 @@ export interface SortField {
   field: string;
   /** Sort direction */
   direction: "asc" | "desc";
+  /** Sort NULL values before non-NULL values (default: false / SQLite default) */
+  nullsFirst?: boolean;
 }
 
 /**
