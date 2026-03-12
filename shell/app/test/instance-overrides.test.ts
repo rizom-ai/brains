@@ -302,12 +302,12 @@ describe("resolve with instance overrides", () => {
       version: "1.0.0",
       capabilities: [],
       interfaces: [
-        [MockMCP as InterfaceConstructor, () => ({ port: 3333 })],
+        [MockMCP as InterfaceConstructor, (): PluginConfig => ({ port: 3333 })],
         [
           MockMatrix as InterfaceConstructor,
-          () => ({ homeserver: "https://matrix.org" }),
+          (): PluginConfig => ({ homeserver: "https://matrix.org" }),
         ],
-        [MockWebserver as InterfaceConstructor, () => ({})],
+        [MockWebserver as InterfaceConstructor, (): PluginConfig => ({})],
       ],
     });
 
@@ -326,7 +326,9 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [[gitSyncFactory, {}]],
-      interfaces: [[MockMatrix as InterfaceConstructor, () => ({})]],
+      interfaces: [
+        [MockMatrix as InterfaceConstructor, (): PluginConfig => ({})],
+      ],
     });
 
     const config = resolve(def, {}, { disable: ["git-sync", "matrix"] });
@@ -374,7 +376,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [
         [
           MockWebserver as InterfaceConstructor,
-          () => ({ productionPort: 8080 }),
+          (): PluginConfig => ({ productionPort: 8080 }),
         ],
       ],
     });
@@ -399,7 +401,9 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [[MockWebserver as InterfaceConstructor, () => ({})]],
+      interfaces: [
+        [MockWebserver as InterfaceConstructor, (): PluginConfig => ({})],
+      ],
     });
 
     const config = resolve(
@@ -485,7 +489,9 @@ describe("resolve with instance overrides", () => {
         [systemFactory, {}],
         [gitSyncFactory, { autoSync: true }],
       ],
-      interfaces: [[MockMatrix as InterfaceConstructor, () => ({})]],
+      interfaces: [
+        [MockMatrix as InterfaceConstructor, (): PluginConfig => ({})],
+      ],
     });
 
     const config = resolve(

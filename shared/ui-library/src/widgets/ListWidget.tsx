@@ -59,7 +59,8 @@ function StatusChip({ status }: { status: string }): VNode {
 }
 
 function ListItemRow({ item }: { item: ListItem }): VNode {
-  const hasRichData = item.count != null || item.priority || item.status;
+  const hasRichData =
+    item.count != null || item.priority != null || item.status != null;
 
   if (hasRichData) {
     return (

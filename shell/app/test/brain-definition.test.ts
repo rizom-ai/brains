@@ -73,7 +73,10 @@ describe("defineBrain", () => {
       },
       capabilities: [[mockPluginFactory, { key: "value" }]],
       interfaces: [
-        [MockInterface, (env: BrainEnvironment) => ({ token: env["TOKEN"] })],
+        [
+          MockInterface,
+          (env: BrainEnvironment): PluginConfig => ({ token: env["TOKEN"] }),
+        ],
       ],
       permissions: {
         anchors: ["test:user"],
@@ -137,7 +140,7 @@ describe("resolve", () => {
       interfaces: [
         [
           TrackingInterface,
-          (env: BrainEnvironment) => ({
+          (env: BrainEnvironment): PluginConfig => ({
             token: env["MY_TOKEN"],
             host: env["MY_HOST"],
           }),
@@ -162,7 +165,7 @@ describe("resolve", () => {
       capabilities: [
         [
           factory,
-          (env: BrainEnvironment) => ({
+          (env: BrainEnvironment): PluginConfig => ({
             repo: env["GIT_REPO"],
             token: env["GIT_TOKEN"],
           }),
@@ -241,7 +244,9 @@ describe("resolve", () => {
       interfaces: [
         [
           ConfigCapture,
-          (env: BrainEnvironment) => ({ accessToken: env["TOKEN"] ?? "" }),
+          (env: BrainEnvironment): PluginConfig => ({
+            accessToken: env["TOKEN"] ?? "",
+          }),
         ],
       ],
     });
@@ -279,7 +284,9 @@ describe("resolve", () => {
       capabilities: [
         [
           capFactory,
-          (env: BrainEnvironment) => ({ token: env["TOKEN"] ?? "" }),
+          (env: BrainEnvironment): PluginConfig => ({
+            token: env["TOKEN"] ?? "",
+          }),
         ],
       ],
       interfaces: [],
@@ -306,7 +313,7 @@ describe("resolve", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [[MockInterface, () => ({})]],
+      interfaces: [[MockInterface, (): PluginConfig => ({})]],
     });
 
     const config = resolve(def, {}, { disable: ["mock-interface"] });

@@ -1,4 +1,8 @@
-import { defineBrain, type BrainEnvironment } from "@brains/app";
+import {
+  defineBrain,
+  type BrainEnvironment,
+  type PluginConfig,
+} from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
@@ -111,14 +115,14 @@ export default defineBrain({
     ],
     [
       socialMediaPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         linkedin: { accessToken: env["LINKEDIN_ACCESS_TOKEN"] },
         autoGenerateOnBlogPublish: true,
       }),
     ],
     [
       createNewsletterPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         buttondown: {
           apiKey: env["BUTTONDOWN_API_KEY"] ?? "",
           doubleOptIn: true,
@@ -137,7 +141,7 @@ export default defineBrain({
     ],
     [
       gitSyncPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         authToken: env["GIT_SYNC_TOKEN"],
         autoSync: true,
         autoPush: true,
@@ -146,7 +150,7 @@ export default defineBrain({
     ],
     [
       analyticsPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         cloudflare: {
           accountId: env["CLOUDFLARE_ACCOUNT_ID"] ?? "",
           apiToken: env["CLOUDFLARE_API_TOKEN"] ?? "",
@@ -173,21 +177,23 @@ export default defineBrain({
   interfaces: [
     [
       MCPInterface,
-      (env: BrainEnvironment) => ({ authToken: env["MCP_AUTH_TOKEN"] }),
+      (env: BrainEnvironment): PluginConfig => ({
+        authToken: env["MCP_AUTH_TOKEN"],
+      }),
     ],
     [
       MatrixInterface,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
       }),
     ],
     [
       DiscordInterface,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         botToken: env["DISCORD_BOT_TOKEN"] ?? "",
       }),
     ],
-    [WebserverInterface, () => ({})],
+    [WebserverInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

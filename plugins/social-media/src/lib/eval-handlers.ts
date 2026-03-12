@@ -62,7 +62,7 @@ export function registerEvalHandlers(context: ServicePluginContext): void {
         result.entityId,
       );
       entityExists = !!entity;
-      entityPreview = entity?.content?.slice(0, 300);
+      entityPreview = entity?.content.slice(0, 300);
     }
 
     return {

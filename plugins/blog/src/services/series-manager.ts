@@ -64,7 +64,7 @@ export class SeriesManager {
       const contentHash = computeContentHash(content);
 
       // Skip if series exists and content hasn't changed
-      if (existing && existing.contentHash === contentHash) {
+      if (existing?.contentHash === contentHash) {
         this.logger.debug(`Series already exists unchanged: ${seriesName}`);
         continue;
       }

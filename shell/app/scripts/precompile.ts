@@ -27,4 +27,4 @@ const proc = Bun.spawnSync(["bun", compileScript], {
   stderr: "inherit",
 });
 
-process.exit(proc.exitCode ?? 0);
+process.exit(proc.exitCode);

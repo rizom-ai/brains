@@ -1,4 +1,8 @@
-import { defineBrain, type BrainEnvironment } from "@brains/app";
+import {
+  defineBrain,
+  type BrainEnvironment,
+  type PluginConfig,
+} from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
@@ -81,7 +85,7 @@ export default defineBrain({
     [linkPlugin, {}],
     [
       socialMediaPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         linkedin: {
           accessToken: env["LINKEDIN_ACCESS_TOKEN"],
           organizationId: env["LINKEDIN_ORGANIZATION_ID"],
@@ -100,7 +104,7 @@ export default defineBrain({
     ],
     [
       gitSyncPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         authToken: env["GIT_SYNC_TOKEN"],
         autoSync: true,
         autoPush: true,
@@ -108,7 +112,7 @@ export default defineBrain({
     ],
     [
       analyticsPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         cloudflare: {
           accountId: env["CLOUDFLARE_ACCOUNT_ID"] ?? "",
           apiToken: env["CLOUDFLARE_API_TOKEN"] ?? "",
@@ -151,23 +155,25 @@ export default defineBrain({
   interfaces: [
     [
       MCPInterface,
-      (env: BrainEnvironment) => ({ authToken: env["MCP_AUTH_TOKEN"] }),
+      (env: BrainEnvironment): PluginConfig => ({
+        authToken: env["MCP_AUTH_TOKEN"],
+      }),
     ],
     [
       MatrixInterface,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
         // homeserver, userId, deviceDisplayName: set in brain.yaml
       }),
     ],
     [
       DiscordInterface,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         botToken: env["DISCORD_BOT_TOKEN"] ?? "",
         captureUrls: true,
       }),
     ],
-    [WebserverInterface, () => ({})],
+    [WebserverInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

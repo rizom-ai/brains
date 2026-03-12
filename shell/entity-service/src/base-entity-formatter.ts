@@ -52,10 +52,7 @@ export class BaseEntityFormatter implements ContentFormatter<BaseEntity> {
       // Remove first line if it matches the title
       if (title) {
         const firstLine = content.split("\n")[0];
-        if (
-          firstLine &&
-          firstLine.trim().toLowerCase() === String(title).toLowerCase()
-        ) {
+        if (firstLine?.trim().toLowerCase() === String(title).toLowerCase()) {
           const lines = content.split("\n");
           content = lines.slice(1).join("\n").trim();
         }

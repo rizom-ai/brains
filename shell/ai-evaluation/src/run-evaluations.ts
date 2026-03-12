@@ -27,7 +27,6 @@ import type { IAgentService } from "@brains/ai-service";
 import type { IAIService } from "@brains/ai-service";
 import {
   type AppConfig,
-  type BrainDefinition,
   resolve as resolveConfig,
   parseInstanceOverrides,
   App,
@@ -192,9 +191,7 @@ async function loadEvalConfig(): Promise<AppConfig> {
       process.exit(1);
     }
 
-    const mod = (await import(overrides.brain)) as {
-      default: BrainDefinition;
-    };
+    const mod = await import(overrides.brain);
     if (!mod.default) {
       console.error(`❌ ${overrides.brain} does not have a default export`);
       process.exit(1);

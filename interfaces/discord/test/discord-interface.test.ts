@@ -2,6 +2,20 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { AgentResponse, ChatContext } from "@brains/plugins";
+import type { Mock } from "bun:test";
+
+interface MockAgentService {
+  chat: Mock<
+    (
+      message: string,
+      conversationId: string,
+      context?: ChatContext,
+    ) => Promise<AgentResponse>
+  >;
+  confirmPendingAction: Mock<
+    (conversationId: string, confirmed: boolean) => Promise<AgentResponse>
+  >;
+}
 
 // ── Mock discord.js ──
 
@@ -25,7 +39,7 @@ const mockChannel = {
   id: "channel-123",
   send: mockSend,
   sendTyping: mockSendTyping,
-  isThread: () => false,
+  isThread: (): boolean => false,
   messages: { fetch: mockMessagesFetch },
 };
 
@@ -34,7 +48,7 @@ const mockThreadChannel = {
   ownerId: "bot-user-123", // owned by this bot
   send: mockSend,
   sendTyping: mockSendTyping,
-  isThread: () => true,
+  isThread: (): boolean => true,
   messages: { fetch: mockMessagesFetch },
 };
 
@@ -43,7 +57,7 @@ const mockForeignThreadChannel = {
   ownerId: "other-bot-456", // owned by another bot
   send: mockSend,
   sendTyping: mockSendTyping,
-  isThread: () => true,
+  isThread: (): boolean => true,
   messages: { fetch: mockMessagesFetch },
 };
 
@@ -103,7 +117,7 @@ const { DiscordInterface } = await import("../src/discord-interface");
 
 const mockFetchText = mock(() => Promise.resolve(""));
 
-const createMockAgentService = () => ({
+const createMockAgentService = (): MockAgentService => ({
   chat: mock(
     (
       _message: string,
@@ -126,7 +140,9 @@ const createMockAgentService = () => ({
 
 const mockReact = mock(() => Promise.resolve());
 
-function createDiscordMessage(overrides: Record<string, unknown> = {}) {
+function createDiscordMessage(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     author: { id: "user-789" },
     content: "<@bot-user-123> Hello bot",

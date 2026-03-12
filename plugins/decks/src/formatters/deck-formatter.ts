@@ -78,8 +78,7 @@ export class DeckFormatter extends BaseEntityAdapter<
 
     // Auto-generate slug from title if not provided
     const slug = frontmatter.slug ?? slugify(frontmatter.title);
-    // Status defaults to draft if not specified
-    const status = frontmatter.status ?? "draft";
+    const status = frontmatter.status;
 
     return {
       entityType: "deck",

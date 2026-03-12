@@ -2,6 +2,20 @@ import { describe, it, expect, beforeEach, mock, afterEach } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
 import type { AgentResponse, ChatContext } from "@brains/plugins";
+import type { Mock } from "bun:test";
+
+interface MockAgentService {
+  chat: Mock<
+    (
+      message: string,
+      conversationId: string,
+      context?: ChatContext,
+    ) => Promise<AgentResponse>
+  >;
+  confirmPendingAction: Mock<
+    (conversationId: string, confirmed: boolean) => Promise<AgentResponse>
+  >;
+}
 
 // ── Mock matrix-bot-sdk ──
 
@@ -83,7 +97,7 @@ const { MatrixInterface } = await import("../src");
 
 // ── Helpers ──
 
-const createMockAgentService = () => ({
+const createMockAgentService = (): MockAgentService => ({
   chat: mock(
     (
       _message: string,
@@ -104,7 +118,7 @@ const createMockAgentService = () => ({
   ),
 });
 
-function getHandler(event: string) {
+function getHandler(event: string): (roomId: string, event: unknown) => void {
   const call = mockOn.mock.calls.find((c) => c[0] === event);
   if (!call) throw new Error(`${event} handler not found`);
   return call[1];

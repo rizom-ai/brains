@@ -21,6 +21,7 @@ export type {
   BrainIdentity,
   BrainContentModel,
   BrainEnvironment,
+  PluginConfig,
   CapabilityEntry,
   InterfaceEntry,
   EntityRouteEntry,

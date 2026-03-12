@@ -30,8 +30,8 @@ export function setupAutoSync(
         });
       } catch (error) {
         logger.error("Auto-export FAILED for created entity", {
-          id: entity?.id,
-          entityType: entity?.entityType,
+          id: entity.id,
+          entityType: entity.entityType,
           error: error instanceof Error ? error.message : String(error),
           stack: error instanceof Error ? error.stack : undefined,
         });

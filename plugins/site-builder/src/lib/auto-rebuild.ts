@@ -89,7 +89,7 @@ export class RebuildManager {
     const outputDir =
       environment === "production"
         ? this.config.productionOutputDir
-        : (this.config.previewOutputDir ?? this.config.productionOutputDir);
+        : this.config.previewOutputDir;
 
     this.logger.debug(`Triggering ${environment} site rebuild`);
 

@@ -37,7 +37,7 @@
 
 ---
 
-## 3. `link` Plugin Structure Anomaly (Low Priority, Quick Win)
+## 3. `link` Plugin Structure Anomaly (Low Priority, Quick Win) ✅
 
 **Problem**: The `link` plugin defines its entire `LinkPlugin` class inside `index.ts` (138 lines) instead of a separate `plugin.ts` file like every other plugin.
 
@@ -138,7 +138,7 @@ They all extend `BaseJobHandler` but the _actual generation flow_ is still dupli
 
 ---
 
-## 9. Entity Service Size (Low-Medium Priority)
+## 9. Entity Service Size (Low-Medium Priority) ✅
 
 **Problem**: `shell/entity-service/src/entityService.ts` at 677 lines is the largest non-test source file. It already has extracted `EntitySearch`, `EntitySerializer`, `EntityQueries`, and `ContentResolver` — but the main class still does too much.
 
@@ -185,7 +185,7 @@ They all extend `BaseJobHandler` but the _actual generation flow_ is still dupli
 
 ---
 
-## 12. Inconsistent Zod Import Source (Low Priority, Quick Win)
+## 12. Inconsistent Zod Import Source (Low Priority, Quick Win) ✅
 
 **Problem**: Some files import `z` from `"zod"` directly (e.g., `plugins/note/src/schemas/note.ts`), others from `"@brains/utils"`. Both work but it's inconsistent.
 
@@ -243,7 +243,7 @@ They all extend `BaseJobHandler` but the _actual generation flow_ is still dupli
 
 ---
 
-## 14. Root-Level Artifacts (Trivial, Quick Win)
+## 14. Root-Level Artifacts (Trivial, Quick Win) ✅
 
 **Problem**:
 
@@ -257,7 +257,7 @@ They all extend `BaseJobHandler` but the _actual generation flow_ is still dupli
 
 ---
 
-## 15. Brain Model / Deployment Instance Separation (High Priority, Architectural)
+## 15. Brain Model / Deployment Instance Separation (High Priority, Architectural) ✅
 
 **Problem**: The `apps/` directory conflates two distinct concepts: the **brain model** (what a brain is — its identity, capabilities, content, theme) and the **deployment instance** (how and where a specific copy of that brain runs). There is no way to run multiple instances of the same brain model with different environments, domains, or credentials without forking the entire config.
 
@@ -625,10 +625,10 @@ shell/app/src/
 
 | Phase                          | Items                                                 | Rationale                                                                                                   |
 | ------------------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Phase 0** (Quick Wins)       | #3, #12, #14                                          | Zero-risk cleanup, build confidence                                                                         |
-| **Phase 1** (Brain Model)      | #15 (`defineBrain` + `resolve` + migrate team-brain)  | Establish the model/instance split; create `brains/` workspace                                              |
-| **Phase 2** (Brain Migration)  | #15 (migrate remaining brains, update deploy scripts) | Complete the separation; apps become 4-line entry points                                                    |
-| **Phase 3** (Foundation)       | #8, #9                                                | Simplify shell internals                                                                                    |
+| **Phase 0** (Quick Wins)       | #3, #12, #14                                          | Zero-risk cleanup, build confidence — ✅ Done                                                               |
+| **Phase 1** (Brain Model)      | #15 (`defineBrain` + `resolve` + migrate team-brain)  | Establish the model/instance split; create `brains/` workspace — ✅ Done                                    |
+| **Phase 2** (Brain Migration)  | #15 (migrate remaining brains, update deploy scripts) | Complete the separation; apps become 4-line entry points — ✅ Done                                          |
+| **Phase 3** (Foundation)       | #8, #9                                                | Simplify shell internals — #9 ✅ Done, #8 remaining                                                         |
 | **Phase 4** (Plugin Framework) | #1, #5, #6                                            | Reduce plugin boilerplate                                                                                   |
 | **Phase 5** (Architecture)     | #2, #4, #13                                           | Cross-plugin deps, themes, lazy loading (interface factories from #15 enable conditional loading naturally) |
 | **Phase 6** (Quality)          | #11, #7                                               | Integration tests validate brain models as data; mock shell cleanup                                         |

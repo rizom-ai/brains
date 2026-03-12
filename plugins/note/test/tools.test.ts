@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, type Mock } from "bun:test";
 import type {
   ServicePluginContext,
   ToolContext,
@@ -111,8 +111,8 @@ describe("Note Tools", () => {
       );
 
       const call = (
-        context.entityService.createEntity as ReturnType<
-          typeof import("bun:test").mock
+        context.entityService.createEntity as Mock<
+          (entity: Record<string, unknown>) => unknown
         >
       ).mock.calls[0] as [{ content: string }];
       const savedContent = call[0].content;
@@ -133,8 +133,8 @@ describe("Note Tools", () => {
       );
 
       const call = (
-        context.entityService.createEntity as ReturnType<
-          typeof import("bun:test").mock
+        context.entityService.createEntity as Mock<
+          (entity: Record<string, unknown>) => unknown
         >
       ).mock.calls[0] as [{ content: string }];
       const savedContent = call[0].content;
@@ -153,8 +153,8 @@ describe("Note Tools", () => {
       );
 
       const call = (
-        context.entityService.createEntity as ReturnType<
-          typeof import("bun:test").mock
+        context.entityService.createEntity as Mock<
+          (entity: Record<string, unknown>) => unknown
         >
       ).mock.calls[0] as [{ content: string }];
       const savedContent = call[0].content;

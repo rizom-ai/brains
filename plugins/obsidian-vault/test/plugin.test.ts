@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "@brains/utils";
 import { createPluginHarness } from "@brains/plugins/test";
+
 import { ObsidianVaultPlugin } from "../src/plugin";
 
 const postSchema = z.object({
@@ -29,13 +30,19 @@ const schemas = new Map<string, z.ZodObject<z.ZodRawShape>>([
   ["site-info", siteInfoSchema],
 ]);
 
-function createMockDeps() {
+interface MockDeps {
+  mkdir: ReturnType<typeof mock>;
+  writeFile: ReturnType<typeof mock>;
+  existsFile: ReturnType<typeof mock>;
+}
+
+function createMockDeps(): MockDeps {
   return {
     mkdir: mock(
-      (_path: string, _options?: { recursive: boolean }) => undefined,
+      (_path: string, _options?: { recursive: boolean }): void => undefined,
     ),
-    writeFile: mock((_path: string, _content: string) => undefined),
-    existsFile: mock((_path: string) => false),
+    writeFile: mock((_path: string, _content: string): void => undefined),
+    existsFile: mock((_path: string): boolean => false),
   };
 }
 
@@ -56,15 +63,19 @@ describe("ObsidianVaultPlugin", () => {
     registry.registerEntityType("post", {} as never, {} as never);
     registry.registerEntityType("base", {} as never, {} as never);
     registry.registerEntityType("site-info", {} as never, {} as never);
-    registry.getEffectiveFrontmatterSchema = (type: string) =>
-      schemas.get(type);
-    registry.getAdapter = (entityType: string) => {
+    registry.getEffectiveFrontmatterSchema = (
+      type: string,
+    ): z.ZodObject<z.ZodRawShape> | undefined => schemas.get(type);
+    registry.getAdapter = (entityType: string): never => {
       if (entityType === "site-info") {
-        return { isSingleton: true, getBodyTemplate: () => "" } as never;
+        return {
+          isSingleton: true,
+          getBodyTemplate: (): string => "",
+        } as never;
       }
-      return { getBodyTemplate: () => "" } as never;
+      return { getBodyTemplate: (): string => "" } as never;
     };
-    shell.getEntityRegistry = () => registry;
+    shell.getEntityRegistry = (): typeof registry => registry;
 
     const plugin = new ObsidianVaultPlugin({}, deps);
     await harness.installPlugin(plugin);

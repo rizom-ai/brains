@@ -39,7 +39,7 @@ async function loadBrainDefinition(
   packageName: string,
 ): Promise<BrainDefinition> {
   try {
-    const mod = (await import(packageName)) as { default: BrainDefinition };
+    const mod = await import(packageName);
     if (!mod.default) {
       console.error(`❌ ${packageName} does not have a default export`);
       process.exit(1);

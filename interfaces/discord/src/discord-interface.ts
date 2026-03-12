@@ -97,13 +97,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
   protected override createDaemon(): Daemon | undefined {
     return {
-      start: async () => {
+      start: async (): Promise<void> => {
         if (!this.client) {
           throw new Error("Discord client not initialized");
         }
         await this.client.login(this.config.botToken);
       },
-      stop: async () => {
+      stop: async (): Promise<void> => {
         for (const interval of this.typingIntervals.values()) {
           clearInterval(interval);
         }
@@ -259,7 +259,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
       if (canUpload) {
         for (const attachment of message.attachments.values()) {
-          const filename = attachment.name ?? "uploaded-file";
+          const filename = attachment.name;
           const mimetype = attachment.contentType ?? undefined;
           const size = attachment.size;
 

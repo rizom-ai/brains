@@ -402,7 +402,7 @@ export class JobQueueWorker {
 
       // Handle job failure - emits individual job events and batch progress if applicable
       const status = await this.jobQueueService.getStatus(job.id);
-      if (status && status.status === JOB_STATUS.FAILED) {
+      if (status?.status === JOB_STATUS.FAILED) {
         await this.progressMonitor.handleJobStatusChange(
           job.id,
           "failed",

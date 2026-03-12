@@ -195,7 +195,7 @@ function parsePluginsSection(
       if (configMatch) {
         const configKey = configMatch[1] ?? "";
         const configValue = stripComment((configMatch[2] ?? "").trim());
-        const pluginConfig = result.plugins?.[currentPlugin];
+        const pluginConfig = result.plugins[currentPlugin];
         if (pluginConfig) {
           pluginConfig[configKey] = parseValue(configValue);
         }

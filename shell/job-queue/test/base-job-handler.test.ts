@@ -122,7 +122,7 @@ class CustomValidationHandler extends BaseJobHandler<
 
   override validateAndParse(data: unknown): TestJobData | null {
     const result = super.validateAndParse(data);
-    if (result && result.title === "forbidden") {
+    if (result?.title === "forbidden") {
       this.logger.warn("Forbidden title rejected");
       return null;
     }

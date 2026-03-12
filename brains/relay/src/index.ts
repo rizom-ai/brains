@@ -1,4 +1,8 @@
-import { defineBrain, type BrainEnvironment } from "@brains/app";
+import {
+  defineBrain,
+  type BrainEnvironment,
+  type PluginConfig,
+} from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
@@ -54,7 +58,7 @@ export default defineBrain({
     ],
     [
       gitSyncPlugin,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         authToken: env["GIT_SYNC_TOKEN"],
         autoSync: true,
         autoPush: true,
@@ -79,16 +83,18 @@ export default defineBrain({
   interfaces: [
     [
       MCPInterface,
-      (env: BrainEnvironment) => ({ authToken: env["MCP_AUTH_TOKEN"] }),
+      (env: BrainEnvironment): PluginConfig => ({
+        authToken: env["MCP_AUTH_TOKEN"],
+      }),
     ],
     [
       MatrixInterface,
-      (env: BrainEnvironment) => ({
+      (env: BrainEnvironment): PluginConfig => ({
         accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
         // homeserver, userId, deviceDisplayName: set in brain.yaml
       }),
     ],
-    [WebserverInterface, () => ({})],
+    [WebserverInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

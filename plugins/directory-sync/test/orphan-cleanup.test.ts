@@ -1,4 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   removeOrphanedEntities,
   type CleanupPipelineDeps,
@@ -25,11 +26,7 @@ function createMockDeps(
       }),
       deleteEntity: mock(async () => true),
     },
-    logger: {
-      debug: () => {},
-      info: () => {},
-      error: () => {},
-    },
+    logger: createSilentLogger(),
     fileOperations: {
       getEntityFilePath: (entity: BaseEntity) =>
         `/data/${entity.entityType}/${entity.id}.md`,

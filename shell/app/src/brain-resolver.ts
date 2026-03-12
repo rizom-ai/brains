@@ -102,10 +102,10 @@ export function resolve(
       },
     }),
     ...(!definition.permissions &&
-      (overrides?.anchors || overrides?.trusted) && {
+      (overrides?.anchors ?? overrides?.trusted) && {
         permissions: {
-          ...(overrides?.anchors && { anchors: overrides.anchors }),
-          ...(overrides?.trusted && { trusted: overrides.trusted }),
+          ...(overrides.anchors && { anchors: overrides.anchors }),
+          ...(overrides.trusted && { trusted: overrides.trusted }),
         },
       }),
     deployment,
