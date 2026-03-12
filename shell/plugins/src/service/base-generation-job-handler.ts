@@ -1,11 +1,11 @@
 import { BaseJobHandler } from "@brains/job-queue";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
-  z,
   PROGRESS_STEPS,
   JobResult,
   getErrorMessage,
   type GenerationResult,
+  type z,
 } from "@brains/utils";
 import type { ServicePluginContext } from "./context";
 

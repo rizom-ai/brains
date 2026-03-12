@@ -1,38 +1,78 @@
-// Plugin base class and core context
-export { BasePlugin, type CoreContext } from "./base-plugin";
+// ============================================================================
+// Plugin Framework Core
+// ============================================================================
 
-// Core plugin
-export { CorePlugin } from "./core/core-plugin";
-export type {
-  CorePluginContext,
-  ITemplatesNamespace,
-  IMessagingNamespace,
-  IAINamespace,
-  IIdentityNamespace,
-  IConversationsNamespace,
-  IJobsWriteNamespace,
-  TypedMessageHandler,
-} from "./core/context";
-export { createCorePluginContext } from "./core/context";
-
-// Service plugin
+// Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
-export type {
-  ServicePluginContext,
-  IEntitiesNamespace,
-  IServiceTemplatesNamespace,
-  IServiceAINamespace,
-  IViewsNamespace,
-  IEvalNamespace,
-  IPluginsNamespace,
-} from "./service/context";
+export { CorePlugin } from "./core/core-plugin";
+export { InterfacePlugin } from "./interface/interface-plugin";
+
+// Plugin contexts (needed for plugin initialization)
+export type { ServicePluginContext } from "./service/context";
+export type { CorePluginContext } from "./core/context";
+export type { InterfacePluginContext } from "./interface/context";
+
 export { createServicePluginContext } from "./service/context";
-export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export { createCorePluginContext } from "./core/context";
+export { createInterfacePluginContext } from "./interface/context";
+
+// ============================================================================
+// Essential Plugin Interfaces & Types
+// ============================================================================
+
+export type {
+  Plugin,
+  PluginCapabilities,
+  PluginTool,
+  PluginResource,
+  ToolContext,
+  ToolResponse,
+  ToolVisibility,
+  AppInfo,
+  DefaultQueryResponse,
+  BaseJobTrackingInfo,
+  // Types needed by test harness and shell packages
+  IShell,
+  QueryContext,
+  IMCPTransport,
+  EvalHandler,
+  ContentGenerationConfig,
+  IEvalHandlerRegistry,
+} from "./interfaces";
+
 export {
-  BaseGenerationJobHandler,
-  type GenerationJobHandlerConfig,
-  type GeneratedContent,
-} from "./service/base-generation-job-handler";
+  appInfoSchema,
+  defaultQueryResponseSchema,
+  pluginMetadataSchema,
+  toolResponseSchema,
+} from "./interfaces";
+
+// ============================================================================
+// Entity System (Core Plugin Infrastructure)
+// ============================================================================
+
+// Core entity types
+export type {
+  BaseEntity,
+  EntityAdapter,
+  EntityInput,
+  ICoreEntityService,
+  IEntityService,
+  SearchResult,
+} from "@brains/entity-service";
+export {
+  BaseEntityAdapter,
+  baseEntitySchema,
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
+
+// Data source infrastructure
+export type {
+  DataSource,
+  BaseDataSourceContext,
+  PaginationInfo,
+} from "@brains/entity-service";
 export {
   BaseEntityDataSource,
   baseQuerySchema,
@@ -42,131 +82,51 @@ export {
   type NavigationResult,
   type SortField,
 } from "./service/base-entity-datasource";
-export type { EnsureUniqueTitleParams } from "./service/create-entity-with-unique-title";
-
-// API routes
+export { paginationInfoSchema } from "@brains/entity-service";
 export {
-  apiRouteDefinitionSchema,
-  type ApiRouteDefinition,
-  type RegisteredApiRoute,
-} from "./types/api-routes";
-
-// UI Slots
-export type { SlotRegistration } from "./types/slots";
-
-// Interface plugin
-export { InterfacePlugin } from "./interface/interface-plugin";
-export type {
-  InterfacePluginContext,
-  IInterfaceConversationsNamespace,
-  IPermissionsNamespace,
-  IDaemonsNamespace,
-  IApiRoutesNamespace,
-} from "./interface/context";
-export { createInterfacePluginContext } from "./interface/context";
-
-// Message interface plugin (for CLI, Matrix, etc.)
-export {
-  MessageInterfacePlugin,
-  type MessageJobTrackingInfo,
-  urlCaptureConfigSchema,
-  setupProgressHandler,
-  formatCompletionMessage,
-  formatProgressMessage,
-  type ProgressHandlers,
-  parseConfirmationResponse,
-  formatConfirmationPrompt,
-  ConfirmationTracker,
-} from "./message-interface";
-
-// Plugin types and interfaces
-export type {
-  IShell,
-  IMCPTransport,
-  QueryContext,
-  SystemToolRegisterEvent,
-  SystemResourceRegisterEvent,
-  DefaultQueryResponse,
-  SimpleTextResponse,
-  CreateEntityResponse,
-  UpdateEntityResponse,
-  PluginType,
-  ToolVisibility,
-  ToolContext,
-  AppInfo,
-  ToolResponse,
-  PluginTool,
-  PluginResource,
-  PluginCapabilities,
-  Plugin,
-  ContentGenerationConfig,
-  GenerateContentFunction,
-  BaseJobTrackingInfo,
-  EvalHandler,
-  IEvalHandlerRegistry,
-} from "./interfaces";
-
-export {
-  systemToolRegisterSchema,
-  systemResourceRegisterSchema,
-  defaultQueryResponseSchema,
-  simpleTextResponseSchema,
-  createEntityResponseSchema,
-  updateEntityResponseSchema,
-  pluginMetadataSchema,
-  ToolContextRoutingSchema,
-  toolResponseSchema,
-  appInfoSchema,
-} from "./interfaces";
-
-// Config utilities
-export {
-  basePluginConfigSchema,
-  type PluginConfigInput,
-  type PluginConfig,
-} from "./config";
-
-// Errors
-export { PluginError } from "./errors";
-
-// Plugin Manager
-export {
-  PluginManager,
-  PluginRegistrationHandler,
-  PluginStatus,
-  PluginEvent,
-  type IPluginManager,
-  type PluginInfo,
-  type PluginManagerEventMap,
-  type PluginToolRegisterEvent,
-  type PluginResourceRegisterEvent,
-} from "./manager";
+  baseQuerySchema,
+  baseInputSchema,
+} from "./service/base-entity-datasource";
 
 // ============================================================================
-// Consolidated exports for plugin development
+// Job System & Generation
 // ============================================================================
 
-// From @brains/entity-service
-export type {
-  BaseEntity,
-  EntityAdapter,
-  EntityInput,
-  SearchResult,
-  SearchOptions,
-  IEntityService,
-  ICoreEntityService,
-  IEntityRegistry,
-  EntityTypeConfig,
-} from "@brains/entity-service";
+export { BaseJobHandler, JobProgressEventSchema } from "@brains/job-queue";
 export {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  generateMarkdownWithFrontmatter,
-  parseMarkdownWithFrontmatter,
-  generateFrontmatter,
-} from "@brains/entity-service";
+  BaseGenerationJobHandler,
+  type GenerationJobHandlerConfig,
+  type GeneratedContent,
+} from "./service/base-generation-job-handler";
 
-// From @brains/conversation-service
+export type {
+  Batch,
+  BatchOperation,
+  BatchJobStatus,
+  JobContext,
+  JobInfo,
+  JobOptions,
+  JobProgressEvent,
+} from "@brains/job-queue";
+
+// ============================================================================
+// Templates & Content Generation
+// ============================================================================
+
+export type {
+  Template,
+  ComponentType,
+  ViewTemplate,
+  OutputFormat,
+} from "@brains/templates";
+export { createTemplate, PermissionService } from "@brains/templates";
+
+export type { ResolutionOptions } from "@brains/content-service";
+
+// ============================================================================
+// Communication & Messaging
+// ============================================================================
+
 export type {
   Conversation,
   Message,
@@ -174,63 +134,54 @@ export type {
 } from "@brains/conversation-service";
 export { conversationDigestPayloadSchema } from "@brains/conversation-service";
 
-// From @brains/content-service
 export type {
-  IContentService,
-  GenerationContext,
-  ResolutionOptions,
-} from "@brains/content-service";
-
-// From @brains/templates (unified template type)
-export type { Template, ComponentType } from "@brains/templates";
-export { TemplateSchema, createTemplate } from "@brains/templates";
-
-// From @brains/messaging-service
-export type {
-  MessageContext,
-  MessageHandler,
-  MessageSender,
-  IMessageBus,
   MessageResponse,
-  BaseMessage,
+  MessageSender,
   MessageWithPayload,
+  IMessageBus,
+  MessageContext,
 } from "@brains/messaging-service";
 
-// From @brains/job-queue
-export type {
-  JobHandler,
-  BatchOperation,
-  BatchJobStatus,
-  Batch,
-  JobProgressEvent,
-  IJobQueueService,
-} from "@brains/job-queue";
-export { JobProgressEventSchema, BaseJobHandler } from "@brains/job-queue";
+export type { ProgressCallback, ContentFormatter } from "@brains/utils";
 
-// From @brains/templates (render, merged)
-export type { ViewTemplate, OutputFormat } from "@brains/templates";
-// Note: ViewRegistry is not exported as plugins access views through context
+// Message interface plugin (for CLI, Matrix, etc.)
+export {
+  MessageInterfacePlugin,
+  parseConfirmationResponse,
+  urlCaptureConfigSchema,
+} from "./message-interface";
 
-// Route types (cross-cutting concern used by site-builder, site-content, decks, etc.)
+export type { AgentResponse, ChatContext } from "@brains/ai-service";
+
+// ============================================================================
+// Tools & Utilities
+// ============================================================================
+
+export {
+  createTypedTool,
+  toolSuccess,
+  toolError,
+  toolResultSchema,
+  type ToolResult,
+} from "./utils/tool-helpers";
+
+export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export { findEntityByIdentifier } from "./utils/find-entity";
+export { createId } from "@brains/utils";
+
+// ============================================================================
+// Routing & Navigation (Site Builder)
+// ============================================================================
+
 export type {
   RouteDefinition,
   RouteDefinitionInput,
   SectionDefinition,
-  NavigationMetadata,
-  NavigationSlot,
   NavigationItem,
-  RegisterRoutesPayload,
-  UnregisterRoutesPayload,
-  ListRoutesPayload,
-  GetRoutePayload,
-  RouteResponse,
-  RouteListResponse,
-  SingleRouteResponse,
+  NavigationSlot,
 } from "./types/routes";
 export {
   RouteDefinitionSchema,
-  SectionDefinitionSchema,
-  NavigationMetadataSchema,
   NavigationSlots,
   RegisterRoutesPayloadSchema,
   UnregisterRoutesPayloadSchema,
@@ -238,108 +189,54 @@ export {
   GetRoutePayloadSchema,
 } from "./types/routes";
 
-// Daemon types (merged from @brains/daemon-registry)
+export type {
+  ApiRouteDefinition,
+  RegisteredApiRoute,
+} from "./types/api-routes";
+
+// ============================================================================
+// Identity & Configuration
+// ============================================================================
+
+export {
+  basePluginConfigSchema,
+  type PluginConfig,
+  type PluginConfigInput,
+} from "./config";
+
+export type {
+  BrainCharacter,
+  AnchorProfile,
+  IAnchorProfileService,
+} from "@brains/identity-service";
+export {
+  AnchorProfileService,
+  anchorProfileBodySchema,
+  brainCharacterBodySchema,
+} from "@brains/identity-service";
+
+// ============================================================================
+// AI Services (for MCP interface)
+// ============================================================================
+
+export type { IAgentService } from "@brains/ai-service";
+
+// ============================================================================
+// System Integration (Daemons, Interface Plugins)
+// ============================================================================
+
 export type {
   Daemon,
   DaemonHealth,
   DaemonInfo,
   DaemonStatusInfo,
-  IDaemonRegistry,
-} from "./manager/daemon-types";
-export {
-  DaemonHealthSchema,
-  DaemonStatusInfoSchema,
 } from "./manager/daemon-types";
 
-// From @brains/db
-export type {
-  JobOptions,
-  JobInfo,
-  JobContext,
-  JobContextInput,
-} from "@brains/job-queue";
-export { JobContextSchema, JobContextInputSchema } from "@brains/job-queue";
+// ============================================================================
+// Plugin Management (for shell core)
+// ============================================================================
 
-// From @brains/utils
-export type {
-  ProgressNotification,
-  ProgressCallback,
-  ContentFormatter,
-} from "@brains/utils";
+export { PluginManager } from "./manager";
 
-// From @brains/templates (permission, merged)
-export type { UserPermissionLevel } from "@brains/templates";
-export { PermissionService } from "@brains/templates";
-
-// From @brains/identity-service (brain character + anchor profile)
-export type {
-  BrainCharacter,
-  BrainCharacterEntity,
-  IBrainCharacterService,
-} from "@brains/identity-service";
-export {
-  BrainCharacterService,
-  BrainCharacterAdapter,
-  brainCharacterBodySchema,
-  brainCharacterSchema,
-} from "@brains/identity-service";
-export type {
-  AnchorProfile,
-  AnchorProfileEntity,
-  IAnchorProfileService,
-} from "@brains/identity-service";
-export {
-  AnchorProfileService,
-  AnchorProfileAdapter,
-  anchorProfileBodySchema,
-  anchorProfileSchema,
-} from "@brains/identity-service";
-
-// From @brains/entity-service (datasource, merged)
-export type {
-  DataSource,
-  DataSourceCapabilities,
-  BaseDataSourceContext,
-  PaginationInfo,
-  PaginateOptions,
-  PaginateResult,
-} from "@brains/entity-service";
-export {
-  DataSourceRegistry,
-  paginationInfoSchema,
-  paginateItems,
-  buildPaginationInfo,
-} from "@brains/entity-service";
-
-// Utilities
-export { findEntityByIdentifier } from "./utils/find-entity";
-
-// From @brains/ai-service
-export type {
-  ImageGenerationOptions,
-  ImageGenerationResult,
-  IAgentService,
-  AgentConfig,
-  AgentResponse,
-  ChatContext,
-  PendingConfirmation,
-  ToolResultData,
-  BrainAgentFactory,
-  BrainAgentFactoryOptions,
-  BrainCallOptions,
-} from "@brains/ai-service";
-export { AgentService, createBrainAgentFactory } from "@brains/ai-service";
-
-// Utility functions
-export { createId } from "@brains/utils";
-export {
-  createTypedTool,
-  createResource,
-  toolSuccess,
-  toolError,
-  toolResultSchema,
-  type ToolResult,
-} from "./utils/tool-helpers";
-
-// Typed message channels
-export { defineChannel, isChannel, type Channel } from "./utils/channels";
+// Error handling
+export { PluginError } from "./errors";

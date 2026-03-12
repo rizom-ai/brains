@@ -1,23 +1,35 @@
+// Plugin framework types
 import type {
   AppInfo,
-  BrainCharacter,
-  AnchorProfile,
   ContentGenerationConfig,
-  DataSourceRegistry,
   DefaultQueryResponse,
   EvalHandler,
-  IContentService,
-  IEntityRegistry,
-  IEntityService,
-  IMessageBus,
   IShell,
   Plugin,
-  PluginManager,
   PluginResource,
   PluginTool,
   QueryContext,
   RegisteredApiRoute,
 } from "@brains/plugins";
+
+// Plugin manager
+import type { PluginManager } from "@brains/plugins";
+
+// Entity service types
+import type {
+  DataSourceRegistry,
+  IEntityRegistry,
+  IEntityService,
+} from "@brains/entity-service";
+
+// Content service
+import type { IContentService } from "@brains/content-service";
+
+// Messaging
+import type { IMessageBus } from "@brains/messaging-service";
+
+// Identity
+import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type {
   IAIService,
   IAgentService,
