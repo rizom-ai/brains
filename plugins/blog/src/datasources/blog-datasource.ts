@@ -1,12 +1,14 @@
 import {
   BaseEntityDataSource,
+  baseQuerySchema,
+  baseInputSchema,
   type BaseQuery,
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
 import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
-import type { Logger, z } from "@brains/utils";
-import { slugify } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
 import type { BlogPostWithData } from "../schemas/blog-post";
 import { parsePostData as parsePostDataBase } from "./parse-helpers";
@@ -15,6 +17,30 @@ import { parsePostData as parsePostDataBase } from "./parse-helpers";
 export type { BlogPostWithData };
 
 type BlogPostTransformed = BlogPostWithData & { seriesUrl?: string };
+
+const blogQuerySchema = baseQuerySchema.extend({
+  latest: z.boolean().optional(),
+  "metadata.seriesName": z.string().optional(),
+});
+
+const blogInputSchema = baseInputSchema.extend({
+  query: blogQuerySchema.optional(),
+});
+
+type BlogQuery = z.infer<typeof blogQuerySchema>;
+
+interface BlogDetailData {
+  post: BlogPostTransformed;
+  prevPost: BlogPostTransformed | null;
+  nextPost: BlogPostTransformed | null;
+  seriesPosts: BlogPostTransformed[] | null;
+}
+
+interface BlogListData {
+  posts: BlogPostTransformed[];
+  pagination: PaginationInfo | null;
+  baseUrl: string | undefined;
+}
 
 function parsePostData(entity: BlogPost): BlogPostTransformed {
   const post = parsePostDataBase(entity);
@@ -50,14 +76,25 @@ export class BlogDataSource extends BaseEntityDataSource<
     this.logger.debug("BlogDataSource initialized");
   }
 
+  protected override parseQuery(query: unknown): {
+    entityType: string;
+    query: BlogQuery;
+  } {
+    const parsed = blogInputSchema.parse(query);
+    return {
+      entityType: parsed.entityType ?? this.config.entityType,
+      query: parsed.query ?? {},
+    };
+  }
+
   protected transformEntity(entity: BlogPost): BlogPostTransformed {
     return parsePostData(entity);
   }
 
-  protected buildDetailResult(
+  protected override buildDetailResult(
     item: BlogPostTransformed,
     navigation: NavigationResult<BlogPostTransformed> | null,
-  ) {
+  ): BlogDetailData {
     // Note: seriesPosts is added in the overridden fetch for detail views
     return {
       post: item,
@@ -71,7 +108,7 @@ export class BlogDataSource extends BaseEntityDataSource<
     items: BlogPostTransformed[],
     pagination: PaginationInfo | null,
     query: BaseQuery,
-  ) {
+  ): BlogListData {
     return {
       posts: items,
       pagination,
@@ -88,30 +125,23 @@ export class BlogDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = query as {
-      entityType?: string;
-      query?: BaseQuery & {
-        latest?: boolean;
-        "metadata.seriesName"?: string;
-      };
-    };
-
+    const { query: parsedQuery } = this.parseQuery(query);
     const entityService = context.entityService;
 
     // Case 1: Fetch latest published post
-    if (params.query?.latest) {
+    if (parsedQuery.latest) {
       return this.fetchLatestPost(outputSchema, entityService);
     }
 
     // Case 2: Fetch single post by slug — custom because it enriches with seriesPosts
-    if (params.query?.id) {
-      return this.fetchSinglePost(params.query.id, outputSchema, entityService);
+    if (parsedQuery.id) {
+      return this.fetchSinglePost(parsedQuery.id, outputSchema, entityService);
     }
 
     // Case 3: Fetch posts in a series
-    if (params.query?.["metadata.seriesName"]) {
+    if (parsedQuery["metadata.seriesName"]) {
       return this.fetchSeriesPosts(
-        params.query["metadata.seriesName"],
+        parsedQuery["metadata.seriesName"],
         outputSchema,
         entityService,
       );
@@ -131,10 +161,13 @@ export class BlogDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const publishedPosts = await entityService.listEntities<BlogPost>("post", {
-      limit: 1,
-      sortFields: [{ field: "publishedAt", direction: "desc" }],
-    });
+    const publishedPosts = await entityService.listEntities<BlogPost>(
+      this.config.entityType,
+      {
+        limit: 1,
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      },
+    );
 
     if (publishedPosts.length === 0) {
       this.logger.info("No published blog posts found for homepage");
@@ -162,24 +195,26 @@ export class BlogDataSource extends BaseEntityDataSource<
 
   /**
    * Fetch a single blog post by slug with prev/next navigation and series context.
+   * Parallelizes navigation and series fetch after the initial entity lookup.
    */
   private async fetchSinglePost<T>(
     slug: string,
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    // Use base class utility for detail + navigation
-    const { item, navigation } = await this.fetchDetail(slug, entityService);
+    // Look up the entity first (needed to know seriesName and for navigation)
+    const entity = await this.lookupEntity(slug, entityService);
+    const item = this.transformEntity(entity);
 
-    // Enrich with series context — this is the custom part
-    // We need the raw entity to check seriesName, but transformEntity already
-    // parsed it, so we read from the frontmatter
-    const seriesPosts = item.frontmatter.seriesName
-      ? await this.fetchPostsBySeries(
-          item.frontmatter.seriesName,
-          entityService,
-        )
-      : null;
+    // Navigation and series fetch are independent — run in parallel
+    const [navigation, seriesPosts] = await Promise.all([
+      this.config.enableNavigation
+        ? this.resolveNavigation(entity, entityService)
+        : Promise.resolve(null),
+      item.frontmatter.seriesName
+        ? this.fetchPostsBySeries(item.frontmatter.seriesName, entityService)
+        : Promise.resolve(null),
+    ]);
 
     return outputSchema.parse({
       post: item,
@@ -193,11 +228,14 @@ export class BlogDataSource extends BaseEntityDataSource<
     seriesName: string,
     entityService: IEntityService,
   ): Promise<BlogPostTransformed[]> {
-    const entities = await entityService.listEntities<BlogPost>("post", {
-      limit: 100,
-      filter: { metadata: { seriesName } },
-      sortFields: [{ field: "seriesIndex", direction: "asc" }],
-    });
+    const entities = await entityService.listEntities<BlogPost>(
+      this.config.entityType,
+      {
+        limit: 100,
+        filter: { metadata: { seriesName } },
+        sortFields: [{ field: "seriesIndex", direction: "asc" }],
+      },
+    );
     return entities.map(parsePostData);
   }
 

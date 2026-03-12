@@ -1,12 +1,15 @@
 import {
   BaseEntityDataSource,
+  baseQuerySchema,
+  baseInputSchema,
   type BaseQuery,
   type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
 import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger, z } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import { z } from "@brains/utils";
 import type { SocialPost } from "../schemas/social-post";
 import {
   socialPostFrontmatterSchema,
@@ -14,16 +17,33 @@ import {
   type SocialPostWithData,
 } from "../schemas/social-post";
 
-interface SocialPostQuery extends BaseQuery {
-  platform?: "linkedin";
-  status?: "draft" | "queued" | "published" | "failed";
-  sortByQueue?: boolean;
-  nextInQueue?: boolean;
-}
+const socialPostQuerySchema = baseQuerySchema.extend({
+  platform: z.enum(["linkedin"]).optional(),
+  status: z.enum(["draft", "queued", "published", "failed"]).optional(),
+  sortByQueue: z.boolean().optional(),
+  nextInQueue: z.boolean().optional(),
+});
+
+const socialPostInputSchema = baseInputSchema.extend({
+  query: socialPostQuerySchema.optional(),
+});
+
+type SocialPostQuery = z.infer<typeof socialPostQuerySchema>;
 
 /**
  * Parse frontmatter and extract body from entity.
  */
+interface SocialPostDetailData {
+  post: SocialPostWithData;
+}
+
+interface SocialPostListData {
+  posts: SocialPostWithData[];
+  totalCount: number;
+  pagination: PaginationInfo | null;
+  baseUrl: string | undefined;
+}
+
 function parsePostData(entity: SocialPost): SocialPostWithData {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
@@ -68,14 +88,25 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     this.logger.debug("SocialPostDataSource initialized");
   }
 
+  protected override parseQuery(query: unknown): {
+    entityType: string;
+    query: SocialPostQuery;
+  } {
+    const parsed = socialPostInputSchema.parse(query);
+    return {
+      entityType: parsed.entityType ?? this.config.entityType,
+      query: parsed.query ?? {},
+    };
+  }
+
   protected transformEntity(entity: SocialPost): SocialPostWithData {
     return parsePostData(entity);
   }
 
-  protected buildDetailResult(
+  protected override buildDetailResult(
     item: SocialPostWithData,
     _navigation: NavigationResult<SocialPostWithData> | null,
-  ) {
+  ): SocialPostDetailData {
     return { post: item };
   }
 
@@ -83,7 +114,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     items: SocialPostWithData[],
     pagination: PaginationInfo | null,
     query: BaseQuery,
-  ) {
+  ): SocialPostListData {
     return {
       posts: items,
       totalCount: pagination?.totalItems ?? items.length,
@@ -100,38 +131,32 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = query as {
-      entityType?: string;
-      query?: SocialPostQuery;
-    };
-
+    const { query: parsedQuery } = this.parseQuery(query);
     const entityService = context.entityService;
 
     // Case 1: Next in queue
-    if (params.query?.nextInQueue) {
+    if (parsedQuery.nextInQueue) {
       return this.fetchNextInQueue(outputSchema, entityService);
     }
 
     // Case 2: Single post by slug
-    if (params.query?.id) {
-      const { item } = await this.fetchDetail(params.query.id, entityService);
+    if (parsedQuery.id) {
+      const { item } = await this.fetchDetail(parsedQuery.id, entityService);
       return outputSchema.parse(this.buildDetailResult(item, null));
     }
 
     // Case 3: Filtered list
     const metadataFilter: Record<string, string> = {};
-    if (params.query?.platform)
-      metadataFilter["platform"] = params.query.platform;
-    if (params.query?.status) metadataFilter["status"] = params.query.status;
+    if (parsedQuery.platform) metadataFilter["platform"] = parsedQuery.platform;
+    if (parsedQuery.status) metadataFilter["status"] = parsedQuery.status;
     const hasFilter = Object.keys(metadataFilter).length > 0;
 
-    const sortFields = params.query?.sortByQueue
+    const sortFields = parsedQuery.sortByQueue
       ? [{ field: "queueOrder" as const, direction: "asc" as const }]
       : this.config.defaultSort;
 
-    const baseQuery: BaseQuery = params.query ?? {};
     const { items, pagination } = await this.fetchList(
-      baseQuery,
+      parsedQuery,
       entityService,
       {
         ...(hasFilter && { filter: { metadata: metadataFilter } }),
@@ -140,7 +165,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     );
 
     return outputSchema.parse(
-      this.buildListResult(items, pagination, baseQuery),
+      this.buildListResult(items, pagination, parsedQuery),
     );
   }
 
@@ -152,7 +177,7 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     entityService: IEntityService,
   ): Promise<T> {
     const entities = await entityService.listEntities<SocialPost>(
-      "social-post",
+      this.config.entityType,
       {
         filter: { metadata: { status: "queued" } },
         sortFields: [{ field: "queueOrder", direction: "asc" }],

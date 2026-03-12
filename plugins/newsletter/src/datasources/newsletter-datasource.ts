@@ -1,20 +1,28 @@
 import {
   BaseEntityDataSource,
+  baseQuerySchema,
+  baseInputSchema,
   type BaseQuery,
-  type NavigationResult,
   type PaginationInfo,
 } from "@brains/plugins";
 import type { BaseDataSourceContext, IEntityService } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import type { Logger, z } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import { z, truncateText } from "@brains/utils";
 import {
   type Newsletter,
   newsletterFrontmatterSchema,
 } from "../schemas/newsletter";
 
-interface NewsletterQuery extends BaseQuery {
-  status?: "draft" | "queued" | "published" | "failed";
-}
+const newsletterQuerySchema = baseQuerySchema.extend({
+  status: z.enum(["draft", "queued", "published", "failed"]).optional(),
+});
+
+const newsletterInputSchema = baseInputSchema.extend({
+  query: newsletterQuerySchema.optional(),
+});
+
+type NewsletterQuery = z.infer<typeof newsletterQuerySchema>;
 
 /**
  * Extract body content from newsletter (strips frontmatter).
@@ -31,18 +39,10 @@ function getNewsletterBody(newsletter: Newsletter): string {
   }
 }
 
-/**
- * Generate excerpt from content.
- * Takes first ~150 characters, truncating at word boundary.
- */
-function generateExcerpt(content: string, maxLength = 150): string {
-  if (content.length <= maxLength) return content;
-  const truncated = content.slice(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(" ");
-  if (lastSpace > maxLength * 0.7) {
-    return truncated.slice(0, lastSpace) + "...";
-  }
-  return truncated + "...";
+interface NewsletterListData {
+  newsletters: NewsletterListItem[];
+  totalCount: number;
+  pagination: PaginationInfo | null;
 }
 
 /** Enriched newsletter summary for list views. */
@@ -83,13 +83,24 @@ export class NewsletterDataSource extends BaseEntityDataSource<
     this.logger.debug("NewsletterDataSource initialized");
   }
 
+  protected override parseQuery(query: unknown): {
+    entityType: string;
+    query: NewsletterQuery;
+  } {
+    const parsed = newsletterInputSchema.parse(query);
+    return {
+      entityType: parsed.entityType ?? this.config.entityType,
+      query: parsed.query ?? {},
+    };
+  }
+
   protected transformEntity(entity: Newsletter): NewsletterListItem {
     const body = getNewsletterBody(entity);
     const item: NewsletterListItem = {
       id: entity.id,
       subject: entity.metadata.subject,
       status: entity.metadata.status,
-      excerpt: generateExcerpt(body),
+      excerpt: truncateText(body, 150),
       created: entity.created,
       url: `/newsletters/${entity.id}`,
     };
@@ -99,19 +110,11 @@ export class NewsletterDataSource extends BaseEntityDataSource<
     return item;
   }
 
-  protected buildDetailResult(
-    _item: NewsletterListItem,
-    _navigation: NavigationResult<NewsletterListItem> | null,
-  ) {
-    // Detail view is handled by the override below — this won't be called
-    return {};
-  }
-
   protected buildListResult(
     items: NewsletterListItem[],
     pagination: PaginationInfo | null,
     _query: BaseQuery,
-  ) {
+  ): NewsletterListData {
     return {
       newsletters: items,
       totalCount: pagination?.totalItems ?? items.length,
@@ -129,37 +132,32 @@ export class NewsletterDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = query as {
-      entityType?: string;
-      query?: NewsletterQuery;
-    };
-
+    const { query: parsedQuery } = this.parseQuery(query);
     const entityService = context.entityService;
 
     // Detail view — custom because it resolves source entities
-    if (params.query?.id) {
+    if (parsedQuery.id) {
       return this.fetchSingleNewsletter(
-        params.query.id,
+        parsedQuery.id,
         outputSchema,
         entityService,
       );
     }
 
     // List view — use base fetchList with optional status filter
-    const statusFilter = params.query?.status;
+    const statusFilter = parsedQuery.status;
     const filterOpts = statusFilter
       ? { filter: { metadata: { status: statusFilter } } }
       : undefined;
 
-    const baseQuery: BaseQuery = params.query ?? {};
     const { items, pagination } = await this.fetchList(
-      baseQuery,
+      parsedQuery,
       entityService,
       filterOpts,
     );
 
     return outputSchema.parse(
-      this.buildListResult(items, pagination, baseQuery),
+      this.buildListResult(items, pagination, parsedQuery),
     );
   }
 
@@ -173,7 +171,7 @@ export class NewsletterDataSource extends BaseEntityDataSource<
     entityService: IEntityService,
   ): Promise<T> {
     const newsletter = await entityService.getEntity<Newsletter>(
-      "newsletter",
+      this.config.entityType,
       id,
     );
 

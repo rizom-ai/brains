@@ -17,6 +17,18 @@ import { projectAdapter } from "../adapters/project-adapter";
 // Re-export for convenience
 export type { ProjectWithData };
 
+interface ProjectDetailData {
+  project: ProjectWithData;
+  prevProject: ProjectWithData | null;
+  nextProject: ProjectWithData | null;
+}
+
+interface ProjectListData {
+  projects: ProjectWithData[];
+  pagination: PaginationInfo | null;
+  baseUrl: string | undefined;
+}
+
 /**
  * Parse frontmatter, extract body and structured content from entity.
  */
@@ -68,10 +80,10 @@ export class ProjectDataSource extends BaseEntityDataSource<
     return parseProjectData(entity);
   }
 
-  protected buildDetailResult(
+  protected override buildDetailResult(
     item: ProjectWithData,
     navigation: NavigationResult<ProjectWithData> | null,
-  ) {
+  ): ProjectDetailData {
     return {
       project: item,
       prevProject: navigation?.prev ?? null,
@@ -83,7 +95,7 @@ export class ProjectDataSource extends BaseEntityDataSource<
     items: ProjectWithData[],
     pagination: PaginationInfo | null,
     query: BaseQuery,
-  ) {
+  ): ProjectListData {
     return {
       projects: items,
       pagination,

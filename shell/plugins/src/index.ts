@@ -35,6 +35,8 @@ export {
 } from "./service/base-generation-job-handler";
 export {
   BaseEntityDataSource,
+  baseQuerySchema,
+  baseInputSchema,
   type EntityDataSourceConfig,
   type BaseQuery,
   type NavigationResult,

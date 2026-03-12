@@ -1,14 +1,19 @@
 import { BaseEntityDataSource } from "@brains/plugins";
 import type {
   BaseQuery,
-  NavigationResult,
   PaginationInfo,
   BaseDataSourceContext,
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import type { Logger, z } from "@brains/utils";
+import type { Logger } from "@brains/utils";
 import { EntityUrlGenerator, truncateText } from "@brains/utils";
+import type { z } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
+
+interface TopicListData {
+  topics: TopicListItem[];
+  totalCount: number;
+}
 
 /** List-view representation of a topic. */
 interface TopicListItem {
@@ -60,19 +65,11 @@ export class TopicsDataSource extends BaseEntityDataSource<
     };
   }
 
-  protected buildDetailResult(
-    _item: TopicListItem,
-    _navigation: NavigationResult<TopicListItem> | null,
-  ) {
-    // Detail is handled by override below
-    return {};
-  }
-
   protected buildListResult(
     items: TopicListItem[],
     _pagination: PaginationInfo | null,
     _query: BaseQuery,
-  ) {
+  ): TopicListData {
     return {
       topics: items,
       totalCount: items.length,
@@ -88,21 +85,18 @@ export class TopicsDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const params = query as {
-      entityType?: string;
-      query?: BaseQuery;
-    };
+    const { query: parsedQuery } = this.parseQuery(query);
 
     // Detail view: custom transform with source URL resolution
-    if (params.query?.id) {
+    if (parsedQuery.id) {
       const entityService = context.entityService;
       const entity = await entityService.getEntity(
         this.config.entityType,
-        params.query.id,
+        parsedQuery.id,
       );
 
       if (!entity) {
-        throw new Error(`Entity not found: ${params.query.id}`);
+        throw new Error(`Entity not found: ${parsedQuery.id}`);
       }
 
       const parsed = this.adapter.parseTopicBody(entity.content);

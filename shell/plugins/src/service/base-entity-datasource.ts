@@ -8,21 +8,41 @@ import type {
   PaginationInfo,
 } from "@brains/entity-service";
 import { buildPaginationInfo } from "@brains/entity-service";
-import type { Logger, z } from "@brains/utils";
+import type { Logger } from "@brains/utils";
+import { z } from "@brains/utils";
 
 export type { SortField };
+
+/**
+ * Zod schema for the base query fields.
+ * Subclasses can extend this with `.extend()` for additional fields.
+ */
+export const baseQuerySchema = z
+  .object({
+    id: z.string().optional(),
+    limit: z.number().optional(),
+    page: z.number().optional(),
+    pageSize: z.number().optional(),
+    baseUrl: z.string().optional(),
+  })
+  .passthrough();
+
+/**
+ * Zod schema for the outer datasource input (entityType + query).
+ * Subclasses can extend the inner query via `baseQuerySchema.extend()`.
+ */
+export const baseInputSchema = z
+  .object({
+    entityType: z.string().optional(),
+    query: baseQuerySchema.optional(),
+  })
+  .passthrough();
 
 /**
  * Parsed base query parameters.
  * Subclasses can extend this with additional fields via `parseQuery()`.
  */
-export interface BaseQuery {
-  id?: string;
-  limit?: number;
-  page?: number;
-  pageSize?: number;
-  baseUrl?: string;
-}
+export type BaseQuery = z.infer<typeof baseQuerySchema>;
 
 /**
  * Navigation context for detail views (prev/next entities).
@@ -50,20 +70,25 @@ export interface EntityDataSourceConfig {
   lookupField?: "slug" | "id";
   /** Enable prev/next navigation on detail views (defaults to false) */
   enableNavigation?: boolean;
+  /** Max entities to fetch when resolving prev/next navigation (defaults to 1000) */
+  navigationLimit?: number;
 }
 
 /**
  * Base class for entity datasources that follow the list/detail pattern.
  *
  * Provides:
- * - Query parsing with a standard base schema
+ * - Query parsing with Zod validation
  * - Detail view: entity lookup (by slug or id), optional prev/next navigation
  * - List view: paginated fetch with sorting
  *
  * Subclasses implement:
  * - `transformEntity()` — convert raw entity to display format
- * - `buildDetailResult()` — shape the detail response (property names vary per plugin)
  * - `buildListResult()` — shape the list response
+ *
+ * Optionally override:
+ * - `buildDetailResult()` — shape the detail response (default throws; override
+ *   this OR override `fetch()` to handle detail views directly)
  *
  * For datasources with extra query cases (e.g., "latest", "series", "nextInQueue"),
  * override `fetch()` to handle those first, then call `super.fetch()` for the standard path.
@@ -88,13 +113,21 @@ export abstract class BaseEntityDataSource<
 
   /**
    * Build the detail response object.
+   * Override this if using the base class's standard detail path.
+   * Datasources that fully override `fetch()` for detail views need not implement this.
+   *
    * @param item - The transformed entity
    * @param navigation - Prev/next entities (null if navigation is disabled)
    */
-  protected abstract buildDetailResult(
-    item: TTransformed,
-    navigation: NavigationResult<TTransformed> | null,
-  ): Record<string, unknown>;
+  protected buildDetailResult(
+    _item: TTransformed,
+    _navigation: NavigationResult<TTransformed> | null,
+  ): unknown {
+    throw new Error(
+      `${this.id}: buildDetailResult() not implemented. ` +
+        `Override this method or override fetch() to handle detail views.`,
+    );
+  }
 
   /**
    * Build the list response object.
@@ -106,18 +139,18 @@ export abstract class BaseEntityDataSource<
     items: TTransformed[],
     pagination: PaginationInfo | null,
     query: BaseQuery,
-  ): Record<string, unknown>;
+  ): unknown;
 
   /**
-   * Parse and validate the incoming query.
+   * Parse and validate the incoming query with Zod.
    * Override to support additional query parameters beyond the base set.
-   * The returned object must include at least the BaseQuery fields.
+   * Use `baseQuerySchema.extend()` or `baseInputSchema` for validation.
    */
   protected parseQuery(query: unknown): {
     entityType: string;
     query: BaseQuery;
   } {
-    const parsed = query as { entityType?: string; query?: BaseQuery };
+    const parsed = baseInputSchema.parse(query);
     return {
       entityType: parsed.entityType ?? this.config.entityType,
       query: parsed.query ?? {},
@@ -195,26 +228,29 @@ export abstract class BaseEntityDataSource<
       query.pageSize ?? query.limit ?? this.config.defaultLimit ?? 100;
     const offset = (currentPage - 1) * itemsPerPage;
 
-    const entities = await entityService.listEntities<TEntity>(
-      this.config.entityType,
-      {
+    const needsPagination = query.page !== undefined;
+
+    // Run list and count queries in parallel when pagination is needed
+    const [entities, totalItems] = await Promise.all([
+      entityService.listEntities<TEntity>(this.config.entityType, {
         limit: itemsPerPage,
         offset,
         sortFields: this.config.defaultSort,
         ...listOptions,
-      },
-    );
+      }),
+      needsPagination
+        ? entityService.countEntities(
+            this.config.entityType,
+            listOptions?.filter ? { filter: listOptions.filter } : undefined,
+          )
+        : Promise.resolve(0),
+    ]);
 
     const items = entities.map((e) => this.transformEntity(e));
 
-    let pagination: PaginationInfo | null = null;
-    if (query.page !== undefined) {
-      const totalItems = await entityService.countEntities(
-        this.config.entityType,
-        listOptions?.filter ? { filter: listOptions.filter } : undefined,
-      );
-      pagination = buildPaginationInfo(totalItems, currentPage, itemsPerPage);
-    }
+    const pagination = needsPagination
+      ? buildPaginationInfo(totalItems, currentPage, itemsPerPage)
+      : null;
 
     return { items, pagination };
   }
@@ -227,10 +263,11 @@ export abstract class BaseEntityDataSource<
     entityService: IEntityService,
     sortFields?: SortField[],
   ): Promise<NavigationResult<TTransformed>> {
+    const limit = this.config.navigationLimit ?? 1000;
     const allEntities = await entityService.listEntities<TEntity>(
       this.config.entityType,
       {
-        limit: 1000,
+        limit,
         sortFields: sortFields ?? this.config.defaultSort,
       },
     );
@@ -248,9 +285,11 @@ export abstract class BaseEntityDataSource<
     return { prev, next };
   }
 
-  // ── Private helpers ──
-
-  private async lookupEntity(
+  /**
+   * Look up a single entity by id or slug.
+   * Uses `config.lookupField` to determine the strategy.
+   */
+  protected async lookupEntity(
     id: string,
     entityService: IEntityService,
   ): Promise<TEntity> {

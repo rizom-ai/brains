@@ -7,6 +7,14 @@ import type {
 import type { Logger } from "@brains/utils";
 import type { DeckEntity } from "../schemas/deck";
 
+interface DeckDetailData {
+  markdown: string;
+}
+
+interface DeckListData {
+  decks: DeckEntity[];
+}
+
 /**
  * DataSource for fetching and transforming deck entities.
  * Handles both detail views (single deck) and list views (all decks).
@@ -33,10 +41,10 @@ export class DeckDataSource extends BaseEntityDataSource<DeckEntity> {
     return entity;
   }
 
-  protected buildDetailResult(
+  protected override buildDetailResult(
     item: DeckEntity,
     _navigation: NavigationResult<DeckEntity> | null,
-  ) {
+  ): DeckDetailData {
     return { markdown: item.content };
   }
 
@@ -44,7 +52,7 @@ export class DeckDataSource extends BaseEntityDataSource<DeckEntity> {
     items: DeckEntity[],
     _pagination: PaginationInfo | null,
     _query: BaseQuery,
-  ) {
+  ): DeckListData {
     this.logger.debug("Creating deck list data", {
       deckCount: items.length,
       firstDeck: items[0]?.id,
