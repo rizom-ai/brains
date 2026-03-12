@@ -1,13 +1,8 @@
+import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
+import type { GeneratedContent } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { BaseJobHandler, ensureUniqueTitle } from "@brains/plugins";
-import type { ProgressReporter } from "@brains/utils";
-import {
-  getErrorMessage,
-  z,
-  slugify,
-  generationResultSchema,
-} from "@brains/utils";
+import type { Logger, ProgressReporter } from "@brains/utils";
+import { z, slugify, generationResultSchema } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import type { DeckEntity } from "../schemas/deck";
 import { DeckFormatter } from "../formatters/deck-formatter";
@@ -38,51 +33,36 @@ export type DeckGenerationResult = z.infer<typeof deckGenerationResultSchema>;
  * Job handler for deck generation
  * Handles AI-powered content generation and entity creation
  */
-export class DeckGenerationJobHandler extends BaseJobHandler<
-  "generation",
+export class DeckGenerationJobHandler extends BaseGenerationJobHandler<
   DeckGenerationJobData,
   DeckGenerationResult
 > {
   private formatter = new DeckFormatter();
 
-  constructor(
-    logger: Logger,
-    private context: ServicePluginContext,
-  ) {
-    super(logger, {
+  constructor(logger: Logger, context: ServicePluginContext) {
+    super(logger, context, {
       schema: deckGenerationJobSchema,
       jobTypeName: "deck-generation",
+      entityType: "deck",
     });
   }
 
-  async process(
+  protected async generate(
     data: DeckGenerationJobData,
-    jobId: string,
     progressReporter: ProgressReporter,
-  ): Promise<DeckGenerationResult> {
+  ): Promise<GeneratedContent> {
     const { prompt, author, event, skipAi } = data;
     let { title, content, description } = data;
 
-    try {
-      await progressReporter.report({
-        progress: 0,
-        total: 100,
-        message: "Starting deck generation",
-      });
+    // skipAi mode: create skeleton deck with placeholders
+    if (skipAi) {
+      if (!title) {
+        this.failEarly("Title is required when skipAi is true");
+      }
 
-      // skipAi mode: create skeleton deck with placeholders
-      if (skipAi) {
-        if (!title) {
-          return {
-            success: false,
-            error: "Title is required when skipAi is true",
-          };
-        }
-
-        // Use provided content or create a skeleton template
-        content =
-          content ??
-          `# ${title}
+      content =
+        content ??
+        `# ${title}
 
 ---
 
@@ -102,168 +82,120 @@ Add your main content here
 
 Add your conclusion here`;
 
-        description = description ?? `Presentation: ${title}`;
+      description = description ?? `Presentation: ${title}`;
 
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
-          message: "Creating skeleton deck",
-        });
-      }
-      // Case 1: AI generates everything (title, content, description)
-      else if (!title || !content) {
-        await progressReporter.report({
-          progress: 10,
-          total: 100,
-          message: "Generating slide deck content with AI",
-        });
-
-        const defaultPrompt =
-          "Create a presentation about an interesting topic from my knowledge base";
-        const finalPrompt = prompt ?? defaultPrompt;
-
-        const generationPrompt = `${finalPrompt}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`;
-
-        const generated = await this.context.ai.generate<{
-          title: string;
-          content: string;
-          description: string;
-        }>({
-          prompt: generationPrompt,
-          templateName: "decks:generation",
-        });
-
-        title = title ?? generated.title;
-        content = content ?? generated.content;
-        description = description ?? generated.description;
-
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
-          message: `Generated deck: "${title}"`,
-        });
-      }
-      // Case 2: User provided title+content, but no description - AI generates it
-      else if (!description) {
-        await progressReporter.report({
-          progress: 30,
-          total: 100,
-          message: "Generating description with AI",
-        });
-
-        const descGenerated = await this.context.ai.generate<{
-          description: string;
-        }>({
-          prompt: `Title: ${title}\n\nContent:\n${content}`,
-          templateName: "decks:description",
-        });
-
-        description = descGenerated.description;
-
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
-          message: "Description generated",
-        });
-      } else {
-        await progressReporter.report({
-          progress: 50,
-          total: 100,
-          message: "Using provided content",
-        });
-      }
-
-      // Generate slug from title
-      await progressReporter.report({
-        progress: 60,
-        total: 100,
-        message: "Creating deck entity",
+      await this.reportProgress(progressReporter, {
+        progress: 50,
+        message: "Creating skeleton deck",
       });
-
-      const slug = slugify(title);
-      const now = new Date().toISOString();
-
-      // Build the deck entity
-      const deckEntity: Omit<DeckEntity, "id" | "created" | "updated"> = {
-        entityType: "deck",
-        content,
-        contentHash: computeContentHash(content),
-        title,
-        description,
-        author,
-        status: "draft",
-        event,
-        metadata: {
-          slug,
-          title,
-          status: "draft",
-        },
-      };
-
-      await progressReporter.report({
-        progress: 80,
-        total: 100,
-        message: "Saving deck to database",
-      });
-
-      // Ensure title doesn't collide with an existing entity
-      const finalTitle = await ensureUniqueTitle({
-        entityType: "deck",
-        title,
-        deriveId: (t) => t,
-        regeneratePrompt:
-          "Generate a different presentation deck title on the same topic.",
-        context: this.context,
-      });
-
-      // Update entity data if title changed
-      if (finalTitle !== title) {
-        deckEntity.title = finalTitle;
-        deckEntity.metadata.title = finalTitle;
-        deckEntity.metadata.slug = slugify(finalTitle);
-      }
-
-      // Regenerate markdown with (possibly updated) entity data
-      const finalMarkdown = this.formatter.toMarkdown({
-        ...deckEntity,
-        id: "temp",
-        created: now,
-        updated: now,
-      });
-
-      const result = await this.context.entityService.createEntity(
-        {
-          id: finalTitle,
-          ...deckEntity,
-          content: finalMarkdown,
-        },
-        { deduplicateId: true },
-      );
-
-      await progressReporter.report({
-        progress: 100,
-        total: 100,
-        message: `Deck "${title}" created successfully`,
-      });
-
-      return {
-        success: true,
-        entityId: result.entityId,
-        title,
-        slug,
-      };
-    } catch (error) {
-      this.logger.error("Deck generation job failed", {
-        error,
-        jobId,
-        data,
-      });
-
-      return {
-        success: false,
-        error: getErrorMessage(error),
-      };
     }
+    // Case 1: AI generates everything
+    else if (!title || !content) {
+      await this.reportProgress(progressReporter, {
+        progress: 10,
+        message: "Generating slide deck content with AI",
+      });
+
+      const defaultPrompt =
+        "Create a presentation about an interesting topic from my knowledge base";
+      const finalPrompt = prompt ?? defaultPrompt;
+      const generationPrompt = `${finalPrompt}${event ? `\n\nNote: This presentation is for "${event}".` : ""}`;
+
+      const generated = await this.context.ai.generate<{
+        title: string;
+        content: string;
+        description: string;
+      }>({
+        prompt: generationPrompt,
+        templateName: "decks:generation",
+      });
+
+      title = title ?? generated.title;
+      content = content ?? generated.content;
+      description = description ?? generated.description;
+
+      await this.reportProgress(progressReporter, {
+        progress: 50,
+        message: `Generated deck: "${title}"`,
+      });
+    }
+    // Case 2: User provided title+content, but no description
+    else if (!description) {
+      await this.reportProgress(progressReporter, {
+        progress: 30,
+        message: "Generating description with AI",
+      });
+
+      const descGenerated = await this.context.ai.generate<{
+        description: string;
+      }>({
+        prompt: `Title: ${title}\n\nContent:\n${content}`,
+        templateName: "decks:description",
+      });
+
+      description = descGenerated.description;
+
+      await this.reportProgress(progressReporter, {
+        progress: 50,
+        message: "Description generated",
+      });
+    } else {
+      await this.reportProgress(progressReporter, {
+        progress: 50,
+        message: "Using provided content",
+      });
+    }
+
+    if (!title || !content) {
+      this.failEarly("Title and content are required");
+    }
+
+    const slug = slugify(title);
+    const now = new Date().toISOString();
+
+    const deckEntity: Omit<DeckEntity, "id" | "created" | "updated"> = {
+      entityType: "deck",
+      content,
+      contentHash: computeContentHash(content),
+      title,
+      description,
+      author,
+      status: "draft",
+      event,
+      metadata: { slug, title, status: "draft" },
+    };
+
+    // Ensure title doesn't collide
+    const finalTitle = await ensureUniqueTitle({
+      entityType: "deck",
+      title,
+      deriveId: (t) => t,
+      regeneratePrompt:
+        "Generate a different presentation deck title on the same topic.",
+      context: this.context,
+    });
+
+    if (finalTitle !== title) {
+      deckEntity.title = finalTitle;
+      deckEntity.metadata.title = finalTitle;
+      deckEntity.metadata.slug = slugify(finalTitle);
+    }
+
+    const finalMarkdown = this.formatter.toMarkdown({
+      ...deckEntity,
+      id: "temp",
+      created: now,
+      updated: now,
+    });
+
+    return {
+      id: finalTitle,
+      content: finalMarkdown,
+      metadata: deckEntity.metadata,
+      title: finalTitle,
+      resultExtras: { title: finalTitle, slug: deckEntity.metadata.slug },
+      createOptions: { deduplicateId: true },
+    };
   }
 
   protected override summarizeDataForLog(

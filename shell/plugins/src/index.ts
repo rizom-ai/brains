@@ -28,6 +28,11 @@ export type {
 } from "./service/context";
 export { createServicePluginContext } from "./service/context";
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export {
+  BaseGenerationJobHandler,
+  type GenerationJobHandlerConfig,
+  type GeneratedContent,
+} from "./service/base-generation-job-handler";
 export type { EnsureUniqueTitleParams } from "./service/create-entity-with-unique-title";
 
 // API routes

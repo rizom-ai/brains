@@ -1,12 +1,8 @@
+import { BaseGenerationJobHandler } from "@brains/plugins";
+import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import {
-  z,
-  slugify,
-  PROGRESS_STEPS,
-  JobResult,
-  generationResultSchema,
-} from "@brains/utils";
-import { BaseJobHandler, type ServicePluginContext } from "@brains/plugins";
+import { z, slugify, generationResultSchema } from "@brains/utils";
+import type { ServicePluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**
@@ -46,126 +42,64 @@ interface GeneratedProjectContent {
  * Job handler for portfolio project generation
  * Handles AI-powered content generation and entity creation
  */
-export class ProjectGenerationJobHandler extends BaseJobHandler<
-  "generation",
+export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
   ProjectGenerationJobData,
   ProjectGenerationResult
 > {
-  private readonly context: ServicePluginContext;
-
   constructor(logger: Logger, context: ServicePluginContext) {
-    super(logger, {
+    super(logger, context, {
       schema: projectGenerationJobSchema,
       jobTypeName: "project-generation",
+      entityType: "project",
     });
-    this.context = context;
   }
 
-  async process(
+  protected async generate(
     data: ProjectGenerationJobData,
-    jobId: string,
     progressReporter: ProgressReporter,
-  ): Promise<ProjectGenerationResult> {
+  ): Promise<GeneratedContent> {
     const { prompt, year } = data;
-    let { title } = data;
 
-    try {
-      await progressReporter.report({
-        progress: PROGRESS_STEPS.START,
-        total: 100,
-        message: "Starting project generation",
-      });
+    await this.reportProgress(progressReporter, {
+      progress: 10,
+      message: "Generating project content with AI",
+    });
 
-      await progressReporter.report({
-        progress: PROGRESS_STEPS.INIT,
-        total: 100,
-        message: "Generating project content with AI",
-      });
+    const generated = await this.context.ai.generate<GeneratedProjectContent>({
+      prompt,
+      templateName: "portfolio:generation",
+    });
 
-      // Generate project content with AI
-      const generated = await this.context.ai.generate<GeneratedProjectContent>(
-        {
-          prompt,
-          templateName: "portfolio:generation",
-        },
-      );
+    const title = data.title ?? generated.title;
+    const slug = slugify(title);
 
-      title = title ?? generated.title;
+    await this.reportProgress(progressReporter, {
+      progress: 50,
+      message: `Generated project: "${title}"`,
+    });
 
-      await progressReporter.report({
-        progress: PROGRESS_STEPS.GENERATE,
-        total: 100,
-        message: `Generated project: "${title}"`,
-      });
+    const frontmatter = {
+      title,
+      slug,
+      status: "draft" as const,
+      description: generated.description,
+      year,
+    };
 
-      await progressReporter.report({
-        progress: PROGRESS_STEPS.EXTRACT,
-        total: 100,
-        message: "Creating project entity",
-      });
+    const bodyContent = {
+      context: generated.context,
+      problem: generated.problem,
+      solution: generated.solution,
+      outcome: generated.outcome,
+    };
 
-      // Create frontmatter
-      const frontmatter = {
-        title,
-        slug: slugify(title),
-        status: "draft" as const,
-        description: generated.description,
-        year,
-      };
-
-      // Create structured body content
-      const bodyContent = {
-        context: generated.context,
-        problem: generated.problem,
-        solution: generated.solution,
-        outcome: generated.outcome,
-      };
-
-      // Generate markdown content
-      const content = projectAdapter.createProjectContent(
-        frontmatter,
-        bodyContent,
-      );
-
-      await progressReporter.report({
-        progress: PROGRESS_STEPS.SAVE,
-        total: 100,
-        message: "Saving project to database",
-      });
-
-      // Create entity
-      const result = await this.context.entityService.createEntity({
-        id: frontmatter.slug,
-        entityType: "project",
-        content,
-        metadata: {
-          title,
-          slug: frontmatter.slug,
-          status: "draft",
-          year,
-        },
-      });
-
-      await progressReporter.report({
-        progress: PROGRESS_STEPS.COMPLETE,
-        total: 100,
-        message: `Project "${title}" created successfully`,
-      });
-
-      return {
-        success: true,
-        entityId: result.entityId,
-        title,
-      };
-    } catch (error) {
-      this.logger.error("Project generation job failed", {
-        error,
-        jobId,
-        data,
-      });
-
-      return JobResult.failure(error);
-    }
+    return {
+      id: slug,
+      content: projectAdapter.createProjectContent(frontmatter, bodyContent),
+      metadata: { title, slug, status: "draft", year },
+      title,
+      resultExtras: { title },
+    };
   }
 
   protected override summarizeDataForLog(

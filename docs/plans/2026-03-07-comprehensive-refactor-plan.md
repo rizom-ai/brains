@@ -66,7 +66,7 @@
 
 ---
 
-## 5. Generation Job Handler Boilerplate (Medium Priority)
+## 5. Generation Job Handler Boilerplate (Medium Priority) ✅
 
 **Problem**: 6 generation handlers (note, blog, decks, portfolio, newsletter, image) all follow the identical pattern:
 
@@ -119,7 +119,7 @@ They all extend `BaseJobHandler` but the _actual generation flow_ is still dupli
 
 ---
 
-## 8. ShellInitializer God Constructor (Medium Priority)
+## 8. ShellInitializer God Constructor (Medium Priority) — Skipped
 
 **Problem**: `shell/core/src/initialization/shellInitializer.ts` (472 lines) creates and wires ~20 services in a single `initializeServices()` method. It imports from 15+ packages. This is the hardest file to understand in the codebase.
 
@@ -628,8 +628,8 @@ shell/app/src/
 | **Phase 0** (Quick Wins)       | #3, #12, #14                                          | Zero-risk cleanup, build confidence — ✅ Done                                                               |
 | **Phase 1** (Brain Model)      | #15 (`defineBrain` + `resolve` + migrate team-brain)  | Establish the model/instance split; create `brains/` workspace — ✅ Done                                    |
 | **Phase 2** (Brain Migration)  | #15 (migrate remaining brains, update deploy scripts) | Complete the separation; apps become 4-line entry points — ✅ Done                                          |
-| **Phase 3** (Foundation)       | #8, #9                                                | Simplify shell internals — #9 ✅ Done, #8 remaining                                                         |
-| **Phase 4** (Plugin Framework) | #1, #5, #6                                            | Reduce plugin boilerplate                                                                                   |
+| **Phase 3** (Foundation)       | #8, #9                                                | #9 ✅ Done, #8 skipped (low impact — linear startup code, rarely changed)                                   |
+| **Phase 4** (Plugin Framework) | #1, #5, #6                                            | #5 ✅ Done, #1 and #6 remaining                                                                             |
 | **Phase 5** (Architecture)     | #2, #4, #13                                           | Cross-plugin deps, themes, lazy loading (interface factories from #15 enable conditional loading naturally) |
 | **Phase 6** (Quality)          | #11, #7                                               | Integration tests validate brain models as data; mock shell cleanup                                         |
 | **Phase 7** (Polish)           | #10                                                   | Interface cleanup                                                                                           |
