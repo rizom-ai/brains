@@ -15,6 +15,39 @@ export interface EmbeddingJobData {
 }
 
 /**
+ * Options for entity mutation operations (create, update, upsert)
+ */
+export interface EntityJobOptions {
+  priority?: number;
+  maxRetries?: number;
+}
+
+/**
+ * Options for entity creation (extends EntityJobOptions with deduplication)
+ */
+export interface CreateEntityOptions extends EntityJobOptions {
+  deduplicateId?: boolean;
+}
+
+/**
+ * Result of an entity mutation that triggers an embedding job
+ */
+export interface EntityMutationResult {
+  entityId: string;
+  jobId: string;
+}
+
+/**
+ * Data for storing an embedding for an entity
+ */
+export interface StoreEmbeddingData {
+  entityId: string;
+  entityType: string;
+  embedding: Float32Array;
+  contentHash: string;
+}
+
+/**
  * Base entity schema that all entities must extend
  */
 export const baseEntitySchema = z.object({
@@ -204,10 +237,7 @@ export interface ICoreEntityService {
   // Entity counts
   countEntities(
     entityType: string,
-    options?: {
-      publishedOnly?: boolean;
-      filter?: { metadata?: Record<string, unknown> };
-    },
+    options?: Pick<ListOptions, "publishedOnly" | "filter">,
   ): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
 
@@ -219,61 +249,31 @@ export interface ICoreEntityService {
  * Entity service interface for managing brain entities
  */
 export interface EntityService extends ICoreEntityService {
-  // Core entity operations
-  getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
-  ): Promise<T | null>;
+  // Mutations
   createEntity<T extends BaseEntity>(
     entity: EntityInput<T>,
-    options?: {
-      priority?: number;
-      maxRetries?: number;
-      deduplicateId?: boolean;
-    },
-  ): Promise<{ entityId: string; jobId: string }>;
+    options?: CreateEntityOptions,
+  ): Promise<EntityMutationResult>;
   updateEntity<T extends BaseEntity>(
     entity: T,
-    options?: { priority?: number; maxRetries?: number },
-  ): Promise<{ entityId: string; jobId: string }>;
+    options?: EntityJobOptions,
+  ): Promise<EntityMutationResult>;
   deleteEntity(entityType: string, id: string): Promise<boolean>;
   upsertEntity<T extends BaseEntity>(
     entity: T,
-    options?: { priority?: number; maxRetries?: number },
-  ): Promise<{ entityId: string; jobId: string; created: boolean }>;
+    options?: EntityJobOptions,
+  ): Promise<EntityMutationResult & { created: boolean }>;
+  storeEmbedding(data: StoreEmbeddingData): Promise<void>;
 
-  // Query operations
-  listEntities<T extends BaseEntity>(
-    type: string,
-    options?: ListOptions,
-  ): Promise<T[]>;
-  search<T extends BaseEntity = BaseEntity>(
-    query: string,
-    options?: SearchOptions,
-  ): Promise<SearchResult<T>[]>;
-
-  // Entity type information
-  getEntityTypes(): string[];
-  hasEntityType(type: string): boolean;
-
-  // Serialization operations
+  // Serialization
   serializeEntity(entity: BaseEntity): string;
   deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
 
-  // Check async job status
+  // Job status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
     error?: string;
   } | null>;
-
-  // Store embedding for an entity (used by embedding job handler)
-  // Entity must already exist in entities table
-  storeEmbedding(data: {
-    entityId: string;
-    entityType: string;
-    embedding: Float32Array;
-    contentHash: string;
-  }): Promise<void>;
 }
 
 /**

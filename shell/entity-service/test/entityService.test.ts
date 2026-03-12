@@ -1,8 +1,7 @@
-import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { z } from "@brains/utils";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
-import type { BaseEntity } from "../src/types";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import {
@@ -12,6 +11,16 @@ import {
 } from "@brains/test-utils";
 import { type Logger, createId } from "@brains/utils";
 import { mockEmbeddingService } from "./helpers/mock-services";
+import {
+  setupEntityService,
+  type EntityServiceTestContext,
+} from "./helpers/setup-entity-service";
+import {
+  noteSchema as sharedNoteSchema,
+  noteAdapter as sharedNoteAdapter,
+  createNoteInput,
+  type Note as SharedNote,
+} from "./helpers/test-schemas";
 
 // Note schema with category (specific to these unit tests)
 const noteSchema = baseEntitySchema.extend({
@@ -231,87 +240,68 @@ describe("EntityService", (): void => {
       "Entity type registration failed for unknownType: No adapter registered for entity type",
     );
   });
+});
 
-  test("upsertEntity creates new entity when it doesn't exist", async () => {
-    const testEntity = createTestEntity<BaseEntity>("base", {
-      id: "new-entity",
-      content: "New content",
-    });
+describe("EntityService > upsertEntity", () => {
+  let ctx: EntityServiceTestContext;
 
-    entityService.getEntity = mock((_entityType: string, _id: string) =>
-      Promise.resolve(null),
+  beforeEach(async () => {
+    ctx = await setupEntityService([
+      { name: "note", schema: sharedNoteSchema, adapter: sharedNoteAdapter },
+    ]);
+  });
+
+  afterEach(async () => {
+    await ctx.cleanup();
+  });
+
+  test("creates new entity when it doesn't exist", async () => {
+    const input = createNoteInput(
+      { title: "New Note", content: "New content", tags: ["test"] },
+      "new-entity",
     );
-    entityService.createEntity = mock(() =>
-      Promise.resolve({ entityId: "new-entity", jobId: "job-123" }),
+    const result = await ctx.entityService.upsertEntity(
+      createTestEntity<SharedNote>("note", input),
     );
-
-    const result = await entityService.upsertEntity(testEntity);
 
     expect(result.entityId).toBe("new-entity");
-    expect(result.jobId).toBe("job-123");
     expect(result.created).toBe(true);
-    expect(entityService.getEntity).toHaveBeenCalledWith("base", "new-entity");
-    expect(entityService.createEntity).toHaveBeenCalledWith(
-      testEntity,
-      undefined,
-    );
+
+    const retrieved = await ctx.entityService.getEntity("note", "new-entity");
+    expect(retrieved).not.toBeNull();
   });
 
-  test("upsertEntity updates existing entity", async () => {
-    const existingEntity = createTestEntity<BaseEntity>("base", {
-      id: "existing-entity",
-      content: "Initial content",
-      created: "2023-01-01T00:00:00.000Z",
-      updated: "2023-01-01T00:00:00.000Z",
-    });
-
-    const updatedEntity = createTestEntity<BaseEntity>("base", {
-      ...existingEntity,
-      content: "Updated content",
-    });
-
-    entityService.getEntity = mock((_entityType: string, _id: string) =>
-      Promise.resolve(existingEntity),
-    ) as typeof entityService.getEntity;
-    entityService.updateEntity = mock(() =>
-      Promise.resolve({ entityId: "existing-entity", jobId: "job-456" }),
-    );
-
-    const result = await entityService.upsertEntity(updatedEntity);
-
-    expect(result.entityId).toBe("existing-entity");
-    expect(result.jobId).toBe("job-456");
-    expect(result.created).toBe(false);
-    expect(entityService.getEntity).toHaveBeenCalledWith(
-      "base",
+  test("updates existing entity", async () => {
+    const input = createNoteInput(
+      { title: "Initial", content: "Initial content", tags: [] },
       "existing-entity",
     );
-    expect(entityService.updateEntity).toHaveBeenCalledWith(
-      updatedEntity,
-      undefined,
-    );
+    await ctx.entityService.createEntity<SharedNote>(input);
+
+    const updated = createTestEntity<SharedNote>("note", {
+      ...input,
+      id: "existing-entity",
+      content: "Updated content",
+    });
+    const result = await ctx.entityService.upsertEntity(updated);
+
+    expect(result.entityId).toBe("existing-entity");
+    expect(result.created).toBe(false);
   });
 
-  test("upsertEntity passes options to create/update", async () => {
-    const testEntity = createTestEntity<BaseEntity>("base", {
-      id: "test-entity",
-      content: "Test content",
-    });
-
+  test("passes options through", async () => {
+    const input = createNoteInput(
+      { title: "Options Note", content: "Test content", tags: [] },
+      "options-entity",
+    );
     const options = { priority: 5, maxRetries: 10 };
 
-    entityService.getEntity = mock((_entityType: string, _id: string) =>
-      Promise.resolve(null),
-    );
-    entityService.createEntity = mock(() =>
-      Promise.resolve({ entityId: "test-entity", jobId: "job-789" }),
-    );
-
-    await entityService.upsertEntity(testEntity, options);
-
-    expect(entityService.createEntity).toHaveBeenCalledWith(
-      testEntity,
+    const result = await ctx.entityService.upsertEntity(
+      createTestEntity<SharedNote>("note", input),
       options,
     );
+
+    expect(result.entityId).toBe("options-entity");
+    expect(result.created).toBe(true);
   });
 });

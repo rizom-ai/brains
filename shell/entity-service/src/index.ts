@@ -21,6 +21,10 @@ export type {
   ICoreEntityService,
   EntityDbConfig,
   EntityTypeConfig,
+  EntityJobOptions,
+  CreateEntityOptions,
+  EntityMutationResult,
+  StoreEmbeddingData,
 } from "./types";
 
 export { baseEntitySchema } from "./types";
