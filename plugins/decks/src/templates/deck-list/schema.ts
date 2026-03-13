@@ -1,13 +1,13 @@
 import { z } from "@brains/utils";
 import {
-  deckSchema,
+  deckWithDataSchema,
   enrichedDeckSchema,
   type EnrichedDeck,
 } from "../../schemas/deck";
 
 // Schema for deck list page data (non-enriched, returned by datasource)
 export const deckListSchema = z.object({
-  decks: z.array(deckSchema),
+  decks: z.array(deckWithDataSchema),
 });
 
 // Schema for enriched deck list page data (used by template)

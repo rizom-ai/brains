@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Deck status
@@ -15,11 +16,13 @@ export const deckFrontmatterSchema = z.object({
   slug: z.string().optional(), // Auto-generated from title if not provided
   description: z.string().optional(),
   author: z.string().optional(),
-  status: deckStatusSchema.default("draft"),
+  status: deckStatusSchema,
   publishedAt: z.string().datetime().optional(),
   event: z.string().optional(),
   coverImageId: z.string().optional(), // References an image entity by ID
 });
+
+export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
 
 /**
  * Deck metadata schema - derived from frontmatter
@@ -35,54 +38,45 @@ export const deckMetadataSchema = deckFrontmatterSchema
   })
   .extend({
     slug: z.string(), // Required in metadata (auto-generated from title)
-    status: deckStatusSchema, // Override to remove .default() from frontmatter
   });
 
 export type DeckMetadata = z.infer<typeof deckMetadataSchema>;
 
 /**
- * Deck entity schema
- * Represents a presentation deck stored as markdown with slide separators
+ * Deck entity schema (extends BaseEntity)
+ * Content field contains markdown with frontmatter + slide content
+ * Metadata field duplicates key fields from frontmatter for fast queries
  */
-export const deckSchema = z.object({
-  id: z.string(),
+export const deckSchema = baseEntitySchema.extend({
   entityType: z.literal("deck"),
-  content: z.string().describe("Markdown content with slide separators (---)"),
-  contentHash: z
-    .string()
-    .describe("SHA256 hash of content for change detection"),
-  created: z.string().datetime(),
-  updated: z.string().datetime(),
   metadata: deckMetadataSchema,
-
-  // Frontmatter fields
-  title: z.string().describe("Presentation title"),
-  description: z.string().optional().describe("Brief description"),
-  author: z.string().optional().describe("Author name"),
-  status: deckStatusSchema.describe("Publication status"),
-  publishedAt: z
-    .string()
-    .datetime()
-    .optional()
-    .describe("Date when presentation was published"),
-  event: z.string().optional().describe("Event where presentation was given"),
-  coverImageId: z
-    .string()
-    .optional()
-    .describe("ID of an image entity to use as cover image"),
 });
 
 export type DeckEntity = z.infer<typeof deckSchema>;
 
 /**
+ * Deck with parsed frontmatter data (returned by datasource)
+ * Extends DeckEntity with parsed frontmatter and body (markdown without frontmatter)
+ */
+export const deckWithDataSchema = deckSchema.extend({
+  frontmatter: deckFrontmatterSchema,
+  body: z.string(),
+});
+
+export type DeckWithData = z.infer<typeof deckWithDataSchema>;
+
+/**
  * Enriched deck schema (used for validation)
  * url, typeLabel, listUrl, listLabel are optional to allow validation before enrichment
  */
-export const enrichedDeckSchema = deckSchema.extend({
+export const enrichedDeckSchema = deckWithDataSchema.extend({
   url: z.string().optional(),
   typeLabel: z.string().optional(),
   listUrl: z.string().optional(),
   listLabel: z.string().optional(),
+  coverImageUrl: z.string().optional(),
+  coverImageWidth: z.number().optional(),
+  coverImageHeight: z.number().optional(),
 });
 
 /**

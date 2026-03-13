@@ -105,8 +105,6 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
         const publishedAt = new Date().toISOString();
         const updatedDeck: DeckEntity = {
           ...deck,
-          status: "published",
-          publishedAt,
           metadata: {
             ...deck.metadata,
             status: "published",

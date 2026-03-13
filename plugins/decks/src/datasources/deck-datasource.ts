@@ -1,25 +1,32 @@
-import { BaseEntityDataSource } from "@brains/plugins";
+import {
+  BaseEntityDataSource,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import type {
   BaseQuery,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { DeckEntity } from "../schemas/deck";
+import { deckFrontmatterSchema } from "../schemas/deck";
+import type { DeckEntity, DeckWithData } from "../schemas/deck";
 
 interface DeckDetailData {
   markdown: string;
 }
 
 interface DeckListData {
-  decks: DeckEntity[];
+  decks: DeckWithData[];
 }
 
 /**
  * DataSource for fetching and transforming deck entities.
  * Handles both detail views (single deck) and list views (all decks).
  */
-export class DeckDataSource extends BaseEntityDataSource<DeckEntity> {
+export class DeckDataSource extends BaseEntityDataSource<
+  DeckEntity,
+  DeckWithData
+> {
   readonly id = "decks:entities";
   readonly name = "Deck Entity DataSource";
   readonly description = "Fetches and transforms deck entities for rendering";
@@ -37,19 +44,21 @@ export class DeckDataSource extends BaseEntityDataSource<DeckEntity> {
     this.logger.debug("DeckDataSource initialized");
   }
 
-  protected transformEntity(entity: DeckEntity): DeckEntity {
-    return entity;
+  protected transformEntity(entity: DeckEntity): DeckWithData {
+    const { metadata: frontmatter, content: body } =
+      parseMarkdownWithFrontmatter(entity.content, deckFrontmatterSchema);
+    return { ...entity, frontmatter, body };
   }
 
   protected override buildDetailResult(
-    item: DeckEntity,
-    _navigation: NavigationResult<DeckEntity> | null,
+    item: DeckWithData,
+    _navigation: NavigationResult<DeckWithData> | null,
   ): DeckDetailData {
     return { markdown: item.content };
   }
 
   protected buildListResult(
-    items: DeckEntity[],
+    items: DeckWithData[],
     _pagination: PaginationInfo | null,
     _query: BaseQuery,
   ): DeckListData {

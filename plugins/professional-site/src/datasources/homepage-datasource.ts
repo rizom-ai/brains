@@ -10,7 +10,11 @@ import {
   type BlogPostWithData,
   blogPostFrontmatterSchema,
 } from "@brains/blog";
-import type { DeckEntity } from "@brains/decks";
+import {
+  deckFrontmatterSchema,
+  type DeckEntity,
+  type DeckWithData,
+} from "@brains/decks";
 import { SiteInfoAdapter, type SiteInfoCTA } from "@brains/site-builder-plugin";
 
 /**
@@ -20,7 +24,7 @@ import { SiteInfoAdapter, type SiteInfoCTA } from "@brains/site-builder-plugin";
 interface HomepageDataSourceOutput {
   profile: ProfessionalProfile;
   posts: BlogPostWithData[];
-  decks: DeckEntity[];
+  decks: DeckWithData[];
   postsListUrl: string;
   decksListUrl: string;
   cta: SiteInfoCTA;
@@ -104,7 +108,18 @@ export class HomepageListDataSource implements DataSource {
     );
 
     // Sort by publishedAt (or created as fallback) and take the 3 most recent
-    const decks = publishedDecks.sort(sortByPublicationDate).slice(0, 3);
+    const sortedDecks = publishedDecks.sort(sortByPublicationDate).slice(0, 3);
+
+    // Parse frontmatter for decks to include description and other display fields
+    const decks: DeckWithData[] = sortedDecks.map((deck) => {
+      const { metadata: frontmatter, content: body } =
+        parseMarkdownWithFrontmatter(deck.content, deckFrontmatterSchema);
+      return {
+        ...deck,
+        frontmatter,
+        body,
+      };
+    });
 
     // Fetch site-info for CTA
     const siteInfoEntities = await entityService.listEntities("site-info", {

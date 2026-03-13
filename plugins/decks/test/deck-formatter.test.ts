@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { DeckFormatter } from "../src/formatters/deck-formatter";
-import { deckSchema } from "../src/schemas/deck";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckFormatter", () => {
@@ -15,7 +14,6 @@ describe("DeckFormatter", () => {
       const schema = formatter.schema;
 
       const validDeck = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Presentation",
         metadata: {
@@ -35,10 +33,10 @@ describe("DeckFormatter", () => {
         id: "test-deck",
         entityType: "note", // Wrong type
         content: "# Slide 1\n\n---\n\n# Slide 2",
-        title: "Test Presentation",
+        contentHash: "abc",
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
-        metadata: { slug: "test-deck", title: "Test Deck" },
+        metadata: { slug: "test-deck", title: "Test Deck", status: "draft" },
       };
 
       expect(() => schema.parse(invalidDeck)).toThrow();
@@ -48,7 +46,6 @@ describe("DeckFormatter", () => {
   describe("toMarkdown", () => {
     it("should generate markdown with frontmatter", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Welcome\n\nIntro slide\n\n---\n\n# Main Content",
         title: "Test Presentation",
         description: "A test presentation",
@@ -56,7 +53,7 @@ describe("DeckFormatter", () => {
         status: "published",
         metadata: {
           slug: "test-deck",
-          title: "Test Deck",
+          title: "Test Presentation",
           status: "published",
         },
       });
@@ -74,7 +71,6 @@ describe("DeckFormatter", () => {
 
     it("should throw error if content has no slide separators", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Just one slide without separators",
         title: "Invalid Deck",
       });
@@ -86,7 +82,6 @@ describe("DeckFormatter", () => {
 
     it("should include optional fields when present", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Optional description",
@@ -104,6 +99,7 @@ describe("DeckFormatter", () => {
 title: Test Presentation
 description: A test presentation
 author: Jane Developer
+status: published
 ---
 
 # Welcome
@@ -119,17 +115,17 @@ Key points`;
       const result = formatter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("deck");
-      expect(result.title).toBe("Test Presentation");
-      expect(result.description).toBe("A test presentation");
-      expect(result.author).toBe("Jane Developer");
+      expect(result.metadata?.title).toBe("Test Presentation");
+      expect(result.metadata?.slug).toBe("test-presentation");
+      // Content is the full markdown (frontmatter is preserved for storage)
+      expect(result.content).toContain("title: Test Presentation");
       expect(result.content).toContain("# Welcome");
-      expect(result.content).toContain("# Main Content");
-      expect(result.content).not.toContain("---\ntitle:");
     });
 
     it("should throw error if content has no slide separators", () => {
       const markdown = `---
 title: Invalid Deck
+status: draft
 ---
 
 # Just one slide`;
@@ -142,6 +138,7 @@ title: Invalid Deck
     it("should handle missing optional fields", () => {
       const markdown = `---
 title: Minimal Deck
+status: draft
 ---
 
 # Slide 1
@@ -152,21 +149,16 @@ title: Minimal Deck
 
       const result = formatter.fromMarkdown(markdown);
 
-      expect(result.title).toBe("Minimal Deck");
-      expect(result.description).toBeUndefined();
-      expect(result.author).toBeUndefined();
-      expect(result.status).toBe("draft"); // Default status
+      expect(result.metadata?.title).toBe("Minimal Deck");
+      expect(result.metadata?.status).toBe("draft");
     });
   });
 
   describe("extractMetadata", () => {
     it("should extract deck metadata", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
-        description: "Test description",
-        author: "Test Author",
         status: "published",
         metadata: {
           slug: "test-deck",
@@ -184,7 +176,6 @@ title: Minimal Deck
 
     it("should handle missing optional metadata", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
       });
@@ -198,9 +189,8 @@ title: Minimal Deck
   });
 
   describe("generateTitle", () => {
-    it("should return entity title", () => {
+    it("should return entity title from metadata", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "My Presentation",
       });
@@ -212,22 +202,8 @@ title: Minimal Deck
   });
 
   describe("generateSummary", () => {
-    it("should return description when available", () => {
+    it("should return fallback summary", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
-        content: "# Slide 1\n\n---\n\n# Slide 2",
-        title: "Test Deck",
-        description: "This is a test presentation",
-      });
-
-      const summary = formatter.generateSummary(entity);
-
-      expect(summary).toBe("This is a test presentation");
-    });
-
-    it("should return fallback when no description", () => {
-      const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
       });
@@ -242,6 +218,7 @@ title: Minimal Deck
     it("should accept content with multiple slide separators", () => {
       const markdown = `---
 title: Multi-slide Deck
+status: draft
 ---
 
 # Slide 1
@@ -261,12 +238,13 @@ title: Multi-slide Deck
       const result = formatter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("deck");
-      expect(result.title).toBe("Multi-slide Deck");
+      expect(result.metadata?.title).toBe("Multi-slide Deck");
     });
 
     it("should validate slide separators as standalone lines", () => {
       const markdown = `---
 title: Valid Deck
+status: draft
 ---
 
 # Slide 1
@@ -279,35 +257,9 @@ title: Valid Deck
     });
   });
 
-  describe("parseFrontMatter", () => {
-    it("should parse frontmatter from markdown", () => {
-      const markdown = `---
-title: Test Deck
-description: Test description
----
-
-# Slide 1
-
----
-
-# Slide 2`;
-
-      const schema = deckSchema.pick({
-        title: true,
-        description: true,
-      });
-
-      const result = formatter.parseFrontMatter(markdown, schema);
-
-      expect(result.title).toBe("Test Deck");
-      expect(result.description).toBe("Test description");
-    });
-  });
-
   describe("generateFrontMatter", () => {
     it("should generate frontmatter for entity", () => {
       const entity = createMockDeckEntity({
-        id: "test-deck",
         content: "# Slide 1\n\n---\n\n# Slide 2",
         title: "Test Deck",
         description: "Test description",

@@ -10,9 +10,9 @@ export const DeckListLayout = ({
   const deckItems: ContentItem[] = decks.map((deck) => ({
     id: deck.id,
     url: deck.url,
-    title: deck.title,
-    date: deck.publishedAt ?? deck.created,
-    description: deck.description,
+    title: deck.frontmatter.title,
+    date: deck.metadata.publishedAt ?? deck.created,
+    description: deck.frontmatter.description,
   }));
 
   return (

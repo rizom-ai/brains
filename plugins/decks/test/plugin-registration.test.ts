@@ -10,13 +10,16 @@ const sampleDraftDeck: DeckEntity = {
   content: `---
 title: Test Deck
 status: draft
+slug: test-deck
 ---
-# Slide 1`,
+# Slide 1
+
+---
+
+# Slide 2`,
   contentHash: "abc123",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
-  title: "Test Deck",
-  status: "draft",
   metadata: {
     title: "Test Deck",
     slug: "test-deck",

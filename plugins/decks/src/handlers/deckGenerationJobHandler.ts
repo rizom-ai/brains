@@ -1,11 +1,12 @@
-import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
+import {
+  BaseGenerationJobHandler,
+  ensureUniqueTitle,
+  generateMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify, generationResultSchema } from "@brains/utils";
-import { computeContentHash } from "@brains/utils/hash";
-import type { DeckEntity } from "../schemas/deck";
-import { DeckFormatter } from "../formatters/deck-formatter";
 
 /**
  * Input schema for deck generation job
@@ -37,8 +38,6 @@ export class DeckGenerationJobHandler extends BaseGenerationJobHandler<
   DeckGenerationJobData,
   DeckGenerationResult
 > {
-  private formatter = new DeckFormatter();
-
   constructor(logger: Logger, context: ServicePluginContext) {
     super(logger, context, {
       schema: deckGenerationJobSchema,
@@ -151,19 +150,8 @@ Add your conclusion here`;
     }
 
     const slug = slugify(title);
-    const now = new Date().toISOString();
 
-    const deckEntity: Omit<DeckEntity, "id" | "created" | "updated"> = {
-      entityType: "deck",
-      content,
-      contentHash: computeContentHash(content),
-      title,
-      description,
-      author,
-      status: "draft",
-      event,
-      metadata: { slug, title, status: "draft" },
-    };
+    const metadata = { slug, title, status: "draft" as const };
 
     // Ensure title doesn't collide
     const finalTitle = await ensureUniqueTitle({
@@ -176,24 +164,30 @@ Add your conclusion here`;
     });
 
     if (finalTitle !== title) {
-      deckEntity.title = finalTitle;
-      deckEntity.metadata.title = finalTitle;
-      deckEntity.metadata.slug = slugify(finalTitle);
+      metadata.title = finalTitle;
+      metadata.slug = slugify(finalTitle);
     }
 
-    const finalMarkdown = this.formatter.toMarkdown({
-      ...deckEntity,
-      id: "temp",
-      created: now,
-      updated: now,
-    });
+    // Build frontmatter from generation data, filtering out undefined values
+    const frontmatter = Object.fromEntries(
+      Object.entries({
+        title: metadata.title,
+        status: metadata.status,
+        slug: metadata.slug,
+        description,
+        author,
+        event,
+      }).filter(([, v]) => v !== undefined),
+    );
+
+    const finalMarkdown = generateMarkdownWithFrontmatter(content, frontmatter);
 
     return {
       id: finalTitle,
       content: finalMarkdown,
-      metadata: deckEntity.metadata,
+      metadata,
       title: finalTitle,
-      resultExtras: { title: finalTitle, slug: deckEntity.metadata.slug },
+      resultExtras: { title: finalTitle, slug: metadata.slug },
       createOptions: { deduplicateId: true },
     };
   }

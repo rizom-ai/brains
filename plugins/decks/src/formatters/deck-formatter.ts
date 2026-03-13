@@ -1,13 +1,12 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { type z, slugify } from "@brains/utils";
+import { slugify } from "@brains/utils";
 import {
   deckSchema,
   deckFrontmatterSchema,
   type DeckEntity,
+  type DeckFrontmatter,
   type DeckMetadata,
 } from "../schemas/deck";
-
-type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
 
 /**
  * Deck formatter for managing presentation deck entities
@@ -41,27 +40,29 @@ export class DeckFormatter extends BaseEntityAdapter<
 
   /**
    * Convert entity to markdown with frontmatter
-   * Syncs slug from metadata back to frontmatter
+   * Parses existing frontmatter from content, merges slug from metadata
    */
   public toMarkdown(entity: DeckEntity): string {
+    const body = this.extractBody(entity.content);
     // Validate before serializing
-    this.validateSlideStructure(entity.content);
+    this.validateSlideStructure(body);
 
-    // Build frontmatter, filtering out undefined values
-    const frontmatter = Object.fromEntries(
-      Object.entries({
-        title: entity.title,
-        status: entity.status,
-        slug: entity.metadata.slug,
-        description: entity.description,
-        author: entity.author,
-        publishedAt: entity.publishedAt,
-        event: entity.event,
-        coverImageId: entity.coverImageId,
-      }).filter(([, v]) => v !== undefined),
-    );
+    try {
+      const frontmatter = this.parseFrontMatter(
+        entity.content,
+        deckFrontmatterSchema,
+      );
 
-    return this.buildMarkdown(entity.content, frontmatter);
+      // Merge auto-generated slug from metadata if missing in frontmatter
+      const completeFrontmatter = {
+        ...frontmatter,
+        slug: frontmatter.slug ?? entity.metadata.slug,
+      };
+
+      return this.buildMarkdown(body, completeFrontmatter);
+    } catch {
+      return body;
+    }
   }
 
   /**
@@ -82,14 +83,7 @@ export class DeckFormatter extends BaseEntityAdapter<
 
     return {
       entityType: "deck",
-      content,
-      title: frontmatter.title,
-      description: frontmatter.description,
-      author: frontmatter.author,
-      status,
-      publishedAt: frontmatter.publishedAt,
-      event: frontmatter.event,
-      coverImageId: frontmatter.coverImageId,
+      content: markdown,
       metadata: {
         slug,
         title: frontmatter.title,
@@ -104,14 +98,14 @@ export class DeckFormatter extends BaseEntityAdapter<
    * Generate a human-readable title from deck
    */
   public generateTitle(entity: DeckEntity): string {
-    return entity.title;
+    return entity.metadata.title;
   }
 
   /**
    * Generate a brief summary for search results
    */
   public generateSummary(entity: DeckEntity): string {
-    return entity.description ?? `Presentation: ${entity.title}`;
+    return `Presentation: ${entity.metadata.title}`;
   }
 
   /**

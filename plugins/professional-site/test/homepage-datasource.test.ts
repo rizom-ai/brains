@@ -56,14 +56,21 @@ Content here`;
     },
   });
 
-  const deckContent = "# Test Deck\n\n---\n\nSlide content";
+  const deckContent = `---
+title: Test Deck
+description: A test presentation
+status: published
+slug: test-deck
+publishedAt: '2025-01-10T10:00:00.000Z'
+---
+# Test Deck
+
+---
+
+Slide content`;
 
   const mockDeck: DeckEntity = createTestEntity<DeckEntity>("deck", {
     id: "deck-1",
-    title: "Test Deck",
-    description: "A test presentation",
-    status: "published",
-    publishedAt: "2025-01-10T10:00:00.000Z",
     content: deckContent,
     metadata: {
       slug: "test-deck",

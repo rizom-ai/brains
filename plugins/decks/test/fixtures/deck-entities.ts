@@ -1,5 +1,10 @@
-import type { DeckEntity, DeckMetadata } from "../../src/schemas/deck";
+import type {
+  DeckEntity,
+  DeckFrontmatter,
+  DeckMetadata,
+} from "../../src/schemas/deck";
 import { createTestEntity } from "@brains/test-utils";
+import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 
 /**
  * Default deck metadata for tests
@@ -10,58 +15,57 @@ export const defaultDeckMetadata: DeckMetadata = {
   status: "draft",
 };
 
-/**
- * Create a mock DeckEntity with computed contentHash
- */
-export function createMockDeckEntity(
-  overrides: Partial<Omit<DeckEntity, "contentHash">> & { content: string },
-): DeckEntity {
-  const title = overrides.title ?? "Test Deck";
-  const status = overrides.status ?? "draft";
-  return createTestEntity<DeckEntity>("deck", {
-    id: overrides.id ?? "test-deck",
-    content: overrides.content,
-    title,
-    status,
-    ...(overrides.created && { created: overrides.created }),
-    ...(overrides.updated && { updated: overrides.updated }),
-    metadata: overrides.metadata ?? {
-      slug: overrides.id ?? "test-deck",
-      title,
-      status,
-    },
-    ...(overrides.description && { description: overrides.description }),
-    ...(overrides.author && { author: overrides.author }),
-    ...(overrides.publishedAt && { publishedAt: overrides.publishedAt }),
-    ...(overrides.event && { event: overrides.event }),
-  });
+interface MockDeckOptions {
+  id?: string;
+  title?: string;
+  status?: "draft" | "queued" | "published";
+  description?: string;
+  author?: string;
+  publishedAt?: string;
+  event?: string;
+  coverImageId?: string;
+  content?: string; // Slide body content (without frontmatter)
+  created?: string;
+  updated?: string;
+  metadata?: DeckMetadata;
 }
 
 /**
- * Create partial deck entity input (without id/created/updated)
+ * Create a mock DeckEntity with proper frontmatter in content
  */
-export function createMockDeckInput(
-  overrides: Partial<
-    Omit<DeckEntity, "contentHash" | "id" | "created" | "updated">
-  > & { content: string },
-): Omit<DeckEntity, "id" | "created" | "updated"> {
+export function createMockDeckEntity(
+  overrides: MockDeckOptions & { content: string },
+): DeckEntity {
   const title = overrides.title ?? "Test Deck";
   const status = overrides.status ?? "draft";
-  const base = createTestEntity<DeckEntity>("deck", {
-    content: overrides.content,
+  const slug = overrides.id ?? "test-deck";
+
+  const metadata: DeckMetadata = overrides.metadata ?? {
+    slug,
     title,
     status,
-    metadata: overrides.metadata ?? {
-      slug: "test-deck",
-      title,
-      status,
-    },
-    ...(overrides.description && { description: overrides.description }),
-    ...(overrides.author && { author: overrides.author }),
     ...(overrides.publishedAt && { publishedAt: overrides.publishedAt }),
-    ...(overrides.event && { event: overrides.event }),
+    ...(overrides.coverImageId && { coverImageId: overrides.coverImageId }),
+  };
+
+  // Build content with frontmatter, filtering out undefined values
+  const frontmatter: Partial<DeckFrontmatter> = { title, status, slug };
+  if (overrides.description) frontmatter.description = overrides.description;
+  if (overrides.author) frontmatter.author = overrides.author;
+  if (overrides.publishedAt) frontmatter.publishedAt = overrides.publishedAt;
+  if (overrides.event) frontmatter.event = overrides.event;
+  if (overrides.coverImageId) frontmatter.coverImageId = overrides.coverImageId;
+
+  const fullContent = generateMarkdownWithFrontmatter(
+    overrides.content,
+    frontmatter,
+  );
+
+  return createTestEntity<DeckEntity>("deck", {
+    id: overrides.id ?? "test-deck",
+    content: fullContent,
+    metadata,
+    ...(overrides.created && { created: overrides.created }),
+    ...(overrides.updated && { updated: overrides.updated }),
   });
-  // Remove id/created/updated for input type
-  const { id: _id, created: _created, updated: _updated, ...rest } = base;
-  return rest;
 }

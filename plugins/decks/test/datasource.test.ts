@@ -4,11 +4,8 @@ import type { DeckEntity } from "../src/schemas/deck";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
-import {
-  createMockLogger,
-  createMockEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckDataSource", () => {
   let datasource: DeckDataSource;
@@ -23,19 +20,16 @@ describe("DeckDataSource", () => {
     status: "draft" | "published",
     publishedAt?: string,
   ): DeckEntity => {
-    const content = `# ${title}\n\n---\n\n# Slide 2`;
-    return createTestEntity<DeckEntity>("deck", {
+    const metadata = publishedAt
+      ? { title, slug, status, publishedAt }
+      : { title, slug, status };
+    return createMockDeckEntity({
       id,
-      content,
       title,
       status,
-      publishedAt,
-      metadata: {
-        title,
-        slug,
-        status,
-        publishedAt,
-      },
+      ...(publishedAt ? { publishedAt } : {}),
+      content: `# ${title}\n\n---\n\n# Slide 2`,
+      metadata,
     });
   };
 
@@ -82,7 +76,9 @@ describe("DeckDataSource", () => {
 
       expect(result.decks).toHaveLength(2);
       expect(
-        result.decks.every((d: DeckEntity) => d.status === "published"),
+        result.decks.every(
+          (d: DeckEntity) => d.metadata.status === "published",
+        ),
       ).toBe(true);
     });
 
@@ -108,7 +104,7 @@ describe("DeckDataSource", () => {
       );
 
       expect(result.decks).toHaveLength(3);
-      const statuses = result.decks.map((d: DeckEntity) => d.status);
+      const statuses = result.decks.map((d: DeckEntity) => d.metadata.status);
       expect(statuses).toContain("published");
       expect(statuses).toContain("draft");
     });

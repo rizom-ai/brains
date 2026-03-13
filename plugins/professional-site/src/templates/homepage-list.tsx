@@ -60,9 +60,9 @@ export const HomepageListLayout = ({
   const deckItems: ContentItem[] = decks.map((deck) => ({
     id: deck.id,
     url: deck.url,
-    title: deck.title || deck.id,
-    date: deck.publishedAt ?? deck.created,
-    description: deck.description,
+    title: deck.frontmatter.title || deck.id,
+    date: deck.metadata.publishedAt ?? deck.created,
+    description: deck.frontmatter.description,
   }));
 
   const title = profile.name || "Home";
