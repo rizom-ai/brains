@@ -71,6 +71,7 @@
     "shell/*",
     "shared/*",
     "plugins/*",
+    "layouts/*",
     "interfaces/*",
     "brains/*",
     "apps/*"

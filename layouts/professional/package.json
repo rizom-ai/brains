@@ -1,7 +1,7 @@
 {
-  "name": "@brains/professional-site",
+  "name": "@brains/layout-professional",
   "version": "0.1.0",
-  "description": "Professional site plugin with homepage template and datasource",
+  "description": "Professional layout — editorial composition of blog, deck, and profile content into pages",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

@@ -29,7 +29,7 @@ import {
   professionalSitePlugin,
   ProfessionalLayout,
   routes,
-} from "@brains/professional-site";
+} from "@brains/layout-professional";
 import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-brutalist";
 import { join } from "path";

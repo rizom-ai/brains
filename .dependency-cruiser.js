@@ -44,6 +44,17 @@ module.exports = {
       },
     },
     {
+      name: "no-plugin-to-layout-imports",
+      severity: "error",
+      comment: "Plugins must not depend on layout compositions",
+      from: {
+        path: "^plugins/",
+      },
+      to: {
+        path: "^layouts/",
+      },
+    },
+    {
       name: "no-interface-to-interface-imports",
       severity: "error",
       comment:
