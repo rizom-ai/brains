@@ -54,7 +54,7 @@ export class DeckDataSource extends BaseEntityDataSource<
     item: DeckWithData,
     _navigation: NavigationResult<DeckWithData> | null,
   ): DeckDetailData {
-    return { markdown: item.content };
+    return { markdown: item.body };
   }
 
   protected buildListResult(

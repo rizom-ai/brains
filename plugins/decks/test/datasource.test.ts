@@ -157,7 +157,8 @@ describe("DeckDataSource", () => {
         mockContext,
       );
 
-      expect(result.markdown).toBe(deck.content);
+      // Should return body (slides) without frontmatter
+      expect(result.markdown).toBe("# Test Deck\n\n---\n\n# Slide 2");
     });
 
     it("should throw error when deck not found", async () => {
