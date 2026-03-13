@@ -83,10 +83,6 @@ export {
   type SortField,
 } from "./service/base-entity-datasource";
 export { paginationInfoSchema } from "@brains/entity-service";
-export {
-  baseQuerySchema,
-  baseInputSchema,
-} from "./service/base-entity-datasource";
 
 // ============================================================================
 // Job System & Generation
