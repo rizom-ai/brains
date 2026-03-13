@@ -117,7 +117,14 @@ export class TopicsDataSource extends BaseEntityDataSource<
       });
     }
 
-    // List view: use base class
-    return super.fetch(query, outputSchema, context);
+    // List view
+    const entityService = context.entityService;
+    const { items, pagination } = await this.fetchList(
+      parsedQuery,
+      entityService,
+    );
+    return outputSchema.parse(
+      this.buildListResult(items, pagination, parsedQuery),
+    );
   }
 }

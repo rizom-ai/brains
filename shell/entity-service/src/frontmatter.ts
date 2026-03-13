@@ -195,27 +195,3 @@ export function generateFrontmatter(metadata: Record<string, unknown>): string {
   const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
   return match ? match[0] : "";
 }
-
-/**
- * Check if a value should be included in frontmatter
- * Filters out undefined, null, empty arrays, and empty objects
- */
-export function shouldIncludeInFrontmatter(value: unknown): boolean {
-  if (value === undefined || value === null) {
-    return false;
-  }
-
-  if (Array.isArray(value) && value.length === 0) {
-    return false;
-  }
-
-  if (
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    Object.keys(value).length === 0
-  ) {
-    return false;
-  }
-
-  return true;
-}

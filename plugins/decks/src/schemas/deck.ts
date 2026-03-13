@@ -32,6 +32,7 @@ export type DeckFrontmatter = z.infer<typeof deckFrontmatterSchema>;
 export const deckMetadataSchema = deckFrontmatterSchema
   .pick({
     title: true,
+    description: true,
     status: true,
     publishedAt: true,
     coverImageId: true,

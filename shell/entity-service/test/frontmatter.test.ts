@@ -6,7 +6,6 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   generateFrontmatter,
-  shouldIncludeInFrontmatter,
   type FrontmatterConfig,
 } from "../src/frontmatter";
 import type { BaseEntity } from "../src/types";
@@ -215,29 +214,6 @@ Content here`;
     it("should return empty string for empty metadata", () => {
       const frontmatter = generateFrontmatter({});
       expect(frontmatter).toBe("");
-    });
-  });
-
-  describe("shouldIncludeInFrontmatter", () => {
-    it("should exclude null and undefined", () => {
-      expect(shouldIncludeInFrontmatter(null)).toBe(false);
-      expect(shouldIncludeInFrontmatter(undefined)).toBe(false);
-    });
-
-    it("should exclude empty arrays", () => {
-      expect(shouldIncludeInFrontmatter([])).toBe(false);
-    });
-
-    it("should exclude empty objects", () => {
-      expect(shouldIncludeInFrontmatter({})).toBe(false);
-    });
-
-    it("should include valid values", () => {
-      expect(shouldIncludeInFrontmatter("string")).toBe(true);
-      expect(shouldIncludeInFrontmatter(0)).toBe(true);
-      expect(shouldIncludeInFrontmatter(false)).toBe(true);
-      expect(shouldIncludeInFrontmatter(["item"])).toBe(true);
-      expect(shouldIncludeInFrontmatter({ key: "value" })).toBe(true);
     });
   });
 
