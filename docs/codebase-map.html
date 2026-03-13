@@ -143,13 +143,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <script>
 // ── Group definitions ──
 const GROUPS = {
-  apps:           { label: 'Apps',              color: '#58a6ff', bg: '#1c2e4a' },
+  brains:         { label: 'Brains',            color: '#79c0ff', bg: '#162640' },
   interfaces:     { label: 'Interfaces',        color: '#d29922', bg: '#3b2a1a' },
   content:        { label: 'Content Creation',  color: '#3fb950', bg: '#1a3326' },
   'shell-runtime':{ label: 'Shell Runtime',     color: '#bc8cff', bg: '#2a1840' },
   'shell-data':   { label: 'Shell Data',        color: '#bc8cff', bg: '#2a1840' },
   'shell-comms':  { label: 'Shell Comms & AI',  color: '#bc8cff', bg: '#2a1840' },
   'shell-support':{ label: 'Shell Support',     color: '#bc8cff', bg: '#2a1840' },
+  layouts:        { label: 'Layouts',           color: '#a371f7', bg: '#251a40' },
   publishing:     { label: 'Publishing',        color: '#8b8cf8', bg: '#1f2044' },
   sync:           { label: 'Sync & Storage',    color: '#f0883e', bg: '#3a2510' },
   system:         { label: 'System',            color: '#f85149', bg: '#3a1520' },
@@ -165,14 +166,15 @@ const CONN_TYPES = {
 
 // ── Cluster boxes (for background rendering) ──
 const CLUSTERS = {
-  apps:             { x: 20,   y: 8,   w: 544,  h: 80  },
-  interfaces:       { x: 594,  y: 8,   w: 640,  h: 80  },
+  brains:           { x: 20,   y: 8,   w: 460,  h: 80  },
+  interfaces:       { x: 510,  y: 8,   w: 504,  h: 80  },
   content:          { x: 20,   y: 108, w: 326,  h: 300 },
   'shell-runtime':  { x: 366,  y: 108, w: 490,  h: 68  },
   'shell-data':     { x: 366,  y: 176, w: 490,  h: 56  },
   'shell-comms':    { x: 366,  y: 232, w: 490,  h: 56  },
   'shell-support':  { x: 366,  y: 288, w: 490,  h: 56  },
-  publishing:       { x: 876,  y: 108, w: 350,  h: 198 },
+  layouts:          { x: 876,  y: 108, w: 180,  h: 80  },
+  publishing:       { x: 876,  y: 198, w: 350,  h: 148 },
   sync:             { x: 20,   y: 428, w: 400,  h: 80  },
   shared:           { x: 435,  y: 428, w: 380,  h: 80  },
   system:           { x: 830,  y: 428, w: 340,  h: 140 },
@@ -180,17 +182,17 @@ const CLUSTERS = {
 
 // ── Node data ──
 const nodes = [
-  // ─ Apps ─
-  { id:'pro-brain',  label:'Professional Brain', subtitle:'apps/professional-brain', x:34,  y:32, w:170, h:44, group:'apps' },
-  { id:'team-brain', label:'Team Brain',         subtitle:'apps/team-brain',         x:218, y:32, w:148, h:44, group:'apps' },
-  { id:'col-brain',  label:'Collective Brain',   subtitle:'apps/collective-brain',   x:380, y:32, w:170, h:44, group:'apps' },
+  // ─ Brains ─
+  { id:'rover',  label:'Rover (Professional)', subtitle:'brains/rover',  x:34,  y:32, w:188, h:44, group:'brains' },
+  { id:'relay',  label:'Relay (Team)',         subtitle:'brains/relay',  x:236, y:32, w:118, h:44, group:'brains' },
+  { id:'ranger', label:'Ranger (Collective)',  subtitle:'brains/ranger', x:368, y:32, w:100, h:44, group:'brains' },
 
   // ─ Interfaces ─
-  { id:'cli',       label:'CLI',           subtitle:'interfaces/cli',       x:608,  y:32, w:110, h:44, group:'interfaces' },
-  { id:'matrix',    label:'Matrix',        subtitle:'interfaces/matrix',    x:726,  y:32, w:110, h:44, group:'interfaces' },
-  { id:'discord',   label:'Discord',       subtitle:'interfaces/discord',   x:844,  y:32, w:110, h:44, group:'interfaces' },
-  { id:'mcp-if',    label:'MCP Transport', subtitle:'interfaces/mcp',       x:962,  y:32, w:130, h:44, group:'interfaces' },
-  { id:'webserver', label:'Webserver',     subtitle:'interfaces/webserver', x:1100, y:32, w:120, h:44, group:'interfaces' },
+  { id:'cli',       label:'CLI',           subtitle:'interfaces/cli',       x:524,  y:32, w:82, h:44, group:'interfaces' },
+  { id:'matrix',    label:'Matrix',        subtitle:'interfaces/matrix',    x:620,  y:32, w:82, h:44, group:'interfaces' },
+  { id:'discord',   label:'Discord',       subtitle:'interfaces/discord',   x:716,  y:32, w:82, h:44, group:'interfaces' },
+  { id:'mcp-if',    label:'MCP',           subtitle:'interfaces/mcp',       x:812,  y:32, w:82, h:44, group:'interfaces' },
+  { id:'webserver', label:'Webserver',     subtitle:'interfaces/webserver', x:908,  y:32, w:92, h:44, group:'interfaces' },
 
   // ─ Content Creation (2×5 grid) ─
   { id:'note',         label:'Note',          subtitle:'plugins/note',         x:34,  y:132, w:142, h:44, group:'content' },
@@ -221,12 +223,14 @@ const nodes = [
   { id:'templates',    label:'Templates',     subtitle:'shell/templates',            x:536, y:300, w:142, h:44, group:'shell-support' },
   { id:'identity',     label:'Identity',      subtitle:'shell/identity-service',     x:692, y:300, w:142, h:44, group:'shell-support' },
 
-  // ─ Publishing (2×3 grid, 5 filled) ─
-  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',      x:890, y:132, w:154, h:44, group:'publishing' },
-  { id:'pro-site',     label:'Professional Site', subtitle:'plugins/professional-site', x:1058, y:132, w:154, h:44, group:'publishing' },
-  { id:'content-pipe', label:'Content Pipeline',  subtitle:'plugins/content-pipeline',  x:890, y:188, w:154, h:44, group:'publishing' },
-  { id:'newsletter',   label:'Newsletter',        subtitle:'plugins/newsletter',        x:1058, y:188, w:154, h:44, group:'publishing' },
-  { id:'social',       label:'Social Media',      subtitle:'plugins/social-media',      x:890, y:244, w:154, h:44, group:'publishing' },
+  // ─ Layouts ─
+  { id:'pro-layout',   label:'Professional',     subtitle:'layouts/professional',      x:890, y:132, w:154, h:44, group:'layouts' },
+
+  // ─ Publishing ─
+  { id:'site-builder', label:'Site Builder',      subtitle:'plugins/site-builder',      x:890, y:212, w:154, h:44, group:'publishing' },
+  { id:'content-pipe', label:'Content Pipeline',  subtitle:'plugins/content-pipeline',  x:1058, y:212, w:154, h:44, group:'publishing' },
+  { id:'newsletter',   label:'Newsletter',        subtitle:'plugins/newsletter',        x:890, y:268, w:154, h:44, group:'publishing' },
+  { id:'social',       label:'Social Media',      subtitle:'plugins/social-media',      x:1058, y:268, w:154, h:44, group:'publishing' },
 
   // ─ Sync & Storage (row of 3) ─
   { id:'dir-sync',  label:'Directory Sync',  subtitle:'plugins/directory-sync',  x:34,  y:452, w:110, h:44, group:'sync' },
@@ -247,19 +251,20 @@ const nodes = [
 
 // ── Connections ──
 const connections = [
-  // Apps → Interfaces
-  { from:'pro-brain',  to:'cli',       type:'dependency' },
-  { from:'pro-brain',  to:'matrix',    type:'dependency' },
-  { from:'pro-brain',  to:'discord',   type:'dependency' },
-  { from:'pro-brain',  to:'mcp-if',    type:'dependency' },
-  { from:'pro-brain',  to:'webserver', type:'dependency' },
-  { from:'team-brain', to:'cli',       type:'dependency' },
-  { from:'team-brain', to:'mcp-if',    type:'dependency' },
-  { from:'col-brain',  to:'cli',       type:'dependency' },
-  { from:'col-brain',  to:'matrix',    type:'dependency' },
-  { from:'col-brain',  to:'discord',   type:'dependency' },
-  { from:'col-brain',  to:'mcp-if',    type:'dependency' },
-  { from:'col-brain',  to:'webserver', type:'dependency' },
+  // Brains → Interfaces
+  { from:'rover',  to:'cli',       type:'dependency' },
+  { from:'rover',  to:'matrix',    type:'dependency' },
+  { from:'rover',  to:'discord',   type:'dependency' },
+  { from:'rover',  to:'mcp-if',    type:'dependency' },
+  { from:'rover',  to:'webserver', type:'dependency' },
+  { from:'relay',  to:'cli',       type:'dependency' },
+  { from:'relay',  to:'mcp-if',    type:'dependency' },
+  { from:'ranger', to:'cli',       type:'dependency' },
+  { from:'ranger', to:'matrix',    type:'dependency' },
+  { from:'ranger', to:'mcp-if',    type:'dependency' },
+
+  // Brains → Layouts
+  { from:'rover', to:'pro-layout', type:'dependency' },
 
   // Interfaces → Shell (tool routing)
   { from:'cli',     to:'mcp-svc',   type:'tool-call', label:'tools' },
@@ -340,7 +345,10 @@ const connections = [
   { from:'git-sync',     to:'dir-sync',     type:'dependency' },
   { from:'site-builder', to:'ui-lib',       type:'dependency' },
   { from:'site-builder', to:'themes',       type:'dependency' },
-  { from:'pro-site',     to:'site-builder', type:'dependency' },
+  // Layouts → Plugins (legitimate composition)
+  { from:'pro-layout',   to:'blog',         type:'dependency', label:'schemas' },
+  { from:'pro-layout',   to:'decks',        type:'dependency', label:'schemas' },
+  { from:'pro-layout',   to:'site-builder', type:'dependency' },
 ];
 
 // ── Presets ──
@@ -349,10 +357,10 @@ const ALL_CONNS = Object.keys(CONN_TYPES);
 const SHELL_GROUPS = ['shell-runtime','shell-data','shell-comms','shell-support'];
 const PRESETS = {
   full:    { label:'Full System',   groups: ALL_GROUPS, conns: ALL_CONNS },
-  data:    { label:'Data Flow',     groups:['content','publishing','sync','system',...SHELL_GROUPS,'shared'], conns:['data-flow'] },
+  data:    { label:'Data Flow',     groups:['content','publishing','layouts','sync','system',...SHELL_GROUPS,'shared'], conns:['data-flow'] },
   events:  { label:'Event System',  groups:['content','publishing','sync',...SHELL_GROUPS], conns:['event'] },
   tools:   { label:'Tool Routing',  groups:['interfaces',...SHELL_GROUPS], conns:['tool-call'] },
-  publish: { label:'Publishing',    groups:['content','publishing',...SHELL_GROUPS,'shared'], conns:['data-flow','dependency'] },
+  publish: { label:'Publishing',    groups:['content','publishing','layouts',...SHELL_GROUPS,'shared'], conns:['data-flow','dependency'] },
   sync:    { label:'Sync Pipeline', groups:['sync',...SHELL_GROUPS], conns:['data-flow','event'] },
   content: { label:'Content',       groups:['content',...SHELL_GROUPS], conns:['data-flow','tool-call'] },
   shell:   { label:'Shell Only',    groups: SHELL_GROUPS, conns:['dependency'] },
@@ -541,15 +549,18 @@ function updatePrompt() {
 
   if (allVisible) {
     text += 'Showing the full system with clustered groups:\n';
+    text += '- Brains: Rover (Professional), Relay (Team), Ranger (Collective) — brain definitions with identity, capabilities, content model\n';
+    text += '- Interfaces: CLI, Matrix, Discord, MCP, Webserver\n';
     text += '- Content Creation: Note, Blog, Link, Portfolio, Products, Decks, Image, Site Content, Summary, Topics\n';
     text += '- Shell Runtime: Core (incl. Daemon Registry), App, Plugin Framework\n';
     text += '- Shell Data: Entity Service (incl. Embedding, Datasource), Content Service, Job Queue\n';
     text += '- Shell Communication & AI: Messaging, MCP Service, AI Service (incl. Agent)\n';
     text += '- Shell Supporting: Conversations, Templates (incl. Render Service & Permissions), Identity (Brain Character + Anchor Profile)\n';
-    text += '- Publishing: Site Builder, Professional Site, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';
-    text += '- Sync & Storage: Directory Sync, Git Sync, Obsidian Vault (templates, fileClasses, Bases views, singleton Settings.base)\n';
+    text += '- Layouts: Professional — brain-specific site composition (composes blog + decks + profile into pages)\n';
+    text += '- Publishing: Site Builder, Content Pipeline (publish orchestrator), Newsletter, Social Media\n';
+    text += '- Sync & Storage: Directory Sync, Git Sync, Obsidian Vault\n';
     text += '- System: System, Dashboard, Wishlist, Analytics\n';
-    text += '- Shared: Utils, UI Library, Themes';
+    text += '- Shared: Utils, UI Library, Themes (7 themes)';
   } else {
     text += `Currently focusing on: ${visible.join(', ')}.`;
   }
