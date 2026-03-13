@@ -74,7 +74,7 @@
     --color-text-muted: var(--palette-brand-blue-dark-1);
     --color-text-light: var(--palette-brand-blue);
     --color-text-inverse: var(--palette-white);
-    --color-heading: var(--palette-brand-blue-dark-1);  /* Heading color */
+    --color-heading: var(--palette-brand-blue-dark-1);
 
     /* Background Colors */
     --color-bg: var(--palette-white);
@@ -124,44 +124,39 @@
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* Typography Scale - For presentations and large displays */
-    --text-h1: 8rem;          /* 128px Desktop - bold impact */
-    --text-h1-mobile: 3.75rem; /* 60px Mobile */
-    --text-h2: 4.5rem;        /* 72px Desktop */
-    --text-h2-mobile: 3rem;   /* 48px Mobile */
-    --text-h3: 3rem;          /* 48px Desktop */
-    --text-h3-mobile: 2.25rem; /* 36px Mobile */
-    --text-h4: 1.875rem;      /* 30px */
-    --text-body: 1.875rem;    /* 30px Desktop - for presentations */
-    --text-body-mobile: 1.5rem; /* 24px Mobile */
+    /* Typography Scale */
+    --text-h1: 8rem;
+    --text-h1-mobile: 3.75rem;
+    --text-h2: 4.5rem;
+    --text-h2-mobile: 3rem;
+    --text-h3: 3rem;
+    --text-h3-mobile: 2.25rem;
+    --text-h4: 1.875rem;
+    --text-body: 1.875rem;
+    --text-body-mobile: 1.5rem;
   }
 
   /* Dark theme */
   [data-theme="dark"] {
-    /* Brand Colors - Same as light mode */
     --color-brand: var(--palette-brand-blue);
     --color-brand-dark: var(--palette-brand-blue-dark-1);
     --color-brand-light: var(--palette-brand-blue);
     --color-accent: var(--palette-orange);
     --color-accent-dark: var(--palette-orange-dark);
 
-    /* Pattern Colors - Same as light mode */
     --color-pattern-dot: var(--palette-indigo);
 
-    /* Text Colors - Dark mode */
     --color-text: var(--palette-text-light);
     --color-text-muted: var(--palette-text-muted-dark);
     --color-text-light: var(--palette-text-subtle-dark);
-    --color-text-inverse: var(--palette-white);  /* White text on dark backgrounds */
-    --color-heading: var(--palette-light-orange);  /* Light orange for dark mode headings */
+    --color-text-inverse: var(--palette-white);
+    --color-heading: var(--palette-light-orange);
 
-    /* Background Colors - Dark mode */
     --color-bg: var(--palette-dark-bg);
     --color-bg-subtle: var(--palette-dark-bg-subtle);
     --color-bg-muted: var(--palette-dark-bg-muted);
     --color-bg-dark: var(--palette-black);
 
-    /* Gradient Colors - Dark mode */
     --color-gradient-start: var(--palette-dark-bg-subtle);
     --color-gradient-end: var(--palette-purple);
     --color-bg-gradient: linear-gradient(
@@ -172,20 +167,16 @@
       var(--palette-purple) 140%
     );
 
-    /* Border Colors - Dark mode */
     --color-border: var(--palette-dark-bg-muted);
     --color-border-light: rgba(255, 255, 255, 0.1);
 
-    /* Footer - Dark mode uses dark purple for grounded feel */
     --color-footer: var(--palette-dark-purple);
 
-    /* Warning/Status Colors - Dark mode */
     --color-warning-bg: rgba(202, 138, 4, 0.2);
     --color-warning-border: rgba(202, 138, 4, 0.5);
     --color-warning-text: #fde047;
     --color-warning-text-emphasis: #fef08a;
 
-    /* Status Badge Colors - Dark mode */
     --color-status-neutral-bg: #374151;
     --color-status-neutral-text: #e5e7eb;
     --color-status-info-bg: #1e3a5f;
@@ -200,106 +191,15 @@
 }
 
 /* ============================================
-   THEME TOKENS - Exposed to Tailwind v4
-
-   Uses @theme inline for RUNTIME CSS variable resolution.
-   The "inline" keyword is critical - it makes Tailwind use var(--color-brand)
-   in the generated CSS instead of resolving the value at build time.
-   This enables dark mode and multi-site theming to work correctly.
-
-   Auto-generates utilities like:
-   - bg-brand, text-brand, border-brand, ring-brand, fill-brand
-   - Plus all variants: hover:, focus:, dark:, etc.
-
-   Only include colors where bg/text/border all use the SAME variable.
-   For colors where bg and text need different values (like "theme"),
-   use manual utilities below in @layer utilities.
+   THEME-SPECIFIC UTILITIES
+   Default theme has unique nav/header pattern (brand-blue header in dark)
    ============================================ */
-@theme inline {
-  /* Layout */
-  --max-width-layout: var(--layout-max-width);
-
-  /* Brand colors - same color for bg/text/border */
-  --color-brand: var(--color-brand);
-  --color-brand-dark: var(--color-brand-dark);
-  --color-brand-light: var(--color-brand-light);
-  --color-accent: var(--color-accent);
-  --color-accent-dark: var(--color-accent-dark);
-
-  /* Footer */
-  --color-footer: var(--color-footer);
-
-  /* Gradient colors */
-  --color-gradient-start: var(--color-gradient-start);
-  --color-gradient-end: var(--color-gradient-end);
-
-  /* Pattern colors */
-  --color-pattern-dot: var(--color-pattern-dot);
-
-  /* Prose/Typography colors - for @tailwindcss/typography plugin */
-  --tw-prose-body: var(--color-text);
-  --tw-prose-headings: var(--color-heading);
-  --tw-prose-links: var(--color-brand);
-  --tw-prose-bold: var(--color-text);
-  --tw-prose-code: var(--color-text);
-  --tw-prose-quotes: var(--color-text-muted);
-  --tw-prose-counters: var(--color-text-muted);
-  --tw-prose-bullets: var(--color-text-muted);
-}
-
-/* ============================================
-   SPECIAL UTILITIES - Manual definitions needed
-
-   These utilities CAN'T be auto-generated by @theme inline because:
-   1. bg-theme and text-theme need DIFFERENT variables (bg uses --color-bg, text uses --color-text)
-   2. Some utilities use complete gradient values, not single colors
-   3. Some utilities are context-specific (conditional on parent class)
-
-   Why not auto-generate?
-   If we put --color-theme: var(--color-bg) in @theme inline,
-   then text-theme would also use --color-bg (wrong - text needs --color-text).
-   ============================================ */
-@layer utilities {
-  /* Theme utilities - bg uses --color-bg, text uses --color-text */
-  .bg-theme { background-color: var(--color-bg); }
-  .bg-theme-subtle { background-color: var(--color-bg-subtle); }
-  .bg-theme-muted { background-color: var(--color-bg-muted); }
-  .bg-theme-dark { background-color: var(--color-bg-dark); }
-  .bg-surface { background-color: var(--color-bg-subtle); } /* Alias for bg-theme-subtle */
-  .text-theme { color: var(--color-text); }
-  .text-theme-muted { color: var(--color-text-muted); }
-  .text-theme-light { color: var(--color-text-light); }
-  .text-theme-inverse { color: var(--color-text-inverse); }
-  .text-heading { color: var(--color-heading); }
-  .border-theme { border-color: var(--color-border); }
-  .border-theme-light { border-color: var(--color-border-light); }
-  .placeholder-theme-muted::placeholder { color: var(--color-text-muted); }
-
-  /* Warning utilities - theme-aware */
+@layer theme-override {
+  /* Warning utilities - unique to default theme */
   .bg-warning { background-color: var(--color-warning-bg); }
   .border-warning { border-color: var(--color-warning-border); }
   .text-warning { color: var(--color-warning-text); }
   .text-warning-emphasis { color: var(--color-warning-text-emphasis); }
-
-  /* Status badge utilities */
-  .bg-status-neutral { background-color: var(--color-status-neutral-bg); }
-  .text-status-neutral { color: var(--color-status-neutral-text); }
-  .bg-status-info { background-color: var(--color-status-info-bg); }
-  .text-status-info { color: var(--color-status-info-text); }
-  .bg-status-success { background-color: var(--color-status-success-bg); }
-  .text-status-success { color: var(--color-status-success-text); }
-  .bg-status-danger { background-color: var(--color-status-danger-bg); }
-  .text-status-danger { color: var(--color-status-danger-text); }
-  .bg-status-warning { background-color: var(--color-status-warning-bg); }
-  .text-status-warning { color: var(--color-status-warning-text); }
-
-  /* Hover states for theme utilities */
-  .hover\:bg-theme-subtle:hover { background-color: var(--color-bg-subtle); }
-  .hover\:bg-brand:hover { background-color: var(--color-brand); }
-  .hover\:bg-brand-dark:hover { background-color: var(--color-brand-dark); }
-
-  /* Complete gradient background - uses full gradient value, not single color */
-  .bg-theme-gradient { background: var(--color-bg-gradient); }
 
   /* Navigation text - brand in light mode, accent in dark mode */
   .text-nav { color: var(--color-brand); }
@@ -334,49 +234,14 @@
 
   /* Theme toggle icon hover - stays white in light, becomes brand in dark */
   [data-theme="dark"] .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--color-brand); }
-  
-  /* Gradients - Tailwind v4 format */
-  .from-gradient-start { 
-    --tw-gradient-from: var(--color-gradient-start);
-    --tw-gradient-to: rgb(from var(--color-gradient-start) r g b / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  .to-gradient-end { 
-    --tw-gradient-to: var(--color-gradient-end);
-  }
-  .from-accent { 
-    --tw-gradient-from: var(--color-accent);
-    --tw-gradient-to: rgb(from var(--color-accent) r g b / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  .to-accent-dark { 
-    --tw-gradient-to: var(--color-accent-dark);
-  }
-  .from-brand-dark { 
-    --tw-gradient-from: var(--color-brand-dark);
-    --tw-gradient-to: rgb(from var(--color-brand-dark) r g b / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  .from-brand-light { 
-    --tw-gradient-from: var(--color-brand-light);
-    --tw-gradient-to: rgb(from var(--color-brand-light) r g b / 0);
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  }
-  .to-brand { 
-    --tw-gradient-to: var(--color-brand);
-  }
-  .to-theme { 
-    --tw-gradient-to: var(--color-bg);
-  }
 }
 
-/* Prose styles for dark mode */
-@layer utilities {
+/* Prose styles */
+@layer theme-override {
   .prose {
     color: var(--color-text);
   }
 
-  /* Main headings - Blue/Dark 1 (#2E007D) */
   .prose h1 {
     color: var(--color-text-muted);
     font-family: var(--font-heading);
@@ -397,7 +262,6 @@
     text-decoration: none;
   }
 
-  /* Subheadings - Blue/Primary (#3921D7) */
   .prose h3 {
     color: var(--color-text-light);
     font-family: var(--font-heading);
@@ -425,20 +289,18 @@
     line-height: 1.2;
   }
 
-  /* Body text - Blue/Dark 2 (#0E0027) */
   .prose p {
     color: var(--color-text);
   }
-  
+
   .prose strong {
     color: var(--color-text);
   }
-  
+
   .prose em {
     color: var(--color-accent);
   }
 
-  /* Blockquote attribution styling */
   .prose cite.block-attribution {
     display: block;
     font-size: 1rem;
@@ -468,21 +330,20 @@
     color: var(--color-text);
     background-color: var(--color-bg-muted);
   }
-  
+
   .prose pre {
     background-color: var(--color-bg-muted);
     color: var(--color-text);
   }
-  
+
   .prose a {
     color: var(--color-brand);
   }
-  
+
   .prose a:hover {
     color: var(--color-brand-dark);
   }
 
-  /* Dark mode heading colors - lighter peach for contrast across gradient */
   [data-theme="dark"] .prose h1,
   [data-theme="dark"] .prose h2 {
     color: var(--palette-light-orange);
@@ -495,7 +356,6 @@
     color: var(--palette-warm-white);
   }
 
-  /* Dark mode italic - medium orange for emphasis */
   [data-theme="dark"] .prose em {
     color: var(--palette-orange-medium);
   }
@@ -503,36 +363,25 @@
 
 /* Hero Background Components */
 @layer components {
-  /* Hero background pattern (dot grid) */
   .hero-bg-pattern {
     background-image: radial-gradient(circle at 1px 1px, var(--color-pattern-dot) 1px, transparent 0);
     background-size: 20px 20px;
   }
 
-  /* CTA background pattern (larger dots) */
   .cta-bg-pattern {
     background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
     background-size: 40px 40px;
   }
 }
 
-/* Blob Animations */
+/* Animations */
 @keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
-  }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
-  }
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
 }
 
-/* Marquee Animations — continuous scrolling text */
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-33.333%); }
@@ -543,14 +392,12 @@
   to { transform: translateX(0); }
 }
 
-/* Hero entrance animation */
 @keyframes hero-fade-up {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Animation utilities */
-@layer utilities {
+@layer theme-override {
   .animate-blob {
     animation: blob 7s infinite;
   }
@@ -598,38 +445,19 @@
   }
 }
 
-/* Theme toggle icon visibility */
-@layer utilities {
-  /* Show sun in dark mode, moon in light mode */
-  [data-theme="dark"] .sun-icon {
-    display: block;
-  }
-  [data-theme="dark"] .moon-icon {
-    display: none;
-  }
-  [data-theme="light"] .sun-icon {
-    display: none;
-  }
-  [data-theme="light"] .moon-icon {
-    display: block;
-  }
-}
-
 /* Focus ring utilities for accessibility */
-@layer utilities {
+@layer theme-override {
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
   }
 
-  /* Focus ring for dark/brand backgrounds */
   .focus-ring-light {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand;
   }
 }
 
-/* Component utilities for consistency and code reduction */
-@layer utilities {
-  /* Form inputs - consistent styling */
+/* Component utilities */
+@layer theme-override {
   .form-input {
     padding: 0.5rem 1rem;
     border-radius: var(--radius-lg);
@@ -643,7 +471,6 @@
   .form-input:focus { outline: none; box-shadow: 0 0 0 2px var(--color-brand); }
   .form-input:disabled { opacity: 0.5; }
 
-  /* Primary button - consistent styling */
   .btn-primary {
     padding: 0.5rem 1rem;
     border-radius: var(--radius-lg);
@@ -655,5 +482,4 @@
   }
   .btn-primary:hover { background-color: var(--color-brand-dark); }
   .btn-primary:disabled { opacity: 0.5; }
-
 }

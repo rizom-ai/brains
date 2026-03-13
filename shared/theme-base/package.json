@@ -1,7 +1,7 @@
 {
-  "name": "@brains/theme-yeehaa",
+  "name": "@brains/theme-base",
   "version": "0.1.0",
-  "description": "Yeehaa theme with yellow/red gradient for Professional Brain",
+  "description": "Shared base CSS utilities for all Brain themes",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -16,9 +16,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
-  "dependencies": {
-    "@brains/theme-base": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",

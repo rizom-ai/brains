@@ -1,10 +1,13 @@
 // Types for CSS imports are defined in types.d.ts
 /// <reference types="./types.d.ts" />
-// Export theme CSS as a string for Bun imports
-import themeCSS from "./theme.css" with { type: "text" };
+
+import { composeTheme } from "@brains/theme-base";
+import themeCSSOnly from "./theme.css" with { type: "text" };
+
+const themeCSS = composeTheme(themeCSSOnly);
 
 /**
- * Customize the Swiss theme with additional CSS
+ * Customize the theme with additional CSS
  */
 export function customizeTheme(
   baseTheme: string,

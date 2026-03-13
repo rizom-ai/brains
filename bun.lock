@@ -706,9 +706,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "shared/theme-base": {
+      "name": "@brains/theme-base",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/theme-brutalist": {
       "name": "@brains/theme-brutalist",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -719,6 +732,9 @@
     "shared/theme-default": {
       "name": "@brains/theme-default",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -729,6 +745,9 @@
     "shared/theme-editorial": {
       "name": "@brains/theme-editorial",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -739,6 +758,9 @@
     "shared/theme-geometric": {
       "name": "@brains/theme-geometric",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -749,6 +771,9 @@
     "shared/theme-neo-retro": {
       "name": "@brains/theme-neo-retro",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -759,6 +784,9 @@
     "shared/theme-swiss": {
       "name": "@brains/theme-swiss",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -769,6 +797,9 @@
     "shared/theme-yeehaa": {
       "name": "@brains/theme-yeehaa",
       "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1208,6 +1239,8 @@
     "@brains/templates": ["@brains/templates@workspace:shell/templates"],
 
     "@brains/test-utils": ["@brains/test-utils@workspace:shared/test-utils"],
+
+    "@brains/theme-base": ["@brains/theme-base@workspace:shared/theme-base"],
 
     "@brains/theme-brutalist": ["@brains/theme-brutalist@workspace:shared/theme-brutalist"],
 
