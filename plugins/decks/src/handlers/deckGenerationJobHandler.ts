@@ -168,17 +168,14 @@ Add your conclusion here`;
       metadata.slug = slugify(finalTitle);
     }
 
-    // Build frontmatter from generation data, filtering out undefined values
-    const frontmatter = Object.fromEntries(
-      Object.entries({
-        title: metadata.title,
-        status: metadata.status,
-        slug: metadata.slug,
-        description,
-        author,
-        event,
-      }).filter(([, v]) => v !== undefined),
-    );
+    const frontmatter = {
+      title: metadata.title,
+      status: metadata.status,
+      slug: metadata.slug,
+      description,
+      author,
+      event,
+    };
 
     const finalMarkdown = generateMarkdownWithFrontmatter(content, frontmatter);
 

@@ -109,7 +109,10 @@ export function generateMarkdownWithFrontmatter(
     return content;
   }
 
-  return matter.stringify(content, metadata);
+  const cleaned = Object.fromEntries(
+    Object.entries(metadata).filter(([, v]) => v !== undefined),
+  );
+  return matter.stringify(content, cleaned);
 }
 
 /**

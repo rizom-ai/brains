@@ -147,8 +147,14 @@ export class BlogDataSource extends BaseEntityDataSource<
       );
     }
 
-    // Case 4: Standard paginated list — delegate to base class
-    return super.fetch(query, outputSchema, context);
+    // Case 4: Standard paginated list
+    const { items, pagination } = await this.fetchList(
+      parsedQuery,
+      entityService,
+    );
+    return outputSchema.parse(
+      this.buildListResult(items, pagination, parsedQuery),
+    );
   }
 
   // ── Custom cases ──

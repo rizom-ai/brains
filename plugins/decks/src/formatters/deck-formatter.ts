@@ -1,4 +1,7 @@
-import { BaseEntityAdapter } from "@brains/plugins";
+import {
+  BaseEntityAdapter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/plugins";
 import { slugify } from "@brains/utils";
 import {
   deckSchema,
@@ -105,6 +108,15 @@ export class DeckFormatter extends BaseEntityAdapter<
    * Generate a brief summary for search results
    */
   public generateSummary(entity: DeckEntity): string {
+    try {
+      const { metadata } = parseMarkdownWithFrontmatter(
+        entity.content,
+        deckFrontmatterSchema,
+      );
+      if (metadata.description) return metadata.description;
+    } catch {
+      // Fall through to default
+    }
     return `Presentation: ${entity.metadata.title}`;
   }
 
