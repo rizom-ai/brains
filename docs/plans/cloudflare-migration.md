@@ -247,30 +247,34 @@ terraform apply  # Creates CF resources, Bunny still active
 2. Set `cdn_provider=cloudflare` in config.env
 3. Run `terraform apply` to destroy Bunny resources
 
-## Domain Transfer from AWS Route 53 to Cloudflare
+## Domain Migration from AWS Route 53
 
-For domains currently registered at AWS, you can transfer the registration itself to Cloudflare (at-cost pricing, no markup).
+Two independent steps. Step 1 gives you Cloudflare CDN/DNS immediately. Step 2 is optional and can happen later.
 
-### Prerequisites
+### Step 1: Point nameservers to Cloudflare (do now)
 
-- Domain must be at least 60 days old at current registrar
-- Domain must not be within 60 days of a previous transfer
-- Domain must be unlocked at AWS
+Works regardless of where the domain is registered. No waiting period.
 
-### Steps
+1. Add domain to Cloudflare (free plan) — it auto-imports existing DNS records
+2. Verify imported DNS records match Route 53
+3. At AWS Route 53 → Hosted zones → change nameservers to Cloudflare's
+4. Wait for propagation (24-48 hours)
+5. Verify: `dig yourdomain.com NS +short` shows Cloudflare nameservers
 
-1. **Add domain to Cloudflare first** — create a free zone, let Cloudflare import existing DNS records
-2. **Verify DNS records imported correctly** — compare with Route 53
-3. **Update nameservers at AWS** — point to Cloudflare's nameservers (activates CDN/DNS immediately)
-4. **Wait for DNS propagation** — 24-48 hours
-5. **Unlock domain at AWS Route 53** — disable transfer lock
-6. **Get auth/EPP code from AWS** — Route 53 → Registered domains → Transfer out
-7. **Initiate transfer at Cloudflare** — Registrar → Transfer → enter auth code
-8. **Confirm transfer** — approve the transfer email from AWS
-9. **Wait for transfer** — typically 5-7 days
-10. **Verify** — domain registration now shows Cloudflare as registrar
+You now have Cloudflare CDN + DNS + SSL. Domain registration stays at AWS.
 
-DNS continues to work throughout — no downtime. The nameserver change (step 3) and the registration transfer (steps 5-9) are independent. You get Cloudflare CDN/DNS immediately at step 3; the transfer just moves billing.
+### Step 2: Transfer registration to Cloudflare (do later)
+
+Optional — moves billing to Cloudflare (at-cost pricing, no markup). Requires the domain to be **at least 60 days old** at AWS (ICANN rule).
+
+1. Unlock domain at AWS Route 53 — disable transfer lock
+2. Get auth/EPP code from AWS — Route 53 → Registered domains → Transfer out
+3. Initiate transfer at Cloudflare — Registrar → Transfer → enter auth code
+4. Confirm transfer — approve the transfer email from AWS
+5. Wait — typically 5-7 days
+6. Verify — domain registration now shows Cloudflare as registrar
+
+No downtime — DNS already points to Cloudflare from step 1.
 
 ## Required Cloudflare API Permissions
 
