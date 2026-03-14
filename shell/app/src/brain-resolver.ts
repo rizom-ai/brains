@@ -46,6 +46,7 @@ export function resolve(
   const interfaces: Plugin[] = [];
   for (const [ctor, envMapper] of definition.interfaces) {
     const baseConfig = envMapper(env);
+    if (!baseConfig) continue;
 
     const plugin = resolvePlugin(
       (cfg) => new ctor(cfg),

@@ -42,7 +42,7 @@ export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
 
 export type InterfaceEntry = [
   constructor: InterfaceConstructor,
-  envMapper: (env: BrainEnvironment) => PluginConfig,
+  envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];
 
 /**

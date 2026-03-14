@@ -161,17 +161,17 @@ export default defineBrain({
     ],
     [
       MatrixInterface,
-      (env: BrainEnvironment): PluginConfig => ({
-        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
-        // homeserver, userId, deviceDisplayName: set in brain.yaml
-      }),
+      (env: BrainEnvironment): PluginConfig | null =>
+        env["MATRIX_ACCESS_TOKEN"]
+          ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
+          : null,
     ],
     [
       DiscordInterface,
-      (env: BrainEnvironment): PluginConfig => ({
-        botToken: env["DISCORD_BOT_TOKEN"] ?? "",
-        captureUrls: true,
-      }),
+      (env: BrainEnvironment): PluginConfig | null =>
+        env["DISCORD_BOT_TOKEN"]
+          ? { botToken: env["DISCORD_BOT_TOKEN"], captureUrls: true }
+          : null,
     ],
     [WebserverInterface, (): PluginConfig => ({})],
   ],

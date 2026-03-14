@@ -89,10 +89,10 @@ export default defineBrain({
     ],
     [
       MatrixInterface,
-      (env: BrainEnvironment): PluginConfig => ({
-        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
-        // homeserver, userId, deviceDisplayName: set in brain.yaml
-      }),
+      (env: BrainEnvironment): PluginConfig | null =>
+        env["MATRIX_ACCESS_TOKEN"]
+          ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
+          : null,
     ],
     [WebserverInterface, (): PluginConfig => ({})],
   ],
