@@ -5,6 +5,8 @@ import {
 } from "@brains/plugins";
 import type { Daemon } from "@brains/plugins";
 import type { AgentCard } from "@a2a-js/sdk";
+import { Hono } from "hono";
+
 import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
 import packageJson from "../package.json";
@@ -19,6 +21,7 @@ import packageJson from "../package.json";
 export class A2AInterface extends InterfacePlugin<A2AConfig> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
+  private server: ReturnType<typeof Bun.serve> | undefined;
 
   constructor(config: Partial<A2AConfig> = {}) {
     super("a2a", packageJson, config, a2aConfigSchema);
@@ -64,14 +67,44 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   }
 
   protected override createDaemon(): Daemon | undefined {
+    const app = new Hono();
+
+    // Agent Card discovery endpoint
+    app.get("/.well-known/agent-card.json", (c) => {
+      if (!this.agentCard) {
+        return c.json({ error: "Agent Card not ready" }, 503);
+      }
+      return c.json(this.agentCard);
+    });
+
+    // JSON-RPC 2.0 endpoint (task handling - to be implemented)
+    app.post("/a2a", async (c) => {
+      // TODO: Implement JSON-RPC handler for tasks/send, tasks/get, etc.
+      return c.json(
+        {
+          jsonrpc: "2.0",
+          error: { code: -32601, message: "Method not yet implemented" },
+          id: null,
+        },
+        501,
+      );
+    });
+
     return {
       start: async (): Promise<void> => {
-        // TODO: Start Hono HTTP server on config.port
-        // Serve GET /.well-known/agent-card.json
-        // Serve POST /a2a (JSON-RPC 2.0)
-        this.logger.info(`A2A server starting on port ${this.config.port}`);
+        this.server = Bun.serve({
+          port: this.config.port,
+          fetch: app.fetch,
+        });
+        this.logger.info(
+          `A2A server listening on http://localhost:${this.config.port}`,
+        );
       },
       stop: async (): Promise<void> => {
+        if (this.server) {
+          await this.server.stop();
+          this.server = undefined;
+        }
         this.logger.info("A2A server stopped");
       },
     };

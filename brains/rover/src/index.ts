@@ -9,6 +9,7 @@ import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
+import { A2AInterface } from "@brains/a2a";
 import { directorySync } from "@brains/directory-sync";
 import { gitSyncPlugin } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -196,6 +197,7 @@ export default defineBrain({
           : null,
     ],
     [WebserverInterface, (): PluginConfig => ({})],
+    [A2AInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

@@ -105,6 +105,7 @@
       "name": "@brains/rover",
       "version": "1.0.0",
       "dependencies": {
+        "@brains/a2a": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/blog": "workspace:*",

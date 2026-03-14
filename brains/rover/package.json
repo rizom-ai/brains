@@ -10,6 +10,7 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@brains/a2a": "workspace:*",
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/blog": "workspace:*",
