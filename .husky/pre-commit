@@ -10,6 +10,10 @@ find . -type d -perm 700 ! -path "./.git/*" ! -path "*/node_modules/*" -exec chm
 echo "🔍 Checking dependency versions..."
 bun run deps:check
 
+# Scan for leaked secrets
+echo "🔐 Scanning for secrets..."
+bunx varlock scan --staged
+
 # Format staged files only (fast!)
 echo "📐 Formatting staged files..."
 bunx lint-staged

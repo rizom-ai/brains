@@ -17,6 +17,7 @@ Create a new rover brain instance for mylittlephoney.com with Discord-only messa
 | CDN/DNS       | Cloudflare (via infrastructure plan)                             |
 | Theme         | Custom `shared/theme-mylittlephoney/` — girly pink unicorn candy |
 | Anchor users  | New (to be created)                                              |
+| Social media  | Instagram (new platform, in addition to LinkedIn)                |
 | Domain        | mylittlephoney.com (DNS not yet configured)                      |
 
 ## Work Packages
@@ -58,14 +59,49 @@ Design direction: girly pink unicorn candy.
   - `ANTHROPIC_API_KEY`
 - [ ] Create seed content (`seed-content/brain-character.md`, `seed-content/site-info.md`)
 
-### 4. DNS Configuration
+### 4. Instagram + Threads Platform Support
+
+Add Instagram and Threads as social media platforms in `plugins/social-media/`. The plugin already supports multiple platforms via the `PublishProvider` interface (LinkedIn is the only one currently). Both use Meta's Graph API and can share auth/client infrastructure.
+
+**Shared Meta infrastructure:**
+
+- [ ] Add `"instagram"` and `"threads"` to `platformSchema` enum in `src/schemas/social-post.ts`
+- [ ] Add `metaConfigSchema` to `src/config.ts` (shared access token, Business account ID)
+- [ ] Implement base `MetaClient` in `src/lib/meta-client.ts` (shared auth, token refresh)
+- [ ] Add `META_ACCESS_TOKEN` to `.env.schema`
+
+**Instagram:**
+
+- [ ] Implement `InstagramClient` extending `MetaClient` in `src/lib/instagram-client.ts`
+  - Image upload required (Instagram is image-first)
+  - Two-step publish: create media container → publish
+  - Carousel support (optional, future)
+- [ ] Add Instagram AI template in `src/templates/instagram-template.ts`
+  - Short captions, hashtag-heavy, emoji-friendly, image-required
+
+**Threads:**
+
+- [ ] Implement `ThreadsClient` extending `MetaClient` in `src/lib/threads-client.ts`
+  - Text posts (up to 500 chars), images, video
+  - Two-step publish: create media container → publish
+- [ ] Add Threads AI template in `src/templates/threads-template.ts`
+  - Concise, conversational, 500 char limit
+
+**Registration:**
+
+- [ ] Register both providers + templates in plugin initialization
+- [ ] Update generation tool/handler to support new platforms
+
+**Note:** Requires a Meta Business/Creator account with Instagram + Threads connected via Facebook Page.
+
+### 5. DNS Configuration
 
 - [ ] Add mylittlephoney.com to Cloudflare account
 - [ ] Note Zone ID for config
 - [ ] Update domain nameservers at registrar to Cloudflare
 - [ ] Verify propagation
 
-### 5. Codebase Housekeeping
+### 6. Codebase Housekeeping
 
 - [ ] Update `docs/codebase-map.html` with new app + theme
 - [ ] Verify `bun install` resolves all workspace dependencies
@@ -75,6 +111,7 @@ Design direction: girly pink unicorn candy.
 
 1. **Discord bot** — can start immediately, no code dependencies
 2. **Theme** — no code dependencies, can parallel with 1
-3. **App instance** — depends on theme package existing
-4. **DNS** — after Cloudflare provider is working (from infrastructure plan)
-5. **Housekeeping** — final step
+3. **Instagram platform** — independent of instance setup, benefits all rover/ranger instances
+4. **App instance** — depends on theme package existing
+5. **DNS** — after Cloudflare provider is working (from infrastructure plan)
+6. **Housekeeping** — final step

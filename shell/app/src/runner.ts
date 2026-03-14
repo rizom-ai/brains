@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
 import { existsSync, readFileSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
 import { parseInstanceOverrides } from "./instance-overrides";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
+import { internal } from "varlock";
 
 /**
  * Load and parse brain.yaml from the current working directory.
@@ -55,12 +56,30 @@ async function loadBrainDefinition(
 /**
  * Main entry point for the `brains` CLI.
  *
- * Reads brain.yaml → imports brain definition → resolves with overrides → runs.
+ * Reads brain.yaml → validates env → imports brain definition → resolves with overrides → runs.
  */
 async function main(): Promise<void> {
   const overrides = loadBrainYaml();
   // brain is guaranteed to exist by loadBrainYaml validation above
   const brainPackage = overrides.brain ?? "";
+
+  // Validate env against the brain's .env.schema
+  const brainPkgDir = dirname(
+    dirname(new URL(import.meta.resolve(brainPackage)).pathname),
+  );
+  const schemaPath = join(brainPkgDir, ".env.schema");
+  if (existsSync(schemaPath)) {
+    const graph = await internal.loadVarlockEnvGraph({
+      entryFilePath: schemaPath,
+    });
+    await graph.resolveEnvValues();
+    try {
+      internal.checkForConfigErrors(graph);
+    } catch {
+      process.exit(1);
+    }
+  }
+
   const definition = await loadBrainDefinition(brainPackage);
   const config = resolve(definition, process.env, overrides);
   await handleCLI(config);

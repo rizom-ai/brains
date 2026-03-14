@@ -179,5 +179,61 @@ load_provider_config() {
     fi
 }
 
+# Validate production env against brain's .env.schema using varlock
+validate_production_env() {
+    local app_name="$1"
+    local app_dir="apps/$app_name"
+
+    # Find the production env file
+    local env_file="$app_dir/deploy/.env.production"
+    if [ ! -f "$env_file" ]; then
+        log_warn "No .env.production found at $env_file — skipping env validation"
+        return 0
+    fi
+
+    # Get brain package name from brain.yaml (prefer deploy/brain.yaml)
+    local brain_yaml="$app_dir/brain.yaml"
+    [ -f "$app_dir/deploy/brain.yaml" ] && brain_yaml="$app_dir/deploy/brain.yaml"
+
+    if [ ! -f "$brain_yaml" ]; then
+        log_warn "No brain.yaml found — skipping env validation"
+        return 0
+    fi
+
+    local brain_package
+    brain_package=$(grep '^brain:' "$brain_yaml" | sed 's/brain:\s*//' | sed 's/["'"'"']//g' | tr -d '[:space:]')
+
+    # Map @brains/name → brains/name/
+    local brain_dir
+    brain_dir=$(echo "$brain_package" | sed 's/@brains\//brains\//')
+
+    if [ ! -f "$brain_dir/.env.schema" ]; then
+        log_warn "No .env.schema found at $brain_dir — skipping env validation"
+        return 0
+    fi
+
+    log_info "Validating $env_file against $brain_dir/.env.schema..."
+
+    # Source the production env into the shell, then run varlock from the brain dir.
+    # Child process inherits the env, varlock validates against the schema.
+    local result
+    result=$(
+        set -a
+        source "$env_file"
+        set +a
+        cd "$brain_dir" && bunx varlock load 2>&1
+    )
+    local exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        echo "$result" >&2
+        log_error "Production env validation failed"
+        return 1
+    fi
+
+    log_info "Production env validated successfully"
+    return 0
+}
+
 # Export functions
-export -f extract_deploy_config validate_app get_config_value load_app_config get_available_apps load_provider_config
+export -f extract_deploy_config validate_app get_config_value load_app_config get_available_apps load_provider_config validate_production_env

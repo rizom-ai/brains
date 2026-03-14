@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -930,6 +931,7 @@
         "@types/node": "^20.0.0",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
+        "varlock": "^0.5.0",
       },
     },
     "shell/content-service": {
@@ -2775,6 +2777,8 @@
     "uuid": ["uuid@3.4.0", "", { "bin": { "uuid": "./bin/uuid" } }, "sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A=="],
 
     "validate-npm-package-name": ["validate-npm-package-name@6.0.2", "", {}, "sha512-IUoow1YUtvoBBC06dXs8bR8B9vuA3aJfmQNKMoaPG/OFsPmoQvw8xh+6Ye25Gx9DQhoEom3Pcu9MKHerm/NpUQ=="],
+
+    "varlock": ["varlock@0.5.0", "", { "bin": { "varlock": "bin/cli.js" } }, "sha512-jfFNdzK+pznQWyp6eHv7X3iImEmNG7KaGZL2sQJxTlifxRtIwgNknLKmds8zPUhUMdcCybhJy52lewgscu8pkg=="],
 
     "vary": ["vary@1.1.2", "", {}, "sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg=="],
 

@@ -91,6 +91,11 @@ case "$ACTION" in
         ;;
 esac
 
+# Validate production env before deploying
+if [ "$ACTION" = "deploy" ] || [ "$ACTION" = "update" ]; then
+    validate_production_env "$APP_NAME" || exit 1
+fi
+
 # Display deployment plan
 log_info "Deployment Plan:"
 echo "  App: $APP_NAME (v$APP_VERSION)"
