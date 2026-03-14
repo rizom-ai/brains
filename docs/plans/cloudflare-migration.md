@@ -247,6 +247,31 @@ terraform apply  # Creates CF resources, Bunny still active
 2. Set `cdn_provider=cloudflare` in config.env
 3. Run `terraform apply` to destroy Bunny resources
 
+## Domain Transfer from AWS Route 53 to Cloudflare
+
+For domains currently registered at AWS, you can transfer the registration itself to Cloudflare (at-cost pricing, no markup).
+
+### Prerequisites
+
+- Domain must be at least 60 days old at current registrar
+- Domain must not be within 60 days of a previous transfer
+- Domain must be unlocked at AWS
+
+### Steps
+
+1. **Add domain to Cloudflare first** — create a free zone, let Cloudflare import existing DNS records
+2. **Verify DNS records imported correctly** — compare with Route 53
+3. **Update nameservers at AWS** — point to Cloudflare's nameservers (activates CDN/DNS immediately)
+4. **Wait for DNS propagation** — 24-48 hours
+5. **Unlock domain at AWS Route 53** — disable transfer lock
+6. **Get auth/EPP code from AWS** — Route 53 → Registered domains → Transfer out
+7. **Initiate transfer at Cloudflare** — Registrar → Transfer → enter auth code
+8. **Confirm transfer** — approve the transfer email from AWS
+9. **Wait for transfer** — typically 5-7 days
+10. **Verify** — domain registration now shows Cloudflare as registrar
+
+DNS continues to work throughout — no downtime. The nameserver change (step 3) and the registration transfer (steps 5-9) are independent. You get Cloudflare CDN/DNS immediately at step 3; the transfer just moves billing.
+
 ## Required Cloudflare API Permissions
 
 Add to existing token:
