@@ -39,6 +39,17 @@ variable "domain" {
   default     = ""
 }
 
+variable "cdn_provider" {
+  description = "CDN provider to use: 'cloudflare', 'bunny', or 'none'"
+  type        = string
+  default     = "none"
+
+  validation {
+    condition     = contains(["cloudflare", "bunny", "none"], var.cdn_provider)
+    error_message = "cdn_provider must be 'cloudflare', 'bunny', or 'none'"
+  }
+}
+
 # Optional: Bunny.net CDN configuration
 variable "bunny_api_key" {
   description = "Bunny.net API key (optional - CDN disabled if empty)"
@@ -63,6 +74,12 @@ variable "cloudflare_api_token" {
 
 variable "cloudflare_account_id" {
   description = "Cloudflare account ID (optional - analytics disabled if empty)"
+  type        = string
+  default     = ""
+}
+
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID for the domain (required when cdn_provider = 'cloudflare')"
   type        = string
   default     = ""
 }

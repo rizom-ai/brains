@@ -101,32 +101,39 @@ resource "hcloud_server" "main" {
   }
 }
 
-# Optional: Bunny.net CDN + DNS
-# Only provisions CDN resources if bunny_api_key is provided
-# If dns_enabled=true, also creates DNS zone, records, and auto-configures custom hostnames
+# =============================================================================
+# CDN Provider Selection
+# =============================================================================
+
+# Bunny.net CDN + DNS (when cdn_provider = "bunny")
 module "bunny_cdn" {
   source = "./modules/bunny-cdn"
+  count  = var.cdn_provider == "bunny" ? 1 : 0
 
-  # Required
   bunny_api_key = var.bunny_api_key
   app_name      = var.app_name
   origin_ip     = hcloud_server.main.ipv4_address
+  domain        = var.domain
+  dns_enabled   = var.dns_enabled
 
-  # Optional: domain for DNS zone, custom hostname, and origin hostname
-  domain = var.domain
-
-  # DNS management (creates zone, records, auto-configures custom hostnames)
-  dns_enabled = var.dns_enabled
-
-  # Privacy & performance settings
-  enable_logging = true  # With IP anonymization by default
-
-  # Geographic zones (enable all by default for global distribution)
+  enable_logging       = true
   enable_geo_zone_us   = true
   enable_geo_zone_eu   = true
   enable_geo_zone_asia = true
   enable_geo_zone_sa   = true
   enable_geo_zone_af   = true
+}
+
+# Cloudflare CDN + DNS (when cdn_provider = "cloudflare")
+module "cloudflare_cdn_dns" {
+  source = "./modules/cloudflare-cdn-dns"
+  count  = var.cdn_provider == "cloudflare" ? 1 : 0
+
+  cloudflare_api_token = var.cloudflare_api_token
+  cloudflare_zone_id   = var.cloudflare_zone_id
+  app_name             = var.app_name
+  origin_ip            = hcloud_server.main.ipv4_address
+  domain               = var.domain
 }
 
 # Optional: Cloudflare Web Analytics
@@ -158,57 +165,42 @@ output "server_name" {
 
 # CDN Outputs
 output "cdn_enabled" {
-  value       = module.bunny_cdn.cdn_enabled
-  description = "Whether Bunny CDN is enabled"
-  sensitive   = true
+  value       = var.cdn_provider != "none"
+  description = "Whether CDN is enabled"
 }
 
-output "cdn_hostname" {
-  value       = module.bunny_cdn.cdn_hostname
-  description = "CDN hostname (empty if CDN disabled)"
-  sensitive   = true
+output "cdn_provider" {
+  value       = var.cdn_provider
+  description = "Active CDN provider"
 }
 
 output "cdn_url" {
-  value       = module.bunny_cdn.cdn_url
+  value = (
+    var.cdn_provider == "cloudflare" ? module.cloudflare_cdn_dns[0].cdn_url :
+    var.cdn_provider == "bunny" ? module.bunny_cdn[0].cdn_url :
+    ""
+  )
   description = "Full CDN URL (empty if CDN disabled)"
   sensitive   = true
 }
 
 output "site_endpoint" {
-  value       = module.bunny_cdn.cdn_enabled ? module.bunny_cdn.cdn_url : "http://${hcloud_server.main.ipv4_address}"
-  description = "Primary site endpoint (CDN URL if enabled, otherwise server IP)"
-  sensitive   = true
-}
-
-output "cdn_status" {
-  value       = module.bunny_cdn.cdn_enabled ? "Enabled (Bunny.net) - Privacy-friendly analytics available at bunny.net dashboard" : "Disabled (Direct to origin)"
-  description = "CDN status and analytics info"
-  sensitive   = true
-}
-
-# DNS Outputs
-output "dns_enabled" {
-  value       = module.bunny_cdn.dns_enabled
-  description = "Whether Bunny DNS management is enabled"
-  sensitive   = true
-}
-
-output "dns_zone_id" {
-  value       = module.bunny_cdn.dns_zone_id
-  description = "Bunny DNS Zone ID (empty if DNS disabled)"
-  sensitive   = true
-}
-
-output "nameservers" {
-  value       = module.bunny_cdn.nameservers
-  description = "Bunny nameservers to configure at your registrar"
+  value = (
+    var.cdn_provider == "cloudflare" ? module.cloudflare_cdn_dns[0].cdn_url :
+    var.cdn_provider == "bunny" ? module.bunny_cdn[0].cdn_url :
+    "http://${hcloud_server.main.ipv4_address}"
+  )
+  description = "Primary site endpoint"
   sensitive   = true
 }
 
 output "dns_instructions" {
-  value       = module.bunny_cdn.dns_instructions
-  description = "Instructions for completing DNS migration"
+  value = (
+    var.cdn_provider == "cloudflare" ? module.cloudflare_cdn_dns[0].dns_instructions :
+    var.cdn_provider == "bunny" ? module.bunny_cdn[0].dns_instructions :
+    "No CDN/DNS provider configured."
+  )
+  description = "Instructions for completing DNS setup"
   sensitive   = true
 }
 
