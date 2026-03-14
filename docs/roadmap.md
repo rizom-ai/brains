@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-06
+Last Updated: 2026-03-14
 
 ---
 
@@ -23,86 +23,89 @@ Last Updated: 2026-03-06
 - Analytics plugin (Cloudflare)
 - Dashboard plugin (widget system)
 - Matrix bot interface
+- Discord bot interface
 - MCP interface (stdio + HTTP)
 - Git sync and directory sync
 - Sveltia CMS at `/admin/`
 - Hetzner deployment with Docker
-- Multi-theme support (brutalist, default, editorial, geometric, neo-retro, swiss)
+- Multi-theme support (brutalist, default, editorial, geometric, neo-retro, swiss, yeehaa)
 
 ---
 
-## Current Focus: Post-v1.0 Improvements
+## Codebase Refactor ✅
 
-### Obsidian Integration
+**Goal**: Reduce duplication, improve architecture, establish patterns for growth.
 
-- [x] Content creation frontend: template sync, body templates, Metadata Menu fileClasses with enum dropdowns
-- [x] Bases integration: per-entity views, Pipeline, Settings for singletons
-- [x] Sync improvements: disk edits win, canonical hash eliminates re-import cycle
+**Status**: Complete (2026-03-14). 12 of 15 items done, 1 skipped, 2 deferred.
 
-### Sveltia CMS
+### What's Done
 
-- [ ] Cloudflare Workers OAuth for multi-user GitHub auth
+- Brain model / instance split (`defineBrain()` + `resolve()` + `brains/` workspace)
+- `layouts/` workspace for site composition layers
+- `BaseGenerationJobHandler` — 6 handlers converted, 781 lines eliminated
+- `BaseEntityDataSource` — 7 datasources converted, 389 lines eliminated
+- `EntityMutations` extraction — EntityService 677→260 lines
+- `@brains/theme-base` with `composeTheme()` — 1689 lines eliminated across 7 themes
+- Barrel export cleanup — 50% reduction (229→~115 exports)
+- Cross-plugin dependencies resolved
+- Lazy interface loading — skip unconfigured Matrix/Discord
+- Lint warnings eliminated (0 warnings across 56 tasks)
+- **Total: ~2,860 lines eliminated**
+
+### Deferred
+
+- MockShell cleanup ([plan](./plans/2026-03-14-mockshell-cleanup.md)) — do when `IShell` interface next changes
+- Matrix interface monolith — do when Matrix needs feature work
 
 ---
 
-## Phase 2: Production Polish
+## Current Focus: Production Polish
 
 - Performance optimization
 - Mobile responsiveness review
 - SEO improvements
 - Accessibility audit
+- Sveltia CMS: Cloudflare Workers OAuth for multi-user GitHub auth
 
 ---
 
 ## Completed (2026-03)
 
-- ✅ External routes: navigation-only links (e.g. CMS admin) excluded from site builds
-- ✅ RouteDefinitionInput type for route construction with Zod defaults
+- ✅ Codebase refactor (see above)
+- ✅ Series metadata + cover images for 3 blog series
+- ✅ Architecture docs rewrite
+- ✅ Deck/Post schema consistency
+- ✅ Obsidian content creation frontend: template sync, body templates, Metadata Menu fileClasses
+- ✅ Bases integration: per-entity views, Pipeline, Settings for singletons
+- ✅ Sync improvements: disk edits win, canonical hash eliminates re-import cycle
+- ✅ External routes: navigation-only links excluded from site builds
 - ✅ Wishlist plugin added to professional brain
-- ✅ Pipeline widget mobile overflow fix (flex-wrap on status tabs)
-- ✅ Dashboard auto-discovered URLs (replaced manual dashboardLinks config with AppInfo + git-sync)
+- ✅ Pipeline widget mobile overflow fix
+- ✅ Dashboard auto-discovered URLs
 - ✅ Pre-compiled hydration for faster site builds
 - ✅ MCP multi-session support fix
 - ✅ ESLint centralized configuration
 - ✅ Interactive pipeline widget on dashboard
-- ✅ Directory-sync: canonical contentHash breaks unnecessary re-import cycle after auto-sync
-- ✅ Directory-sync: remove batch export so disk edits always win during sync
-- ✅ Obsidian vault plugin: template sync, body templates from StructuredContentFormatter
-- ✅ Metadata Menu fileClass generation with enum dropdowns, folder-based mapping, field IDs
-- ✅ Directory restructure: templates and fileClasses under `_obsidian/` base folder
-- ✅ Directory-sync fix: skip underscore-prefixed directories (`_obsidian/`, `_config/`)
-- ✅ Bases generation: per-entity table views, status grouping, Pipeline.base, generate-if-missing
-- ✅ Singleton entity handling: skip templates/individual bases, Settings.base grouping
 
 ## Completed (2026-02)
 
 - ✅ Discord bot interface with threads, attachments, message chunking, constructor DI
 - ✅ Interface test cleanup: removed type casts and global mocks from Discord + Matrix tests
-- ✅ File upload support for chat interfaces (base class utilities, Matrix `m.file` handling, permission-gating, SDK 0.8.0)
-- ✅ Note plugin: slugified IDs, frontmatter-aware content handling, file upload eval
-- ✅ Extract site-content plugin from site-builder (entity, adapter, tools, orchestration via messaging)
-- ✅ BaseEntityAdapter abstract class — migrated all 10 adapters to reduce boilerplate
-- ✅ Route types moved to `@brains/plugins` (shared cross-plugin concern)
+- ✅ File upload support for chat interfaces
+- ✅ Note plugin: slugified IDs, frontmatter-aware content handling
+- ✅ Extract site-content plugin from site-builder
+- ✅ BaseEntityAdapter abstract class — migrated all 10 adapters
+- ✅ Route types moved to `@brains/plugins`
 - ✅ LinkedIn organization posting support
-- ✅ Professional site layout improvements (hero asymmetry, featured items, stacked variants)
+- ✅ Professional site layout improvements
 - ✅ 5 theme variations (brutalist, editorial, geometric, neo-retro, swiss)
-- ✅ Brutalist theme CRT terminal aesthetic elevation
-- ✅ Content finalization: portfolio voice/backstory cleanup, Public Badges project added, URLs populated
-- ✅ Removed technologies field from project schema
-- ✅ Pagination dark mode fix (replaced theme-dependent CSS classes with Tailwind utilities)
-- ✅ Code block mobile overflow fix (flex min-width constraint)
-- ✅ Horizontal scrollbar flash fix (brutalist theme wave-divider overflow)
-- ✅ Status badge readability fix (brutalist theme Industrial Tags rule)
-- ✅ Favicon in Docker image (public/ directory in build context)
-- ✅ Content-type-aware cache headers in preview server
-- ✅ Image generation: GPT Image 1.5 + Gemini multi-provider, aspect ratios, AI prompt distillation, editorial illustration style
-- ✅ CoverImage component with aspect-ratio-aware rendering and dimension propagation
-- ✅ Embeddable flag to skip embeddings for image entities
-- ✅ Global image provider config (`defaultImageProvider` with auto-detection)
-- ✅ Git sync: event-driven commit/push, subprocess optimization, ServicePlugin conversion
+- ✅ Content finalization: portfolio voice/backstory cleanup
+- ✅ Image generation: GPT Image 1.5 + Gemini multi-provider
+- ✅ CoverImage component with aspect-ratio-aware rendering
+- ✅ Git sync: event-driven commit/push, subprocess optimization
 - ✅ Sveltia CMS at `/admin/` with autoSync
-- ✅ Frontmatter schema normalization (deck, project, link, newsletter, social post)
-- ✅ Job monitoring memory leak fix (newsletter, social-media)
+- ✅ Frontmatter schema normalization
+- ✅ Job monitoring memory leak fix
 
 ## Completed (2026-01)
 
@@ -110,28 +113,18 @@ Last Updated: 2026-03-06
 - ✅ Social media auto-generate on blog publish
 - ✅ Newsletter plugin (Buttondown integration)
 - ✅ Newsletter generation tool (AI-powered, job-based)
-- ✅ Newsletter agent evals (tool invocation tests)
-- ✅ NewsletterSignup UI component
-- ✅ Newsletter signup on site (API routes, footer slot)
 - ✅ Publish pipeline (queue, schedule, execute)
 - ✅ Deploy script consolidation
 - ✅ Docker build optimization
 - ✅ Image plugin (cover images, alt text)
-- ✅ Decks cover image support
 - ✅ AI SDK v6 stabilization
-- ✅ Plugin test coverage
-- ✅ Content-pipeline rename (publish-pipeline → content-pipeline)
 - ✅ Generation scheduling (newsletters, social posts)
-- ✅ TestSchedulerBackend for deterministic testing
-- ✅ Buttondown API fix (about_to_send status)
 
 ---
 
 ## Future Considerations
 
-- **Astro Site Builder**: Alternative SSG with content collections (see `docs/plans/site-builder-astro.md`)
-- **Team Brain**: Shared knowledge bases
-- **Collective Brain**: Community knowledge networks
+- **Cloudflare CDN**: Alternative to Bunny.net ([plan](./plans/cloudflare-migration.md))
 - **Web UI**: Browser interface beyond static site
-- **Obsidian Community Plugin**: Chat, publish, generate from inside Obsidian via MCP HTTP (see `docs/plans/obsidian-integration.md`)
+- **Obsidian Community Plugin**: Chat, publish, generate from inside Obsidian via MCP HTTP
 - **Additional Interfaces**: Slack, WhatsApp, Telegram
