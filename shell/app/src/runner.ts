@@ -63,9 +63,11 @@ async function main(): Promise<void> {
   // brain is guaranteed to exist by loadBrainYaml validation above
   const brainPackage = overrides.brain ?? "";
 
-  // Validate env against the brain's .env.schema
+  // Validate env against the brain's .env.schema.
+  // Uses varlock's `internal` API — no public API supports custom schema paths yet.
+  // TODO: Switch to public API when varlock adds path support (pin version until then).
   const brainPkgDir = dirname(
-    dirname(new URL(import.meta.resolve(brainPackage)).pathname),
+    new URL(import.meta.resolve(`${brainPackage}/package.json`)).pathname,
   );
   const schemaPath = join(brainPkgDir, ".env.schema");
   if (existsSync(schemaPath)) {
@@ -74,6 +76,7 @@ async function main(): Promise<void> {
     });
     await graph.resolveEnvValues();
     try {
+      // checkForConfigErrors logs details to stderr before throwing
       internal.checkForConfigErrors(graph);
     } catch {
       process.exit(1);
