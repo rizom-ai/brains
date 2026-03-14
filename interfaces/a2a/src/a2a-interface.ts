@@ -1,12 +1,7 @@
-import {
-  InterfacePlugin,
-  type InterfacePluginContext,
-  type PluginTool,
-} from "@brains/plugins";
+import { InterfacePlugin, type InterfacePluginContext } from "@brains/plugins";
 import type { Daemon } from "@brains/plugins";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
-
 import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
 import packageJson from "../package.json";
@@ -22,6 +17,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
   private server: ReturnType<typeof Bun.serve> | undefined;
+  private unsubscribeReady: (() => void) | undefined;
 
   constructor(config: Partial<A2AConfig> = {}) {
     super("a2a", packageJson, config, a2aConfigSchema);
@@ -32,9 +28,27 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   ): Promise<void> {
     await super.onRegister(context);
 
-    // Build Agent Card from brain identity + public tools
+    // Build Agent Card after all plugins have registered
+    // so we can see the full tool registry
+    this.unsubscribeReady = context.messaging.subscribe(
+      "system:plugins:ready",
+      () => {
+        this.rebuildAgentCard(context);
+        return { noop: true as const };
+      },
+    );
+
+    this.logger.info("A2A interface registered", {
+      domain: this.config.domain,
+    });
+  }
+
+  /**
+   * Rebuild the Agent Card from current brain identity and registered tools
+   */
+  private rebuildAgentCard(context: InterfacePluginContext): void {
     const character = context.identity.get();
-    const tools = await this.getPublicTools();
+    const tools = context.tools.listForPermissionLevel("public");
 
     this.agentCard = buildAgentCard({
       character,
@@ -44,9 +58,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       tools,
     });
 
-    this.logger.info("A2A interface registered", {
+    this.logger.debug("Agent Card rebuilt", {
       skills: this.agentCard.skills.length,
-      domain: this.config.domain,
     });
   }
 
@@ -55,15 +68,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
    */
   getAgentCard(): AgentCard | undefined {
     return this.agentCard;
-  }
-
-  /**
-   * Get tools filtered to public visibility for the Agent Card
-   */
-  private async getPublicTools(): Promise<PluginTool[]> {
-    // TODO: Filter tools by public permission level
-    // For now, return all tools from the interface's getTools
-    return this.getTools();
   }
 
   protected override createDaemon(): Daemon | undefined {
@@ -101,6 +105,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         );
       },
       stop: async (): Promise<void> => {
+        this.unsubscribeReady?.();
         if (this.server) {
           await this.server.stop();
           this.server = undefined;

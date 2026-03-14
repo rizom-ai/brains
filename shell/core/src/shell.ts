@@ -43,8 +43,12 @@ import type {
   IJobQueueService,
 } from "@brains/job-queue";
 import type { IConversationService } from "@brains/conversation-service";
-import type { PermissionService, RenderService } from "@brains/templates";
-import type { IMCPTransport } from "@brains/mcp-service";
+import type {
+  PermissionService,
+  RenderService,
+  UserPermissionLevel,
+} from "@brains/templates";
+import type { IMCPTransport, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger, type z } from "@brains/utils";
 
@@ -358,6 +362,16 @@ export class Shell implements IShell {
 
   public getMcpTransport(): IMCPTransport {
     return this.services.mcpService;
+  }
+
+  public listToolsForPermissionLevel(level: UserPermissionLevel): ToolInfo[] {
+    return this.services.mcpService
+      .listToolsForPermissionLevel(level)
+      .map(({ pluginId, tool }) => ({
+        name: tool.name,
+        description: tool.description,
+        pluginId,
+      }));
   }
 
   public getPermissionService(): PermissionService {

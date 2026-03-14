@@ -8,6 +8,7 @@ import type {
   AppInfo,
   EvalHandler,
   RegisteredApiRoute,
+  ToolInfo,
 } from "@brains/plugins";
 import type { Daemon, IDaemonRegistry } from "../manager/daemon-types";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -392,6 +393,10 @@ export class MockShell implements IShell {
         // No-op for testing
       },
     } as unknown as IMCPTransport;
+  }
+
+  listToolsForPermissionLevel(): ToolInfo[] {
+    return [];
   }
 
   getPermissionService(): PermissionService {

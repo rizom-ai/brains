@@ -19,6 +19,7 @@ import type {
 } from "@brains/conversation-service";
 import type { RegisteredApiRoute } from "../types/api-routes";
 import type { IMessageBus } from "@brains/messaging-service";
+import type { ToolInfo } from "@brains/mcp-service";
 
 /**
  * Permissions namespace for InterfacePluginContext
@@ -39,6 +40,15 @@ export interface IDaemonsNamespace {
 }
 
 /**
+ * Tools namespace for InterfacePluginContext
+ * Provides access to registered tools filtered by permission level
+ */
+export interface IToolsNamespace {
+  /** List tools available at a given permission level */
+  listForPermissionLevel: (level: UserPermissionLevel) => ToolInfo[];
+}
+
+/**
  * API Routes namespace for InterfacePluginContext
  * Provides access to plugin-declared API routes
  */
@@ -53,8 +63,7 @@ export interface IApiRoutesNamespace {
  * Extended conversations namespace for InterfacePluginContext
  * Adds write operations to the read-only base
  */
-export interface IInterfaceConversationsNamespace
-  extends IConversationsNamespace {
+export interface IInterfaceConversationsNamespace extends IConversationsNamespace {
   /** Start a new conversation */
   start: (
     conversationId: string,
@@ -133,6 +142,16 @@ export interface InterfacePluginContext extends CorePluginContext {
    * - `conversations.addMessage()` - Add a message to a conversation
    */
   readonly conversations: IInterfaceConversationsNamespace;
+
+  // ============================================================================
+  // Tools (Registered MCP tools)
+  // ============================================================================
+
+  /**
+   * Tools namespace for accessing registered tools
+   * - `tools.listForPermissionLevel()` - List tools available at a given permission level
+   */
+  readonly tools: IToolsNamespace;
 
   // ============================================================================
   // API Routes (Plugin-declared HTTP endpoints)
@@ -234,6 +253,13 @@ export function createInterfacePluginContext(
           content,
           metadata,
         );
+      },
+    },
+
+    // Tools namespace
+    tools: {
+      listForPermissionLevel: (level: UserPermissionLevel): ToolInfo[] => {
+        return shell.listToolsForPermissionLevel(level);
       },
     },
 

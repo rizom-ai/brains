@@ -16,13 +16,14 @@ import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
-import type { PluginTool, PluginResource } from "@brains/mcp-service";
+import type { PluginTool, PluginResource, ToolInfo } from "@brains/mcp-service";
 export type {
   ToolVisibility,
   ToolContext,
   ToolResponse,
   PluginTool,
   PluginResource,
+  ToolInfo,
 } from "@brains/mcp-service";
 export {
   toolResponseSchema,
@@ -122,6 +123,7 @@ export interface IShell {
   getRenderService(): RenderService;
   getConversationService(): IConversationService;
   getMcpTransport(): IMCPTransport;
+  listToolsForPermissionLevel(level: UserPermissionLevel): ToolInfo[];
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;

@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { z } from "@brains/utils";
 import { buildAgentCard } from "../src/agent-card";
 import type { BrainCharacter } from "@brains/plugins";
-import type { PluginTool } from "@brains/plugins";
 
 const mockCharacter: BrainCharacter = {
   name: "Rover",
@@ -11,20 +9,16 @@ const mockCharacter: BrainCharacter = {
   values: ["clarity", "accuracy"],
 };
 
-const mockTools: PluginTool[] = [
+const mockTools = [
   {
     name: "blog_generate",
     description: "Generate a blog post",
-    inputSchema: { prompt: z.string() },
-    visibility: "public",
-    handler: async () => ({ success: true as const, message: "" }),
+    pluginId: "blog",
   },
   {
     name: "system_search",
     description: "Search knowledge base",
-    inputSchema: { query: z.string() },
-    visibility: "public",
-    handler: async () => ({ success: true as const, message: "" }),
+    pluginId: "system",
   },
 ];
 

@@ -1,6 +1,5 @@
 import type { AgentCard, AgentSkill } from "@a2a-js/sdk";
-import type { PluginTool } from "@brains/plugins";
-import type { BrainCharacter } from "@brains/plugins";
+import type { BrainCharacter, ToolInfo } from "@brains/plugins";
 
 /**
  * Options for building an Agent Card
@@ -15,7 +14,7 @@ export interface AgentCardOptions {
   /** Organization name for the provider field */
   organization?: string;
   /** Registered tools (filtered by public permission) */
-  tools: PluginTool[];
+  tools: ToolInfo[];
 }
 
 /**

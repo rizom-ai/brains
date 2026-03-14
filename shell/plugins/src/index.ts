@@ -35,6 +35,7 @@ export type {
   IShell,
   QueryContext,
   IMCPTransport,
+  ToolInfo,
   EvalHandler,
   ContentGenerationConfig,
   IEvalHandlerRegistry,
