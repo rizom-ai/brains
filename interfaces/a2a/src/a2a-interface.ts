@@ -65,6 +65,10 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     const profile = context.identity.getProfile();
     const tools = context.tools.listForPermissionLevel("public");
 
+    const hasTrustedTokens =
+      this.config.trustedTokens &&
+      Object.keys(this.config.trustedTokens).length > 0;
+
     this.agentCard = buildAgentCard({
       character,
       profile,
@@ -72,6 +76,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       domain: this.config.domain,
       organization: this.config.organization,
       tools,
+      authEnabled: hasTrustedTokens,
     });
 
     this.logger.debug("Agent Card rebuilt", {

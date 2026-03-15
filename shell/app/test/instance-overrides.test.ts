@@ -681,4 +681,60 @@ describe("resolve with instance overrides", () => {
     const config = resolve(def, {});
     expect(config.name).toBe("test");
   });
+
+  test("should apply permissions rules from yaml overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+      permissions: {
+        rules: [{ pattern: "cli:*", level: "anchor" as const }],
+      },
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        permissions: {
+          rules: [
+            { pattern: "a2a:mylittlephoney", level: "trusted" as const },
+            { pattern: "a2a:*", level: "public" as const },
+          ],
+        },
+      },
+    );
+
+    // yaml rules override definition rules
+    expect(config.permissions?.rules).toEqual([
+      { pattern: "a2a:mylittlephoney", level: "trusted" },
+      { pattern: "a2a:*", level: "public" },
+    ]);
+  });
+
+  test("should merge yaml permissions anchors with definition", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+      permissions: {
+        anchors: ["cli:*"],
+      },
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        permissions: {
+          anchors: ["mcp:stdio"],
+        },
+      },
+    );
+
+    // yaml anchors override definition anchors
+    expect(config.permissions?.anchors).toEqual(["mcp:stdio"]);
+  });
 });

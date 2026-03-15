@@ -17,6 +17,8 @@ export interface AgentCardOptions {
   organization?: string;
   /** Registered tools (filtered by public permission) */
   tools: ToolInfo[];
+  /** Whether bearer token auth is configured */
+  authEnabled?: boolean;
 }
 
 /**
@@ -68,6 +70,15 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
         organization,
         url,
       },
+    }),
+    ...(options.authEnabled && {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http" as const,
+          scheme: "bearer",
+        },
+      },
+      security: [{ bearerAuth: [] }],
     }),
   };
 }

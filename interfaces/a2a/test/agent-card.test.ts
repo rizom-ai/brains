@@ -125,4 +125,31 @@ describe("buildAgentCard", () => {
 
     expect(card.skills).toHaveLength(0);
   });
+
+  test("should include securitySchemes when auth is enabled", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      version: "1.0.0",
+      tools: [],
+      authEnabled: true,
+    });
+
+    expect(card.securitySchemes).toEqual({
+      bearerAuth: { type: "http", scheme: "bearer" },
+    });
+    expect(card.security).toEqual([{ bearerAuth: [] }]);
+  });
+
+  test("should omit securitySchemes when auth is not enabled", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      version: "1.0.0",
+      tools: [],
+    });
+
+    expect(card.securitySchemes).toBeUndefined();
+    expect(card.security).toBeUndefined();
+  });
 });
