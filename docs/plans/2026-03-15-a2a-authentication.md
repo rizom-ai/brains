@@ -281,44 +281,78 @@ security: [{ bearerAuth: [] }],
 
 This tells callers: "I accept Bearer tokens. Send one if you have it, or you'll get public access."
 
-### 7. Brain Config
+### 7. Instance Configuration (brain.yaml)
 
-```ts
-// brains/rover/src/index.ts
-interfaces: [
-  () => new A2AInterface({
-    port: 3334,
-    // Inbound: tokens remote agents send us
-    trustedTokens: {
-      [process.env.A2A_TOKEN_MYLITTLEPHONEY]: "mylittlephoney",
-    },
-    // Outbound: tokens we send to remote agents
-    outboundTokens: {
-      "mylittlephoney.com": process.env.A2A_TOKEN_ROVER_FOR_MYLITTLEPHONEY,
-    },
-  }),
-],
-permissions: {
-  rules: [
-    { pattern: "a2a:mylittlephoney", level: "trusted" },
-    { pattern: "a2a:*", level: "public" },
-  ],
-},
+Auth and permissions are instance-specific — they belong in `brain.yaml`, not the brain model code. Secrets are referenced via `${ENV_VAR}` interpolation, actual values stay in `.env`.
+
+```yaml
+brain: "@brains/rover"
+domain: yeehaa.io
+
+plugins:
+  a2a:
+    organization: rizom.ai
+    # Inbound: tokens remote agents send us (token → identity)
+    trustedTokens:
+      ${A2A_TOKEN_MLP}: mylittlephoney
+      ${A2A_TOKEN_RELAY}: relay
+    # Outbound: tokens we send to remote agents (domain → token)
+    outboundTokens:
+      mylittlephoney.com: ${A2A_OUTBOUND_TOKEN_MLP}
+      relay.rizom.ai: ${A2A_OUTBOUND_TOKEN_RELAY}
+
+permissions:
+  anchors:
+    - cli:*
+    - mcp:stdio
+  rules:
+    - pattern: "a2a:mylittlephoney"
+      level: trusted
+    - pattern: "a2a:relay"
+      level: trusted
+    - pattern: "a2a:*"
+      level: public
+    - pattern: "mcp:http"
+      level: public
 ```
+
+And in `.env`:
+
+```
+A2A_TOKEN_MLP=secret-token-abc
+A2A_TOKEN_RELAY=secret-token-def
+A2A_OUTBOUND_TOKEN_MLP=secret-token-ghi
+A2A_OUTBOUND_TOKEN_RELAY=secret-token-jkl
+```
+
+**Prerequisites:**
+
+- Replace hand-rolled yaml parser in `instance-overrides.ts` with `fromYaml` from `@brains/utils`
+- Add env var interpolation (`${VAR}` → `process.env.VAR`)
+- Support nested maps and list-of-objects in plugin overrides
+- Support `permissions.rules` as list of `{ pattern, level }` objects
 
 ## Open Questions
 
-1. ~~Should tokens be per-agent or per-permission-level?~~ **Per-agent** — only way that works with `PermissionService` pattern matching.
-2. Should we support bidirectional token exchange? **Yes** — inbound (`trustedTokens`) and outbound (`outboundTokens`) are separate configs since each side generates its own token.
+1. ~~Should tokens be per-agent or per-permission-level?~~ **Per-agent** — each agent gets its own token, PermissionService maps identity to level.
+2. ~~Should we support bidirectional token exchange?~~ **Yes** — inbound (`trustedTokens`) and outbound (`outboundTokens`) are separate configs since each side generates its own token.
 3. How does the A2A spec plan to handle authentication? Monitor spec evolution — the `securitySchemes` field on `AgentCard` suggests they're heading toward OpenAPI-style auth declarations.
-4. ~~Should token values come from env vars or config?~~ **Env vars** — per existing convention, secrets never in yaml/config files.
+4. ~~Should token values come from env vars or config?~~ **Env vars** — referenced in yaml via `${VAR}`, actual values in `.env`.
+5. ~~Auth vs permissions in the same place?~~ **No** — auth (trustedTokens) proves identity, permissions (rules) grant access. Always separate concerns.
 
 ## Files Changed (Phase 1)
 
-- `interfaces/a2a/src/config.ts` — add `trustedTokens` and `outboundTokens` to schema
+### Already done ✅
+
+- `interfaces/a2a/src/config.ts` — `trustedTokens` and `outboundTokens` in schema
 - `interfaces/a2a/src/a2a-interface.ts` — resolve caller identity from auth header, pass permission level
 - `interfaces/a2a/src/jsonrpc-handler.ts` — accept and use `callerPermissionLevel`
 - `interfaces/a2a/src/client.ts` — send outbound auth token in `sendMessage`
+
+### Remaining
+
+- `shell/app/src/instance-overrides.ts` — replace hand-rolled parser with `fromYaml` + env interpolation
+- `shell/app/src/brain-resolver.ts` — apply permissions from yaml overrides
 - `interfaces/a2a/src/agent-card.ts` — populate `securitySchemes`/`security` when auth is configured
-- `brains/rover/src/index.ts` — add A2A permission rules
-- `brains/rover/.env.schema` — add `A2A_TOKEN_*` vars
+- Instance yaml files — add A2A tokens + permission rules
+- `.env` files — add `A2A_TOKEN_*` vars

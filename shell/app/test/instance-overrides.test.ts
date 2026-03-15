@@ -191,6 +191,111 @@ logLevel: debug
     expect(result.disable).toBeUndefined();
     expect(result.plugins).toBeUndefined();
   });
+
+  test("should parse nested maps in plugin config", () => {
+    const yaml = `brain: "@brains/rover"
+plugins:
+  a2a:
+    organization: rizom.ai
+    trustedTokens:
+      token-abc: mylittlephoney
+      token-def: relay
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.plugins?.["a2a"]).toEqual({
+      organization: "rizom.ai",
+      trustedTokens: {
+        "token-abc": "mylittlephoney",
+        "token-def": "relay",
+      },
+    });
+  });
+
+  test("should interpolate ${ENV_VAR} in values", () => {
+    process.env["TEST_DB_URL"] = "file:./test.db";
+    try {
+      const result = parseInstanceOverrides(
+        'brain: "@brains/rover"\ndatabase: "${TEST_DB_URL}"',
+      );
+      expect(result.database).toBe("file:./test.db");
+    } finally {
+      delete process.env["TEST_DB_URL"];
+    }
+  });
+
+  test("should interpolate ${ENV_VAR} in map keys", () => {
+    process.env["TEST_A2A_TOKEN"] = "secret-token-xyz";
+    try {
+      const yaml = `brain: "@brains/rover"
+plugins:
+  a2a:
+    trustedTokens:
+      \${TEST_A2A_TOKEN}: mylittlephoney
+`;
+      const result = parseInstanceOverrides(yaml);
+      expect(result.plugins).toEqual({
+        a2a: {
+          trustedTokens: {
+            "secret-token-xyz": "mylittlephoney",
+          },
+        },
+      });
+    } finally {
+      delete process.env["TEST_A2A_TOKEN"];
+    }
+  });
+
+  test("should drop entries with unset env vars", () => {
+    delete process.env["NONEXISTENT_VAR"];
+    const yaml = `brain: "@brains/rover"
+plugins:
+  a2a:
+    trustedTokens:
+      \${NONEXISTENT_VAR}: mylittlephoney
+      real-token: relay
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.plugins).toEqual({
+      a2a: {
+        trustedTokens: {
+          "real-token": "relay",
+        },
+      },
+    });
+  });
+
+  test("should parse permissions section with rules", () => {
+    const yaml = `brain: "@brains/rover"
+permissions:
+  anchors:
+    - "cli:*"
+    - "mcp:stdio"
+  rules:
+    - pattern: "a2a:mylittlephoney"
+      level: trusted
+    - pattern: "a2a:*"
+      level: public
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.permissions?.anchors).toEqual(["cli:*", "mcp:stdio"]);
+    expect(result.permissions?.rules).toEqual([
+      { pattern: "a2a:mylittlephoney", level: "trusted" },
+      { pattern: "a2a:*", level: "public" },
+    ]);
+  });
+
+  test("should parse anchors and trusted in permissions", () => {
+    const yaml = `brain: "@brains/rover"
+permissions:
+  anchors:
+    - "cli:*"
+  trusted:
+    - "matrix:@friend:matrix.org"
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.permissions?.anchors).toEqual(["cli:*"]);
+    expect(result.permissions?.trusted).toEqual(["matrix:@friend:matrix.org"]);
+  });
 });
 
 // --- resolve with overrides ---
