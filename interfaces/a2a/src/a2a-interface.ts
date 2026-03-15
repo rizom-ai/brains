@@ -1,4 +1,8 @@
-import { InterfacePlugin, type InterfacePluginContext } from "@brains/plugins";
+import {
+  InterfacePlugin,
+  type InterfacePluginContext,
+  type PluginTool,
+} from "@brains/plugins";
 import type { Daemon, IAgentService } from "@brains/plugins";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
@@ -6,6 +10,7 @@ import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
 import { TaskManager } from "./task-manager";
 import { handleJsonRpc, jsonrpcRequestSchema } from "./jsonrpc-handler";
+import { createA2ACallTool } from "./client";
 import packageJson from "../package.json";
 
 /**
@@ -74,6 +79,10 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
    */
   getAgentCard(): AgentCard | undefined {
     return this.agentCard;
+  }
+
+  protected override async getTools(): Promise<PluginTool[]> {
+    return [createA2ACallTool()];
   }
 
   protected override createDaemon(): Daemon | undefined {
