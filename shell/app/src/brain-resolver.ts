@@ -95,20 +95,7 @@ export function resolve(
 
     // Optional fields
     ...(identity && { identity }),
-    ...(definition.permissions && {
-      permissions: {
-        ...definition.permissions,
-        ...(overrides?.anchors && { anchors: overrides.anchors }),
-        ...(overrides?.trusted && { trusted: overrides.trusted }),
-      },
-    }),
-    ...(!definition.permissions &&
-      (overrides?.anchors ?? overrides?.trusted) && {
-        permissions: {
-          ...(overrides.anchors && { anchors: overrides.anchors }),
-          ...(overrides.trusted && { trusted: overrides.trusted }),
-        },
-      }),
+    ...buildPermissions(definition.permissions, overrides),
     deployment,
 
     // Log level: yaml overrides > env > undefined
@@ -132,6 +119,37 @@ export function resolve(
   }
 
   return defineConfig(appConfig);
+}
+
+/**
+ * Build the permissions config by merging definition defaults with yaml overrides.
+ *
+ * Priority: yaml `permissions` section > yaml top-level `anchors`/`trusted` > definition defaults
+ */
+function buildPermissions(
+  definitionPerms: BrainDefinition["permissions"],
+  overrides?: Omit<InstanceOverrides, "brain">,
+): { permissions: Record<string, unknown> } | Record<string, never> {
+  const yamlPerms = overrides?.permissions;
+  const hasYamlPerms =
+    yamlPerms?.anchors || yamlPerms?.trusted || yamlPerms?.rules;
+  const hasTopLevel = overrides?.anchors || overrides?.trusted;
+  const hasDefPerms = !!definitionPerms;
+
+  if (!hasYamlPerms && !hasTopLevel && !hasDefPerms) return {};
+
+  return {
+    permissions: {
+      ...(definitionPerms ?? {}),
+      // Top-level anchors/trusted (legacy path)
+      ...(overrides?.anchors && { anchors: overrides.anchors }),
+      ...(overrides?.trusted && { trusted: overrides.trusted }),
+      // yaml permissions section takes priority
+      ...(yamlPerms?.anchors && { anchors: yamlPerms.anchors }),
+      ...(yamlPerms?.trusted && { trusted: yamlPerms.trusted }),
+      ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
+    },
+  };
 }
 
 /**

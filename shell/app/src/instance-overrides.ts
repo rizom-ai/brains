@@ -1,7 +1,7 @@
-import { z } from "@brains/utils";
-import { fromYaml } from "@brains/utils";
+import { z, fromYaml } from "@brains/utils";
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
+const ENV_VAR_PATTERN = /\$\{([^}]+)\}/g;
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -71,10 +71,9 @@ export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
  * Returns undefined if an env var is not set.
  */
 function interpolateEnvVar(value: string): string | undefined {
-  const envVarPattern = /\$\{([^}]+)\}/g;
   let hasUnresolved = false;
 
-  const result = value.replace(envVarPattern, (_, varName: string) => {
+  const result = value.replace(ENV_VAR_PATTERN, (_, varName: string) => {
     const envValue = process.env[varName];
     if (envValue === undefined) {
       hasUnresolved = true;
@@ -129,13 +128,15 @@ function interpolateEnv(data: unknown): unknown {
  * and validates with Zod.
  */
 export function parseInstanceOverrides(yamlContent: string): InstanceOverrides {
-  const raw = fromYaml(yamlContent);
-  const interpolated = interpolateEnv(raw);
-  const parsed = instanceOverridesSchema.safeParse(interpolated);
-
-  if (!parsed.success) {
+  let raw: unknown;
+  try {
+    raw = fromYaml(yamlContent);
+  } catch {
     return {};
   }
 
-  return parsed.data;
+  const interpolated = interpolateEnv(raw);
+  const parsed = instanceOverridesSchema.safeParse(interpolated);
+
+  return parsed.success ? parsed.data : {};
 }
