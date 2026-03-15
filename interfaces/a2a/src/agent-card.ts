@@ -1,5 +1,5 @@
 import type { AgentCard, AgentSkill } from "@a2a-js/sdk";
-import type { BrainCharacter, ToolInfo } from "@brains/plugins";
+import type { BrainCharacter, AnchorProfile, ToolInfo } from "@brains/plugins";
 
 /**
  * Options for building an Agent Card
@@ -7,6 +7,8 @@ import type { BrainCharacter, ToolInfo } from "@brains/plugins";
 export interface AgentCardOptions {
   /** Brain character identity */
   character: BrainCharacter;
+  /** Anchor (owner) profile */
+  profile: AnchorProfile;
   /** Brain version */
   version: string;
   /** Domain the brain is served at */
@@ -23,8 +25,19 @@ export interface AgentCardOptions {
  * The card is generated dynamically at runtime after all plugins
  * have registered, so it always reflects the current capabilities.
  */
+/**
+ * Build a human-readable description for the Agent Card.
+ * Includes who the agent belongs to and what it does.
+ */
+function buildDescription(
+  character: BrainCharacter,
+  profile: AnchorProfile,
+): string {
+  return `${character.name} is ${profile.name}'s ${character.role}. Its purpose is: ${character.purpose}.`;
+}
+
 export function buildAgentCard(options: AgentCardOptions): AgentCard {
-  const { character, version, domain, organization, tools } = options;
+  const { character, profile, version, domain, organization, tools } = options;
 
   const url = domain ? `https://${domain}` : "http://localhost:3334";
 
@@ -38,7 +51,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
 
   return {
     name: character.name,
-    description: character.purpose,
+    description: buildDescription(character, profile),
     url,
     version,
     protocolVersion: "0.2.2",

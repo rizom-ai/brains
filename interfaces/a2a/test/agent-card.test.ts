@@ -1,12 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import { buildAgentCard } from "../src/agent-card";
-import type { BrainCharacter } from "@brains/plugins";
+import type { AnchorProfile, BrainCharacter } from "@brains/plugins";
 
 const mockCharacter: BrainCharacter = {
   name: "Rover",
   role: "Knowledge manager",
   purpose: "Organize and surface knowledge",
   values: ["clarity", "accuracy"],
+};
+
+const mockProfile: AnchorProfile = {
+  name: "Jan Hein",
 };
 
 const mockTools = [
@@ -26,12 +30,15 @@ describe("buildAgentCard", () => {
   test("should build card with brain identity", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       tools: mockTools,
     });
 
     expect(card.name).toBe("Rover");
-    expect(card.description).toBe("Organize and surface knowledge");
+    expect(card.description).toBe(
+      "Rover is Jan Hein's Knowledge manager. Its purpose is: Organize and surface knowledge.",
+    );
     expect(card.version).toBe("1.0.0");
     expect(card.protocolVersion).toBe("0.2.2");
   });
@@ -39,6 +46,7 @@ describe("buildAgentCard", () => {
   test("should map tools to skills", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       tools: mockTools,
     });
@@ -52,6 +60,7 @@ describe("buildAgentCard", () => {
   test("should use domain for url when provided", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       domain: "yeehaa.io",
       tools: [],
@@ -63,6 +72,7 @@ describe("buildAgentCard", () => {
   test("should fall back to localhost when no domain", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       tools: [],
     });
@@ -73,6 +83,7 @@ describe("buildAgentCard", () => {
   test("should include provider when organization is set", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       organization: "rizom.ai",
       tools: [],
@@ -84,6 +95,7 @@ describe("buildAgentCard", () => {
   test("should omit provider when organization is not set", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       tools: [],
     });
@@ -94,6 +106,7 @@ describe("buildAgentCard", () => {
   test("should declare streaming capability", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       tools: [],
     });
@@ -105,6 +118,7 @@ describe("buildAgentCard", () => {
   test("should handle empty tools list", () => {
     const card = buildAgentCard({
       character: mockCharacter,
+      profile: mockProfile,
       version: "1.0.0",
       tools: [],
     });

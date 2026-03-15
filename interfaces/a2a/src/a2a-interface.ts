@@ -59,10 +59,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
    */
   private rebuildAgentCard(context: InterfacePluginContext): void {
     const character = context.identity.get();
+    const profile = context.identity.getProfile();
     const tools = context.tools.listForPermissionLevel("public");
 
     this.agentCard = buildAgentCard({
       character,
+      profile,
       version: packageJson.version,
       domain: this.config.domain,
       organization: this.config.organization,
