@@ -1,9 +1,11 @@
 import { InterfacePlugin, type InterfacePluginContext } from "@brains/plugins";
-import type { Daemon } from "@brains/plugins";
+import type { Daemon, IAgentService } from "@brains/plugins";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
+import { TaskManager } from "./task-manager";
+import { handleJsonRpc, jsonrpcRequestSchema } from "./jsonrpc-handler";
 import packageJson from "../package.json";
 
 /**
@@ -18,6 +20,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private agentCard: AgentCard | undefined;
   private server: ReturnType<typeof Bun.serve> | undefined;
   private unsubscribeReady: (() => void) | undefined;
+  private taskManager = new TaskManager();
+  private agentService: IAgentService | undefined;
 
   constructor(config: Partial<A2AConfig> = {}) {
     super("a2a", packageJson, config, a2aConfigSchema);
@@ -27,6 +31,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+
+    this.agentService = context.agentService;
 
     // Build Agent Card after all plugins have registered
     // so we can see the full tool registry
@@ -81,17 +87,45 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       return c.json(this.agentCard);
     });
 
-    // JSON-RPC 2.0 endpoint (task handling - to be implemented)
+    // JSON-RPC 2.0 endpoint
     app.post("/a2a", async (c) => {
-      // TODO: Implement JSON-RPC handler for tasks/send, tasks/get, etc.
-      return c.json(
-        {
+      if (!this.agentService) {
+        return c.json(
+          {
+            jsonrpc: "2.0",
+            error: { code: -32603, message: "Agent service not ready" },
+            id: null,
+          },
+          503,
+        );
+      }
+
+      let body: unknown;
+      try {
+        body = await c.req.json();
+      } catch {
+        return c.json({
           jsonrpc: "2.0",
-          error: { code: -32601, message: "Method not yet implemented" },
+          error: { code: -32700, message: "Parse error" },
           id: null,
-        },
-        501,
-      );
+        });
+      }
+
+      const parsed = jsonrpcRequestSchema.safeParse(body);
+      if (!parsed.success) {
+        return c.json({
+          jsonrpc: "2.0",
+          error: { code: -32600, message: "Invalid request" },
+          id: null,
+        });
+      }
+
+      const response = await handleJsonRpc(parsed.data, {
+        taskManager: this.taskManager,
+        agentService: this.agentService,
+      });
+
+      return c.json(response);
     });
 
     return {
