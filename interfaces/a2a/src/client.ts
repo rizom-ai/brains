@@ -68,6 +68,8 @@ const taskResultSchema = z.object({
   }),
 });
 
+const resultEnvelopeSchema = z.object({ result: z.unknown() });
+
 /**
  * Extract text from a parts array
  */
@@ -96,8 +98,7 @@ export function parseA2AResponse(data: unknown): A2AResult {
     return { success: false, error: errorParsed.data.error.message };
   }
 
-  const resultSchema = z.object({ result: z.unknown() });
-  const resultParsed = resultSchema.safeParse(data);
+  const resultParsed = resultEnvelopeSchema.safeParse(data);
   if (!resultParsed.success || resultParsed.data.result === undefined) {
     return {
       success: true,
@@ -142,6 +143,8 @@ export function parseA2AResponse(data: unknown): A2AResult {
 
 // -- Network functions --
 
+type FetchFn = typeof globalThis.fetch;
+
 const a2aCallInputSchema = {
   agent: z
     .string()
@@ -151,10 +154,11 @@ const a2aCallInputSchema = {
 
 async function fetchAgentCard(
   agentUrl: string,
+  fetchFn: FetchFn,
 ): Promise<DiscoveredAgentCard | null> {
   const cardUrl = agentUrl.replace(/\/$/, "") + "/.well-known/agent-card.json";
   try {
-    const response = await fetch(cardUrl);
+    const response = await fetchFn(cardUrl);
     if (!response.ok) return null;
     const data: unknown = await response.json();
     return parseAgentCardResponse(data);
@@ -166,6 +170,7 @@ async function fetchAgentCard(
 async function sendMessage(
   endpointUrl: string,
   message: string,
+  fetchFn: FetchFn,
 ): Promise<ToolResponse> {
   const rpcRequest = {
     jsonrpc: "2.0",
@@ -182,7 +187,7 @@ async function sendMessage(
   };
 
   try {
-    const response = await fetch(endpointUrl, {
+    const response = await fetchFn(endpointUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(rpcRequest),
@@ -211,10 +216,16 @@ async function sendMessage(
 
 // -- Tool factory --
 
+export interface A2AClientDeps {
+  fetch?: FetchFn;
+}
+
 /**
  * Create the a2a_call tool for calling remote A2A agents
  */
-export function createA2ACallTool(): PluginTool {
+export function createA2ACallTool(deps: A2AClientDeps = {}): PluginTool {
+  const fetchFn = deps.fetch ?? globalThis.fetch;
+
   return {
     name: "a2a_call",
     description:
@@ -232,7 +243,7 @@ export function createA2ACallTool(): PluginTool {
 
       const { agent, message } = parsed.data;
 
-      const card = await fetchAgentCard(agent);
+      const card = await fetchAgentCard(agent, fetchFn);
       if (!card) {
         return {
           success: false,
@@ -241,7 +252,7 @@ export function createA2ACallTool(): PluginTool {
       }
 
       const endpointUrl = card.url.replace(/\/$/, "") + "/a2a";
-      return sendMessage(endpointUrl, message);
+      return sendMessage(endpointUrl, message, fetchFn);
     },
   };
 }
