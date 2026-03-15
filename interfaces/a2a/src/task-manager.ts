@@ -1,5 +1,15 @@
 import type { Task, TaskState, Message, Part } from "@a2a-js/sdk";
 
+/** Default TTL for completed tasks: 1 hour */
+const DEFAULT_TTL_MS = 60 * 60 * 1000;
+
+export const TERMINAL_STATES: Set<TaskState> = new Set([
+  "completed",
+  "failed",
+  "canceled",
+  "rejected",
+]);
+
 /**
  * Internal task record — tracks a task's lifecycle and maps to AgentService conversations
  */
@@ -15,14 +25,37 @@ export interface TaskRecord {
  *
  * Each task maps 1:1 to an AgentService conversation.
  * Tasks move through states: submitted → working → completed/failed/canceled
+ *
+ * Terminal tasks are evicted after a configurable TTL (default: 1 hour).
  */
 export class TaskManager {
   private tasks = new Map<string, TaskRecord>();
+  private readonly ttlMs: number;
+
+  constructor(ttlMs: number = DEFAULT_TTL_MS) {
+    this.ttlMs = ttlMs;
+  }
+
+  /**
+   * Evict terminal tasks whose updatedAt exceeds the TTL
+   */
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [id, record] of this.tasks) {
+      if (
+        TERMINAL_STATES.has(record.task.status.state) &&
+        now - new Date(record.updatedAt).getTime() >= this.ttlMs
+      ) {
+        this.tasks.delete(id);
+      }
+    }
+  }
 
   /**
    * Create a new task from an incoming message
    */
   createTask(messageText: string, contextId?: string): TaskRecord {
+    this.evictExpired();
     const taskId = crypto.randomUUID();
     const resolvedContextId = contextId ?? crypto.randomUUID();
     const now = new Date().toISOString();

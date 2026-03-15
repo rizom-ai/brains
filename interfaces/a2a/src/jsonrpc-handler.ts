@@ -1,7 +1,7 @@
 import { z } from "@brains/utils";
 import type { IAgentService } from "@brains/plugins";
 import type { Task } from "@a2a-js/sdk";
-import type { TaskManager } from "./task-manager";
+import { TERMINAL_STATES, type TaskManager } from "./task-manager";
 
 // -- Zod schemas for request validation --
 
@@ -143,6 +143,7 @@ async function handleSendMessage(
   context.taskManager.updateState(taskId, "working");
 
   // Process through AgentService
+  let updated: ReturnType<typeof context.taskManager.updateState>;
   try {
     const agentResponse = await context.agentService.chat(
       messageText,
@@ -153,16 +154,30 @@ async function handleSendMessage(
       },
     );
 
-    // Complete the task with agent's response
-    context.taskManager.updateState(taskId, "completed", agentResponse.text);
+    updated = context.taskManager.updateState(
+      taskId,
+      "completed",
+      agentResponse.text,
+    );
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    context.taskManager.updateState(taskId, "failed", `Error: ${errorMessage}`);
+    updated = context.taskManager.updateState(
+      taskId,
+      "failed",
+      `Error: ${errorMessage}`,
+    );
   }
 
-  // Return the task in its final state
+  if (!updated) {
+    return errorResponse(id, -32603, "Internal error: task disappeared");
+  }
+
+  // Apply historyLength trimming if requested
   const historyLength = parsed.data.configuration?.historyLength;
-  const task = context.taskManager.getTaskWithHistory(taskId, historyLength);
+  const task =
+    historyLength !== undefined
+      ? context.taskManager.getTaskWithHistory(taskId, historyLength)
+      : updated.task;
 
   if (!task) {
     return errorResponse(id, -32603, "Internal error: task disappeared");
@@ -175,12 +190,10 @@ function handleGetTask(
   id: string | number,
   params: Record<string, unknown>,
   context: JsonRpcHandlerContext,
-): Promise<JsonRpcResponse> {
+): JsonRpcResponse {
   const parsed = taskIdParamsSchema.safeParse(params);
   if (!parsed.success) {
-    return Promise.resolve(
-      errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`),
-    );
+    return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
   }
 
   const task = context.taskManager.getTaskWithHistory(
@@ -189,58 +202,39 @@ function handleGetTask(
   );
 
   if (!task) {
-    return Promise.resolve(
-      errorResponse(id, -32001, `Task not found: ${parsed.data.id}`),
-    );
+    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
   }
 
-  return Promise.resolve(successResponse(id, task));
+  return successResponse(id, task);
 }
 
 function handleCancelTask(
   id: string | number,
   params: Record<string, unknown>,
   context: JsonRpcHandlerContext,
-): Promise<JsonRpcResponse> {
+): JsonRpcResponse {
   const parsed = taskIdParamsSchema.safeParse(params);
   if (!parsed.success) {
-    return Promise.resolve(
-      errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`),
-    );
+    return errorResponse(id, -32602, `Invalid params: ${parsed.error.message}`);
   }
 
   const record = context.taskManager.getTask(parsed.data.id);
   if (!record) {
-    return Promise.resolve(
-      errorResponse(id, -32001, `Task not found: ${parsed.data.id}`),
+    return errorResponse(id, -32001, `Task not found: ${parsed.data.id}`);
+  }
+
+  if (TERMINAL_STATES.has(record.task.status.state)) {
+    return errorResponse(
+      id,
+      -32002,
+      `Task is not cancelable (state: ${record.task.status.state})`,
     );
   }
 
-  const terminalStates: Set<string> = new Set([
-    "completed",
-    "failed",
-    "canceled",
-    "rejected",
-  ]);
-
-  if (terminalStates.has(record.task.status.state)) {
-    return Promise.resolve(
-      errorResponse(
-        id,
-        -32002,
-        `Task is not cancelable (state: ${record.task.status.state})`,
-      ),
-    );
+  const updated = context.taskManager.updateState(parsed.data.id, "canceled");
+  if (!updated) {
+    return errorResponse(id, -32603, "Internal error: task disappeared");
   }
 
-  context.taskManager.updateState(parsed.data.id, "canceled");
-  const task = context.taskManager.getTaskWithHistory(parsed.data.id);
-
-  if (!task) {
-    return Promise.resolve(
-      errorResponse(id, -32603, "Internal error: task disappeared"),
-    );
-  }
-
-  return Promise.resolve(successResponse(id, task));
+  return successResponse(id, updated.task);
 }
