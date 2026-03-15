@@ -18,13 +18,13 @@ import { logLevelSchema } from "./types";
  * @param overrides - Instance overrides from brain.yaml (optional)
  * @returns A fully resolved AppConfig ready for handleCLI() or App.create()
  */
-export function resolve(
+export async function resolve(
   definition: BrainDefinition,
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
-): AppConfig {
+): Promise<AppConfig> {
   const disableSet = new Set(overrides?.disable ?? []);
-  const pluginOverrides = overrides?.plugins ?? {};
+  const pluginOverrides = await resolveAllPackageRefs(overrides?.plugins ?? {});
 
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
@@ -150,6 +150,41 @@ function buildPermissions(
       ...(yamlPerms?.rules && { rules: yamlPerms.rules }),
     },
   };
+}
+
+/**
+ * Resolve @-prefixed package references in a config object.
+ * Values starting with "@" are treated as package names and resolved
+ * via dynamic import, replacing the string with the default export.
+ */
+async function resolvePackageRefs(
+  config: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const resolved = { ...config };
+  for (const [key, value] of Object.entries(resolved)) {
+    if (typeof value === "string" && value.startsWith("@")) {
+      try {
+        const mod = await import(value);
+        resolved[key] = mod.default;
+      } catch {
+        // If import fails, leave the value as-is
+      }
+    }
+  }
+  return resolved;
+}
+
+/**
+ * Resolve package references across all plugin override configs.
+ */
+async function resolveAllPackageRefs(
+  pluginOverrides: Record<string, Record<string, unknown>>,
+): Promise<Record<string, Record<string, unknown>>> {
+  const resolved: Record<string, Record<string, unknown>> = {};
+  for (const [pluginId, config] of Object.entries(pluginOverrides)) {
+    resolved[pluginId] = await resolvePackageRefs(config);
+  }
+  return resolved;
 }
 
 /**

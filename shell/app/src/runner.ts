@@ -84,7 +84,7 @@ async function main(): Promise<void> {
   }
 
   const definition = await loadBrainDefinition(brainPackage);
-  const config = resolve(definition, process.env, overrides);
+  const config = await resolve(definition, process.env, overrides);
   await handleCLI(config);
 }
 
