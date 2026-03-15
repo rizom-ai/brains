@@ -387,7 +387,8 @@ describe("AgentService", () => {
         { agentFactory: mockAgentFactory },
       );
 
-      void expect(service.chat("Hello", "test-conversation")).rejects.toThrow();
+      const response = await service.chat("Hello", "test-conversation");
+      expect(response.text).toContain("Agent error");
     });
 
     it("should handle empty response from agent", async () => {

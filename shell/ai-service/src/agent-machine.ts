@@ -12,6 +12,7 @@ import type {
   ToolResultData,
 } from "./agent-types";
 
+const toolCallArgsSchema = z.record(z.unknown());
 const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
 
 /**
@@ -66,7 +67,11 @@ export interface ExecuteActionInput {
   pendingConfirmation: PendingConfirmation;
 }
 
-const emptyUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+export const emptyUsage = {
+  promptTokens: 0,
+  completionTokens: 0,
+  totalTokens: 0,
+};
 
 /**
  * Create the agent state machine.
@@ -241,6 +246,7 @@ export const agentMachine = setup({
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmation: PendingConfirmation | null;
+  totalToolCalls: number;
 }
 
 /**
@@ -255,12 +261,17 @@ export function extractToolResults(
 ): ExtractedResults {
   const toolResults: ToolResultData[] = [];
   let pendingConfirmation: PendingConfirmation | null = null;
+  let totalToolCalls = 0;
 
   for (const step of steps) {
+    totalToolCalls += step.toolCalls.length;
     const toolCallArgsMap = new Map<string, Record<string, unknown>>();
     for (const tc of step.toolCalls) {
-      if (tc.toolCallId && typeof tc.input === "object" && tc.input !== null) {
-        toolCallArgsMap.set(tc.toolCallId, tc.input as Record<string, unknown>);
+      if (tc.toolCallId) {
+        const parsed = toolCallArgsSchema.safeParse(tc.input);
+        if (parsed.success) {
+          toolCallArgsMap.set(tc.toolCallId, parsed.data);
+        }
       }
     }
 
@@ -307,5 +318,5 @@ export function extractToolResults(
     }
   }
 
-  return { toolResults, pendingConfirmation };
+  return { toolResults, pendingConfirmation, totalToolCalls };
 }

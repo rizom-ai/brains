@@ -13,11 +13,12 @@ import type {
 import type { BrainCallOptions } from "./brain-agent";
 import {
   agentMachine,
+  emptyUsage,
   extractToolResults,
   type ProcessMessageInput,
   type ExecuteActionInput,
 } from "./agent-machine";
-import { createActor, fromPromise } from "xstate";
+import { createActor, fromPromise, waitFor } from "xstate";
 
 /**
  * Default step limit if not specified
@@ -32,17 +33,28 @@ const DEFAULT_STEP_LIMIT = 10;
  *
  * Each conversation gets its own machine actor for independent state tracking.
  */
+type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
+
 export class AgentService implements IAgentService {
   private static instance: AgentService | null = null;
   private logger: Logger;
   private stepLimit: number;
   private agentFactory: AgentConfig["agentFactory"];
 
+  // Provided machine with injected actors (created once, reused per conversation)
+  private providedMachine = agentMachine.provide({
+    actors: {
+      processMessage: fromPromise<AgentResponse, ProcessMessageInput>(
+        async ({ input }) => this.processMessage(input),
+      ),
+      executeConfirmedAction: fromPromise<AgentResponse, ExecuteActionInput>(
+        async ({ input }) => this.executeConfirmedAction(input),
+      ),
+    },
+  });
+
   // Per-conversation machine actors
-  private conversationActors = new Map<
-    string,
-    ReturnType<typeof createActor<typeof agentMachine>>
-  >();
+  private conversationActors = new Map<string, ConversationActor>();
 
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
@@ -71,6 +83,12 @@ export class AgentService implements IAgentService {
    * Reset the singleton instance (for testing)
    */
   public static resetInstance(): void {
+    if (AgentService.instance) {
+      for (const actor of AgentService.instance.conversationActors.values()) {
+        actor.stop();
+      }
+      AgentService.instance.conversationActors.clear();
+    }
     AgentService.instance = null;
   }
 
@@ -136,24 +154,10 @@ export class AgentService implements IAgentService {
   /**
    * Get or create a machine actor for a conversation
    */
-  private getConversationActor(
-    conversationId: string,
-  ): ReturnType<typeof createActor<typeof agentMachine>> {
+  private getConversationActor(conversationId: string): ConversationActor {
     let actor = this.conversationActors.get(conversationId);
     if (!actor) {
-      actor = createActor(
-        agentMachine.provide({
-          actors: {
-            processMessage: fromPromise<AgentResponse, ProcessMessageInput>(
-              async ({ input }) => this.processMessage(input),
-            ),
-            executeConfirmedAction: fromPromise<
-              AgentResponse,
-              ExecuteActionInput
-            >(async ({ input }) => this.executeConfirmedAction(input)),
-          },
-        }),
-      );
+      actor = createActor(this.providedMachine);
       actor.start();
       this.conversationActors.set(conversationId, actor);
     }
@@ -181,7 +185,6 @@ export class AgentService implements IAgentService {
 
     const actor = this.getConversationActor(conversationId);
 
-    // Send message event and wait for the machine to settle
     actor.send({
       type: "RECEIVE_MESSAGE",
       message,
@@ -192,33 +195,15 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    // Wait for the machine to reach idle (processing complete)
-    const snapshot = await new Promise<
-      ReturnType<(typeof actor)["getSnapshot"]>
-    >((resolve) => {
-      const sub = actor.subscribe((state) => {
-        if (state.matches("idle") || state.matches("awaitingConfirmation")) {
-          sub.unsubscribe();
-          resolve(state);
-        }
-      });
-      // Check if already in target state
-      const current = actor.getSnapshot();
-      if (current.matches("idle") || current.matches("awaitingConfirmation")) {
-        sub.unsubscribe();
-        resolve(current);
-      }
-    });
-
-    // Re-throw if the machine caught an error
-    if (snapshot.context.error) {
-      throw new Error(snapshot.context.error);
-    }
+    const snapshot = await waitFor(
+      actor,
+      (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
+    );
 
     return (
       snapshot.context.response ?? {
         text: "No response generated.",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        usage: emptyUsage,
       }
     );
   }
@@ -235,33 +220,18 @@ export class AgentService implements IAgentService {
     if (!actor?.getSnapshot().matches("awaitingConfirmation")) {
       return {
         text: "No pending action to confirm.",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        usage: emptyUsage,
       };
     }
 
     actor.send({ type: confirmed ? "CONFIRM" : "CANCEL" });
 
-    // Wait for the machine to reach idle
-    const snapshot = await new Promise<
-      ReturnType<(typeof actor)["getSnapshot"]>
-    >((resolve) => {
-      const sub = actor.subscribe((state) => {
-        if (state.matches("idle")) {
-          sub.unsubscribe();
-          resolve(state);
-        }
-      });
-      const current = actor.getSnapshot();
-      if (current.matches("idle")) {
-        sub.unsubscribe();
-        resolve(current);
-      }
-    });
+    const snapshot = await waitFor(actor, (s) => s.matches("idle"));
 
     return (
       snapshot.context.response ?? {
         text: "Action completed.",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        usage: emptyUsage,
       }
     );
   }
@@ -347,16 +317,9 @@ export class AgentService implements IAgentService {
       );
     }
 
-    // Extract tool results and confirmation requests
-    const { toolResults, pendingConfirmation } = extractToolResults(
-      result.steps,
-    );
+    const { toolResults, pendingConfirmation, totalToolCalls } =
+      extractToolResults(result.steps);
 
-    // Log completion
-    const totalToolCalls = result.steps.reduce(
-      (sum, step) => sum + step.toolCalls.length,
-      0,
-    );
     this.logger.debug("Chat completed", {
       conversationId,
       responseLength: result.text.length,
@@ -399,7 +362,7 @@ export class AgentService implements IAgentService {
     if (!tool) {
       return {
         text: `Error: Tool '${pendingConfirmation.toolName}' not found.`,
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        usage: emptyUsage,
       };
     }
 
