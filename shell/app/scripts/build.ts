@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { build } from "bun";
 import { existsSync, readFileSync, writeFileSync, cpSync, mkdirSync } from "fs";
+import { generateEntrypoint } from "../src/generate-entrypoint";
 import { join, basename, dirname } from "path";
 
 const cwd = process.cwd();
@@ -26,25 +27,15 @@ let generatedEntrypoint = false;
 if (existsSync(brainYamlPath)) {
   // New brain.yaml flow — generate a static entrypoint
   const yamlContent = readFileSync(brainYamlPath, "utf-8");
-  const brainMatch = yamlContent.match(/^brain:\s*["']?([^"'\n]+)["']?/m);
-  if (!brainMatch?.[1]) {
-    console.error('❌ brain.yaml must contain a "brain" field');
+  const generatedCode = generateEntrypoint(yamlContent);
+  if (!generatedCode) {
+    console.error('❌ brain.yaml must contain a valid "brain" field');
     process.exit(1);
   }
-  const brainPackage = brainMatch[1].trim();
 
-  // Generate a static entrypoint that the bundler can analyze
-  const generatedCode = `
-import definition from "${brainPackage}";
-import { resolve, handleCLI, parseInstanceOverrides } from "@brains/app";
-import { readFileSync } from "fs";
-import { join } from "path";
-
-const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");
-const overrides = parseInstanceOverrides(yaml);
-const config = resolve(definition, process.env, overrides);
-await handleCLI(config);
-`;
+  // Extract brain package name for logging
+  const brainMatch = yamlContent.match(/^brain:\s*["']?([^"'\n]+)["']?/m);
+  const brainPackage = brainMatch?.[1]?.trim() ?? "unknown";
   entrypoint = join(cwd, ".brain-entrypoint.ts");
   writeFileSync(entrypoint, generatedCode);
   generatedEntrypoint = true;

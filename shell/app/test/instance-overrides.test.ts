@@ -6,6 +6,7 @@ import {
   type PluginFactory,
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
+import { registerPackage } from "../src/package-registry";
 import { parseInstanceOverrides } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 
@@ -301,7 +302,7 @@ permissions:
 // --- resolve with overrides ---
 
 describe("resolve with instance overrides", () => {
-  test("should override name", async () => {
+  test("should override name", () => {
     const def = defineBrain({
       name: "team-brain",
       version: "1.0.0",
@@ -309,11 +310,11 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {}, { name: "team-brain-staging" });
+    const config = resolve(def, {}, { name: "team-brain-staging" });
     expect(config.name).toBe("team-brain-staging");
   });
 
-  test("should override logLevel", async () => {
+  test("should override logLevel", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -321,11 +322,11 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {}, { logLevel: "debug" });
+    const config = resolve(def, {}, { logLevel: "debug" });
     expect(config.logLevel).toBe("debug");
   });
 
-  test("should override database", async () => {
+  test("should override database", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -333,11 +334,11 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {}, { database: "file:./custom.db" });
+    const config = resolve(def, {}, { database: "file:./custom.db" });
     expect(config.database).toBe("file:./custom.db");
   });
 
-  test("should override domain in deployment", async () => {
+  test("should override domain in deployment", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -349,11 +350,11 @@ describe("resolve with instance overrides", () => {
       },
     });
 
-    const config = await resolve(def, {}, { domain: "staging.example.com" });
+    const config = resolve(def, {}, { domain: "staging.example.com" });
     expect(config.deployment?.domain).toBe("staging.example.com");
   });
 
-  test("should set domain in deployment when definition has no deployment", async () => {
+  test("should set domain in deployment when definition has no deployment", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -361,11 +362,11 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {}, { domain: "my.example.com" });
+    const config = resolve(def, {}, { domain: "my.example.com" });
     expect(config.deployment?.domain).toBe("my.example.com");
   });
 
-  test("should override port in deployment", async () => {
+  test("should override port in deployment", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -373,11 +374,11 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {}, { port: 9090 });
+    const config = resolve(def, {}, { port: 9090 });
     expect(config.deployment?.ports?.production).toBe(9090);
   });
 
-  test("should disable capabilities by plugin id", async () => {
+  test("should disable capabilities by plugin id", () => {
     const [systemFactory] = createMockFactory("system");
     const [gitSyncFactory] = createMockFactory("git-sync");
     const [topicsFactory] = createMockFactory("topics");
@@ -393,7 +394,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {}, { disable: ["git-sync"] });
+    const config = resolve(def, {}, { disable: ["git-sync"] });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("system");
@@ -401,7 +402,7 @@ describe("resolve with instance overrides", () => {
     expect(pluginIds).not.toContain("git-sync");
   });
 
-  test("should disable interfaces by plugin id", async () => {
+  test("should disable interfaces by plugin id", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -416,7 +417,7 @@ describe("resolve with instance overrides", () => {
       ],
     });
 
-    const config = await resolve(def, {}, { disable: ["matrix"] });
+    const config = resolve(def, {}, { disable: ["matrix"] });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("mcp");
@@ -424,7 +425,7 @@ describe("resolve with instance overrides", () => {
     expect(pluginIds).not.toContain("matrix");
   });
 
-  test("should disable both capabilities and interfaces", async () => {
+  test("should disable both capabilities and interfaces", () => {
     const [gitSyncFactory] = createMockFactory("git-sync");
 
     const def = defineBrain({
@@ -436,11 +437,11 @@ describe("resolve with instance overrides", () => {
       ],
     });
 
-    const config = await resolve(def, {}, { disable: ["git-sync", "matrix"] });
+    const config = resolve(def, {}, { disable: ["git-sync", "matrix"] });
     expect(config.plugins).toHaveLength(0);
   });
 
-  test("should apply plugin config overrides to capabilities", async () => {
+  test("should apply plugin config overrides to capabilities", () => {
     const configs: unknown[] = [];
     const factory: PluginFactory = (config) => {
       configs.push(config);
@@ -456,7 +457,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -473,7 +474,7 @@ describe("resolve with instance overrides", () => {
     });
   });
 
-  test("should apply plugin config overrides to interfaces", async () => {
+  test("should apply plugin config overrides to interfaces", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -486,7 +487,7 @@ describe("resolve with instance overrides", () => {
       ],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -499,7 +500,7 @@ describe("resolve with instance overrides", () => {
     expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
   });
 
-  test("should apply targeted override after construction", async () => {
+  test("should apply targeted override after construction", () => {
     // Plugin constructs successfully with empty config,
     // then resolver applies matching override by plugin ID.
     const def = defineBrain({
@@ -511,7 +512,7 @@ describe("resolve with instance overrides", () => {
       ],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -524,7 +525,7 @@ describe("resolve with instance overrides", () => {
     expect(getConfig(webserver)).toMatchObject({ productionPort: 9090 });
   });
 
-  test("should not bleed overrides between plugins", async () => {
+  test("should not bleed overrides between plugins", () => {
     // Override for git-sync should NOT appear in system's config.
     // This is the key collision regression: merging all overrides into
     // every plugin could cause wrong values when keys overlap.
@@ -541,7 +542,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    await resolve(
+    resolve(
       def,
       {},
       {
@@ -558,7 +559,7 @@ describe("resolve with instance overrides", () => {
     expect(systemConfig).not.toHaveProperty("repo");
   });
 
-  test("should not re-instantiate plugins without overrides", async () => {
+  test("should not re-instantiate plugins without overrides", () => {
     let callCount = 0;
     const factory: PluginFactory = (config) => {
       callCount++;
@@ -573,13 +574,13 @@ describe("resolve with instance overrides", () => {
     });
 
     // Plugin overrides only for git-sync, not system
-    await resolve(def, {}, { plugins: { "git-sync": { autoSync: false } } });
+    resolve(def, {}, { plugins: { "git-sync": { autoSync: false } } });
 
     // system factory should only be called once
     expect(callCount).toBe(1);
   });
 
-  test("should combine disable and plugin overrides", async () => {
+  test("should combine disable and plugin overrides", () => {
     const [systemFactory] = createMockFactory("system");
     const configs: unknown[] = [];
     const gitSyncFactory: PluginFactory = (config) => {
@@ -599,7 +600,7 @@ describe("resolve with instance overrides", () => {
       ],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -617,7 +618,7 @@ describe("resolve with instance overrides", () => {
     expect(getConfig(gitSync)).toMatchObject({ autoSync: false });
   });
 
-  test("should ignore plugin overrides for disabled plugins", async () => {
+  test("should ignore plugin overrides for disabled plugins", () => {
     const [gitSyncFactory, configs] = createMockFactory("git-sync");
 
     const def = defineBrain({
@@ -627,7 +628,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -641,7 +642,7 @@ describe("resolve with instance overrides", () => {
     expect(configs).toHaveLength(1);
   });
 
-  test("yaml overrides should take precedence over env for logLevel", async () => {
+  test("yaml overrides should take precedence over env for logLevel", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -649,15 +650,11 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(
-      def,
-      { LOG_LEVEL: "warn" },
-      { logLevel: "debug" },
-    );
+    const config = resolve(def, { LOG_LEVEL: "warn" }, { logLevel: "debug" });
     expect(config.logLevel).toBe("debug");
   });
 
-  test("yaml overrides should take precedence over env for database", async () => {
+  test("yaml overrides should take precedence over env for database", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -665,7 +662,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       { DATABASE_URL: "file:./env.db" },
       { database: "file:./yaml.db" },
@@ -673,7 +670,7 @@ describe("resolve with instance overrides", () => {
     expect(config.database).toBe("file:./yaml.db");
   });
 
-  test("should work with no overrides (backward compatible)", async () => {
+  test("should work with no overrides (backward compatible)", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -682,11 +679,11 @@ describe("resolve with instance overrides", () => {
     });
 
     // No third argument — should still work
-    const config = await resolve(def, {});
+    const config = resolve(def, {});
     expect(config.name).toBe("test");
   });
 
-  test("should apply permissions rules from yaml overrides", async () => {
+  test("should apply permissions rules from yaml overrides", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -697,7 +694,7 @@ describe("resolve with instance overrides", () => {
       },
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -717,7 +714,7 @@ describe("resolve with instance overrides", () => {
     ]);
   });
 
-  test("should merge yaml permissions anchors with definition", async () => {
+  test("should merge yaml permissions anchors with definition", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -728,7 +725,7 @@ describe("resolve with instance overrides", () => {
       },
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {
@@ -742,7 +739,7 @@ describe("resolve with instance overrides", () => {
     expect(config.permissions?.anchors).toEqual(["mcp:stdio"]);
   });
 
-  test("should resolve @-prefixed values as package imports", async () => {
+  test("should resolve @-prefixed values from package registry", () => {
     const configs: unknown[] = [];
     const factory: PluginFactory = (config) => {
       configs.push(config);
@@ -756,27 +753,26 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    // @brains/utils is a real workspace package with a default export
-    const config = await resolve(
+    // Pre-register a mock package (same as runner/entrypoint would do)
+    registerPackage("@brains/theme-test", "body { color: pink; }");
+
+    const config = resolve(
       def,
       {},
       {
         plugins: {
-          "site-builder": { themeCSS: "@brains/theme-default" },
+          "site-builder": { themeCSS: "@brains/theme-test" },
         },
       },
     );
 
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     expect(siteBuilder).toBeDefined();
-    // The value should be resolved to the package's default export (a string),
-    // not the literal "@brains/theme-default" string
     const resolvedConfig = getConfig(siteBuilder);
-    expect(resolvedConfig["themeCSS"]).not.toBe("@brains/theme-default");
-    expect(typeof resolvedConfig["themeCSS"]).toBe("string");
+    expect(resolvedConfig["themeCSS"]).toBe("body { color: pink; }");
   });
 
-  test("should leave non-@ values unchanged during package resolution", async () => {
+  test("should leave non-@ values unchanged during package resolution", () => {
     const configs: unknown[] = [];
     const factory: PluginFactory = (config) => {
       configs.push(config);
@@ -790,7 +786,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       {},
       {

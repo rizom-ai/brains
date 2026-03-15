@@ -101,7 +101,7 @@ describe("defineBrain", () => {
 });
 
 describe("resolve", () => {
-  test("should create fresh plugin instances from factories", async () => {
+  test("should create fresh plugin instances from factories", () => {
     const instances: Plugin[] = [];
     const trackingFactory: PluginFactory = (config) => {
       const plugin = mockPluginFactory(config);
@@ -116,14 +116,14 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    await resolve(def, {});
-    await resolve(def, {});
+    resolve(def, {});
+    resolve(def, {});
 
     // Two resolve calls should create two separate plugin instances
     expect(instances).toHaveLength(2);
   });
 
-  test("should pass env to interface env mappers", async () => {
+  test("should pass env to interface env mappers", () => {
     let capturedConfig: PluginConfig | undefined;
 
     class TrackingInterface extends MockInterface {
@@ -148,7 +148,7 @@ describe("resolve", () => {
       ],
     });
 
-    await resolve(def, { MY_TOKEN: "secret123", MY_HOST: "example.com" });
+    resolve(def, { MY_TOKEN: "secret123", MY_HOST: "example.com" });
 
     expect(capturedConfig).toMatchObject({
       token: "secret123",
@@ -156,7 +156,7 @@ describe("resolve", () => {
     });
   });
 
-  test("should resolve env-mapped capability configs", async () => {
+  test("should resolve env-mapped capability configs", () => {
     const factory = createMockPluginFactory();
 
     const def = defineBrain({
@@ -174,7 +174,7 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    await resolve(def, { GIT_REPO: "user/repo", GIT_TOKEN: "tok_123" });
+    resolve(def, { GIT_REPO: "user/repo", GIT_TOKEN: "tok_123" });
 
     expect(factory.lastConfig).toMatchObject({
       repo: "user/repo",
@@ -182,7 +182,7 @@ describe("resolve", () => {
     });
   });
 
-  test("should map identity to AppConfig format", async () => {
+  test("should map identity to AppConfig format", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -196,7 +196,7 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {});
+    const config = resolve(def, {});
 
     expect(config.identity).toEqual({
       name: "Atlas",
@@ -206,7 +206,7 @@ describe("resolve", () => {
     });
   });
 
-  test("should extract AI keys from environment", async () => {
+  test("should extract AI keys from environment", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -214,7 +214,7 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    const config = await resolve(def, {
+    const config = resolve(def, {
       ANTHROPIC_API_KEY: "sk-ant-123",
       OPENAI_API_KEY: "sk-oai-456",
     });
@@ -223,7 +223,7 @@ describe("resolve", () => {
     expect(config.openaiApiKey).toBe("sk-oai-456");
   });
 
-  test("should apply targeted override to interface after construction", async () => {
+  test("should apply targeted override to interface after construction", () => {
     // Override is matched by plugin ID and applied via reconstruction.
     // Construction with base config must succeed (no required-field throws).
     let capturedConfig: PluginConfig | undefined;
@@ -251,7 +251,7 @@ describe("resolve", () => {
       ],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       { TOKEN: "secret" },
       {
@@ -271,7 +271,7 @@ describe("resolve", () => {
     expect(capturedConfig?.["accessToken"]).toBe("secret");
   });
 
-  test("should apply targeted override to capability after construction", async () => {
+  test("should apply targeted override to capability after construction", () => {
     let capturedConfig: PluginConfig | undefined;
     const capFactory: PluginFactory = (config) => {
       capturedConfig = config;
@@ -292,7 +292,7 @@ describe("resolve", () => {
       interfaces: [],
     });
 
-    const config = await resolve(
+    const config = resolve(
       def,
       { TOKEN: "tok" },
       {
@@ -308,7 +308,7 @@ describe("resolve", () => {
     expect(capturedConfig?.["token"]).toBe("tok");
   });
 
-  test("should disable interfaces via disable list", async () => {
+  test("should disable interfaces via disable list", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -316,14 +316,14 @@ describe("resolve", () => {
       interfaces: [[MockInterface, (): PluginConfig => ({})]],
     });
 
-    const config = await resolve(def, {}, { disable: ["mock-interface"] });
+    const config = resolve(def, {}, { disable: ["mock-interface"] });
 
     expect(
       config.plugins?.find((p) => p.id === "mock-interface"),
     ).toBeUndefined();
   });
 
-  test("should pass through permissions and deployment", async () => {
+  test("should pass through permissions and deployment", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
@@ -339,7 +339,7 @@ describe("resolve", () => {
       },
     });
 
-    const config = await resolve(def, {});
+    const config = resolve(def, {});
 
     expect(config.permissions?.anchors).toEqual(["matrix:@user:server"]);
     expect(config.deployment?.domain).toBe("example.com");

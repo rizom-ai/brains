@@ -4,6 +4,7 @@ import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
+import { getPackage, hasPackage } from "./package-registry";
 
 /**
  * Resolve a brain definition + environment into a runnable AppConfig.
@@ -18,13 +19,13 @@ import { logLevelSchema } from "./types";
  * @param overrides - Instance overrides from brain.yaml (optional)
  * @returns A fully resolved AppConfig ready for handleCLI() or App.create()
  */
-export async function resolve(
+export function resolve(
   definition: BrainDefinition,
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
-): Promise<AppConfig> {
+): AppConfig {
   const disableSet = new Set(overrides?.disable ?? []);
-  const pluginOverrides = await resolveAllPackageRefs(overrides?.plugins ?? {});
+  const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
 
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
@@ -152,23 +153,32 @@ function buildPermissions(
   };
 }
 
+/** Matches scoped npm package names like @brains/theme-default (no colons, no dots) */
+const SCOPED_PACKAGE_PATTERN = /^@[\w-]+\/[\w-]+$/;
+
 /**
- * Resolve @-prefixed package references in a config object.
- * Values starting with "@" are treated as package names and resolved
- * via dynamic import, replacing the string with the default export.
+ * Check if a string looks like a scoped npm package reference.
+ * Excludes Matrix userIds (@user:server), email addresses, CSS selectors, etc.
  */
-async function resolvePackageRefs(
+export function isScopedPackageRef(value: string): boolean {
+  return SCOPED_PACKAGE_PATTERN.test(value);
+}
+
+/**
+ * Resolve scoped package references in a config object.
+ * Looks up values in the package registry (populated before resolve() is called).
+ */
+function resolvePackageRefs(
   config: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+): Record<string, unknown> {
   const resolved = { ...config };
   for (const [key, value] of Object.entries(resolved)) {
-    if (typeof value === "string" && value.startsWith("@")) {
-      try {
-        const mod = await import(value);
-        resolved[key] = mod.default;
-      } catch {
-        // If import fails, leave the value as-is
-      }
+    if (
+      typeof value === "string" &&
+      isScopedPackageRef(value) &&
+      hasPackage(value)
+    ) {
+      resolved[key] = getPackage(value);
     }
   }
   return resolved;
@@ -177,16 +187,15 @@ async function resolvePackageRefs(
 /**
  * Resolve package references across all plugin override configs.
  */
-async function resolveAllPackageRefs(
+function resolveAllPackageRefs(
   pluginOverrides: Record<string, Record<string, unknown>>,
-): Promise<Record<string, Record<string, unknown>>> {
+): Record<string, Record<string, unknown>> {
   const resolved: Record<string, Record<string, unknown>> = {};
   for (const [pluginId, config] of Object.entries(pluginOverrides)) {
-    resolved[pluginId] = await resolvePackageRefs(config);
+    resolved[pluginId] = resolvePackageRefs(config);
   }
   return resolved;
 }
-
 /**
  * Construct a plugin with targeted override matching.
  *

@@ -2,10 +2,11 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { handleCLI } from "./cli";
-import { resolve } from "./brain-resolver";
+import { resolve, isScopedPackageRef } from "./brain-resolver";
 import { parseInstanceOverrides } from "./instance-overrides";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
+import { registerPackage } from "./package-registry";
 import { internal } from "varlock";
 
 /**
@@ -54,6 +55,32 @@ async function loadBrainDefinition(
 }
 
 /**
+ * Scan plugin overrides for @-prefixed package references,
+ * dynamically import each one, and register in the package registry.
+ */
+async function registerPackageRefs(
+  overrides: InstanceOverrides,
+): Promise<void> {
+  const plugins = overrides.plugins;
+  if (!plugins) return;
+
+  for (const config of Object.values(plugins)) {
+    for (const [key, value] of Object.entries(config)) {
+      if (typeof value === "string" && isScopedPackageRef(value)) {
+        try {
+          const mod = await import(value);
+          registerPackage(value, mod.default);
+        } catch {
+          console.warn(
+            `brain.yaml: failed to import package "${value}" for key "${key}"`,
+          );
+        }
+      }
+    }
+  }
+}
+
+/**
  * Main entry point for the `brains` CLI.
  *
  * Reads brain.yaml → validates env → imports brain definition → resolves with overrides → runs.
@@ -84,7 +111,11 @@ async function main(): Promise<void> {
   }
 
   const definition = await loadBrainDefinition(brainPackage);
-  const config = await resolve(definition, process.env, overrides);
+
+  // Pre-register @-prefixed package references from plugin overrides
+  await registerPackageRefs(overrides);
+
+  const config = resolve(definition, process.env, overrides);
   await handleCLI(config);
 }
 
