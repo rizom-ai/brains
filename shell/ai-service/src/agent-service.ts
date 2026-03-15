@@ -1,9 +1,5 @@
-import { z, type Logger } from "@brains/utils";
-import {
-  type IMCPService,
-  type ToolContext,
-  toolResponseSchema,
-} from "@brains/mcp-service";
+import { type Logger } from "@brains/utils";
+import { type IMCPService, type ToolContext } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { IBrainCharacterService } from "@brains/identity-service";
 import type { ModelMessage } from "ai";
@@ -13,10 +9,15 @@ import type {
   BrainAgent,
   ChatContext,
   IAgentService,
-  PendingConfirmation,
-  ToolResultData,
 } from "./agent-types";
 import type { BrainCallOptions } from "./brain-agent";
+import {
+  agentMachine,
+  extractToolResults,
+  type ProcessMessageInput,
+  type ExecuteActionInput,
+} from "./agent-machine";
+import { createActor, fromPromise } from "xstate";
 
 /**
  * Default step limit if not specified
@@ -26,11 +27,10 @@ const DEFAULT_STEP_LIMIT = 10;
 /**
  * Agent Service - Orchestrates AI-powered conversations with tool access
  *
- * This service:
- * - Receives user messages and sends them to the AI with available tools
- * - Loads conversation history from ConversationService
- * - Uses ToolLoopAgent for automatic tool loop orchestration
- * - Handles confirmation flows for destructive operations
+ * Uses an xstate state machine to model conversation flow:
+ * idle → processing → (awaitingConfirmation → executing →) idle
+ *
+ * Each conversation gets its own machine actor for independent state tracking.
  */
 export class AgentService implements IAgentService {
   private static instance: AgentService | null = null;
@@ -38,8 +38,11 @@ export class AgentService implements IAgentService {
   private stepLimit: number;
   private agentFactory: AgentConfig["agentFactory"];
 
-  // Track pending confirmations per conversation
-  private pendingConfirmations = new Map<string, PendingConfirmation>();
+  // Per-conversation machine actors
+  private conversationActors = new Map<
+    string,
+    ReturnType<typeof createActor<typeof agentMachine>>
+  >();
 
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
@@ -106,7 +109,7 @@ export class AgentService implements IAgentService {
   }
 
   /**
-   * Get or create the ToolLoopAgent instance
+   * Get or create the BrainAgent instance
    * Lazy initialization allows tools to be registered after service creation
    */
   private getAgent(): BrainAgent {
@@ -131,6 +134,33 @@ export class AgentService implements IAgentService {
   }
 
   /**
+   * Get or create a machine actor for a conversation
+   */
+  private getConversationActor(
+    conversationId: string,
+  ): ReturnType<typeof createActor<typeof agentMachine>> {
+    let actor = this.conversationActors.get(conversationId);
+    if (!actor) {
+      actor = createActor(
+        agentMachine.provide({
+          actors: {
+            processMessage: fromPromise<AgentResponse, ProcessMessageInput>(
+              async ({ input }) => this.processMessage(input),
+            ),
+            executeConfirmedAction: fromPromise<
+              AgentResponse,
+              ExecuteActionInput
+            >(async ({ input }) => this.executeConfirmedAction(input)),
+          },
+        }),
+      );
+      actor.start();
+      this.conversationActors.set(conversationId, actor);
+    }
+    return actor;
+  }
+
+  /**
    * Send a message to the agent and get a response
    */
   public async chat(
@@ -138,10 +168,10 @@ export class AgentService implements IAgentService {
     conversationId: string,
     context?: ChatContext,
   ): Promise<AgentResponse> {
-    // Default to public permission for safety
     const userPermissionLevel = context?.userPermissionLevel ?? "public";
     const interfaceType = context?.interfaceType ?? "agent";
     const channelId = context?.channelId ?? conversationId;
+    const channelName = context?.channelName ?? channelId;
 
     this.logger.debug("Processing chat message", {
       conversationId,
@@ -149,17 +179,115 @@ export class AgentService implements IAgentService {
       userPermissionLevel,
     });
 
-    // Ensure conversation exists (creates if needed)
-    const channelName = context?.channelName ?? channelId;
+    const actor = this.getConversationActor(conversationId);
+
+    // Send message event and wait for the machine to settle
+    actor.send({
+      type: "RECEIVE_MESSAGE",
+      message,
+      conversationId,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+    });
+
+    // Wait for the machine to reach idle (processing complete)
+    const snapshot = await new Promise<
+      ReturnType<(typeof actor)["getSnapshot"]>
+    >((resolve) => {
+      const sub = actor.subscribe((state) => {
+        if (state.matches("idle") || state.matches("awaitingConfirmation")) {
+          sub.unsubscribe();
+          resolve(state);
+        }
+      });
+      // Check if already in target state
+      const current = actor.getSnapshot();
+      if (current.matches("idle") || current.matches("awaitingConfirmation")) {
+        sub.unsubscribe();
+        resolve(current);
+      }
+    });
+
+    // Re-throw if the machine caught an error
+    if (snapshot.context.error) {
+      throw new Error(snapshot.context.error);
+    }
+
+    return (
+      snapshot.context.response ?? {
+        text: "No response generated.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      }
+    );
+  }
+
+  /**
+   * Confirm or cancel a pending destructive operation
+   */
+  public async confirmPendingAction(
+    conversationId: string,
+    confirmed: boolean,
+  ): Promise<AgentResponse> {
+    const actor = this.conversationActors.get(conversationId);
+
+    if (!actor?.getSnapshot().matches("awaitingConfirmation")) {
+      return {
+        text: "No pending action to confirm.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      };
+    }
+
+    actor.send({ type: confirmed ? "CONFIRM" : "CANCEL" });
+
+    // Wait for the machine to reach idle
+    const snapshot = await new Promise<
+      ReturnType<(typeof actor)["getSnapshot"]>
+    >((resolve) => {
+      const sub = actor.subscribe((state) => {
+        if (state.matches("idle")) {
+          sub.unsubscribe();
+          resolve(state);
+        }
+      });
+      const current = actor.getSnapshot();
+      if (current.matches("idle")) {
+        sub.unsubscribe();
+        resolve(current);
+      }
+    });
+
+    return (
+      snapshot.context.response ?? {
+        text: "Action completed.",
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      }
+    );
+  }
+
+  /**
+   * Process a message through the AI agent.
+   * This is the core logic previously in chat() — now an actor for the machine.
+   */
+  private async processMessage(
+    input: ProcessMessageInput,
+  ): Promise<AgentResponse> {
+    const {
+      conversationId,
+      message,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+    } = input;
+
+    // Ensure conversation exists
     await this.conversationService.startConversation(
       conversationId,
       interfaceType,
       channelId,
-      {
-        channelName,
-        interfaceType,
-        channelId,
-      },
+      { channelName, interfaceType, channelId },
     );
 
     // Load conversation history
@@ -179,19 +307,12 @@ export class AgentService implements IAgentService {
           content: [{ type: "text", text: msg.content }],
         };
       }
-      // system messages
       return { role: "system", content: msg.content };
     });
 
-    // Add the new user message
     messages.push({ role: "user", content: message });
 
-    this.logger.debug("Calling agent.generate", {
-      messageCount: messages.length,
-      userPermissionLevel,
-    });
-
-    // Log available tools for debugging
+    // Log available tools
     const tools = this.mcpService
       .listToolsForPermissionLevel(userPermissionLevel)
       .map((t) => t.tool.name);
@@ -200,10 +321,10 @@ export class AgentService implements IAgentService {
       tools,
     });
 
-    // Save user message to conversation
+    // Save user message
     await this.conversationService.addMessage(conversationId, "user", message);
 
-    // Call agent with type-safe options
+    // Call agent
     const callOptions: BrainCallOptions = {
       userPermissionLevel,
       conversationId,
@@ -217,7 +338,7 @@ export class AgentService implements IAgentService {
       options: callOptions,
     });
 
-    // Save assistant response to conversation (only if non-empty)
+    // Save assistant response
     if (result.text.trim()) {
       await this.conversationService.addMessage(
         conversationId,
@@ -226,88 +347,25 @@ export class AgentService implements IAgentService {
       );
     }
 
-    // Extract tool results from all steps
-    // Include all results that have either formatted output or a jobId (for async jobs)
-    const toolResults: ToolResultData[] = [];
-    const toolArgsSchema = z.record(z.unknown());
-    for (const step of result.steps) {
-      // Build a map of toolCallId -> input args for this step
-      const toolCallArgsMap = new Map<string, Record<string, unknown>>();
-      for (const tc of step.toolCalls) {
-        const parsed = toolArgsSchema.safeParse(tc.input);
-        if (tc.toolCallId && parsed.success) {
-          toolCallArgsMap.set(tc.toolCallId, parsed.data);
-        }
-      }
+    // Extract tool results and confirmation requests
+    const { toolResults, pendingConfirmation } = extractToolResults(
+      result.steps,
+    );
 
-      for (const tr of step.toolResults) {
-        if (tr.output === null) continue;
-
-        const parsed = toolResponseSchema.safeParse(tr.output);
-
-        // Capture args from the matching tool call
-        const args = tr.toolCallId
-          ? toolCallArgsMap.get(tr.toolCallId)
-          : undefined;
-
-        if (!parsed.success) {
-          this.logger.warn("Tool result failed validation", {
-            toolName: tr.toolName,
-            error: parsed.error.message,
-          });
-          // Still capture result even for failed validations
-          const failedResult: ToolResultData = { toolName: tr.toolName };
-          if (args !== undefined) {
-            failedResult.args = args;
-          }
-          toolResults.push(failedResult);
-          continue;
-        }
-
-        // Build result object
-        const toolResult: ToolResultData = { toolName: tr.toolName };
-        if (args !== undefined) {
-          toolResult.args = args;
-        }
-
-        // Extract jobId from data if present (for async job tracking)
-        if (parsed.data.success && parsed.data.data != null) {
-          toolResult.data = parsed.data.data;
-          // Try to extract jobId if data is an object with jobId
-          const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
-          const jobIdParsed = jobIdSchema.safeParse(parsed.data.data);
-          if (jobIdParsed.success) {
-            toolResult.jobId = jobIdParsed.data.jobId;
-          }
-        }
-
-        toolResults.push(toolResult);
-      }
-    }
-
-    // Count total tool calls
+    // Log completion
     const totalToolCalls = result.steps.reduce(
       (sum, step) => sum + step.toolCalls.length,
       0,
     );
-
-    // Log step details for debugging
-    const stepDetails = result.steps.map((step, i) => ({
-      step: i,
-      toolCalls: step.toolCalls.map((tc) => tc.toolName),
-      toolResults: step.toolResults.length,
-    }));
-
     this.logger.debug("Chat completed", {
       conversationId,
       responseLength: result.text.length,
       toolCalls: totalToolCalls,
       stepCount: result.steps.length,
-      stepDetails,
       usage: result.usage,
     });
 
-    return {
+    const response: AgentResponse = {
       text: result.text,
       toolResults,
       usage: {
@@ -316,93 +374,52 @@ export class AgentService implements IAgentService {
         totalTokens: result.usage.totalTokens ?? 0,
       },
     };
+
+    if (pendingConfirmation) {
+      response.pendingConfirmation = pendingConfirmation;
+    }
+
+    return response;
   }
 
   /**
-   * Set a pending confirmation for a conversation
-   * Called internally when a destructive operation is requested
+   * Execute a confirmed destructive action.
+   * Actor for the machine's "executing" state.
    */
-  public setPendingConfirmation(
-    conversationId: string,
-    confirmation: PendingConfirmation,
-  ): void {
-    this.pendingConfirmations.set(conversationId, confirmation);
-    this.logger.debug("Pending confirmation set", {
-      conversationId,
-      toolName: confirmation.toolName,
-    });
-  }
-
-  /**
-   * Confirm or cancel a pending destructive operation
-   */
-  public async confirmPendingAction(
-    conversationId: string,
-    confirmed: boolean,
+  private async executeConfirmedAction(
+    input: ExecuteActionInput,
   ): Promise<AgentResponse> {
-    const pending = this.pendingConfirmations.get(conversationId);
+    const { conversationId, pendingConfirmation } = input;
 
-    if (!pending) {
-      return {
-        text: "No pending action to confirm.",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      };
-    }
-
-    // Clear the pending confirmation
-    this.pendingConfirmations.delete(conversationId);
-
-    if (!confirmed) {
-      // User cancelled
-      await this.conversationService.addMessage(
-        conversationId,
-        "assistant",
-        `Action cancelled: ${pending.description}`,
-      );
-
-      return {
-        text: `Action cancelled: ${pending.description}`,
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      };
-    }
-
-    // Execute the tool
     const tools = this.mcpService.listTools();
-    const tool = tools.find((t) => t.tool.name === pending.toolName);
+    const tool = tools.find(
+      (t) => t.tool.name === pendingConfirmation.toolName,
+    );
 
     if (!tool) {
       return {
-        text: `Error: Tool '${pending.toolName}' not found.`,
+        text: `Error: Tool '${pendingConfirmation.toolName}' not found.`,
         usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
       };
     }
 
-    try {
-      const context: ToolContext = {
-        interfaceType: "agent",
-        userId: "agent-user",
-      };
+    const context: ToolContext = {
+      interfaceType: "agent",
+      userId: "agent-user",
+    };
 
-      const result = await tool.tool.handler(pending.args, context);
-      const resultText = `Completed: ${pending.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
+    const result = await tool.tool.handler(pendingConfirmation.args, context);
+    const resultText = `Completed: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
 
-      await this.conversationService.addMessage(
-        conversationId,
-        "assistant",
-        resultText,
-      );
+    await this.conversationService.addMessage(
+      conversationId,
+      "assistant",
+      resultText,
+    );
 
-      return {
-        text: resultText,
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      return {
-        text: `Error executing ${pending.toolName}: ${errorMessage}`,
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      };
-    }
+    return {
+      text: resultText,
+      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+    };
   }
 }

@@ -20,7 +20,8 @@
     "@brains/messaging-service": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
-    "ai": "^6.0.86"
+    "ai": "^6.0.86",
+    "xstate": "^5.28.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

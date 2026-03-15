@@ -67,6 +67,20 @@ export const toolResponseSchema = z.union([toolSuccessSchema, toolErrorSchema]);
 export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
 /**
+ * Confirmation response schema
+ * Tools return this when a destructive operation needs user approval.
+ * Separate from ToolResponse — only the agent service checks for it.
+ */
+export const toolConfirmationSchema = z.object({
+  needsConfirmation: z.literal(true),
+  toolName: z.string(),
+  description: z.string(),
+  args: z.unknown(),
+});
+
+export type ToolConfirmation = z.infer<typeof toolConfirmationSchema>;
+
+/**
  * Plugin tool definition
  * @template TOutput - The output type, defaults to ToolResponse for backward compatibility
  */

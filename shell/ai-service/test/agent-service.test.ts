@@ -411,7 +411,40 @@ describe("AgentService", () => {
   });
 
   describe("confirmation flow", () => {
+    // Helper: make the agent return a tool result with needsConfirmation
+    const setupConfirmationResponse = (): void => {
+      mockAgentGenerateResult = {
+        text: "Are you sure you want to delete this note?",
+        steps: [
+          {
+            toolCalls: [
+              {
+                toolCallId: "call-1",
+                toolName: "delete_note",
+                input: { noteId: "123" },
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: "call-1",
+                toolName: "delete_note",
+                output: {
+                  needsConfirmation: true,
+                  toolName: "delete_note",
+                  description: "Delete note 'Meeting Notes'?",
+                  args: { noteId: "123" },
+                },
+              },
+            ],
+          },
+        ],
+        usage: { inputTokens: 50, outputTokens: 100, totalTokens: 150 },
+      };
+    };
+
     it("should track pending confirmation for destructive operations", async () => {
+      setupConfirmationResponse();
+
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -420,12 +453,13 @@ describe("AgentService", () => {
         { agentFactory: mockAgentFactory },
       );
 
-      // Store a pending confirmation
-      service.setPendingConfirmation("test-conversation", {
-        toolName: "delete_note",
-        description: "Delete note 'Meeting Notes'?",
-        args: { noteId: "123" },
-      });
+      // Chat triggers a tool that needs confirmation
+      const chatResponse = await service.chat(
+        "delete my note",
+        "test-conversation",
+      );
+      expect(chatResponse.pendingConfirmation).toBeDefined();
+      expect(chatResponse.pendingConfirmation?.toolName).toBe("delete_note");
 
       // Confirm the action
       const response = await service.confirmPendingAction(
@@ -437,6 +471,8 @@ describe("AgentService", () => {
     });
 
     it("should cancel pending confirmation when user declines", async () => {
+      setupConfirmationResponse();
+
       const service = AgentService.createFresh(
         mockMCPService,
         mockConversationService as IConversationService,
@@ -445,12 +481,10 @@ describe("AgentService", () => {
         { agentFactory: mockAgentFactory },
       );
 
-      service.setPendingConfirmation("test-conversation", {
-        toolName: "delete_note",
-        description: "Delete note 'Meeting Notes'?",
-        args: { noteId: "123" },
-      });
+      // Chat triggers a tool that needs confirmation
+      await service.chat("delete my note", "test-conversation");
 
+      // Cancel it
       const response = await service.confirmPendingAction(
         "test-conversation",
         false,

@@ -1,132 +1,65 @@
 # Agent State Machine with xstate
 
-## Overview
+## Status: In Progress
 
-Introduce xstate to model the AgentService's implicit states as an explicit state machine. This is a prerequisite for A2A task management — the A2A task lifecycle maps directly to agent states.
+xstate v5 added, machine definition created, AgentService refactored. **69/71 tests pass.** 2 failures reveal a design problem with the confirmation flow that must be resolved before this can ship.
 
-## Current Implicit States
+## What's Done
 
-AgentService currently manages state via flags and maps:
+- `xstate@5.28.0` added to `@brains/ai-service`
+- `agent-machine.ts` — state machine definition (idle → processing → awaitingConfirmation → executing → idle)
+- `agent-service.ts` — refactored to use per-conversation machine actors
+- `extractToolResults()` extracted as pure function
+- Typecheck passes
 
-```
-idle → processing chat → (calling tools → waiting for result)* → responded
-         ↓
-   pending confirmation → confirmed → executing tool → responded
-                        → cancelled → responded
-```
+## What's Broken: Confirmation Flow
 
-These states exist in code but aren't modeled explicitly — they're spread across:
+### The problem
 
-- `chat()` method flow (processing)
-- `pendingConfirmations` Map (confirmation flow)
-- `agent.generate()` internals (tool loop)
-- Conversation history persistence
+The current confirmation flow uses a **side-channel**: during tool execution, something calls `service.setPendingConfirmation()` which writes to a `Map`. Later, `confirmPendingAction()` reads from that Map.
 
-## Proposed State Machine
+The xstate machine models confirmation as a state (`awaitingConfirmation`). But `setPendingConfirmation()` writes to a Map _outside_ the machine — the machine never enters `awaitingConfirmation` because it doesn't know about the side-channel.
 
-```
-┌──────────────────────────────────────────────────┐
-│                     idle                         │
-│  (waiting for message from any interface)        │
-└──────────┬───────────────────────────────────────┘
-           │ RECEIVE_MESSAGE
-           ▼
-┌──────────────────────────────────────────────────┐
-│                  processing                       │
-│  (agent is generating, possibly calling tools)    │
-│                                                   │
-│  ┌─────────┐    ┌──────────────┐                 │
-│  │ thinking │───▶│ calling_tool │──┐              │
-│  └─────────┘◀───└──────────────┘  │              │
-│       ▲                            │              │
-│       └────────────────────────────┘              │
-└──────────┬──────────────┬────────────────────────┘
-           │ RESPONSE      │ NEEDS_CONFIRMATION
-           ▼               ▼
-┌──────────────┐  ┌────────────────────────────────┐
-│  responded   │  │     awaiting_confirmation       │
-│  (idle)      │  │  (waiting for user yes/no)      │
-└──────────────┘  └──────┬──────────────┬──────────┘
-                         │ CONFIRM       │ CANCEL
-                         ▼               ▼
-                  ┌──────────────┐ ┌────────────┐
-                  │  executing   │ │ cancelled  │
-                  │  (tool run)  │ │ (idle)     │
-                  └──────┬───────┘ └────────────┘
-                         │ COMPLETE
-                         ▼
-                  ┌──────────────┐
-                  │  responded   │
-                  │  (idle)      │
-                  └──────────────┘
-```
+### 2 failing tests
+
+1. **"should handle agent errors gracefully"** — test expects `chat()` to throw. Machine catches errors and returns an error response instead. This is actually better behavior (callers don't need try/catch), but the test asserts the old behavior.
+
+2. **"should cancel pending confirmation when user declines"** — test calls `setPendingConfirmation()` then `confirmPendingAction(false)`. Machine is still in `idle` because `setPendingConfirmation()` doesn't transition it. Returns "No pending action to confirm."
+
+### The right fix
+
+Confirmation should flow through the machine, not around it. The tool handler should return a confirmation request as part of its result. The `processMessage` actor detects it, returns a response with `pendingConfirmation`, and the machine transitions to `awaitingConfirmation`.
+
+This means:
+
+1. Tool handlers that need confirmation return `{ needsConfirmation: true, description: "...", args: {...} }` instead of calling `setPendingConfirmation()` on the service
+2. The `processMessage` actor checks the agent's tool results for confirmation requests
+3. The machine transitions based on the response, not side effects
+4. `setPendingConfirmation()` is removed from the public API
+
+### Impact
+
+- Changes to how tools request confirmation (tool handler return type)
+- Any plugin that uses confirmation flow needs updating
+- The agent needs to surface confirmation requests from tool results
 
 ## How A2A Maps to Agent States
 
-| Agent State           | A2A Task State |
-| --------------------- | -------------- |
-| idle                  | (no task)      |
-| processing            | working        |
-| awaiting_confirmation | input-required |
-| responded             | completed      |
-| error                 | failed         |
-| cancelled             | canceled       |
+| Agent State          | A2A Task State |
+| -------------------- | -------------- |
+| idle                 | (no task)      |
+| processing           | working        |
+| awaitingConfirmation | input-required |
+| responded            | completed      |
+| error                | failed         |
+| cancelled            | canceled       |
 
-The A2A task manager becomes a thin wrapper — it creates a task, feeds the message to the agent state machine, and translates state transitions to A2A task status updates.
+## Next Steps
 
-## Context (xstate)
-
-```ts
-interface AgentContext {
-  conversationId: string;
-  interfaceType: string;
-  channelId: string;
-  userPermissionLevel: UserPermissionLevel;
-  message: string;
-  response?: AgentResponse;
-  pendingConfirmation?: PendingConfirmation;
-  error?: string;
-}
-```
-
-## Implementation Plan
-
-### Step 1: Add xstate dependency
-
-Add `xstate` to `@brains/ai-service`.
-
-### Step 2: Define agent machine
-
-Create `shell/ai-service/src/agent-machine.ts` — the state machine definition using xstate's `createMachine`. Pure definition, no side effects.
-
-### Step 3: Refactor AgentService to use the machine
-
-Replace the implicit flow in `chat()` and `confirmPendingAction()` with machine interpretation. The external API stays identical — `chat()` still takes a message and returns `AgentResponse`. Internally, it sends events to the machine and awaits the final state.
-
-### Step 4: Verify existing tests pass
-
-The 71 existing tests cover all the behaviors. They should pass without changes since the external API is unchanged.
-
-### Step 5: Wire A2A task manager
-
-The A2A task manager subscribes to state transitions on the agent machine and maps them to A2A task status updates. This replaces the need for a separate task state machine.
-
-## Key Decisions
-
-- **Per-conversation machines**: Each conversation gets its own machine instance (already true — state is per-conversationId)
-- **xstate v5**: Use the latest xstate (v5) with the new actor model
-- **Machine is internal**: Only AgentService interacts with the machine. The public API doesn't expose xstate types.
-- **Tests don't change**: The machine is an implementation detail. All 71 tests continue to test the public API.
-
-## Files Changed
-
-| File                                    | Change                                                 |
-| --------------------------------------- | ------------------------------------------------------ |
-| `shell/ai-service/package.json`         | Add `xstate` dependency                                |
-| `shell/ai-service/src/agent-machine.ts` | New — state machine definition                         |
-| `shell/ai-service/src/agent-service.ts` | Refactor to use machine internally                     |
-| `shell/ai-service/test/*`               | No changes (tests verify behavior, not implementation) |
-
-## Estimated Effort
-
-~1 day. The state machine is straightforward, most work is wiring the existing logic into machine actions.
+1. **Design the confirmation-via-return-value pattern** — how tools signal "needs confirmation"
+2. **Update tool handler types** to support confirmation responses
+3. **Update processMessage actor** to detect and surface confirmation requests
+4. **Remove `setPendingConfirmation()`** from AgentService
+5. **Fix the 2 failing tests** — update to match new behavior
+6. **Fix lint issues** (6 remaining: return types, non-null assertion, unnecessary conditionals)
+7. **Wire A2A task manager** to agent machine state transitions
