@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-14
+Last Updated: 2026-03-15
 
 ---
 
@@ -71,6 +71,10 @@ Last Updated: 2026-03-14
 
 ## Completed (2026-03)
 
+- ✅ A2A interface — Agent Card, JSON-RPC handler, task manager, client tool, TTL eviction
+- ✅ Agent state machine — xstate-based conversation flow with confirmation support
+- ✅ Varlock env validation — `.env.schema` for brain models, startup validation
+- ✅ Tool listing via InterfacePluginContext — `context.tools.listForPermissionLevel()`
 - ✅ Codebase refactor (see above)
 - ✅ Series metadata + cover images for 3 blog series
 - ✅ Architecture docs rewrite
@@ -122,9 +126,15 @@ Last Updated: 2026-03-14
 
 ---
 
+## In Progress
+
+- **A2A authentication**: Bearer tokens → OAuth → Cloudflare mTLS ([plan](./plans/2026-03-15-a2a-authentication.md))
+- **mylittlephoney.com**: New rover instance with Discord, Instagram/Threads, custom theme ([plan](./plans/2026-03-14-mylittlephoney.md))
+- **rizom.work**: New relay instance with Discord, rizom theme variations ([plan](./plans/2026-03-14-rizom-work.md))
+- **Infrastructure**: Cloudflare CDN, varlock env management, A2A protocol ([plan](./plans/2026-03-14-infrastructure.md))
+
 ## Future Considerations
 
-- **Cloudflare CDN**: Alternative to Bunny.net ([plan](./plans/cloudflare-migration.md))
 - **Web UI**: Browser interface beyond static site
 - **Obsidian Community Plugin**: Chat, publish, generate from inside Obsidian via MCP HTTP
 - **Additional Interfaces**: Slack, WhatsApp, Telegram

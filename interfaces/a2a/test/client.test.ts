@@ -1,5 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { parseAgentCardResponse, parseA2AResponse } from "../src/client";
+import {
+  parseAgentCardResponse,
+  parseA2AResponse,
+  createA2ACallTool,
+} from "../src/client";
 
 describe("A2A Client", () => {
   describe("parseAgentCardResponse", () => {
@@ -183,6 +187,113 @@ describe("A2A Client", () => {
       expect(result.success).toBe(true);
       if (!result.success) return;
       expect(result.data.response).toBe("Direct message reply");
+    });
+  });
+
+  describe("createA2ACallTool outbound auth", () => {
+    /** Mock fetch that serves an agent card then records the a2a call */
+    function createMockFetch(capturedHeaders: Record<string, string>[]) {
+      return async (
+        url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+
+        // Agent Card discovery
+        if (urlStr.includes(".well-known/agent-card.json")) {
+          return new Response(
+            JSON.stringify({
+              name: "Remote",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        // A2A endpoint — capture headers
+        const headers: Record<string, string> = {};
+        if (init?.headers) {
+          const h = init.headers;
+          if (h instanceof Headers) {
+            h.forEach((v, k) => {
+              headers[k] = v;
+            });
+          } else if (typeof h === "object") {
+            Object.assign(headers, h);
+          }
+        }
+        capturedHeaders.push(headers);
+
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: {
+              kind: "task",
+              status: {
+                state: "completed",
+                message: {
+                  parts: [{ kind: "text", text: "ok" }],
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      };
+    }
+
+    it("should send Authorization header when outbound token matches domain", async () => {
+      const capturedHeaders: Record<string, string>[] = [];
+      const tool = createA2ACallTool({
+        fetch: createMockFetch(capturedHeaders),
+        outboundTokens: {
+          "remote.example.com": "secret-token-xyz",
+        },
+      });
+
+      await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(capturedHeaders).toHaveLength(1);
+      const headers = capturedHeaders[0];
+      expect(headers).toBeDefined();
+      expect(headers?.["Authorization"]).toBe("Bearer secret-token-xyz");
+    });
+
+    it("should not send Authorization header when no token matches", async () => {
+      const capturedHeaders: Record<string, string>[] = [];
+      const tool = createA2ACallTool({
+        fetch: createMockFetch(capturedHeaders),
+        outboundTokens: {
+          "other-agent.com": "some-token",
+        },
+      });
+
+      await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(capturedHeaders).toHaveLength(1);
+      expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
+    });
+
+    it("should not send Authorization header when no outbound tokens configured", async () => {
+      const capturedHeaders: Record<string, string>[] = [];
+      const tool = createA2ACallTool({
+        fetch: createMockFetch(capturedHeaders),
+      });
+
+      await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(capturedHeaders).toHaveLength(1);
+      expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
     });
   });
 });

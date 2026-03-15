@@ -66,7 +66,7 @@ describe("buildAgentCard", () => {
       tools: [],
     });
 
-    expect(card.url).toBe("https://yeehaa.io");
+    expect(card.url).toBe("https://yeehaa.io/a2a");
   });
 
   test("should fall back to localhost when no domain", () => {
@@ -77,7 +77,7 @@ describe("buildAgentCard", () => {
       tools: [],
     });
 
-    expect(card.url).toBe("http://localhost:3334");
+    expect(card.url).toBe("http://localhost:3334/a2a");
   });
 
   test("should include provider when organization is set", () => {
@@ -111,7 +111,7 @@ describe("buildAgentCard", () => {
       tools: [],
     });
 
-    expect(card.capabilities.streaming).toBe(true);
+    expect(card.capabilities.streaming).toBe(false);
     expect(card.capabilities.pushNotifications).toBe(false);
   });
 

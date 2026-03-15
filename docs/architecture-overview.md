@@ -33,7 +33,7 @@ apps/           Deployment instances — environment config + entry point
 | ---------------------------- | ----------------------------------------------------------------------------- |
 | `shell/app`                  | High-level application framework (`defineConfig`, `defineBrain`, `handleCLI`) |
 | `shell/core`                 | Central shell with plugin management and lifecycle                            |
-| `shell/ai-service`           | AI text/object/image generation (Anthropic, OpenAI, Google)                   |
+| `shell/ai-service`           | AI agent with xstate conversation state machine (idle→processing→confirming)  |
 | `shell/content-service`      | Template-based content generation                                             |
 | `shell/conversation-service` | Conversation and message management with memory                               |
 | `shell/entity-service`       | Entity CRUD, search, mutations, queries with vector support                   |
@@ -93,13 +93,14 @@ Layouts are brain-specific packages that arrange content from plugins into pages
 
 ### Interface Packages
 
-| Package                | Purpose                      |
-| ---------------------- | ---------------------------- |
-| `interfaces/cli`       | Command-line interface       |
-| `interfaces/discord`   | Discord bot interface        |
-| `interfaces/matrix`    | Matrix bot interface         |
-| `interfaces/mcp`       | MCP transport (stdio + HTTP) |
-| `interfaces/webserver` | HTTP server for static sites |
+| Package                | Purpose                                   |
+| ---------------------- | ----------------------------------------- |
+| `interfaces/cli`       | Command-line interface                    |
+| `interfaces/discord`   | Discord bot interface                     |
+| `interfaces/matrix`    | Matrix bot interface                      |
+| `interfaces/mcp`       | MCP transport (stdio + HTTP)              |
+| `interfaces/webserver` | HTTP server for static sites              |
+| `interfaces/a2a`       | A2A protocol (Agent Card, JSON-RPC tasks) |
 
 ### Brain Definitions
 

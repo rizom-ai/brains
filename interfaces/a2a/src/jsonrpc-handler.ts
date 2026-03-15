@@ -1,5 +1,6 @@
 import { z } from "@brains/utils";
 import type { IAgentService } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
 
@@ -81,6 +82,7 @@ export type JsonRpcRequest = z.infer<typeof jsonrpcRequestSchema>;
 export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
   agentService: IAgentService;
+  callerPermissionLevel: UserPermissionLevel;
 }
 
 // -- Main handler --
@@ -149,7 +151,7 @@ async function handleSendMessage(
       messageText,
       record.conversationId,
       {
-        userPermissionLevel: "public",
+        userPermissionLevel: context.callerPermissionLevel,
         interfaceType: "a2a",
       },
     );

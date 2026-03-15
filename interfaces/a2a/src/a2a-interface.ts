@@ -4,6 +4,7 @@ import {
   type PluginTool,
 } from "@brains/plugins";
 import type { Daemon, IAgentService } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/templates";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig } from "./config";
@@ -27,6 +28,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private unsubscribeReady: (() => void) | undefined;
   private taskManager = new TaskManager();
   private agentService: IAgentService | undefined;
+  private permissionContext: InterfacePluginContext["permissions"] | undefined;
 
   constructor(config: Partial<A2AConfig> = {}) {
     super("a2a", packageJson, config, a2aConfigSchema);
@@ -38,6 +40,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     await super.onRegister(context);
 
     this.agentService = context.agentService;
+    this.permissionContext = context.permissions;
 
     // Build Agent Card after all plugins have registered
     // so we can see the full tool registry
@@ -83,8 +86,33 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return this.agentCard;
   }
 
+  /**
+   * Resolve caller permission level from Authorization header.
+   * Looks up bearer token in trustedTokens config, then checks
+   * the permission system for the resolved identity.
+   */
+  private resolveCallerPermission(
+    authHeader: string | undefined,
+  ): UserPermissionLevel {
+    if (!authHeader?.startsWith("Bearer ") || !this.config.trustedTokens) {
+      return "public";
+    }
+
+    const token = authHeader.slice(7);
+    const identity = this.config.trustedTokens[token];
+    if (!identity || !this.permissionContext) {
+      return "public";
+    }
+
+    return this.permissionContext.getUserLevel("a2a", identity);
+  }
+
   protected override async getTools(): Promise<PluginTool[]> {
-    return [createA2ACallTool()];
+    return [
+      createA2ACallTool({
+        outboundTokens: this.config.outboundTokens,
+      }),
+    ];
   }
 
   protected override createDaemon(): Daemon | undefined {
@@ -131,9 +159,14 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         });
       }
 
+      const callerPermissionLevel = this.resolveCallerPermission(
+        c.req.header("Authorization"),
+      );
+
       const response = await handleJsonRpc(parsed.data, {
         taskManager: this.taskManager,
         agentService: this.agentService,
+        callerPermissionLevel,
       });
 
       return c.json(response);

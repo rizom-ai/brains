@@ -143,7 +143,10 @@ export function parseA2AResponse(data: unknown): A2AResult {
 
 // -- Network functions --
 
-type FetchFn = typeof globalThis.fetch;
+type FetchFn = (
+  url: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
 
 const a2aCallInputSchema = {
   agent: z
@@ -171,6 +174,7 @@ async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
+  authToken?: string,
 ): Promise<ToolResponse> {
   const rpcRequest = {
     jsonrpc: "2.0",
@@ -187,9 +191,16 @@ async function sendMessage(
   };
 
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (authToken) {
+      headers["Authorization"] = `Bearer ${authToken}`;
+    }
+
     const response = await fetchFn(endpointUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(rpcRequest),
     });
 
@@ -218,6 +229,8 @@ async function sendMessage(
 
 export interface A2AClientDeps {
   fetch?: FetchFn;
+  /** Map of remote agent domain → bearer token to send */
+  outboundTokens?: Record<string, string>;
 }
 
 /**
@@ -251,8 +264,20 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): PluginTool {
         };
       }
 
-      const endpointUrl = card.url.replace(/\/$/, "") + "/a2a";
-      return sendMessage(endpointUrl, message, fetchFn);
+      const endpointUrl = card.url;
+
+      // Look up outbound token by agent domain
+      let authToken: string | undefined;
+      if (deps.outboundTokens) {
+        try {
+          const domain = new URL(endpointUrl).hostname;
+          authToken = deps.outboundTokens[domain];
+        } catch {
+          // Invalid URL — skip token
+        }
+      }
+
+      return sendMessage(endpointUrl, message, fetchFn, authToken);
     },
   };
 }

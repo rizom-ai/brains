@@ -39,7 +39,8 @@ function buildDescription(
 export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const { character, profile, version, domain, organization, tools } = options;
 
-  const url = domain ? `https://${domain}` : "http://localhost:3334";
+  const baseUrl = domain ? `https://${domain}` : "http://localhost:3334";
+  const url = `${baseUrl}/a2a`;
 
   const skills: AgentSkill[] = tools.map((tool) => ({
     id: tool.name,
@@ -56,7 +57,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
     version,
     protocolVersion: "0.2.2",
     capabilities: {
-      streaming: true,
+      streaming: false,
       pushNotifications: false,
     },
     skills,
