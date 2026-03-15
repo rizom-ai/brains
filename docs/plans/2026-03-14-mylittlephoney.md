@@ -2,11 +2,7 @@
 
 ## Overview
 
-Create a new rover brain instance for mylittlephoney.com. This requires restructuring the existing rover setup:
-
-1. **Rename current rover → rover-pro** — the full-featured professional brain with blog, portfolio, newsletter, social media, etc.
-2. **Create new rover** — a simpler brain model focused on core knowledge management (notes, links, decks, topics)
-3. **Deploy rover as mylittlephoney** — Discord-only, custom theme, Cloudflare
+Create a new rover brain instance for mylittlephoney.com. Same `@brains/rover` brain model, different instance config — disable unused plugins via `brain.yaml`, apply a custom theme, connect Discord + A2A.
 
 **Prerequisites:** [Infrastructure plan](./2026-03-14-infrastructure.md) (Varlock + Cloudflare) should be completed first.
 
@@ -14,78 +10,51 @@ Create a new rover brain instance for mylittlephoney.com. This requires restruct
 
 | Decision      | Choice                                                           |
 | ------------- | ---------------------------------------------------------------- |
-| Brain models  | `@brains/rover` (simple) + `@brains/rover-pro` (full)            |
+| Brain model   | `@brains/rover` (same as yeehaa.io)                              |
 | App directory | `apps/mylittlephoney/`                                           |
 | Content repo  | `rizom-ai/mylittlephoney-content` (already created)              |
-| Interfaces    | Discord + A2A (no Matrix, no webserver)                          |
+| Interfaces    | Discord + A2A + webserver (no Matrix)                            |
 | CDN/DNS       | Cloudflare (via infrastructure plan)                             |
 | Theme         | Custom `shared/theme-mylittlephoney/` — girly pink unicorn candy |
 | Anchor users  | New (to be created)                                              |
-| Social media  | Instagram (new platform, in addition to LinkedIn)                |
 | Domain        | mylittlephoney.com (DNS not yet configured)                      |
-| A2A           | Trusted peer of yeehaa.io rover-pro                              |
+| A2A           | Trusted peer of yeehaa.io                                        |
 
-## Brain Model Split
+## Plugin Selection
 
-### rover-pro (rename of current rover)
+Same rover brain, just disable what's not needed:
 
-Full professional brain with all plugins. Used by yeehaa.io.
-
-**Plugins:**
-
-- system, image, dashboard
-- blog, decks, note, link, portfolio, topics
-- content-pipeline, social-media, newsletter
-- obsidian-vault, wishlist
-- git-sync, analytics
-- professional-site, site-builder
-
-**Rename steps:**
-
-- [ ] `brains/rover/` → `brains/rover-pro/`
-- [ ] Update `package.json` name to `@brains/rover-pro`
-- [ ] Update brain definition name
-- [ ] Update yeehaa.io `brain.yaml` to use `@brains/rover-pro`
-- [ ] Update CI/deploy scripts if they reference rover by name
-
-### rover (new, simpler)
-
-Core knowledge management brain. Used by mylittlephoney and other personal instances.
-
-**Plugins:**
-
-- system, image, dashboard
-- note, link, decks, topics
-- content-pipeline
-- git-sync
-- site-builder (with a simpler layout)
-
-**No:** blog, portfolio, newsletter, social-media, obsidian-vault, wishlist, professional-site, analytics
-
-**Create steps:**
-
-- [ ] Create `brains/rover/` with new `package.json` (`@brains/rover`)
-- [ ] Create brain definition with reduced plugin set
-- [ ] Create seed content (brain-character, anchor-profile, site-info)
-- [ ] Create `.env.schema`
+| Plugin            | Include | Notes                       |
+| ----------------- | ------- | --------------------------- |
+| system            | ✅      | Core — every brain needs it |
+| image             | ✅      |                             |
+| dashboard         | ✅      |                             |
+| blog              | ✅      |                             |
+| note              | ✅      |                             |
+| link              | ✅      |                             |
+| obsidian-vault    | ✅      |                             |
+| wishlist          | ✅      |                             |
+| git-sync          | ✅      |                             |
+| analytics         | ✅      |                             |
+| professional-site | ✅      | Rethemed, no layout changes |
+| site-builder      | ✅      |                             |
+| decks             | ❌      |                             |
+| portfolio         | ❌      |                             |
+| topics            | ❌      |                             |
+| content-pipeline  | ❌      |                             |
+| social-media      | ❌      |                             |
+| newsletter        | ❌      |                             |
 
 ## Work Packages
 
-### 1. Brain Model Split
-
-- [ ] Rename `brains/rover/` → `brains/rover-pro/`
-- [ ] Create new `brains/rover/` with simple plugin set
-- [ ] Verify both build and typecheck
-- [ ] Update existing brain.yaml files
-
-### 2. Discord Bot Setup
+### 1. Discord Bot Setup
 
 - [ ] Create Discord application at discord.com/developers
 - [ ] Create bot user, get bot token
 - [ ] Identify anchor user's Discord ID
 - [ ] Set up Discord server for the bot (or add to existing)
 
-### 3. Theme: `shared/theme-mylittlephoney/`
+### 2. Theme: `shared/theme-mylittlephoney/`
 
 Design direction: girly pink unicorn candy.
 
@@ -95,13 +64,21 @@ Design direction: girly pink unicorn candy.
 - [ ] Register in `@theme inline` block
 - [ ] Test both light and dark modes
 
-### 4. App Instance: `apps/mylittlephoney/`
+### 3. App Instance: `apps/mylittlephoney/`
 
 - [ ] Create `brain.yaml`:
 
   ```yaml
   brain: "@brains/rover"
   domain: mylittlephoney.com
+
+  disable:
+    - decks
+    - portfolio
+    - topics
+    - content-pipeline
+    - social-media
+    - newsletter
 
   plugins:
     a2a:
@@ -124,39 +101,33 @@ Design direction: girly pink unicorn candy.
 
 - [ ] Create `.env` with required secrets
 - [ ] Create `.env.schema` with varlock annotations
-- [ ] Create seed content
+- [ ] Create seed content (brain-character, anchor-profile, site-info)
 
-### 5. A2A Peering
+### 4. A2A Peering
 
-- [ ] Generate shared tokens for rover ↔ rover-pro
-- [ ] Configure yeehaa.io brain.yaml with mylittlephoney trusted tokens
+- [ ] Generate shared tokens for rover ↔ rover (yeehaa ↔ mylittlephoney)
+- [ ] Configure yeehaa brain.yaml with mylittlephoney trusted tokens
 - [ ] Configure mylittlephoney brain.yaml with yeehaa trusted tokens
-- [ ] Test: mylittlephoney asks yeehaa rover-pro to generate a blog post
+- [ ] Test: mylittlephoney asks yeehaa rover to generate a blog post
 
-### 6. Instagram + Threads Platform Support
-
-(Unchanged from original plan — see social media plugin work)
-
-### 7. DNS Configuration
+### 5. DNS Configuration
 
 - [ ] Add mylittlephoney.com to Cloudflare account
 - [ ] Note Zone ID for config
 - [ ] Update domain nameservers at registrar to Cloudflare
 - [ ] Verify propagation
 
-### 8. Codebase Housekeeping
+### 6. Codebase Housekeeping
 
-- [ ] Update `docs/codebase-map.html` with new brain models + app
+- [ ] Update `docs/codebase-map.html` with new app + theme
 - [ ] Verify `bun install` resolves all workspace dependencies
 - [ ] Run full typecheck and lint
 
 ## Suggested Order
 
-1. **Brain model split** — rename rover → rover-pro, create new rover
-2. **Discord bot** — can start immediately after split
-3. **Theme** — no code dependencies, can parallel with 2
-4. **App instance** — depends on rover brain + theme
-5. **A2A peering** — after both brains can run
-6. **Instagram platform** — independent, benefits all instances
-7. **DNS** — after Cloudflare provider is working
-8. **Housekeeping** — final step
+1. **Discord bot** — can start immediately, no code dependencies
+2. **Theme** — no code dependencies, can parallel with 1
+3. **App instance** — depends on theme package existing
+4. **A2A peering** — after both instances can run
+5. **DNS** — after Cloudflare provider is working
+6. **Housekeeping** — final step
