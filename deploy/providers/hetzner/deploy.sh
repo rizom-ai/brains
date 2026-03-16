@@ -430,7 +430,7 @@ destroy_infrastructure() {
     terraform destroy \
         -var="hcloud_token=$HCLOUD_TOKEN" \
         -var="app_name=$APP_NAME" \
-        -var="server_type=cx33" \
+        -var="server_type=${APP_SERVER_SIZE:-cx33}" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
         -var="cdn_provider=${APP_CDN_PROVIDER:-none}" \

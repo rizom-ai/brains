@@ -77,6 +77,20 @@ describe("parseSlideDirectives", () => {
     expect(result.markdown).toContain("Some text");
     expect(result.markdown).toContain("More text");
   });
+
+  it("should parse mixed boolean and quoted attributes", () => {
+    const result = parseSlideDirectives(
+      '<!-- .slide: data-auto-animate data-background-color="#ff0000" -->\n# Title',
+    );
+    expect(result.attributes["data-auto-animate"]).toBe("true");
+    expect(result.attributes["data-background-color"]).toBe("#ff0000");
+  });
+
+  it("should handle empty directive gracefully", () => {
+    const result = parseSlideDirectives("<!-- .slide: -->\n# Title");
+    expect(result.attributes).toEqual({});
+    expect(result.markdown).toBe("# Title");
+  });
 });
 
 describe("splitColumns", () => {

@@ -1,5 +1,10 @@
 import type { JSX } from "preact";
-import { markdownToHtml } from "@brains/utils";
+import {
+  markdownToHtml,
+  parseSlideDirectives,
+  splitColumns,
+  convertMermaidBlocks,
+} from "@brains/utils";
 
 export interface PresentationLayoutProps {
   markdown: string;
@@ -16,6 +21,39 @@ export const PresentationLayout = ({
   // Split markdown by slide separators (---)
   const slides = markdown.split(/^---$/gm).map((slide) => slide.trim());
 
+  // Build slide HTML and track whether mermaid is used
+  let hasMermaid = false;
+  const renderedSlides = slides.map((slideContent, index) => {
+    const { attributes, markdown: cleanMarkdown } =
+      parseSlideDirectives(slideContent);
+    const columns = splitColumns(cleanMarkdown);
+
+    let htmlContent: string;
+    if (columns) {
+      const columnHtml = columns
+        .map(
+          (col) =>
+            `<div class="slide-column">${convertMermaidBlocks(markdownToHtml(col.trim()))}</div>`,
+        )
+        .join("");
+      htmlContent = `<div class="slide-columns">${columnHtml}</div>`;
+    } else {
+      htmlContent = convertMermaidBlocks(markdownToHtml(cleanMarkdown));
+    }
+
+    if (htmlContent.includes('class="mermaid"')) {
+      hasMermaid = true;
+    }
+
+    return (
+      <section
+        key={index}
+        {...attributes}
+        dangerouslySetInnerHTML={{ __html: htmlContent }}
+      />
+    );
+  });
+
   return (
     <section className="presentation-section">
       {/* Reveal.js core CSS only (no theme) */}
@@ -26,24 +64,21 @@ export const PresentationLayout = ({
 
       {/* Reveal.js container */}
       <div className="reveal">
-        <div className="slides">
-          {slides.map((slideContent, index) => {
-            const htmlContent = markdownToHtml(slideContent);
-            return (
-              <section
-                key={index}
-                dangerouslySetInnerHTML={{ __html: htmlContent }}
-              />
-            );
-          })}
-        </div>
+        <div className="slides">{renderedSlides}</div>
       </div>
 
-      {/* Reveal.js initialization script */}
+      {/* Reveal.js initialization */}
       <script
         src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.min.js"
         defer
       />
+      {/* Mermaid — only loaded when diagrams are present */}
+      {hasMermaid && (
+        <script
+          src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"
+          defer
+        />
+      )}
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -62,6 +97,9 @@ export const PresentationLayout = ({
                   transitionSpeed: 'default',
                   backgroundTransition: 'fade',
                 });
+              }
+              if (window.mermaid) {
+                window.mermaid.initialize({ startOnLoad: true, theme: 'dark' });
               }
             });
           `,
@@ -221,9 +259,14 @@ export const PresentationLayout = ({
               color: var(--color-brand-light);
             }
 
-            .reveal strong,
+            .reveal strong {
+              font-weight: 700;
+              color: var(--color-heading);
+            }
+
             .reveal em {
-              color: var(--color-accent);
+              font-style: italic;
+              color: var(--color-text-muted);
             }
 
             .reveal .slides section ul,
@@ -400,16 +443,66 @@ export const PresentationLayout = ({
               font-size: 0.875rem;
             }
 
+            /* Title slide — auto-center first slide */
+            .reveal .slides section:first-child {
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+            }
+
+            .reveal .slides section:first-child h1 {
+              text-align: center;
+            }
+
+            .reveal .slides section:first-child p {
+              text-align: center;
+              color: var(--color-text-muted);
+              font-size: clamp(1.25rem, 1.8vw, 2rem);
+            }
+
+            /* Opt out of title layout */
+            .reveal .slides section.no-title-layout {
+              justify-content: flex-start;
+              align-items: flex-start;
+              text-align: left;
+            }
+
+            /* Column layouts */
+            .reveal .slide-columns {
+              display: flex;
+              gap: 2rem;
+              width: 100%;
+              height: 100%;
+              align-items: flex-start;
+            }
+
+            .reveal .slide-columns .slide-column {
+              flex: 1;
+              min-width: 0;
+            }
+
+            /* Mermaid diagrams */
+            .reveal .mermaid {
+              display: flex;
+              justify-content: center;
+              margin: 1.5rem 0;
+            }
+
+            .reveal .mermaid svg {
+              max-width: 100%;
+              max-height: 60vh;
+            }
+
             /* Override any remaining centered text from reveal.js */
-            .reveal .slides section h1,
-            .reveal .slides section h2,
-            .reveal .slides section h3,
-            .reveal .slides section h4,
-            .reveal .slides section h5,
-            .reveal .slides section h6,
-            .reveal .slides section p,
-            .reveal .slides section div,
-            .reveal .slides section span {
+            .reveal .slides section:not(:first-child) h1,
+            .reveal .slides section:not(:first-child) h2,
+            .reveal .slides section:not(:first-child) h3,
+            .reveal .slides section:not(:first-child) h4,
+            .reveal .slides section:not(:first-child) h5,
+            .reveal .slides section:not(:first-child) h6,
+            .reveal .slides section:not(:first-child) p,
+            .reveal .slides section:not(:first-child) div:not(.slide-columns):not(.mermaid),
+            .reveal .slides section:not(:first-child) span {
               text-align: left;
             }
           `,
