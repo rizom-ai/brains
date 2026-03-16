@@ -250,9 +250,11 @@ deploy_infrastructure() {
             -var="app_name=$APP_NAME" \
             -var="ssh_key_name=$SSH_KEY_NAME" \
             -var="domain=${DOMAIN:-}" \
+            -var="cdn_provider=${APP_CDN_PROVIDER:-none}" \
             -var="bunny_api_key=${BUNNY_API_KEY:-}" \
             -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
             -var="cloudflare_api_token=${CLOUDFLARE_API_TOKEN:-}" \
+            -var="cloudflare_zone_id=${CLOUDFLARE_ZONE_ID:-}" \
             -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID:-}" \
             -auto-approve
 
@@ -297,9 +299,11 @@ deploy_infrastructure() {
         -var="server_type=$SERVER_TYPE" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
+        -var="cdn_provider=${APP_CDN_PROVIDER:-none}" \
         -var="bunny_api_key=${BUNNY_API_KEY:-}" \
         -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         -var="cloudflare_api_token=${CLOUDFLARE_API_TOKEN:-}" \
+        -var="cloudflare_zone_id=${CLOUDFLARE_ZONE_ID:-}" \
         -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID:-}" \
         >/dev/null 2>&1 || true
 
@@ -311,9 +315,11 @@ deploy_infrastructure() {
         -var="server_type=$SERVER_TYPE" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
+        -var="cdn_provider=${APP_CDN_PROVIDER:-none}" \
         -var="bunny_api_key=${BUNNY_API_KEY:-}" \
         -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         -var="cloudflare_api_token=${CLOUDFLARE_API_TOKEN:-}" \
+        -var="cloudflare_zone_id=${CLOUDFLARE_ZONE_ID:-}" \
         -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID:-}" \
         -out="$TERRAFORM_STATE_DIR/tfplan"
 
@@ -427,9 +433,11 @@ destroy_infrastructure() {
         -var="server_type=cx33" \
         -var="ssh_key_name=$SSH_KEY_NAME" \
         -var="domain=${DOMAIN:-}" \
+        -var="cdn_provider=${APP_CDN_PROVIDER:-none}" \
         -var="bunny_api_key=${BUNNY_API_KEY:-}" \
         -var="dns_enabled=${APP_DNS_ENABLED:-false}" \
         -var="cloudflare_api_token=${CLOUDFLARE_API_TOKEN:-}" \
+        -var="cloudflare_zone_id=${CLOUDFLARE_ZONE_ID:-}" \
         -var="cloudflare_account_id=${CLOUDFLARE_ACCOUNT_ID:-}" \
         -auto-approve
 
