@@ -119,3 +119,11 @@ export { getErrorMessage } from "./error";
 
 // Debounce utilities
 export { LeadingTrailingDebounce } from "./debounce";
+
+// Presentation utilities
+export {
+  parseSlideDirectives,
+  splitColumns,
+  type SlideDirectiveResult,
+} from "./slide-directives";
+export { convertMermaidBlocks } from "./presentation-html";
