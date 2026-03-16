@@ -22,7 +22,7 @@ Two pure functions:
 
 - **`parseSlideDirectives(markdown)`** — extracts `<!-- .slide: key="value" ... -->` from a slide chunk. Returns `{ attributes: Record<string, string>, markdown: string }` (cleaned markdown with comment stripped). Handles quoted values, boolean attrs (`data-auto-animate`), multiple attrs per comment.
 
-- **`splitColumns(markdown)`** — splits on `^+++$` line. Returns `string[] | null` (null = no separator).
+- **`splitColumns(markdown)`** — splits on `<!-- .break -->` comment. Returns `string[] | null` (null = no separator). Uses the same HTML comment syntax as slide directives — consistent, self-documenting, no collision with standard markdown.
 
 Export from `shared/utils/src/index.ts`.
 
@@ -41,6 +41,9 @@ split on --- → parseSlideDirectives(chunk) → splitColumns(clean) →
   columns? → markdownToHtml each column, wrap in .slide-columns div
   else     → markdownToHtml + convertMermaidBlocks
 → <section {...attrs} dangerouslySetInnerHTML>
+
+Column separator uses `<!-- .break -->` — same HTML comment syntax as
+`<!-- .slide: -->` directives, keeping one consistent system.
 ```
 
 #### Visual fixes (CSS)
@@ -133,7 +136,7 @@ Add to `basePrompt` format requirements:
 
 - `<!-- .slide: data-background-color="..." -->` for backgrounds
 - `<!-- .slide: data-background-image="url" data-background-opacity="0.3" -->` for image backgrounds
-- `<!-- .slide: class="layout-split" -->` + `+++` for two-column
+- `<!-- .slide: class="layout-split" -->` + `<!-- .break -->` for two-column
 - ` ```mermaid ` for diagrams
 - Guidance on when to use each (sparingly: emphasis slides, comparisons, architecture)
 - Note: first slide is auto-centered as title card
@@ -170,6 +173,6 @@ Add to `basePrompt` format requirements:
 1. `bun test shared/utils/` — new utility tests pass
 2. `bun run typecheck` — no type errors
 3. `bun run lint` — clean
-4. Existing deck seed content still renders (no `<!-- .slide: -->` or `+++` = no behavior change)
+4. Existing deck seed content still renders (no `<!-- .slide: -->` or `<!-- .break -->` = no behavior change)
 5. Bold text renders as bold (not colored block), italic renders as italic
 6. First slide auto-centers as title card
