@@ -116,7 +116,7 @@ export const PresentationLayout = ({
             .presentation-section {
               width: 100%;
               height: 100vh;
-              height: 100dvh; /* Use dynamic viewport height for mobile */
+              height: 100dvh;
               overflow: hidden;
             }
 
@@ -124,6 +124,8 @@ export const PresentationLayout = ({
               font-family: var(--font-sans);
               background: var(--color-bg-gradient);
             }
+
+            /* ---- BASE SLIDE LAYOUT ---- */
 
             .reveal .slides section.stack {
               justify-content: center;
@@ -140,137 +142,169 @@ export const PresentationLayout = ({
               text-align: left;
             }
 
-            /* Override reveal.js default centering */
             .reveal .slides > section,
             .reveal .slides > section > section {
               text-align: left;
             }
 
-            /* Tablet and up */
             @media (min-width: 640px) {
               .reveal .slides section:not(.stack) {
                 padding: 3rem 4rem;
               }
             }
 
-            /* Desktop and up */
             @media (min-width: 1024px) {
               .reveal .slides section:not(.stack) {
                 padding: 4rem 6rem;
               }
             }
 
-            /* Large desktop */
             @media (min-width: 1440px) {
               .reveal .slides section:not(.stack) {
                 padding: 5rem 8rem;
               }
             }
 
-            /* Typography - use theme variables */
+            /* ---- TITLE SLIDE (first slide) ---- */
+
+            .reveal .slides section:first-child {
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+            }
+
+            .reveal .slides section:first-child h1 {
+              text-align: center;
+              font-family: var(--font-heading);
+              font-size: clamp(4rem, 10vw, 12rem);
+              font-weight: 700;
+              line-height: 0.9;
+              letter-spacing: -0.03em;
+              color: var(--color-heading);
+              margin-bottom: 1.5rem;
+              text-wrap: balance;
+            }
+
+            .reveal .slides section:first-child p {
+              text-align: center;
+              color: var(--color-text-muted);
+              font-size: clamp(1.1rem, 1.8vw, 1.75rem);
+              font-weight: 300;
+              line-height: 1.5;
+              max-width: 36ch;
+              margin: 0 auto;
+            }
+
+            .reveal .slides section.no-title-layout {
+              justify-content: flex-start;
+              align-items: flex-start;
+              text-align: left;
+            }
+
+            /* ---- HEADINGS ---- */
+
             .reveal h1,
             .reveal h2,
             .reveal h3,
             .reveal h4,
             .reveal h5,
             .reveal h6 {
-              font-family: var(--font-sans);
+              font-family: var(--font-heading);
               font-weight: 600;
             }
 
             .reveal h1 {
               color: var(--color-heading);
               font-size: clamp(3.75rem, 8vw, 10rem);
-              line-height: 1;
-              font-weight: 600;
-              margin-bottom: 0.5rem;
+              line-height: 0.95;
+              font-weight: 700;
+              letter-spacing: -0.02em;
+              margin-bottom: 0.75rem;
               text-align: left;
             }
 
             .reveal h2 {
-              color: var(--color-brand);
-              font-size: clamp(3rem, 5vw, 6rem);
-              line-height: 1.1;
-              font-weight: 300;
+              color: var(--color-heading);
+              font-size: clamp(2.5rem, 4.5vw, 5rem);
+              line-height: 1;
+              font-weight: 700;
+              letter-spacing: -0.02em;
               margin-bottom: 1.5rem;
               text-align: left;
             }
 
             .reveal h3 {
               color: var(--color-brand);
-              font-size: clamp(2.25rem, 3.5vw, 4rem);
-              line-height: 1.2;
+              font-size: clamp(1.75rem, 3vw, 3rem);
+              line-height: 1.15;
               font-weight: 600;
               margin-bottom: 1.5rem;
               text-align: left;
-              display: inline-block;
-              padding-bottom: 0.5rem;
-              border-bottom: 3px solid var(--color-brand);
             }
 
             .reveal h4 {
               color: var(--color-heading);
-              font-size: clamp(1.5rem, 2vw, 2.5rem);
+              font-size: clamp(1.25rem, 1.8vw, 2rem);
               font-weight: 600;
-              margin-top: 2rem;
-              margin-bottom: 1rem;
+              margin-top: 0.5rem;
+              margin-bottom: 0.75rem;
               text-align: left;
-              position: relative;
-              padding-left: 1rem;
-            }
-
-            .reveal h4::before {
-              content: '';
-              position: absolute;
-              left: 0;
-              top: 0.2em;
-              bottom: 0.2em;
-              width: 4px;
-              background-color: var(--color-brand);
-              border-radius: 2px;
+              padding-bottom: 0.4rem;
+              border-bottom: 2px solid var(--color-brand);
+              display: inline-block;
             }
 
             .reveal h5,
             .reveal h6 {
               color: var(--color-text-muted);
-              font-size: clamp(1rem, 1.5vw, 1.5rem);
+              font-size: clamp(0.9rem, 1.2vw, 1.25rem);
               font-weight: 600;
               margin-top: 1.5rem;
-              margin-bottom: 0.75rem;
+              margin-bottom: 0.5rem;
               text-align: left;
               text-transform: uppercase;
-              letter-spacing: 0.05em;
+              letter-spacing: 0.08em;
             }
+
+            /* ---- BODY TEXT ---- */
 
             .reveal p,
             .reveal li {
               color: var(--color-text);
               font-family: var(--font-sans);
-              font-size: clamp(1.5rem, 2vw, 2.5rem);
-              line-height: 1.5;
-              margin-bottom: 1rem;
+              font-size: clamp(1.25rem, 1.8vw, 2rem);
+              line-height: 1.55;
+              margin-bottom: 0.75rem;
               text-align: left;
             }
+
+            /* ---- INLINE EMPHASIS ---- */
+
+            .reveal strong {
+              font-weight: 800;
+              color: inherit;
+            }
+
+            .reveal em {
+              font-style: italic;
+              color: var(--color-brand);
+            }
+
+            /* ---- LINKS ---- */
 
             .reveal a {
               color: var(--color-accent);
               text-decoration: underline;
-              font-weight: 900;
+              text-decoration-thickness: 2px;
+              text-underline-offset: 3px;
+              font-weight: 600;
             }
 
             .reveal a:hover {
               color: var(--color-brand-light);
             }
 
-            .reveal strong {
-              font-weight: 700;
-              color: var(--color-heading);
-            }
-
-            .reveal em {
-              font-style: italic;
-              color: var(--color-text-muted);
-            }
+            /* ---- LISTS ---- */
 
             .reveal .slides section ul,
             .reveal .slides section ol {
@@ -282,12 +316,10 @@ export const PresentationLayout = ({
             }
 
             .reveal .slides section li {
-              display: flex;
-              align-items: flex-start;
-              margin-top: 0.75rem;
-              margin-bottom: 0.75rem;
+              margin-top: 0.5rem;
+              margin-bottom: 0.5rem;
               text-align: left;
-              padding-left: 1.5rem;
+              padding-left: 1.5em;
               position: relative;
             }
 
@@ -295,22 +327,21 @@ export const PresentationLayout = ({
               content: '';
               position: absolute;
               left: 0;
-              top: 0.5em;
-              width: 8px;
-              height: 8px;
+              top: 0.55em;
+              width: 0.45em;
+              height: 0.45em;
               background-color: var(--color-brand);
               border-radius: 50%;
-              flex-shrink: 0;
             }
 
             .reveal .slides section ol {
               list-style: decimal;
-              padding-left: 1.5rem;
+              padding-left: 1.5em;
             }
 
             .reveal .slides section ol li {
               display: list-item;
-              padding-left: 0.5rem;
+              padding-left: 0.4em;
             }
 
             .reveal .slides section ol li::before {
@@ -319,30 +350,40 @@ export const PresentationLayout = ({
 
             .reveal .slides section ol li::marker {
               color: var(--color-brand);
-              font-weight: 600;
+              font-weight: 700;
             }
 
-            /* Code styling */
+            /* ---- CODE ---- */
+
             .reveal code {
-              color: var(--color-text);
+              color: var(--color-brand);
               background-color: var(--color-bg-muted);
-              padding: 0.2em 0.4em;
-              border-radius: 3px;
+              padding: 0.15em 0.45em;
+              border-radius: 4px;
               font-family: var(--font-mono);
+              font-size: 0.85em;
             }
 
             .reveal pre {
               background-color: var(--color-bg-muted);
               border: 1px solid var(--color-border);
+              border-radius: 6px;
+              padding: 1.25em 1.5em;
+              margin: 1rem 0;
+              overflow-x: auto;
+              text-align: left;
             }
 
             .reveal pre code {
               background-color: transparent;
               padding: 0;
               color: var(--color-text);
+              font-size: clamp(0.85rem, 1.2vw, 1.1rem);
+              line-height: 1.65;
             }
 
-            /* Images */
+            /* ---- IMAGES ---- */
+
             .reveal img {
               max-width: 100%;
               max-height: 50vh;
@@ -351,17 +392,20 @@ export const PresentationLayout = ({
               object-fit: contain;
               margin: 1.5rem 0;
               display: block;
-              border-radius: 8px;
+              border-radius: 6px;
             }
 
-            /* Tables - Professional styling */
+            /* ---- TABLES ---- */
+
             .reveal table {
               width: auto;
               max-width: 100%;
               border-collapse: separate;
               border-spacing: 0;
               margin: 1.5rem 0;
-              font-size: clamp(1rem, 1.5vw, 1.75rem);
+              font-size: clamp(0.9rem, 1.3vw, 1.5rem);
+              border-radius: 6px;
+              overflow: hidden;
             }
 
             .reveal table th {
@@ -369,12 +413,12 @@ export const PresentationLayout = ({
               color: var(--color-text-inverse);
               font-weight: 600;
               text-align: left;
-              padding: clamp(0.5rem, 2vw, 2rem) clamp(0.75rem, 4vw, 5rem);
+              padding: 0.75rem 1.25rem;
               border: none;
             }
 
             .reveal table td {
-              padding: clamp(0.5rem, 2vw, 1.5rem) clamp(0.75rem, 4vw, 5rem);
+              padding: 0.65rem 1.25rem;
               border-bottom: 1px solid var(--color-border);
               color: var(--color-text);
               vertical-align: top;
@@ -384,99 +428,40 @@ export const PresentationLayout = ({
               background-color: var(--color-bg-subtle);
             }
 
-            .reveal table tr:hover {
-              background-color: var(--color-bg-muted);
-            }
+            /* ---- BLOCKQUOTES ---- */
 
-            /* Blockquotes - Accent styling */
             .reveal blockquote {
-              background: linear-gradient(135deg, var(--color-bg-subtle) 0%, var(--color-bg-muted) 100%);
-              border-left: 5px solid var(--color-brand);
-              border-radius: 0 12px 12px 0;
-              padding: 1.5em 2em;
-              margin: 2rem 0;
+              border-left: 4px solid var(--color-brand);
+              padding: 1.25em 1.75em;
+              margin: 1.5rem 0;
               font-style: italic;
-              font-size: 1.1em;
+              font-size: 1.05em;
               color: var(--color-text);
+              background: var(--color-bg-subtle);
+              border-radius: 0 6px 6px 0;
               position: relative;
-            }
-
-            .reveal blockquote::before {
-              content: '"';
-              position: absolute;
-              top: -0.25em;
-              left: 0.5em;
-              font-size: 4em;
-              color: var(--color-brand);
-              opacity: 0.3;
-              font-family: Georgia, serif;
-              line-height: 1;
             }
 
             .reveal blockquote p {
               margin: 0;
-              position: relative;
-              z-index: 1;
+              line-height: 1.6;
             }
 
-            /* Lists - Better spacing */
+            /* ---- LISTS (color) ---- */
+
             .reveal ul,
             .reveal ol {
               color: var(--color-text);
             }
 
-            /* Controls and progress */
-            .reveal .controls {
-              color: var(--color-brand-light);
-            }
+            /* ---- COLUMN LAYOUTS ---- */
 
-            .reveal .progress {
-              background: var(--color-bg-muted);
-            }
-
-            .reveal .progress span {
-              background: var(--color-brand);
-            }
-
-            /* Slide number */
-            .reveal .slide-number {
-              color: var(--color-text);
-              background-color: transparent;
-              font-family: var(--font-mono);
-              font-size: 0.875rem;
-            }
-
-            /* Title slide — auto-center first slide */
-            .reveal .slides section:first-child {
-              justify-content: center;
-              align-items: center;
-              text-align: center;
-            }
-
-            .reveal .slides section:first-child h1 {
-              text-align: center;
-            }
-
-            .reveal .slides section:first-child p {
-              text-align: center;
-              color: var(--color-text-muted);
-              font-size: clamp(1.25rem, 1.8vw, 2rem);
-            }
-
-            /* Opt out of title layout */
-            .reveal .slides section.no-title-layout {
-              justify-content: flex-start;
-              align-items: flex-start;
-              text-align: left;
-            }
-
-            /* Column layouts */
             .reveal .slide-columns {
               display: flex;
-              gap: 2rem;
+              gap: 3rem;
               width: 100%;
-              height: 100%;
               align-items: flex-start;
+              margin-top: 1rem;
             }
 
             .reveal .slide-columns .slide-column {
@@ -484,7 +469,8 @@ export const PresentationLayout = ({
               min-width: 0;
             }
 
-            /* Mermaid diagrams */
+            /* ---- MERMAID DIAGRAMS ---- */
+
             .reveal .mermaid {
               display: flex;
               justify-content: center;
@@ -496,7 +482,30 @@ export const PresentationLayout = ({
               max-height: 60vh;
             }
 
-            /* Override any remaining centered text from reveal.js */
+            /* ---- CONTROLS & PROGRESS ---- */
+
+            .reveal .controls {
+              color: var(--color-brand);
+            }
+
+            .reveal .progress {
+              background: var(--color-bg-muted);
+              height: 3px;
+            }
+
+            .reveal .progress span {
+              background: var(--color-brand);
+            }
+
+            .reveal .slide-number {
+              color: var(--color-text-muted);
+              background-color: transparent;
+              font-family: var(--font-mono);
+              font-size: 0.75rem;
+            }
+
+            /* ---- TEXT ALIGNMENT OVERRIDES ---- */
+
             .reveal .slides section:not(:first-child) h1,
             .reveal .slides section:not(:first-child) h2,
             .reveal .slides section:not(:first-child) h3,
