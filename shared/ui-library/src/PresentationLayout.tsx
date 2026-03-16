@@ -21,9 +21,8 @@ export const PresentationLayout = ({
   // Split markdown by slide separators (---)
   const slides = markdown.split(/^---$/gm).map((slide) => slide.trim());
 
-  // Build slide HTML and track whether mermaid is used
-  let hasMermaid = false;
-  const renderedSlides = slides.map((slideContent, index) => {
+  // Build slide HTML
+  const processedSlides = slides.map((slideContent) => {
     const { attributes, markdown: cleanMarkdown } =
       parseSlideDirectives(slideContent);
     const columns = splitColumns(cleanMarkdown);
@@ -41,18 +40,22 @@ export const PresentationLayout = ({
       htmlContent = convertMermaidBlocks(markdownToHtml(cleanMarkdown));
     }
 
-    if (htmlContent.includes('class="mermaid"')) {
-      hasMermaid = true;
-    }
+    return { attributes, htmlContent };
+  });
 
-    return (
+  const hasMermaid = processedSlides.some((s) =>
+    s.htmlContent.includes('class="mermaid"'),
+  );
+
+  const renderedSlides = processedSlides.map(
+    ({ attributes, htmlContent }, index) => (
       <section
         key={index}
         {...attributes}
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
-    );
-  });
+    ),
+  );
 
   return (
     <section className="presentation-section">
