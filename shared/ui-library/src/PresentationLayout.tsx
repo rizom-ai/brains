@@ -176,19 +176,19 @@ export const PresentationLayout = ({
             .reveal .slides section:first-child h1 {
               text-align: center;
               font-family: var(--font-heading);
-              font-size: clamp(4rem, 10vw, 12rem);
+              font-size: clamp(3.5rem, 8vw, 9rem);
               font-weight: 700;
-              line-height: 0.9;
-              letter-spacing: -0.03em;
+              line-height: 1.0;
+              letter-spacing: -0.02em;
               color: var(--color-heading);
-              margin-bottom: 1.5rem;
+              margin-bottom: 1.25rem;
               text-wrap: balance;
             }
 
             .reveal .slides section:first-child p {
               text-align: center;
               color: var(--color-text-muted);
-              font-size: clamp(1.1rem, 1.8vw, 1.75rem);
+              font-size: clamp(1rem, 1.5vw, 1.5rem);
               font-weight: 300;
               line-height: 1.5;
               max-width: 36ch;
@@ -215,37 +215,39 @@ export const PresentationLayout = ({
 
             .reveal h1 {
               color: var(--color-heading);
-              font-size: clamp(3.75rem, 8vw, 10rem);
-              line-height: 0.95;
+              font-size: clamp(3rem, 6vw, 7rem);
+              line-height: 1.0;
               font-weight: 700;
-              letter-spacing: -0.02em;
+              letter-spacing: -0.01em;
               margin-bottom: 0.75rem;
               text-align: left;
             }
 
             .reveal h2 {
               color: var(--color-heading);
-              font-size: clamp(2.5rem, 4.5vw, 5rem);
-              line-height: 1;
+              font-size: clamp(2rem, 3.5vw, 4rem);
+              line-height: 1.1;
               font-weight: 700;
-              letter-spacing: -0.02em;
-              margin-bottom: 1.5rem;
+              letter-spacing: 0em;
+              margin-bottom: 1.25rem;
               text-align: left;
             }
 
             .reveal h3 {
               color: var(--color-brand);
-              font-size: clamp(1.75rem, 3vw, 3rem);
-              line-height: 1.15;
+              font-size: clamp(1.5rem, 2.5vw, 2.5rem);
+              line-height: 1.2;
               font-weight: 600;
-              margin-bottom: 1.5rem;
+              letter-spacing: 0.01em;
+              margin-bottom: 1.25rem;
               text-align: left;
             }
 
             .reveal h4 {
               color: var(--color-heading);
-              font-size: clamp(1.25rem, 1.8vw, 2rem);
+              font-size: clamp(1.15rem, 1.5vw, 1.75rem);
               font-weight: 600;
+              letter-spacing: 0.02em;
               margin-top: 0.5rem;
               margin-bottom: 0.75rem;
               text-align: left;
@@ -257,13 +259,12 @@ export const PresentationLayout = ({
             .reveal h5,
             .reveal h6 {
               color: var(--color-text-muted);
-              font-size: clamp(0.9rem, 1.2vw, 1.25rem);
+              font-size: clamp(0.85rem, 1.1vw, 1.1rem);
               font-weight: 600;
-              margin-top: 1.5rem;
+              letter-spacing: 0.02em;
+              margin-top: 1.25rem;
               margin-bottom: 0.5rem;
               text-align: left;
-              text-transform: uppercase;
-              letter-spacing: 0.08em;
             }
 
             /* ---- BODY TEXT ---- */
@@ -272,9 +273,9 @@ export const PresentationLayout = ({
             .reveal li {
               color: var(--color-text);
               font-family: var(--font-sans);
-              font-size: clamp(1.25rem, 1.8vw, 2rem);
+              font-size: clamp(1.2rem, 1.6vw, 1.75rem);
               line-height: 1.55;
-              margin-bottom: 0.75rem;
+              margin-bottom: 0.65rem;
               text-align: left;
             }
 

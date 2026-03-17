@@ -4,10 +4,12 @@ import {
 } from "@brains/plugins";
 import type {
   BaseQuery,
+  IEntityService,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
+import { resolveEntityCoverImage } from "@brains/image";
 import { deckFrontmatterSchema } from "../schemas/deck";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
 
@@ -48,6 +50,32 @@ export class DeckDataSource extends BaseEntityDataSource<
     const { metadata: frontmatter, content: body } =
       parseMarkdownWithFrontmatter(entity.content, deckFrontmatterSchema);
     return { ...entity, frontmatter, body };
+  }
+
+  protected override async fetchDetail(
+    id: string,
+    entityService: IEntityService,
+  ): Promise<{
+    item: DeckWithData;
+    navigation: NavigationResult<DeckWithData> | null;
+  }> {
+    const result = await super.fetchDetail(id, entityService);
+
+    // Inject cover image as a slide directive on the first slide
+    const coverImage = await resolveEntityCoverImage(
+      { content: result.item.content } as DeckEntity,
+      entityService,
+    );
+
+    if (coverImage) {
+      const directive = `<!-- .slide: data-background-image="${coverImage.url}" data-background-opacity="0.4" -->`;
+      result.item = {
+        ...result.item,
+        body: `${directive}\n${result.item.body}`,
+      };
+    }
+
+    return result;
   }
 
   protected override buildDetailResult(

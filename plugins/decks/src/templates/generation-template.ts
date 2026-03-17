@@ -54,6 +54,20 @@ Format requirements:
 - Use "---" on its own line to separate slides
 - Each slide needs a header (# for title slide, ## for content slides)
 - Use code blocks (\`\`\`) for technical examples when relevant
+- The first slide is auto-centered as a title card — just use # Title and optionally a subtitle as a paragraph
+
+Visual directives (use sparingly for emphasis — most slides need none):
+- Background color: <!-- .slide: data-background-color="#1a1a2e" --> for emphasis slides
+- Background image: <!-- .slide: data-background-image="url" data-background-opacity="0.3" --> (rare)
+- Two-column layout: Add <!-- .break --> between left and right content
+- Mermaid diagrams: Use \`\`\`mermaid code blocks for architecture/flow diagrams
+- Transitions: <!-- .slide: data-transition="fade" --> for dramatic reveals
+
+When to use directives:
+- Background colors: 1-2 per deck max, for key takeaway or emphasis slides
+- Columns: Comparisons, before/after, pros/cons
+- Mermaid: Architecture diagrams, flowcharts, sequences — only when visual adds clarity
+- Most slides should have NO directives — clean content speaks louder
 
 The tone should feel like a talk from someone who builds things and thinks deeply about them - not a corporate deck or sales pitch.`,
 });

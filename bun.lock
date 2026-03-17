@@ -344,6 +344,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/ai-evaluation": "workspace:*",
+        "@brains/image": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },

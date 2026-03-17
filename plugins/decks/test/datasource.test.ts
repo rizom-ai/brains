@@ -161,6 +161,80 @@ describe("DeckDataSource", () => {
       expect(result.markdown).toBe("# Test Deck\n\n---\n\n# Slide 2");
     });
 
+    it("should inject cover image directive when coverImageId exists", async () => {
+      const deck = createMockDeckEntity({
+        id: "deck-with-cover",
+        title: "Deck With Cover",
+        status: "published",
+        publishedAt: "2025-01-01T10:00:00.000Z",
+        content: `---
+title: Deck With Cover
+slug: deck-with-cover
+status: published
+coverImageId: cover-img-1
+---
+
+# Title Slide
+
+---
+
+# Slide 2`,
+        metadata: {
+          title: "Deck With Cover",
+          slug: "deck-with-cover",
+          status: "published",
+          publishedAt: "2025-01-01T10:00:00.000Z",
+        },
+      });
+
+      const coverImageEntity = {
+        id: "cover-img-1",
+        entityType: "image",
+        content: "data:image/png;base64,AAAA",
+        metadata: {
+          title: "Cover",
+          alt: "Cover image",
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "abc",
+      };
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(coverImageEntity);
+
+      const result = await datasource.fetch(
+        { entityType: "deck", query: { id: "deck-with-cover" } },
+        detailSchema,
+        mockContext,
+      );
+
+      expect(result.markdown).toContain("<!-- .slide: data-background-image=");
+      expect(result.markdown).toContain("data-background-opacity=");
+      // Directive should be at the start
+      expect(result.markdown.startsWith("<!-- .slide:")).toBe(true);
+    });
+
+    it("should not inject directive when no coverImageId", async () => {
+      const deck = createMockDeck(
+        "deck-no-cover",
+        "No Cover Deck",
+        "no-cover-deck",
+        "published",
+        "2025-01-01T10:00:00.000Z",
+      );
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
+
+      const result = await datasource.fetch(
+        { entityType: "deck", query: { id: "no-cover-deck" } },
+        detailSchema,
+        mockContext,
+      );
+
+      expect(result.markdown).not.toContain("<!-- .slide:");
+    });
+
     it("should throw error when deck not found", async () => {
       spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
