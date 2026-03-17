@@ -5,7 +5,7 @@ domain: mylittlephoney.com
 
 # Permissions
 anchors:
-  - "discord:ANCHOR_DISCORD_ID"
+  - "discord:1432013090068627558"
 
 # Disable unused plugins
 disable:

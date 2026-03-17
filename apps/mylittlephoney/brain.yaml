@@ -6,7 +6,7 @@ logLevel: debug
 # Permissions
 anchors:
   - "cli:*"
-  - "discord:ANCHOR_DISCORD_ID"
+  - "discord:1432013090068627558"
   - "mcp:stdio"
 
 # Disable unused plugins
