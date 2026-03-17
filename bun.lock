@@ -787,6 +787,19 @@
         "typescript": "^5.3.3",
       },
     },
+    "shared/theme-mylittlephoney": {
+      "name": "@brains/theme-mylittlephoney",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/theme-neo-retro": {
       "name": "@brains/theme-neo-retro",
       "version": "0.1.0",
@@ -1274,6 +1287,8 @@
     "@brains/theme-editorial": ["@brains/theme-editorial@workspace:shared/theme-editorial"],
 
     "@brains/theme-geometric": ["@brains/theme-geometric@workspace:shared/theme-geometric"],
+
+    "@brains/theme-mylittlephoney": ["@brains/theme-mylittlephoney@workspace:shared/theme-mylittlephoney"],
 
     "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
 
