@@ -63,7 +63,7 @@ export class DeckDataSource extends BaseEntityDataSource<
 
     // Inject cover image as a slide directive on the first slide
     const coverImage = await resolveEntityCoverImage(
-      { content: result.item.content } as DeckEntity,
+      result.item,
       entityService,
     );
 
