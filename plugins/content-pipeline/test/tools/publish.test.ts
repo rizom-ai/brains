@@ -5,7 +5,8 @@ import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider, PublishResult } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -41,7 +42,7 @@ describe("Publish Pipeline - Publish Tool", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, pluginId);
     providerRegistry = ProviderRegistry.createFresh();
 

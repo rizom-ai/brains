@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SocialMediaPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 
 describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
   let plugin: SocialMediaPlugin;
@@ -11,7 +11,7 @@ describe("SocialMediaPlugin - Publish Pipeline Registration", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-social" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-social" });
     receivedMessages = [];
 
     // Capture publish:register messages

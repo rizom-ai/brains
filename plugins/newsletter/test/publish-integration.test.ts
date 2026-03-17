@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { NewsletterPlugin } from "../src";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { Newsletter } from "../src/schemas/newsletter";
 
 // Sample newsletter for testing
@@ -26,7 +26,7 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({
+    mockShell = createMockShell({
       logger,
       dataDir: "/tmp/test-newsletter",
     });

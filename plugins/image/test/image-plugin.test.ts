@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ImagePlugin } from "../src";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 
 describe("ImagePlugin", () => {
   let plugin: ImagePlugin;
@@ -10,7 +10,7 @@ describe("ImagePlugin", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-datadir" });
     plugin = new ImagePlugin();
   });
 

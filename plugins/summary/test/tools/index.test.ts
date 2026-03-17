@@ -11,7 +11,8 @@ import { createGetTool } from "../../src/tools";
 import { SummaryService } from "../../src/lib/summary-service";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -29,7 +30,7 @@ describe("Summary Tools", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "summary");
     config = {
       enableAutoSummary: true,

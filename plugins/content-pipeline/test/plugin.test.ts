@@ -3,7 +3,7 @@ import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { PublishProvider } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 
 describe("ContentPipelinePlugin", () => {
   let plugin: ContentPipelinePlugin;
@@ -12,7 +12,7 @@ describe("ContentPipelinePlugin", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-datadir" });
     plugin = new ContentPipelinePlugin({});
     await plugin.register(mockShell);
   });

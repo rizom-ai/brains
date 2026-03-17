@@ -7,7 +7,8 @@ import {
 import { newsletterConfigSchema } from "../src/config";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -30,7 +31,7 @@ describe("GenerationJobHandler", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "newsletter");
     handler = new GenerationJobHandler(logger, context, config);
 

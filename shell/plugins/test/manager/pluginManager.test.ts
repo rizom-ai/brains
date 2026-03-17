@@ -7,7 +7,7 @@ import {
   PluginStatus,
 } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "../../src/test/mock-shell";
 
 import { match, P } from "ts-pattern";
 
@@ -58,7 +58,7 @@ describe("PluginManager", (): void => {
     PluginManager.resetInstance();
 
     const logger = createSilentLogger();
-    const mockShell = MockShell.createFresh({ logger });
+    const mockShell = createMockShell({ logger });
 
     pluginManager = PluginManager.createFresh(
       logger,

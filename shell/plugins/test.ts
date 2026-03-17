@@ -2,7 +2,7 @@
  * Test utilities for plugin development
  * Import from "@brains/plugins/test" instead of deep paths
  */
-export { MockShell } from "./src/test/mock-shell";
+export { createMockShell, type MockShell } from "./src/test/mock-shell";
 export {
   PluginTestHarness,
   createPluginHarness,

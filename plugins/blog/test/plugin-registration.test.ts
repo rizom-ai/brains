@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { BlogPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
@@ -19,7 +19,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   beforeEach(async () => {
     const logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-blog" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-blog" });
     receivedMessages = [];
 
     const messageBus = mockShell.getMessageBus();

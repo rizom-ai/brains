@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SocialMediaPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 
 /**
  * Regression test: publish:register must work regardless of plugin
@@ -19,7 +19,7 @@ describe("publish:register ordering", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-order" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-order" });
   });
 
   afterEach(() => {

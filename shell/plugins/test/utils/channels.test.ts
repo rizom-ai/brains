@@ -3,7 +3,7 @@ import { z } from "@brains/utils";
 import type { BaseMessage } from "@brains/messaging-service";
 import { defineChannel, isChannel } from "../../src/utils/channels";
 import { createCorePluginContext } from "../../src/core/context";
-import { MockShell } from "../../src/test/mock-shell";
+import { createMockShell } from "../../src/test/mock-shell";
 import { createSilentLogger } from "@brains/test-utils";
 
 describe("Typed Message Channels", () => {
@@ -37,7 +37,7 @@ describe("Typed Message Channels", () => {
     const logger = createSilentLogger();
 
     it("should accept a Channel and call handler with validated payload", async () => {
-      const shell = MockShell.createFresh({ logger });
+      const shell = createMockShell({ logger });
       const context = createCorePluginContext(shell, "test-plugin");
 
       const schema = z.object({
@@ -71,7 +71,7 @@ describe("Typed Message Channels", () => {
     });
 
     it("should not call handler for invalid payloads", async () => {
-      const shell = MockShell.createFresh({ logger });
+      const shell = createMockShell({ logger });
       const context = createCorePluginContext(shell, "test-plugin");
 
       const schema = z.object({
@@ -96,7 +96,7 @@ describe("Typed Message Channels", () => {
     });
 
     it("should pass base message metadata as second argument", async () => {
-      const shell = MockShell.createFresh({ logger });
+      const shell = createMockShell({ logger });
       const context = createCorePluginContext(shell, "test-plugin");
 
       const schema = z.object({ data: z.string() });
@@ -122,7 +122,7 @@ describe("Typed Message Channels", () => {
     });
 
     it("should still support string-based subscribe (existing behavior)", async () => {
-      const shell = MockShell.createFresh({ logger });
+      const shell = createMockShell({ logger });
       const context = createCorePluginContext(shell, "test-plugin");
 
       const receivedMessages: unknown[] = [];
@@ -143,7 +143,7 @@ describe("Typed Message Channels", () => {
     });
 
     it("should return unsubscribe function for Channel-based subscribe", async () => {
-      const shell = MockShell.createFresh({ logger });
+      const shell = createMockShell({ logger });
       const context = createCorePluginContext(shell, "test-plugin");
 
       const schema = z.object({ value: z.number() });

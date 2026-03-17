@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { DecksPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { DeckEntity } from "../src/schemas/deck";
 
 const sampleDraftDeck: DeckEntity = {
@@ -35,7 +35,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-decks" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-decks" });
     receivedMessages = [];
 
     const messageBus = mockShell.getMessageBus();

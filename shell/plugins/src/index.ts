@@ -227,6 +227,7 @@ export type {
   DaemonHealth,
   DaemonInfo,
   DaemonStatusInfo,
+  IDaemonRegistry,
 } from "./manager/daemon-types";
 
 // ============================================================================

@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicExtractor } from "../../src/lib/topic-extractor";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -17,7 +18,7 @@ describe("TopicExtractor", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "topics");
     extractor = new TopicExtractor(context, logger);
   });

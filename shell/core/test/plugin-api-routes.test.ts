@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { ServicePlugin, type ApiRouteDefinition } from "@brains/plugins";
 import { z } from "@brains/utils";
 
@@ -43,7 +43,7 @@ describe("Shell.getPluginApiRoutes()", () => {
   let mockShell: MockShell;
 
   beforeEach(() => {
-    mockShell = MockShell.createFresh();
+    mockShell = createMockShell();
   });
 
   it("should return empty array when no plugins have API routes", () => {

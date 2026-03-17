@@ -80,3 +80,10 @@ export { mockFetch, type FetchHandler } from "./mock-fetch";
 
 // Test entity fixtures
 export { createTestEntity, createTestEntities } from "./fixtures";
+
+// Mock shell
+export {
+  createMockShell,
+  type MockShell,
+  type MockShellOptions,
+} from "./mock-shell";

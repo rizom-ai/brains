@@ -5,7 +5,8 @@ import {
 } from "../../src/handlers/topic-extraction-handler";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -24,7 +25,7 @@ describe("TopicExtractionHandler", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "topics");
     handler = new TopicExtractionHandler(context, logger);
 

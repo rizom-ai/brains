@@ -4,7 +4,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
 import type { DataSource } from "@brains/entity-service";
-import { MockShell } from "./mock-shell";
+import { createMockShell, type MockShell } from "./mock-shell";
 
 export interface HarnessOptions {
   logger?: Logger;
@@ -30,7 +30,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
     }
-    this.mockShell = new MockShell(mockShellOptions);
+    this.mockShell = createMockShell(mockShellOptions);
   }
 
   /**
@@ -51,7 +51,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       if (this.options.dataDir !== undefined) {
         mockShellOptions.dataDir = this.options.dataDir;
       }
-      this.mockShell = new MockShell(mockShellOptions);
+      this.mockShell = createMockShell(mockShellOptions);
     }
 
     this.capabilities = await plugin.register(this.mockShell);
@@ -212,7 +212,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.plugin = undefined;
     this.capabilities = undefined;
     // Create a fresh MockShell
-    this.mockShell = new MockShell({
+    this.mockShell = createMockShell({
       logger: this.mockShell.getLogger(),
     });
   }

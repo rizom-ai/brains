@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 
 describe("ContentPipelinePlugin - Report Handlers", () => {
   let plugin: ContentPipelinePlugin;
@@ -11,7 +11,7 @@ describe("ContentPipelinePlugin - Report Handlers", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-datadir" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-datadir" });
     plugin = new ContentPipelinePlugin({});
     await plugin.register(mockShell);
   });
@@ -71,7 +71,7 @@ describe("ContentPipelinePlugin - Report Handlers", () => {
       const limitedPlugin = new ContentPipelinePlugin({
         maxRetries: 2,
       });
-      const limitedShell = MockShell.createFresh({
+      const limitedShell = createMockShell({
         logger,
         dataDir: "/tmp/test-limited",
       });

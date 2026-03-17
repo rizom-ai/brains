@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { SocialPostDataSource } from "../../src/datasources/social-post-datasource";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -30,7 +31,7 @@ describe("SocialPostDataSource", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "social-media");
     mockContext = { entityService: context.entityService };
     dataSource = new SocialPostDataSource(logger);

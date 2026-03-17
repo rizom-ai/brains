@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { PortfolioPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
 
 // Sample project for testing
@@ -50,7 +50,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({
+    mockShell = createMockShell({
       logger,
       dataDir: "/tmp/test-portfolio",
     });

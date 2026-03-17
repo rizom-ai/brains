@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SocialMediaPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { SocialPost } from "../src/schemas/social-post";
 
 // Sample post for testing
@@ -33,7 +33,7 @@ describe("SocialMediaPlugin - Execute Handler", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger, dataDir: "/tmp/test-social" });
+    mockShell = createMockShell({ logger, dataDir: "/tmp/test-social" });
     receivedMessages = [];
 
     // Subscribe to report messages to capture them
@@ -142,7 +142,7 @@ describe("SocialMediaPlugin - Execute Handler", () => {
 
     beforeEach(async () => {
       // Create a new shell with provider
-      shellWithProvider = MockShell.createFresh({
+      shellWithProvider = createMockShell({
         logger,
         dataDir: "/tmp/test-social-provider",
       });

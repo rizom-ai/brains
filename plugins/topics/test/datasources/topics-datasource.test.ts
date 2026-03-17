@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsDataSource } from "../../src/datasources/topics-datasource";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -19,7 +20,7 @@ describe("TopicsDataSource", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "topics");
     dataSource = new TopicsDataSource(logger);
     mockContext = { entityService: context.entityService };

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { SocialMediaPlugin } from "../src/plugin";
 import { createSilentLogger } from "@brains/test-utils";
-import { MockShell } from "@brains/plugins/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import type { BaseEntity } from "@brains/plugins";
 
 // Sample blog post for testing (using BaseEntity to avoid import)
@@ -35,7 +35,7 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Queued", () => {
 
   beforeEach(async () => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({
+    mockShell = createMockShell({
       logger,
       dataDir: "/tmp/test-social-media",
     });

@@ -11,7 +11,8 @@ import { DigestHandler } from "../../src/handlers/digest-handler";
 import { SummaryExtractor } from "../../src/lib/summary-extractor";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  MockShell,
+  createMockShell,
+  type MockShell,
   createServicePluginContext,
   type ServicePluginContext,
   type Logger,
@@ -28,7 +29,7 @@ describe("DigestHandler", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    mockShell = MockShell.createFresh({ logger });
+    mockShell = createMockShell({ logger });
     context = createServicePluginContext(mockShell, "summary");
 
     // Reset singletons and create fresh instances
