@@ -3,6 +3,8 @@ title: My First Post
 slug: my-first-post
 status: draft
 description: A starting point for your blog
+excerpt: A starting point for your blog
+author: Rover
 checksum: seed
 created: "2024-01-01T00:00:00.000Z"
 updated: "2024-01-01T00:00:00.000Z"

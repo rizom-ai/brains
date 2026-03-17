@@ -8,20 +8,16 @@ created: "2024-01-01T00:00:00.000Z"
 updated: "2024-01-01T00:00:00.000Z"
 ---
 
-## Slide 1
+# My First Presentation
 
-### Title Slide
+---
 
-Your presentation title goes here.
-
-## Slide 2
-
-### The Problem
+## The Problem
 
 Describe the problem you're addressing.
 
-## Slide 3
+---
 
-### The Solution
+## The Solution
 
 Present your approach.

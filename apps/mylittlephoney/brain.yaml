@@ -12,6 +12,7 @@ anchors:
 # Disable unused plugins
 disable:
   - portfolio
+  - git-sync
   - topics
   - content-pipeline
   - social-media
