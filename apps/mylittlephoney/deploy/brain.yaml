@@ -9,7 +9,6 @@ anchors:
 
 # Disable unused plugins
 disable:
-  - decks
   - portfolio
   - topics
   - content-pipeline

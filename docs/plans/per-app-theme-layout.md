@@ -66,6 +66,15 @@ The site-builder plugin resolves theme and layout at runtime from its plugin con
 - [ ] Verify all apps build and serve correctly
 - [ ] Update docs
 
+## mylittlephoney: Custom Layout
+
+mylittlephoney currently uses `layout-professional` which has a hard dependency on `decks`. Long term, mylittlephoney needs its own layout (`layout-personal` or `layout-blog`) that drops the decks/portfolio routes and adds wishlist-focused pages instead.
+
+- [ ] Create `layouts/personal/` (or `layouts/blog/`)
+- [ ] Routes: home, blog, wishlist, about (no decks, no portfolio)
+- [ ] Make decks an optional dependency in layout-professional (or remove entirely from new layout)
+- [ ] Update mylittlephoney brain.yaml to use new layout
+
 ## Migration
 
 1. Do all apps in one PR to avoid broken intermediate state
