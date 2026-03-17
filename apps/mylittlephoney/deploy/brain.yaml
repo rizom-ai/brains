@@ -1,0 +1,43 @@
+brain: "@brains/rover"
+
+# Production instance
+domain: mylittlephoney.com
+
+# Permissions
+anchors:
+  - "discord:ANCHOR_DISCORD_ID"
+
+# Disable unused plugins
+disable:
+  - decks
+  - portfolio
+  - topics
+  - content-pipeline
+  - social-media
+  - newsletter
+  - matrix
+
+# Plugin overrides
+plugins:
+  site-builder:
+    themeCSS: "@brains/theme-mylittlephoney"
+  git-sync:
+    repo: rizom-ai/mylittlephoney-content
+    authorName: mylittlephoney
+    authorEmail: phoney@rizom.ai
+  discord: {}
+  webserver:
+    productionDomain: https://mylittlephoney.com
+  a2a:
+    organization: rizom.ai
+    trustedTokens:
+      ${A2A_TOKEN_YEEHAA}: yeehaa
+    outboundTokens:
+      yeehaa.io: ${A2A_OUTBOUND_TOKEN_YEEHAA}
+
+permissions:
+  rules:
+    - pattern: "a2a:yeehaa"
+      level: trusted
+    - pattern: "a2a:*"
+      level: public

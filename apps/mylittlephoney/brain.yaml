@@ -1,0 +1,32 @@
+brain: "@brains/rover"
+
+# Instance settings
+logLevel: debug
+
+# Permissions
+anchors:
+  - "cli:*"
+  - "discord:ANCHOR_DISCORD_ID"
+  - "mcp:stdio"
+
+# Disable unused plugins
+disable:
+  - decks
+  - portfolio
+  - topics
+  - content-pipeline
+  - social-media
+  - newsletter
+  - matrix
+
+# Plugin overrides
+plugins:
+  site-builder:
+    themeCSS: "@brains/theme-mylittlephoney"
+  git-sync:
+    repo: rizom-ai/mylittlephoney-content
+    authorName: mylittlephoney
+    authorEmail: phoney@rizom.ai
+  discord: {}
+  webserver:
+    productionDomain: https://mylittlephoney.com
