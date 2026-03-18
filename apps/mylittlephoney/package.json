@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@brains/app": "workspace:*",
-    "@brains/rover": "workspace:*"
+    "@brains/rover": "workspace:*",
+    "@brains/theme-mylittlephoney": "workspace:*"
   }
 }

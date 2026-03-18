@@ -1,0 +1,34 @@
+{
+  "name": "@brains/layout-personal",
+  "version": "0.1.0",
+  "description": "Personal layout — simple blog-focused site with no plugin dependencies beyond blog",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "echo 'no test files'",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/blog": "workspace:*",
+    "@brains/default-site-content": "workspace:*",
+    "@brains/identity-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/site-builder-plugin": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
