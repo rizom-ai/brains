@@ -34,9 +34,24 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
   }
 
   /**
-   * Parse profile body from content
+   * Parse profile body from content.
+   * When called with an extended schema, parses against that schema
+   * and maps the markdown body to the `story` field.
    */
-  public parseProfileBody(content: string): AnchorProfile {
+  public parseProfileBody(content: string): AnchorProfile;
+  public parseProfileBody<T extends Record<string, unknown>>(
+    content: string,
+    schema: z.ZodSchema<T>,
+  ): T;
+  public parseProfileBody<T extends Record<string, unknown>>(
+    content: string,
+    schema?: z.ZodSchema<T>,
+  ): AnchorProfile | T {
+    if (schema) {
+      const parsed = this.parseFrontMatter(content, schema);
+      const body = this.extractBody(content);
+      return body ? { ...parsed, story: body } : parsed;
+    }
     return this.parseFrontmatter(content) as AnchorProfile;
   }
 

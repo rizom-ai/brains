@@ -159,6 +159,37 @@ socialLinks:
 
       expect(() => adapter.parseProfileBody(markdown)).toThrow();
     });
+
+    it("should parse with an extended schema and map body to story", () => {
+      const markdown = `---
+name: Yeehaa
+description: Developer
+tagline: Building tools for thought
+expertise:
+  - TypeScript
+  - Education
+---
+This is my story.
+
+I've been building software for many years.
+`;
+
+      const extendedSchema = z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        tagline: z.string().optional(),
+        expertise: z.array(z.string()).optional(),
+        story: z.string().optional(),
+      });
+
+      const result = adapter.parseProfileBody(markdown, extendedSchema);
+
+      expect(result.name).toBe("Yeehaa");
+      expect(result.tagline).toBe("Building tools for thought");
+      expect(result.expertise).toEqual(["TypeScript", "Education"]);
+      expect(result.story).toContain("This is my story.");
+      expect(result.story).toContain("I've been building software");
+    });
   });
 
   describe("fromMarkdown", () => {

@@ -1,8 +1,13 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  fetchAnchorProfile,
+} from "@brains/plugins";
+import { AnchorProfileAdapter } from "@brains/identity-service";
+import { fetchSiteInfo } from "@brains/site-builder-plugin";
 import { sortByPublicationDate, type z } from "@brains/utils";
 import {
-  ProfessionalProfileParser,
+  professionalProfileSchema,
   type ProfessionalProfile,
 } from "../schemas";
 import {
@@ -15,7 +20,7 @@ import {
   type DeckEntity,
   type DeckWithData,
 } from "@brains/decks";
-import { SiteInfoAdapter, type SiteInfoCTA } from "@brains/site-builder-plugin";
+import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 
 /**
  * Homepage data returned by datasource (non-enriched)
@@ -40,6 +45,8 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
+  private readonly adapter = new AnchorProfileAdapter();
+
   constructor(
     private readonly postsListUrl: string,
     private readonly decksListUrl: string,
@@ -55,83 +62,45 @@ export class HomepageListDataSource implements DataSource {
   ): Promise<T> {
     const entityService = context.entityService;
 
-    // Fetch profile entity
-    const profileEntities = await entityService.listEntities("anchor-profile", {
-      limit: 1,
-    });
-    const profileEntity = profileEntities[0];
-    if (!profileEntity) {
-      throw new Error("Profile not found");
-    }
+    // Fetch profile, posts, decks, and site-info in parallel
+    const [profileContent, publishedPosts, publishedDecks, siteInfo] =
+      await Promise.all([
+        fetchAnchorProfile(entityService),
+        entityService.listEntities<BlogPost>("post", {
+          limit: 20,
+          filter: { metadata: { status: "published" } },
+        }),
+        entityService.listEntities<DeckEntity>("deck", {
+          limit: 20,
+          filter: { metadata: { status: "published" } },
+        }),
+        fetchSiteInfo(entityService),
+      ]);
 
-    // Parse profile data using ProfessionalProfileParser
-    const profileParser = new ProfessionalProfileParser();
-    const profile: ProfessionalProfile = profileParser.parse(
-      profileEntity.content,
-    );
-
-    // Fetch recent published posts (fetch 20, sort by publishedAt, take 3)
-    const publishedPosts = await entityService.listEntities<BlogPost>("post", {
-      limit: 20,
-      filter: {
-        metadata: {
-          status: "published",
-        },
-      },
-    });
-
-    // Sort by publishedAt (or created as fallback) and take the 3 most recent
-    const sortedPosts = publishedPosts.sort(sortByPublicationDate).slice(0, 3);
-
-    // Parse frontmatter for posts to include excerpt and other display fields
-    const posts: BlogPostWithData[] = sortedPosts.map((post) => {
-      const { metadata: frontmatter, content: body } =
-        parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
-      return {
-        ...post,
-        frontmatter,
-        body,
-      };
-    });
-
-    // Fetch recent published decks (fetch 20, sort by publishedAt, take 3)
-    const publishedDecks = await entityService.listEntities<DeckEntity>(
-      "deck",
-      {
-        limit: 20,
-        filter: {
-          metadata: {
-            status: "published",
-          },
-        },
-      },
+    const profile = this.adapter.parseProfileBody(
+      profileContent,
+      professionalProfileSchema,
     );
 
     // Sort by publishedAt (or created as fallback) and take the 3 most recent
-    const sortedDecks = publishedDecks.sort(sortByPublicationDate).slice(0, 3);
+    const posts: BlogPostWithData[] = publishedPosts
+      .sort(sortByPublicationDate)
+      .slice(0, 3)
+      .map((post) => {
+        const { metadata: frontmatter, content: body } =
+          parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
+        return { ...post, frontmatter, body };
+      });
 
-    // Parse frontmatter for decks to include description and other display fields
-    const decks: DeckWithData[] = sortedDecks.map((deck) => {
-      const { metadata: frontmatter, content: body } =
-        parseMarkdownWithFrontmatter(deck.content, deckFrontmatterSchema);
-      return {
-        ...deck,
-        frontmatter,
-        body,
-      };
-    });
+    const decks: DeckWithData[] = publishedDecks
+      .sort(sortByPublicationDate)
+      .slice(0, 3)
+      .map((deck) => {
+        const { metadata: frontmatter, content: body } =
+          parseMarkdownWithFrontmatter(deck.content, deckFrontmatterSchema);
+        return { ...deck, frontmatter, body };
+      });
 
-    // Fetch site-info for CTA
-    const siteInfoEntities = await entityService.listEntities("site-info", {
-      limit: 1,
-    });
-    const siteInfoEntity = siteInfoEntities[0];
-    if (!siteInfoEntity) {
-      throw new Error("Site info not found");
-    }
-
-    const siteInfoAdapter = new SiteInfoAdapter();
-    const siteInfo = siteInfoAdapter.parseSiteInfoBody(siteInfoEntity.content);
     if (!siteInfo.cta) {
       throw new Error("CTA not configured in site-info");
     }

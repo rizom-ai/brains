@@ -1,7 +1,9 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import { fetchAnchorProfile } from "@brains/plugins";
+import { AnchorProfileAdapter } from "@brains/identity-service";
 import type { z } from "@brains/utils";
 import {
-  ProfessionalProfileParser,
+  professionalProfileSchema,
   type ProfessionalProfile,
 } from "../schemas";
 
@@ -21,6 +23,8 @@ export class AboutDataSource implements DataSource {
   public readonly name = "About Page DataSource";
   public readonly description = "Fetches full profile data for the about page";
 
+  private readonly adapter = new AnchorProfileAdapter();
+
   /**
    * Fetch about page data
    */
@@ -29,27 +33,13 @@ export class AboutDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const entityService = context.entityService;
-
-    // Fetch profile entity
-    const profileEntities = await entityService.listEntities("anchor-profile", {
-      limit: 1,
-    });
-    const profileEntity = profileEntities[0];
-    if (!profileEntity) {
-      throw new Error("Profile not found");
-    }
-
-    // Parse profile data using ProfessionalProfileParser
-    const profileParser = new ProfessionalProfileParser();
-    const profile: ProfessionalProfile = profileParser.parse(
-      profileEntity.content,
+    const content = await fetchAnchorProfile(context.entityService);
+    const profile = this.adapter.parseProfileBody(
+      content,
+      professionalProfileSchema,
     );
 
-    const data: AboutDataSourceOutput = {
-      profile,
-    };
-
+    const data: AboutDataSourceOutput = { profile };
     return outputSchema.parse(data);
   }
 }

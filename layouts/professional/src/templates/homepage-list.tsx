@@ -6,11 +6,11 @@ import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 import {
   AnimatedWaveDivider,
   ContentSection,
+  CTASection,
   type ContentItem,
   Head,
   TagsList,
 } from "@brains/ui-library";
-import { CTASection } from "../components/CTASection";
 
 /**
  * Homepage data structure
@@ -145,7 +145,11 @@ export const HomepageListLayout = ({
         </div>
 
         {/* CTA Section — Full-width */}
-        <CTASection cta={cta} socialLinks={profile.socialLinks} />
+        <CTASection
+          cta={cta}
+          variant="editorial"
+          socialLinks={profile.socialLinks}
+        />
       </div>
     </>
   );

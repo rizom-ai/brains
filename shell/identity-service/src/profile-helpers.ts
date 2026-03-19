@@ -23,7 +23,7 @@ export const baseProfileExtension = z.object({
 /**
  * Fetch the anchor-profile entity content.
  * Returns the raw markdown string — caller parses with their own schema
- * using parseMarkdownWithFrontmatter.
+ * via AnchorProfileAdapter.parseProfileBody(content, schema).
  */
 export async function fetchAnchorProfile(
   entityService: ICoreEntityService,
