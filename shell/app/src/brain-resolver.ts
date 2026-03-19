@@ -2,6 +2,7 @@ import type { Plugin } from "@brains/plugins";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
+import type { SitePackage } from "./site-package";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import { getPackage, hasPackage } from "./package-registry";
@@ -27,9 +28,43 @@ export function resolve(
   const disableSet = new Set(overrides?.disable ?? []);
   const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
 
+  // Resolve site package: brain.yaml `site` overrides brain definition default
+  const site: SitePackage | undefined = resolveSitePackage(
+    definition,
+    overrides,
+  );
+
+  // If a site package is present, inject its config into site-builder overrides
+  if (site) {
+    const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
+    pluginOverrides["site-builder"] = {
+      // Site package provides defaults
+      themeCSS: site.theme,
+      routes: site.routes,
+      entityRouteConfig: site.entityRouteConfig,
+      layouts: {
+        default: site.layout,
+        ...(site.minimalLayout ? { minimal: site.minimalLayout } : {}),
+      },
+      // Explicit brain.yaml site-builder overrides win
+      ...siteBuilderExplicit,
+    };
+  }
+
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [];
+
+  // If a site package is present, register its plugin
+  if (site) {
+    const sitePlugin = site.plugin({
+      entityRouteConfig: site.entityRouteConfig,
+    });
+    if (!disableSet.has(sitePlugin.id)) {
+      capabilities.push(sitePlugin);
+    }
+  }
+
   for (const [factory, config] of definition.capabilities) {
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
@@ -196,6 +231,20 @@ function resolveAllPackageRefs(
   }
   return resolved;
 }
+/**
+ * Resolve the site package from brain.yaml override or brain definition default.
+ * brain.yaml `site` (a @-prefixed package ref) takes priority.
+ */
+function resolveSitePackage(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): SitePackage | undefined {
+  if (overrides?.site && hasPackage(overrides.site)) {
+    return getPackage(overrides.site) as SitePackage;
+  }
+  return definition.site;
+}
+
 /**
  * Construct a plugin with targeted override matching.
  *

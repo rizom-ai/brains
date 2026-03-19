@@ -1,6 +1,7 @@
 import type { Plugin } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { DeploymentConfigInput } from "./types";
+import type { SitePackage } from "./site-package";
 
 /**
  * Environment record — the deployment-specific variables
@@ -95,6 +96,12 @@ export interface BrainDefinition {
 
   /** Brain identity — character name, role, purpose, values */
   identity?: BrainIdentity;
+
+  /**
+   * Default site package — bundles theme, layout, routes, and site plugin.
+   * Can be overridden per-instance via `site` in brain.yaml.
+   */
+  site?: SitePackage;
 
   /**
    * Capabilities as [factory, config] tuples.

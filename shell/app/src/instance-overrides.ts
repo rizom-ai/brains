@@ -12,6 +12,9 @@ const instanceOverridesSchema = z.object({
   /** Brain package name (required) */
   brain: z.string().optional(),
 
+  /** Site package — bundles theme, layout, routes, and site plugin */
+  site: z.string().optional(),
+
   /** Override instance name */
   name: z.string().optional(),
 

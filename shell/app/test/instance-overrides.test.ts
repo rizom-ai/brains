@@ -5,6 +5,7 @@ import {
   type PluginConfig,
   type PluginFactory,
 } from "../src/brain-definition";
+import type { SitePackage } from "../src/site-package";
 import { resolve } from "../src/brain-resolver";
 import { registerPackage } from "../src/package-registry";
 import { parseInstanceOverrides } from "../src/instance-overrides";
@@ -800,6 +801,238 @@ describe("resolve with instance overrides", () => {
     expect(getConfig(webserver)).toMatchObject({
       port: 9090,
       title: "My Site",
+    });
+  });
+});
+
+// --- site package resolution ---
+
+function createMockSitePackage(
+  pluginId: string,
+  overrides?: Partial<SitePackage>,
+): SitePackage {
+  return {
+    theme: "body { color: pink; }",
+    layout: (() => null) as unknown as SitePackage["layout"],
+    routes: [{ id: "home", path: "/" }],
+    plugin: (config) => createMockPlugin(pluginId, config ?? {}),
+    entityRouteConfig: { post: { label: "Post" } },
+    ...overrides,
+  };
+}
+
+describe("resolve with site package", () => {
+  test("should use site from brain definition as default", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    // Site plugin should be auto-registered
+    expect(pluginIds).toContain("personal-site");
+    // Site-builder should get theme injected
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe("body { color: pink; }");
+  });
+
+  test("should inject routes and entityRouteConfig into site-builder", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site", {
+      routes: [
+        { id: "home", path: "/" },
+        { id: "about", path: "/about" },
+      ],
+      entityRouteConfig: { post: { label: "Essay" } },
+    });
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    const sbConfig = getConfig(siteBuilder);
+
+    expect(sbConfig["routes"]).toHaveLength(2);
+    expect(sbConfig["entityRouteConfig"]).toEqual({ post: { label: "Essay" } });
+  });
+
+  test("should inject layout into site-builder", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const mockLayout = (() => null) as unknown as SitePackage["layout"];
+    const site = createMockSitePackage("personal-site", { layout: mockLayout });
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    const layouts = getConfig(siteBuilder)["layouts"] as Record<
+      string,
+      unknown
+    >;
+
+    expect(layouts["default"]).toBe(mockLayout);
+  });
+
+  test("should override brain definition site with brain.yaml site", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const defaultSite = createMockSitePackage("professional-site", {
+      theme: "body { color: blue; }",
+    });
+    const overrideSite = createMockSitePackage("personal-site", {
+      theme: "body { color: pink; }",
+    });
+
+    // Register the override package
+    registerPackage("@brains/site-override", overrideSite);
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site: defaultSite,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { site: "@brains/site-override" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    // Override site plugin should be registered, not the default
+    expect(pluginIds).toContain("personal-site");
+    expect(pluginIds).not.toContain("professional-site");
+
+    // Theme should come from override
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe("body { color: pink; }");
+  });
+
+  test("should allow brain.yaml site-builder overrides to win over site defaults", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site", {
+      theme: "body { color: pink; }",
+    });
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        plugins: { "site-builder": { cms: { enabled: true } } },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    const sbConfig = getConfig(siteBuilder);
+
+    // Site defaults should still be present
+    expect(sbConfig["themeCSS"]).toBe("body { color: pink; }");
+    // Explicit overrides should also be present
+    expect(sbConfig["cms"]).toEqual({ enabled: true });
+  });
+
+  test("should not register site plugin when disabled", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { disable: ["personal-site"] });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).not.toContain("personal-site");
+    // Site-builder should still get the theme/routes (it's the builder, not the site)
+    expect(pluginIds).toContain("site-builder");
+  });
+
+  test("should work without any site package", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [[siteBuilderFactory, { themeCSS: "default" }]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+
+    // Should fall through to the base config
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe("default");
+  });
+
+  test("should parse site from brain.yaml", () => {
+    const yaml = `
+brain: "@brains/rover"
+site: "@brains/site-mylittlephoney"
+logLevel: debug
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.site).toBe("@brains/site-mylittlephoney");
+  });
+
+  test("should pass entityRouteConfig to site plugin", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const pluginConfigs: PluginConfig[] = [];
+    const site: SitePackage = {
+      theme: "",
+      layout: (() => null) as unknown as SitePackage["layout"],
+      routes: [],
+      plugin: (config) => {
+        const cfg = config ?? {};
+        pluginConfigs.push(cfg);
+        return createMockPlugin("personal-site", cfg);
+      },
+      entityRouteConfig: { post: { label: "Article" } },
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [[siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(pluginConfigs).toHaveLength(1);
+    const sitePlugin = config.plugins?.find((p) => p.id === "personal-site");
+    expect(sitePlugin).toBeDefined();
+    expect(getConfig(sitePlugin)["entityRouteConfig"]).toEqual({
+      post: { label: "Article" },
     });
   });
 });
