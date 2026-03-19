@@ -16,7 +16,8 @@
 
     /* Accent Colors */
     --palette-accent-magenta: #AE3EC9;       /* Deep Magenta - accent */
-    --palette-accent-sparkle: #FFD43B;       /* Sparkle Gold - accent-dark */
+    --palette-accent-sparkle: #FFD43B;       /* Sparkle Gold - light mode */
+    --palette-accent-sparkle-dark: #FFE066;  /* Sparkle Gold - dark mode (lighter) */
     --palette-accent-honey: #FF922B;         /* Honey Orange - warm accent */
     --palette-lavender: #E599F7;             /* Lavender - pattern dots */
 
@@ -94,8 +95,8 @@
     --color-border-light: var(--palette-border-pink);
 
     /* Footer */
-    --color-footer: var(--palette-brand-hot-pink);
-    --color-footer-text: var(--palette-white);
+    --color-footer: var(--palette-white);
+    --color-footer-text: var(--palette-berry-wine);
 
     /* Status Badge Colors */
     --color-status-neutral-bg: #f3f4f6;
@@ -136,7 +137,7 @@
     --color-brand-dark: var(--palette-brand-hot-pink);
     --color-brand-light: var(--palette-brand-candy);
     --color-accent: var(--palette-lavender);
-    --color-accent-dark: var(--palette-accent-sparkle);
+    --color-accent-dark: var(--palette-accent-sparkle-dark);
 
     --color-pattern-dot: var(--palette-accent-magenta);
 
@@ -197,20 +198,20 @@
     font-weight: 700;
   }
 
-  /* Navigation text - accent in light mode, lavender in dark */
+  /* Navigation text - accent in light mode, sparkle gold in dark */
   .text-nav { color: var(--palette-accent-magenta); }
-  [data-theme="dark"] .text-nav { color: var(--palette-lavender); }
+  [data-theme="dark"] .text-nav { color: var(--palette-accent-sparkle-dark); }
 
-  /* Logo text - brand in light, candy pink in dark */
+  /* Logo text - brand in light, white in dark */
   .text-logo { color: var(--palette-brand-hot-pink); }
-  [data-theme="dark"] .text-logo { color: var(--palette-brand-candy); }
+  [data-theme="dark"] .text-logo { color: var(--palette-white); }
 
   /* Logo color variable */
   :root {
     --color-logo: var(--palette-brand-hot-pink);
   }
   [data-theme="dark"] {
-    --color-logo: var(--palette-brand-candy);
+    --color-logo: var(--palette-white);
   }
 
   /* Header background - white in light, hot pink in dark */
@@ -219,7 +220,7 @@
 
   /* Theme toggle background - hot pink in light, sparkle gold in dark */
   .bg-theme-toggle { background-color: var(--palette-brand-hot-pink); }
-  [data-theme="dark"] .bg-theme-toggle { background-color: var(--palette-accent-sparkle); }
+  [data-theme="dark"] .bg-theme-toggle { background-color: var(--palette-accent-sparkle-dark); }
 
   /* Theme toggle hover */
   .bg-theme-toggle-hover { background-color: var(--palette-brand-orchid); }
@@ -278,7 +279,7 @@
 
   .prose h5,
   .prose h6 {
-    color: var(--color-brand);
+    color: var(--palette-brand-orchid);
     font-family: var(--font-heading);
     font-weight: 600;
     font-size: 1.125rem;
@@ -341,13 +342,19 @@
     color: var(--color-brand-dark);
   }
 
-  [data-theme="dark"] .prose h1,
-  [data-theme="dark"] .prose h2 {
+  [data-theme="dark"] .prose h1 {
     color: var(--palette-text-heading-dark);
   }
 
+  [data-theme="dark"] .prose h2 {
+    color: var(--palette-lavender);
+  }
+
   [data-theme="dark"] .prose h3,
-  [data-theme="dark"] .prose h4,
+  [data-theme="dark"] .prose h4 {
+    color: var(--palette-brand-candy);
+  }
+
   [data-theme="dark"] .prose h5,
   [data-theme="dark"] .prose h6 {
     color: var(--palette-lavender);
@@ -368,6 +375,43 @@
   .cta-bg-pattern {
     background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
     background-size: 40px 40px;
+  }
+
+  /* Sparkle divider — gradient line from hot-pink → orchid → gold */
+  .divider-sparkle {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+      90deg,
+      var(--palette-brand-hot-pink) 0%,
+      var(--palette-brand-orchid) 50%,
+      var(--palette-accent-sparkle) 100%
+    );
+  }
+  [data-theme="dark"] .divider-sparkle {
+    background: linear-gradient(
+      90deg,
+      var(--palette-brand-candy) 0%,
+      var(--palette-lavender) 50%,
+      var(--palette-accent-sparkle-dark) 100%
+    );
+  }
+
+  /* Divider thin — subtle border-color line */
+  .divider-thin {
+    height: 1px;
+    background-color: var(--color-border);
+  }
+
+  /* Hero animated blob gradients */
+  .blob-1 {
+    background: linear-gradient(135deg, var(--palette-brand-hot-pink), var(--palette-brand-orchid));
+  }
+  .blob-2 {
+    background: linear-gradient(135deg, var(--palette-lavender), var(--palette-cotton-candy));
+  }
+  .blob-3 {
+    background: linear-gradient(135deg, var(--palette-accent-sparkle), var(--palette-accent-honey));
   }
 }
 
