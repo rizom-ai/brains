@@ -1,9 +1,13 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
+import { fetchAnchorProfile } from "@brains/plugins";
+import { AnchorProfileAdapter } from "@brains/identity-service";
 import type { z } from "@brains/utils";
-import { PersonalProfileParser, type PersonalProfile } from "../schemas";
+import { markdownToHtml } from "@brains/utils";
+import { personalProfileSchema, type PersonalProfile } from "../schemas";
 
 interface AboutDataSourceOutput {
   profile: PersonalProfile;
+  storyHtml: string | undefined;
 }
 
 /**
@@ -14,25 +18,23 @@ export class AboutDataSource implements DataSource {
   public readonly name = "About Page DataSource";
   public readonly description = "Fetches full profile data for the about page";
 
+  private readonly adapter = new AnchorProfileAdapter();
+
   async fetch<T>(
     _query: unknown,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    const entityService = context.entityService;
+    const content = await fetchAnchorProfile(context.entityService);
+    const profile = this.adapter.parseProfileBody(
+      content,
+      personalProfileSchema,
+    );
 
-    const profileEntities = await entityService.listEntities("anchor-profile", {
-      limit: 1,
-    });
-    const profileEntity = profileEntities[0];
-    if (!profileEntity) {
-      throw new Error("Profile not found");
-    }
-
-    const profileParser = new PersonalProfileParser();
-    const profile: PersonalProfile = profileParser.parse(profileEntity.content);
-
-    const data: AboutDataSourceOutput = { profile };
+    const data: AboutDataSourceOutput = {
+      profile,
+      storyHtml: profile.story ? markdownToHtml(profile.story) : undefined,
+    };
     return outputSchema.parse(data);
   }
 }

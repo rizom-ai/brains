@@ -4,7 +4,7 @@ export const routes = [
     path: "/",
     title: "Home",
     description: "Personal site homepage",
-    layout: "personal",
+    layout: "default",
     navigation: {
       show: true,
       label: "Home",
@@ -24,7 +24,7 @@ export const routes = [
     path: "/about",
     title: "About",
     description: "About page",
-    layout: "personal",
+    layout: "default",
     navigation: {
       show: true,
       label: "About",

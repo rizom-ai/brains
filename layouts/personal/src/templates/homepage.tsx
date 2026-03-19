@@ -2,8 +2,12 @@ import type { JSX } from "preact";
 import type { PersonalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
-import { ContentSection, type ContentItem, Head } from "@brains/ui-library";
-import { CTASection } from "../components/CTASection";
+import {
+  ContentSection,
+  CTASection,
+  type ContentItem,
+  Head,
+} from "@brains/ui-library";
 
 export interface HomepageData {
   profile: PersonalProfile;
@@ -69,11 +73,7 @@ export const HomepageLayout = ({
       )}
 
       {/* CTA */}
-      <CTASection
-        heading={cta.heading}
-        buttonText={cta.buttonText}
-        buttonLink={cta.buttonLink}
-      />
+      <CTASection cta={cta} />
     </>
   );
 };

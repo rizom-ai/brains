@@ -3,7 +3,12 @@ import { LinkButton } from "./LinkButton";
 import type { SocialLink } from "./SocialLinks";
 
 export interface CTASectionProps {
-  cta: { heading: string; buttonText: string; buttonLink: string };
+  cta: {
+    heading: string;
+    subtitle?: string | undefined;
+    buttonText: string;
+    buttonLink: string;
+  };
   variant?: "centered" | "editorial";
   socialLinks?: SocialLink[] | undefined;
 }
@@ -56,9 +61,14 @@ export function CTASection({
   return (
     <section className="cta-bg-pattern bg-brand py-16 md:py-24 px-6 md:px-12">
       <div className="max-w-4xl mx-auto text-center">
-        <h2 className="text-2xl md:text-3xl font-bold text-inverse mb-6 font-heading">
+        <h2 className="text-2xl md:text-3xl font-bold text-inverse mb-4 font-heading">
           {cta.heading}
         </h2>
+        {cta.subtitle && (
+          <p className="text-base md:text-lg text-inverse opacity-80 mb-6 max-w-md mx-auto">
+            {cta.subtitle}
+          </p>
+        )}
         <LinkButton href={cta.buttonLink} variant="outline-light" size="lg">
           {cta.buttonText}
         </LinkButton>

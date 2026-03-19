@@ -1,13 +1,18 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  fetchAnchorProfile,
+} from "@brains/plugins";
+import { AnchorProfileAdapter } from "@brains/identity-service";
+import { fetchSiteInfo } from "@brains/site-builder-plugin";
 import { sortByPublicationDate, type z } from "@brains/utils";
-import { PersonalProfileParser, type PersonalProfile } from "../schemas";
+import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
   type BlogPost,
   type BlogPostWithData,
   blogPostFrontmatterSchema,
 } from "@brains/blog";
-import { SiteInfoAdapter, type SiteInfoCTA } from "@brains/site-builder-plugin";
+import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 
 interface HomepageDataSourceOutput {
   profile: PersonalProfile;
@@ -26,6 +31,8 @@ export class HomepageDataSource implements DataSource {
   public readonly description =
     "Fetches profile and blog posts for a personal homepage";
 
+  private readonly adapter = new AnchorProfileAdapter();
+
   constructor(private readonly postsListUrl: string) {}
 
   async fetch<T>(
@@ -35,51 +42,29 @@ export class HomepageDataSource implements DataSource {
   ): Promise<T> {
     const entityService = context.entityService;
 
-    // Fetch profile
-    const profileEntities = await entityService.listEntities("anchor-profile", {
-      limit: 1,
-    });
-    const profileEntity = profileEntities[0];
-    if (!profileEntity) {
-      throw new Error("Profile not found");
-    }
+    const [profileContent, publishedPosts, siteInfo] = await Promise.all([
+      fetchAnchorProfile(entityService),
+      entityService.listEntities<BlogPost>("post", {
+        limit: 20,
+        filter: { metadata: { status: "published" } },
+      }),
+      fetchSiteInfo(entityService),
+    ]);
 
-    const profileParser = new PersonalProfileParser();
-    const profile: PersonalProfile = profileParser.parse(profileEntity.content);
+    const profile = this.adapter.parseProfileBody(
+      profileContent,
+      personalProfileSchema,
+    );
 
-    // Fetch recent published posts
-    const publishedPosts = await entityService.listEntities<BlogPost>("post", {
-      limit: 20,
-      filter: {
-        metadata: {
-          status: "published",
-        },
-      },
-    });
+    const posts: BlogPostWithData[] = publishedPosts
+      .sort(sortByPublicationDate)
+      .slice(0, 6)
+      .map((post) => {
+        const { metadata: frontmatter, content: body } =
+          parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
+        return { ...post, frontmatter, body };
+      });
 
-    const sortedPosts = publishedPosts.sort(sortByPublicationDate).slice(0, 6);
-
-    const posts: BlogPostWithData[] = sortedPosts.map((post) => {
-      const { metadata: frontmatter, content: body } =
-        parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
-      return {
-        ...post,
-        frontmatter,
-        body,
-      };
-    });
-
-    // Fetch site-info for CTA
-    const siteInfoEntities = await entityService.listEntities("site-info", {
-      limit: 1,
-    });
-    const siteInfoEntity = siteInfoEntities[0];
-    if (!siteInfoEntity) {
-      throw new Error("Site info not found");
-    }
-
-    const siteInfoAdapter = new SiteInfoAdapter();
-    const siteInfo = siteInfoAdapter.parseSiteInfoBody(siteInfoEntity.content);
     if (!siteInfo.cta) {
       throw new Error("CTA not configured in site-info");
     }
