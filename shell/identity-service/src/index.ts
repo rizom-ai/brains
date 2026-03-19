@@ -12,6 +12,9 @@ export {
   type BrainCharacterEntity,
 } from "./brain-character-schema";
 
+// Profile helpers (shared across layout packages)
+export { baseProfileExtension, fetchAnchorProfile } from "./profile-helpers";
+
 // Anchor profile (was: profile)
 export {
   AnchorProfileService,

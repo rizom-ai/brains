@@ -210,6 +210,8 @@ export {
   AnchorProfileService,
   anchorProfileBodySchema,
   brainCharacterBodySchema,
+  baseProfileExtension,
+  fetchAnchorProfile,
 } from "@brains/identity-service";
 
 // ============================================================================

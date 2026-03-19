@@ -19,6 +19,7 @@ export { SiteInfoSchema } from "./types/site-info";
 export { SiteInfoAdapter } from "./services/site-info-adapter";
 export type { SiteInfoBody, SiteInfoCTA } from "./services/site-info-schema";
 export { siteInfoCTASchema } from "./services/site-info-schema";
+export { fetchSiteInfo } from "./services/site-info-helpers";
 
 // Export event payload types for plugins that subscribe to build events
 export type { SiteBuildCompletedPayload } from "./types/job-types";
