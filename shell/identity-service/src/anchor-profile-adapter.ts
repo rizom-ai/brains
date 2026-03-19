@@ -1,4 +1,7 @@
-import { BaseEntityAdapter } from "@brains/entity-service";
+import {
+  BaseEntityAdapter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
 import type { z } from "@brains/utils";
 import {
   anchorProfileSchema,
@@ -48,8 +51,10 @@ export class AnchorProfileAdapter extends BaseEntityAdapter<AnchorProfileEntity>
     schema?: z.ZodSchema<T>,
   ): AnchorProfile | T {
     if (schema) {
-      const parsed = this.parseFrontMatter(content, schema);
-      const body = this.extractBody(content);
+      const { metadata: parsed, content: body } = parseMarkdownWithFrontmatter(
+        content,
+        schema,
+      );
       return body ? { ...parsed, story: body } : parsed;
     }
     return this.parseFrontmatter(content) as AnchorProfile;

@@ -2,6 +2,8 @@ import type { ICoreEntityService } from "@brains/plugins";
 import { SiteInfoAdapter } from "./site-info-adapter";
 import type { SiteInfoBody } from "./site-info-schema";
 
+const adapter = new SiteInfoAdapter();
+
 /**
  * Fetch and parse the site-info entity.
  * Returns the full SiteInfoBody (title, description, cta, themeMode, etc.).
@@ -16,5 +18,5 @@ export async function fetchSiteInfo(
   if (!entity) {
     throw new Error("Site info not found — create a site-info entity");
   }
-  return new SiteInfoAdapter().parseSiteInfoBody(entity.content);
+  return adapter.parseSiteInfoBody(entity.content);
 }
