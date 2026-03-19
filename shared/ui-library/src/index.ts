@@ -33,6 +33,10 @@ export type { PresentationLayoutProps } from "./PresentationLayout";
 export { SocialLinks } from "./SocialLinks";
 export type { SocialLinksProps, SocialLink } from "./SocialLinks";
 
+// CTA
+export { CTASection } from "./CTASection";
+export type { CTASectionProps } from "./CTASection";
+
 // Footer
 export { FooterContent } from "./FooterContent";
 export type { FooterContentProps } from "./FooterContent";
