@@ -49,7 +49,7 @@ export function CTASection({
                   rel="noopener noreferrer"
                   className="text-theme-muted hover:text-brand transition-colors"
                 >
-                  {link.label || link.platform}
+                  {link.label ?? link.platform}
                 </a>
               ))}
           </div>

@@ -898,8 +898,8 @@ describe("resolve with site package", () => {
 
   test("should inject layouts into site-builder", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const mockDefault = () => null;
-    const mockMinimal = () => null;
+    const mockDefault = (): null => null;
+    const mockMinimal = (): null => null;
     const site = createMockSitePackage("personal-site", {
       layouts: { default: mockDefault, minimal: mockMinimal },
     });

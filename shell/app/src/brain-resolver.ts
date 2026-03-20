@@ -160,8 +160,8 @@ function buildPermissions(
 ): { permissions: Record<string, unknown> } | Record<string, never> {
   const yamlPerms = overrides?.permissions;
   const hasYamlPerms =
-    yamlPerms?.anchors || yamlPerms?.trusted || yamlPerms?.rules;
-  const hasTopLevel = overrides?.anchors || overrides?.trusted;
+    yamlPerms?.anchors ?? yamlPerms?.trusted ?? yamlPerms?.rules;
+  const hasTopLevel = overrides?.anchors ?? overrides?.trusted;
   const hasDefPerms = !!definitionPerms;
 
   if (!hasYamlPerms && !hasTopLevel && !hasDefPerms) return {};

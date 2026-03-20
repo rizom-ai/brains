@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import type { z } from "@brains/utils";
 import { anchorProfileBodySchema, baseProfileExtension } from "@brains/plugins";
 
 /**

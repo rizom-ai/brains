@@ -74,18 +74,17 @@ export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
  * Returns undefined if an env var is not set.
  */
 function interpolateEnvVar(value: string): string | undefined {
-  let hasUnresolved = false;
+  const matches = value.match(ENV_VAR_PATTERN);
+  if (!matches) return value;
 
-  const result = value.replace(ENV_VAR_PATTERN, (_, varName: string) => {
+  let result = value;
+  for (const match of matches) {
+    const varName = match.slice(2, -1); // strip ${ and }
     const envValue = process.env[varName];
-    if (envValue === undefined) {
-      hasUnresolved = true;
-      return "";
-    }
-    return envValue;
-  });
-
-  return hasUnresolved ? undefined : result;
+    if (envValue === undefined) return undefined;
+    result = result.replace(match, envValue);
+  }
+  return result;
 }
 
 /**

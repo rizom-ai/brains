@@ -2,12 +2,12 @@ import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import type { z } from "@brains/utils";
-
-const adapter = new AnchorProfileAdapter();
 import {
   professionalProfileSchema,
   type ProfessionalProfile,
 } from "../schemas";
+
+const adapter = new AnchorProfileAdapter();
 
 /**
  * About page data returned by datasource
