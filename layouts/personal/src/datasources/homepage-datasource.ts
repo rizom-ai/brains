@@ -1,20 +1,17 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  fetchAnchorProfile,
-} from "@brains/plugins";
+import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import { fetchSiteInfo } from "@brains/site-builder-plugin";
 import { sortByPublicationDate, type z } from "@brains/utils";
-
-const adapter = new AnchorProfileAdapter();
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
   type BlogPost,
+  parsePostData,
   type BlogPostWithData,
-  blogPostFrontmatterSchema,
 } from "@brains/blog";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
+
+const adapter = new AnchorProfileAdapter();
 
 interface HomepageDataSourceOutput {
   profile: PersonalProfile;
@@ -46,7 +43,6 @@ export class HomepageDataSource implements DataSource {
       fetchAnchorProfile(entityService),
       entityService.listEntities<BlogPost>("post", {
         limit: 20,
-        filter: { metadata: { status: "published" } },
       }),
       fetchSiteInfo(entityService),
     ]);
@@ -56,14 +52,10 @@ export class HomepageDataSource implements DataSource {
       personalProfileSchema,
     );
 
-    const posts: BlogPostWithData[] = publishedPosts
+    const posts = publishedPosts
       .sort(sortByPublicationDate)
       .slice(0, 6)
-      .map((post) => {
-        const { metadata: frontmatter, content: body } =
-          parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
-        return { ...post, frontmatter, body };
-      });
+      .map(parsePostData);
 
     if (!siteInfo.cta) {
       throw new Error("CTA not configured in site-info");

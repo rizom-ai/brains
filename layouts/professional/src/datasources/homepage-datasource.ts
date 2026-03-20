@@ -1,28 +1,25 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
-import {
-  parseMarkdownWithFrontmatter,
-  fetchAnchorProfile,
-} from "@brains/plugins";
+import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import { fetchSiteInfo } from "@brains/site-builder-plugin";
 import { sortByPublicationDate, type z } from "@brains/utils";
-
-const adapter = new AnchorProfileAdapter();
 import {
   professionalProfileSchema,
   type ProfessionalProfile,
 } from "../schemas";
 import {
   type BlogPost,
+  parsePostData,
   type BlogPostWithData,
-  blogPostFrontmatterSchema,
 } from "@brains/blog";
 import {
-  deckFrontmatterSchema,
   type DeckEntity,
+  parseDeckData,
   type DeckWithData,
 } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
+
+const adapter = new AnchorProfileAdapter();
 
 /**
  * Homepage data returned by datasource (non-enriched)
@@ -68,11 +65,9 @@ export class HomepageListDataSource implements DataSource {
         fetchAnchorProfile(entityService),
         entityService.listEntities<BlogPost>("post", {
           limit: 20,
-          filter: { metadata: { status: "published" } },
         }),
         entityService.listEntities<DeckEntity>("deck", {
           limit: 20,
-          filter: { metadata: { status: "published" } },
         }),
         fetchSiteInfo(entityService),
       ]);
@@ -82,24 +77,15 @@ export class HomepageListDataSource implements DataSource {
       professionalProfileSchema,
     );
 
-    // Sort by publishedAt (or created as fallback) and take the 3 most recent
-    const posts: BlogPostWithData[] = publishedPosts
+    const posts = publishedPosts
       .sort(sortByPublicationDate)
       .slice(0, 3)
-      .map((post) => {
-        const { metadata: frontmatter, content: body } =
-          parseMarkdownWithFrontmatter(post.content, blogPostFrontmatterSchema);
-        return { ...post, frontmatter, body };
-      });
+      .map(parsePostData);
 
-    const decks: DeckWithData[] = publishedDecks
+    const decks = publishedDecks
       .sort(sortByPublicationDate)
       .slice(0, 3)
-      .map((deck) => {
-        const { metadata: frontmatter, content: body } =
-          parseMarkdownWithFrontmatter(deck.content, deckFrontmatterSchema);
-        return { ...deck, frontmatter, body };
-      });
+      .map(parseDeckData);
 
     if (!siteInfo.cta) {
       throw new Error("CTA not configured in site-info");

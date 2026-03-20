@@ -1,7 +1,4 @@
-import {
-  BaseEntityDataSource,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import { BaseEntityDataSource } from "@brains/plugins";
 import type {
   BaseQuery,
   IEntityService,
@@ -10,8 +7,8 @@ import type {
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { resolveEntityCoverImage } from "@brains/image";
-import { deckFrontmatterSchema } from "../schemas/deck";
 import type { DeckEntity, DeckWithData } from "../schemas/deck";
+import { parseDeckData } from "./parse-helpers";
 
 interface DeckDetailData {
   markdown: string;
@@ -47,9 +44,7 @@ export class DeckDataSource extends BaseEntityDataSource<
   }
 
   protected transformEntity(entity: DeckEntity): DeckWithData {
-    const { metadata: frontmatter, content: body } =
-      parseMarkdownWithFrontmatter(entity.content, deckFrontmatterSchema);
-    return { ...entity, frontmatter, body };
+    return parseDeckData(entity);
   }
 
   protected override async fetchDetail(

@@ -147,10 +147,11 @@ cta:
     expect(result.cta.buttonText).toBe("Get in Touch");
   });
 
-  it("should filter published posts only", async () => {
+  it("should return all posts without filtering by status", async () => {
     const draftPost: BlogPost = {
       ...mockPost,
       id: "post-2",
+      content: mockPost.content,
       metadata: {
         ...mockPost.metadata,
         status: "draft",
@@ -167,26 +168,11 @@ cta:
     spyOn(mockEntityService, "listEntities").mockImplementation(
       function mockList<T extends BaseEntity>(
         entityType: string,
-        options?: { filter?: { metadata?: Record<string, unknown> } },
       ): Promise<T[]> {
-        const entities = store[entityType] ?? [];
-        if (
-          entityType === "post" &&
-          options?.filter?.metadata?.["status"] === "published"
-        ) {
-          return Promise.resolve(
-            entities.filter(
-              (e) =>
-                (e.metadata as Record<string, unknown>)["status"] ===
-                "published",
-            ),
-          ) as Promise<T[]>;
-        }
-        return Promise.resolve(entities) as Promise<T[]>;
+        return Promise.resolve((store[entityType] ?? []) as T[]);
       },
     );
 
-    // Recreate context with new mock
     mockContext = { entityService: mockEntityService };
     datasource = new HomepageListDataSource("/essays", "/presentations");
 
@@ -198,9 +184,8 @@ cta:
 
     const result = await datasource.fetch({}, schema, mockContext);
 
-    // Should only include published post
-    expect(result.posts).toHaveLength(1);
-    expect(result.posts[0]?.metadata.status).toBe("published");
+    // Should include both posts (no status filter)
+    expect(result.posts).toHaveLength(2);
   });
 
   it("should throw error if profile not found", async () => {
