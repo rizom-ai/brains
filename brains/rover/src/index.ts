@@ -26,44 +26,8 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { createNewsletterPlugin } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
-import {
-  professionalSitePlugin,
-  ProfessionalLayout,
-  routes,
-} from "@brains/layout-professional";
-import yeehaaTheme from "@brains/theme-brutalist";
+import yeehaa from "@brains/site-yeehaa";
 import { join } from "path";
-
-const entityRouteConfig = {
-  post: { label: "Essay" },
-  deck: { label: "Presentation" },
-  project: { label: "Project" },
-  series: {
-    label: "Series",
-    navigation: { slot: "secondary" },
-  },
-  topic: {
-    label: "Topic",
-    navigation: { slot: "secondary" },
-  },
-  link: {
-    label: "Link",
-    navigation: { slot: "secondary" },
-  },
-  base: {
-    label: "Note",
-    navigation: { show: false },
-  },
-  "social-post": {
-    label: "Social Post",
-    pluralName: "social-posts",
-    navigation: { slot: "secondary" },
-  },
-  newsletter: {
-    label: "Newsletter",
-    navigation: { slot: "secondary" },
-  },
-} as const;
 
 /**
  * Rover Brain Model
@@ -82,6 +46,7 @@ const entityRouteConfig = {
 export default defineBrain({
   name: "rover",
   version: "1.0.0",
+  site: yeehaa,
 
   capabilities: [
     ["system", systemPlugin, {}],
@@ -168,17 +133,10 @@ export default defineBrain({
         },
       }),
     ],
-    ["professional-site", professionalSitePlugin, { entityRouteConfig }],
     [
       "site-builder",
       siteBuilderPlugin,
       {
-        routes,
-        entityRouteConfig,
-        layouts: {
-          default: ProfessionalLayout,
-        },
-        themeCSS: yeehaaTheme,
         cms: {},
       },
     ],
