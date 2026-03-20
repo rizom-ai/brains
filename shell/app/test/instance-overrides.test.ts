@@ -388,9 +388,9 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [
-        [systemFactory, {}],
-        [gitSyncFactory, {}],
-        [topicsFactory, {}],
+        ["system", systemFactory, {}],
+        ["git-sync", gitSyncFactory, {}],
+        ["topics", topicsFactory, {}],
       ],
       interfaces: [],
     });
@@ -409,12 +409,21 @@ describe("resolve with instance overrides", () => {
       version: "1.0.0",
       capabilities: [],
       interfaces: [
-        [MockMCP as InterfaceConstructor, (): PluginConfig => ({ port: 3333 })],
         [
+          "mcp",
+          MockMCP as InterfaceConstructor,
+          (): PluginConfig => ({ port: 3333 }),
+        ],
+        [
+          "matrix",
           MockMatrix as InterfaceConstructor,
           (): PluginConfig => ({ homeserver: "https://matrix.org" }),
         ],
-        [MockWebserver as InterfaceConstructor, (): PluginConfig => ({})],
+        [
+          "webserver",
+          MockWebserver as InterfaceConstructor,
+          (): PluginConfig => ({}),
+        ],
       ],
     });
 
@@ -432,9 +441,13 @@ describe("resolve with instance overrides", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[gitSyncFactory, {}]],
+      capabilities: [["git-sync", gitSyncFactory, {}]],
       interfaces: [
-        [MockMatrix as InterfaceConstructor, (): PluginConfig => ({})],
+        [
+          "matrix",
+          MockMatrix as InterfaceConstructor,
+          (): PluginConfig => ({}),
+        ],
       ],
     });
 
@@ -453,7 +466,11 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [
-        [factory, { repo: "user/repo", autoSync: true, autoPush: true }],
+        [
+          "git-sync",
+          factory,
+          { repo: "user/repo", autoSync: true, autoPush: true },
+        ],
       ],
       interfaces: [],
     });
@@ -482,6 +499,7 @@ describe("resolve with instance overrides", () => {
       capabilities: [],
       interfaces: [
         [
+          "webserver",
           MockWebserver as InterfaceConstructor,
           (): PluginConfig => ({ productionPort: 8080 }),
         ],
@@ -509,7 +527,11 @@ describe("resolve with instance overrides", () => {
       version: "1.0.0",
       capabilities: [],
       interfaces: [
-        [MockWebserver as InterfaceConstructor, (): PluginConfig => ({})],
+        [
+          "webserver",
+          MockWebserver as InterfaceConstructor,
+          (): PluginConfig => ({}),
+        ],
       ],
     });
 
@@ -537,8 +559,8 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [
-        [systemFactory, { systemKey: "original" }],
-        [gitSyncFactory, { autoSync: true }],
+        ["system", systemFactory, { systemKey: "original" }],
+        ["git-sync", gitSyncFactory, { autoSync: true }],
       ],
       interfaces: [],
     });
@@ -570,14 +592,14 @@ describe("resolve with instance overrides", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[factory, {}]],
+      capabilities: [["system", factory, {}]],
       interfaces: [],
     });
 
     // Plugin overrides only for git-sync, not system
     resolve(def, {}, { plugins: { "git-sync": { autoSync: false } } });
 
-    // system factory should only be called once
+    // system factory should only be called once (no override for it)
     expect(callCount).toBe(1);
   });
 
@@ -593,11 +615,15 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [
-        [systemFactory, {}],
-        [gitSyncFactory, { autoSync: true }],
+        ["system", systemFactory, {}],
+        ["git-sync", gitSyncFactory, { autoSync: true }],
       ],
       interfaces: [
-        [MockMatrix as InterfaceConstructor, (): PluginConfig => ({})],
+        [
+          "matrix",
+          MockMatrix as InterfaceConstructor,
+          (): PluginConfig => ({}),
+        ],
       ],
     });
 
@@ -625,7 +651,7 @@ describe("resolve with instance overrides", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[gitSyncFactory, {}]],
+      capabilities: [["git-sync", gitSyncFactory, {}]],
       interfaces: [],
     });
 
@@ -639,8 +665,8 @@ describe("resolve with instance overrides", () => {
     );
 
     expect(config.plugins).toHaveLength(0);
-    // Factory called once, then skipped because it's disabled
-    expect(configs).toHaveLength(1);
+    // Factory never called — disabled plugins are skipped before construction
+    expect(configs).toHaveLength(0);
   });
 
   test("yaml overrides should take precedence over env for logLevel", () => {
@@ -750,7 +776,7 @@ describe("resolve with instance overrides", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[factory, { outputDir: "./dist" }]],
+      capabilities: [["site-builder", factory, { outputDir: "./dist" }]],
       interfaces: [],
     });
 
@@ -783,7 +809,7 @@ describe("resolve with instance overrides", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[factory, {}]],
+      capabilities: [["webserver", factory, {}]],
       interfaces: [],
     });
 
@@ -814,7 +840,7 @@ function createMockSitePackage(
   return {
     theme: "body { color: pink; }",
     layout: (() => null) as unknown as SitePackage["layout"],
-    routes: [{ id: "home", path: "/" }],
+    routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
     entityRouteConfig: { post: { label: "Post" } },
     ...overrides,
@@ -830,7 +856,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 
@@ -848,8 +874,8 @@ describe("resolve with site package", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("personal-site", {
       routes: [
-        { id: "home", path: "/" },
-        { id: "about", path: "/about" },
+        { id: "home", path: "/", title: "Home" },
+        { id: "about", path: "/about", title: "About" },
       ],
       entityRouteConfig: { post: { label: "Essay" } },
     });
@@ -858,7 +884,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 
@@ -879,7 +905,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 
@@ -909,7 +935,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site: defaultSite,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 
@@ -935,7 +961,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 
@@ -964,7 +990,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 
@@ -982,7 +1008,9 @@ describe("resolve with site package", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[siteBuilderFactory, { themeCSS: "default" }]],
+      capabilities: [
+        ["site-builder", siteBuilderFactory, { themeCSS: "default" }],
+      ],
       interfaces: [],
     });
 
@@ -1022,7 +1050,7 @@ logLevel: debug
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [[siteBuilderFactory, {}]],
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
 

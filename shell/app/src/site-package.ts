@@ -1,19 +1,6 @@
-import type { Plugin } from "@brains/plugins";
+import type { Plugin, RouteDefinitionInput } from "@brains/plugins";
 import type { ComponentType } from "preact";
-
-/**
- * Entity route entry for site packages.
- * Controls URL patterns and display labels.
- */
-export interface SiteEntityRouteEntry {
-  label: string;
-  pluralName?: string;
-  navigation?: {
-    show?: boolean;
-    slot?: "primary" | "secondary";
-    priority?: number;
-  };
-}
+import type { EntityRouteEntry } from "./brain-definition";
 
 /**
  * A site package bundles everything the site-builder needs:
@@ -56,11 +43,11 @@ export interface SitePackage {
   minimalLayout?: ComponentType<Record<string, unknown>>;
 
   /** Route definitions for the site */
-  routes: Record<string, unknown>[];
+  routes: RouteDefinitionInput[];
 
   /** Site plugin factory (registers templates, datasources, schema extensions) */
   plugin: (config?: Record<string, unknown>) => Plugin;
 
   /** Entity route config — controls what things are called and their URL patterns */
-  entityRouteConfig: Record<string, SiteEntityRouteEntry>;
+  entityRouteConfig: Record<string, EntityRouteEntry>;
 }

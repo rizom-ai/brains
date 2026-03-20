@@ -65,32 +65,27 @@ export function resolve(
     }
   }
 
-  for (const [factory, config] of definition.capabilities) {
+  for (const [id, factory, config] of definition.capabilities) {
+    if (disableSet.has(id)) continue;
+
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
-
-    const plugin = resolvePlugin(
-      (cfg) => factory(cfg),
-      baseConfig,
-      pluginOverrides,
-      disableSet,
-    );
-    if (plugin) capabilities.push(plugin);
+    const override = pluginOverrides[id];
+    const merged = override ? { ...baseConfig, ...override } : baseConfig;
+    capabilities.push(factory(merged));
   }
 
-  // Instantiate interfaces — same targeted-override approach.
+  // Instantiate interfaces
   const interfaces: Plugin[] = [];
-  for (const [ctor, envMapper] of definition.interfaces) {
+  for (const [id, ctor, envMapper] of definition.interfaces) {
+    if (disableSet.has(id)) continue;
+
     const baseConfig = envMapper(env);
     if (!baseConfig) continue;
 
-    const plugin = resolvePlugin(
-      (cfg) => new ctor(cfg),
-      baseConfig,
-      pluginOverrides,
-      disableSet,
-    );
-    if (plugin) interfaces.push(plugin);
+    const override = pluginOverrides[id];
+    const merged = override ? { ...baseConfig, ...override } : baseConfig;
+    interfaces.push(new ctor(merged));
   }
 
   // Map identity to the format AppConfig expects
@@ -255,19 +250,3 @@ function resolveSitePackage(
  * Only the override keyed by the plugin's own ID is applied,
  * so overrides for other plugins never leak in.
  */
-function resolvePlugin(
-  construct: (config: Record<string, unknown>) => Plugin,
-  baseConfig: Record<string, unknown>,
-  pluginOverrides: Record<string, Record<string, unknown>>,
-  disableSet: Set<string>,
-): Plugin | null {
-  const plugin = construct(baseConfig);
-  if (disableSet.has(plugin.id)) return null;
-
-  const override = pluginOverrides[plugin.id];
-  if (override) {
-    return construct({ ...baseConfig, ...override });
-  }
-
-  return plugin;
-}

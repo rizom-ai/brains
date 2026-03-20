@@ -79,11 +79,12 @@ export default defineBrain({
   version: "1.0.0",
 
   capabilities: [
-    [systemPlugin, {}],
-    [dashboardPlugin, undefined],
-    [notePlugin, {}],
-    [linkPlugin, {}],
+    ["system", systemPlugin, {}],
+    ["dashboard", dashboardPlugin, undefined],
+    ["note", notePlugin, {}],
+    ["link", linkPlugin, {}],
     [
+      "social-media",
       socialMediaPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         linkedin: {
@@ -92,9 +93,10 @@ export default defineBrain({
         },
       }),
     ],
-    [productsPlugin, undefined],
-    [wishlistPlugin, {}],
+    ["products", productsPlugin, undefined],
+    ["wishlist", wishlistPlugin, {}],
     [
+      "directory-sync",
       directorySync,
       {
         seedContent: true,
@@ -103,6 +105,7 @@ export default defineBrain({
       },
     ],
     [
+      "git-sync",
       gitSyncPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         authToken: env["GIT_SYNC_TOKEN"],
@@ -111,6 +114,7 @@ export default defineBrain({
       }),
     ],
     [
+      "analytics",
       analyticsPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         cloudflare: {
@@ -121,6 +125,7 @@ export default defineBrain({
       }),
     ],
     [
+      "site-builder",
       siteBuilderPlugin,
       {
         routes,
@@ -154,12 +159,14 @@ export default defineBrain({
 
   interfaces: [
     [
+      "mcp",
       MCPInterface,
       (env: BrainEnvironment): PluginConfig => ({
         authToken: env["MCP_AUTH_TOKEN"],
       }),
     ],
     [
+      "matrix",
       MatrixInterface,
       (env: BrainEnvironment): PluginConfig | null =>
         env["MATRIX_ACCESS_TOKEN"]
@@ -167,13 +174,14 @@ export default defineBrain({
           : null,
     ],
     [
+      "discord",
       DiscordInterface,
       (env: BrainEnvironment): PluginConfig | null =>
         env["DISCORD_BOT_TOKEN"]
           ? { botToken: env["DISCORD_BOT_TOKEN"], captureUrls: true }
           : null,
     ],
-    [WebserverInterface, (): PluginConfig => ({})],
+    ["webserver", WebserverInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

@@ -30,6 +30,7 @@ export type CapabilityConfig =
 export type PluginFactory = (config: PluginConfig) => Plugin;
 
 export type CapabilityEntry = [
+  id: string,
   factory: PluginFactory,
   config: CapabilityConfig,
 ];
@@ -42,6 +43,7 @@ export type CapabilityEntry = [
 export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
 
 export type InterfaceEntry = [
+  id: string,
   constructor: InterfaceConstructor,
   envMapper: (env: BrainEnvironment) => PluginConfig | null,
 ];

@@ -27,4 +27,4 @@ export type {
   InterfaceEntry,
   EntityRouteEntry,
 } from "./brain-definition";
-export type { SitePackage, SiteEntityRouteEntry } from "./site-package";
+export type { SitePackage } from "./site-package";

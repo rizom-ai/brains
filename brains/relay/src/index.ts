@@ -43,12 +43,13 @@ export default defineBrain({
   version: "1.0.0",
 
   capabilities: [
-    [systemPlugin, {}],
-    [topicsPlugin, {}],
-    [summaryPlugin, {}],
-    [linkPlugin, {}],
-    [decksPlugin, undefined],
+    ["system", systemPlugin, {}],
+    ["topics", topicsPlugin, {}],
+    ["summary", summaryPlugin, {}],
+    ["link", linkPlugin, {}],
+    ["decks", decksPlugin, undefined],
     [
+      "directory-sync",
       directorySync,
       {
         seedContent: true,
@@ -57,6 +58,7 @@ export default defineBrain({
       },
     ],
     [
+      "git-sync",
       gitSyncPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         authToken: env["GIT_SYNC_TOKEN"],
@@ -64,8 +66,9 @@ export default defineBrain({
         autoPush: true,
       }),
     ],
-    [siteContentPlugin, undefined],
+    ["site-content", siteContentPlugin, undefined],
     [
+      "site-builder",
       siteBuilderPlugin,
       {
         templates,
@@ -82,19 +85,21 @@ export default defineBrain({
 
   interfaces: [
     [
+      "mcp",
       MCPInterface,
       (env: BrainEnvironment): PluginConfig => ({
         authToken: env["MCP_AUTH_TOKEN"],
       }),
     ],
     [
+      "matrix",
       MatrixInterface,
       (env: BrainEnvironment): PluginConfig | null =>
         env["MATRIX_ACCESS_TOKEN"]
           ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
           : null,
     ],
-    [WebserverInterface, (): PluginConfig => ({})],
+    ["webserver", WebserverInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

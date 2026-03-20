@@ -85,16 +85,21 @@ export default defineBrain({
   version: "1.0.0",
 
   capabilities: [
-    [systemPlugin, {}],
-    [imagePlugin, undefined],
-    [dashboardPlugin, undefined],
-    [blogPlugin, {}],
-    [decksPlugin, undefined],
-    [notePlugin, {}],
-    [linkPlugin, {}],
-    [portfolioPlugin, {}],
-    [topicsPlugin, { includeEntityTypes: ["post", "deck", "project", "link"] }],
+    ["system", systemPlugin, {}],
+    ["image", imagePlugin, undefined],
+    ["dashboard", dashboardPlugin, undefined],
+    ["blog", blogPlugin, {}],
+    ["decks", decksPlugin, undefined],
+    ["note", notePlugin, {}],
+    ["link", linkPlugin, {}],
+    ["portfolio", portfolioPlugin, {}],
     [
+      "topics",
+      topicsPlugin,
+      { includeEntityTypes: ["post", "deck", "project", "link"] },
+    ],
+    [
+      "content-pipeline",
       contentPipelinePlugin,
       {
         generationSchedules: {
@@ -115,6 +120,7 @@ export default defineBrain({
       },
     ],
     [
+      "social-media",
       socialMediaPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         linkedin: { accessToken: env["LINKEDIN_ACCESS_TOKEN"] },
@@ -122,6 +128,7 @@ export default defineBrain({
       }),
     ],
     [
+      "newsletter",
       createNewsletterPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         buttondown: {
@@ -130,9 +137,10 @@ export default defineBrain({
         },
       }),
     ],
-    [obsidianVaultPlugin, { autoSync: true }],
-    [wishlistPlugin, {}],
+    ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
+    ["wishlist", wishlistPlugin, {}],
     [
+      "directory-sync",
       directorySync,
       {
         seedContent: true,
@@ -141,6 +149,7 @@ export default defineBrain({
       },
     ],
     [
+      "git-sync",
       gitSyncPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         authToken: env["GIT_SYNC_TOKEN"],
@@ -150,6 +159,7 @@ export default defineBrain({
       }),
     ],
     [
+      "analytics",
       analyticsPlugin,
       (env: BrainEnvironment): PluginConfig => ({
         cloudflare: {
@@ -159,8 +169,9 @@ export default defineBrain({
         },
       }),
     ],
-    [professionalSitePlugin, { entityRouteConfig }],
+    ["professional-site", professionalSitePlugin, { entityRouteConfig }],
     [
+      "site-builder",
       siteBuilderPlugin,
       {
         routes,
@@ -177,12 +188,14 @@ export default defineBrain({
 
   interfaces: [
     [
+      "mcp",
       MCPInterface,
       (env: BrainEnvironment): PluginConfig => ({
         authToken: env["MCP_AUTH_TOKEN"],
       }),
     ],
     [
+      "matrix",
       MatrixInterface,
       (env: BrainEnvironment): PluginConfig | null =>
         env["MATRIX_ACCESS_TOKEN"]
@@ -190,14 +203,15 @@ export default defineBrain({
           : null,
     ],
     [
+      "discord",
       DiscordInterface,
       (env: BrainEnvironment): PluginConfig | null =>
         env["DISCORD_BOT_TOKEN"]
           ? { botToken: env["DISCORD_BOT_TOKEN"] }
           : null,
     ],
-    [WebserverInterface, (): PluginConfig => ({})],
-    [A2AInterface, (): PluginConfig => ({})],
+    ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {

@@ -71,9 +71,10 @@ describe("defineBrain", () => {
         purpose: "Testing",
         values: ["accuracy", "speed"],
       },
-      capabilities: [[mockPluginFactory, { key: "value" }]],
+      capabilities: [["mock", mockPluginFactory, { key: "value" }]],
       interfaces: [
         [
+          "mock-interface",
           MockInterface,
           (env: BrainEnvironment): PluginConfig => ({ token: env["TOKEN"] }),
         ],
@@ -112,7 +113,7 @@ describe("resolve", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [[trackingFactory, { a: 1 }]],
+      capabilities: [["mock", trackingFactory, { a: 1 }]],
       interfaces: [],
     });
 
@@ -139,6 +140,7 @@ describe("resolve", () => {
       capabilities: [],
       interfaces: [
         [
+          "mock-interface",
           TrackingInterface,
           (env: BrainEnvironment): PluginConfig => ({
             token: env["MY_TOKEN"],
@@ -164,6 +166,7 @@ describe("resolve", () => {
       version: "1.0.0",
       capabilities: [
         [
+          "mock",
           factory,
           (env: BrainEnvironment): PluginConfig => ({
             repo: env["GIT_REPO"],
@@ -224,8 +227,6 @@ describe("resolve", () => {
   });
 
   test("should apply targeted override to interface after construction", () => {
-    // Override is matched by plugin ID and applied via reconstruction.
-    // Construction with base config must succeed (no required-field throws).
     let capturedConfig: PluginConfig | undefined;
 
     class ConfigCapture extends MockInterface {
@@ -243,6 +244,7 @@ describe("resolve", () => {
       capabilities: [],
       interfaces: [
         [
+          "config-capture",
           ConfigCapture,
           (env: BrainEnvironment): PluginConfig => ({
             accessToken: env["TOKEN"] ?? "",
@@ -283,6 +285,7 @@ describe("resolve", () => {
       version: "1.0.0",
       capabilities: [
         [
+          "my-cap",
           capFactory,
           (env: BrainEnvironment): PluginConfig => ({
             token: env["TOKEN"] ?? "",
@@ -303,7 +306,6 @@ describe("resolve", () => {
     );
 
     expect(config.plugins?.find((p) => p.id === "my-cap")).toBeDefined();
-    // Override merged with base config
     expect(capturedConfig?.["repo"]).toBe("user/repo");
     expect(capturedConfig?.["token"]).toBe("tok");
   });
@@ -313,7 +315,7 @@ describe("resolve", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [[MockInterface, (): PluginConfig => ({})]],
+      interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
     });
 
     const config = resolve(def, {}, { disable: ["mock-interface"] });
