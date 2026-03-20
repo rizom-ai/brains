@@ -1,3 +1,4 @@
+/// <reference types="../types.d.ts" />
 import type {
   StaticSiteBuilder,
   StaticSiteBuilderOptions,

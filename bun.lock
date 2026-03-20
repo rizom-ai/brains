@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -562,10 +561,8 @@
       "name": "@brains/site-builder-plugin",
       "version": "0.0.1",
       "dependencies": {
-        "@brains/default-site-content": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/theme-default": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
         "@tailwindcss/postcss": "^4.1.13",

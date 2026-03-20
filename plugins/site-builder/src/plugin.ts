@@ -24,15 +24,6 @@ import { siteBuilderConfigSchema } from "./config.js";
 import { SiteInfoService } from "./services/site-info-service.js";
 import { siteInfoSchema } from "./services/site-info-schema.js";
 import { SiteInfoAdapter } from "./services/site-info-adapter.js";
-import {
-  templates as defaultTemplates,
-  routes as defaultRoutes,
-  DefaultLayout,
-  DefaultCTALayout,
-  MinimalLayout,
-  CTAFooterLayout,
-} from "@brains/default-site-content";
-import defaultTheme from "@brains/theme-default";
 import packageJson from "../package.json";
 
 /**
@@ -58,22 +49,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
-    const defaultLayouts: Record<string, LayoutComponent> = {
-      default: DefaultLayout,
-      minimal: MinimalLayout,
-      "cta-footer": CTAFooterLayout,
-      "default-cta": DefaultCTALayout,
-    };
-    const layouts = { ...defaultLayouts, ...config.layouts };
+    const layouts = config.layouts ?? {};
     super(
       "site-builder",
       packageJson,
       {
         ...config,
-        templates: config.templates ?? defaultTemplates,
-        routes: config.routes ?? defaultRoutes,
         layouts,
-        themeCSS: config.themeCSS ?? defaultTheme,
       },
       siteBuilderConfigSchema,
     );

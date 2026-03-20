@@ -13,10 +13,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/default-site-content": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/theme-default": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@tailwindcss/cli": "^4.0.0",
     "@tailwindcss/postcss": "^4.1.13",
