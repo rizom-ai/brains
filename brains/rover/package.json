@@ -17,7 +17,6 @@
     "@brains/content-pipeline": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/decks": "workspace:*",
-    "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
     "@brains/git-sync": "workspace:*",

@@ -44,7 +44,6 @@ export function resolve(
       entityRouteConfig: site.entityRouteConfig,
       layouts: {
         default: site.layout,
-        ...(site.minimalLayout ? { minimal: site.minimalLayout } : {}),
       },
       // Explicit brain.yaml site-builder overrides win
       ...siteBuilderExplicit,

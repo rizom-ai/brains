@@ -1,0 +1,32 @@
+{
+  "name": "@brains/site-yeehaa",
+  "version": "0.1.0",
+  "description": "Yeehaa site package — brutalist theme + professional layout",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.d.ts"
+  },
+  "types": "./src/types.d.ts",
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/layout-professional": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/theme-base": "workspace:*",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}

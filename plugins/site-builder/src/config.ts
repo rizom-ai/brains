@@ -1,6 +1,10 @@
 import { z } from "@brains/utils";
 import type { Template } from "@brains/plugins";
-import { RouteDefinitionSchema, NavigationSlots } from "@brains/plugins";
+import {
+  RouteDefinitionSchema,
+  NavigationSlots,
+  type RouteDefinitionInput,
+} from "@brains/plugins";
 import { siteInfoBodySchema } from "./services/site-info-schema";
 
 /**
@@ -97,6 +101,7 @@ export const siteBuilderConfigSchema = z.object({
     .describe("Routes to register"),
   layouts: z
     .record(z.any())
+    .optional()
     .describe("Layout components (at least 'default' required)"),
   autoRebuild: z
     .boolean()
@@ -163,11 +168,23 @@ export const siteBuilderConfigSchema = z.object({
     ),
 });
 
-export type SiteBuilderConfig = z.infer<typeof siteBuilderConfigSchema> & {
-  // Override the templates field type to be properly typed
+/** Zod-inferred parsed config — serializable fields only. */
+type SiteBuilderSchemaConfig = z.infer<typeof siteBuilderConfigSchema>;
+
+/**
+ * Full site-builder config with properly typed runtime fields.
+ *
+ * Several fields use z.any() in the Zod schema because they carry
+ * runtime objects (components, templates) that can't be validated.
+ * We Omit those fields from the inferred type and re-declare them
+ * with their real TypeScript types.
+ */
+export type SiteBuilderConfig = Omit<
+  SiteBuilderSchemaConfig,
+  "templates" | "layouts" | "routes" | "entityRouteConfig"
+> & {
   templates?: Record<string, Template>;
-  // Override the layouts field type to be properly typed (required)
-  layouts: Record<string, LayoutComponent>;
-  // Override the entityRouteConfig field type to be properly typed
+  layouts?: Record<string, LayoutComponent>;
+  routes?: RouteDefinitionInput[];
   entityRouteConfig?: EntityRouteConfig;
 };

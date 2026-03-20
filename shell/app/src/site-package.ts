@@ -1,11 +1,10 @@
 import type { Plugin, RouteDefinitionInput } from "@brains/plugins";
-import type { ComponentType } from "preact";
 import type { EntityRouteEntry } from "./brain-definition";
 
 /**
  * A site package bundles everything the site-builder needs:
  * - Visual identity (theme CSS)
- * - Page structure (layout components)
+ * - Page structure (layout component)
  * - URL patterns (routes)
  * - Data layer (site plugin with templates + datasources)
  * - Content naming (entity route config)
@@ -36,11 +35,8 @@ export interface SitePackage {
   /** Composed theme CSS string (theme-base + site-specific overrides) */
   theme: string;
 
-  /** Default page layout component */
-  layout: ComponentType<Record<string, unknown>>;
-
-  /** Optional minimal layout component (for stripped-down pages) */
-  minimalLayout?: ComponentType<Record<string, unknown>>;
+  /** Default page layout component — opaque to app, typed as LayoutComponent by site-builder */
+  layout: unknown;
 
   /** Route definitions for the site */
   routes: RouteDefinitionInput[];

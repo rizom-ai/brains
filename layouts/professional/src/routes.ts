@@ -1,5 +1,7 @@
+import type { RouteDefinitionInput } from "@brains/plugins";
+
 // Default routes for professional site
-export const routes = [
+export const routes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",

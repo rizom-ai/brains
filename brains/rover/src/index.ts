@@ -31,7 +31,6 @@ import {
   ProfessionalLayout,
   routes,
 } from "@brains/layout-professional";
-import { MinimalLayout } from "@brains/default-site-content";
 import yeehaaTheme from "@brains/theme-brutalist";
 import { join } from "path";
 
@@ -178,7 +177,6 @@ export default defineBrain({
         entityRouteConfig,
         layouts: {
           default: ProfessionalLayout,
-          minimal: MinimalLayout,
         },
         themeCSS: yeehaaTheme,
         cms: {},

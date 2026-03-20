@@ -58,25 +58,25 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
-    const configWithDefaults = {
-      ...config,
-      templates: config.templates ?? defaultTemplates,
-      routes: config.routes ?? defaultRoutes,
-      layouts: config.layouts ?? {
-        default: DefaultLayout,
-        minimal: MinimalLayout,
-        "cta-footer": CTAFooterLayout,
-        "default-cta": DefaultCTALayout,
-      },
-      themeCSS: config.themeCSS ?? defaultTheme,
-    } as SiteBuilderConfig;
+    const layouts = config.layouts ?? {
+      default: DefaultLayout,
+      minimal: MinimalLayout,
+      "cta-footer": CTAFooterLayout,
+      "default-cta": DefaultCTALayout,
+    };
     super(
       "site-builder",
       packageJson,
-      configWithDefaults,
+      {
+        ...config,
+        templates: config.templates ?? defaultTemplates,
+        routes: config.routes ?? defaultRoutes,
+        layouts,
+        themeCSS: config.themeCSS ?? defaultTheme,
+      },
       siteBuilderConfigSchema,
     );
-    this.layouts = configWithDefaults.layouts;
+    this.layouts = layouts;
   }
 
   protected override async onRegister(

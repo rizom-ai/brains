@@ -24,7 +24,6 @@ import {
   routes as defaultRoutes,
   DefaultLayout,
   DefaultCTALayout,
-  MinimalLayout,
   CTAFooterLayout,
 } from "@brains/default-site-content";
 import defaultTheme from "@brains/theme-default";
@@ -133,7 +132,6 @@ export default defineBrain({
         layouts: {
           default: DefaultLayout,
           "default-cta": DefaultCTALayout,
-          minimal: MinimalLayout,
           "cta-footer": CTAFooterLayout,
         },
         themeCSS: defaultTheme,
