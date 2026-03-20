@@ -1,5 +1,8 @@
-import type { Plugin, RouteDefinitionInput } from "@brains/plugins";
-import type { EntityRouteEntry } from "./brain-definition";
+import type {
+  Plugin,
+  RouteDefinitionInput,
+  EntityRouteEntry,
+} from "@brains/plugins";
 
 /**
  * A site package bundles everything the site-builder needs:
@@ -20,7 +23,7 @@ import type { EntityRouteEntry } from "./brain-definition";
  *
  * const site: SitePackage = {
  *   theme: composeTheme(themeCSS),
- *   layout: PersonalLayout,
+ *   layouts: { default: PersonalLayout },
  *   routes,
  *   plugin: personalSitePlugin,
  *   entityRouteConfig: {
@@ -35,8 +38,8 @@ export interface SitePackage {
   /** Composed theme CSS string (theme-base + site-specific overrides) */
   theme: string;
 
-  /** Default page layout component — opaque to app, typed as LayoutComponent by site-builder */
-  layout: unknown;
+  /** Layout components keyed by name — at minimum "default" is required */
+  layouts: Record<string, unknown>;
 
   /** Route definitions for the site */
   routes: RouteDefinitionInput[];

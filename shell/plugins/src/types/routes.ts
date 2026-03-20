@@ -32,6 +32,27 @@ export const NavigationSlots = ["primary", "secondary"] as const;
 export type NavigationSlot = (typeof NavigationSlots)[number];
 
 /**
+ * Configuration for how an entity type's routes are generated.
+ * Used by site packages and site-builder to control URL patterns,
+ * layout, pagination, and navigation for entity types.
+ */
+export interface EntityRouteEntry {
+  label: string;
+  pluralName?: string;
+  /** Layout name for this entity type's routes (defaults to "default") */
+  layout?: string;
+  /** Enable pagination for list pages */
+  paginate?: boolean;
+  /** Items per page (default: 10) */
+  pageSize?: number;
+  navigation?: {
+    show?: boolean;
+    slot?: NavigationSlot;
+    priority?: number;
+  };
+}
+
+/**
  * Navigation metadata schema for route definitions
  */
 export const NavigationMetadataSchema = z
@@ -53,6 +74,7 @@ export const RouteDefinitionSchema = z.object({
   description: z.string().default(""), // Route description
   sections: z.array(SectionDefinitionSchema).default([]), // Page sections
   layout: z.string().default("default"), // Layout to use for this route
+  fullscreen: z.boolean().optional(), // Render without page layout shell (no header/footer)
   pluginId: z.string().optional(), // Plugin that registered this route
   sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
   external: z.boolean().optional(), // Navigation-only, not rendered as a page

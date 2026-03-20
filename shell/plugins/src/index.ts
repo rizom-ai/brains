@@ -176,6 +176,7 @@ export type {
   SectionDefinition,
   NavigationItem,
   NavigationSlot,
+  EntityRouteEntry,
 } from "./types/routes";
 export {
   RouteDefinitionSchema,

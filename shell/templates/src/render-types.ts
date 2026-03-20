@@ -58,8 +58,8 @@ export interface ViewTemplate<T = unknown> {
   // Pre-compiled hydration JS for client-side interactivity (undefined = not interactive)
   interactive?: string;
 
-  // Route layout preference for dynamically generated routes
-  routeLayout?: string;
+  // When true, render without any page layout shell (no header/footer)
+  fullscreen?: boolean;
 
   // Content source information (preserved from ContentTemplate)
   providerId?: string; // For provider-based data fetching

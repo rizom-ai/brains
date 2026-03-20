@@ -71,7 +71,7 @@ export class DynamicRouteGenerator {
 
     // Register index route if we have a list template
     if (listTemplateName) {
-      const { pluralName, label, paginate, pageSize, navigation } =
+      const { pluralName, label, layout, paginate, pageSize, navigation } =
         this.getEntityDisplayConfig(entityType);
 
       if (paginate) {
@@ -81,23 +81,19 @@ export class DynamicRouteGenerator {
           listTemplateName,
           pluralName,
           label,
+          layout,
           pageSize,
           navigation,
           logger,
         );
       } else {
         // Generate a single index route (original behavior)
-        // Check list template for route layout preference
-        const templates = this.context.views.list();
-        const listTemplate = templates.find((t) => t.name === listTemplateName);
-        const listLayout = listTemplate?.routeLayout ?? "default";
-
         const indexRoute: RouteDefinitionInput = {
           id: `${entityType}-index`,
           path: `/${pluralName}`,
           title: label,
           description: `Browse all ${pluralName}`,
-          layout: listLayout,
+          ...(layout && { layout }),
           navigation: {
             show: navigation.show,
             label,
@@ -143,14 +139,7 @@ export class DynamicRouteGenerator {
         );
 
         // Get display config for entity type
-        const { pluralName } = this.getEntityDisplayConfig(entityType);
-
-        // Get template to check for route layout preference
-        const templates = this.context.views.list();
-        const detailTemplate = templates.find(
-          (t) => t.name === detailTemplateName,
-        );
-        const layout = detailTemplate?.routeLayout ?? "default";
+        const { pluralName, layout } = this.getEntityDisplayConfig(entityType);
 
         for (const entity of entities) {
           // Use slug for URL if available (e.g., blog posts), otherwise use entity ID
@@ -164,7 +153,7 @@ export class DynamicRouteGenerator {
             path: `/${pluralName}/${urlSlug}`,
             title: `${this.capitalize(entityType)}: ${urlSlug}`,
             description: `View ${entityType} details`,
-            layout,
+            ...(layout && { layout }),
             sections: [
               {
                 id: "detail",
@@ -210,6 +199,7 @@ export class DynamicRouteGenerator {
     listTemplateName: string,
     pluralName: string,
     label: string,
+    layout: string | undefined,
     pageSize: number,
     navigation: { show: boolean; slot: NavigationSlot; priority: number },
     logger: ReturnType<typeof this.context.logger.child>,
@@ -229,11 +219,6 @@ export class DynamicRouteGenerator {
       },
     );
 
-    // Check list template for route layout preference
-    const templates = this.context.views.list();
-    const listTemplate = templates.find((t) => t.name === listTemplateName);
-    const listLayout = listTemplate?.routeLayout ?? "default";
-
     // Generate route for each page
     for (let page = 1; page <= totalPages; page++) {
       const isFirstPage = page === 1;
@@ -246,7 +231,7 @@ export class DynamicRouteGenerator {
         path,
         title: isFirstPage ? label : `${label} - Page ${page}`,
         description: `Browse all ${pluralName}${isFirstPage ? "" : ` - Page ${page}`}`,
-        layout: listLayout,
+        ...(layout && { layout }),
         navigation: isFirstPage
           ? {
               show: navigation.show,
@@ -352,6 +337,7 @@ export class DynamicRouteGenerator {
   private getEntityDisplayConfig(entityType: string): {
     pluralName: string;
     label: string;
+    layout?: string;
     paginate: boolean;
     pageSize: number;
     navigation: {
@@ -379,6 +365,7 @@ export class DynamicRouteGenerator {
       return {
         pluralName,
         label: displayLabel,
+        ...(config.layout && { layout: config.layout }),
         paginate: config.paginate ?? DEFAULT_PAGINATE,
         pageSize: config.pageSize ?? DEFAULT_PAGE_SIZE,
         navigation: {

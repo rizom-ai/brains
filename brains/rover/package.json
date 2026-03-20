@@ -29,7 +29,7 @@
     "@brains/obsidian-vault": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
-    "@brains/site-yeehaa": "workspace:*",
+    "@brains/site-default": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/system": "workspace:*",
     "@brains/topics": "workspace:*",

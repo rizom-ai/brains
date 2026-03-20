@@ -1,7 +1,7 @@
 {
-  "name": "@brains/site-mylittlephoney",
+  "name": "@brains/site-default",
   "version": "0.1.0",
-  "description": "mylittlephoney site package — pink unicorn theme + personal layout",
+  "description": "Default site package — default theme + default layouts",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -16,9 +16,9 @@
   },
   "dependencies": {
     "@brains/app": "workspace:*",
-    "@brains/layout-personal": "workspace:*",
+    "@brains/default-site-content": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/theme-mylittlephoney": "workspace:*",
+    "@brains/theme-default": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

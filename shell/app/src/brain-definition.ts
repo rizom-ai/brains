@@ -65,15 +65,7 @@ export interface BrainIdentity {
 /**
  * Entity route configuration for site building.
  */
-export interface EntityRouteEntry {
-  label: string;
-  pluralName?: string;
-  navigation?: {
-    show?: boolean;
-    slot?: "primary" | "secondary";
-    priority?: number;
-  };
-}
+import type { EntityRouteEntry } from "@brains/plugins";
 
 /**
  * Content model — how this brain structures its content.

@@ -839,7 +839,7 @@ function createMockSitePackage(
 ): SitePackage {
   return {
     theme: "body { color: pink; }",
-    layout: null,
+    layouts: { default: null },
     routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
     entityRouteConfig: { post: { label: "Post" } },
@@ -896,10 +896,13 @@ describe("resolve with site package", () => {
     expect(sbConfig["entityRouteConfig"]).toEqual({ post: { label: "Essay" } });
   });
 
-  test("should inject layout into site-builder", () => {
+  test("should inject layouts into site-builder", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const mockLayout = null;
-    const site = createMockSitePackage("personal-site", { layout: mockLayout });
+    const mockDefault = () => null;
+    const mockMinimal = () => null;
+    const site = createMockSitePackage("personal-site", {
+      layouts: { default: mockDefault, minimal: mockMinimal },
+    });
 
     const def = defineBrain({
       name: "test",
@@ -916,7 +919,8 @@ describe("resolve with site package", () => {
       unknown
     >;
 
-    expect(layouts["default"]).toBe(mockLayout);
+    expect(layouts["default"]).toBe(mockDefault);
+    expect(layouts["minimal"]).toBe(mockMinimal);
   });
 
   test("should override brain definition site with brain.yaml site", () => {
@@ -1036,7 +1040,7 @@ logLevel: debug
     const pluginConfigs: PluginConfig[] = [];
     const site: SitePackage = {
       theme: "",
-      layout: null,
+      layouts: { default: null },
       routes: [],
       plugin: (config) => {
         const cfg = config ?? {};

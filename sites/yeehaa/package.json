@@ -4,10 +4,8 @@
   "description": "Yeehaa site package — brutalist theme + professional layout",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types.d.ts"
+    ".": "./src/index.ts"
   },
-  "types": "./src/types.d.ts",
   "files": [
     "src"
   ],
@@ -20,7 +18,7 @@
     "@brains/app": "workspace:*",
     "@brains/layout-professional": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/theme-base": "workspace:*",
+    "@brains/theme-brutalist": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

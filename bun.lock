@@ -132,7 +132,7 @@
         "@brains/obsidian-vault": "workspace:*",
         "@brains/portfolio": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
-        "@brains/site-yeehaa": "workspace:*",
+        "@brains/site-default": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/system": "workspace:*",
         "@brains/topics": "workspace:*",
@@ -1169,6 +1169,23 @@
         "typescript": "^5.3.3",
       },
     },
+    "sites/default": {
+      "name": "@brains/site-default",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/default-site-content": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/theme-default": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "sites/mylittlephoney": {
       "name": "@brains/site-mylittlephoney",
       "version": "0.1.0",
@@ -1176,7 +1193,7 @@
         "@brains/app": "workspace:*",
         "@brains/layout-personal": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/theme-base": "workspace:*",
+        "@brains/theme-mylittlephoney": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1193,7 +1210,7 @@
         "@brains/app": "workspace:*",
         "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/theme-base": "workspace:*",
+        "@brains/theme-brutalist": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1333,6 +1350,8 @@
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 
     "@brains/site-content": ["@brains/site-content@workspace:plugins/site-content"],
+
+    "@brains/site-default": ["@brains/site-default@workspace:sites/default"],
 
     "@brains/site-mylittlephoney": ["@brains/site-mylittlephoney@workspace:sites/mylittlephoney"],
 

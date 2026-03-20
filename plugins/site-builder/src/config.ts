@@ -36,23 +36,9 @@ export type LayoutComponent = (props: {
  * Entity route configuration
  * Allows customizing auto-generated route paths and labels for entity types
  */
-export type EntityRouteConfig = Record<
-  string,
-  {
-    label: string;
-    pluralName?: string;
-    /** Enable pagination for list pages */
-    paginate?: boolean;
-    /** Items per page (default: 10) */
-    pageSize?: number;
-    /** Navigation settings (show, slot, priority) */
-    navigation?: {
-      show?: boolean;
-      slot?: (typeof NavigationSlots)[number];
-      priority?: number;
-    };
-  }
->;
+import type { EntityRouteEntry } from "@brains/plugins";
+export type { EntityRouteEntry };
+export type EntityRouteConfig = Record<string, EntityRouteEntry>;
 
 export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
@@ -124,6 +110,12 @@ export const siteBuilderConfigSchema = z.object({
           .string()
           .optional()
           .describe("URL path segment (defaults to label.toLowerCase() + 's')"),
+        layout: z
+          .string()
+          .optional()
+          .describe(
+            "Layout name for this entity type's routes (defaults to 'default')",
+          ),
         paginate: z
           .boolean()
           .optional()

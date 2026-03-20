@@ -43,8 +43,8 @@ export interface Template extends Omit<
     component?: ComponentType<unknown>;
     // Pre-compiled hydration JS for client-side interactivity (undefined = not interactive)
     interactive?: string;
-    // Route/page layout to use when rendering this template (e.g., "minimal", "default")
-    routeLayout?: string;
+    // When true, render without any page layout shell (no header/footer)
+    fullscreen?: boolean;
   };
 
   // Data sourcing capability (optional)
@@ -64,7 +64,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
     layout?: {
       component?: ComponentType<TComponent>;
       interactive?: string;
-      routeLayout?: string;
+      fullscreen?: boolean;
     };
   },
 ): Template {
@@ -86,8 +86,8 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
         layout.component,
       );
     }
-    if (layout.routeLayout !== undefined) {
-      result.layout.routeLayout = layout.routeLayout;
+    if (layout.fullscreen !== undefined) {
+      result.layout.fullscreen = layout.fullscreen;
     }
   }
 

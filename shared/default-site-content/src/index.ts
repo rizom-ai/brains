@@ -1,3 +1,4 @@
+export { DefaultSitePlugin, defaultSitePlugin } from "./plugin";
 export { templates } from "./templates";
 export { routes } from "./routes";
 export {

@@ -25,6 +25,5 @@ export type {
   PluginConfig,
   CapabilityEntry,
   InterfaceEntry,
-  EntityRouteEntry,
 } from "./brain-definition";
 export type { SitePackage } from "./site-package";

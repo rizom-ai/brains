@@ -130,36 +130,49 @@ export class PreactBuilder implements StaticSiteBuilder {
       context,
     );
 
-    // Get the layout component (guaranteed to exist)
-    const layoutName = route.layout;
-    const LayoutComponent = context.layouts[layoutName];
-
-    if (!LayoutComponent) {
-      this.logger.error(`Layout not found: ${layoutName}`);
-      throw new Error(`Layout not found: ${layoutName}`);
-    }
-
-    // Use layout to compose the page with JSX sections
-    const layoutProps = {
-      sections: sectionComponents,
-      title: route.title,
-      description: route.description,
-      path: route.path,
-      siteInfo,
-      ...(context.slots && { slots: context.slots }),
-    };
+    // Check if any section's template requests fullscreen rendering
+    const isFullscreen = route.sections.some((section) => {
+      const tmpl = context.getViewTemplate(section.template);
+      return tmpl?.fullscreen === true;
+    });
 
     // Create head collector for SSR
     const headCollector = new HeadCollector(context.siteConfig.title);
 
-    // Wrap the layout with HeadProvider so components can use the Head component
-    const layoutWithProvider = h(HeadProvider, {
-      headCollector,
-      children: h(LayoutComponent, layoutProps),
-    });
+    let layoutHtml: string;
 
-    // Render the layout component with context support
-    const layoutHtml = render(layoutWithProvider);
+    if (isFullscreen) {
+      // Fullscreen: render sections directly, no page layout shell
+      const wrapper = h(HeadProvider, {
+        headCollector,
+        children: h("div", null, ...sectionComponents),
+      });
+      layoutHtml = render(wrapper);
+    } else {
+      // Normal: wrap sections in the site layout
+      const layoutName = route.layout;
+      const LayoutComponent = context.layouts[layoutName];
+
+      if (!LayoutComponent) {
+        this.logger.error(`Layout not found: ${layoutName}`);
+        throw new Error(`Layout not found: ${layoutName}`);
+      }
+
+      const layoutProps = {
+        sections: sectionComponents,
+        title: route.title,
+        description: route.description,
+        path: route.path,
+        siteInfo,
+        ...(context.slots && { slots: context.slots }),
+      };
+
+      const layoutWithProvider = h(HeadProvider, {
+        headCollector,
+        children: h(LayoutComponent, layoutProps),
+      });
+      layoutHtml = render(layoutWithProvider);
+    }
 
     // Set default head props if no Head component was rendered
     if (!headCollector.getHeadProps()) {

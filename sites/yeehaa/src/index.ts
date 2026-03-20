@@ -1,15 +1,11 @@
-// Types for CSS imports are defined in types.d.ts
-/// <reference types="./types.d.ts" />
-
 import type { Plugin } from "@brains/plugins";
 import {
   professionalSitePlugin,
   ProfessionalLayout,
   routes,
 } from "@brains/layout-professional";
-import { composeTheme } from "@brains/theme-base";
+import themeCSS from "@brains/theme-brutalist";
 import type { SitePackage } from "@brains/app";
-import themeCSS from "./theme.css" with { type: "text" };
 
 /**
  * Yeehaa site package — brutalist theme + professional layout.
@@ -19,8 +15,10 @@ import themeCSS from "./theme.css" with { type: "text" };
  * (essays, presentations, projects) into a single deployable unit.
  */
 const site: SitePackage = {
-  theme: composeTheme(themeCSS),
-  layout: ProfessionalLayout,
+  theme: themeCSS,
+  layouts: {
+    default: ProfessionalLayout,
+  },
   routes,
   plugin: (config?: Record<string, unknown>): Plugin =>
     professionalSitePlugin(config ?? {}),

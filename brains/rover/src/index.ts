@@ -26,7 +26,7 @@ import { dashboardPlugin } from "@brains/dashboard";
 import { createNewsletterPlugin } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
-import yeehaa from "@brains/site-yeehaa";
+import defaultSite from "@brains/site-default";
 import { join } from "path";
 
 /**
@@ -46,7 +46,7 @@ import { join } from "path";
 export default defineBrain({
   name: "rover",
   version: "1.0.0",
-  site: yeehaa,
+  site: defaultSite,
 
   capabilities: [
     ["system", systemPlugin, {}],

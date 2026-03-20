@@ -42,9 +42,7 @@ export function resolve(
       themeCSS: site.theme,
       routes: site.routes,
       entityRouteConfig: site.entityRouteConfig,
-      layouts: {
-        default: site.layout,
-      },
+      layouts: site.layouts,
       // Explicit brain.yaml site-builder overrides win
       ...siteBuilderExplicit,
     };
