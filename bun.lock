@@ -74,9 +74,9 @@
         "@brains/note": "workspace:*",
         "@brains/products": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-default": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/system": "workspace:*",
-        "@brains/theme-default": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
       },
@@ -91,7 +91,6 @@
       "dependencies": {
         "@brains/app": "workspace:*",
         "@brains/decks": "workspace:*",
-        "@brains/default-site-content": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/git-sync": "workspace:*",
         "@brains/link": "workspace:*",
@@ -99,9 +98,9 @@
         "@brains/mcp": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
+        "@brains/site-default": "workspace:*",
         "@brains/summary": "workspace:*",
         "@brains/system": "workspace:*",
-        "@brains/theme-default": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
       },
@@ -2954,14 +2953,6 @@
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
     "@brains/product-site-content/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
-
-    "@brains/products/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
-
-    "@brains/products/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
-
-    "@brains/site-content/@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
-
-    "@brains/site-content/bun-types": ["bun-types@1.3.10", "", { "dependencies": { "@types/node": "*" } }, "sha512-tcpfCCl6XWo6nCVnpcVrxQ+9AYN1iqMIzgrSKYMB/fjLtV2eyAVEg7AxQJuCq/26R6HpKWykQXuSOq/21RYcbg=="],
 
     "@discordjs/rest/@discordjs/collection": ["@discordjs/collection@2.1.1", "", {}, "sha512-LiSusze9Tc7qF03sLCujF5iZp7K+vRNEDBZ86FT9aQAv3vxMLihUvKvpsCWiQ2DJq1tVckopKm1rxomgNUc9hg=="],
 

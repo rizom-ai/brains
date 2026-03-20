@@ -19,28 +19,25 @@ import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
+import defaultSite from "@brains/site-default";
 import {
-  templates,
-  routes as defaultRoutes,
-  DefaultLayout,
   DefaultCTALayout,
   CTAFooterLayout,
 } from "@brains/default-site-content";
-import defaultTheme from "@brains/theme-default";
 
 /**
  * Customize routes for collective/community use:
  * - Home page uses CTA footer layout with about template showing HOME entity
  * - Home is hidden from navigation (it's the landing page)
  */
-const routes = defaultRoutes.map((route) => {
+const routes = defaultSite.routes.map((route) => {
   if (route.id === "home") {
     return {
       ...route,
       layout: "cta-footer",
       navigation: {
         show: false,
-        slot: route.navigation?.slot ?? "primary",
+        slot: route.navigation?.slot ?? ("primary" as const),
         priority: route.navigation?.priority ?? 50,
         label: route.navigation?.label,
       },
@@ -76,6 +73,15 @@ const routes = defaultRoutes.map((route) => {
 export default defineBrain({
   name: "ranger",
   version: "1.0.0",
+  site: {
+    ...defaultSite,
+    routes,
+    layouts: {
+      ...defaultSite.layouts,
+      "default-cta": DefaultCTALayout,
+      "cta-footer": CTAFooterLayout,
+    },
+  },
 
   capabilities: [
     ["system", systemPlugin, {}],
@@ -127,14 +133,6 @@ export default defineBrain({
       "site-builder",
       siteBuilderPlugin,
       {
-        routes,
-        templates,
-        layouts: {
-          default: DefaultLayout,
-          "default-cta": DefaultCTALayout,
-          "cta-footer": CTAFooterLayout,
-        },
-        themeCSS: defaultTheme,
         entityRouteConfig: {
           "social-post": {
             label: "Social Post",
@@ -183,7 +181,6 @@ export default defineBrain({
   ],
 
   permissions: {
-    // Anchor/trusted users are instance-specific — set in brain.yaml
     rules: [
       { pattern: "cli:*", level: "anchor" },
       { pattern: "mcp:stdio", level: "anchor" },
@@ -198,6 +195,5 @@ export default defineBrain({
       enabled: true,
       provider: "bunny",
     },
-    // domain: set in brain.yaml
   },
 });

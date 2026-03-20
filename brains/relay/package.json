@@ -14,7 +14,6 @@
   "dependencies": {
     "@brains/app": "workspace:*",
     "@brains/decks": "workspace:*",
-    "@brains/default-site-content": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/git-sync": "workspace:*",
     "@brains/link": "workspace:*",
@@ -22,9 +21,9 @@
     "@brains/mcp": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-content": "workspace:*",
+    "@brains/site-default": "workspace:*",
     "@brains/summary": "workspace:*",
     "@brains/system": "workspace:*",
-    "@brains/theme-default": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/webserver": "workspace:*"
   },

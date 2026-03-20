@@ -23,9 +23,9 @@
     "@brains/note": "workspace:*",
     "@brains/products": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/site-default": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/system": "workspace:*",
-    "@brains/theme-default": "workspace:*",
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*"
   },

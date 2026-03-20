@@ -12,17 +12,11 @@ import { join } from "path";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
-import {
-  templates,
-  routes,
-  DefaultLayout,
-  CTAFooterLayout,
-} from "@brains/default-site-content";
 import { topicsPlugin } from "@brains/topics";
 import { linkPlugin } from "@brains/link";
 import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
-import defaultTheme from "@brains/theme-default";
+import defaultSite from "@brains/site-default";
 
 /**
  * Relay Brain Model
@@ -40,6 +34,7 @@ import defaultTheme from "@brains/theme-default";
 export default defineBrain({
   name: "relay",
   version: "1.0.0",
+  site: defaultSite,
 
   capabilities: [
     ["system", systemPlugin, {}],
@@ -66,19 +61,7 @@ export default defineBrain({
       }),
     ],
     ["site-content", siteContentPlugin, undefined],
-    [
-      "site-builder",
-      siteBuilderPlugin,
-      {
-        templates,
-        routes,
-        layouts: {
-          default: DefaultLayout,
-          "cta-footer": CTAFooterLayout,
-        },
-        themeCSS: defaultTheme,
-      },
-    ],
+    ["site-builder", siteBuilderPlugin, {}],
   ],
 
   interfaces: [
@@ -101,7 +84,6 @@ export default defineBrain({
   ],
 
   permissions: {
-    // Anchor/trusted users are instance-specific — set in brain.yaml
     rules: [
       { pattern: "cli:*", level: "anchor" },
       { pattern: "mcp:stdio", level: "anchor" },
@@ -114,6 +96,5 @@ export default defineBrain({
       enabled: true,
       provider: "bunny",
     },
-    // domain: set in brain.yaml
   },
 });
