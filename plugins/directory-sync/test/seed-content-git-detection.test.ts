@@ -116,6 +116,45 @@ describe("Seed Content Git Detection", () => {
       );
     });
 
+    it("should copy seed content when brain-data only has underscore-prefixed scaffold dirs", async () => {
+      // Simulate obsidian-vault plugin creating scaffold dirs before seed copy
+      mkdirSync(join(brainDataPath, "_obsidian", "templates"), {
+        recursive: true,
+      });
+      mkdirSync(join(brainDataPath, "_obsidian", "fileClasses"), {
+        recursive: true,
+      });
+
+      mkdirSync(join(seedContentPath, "post"), { recursive: true });
+      writeFileSync(
+        join(seedContentPath, "post", "test-post.md"),
+        "---\ntitle: Seed Post\n---\nThis seed content SHOULD be copied despite _obsidian dirs.",
+      );
+
+      await installAndTriggerReady("post");
+
+      expect(existsSync(join(brainDataPath, "post", "test-post.md"))).toBe(
+        true,
+      );
+    });
+
+    it("should copy seed content when brain-data only has dotfiles", async () => {
+      mkdirSync(brainDataPath, { recursive: true });
+      writeFileSync(join(brainDataPath, ".gitkeep"), "");
+
+      mkdirSync(join(seedContentPath, "post"), { recursive: true });
+      writeFileSync(
+        join(seedContentPath, "post", "test-post.md"),
+        "---\ntitle: Seed Post\n---\nThis seed content SHOULD be copied despite .gitkeep.",
+      );
+
+      await installAndTriggerReady("post");
+
+      expect(existsSync(join(brainDataPath, "post", "test-post.md"))).toBe(
+        true,
+      );
+    });
+
     it("should NOT copy seed content when brain-data has actual content files", async () => {
       mkdirSync(join(brainDataPath, "post"), { recursive: true });
       writeFileSync(

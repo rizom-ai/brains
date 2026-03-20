@@ -19,7 +19,9 @@ export function isBrainDataEmpty(
   }
 
   const files = readdirSync(brainDataPath);
-  const contentFiles = files.filter((f) => f !== ".git" && f !== ".gitkeep");
+  const contentFiles = files.filter(
+    (f) => !f.startsWith(".") && !f.startsWith("_"),
+  );
 
   if (contentFiles.length > 0) {
     return false;
