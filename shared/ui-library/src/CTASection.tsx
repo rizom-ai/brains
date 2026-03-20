@@ -25,7 +25,7 @@ export function CTASection({
 }: CTASectionProps): JSX.Element {
   if (variant === "editorial") {
     return (
-      <section className="cta-bg-pattern bg-theme-subtle py-24 md:py-32 px-6 md:px-12">
+      <section className="cta-bg-pattern bg-theme-subtle py-24 md:py-32 px-6 md:px-12 relative">
         <div className="wave-divider absolute top-0 left-0 right-0" />
         <div className="max-w-4xl mx-auto">
           <p className="text-sm tracking-widest uppercase text-theme-muted mb-4">

@@ -2,6 +2,8 @@ import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import type { z } from "@brains/utils";
+
+const adapter = new AnchorProfileAdapter();
 import {
   professionalProfileSchema,
   type ProfessionalProfile,
@@ -23,8 +25,6 @@ export class AboutDataSource implements DataSource {
   public readonly name = "About Page DataSource";
   public readonly description = "Fetches full profile data for the about page";
 
-  private readonly adapter = new AnchorProfileAdapter();
-
   /**
    * Fetch about page data
    */
@@ -34,7 +34,7 @@ export class AboutDataSource implements DataSource {
     context: BaseDataSourceContext,
   ): Promise<T> {
     const content = await fetchAnchorProfile(context.entityService);
-    const profile = this.adapter.parseProfileBody(
+    const profile = adapter.parseProfileBody(
       content,
       professionalProfileSchema,
     );

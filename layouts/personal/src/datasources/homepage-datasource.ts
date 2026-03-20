@@ -6,6 +6,8 @@ import {
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import { fetchSiteInfo } from "@brains/site-builder-plugin";
 import { sortByPublicationDate, type z } from "@brains/utils";
+
+const adapter = new AnchorProfileAdapter();
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
   type BlogPost,
@@ -31,8 +33,6 @@ export class HomepageDataSource implements DataSource {
   public readonly description =
     "Fetches profile and blog posts for a personal homepage";
 
-  private readonly adapter = new AnchorProfileAdapter();
-
   constructor(private readonly postsListUrl: string) {}
 
   async fetch<T>(
@@ -51,7 +51,7 @@ export class HomepageDataSource implements DataSource {
       fetchSiteInfo(entityService),
     ]);
 
-    const profile = this.adapter.parseProfileBody(
+    const profile = adapter.parseProfileBody(
       profileContent,
       personalProfileSchema,
     );

@@ -5,6 +5,8 @@ import type { z } from "@brains/utils";
 import { markdownToHtml } from "@brains/utils";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 
+const adapter = new AnchorProfileAdapter();
+
 interface AboutDataSourceOutput {
   profile: PersonalProfile;
   storyHtml: string | undefined;
@@ -18,18 +20,13 @@ export class AboutDataSource implements DataSource {
   public readonly name = "About Page DataSource";
   public readonly description = "Fetches full profile data for the about page";
 
-  private readonly adapter = new AnchorProfileAdapter();
-
   async fetch<T>(
     _query: unknown,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
     const content = await fetchAnchorProfile(context.entityService);
-    const profile = this.adapter.parseProfileBody(
-      content,
-      personalProfileSchema,
-    );
+    const profile = adapter.parseProfileBody(content, personalProfileSchema);
 
     const data: AboutDataSourceOutput = {
       profile,

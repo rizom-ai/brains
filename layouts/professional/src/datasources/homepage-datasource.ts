@@ -6,6 +6,8 @@ import {
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import { fetchSiteInfo } from "@brains/site-builder-plugin";
 import { sortByPublicationDate, type z } from "@brains/utils";
+
+const adapter = new AnchorProfileAdapter();
 import {
   professionalProfileSchema,
   type ProfessionalProfile,
@@ -45,8 +47,6 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  private readonly adapter = new AnchorProfileAdapter();
-
   constructor(
     private readonly postsListUrl: string,
     private readonly decksListUrl: string,
@@ -77,7 +77,7 @@ export class HomepageListDataSource implements DataSource {
         fetchSiteInfo(entityService),
       ]);
 
-    const profile = this.adapter.parseProfileBody(
+    const profile = adapter.parseProfileBody(
       profileContent,
       professionalProfileSchema,
     );
