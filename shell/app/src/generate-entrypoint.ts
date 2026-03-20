@@ -49,9 +49,16 @@ export function generateEntrypoint(yamlContent: string): string | null {
   const brainPackage = obj["brain"];
   if (typeof brainPackage !== "string") return null;
 
-  // Find all @-prefixed package refs in plugin config
+  // Find all @-prefixed package refs in plugin config + top-level site.
+  // TODO: Currently only supports workspace packages. Eventually site/plugin
+  // refs should resolve to git repos, npm packages, or URLs.
   const pluginsSection = obj["plugins"];
   const packageRefs = pluginsSection ? extractPackageRefs(pluginsSection) : [];
+
+  const sitePackage = obj["site"];
+  if (typeof sitePackage === "string" && isScopedPackageRef(sitePackage)) {
+    packageRefs.push(sitePackage);
+  }
 
   // Filter out the brain package itself (already imported)
   const extraImports = packageRefs.filter((ref) => ref !== brainPackage);

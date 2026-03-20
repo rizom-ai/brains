@@ -85,6 +85,35 @@ plugins:
     expect(generateEntrypoint("name: test")).toBeNull();
   });
 
+  test("should include static import for top-level site package ref", () => {
+    const yaml = `
+brain: "@brains/rover"
+site: "@brains/site-mylittlephoney"
+`;
+    const code = generateEntrypoint(yaml);
+
+    expect(code).not.toBeNull();
+    expect(code).toContain('import __pkg0 from "@brains/site-mylittlephoney"');
+    expect(code).toContain(
+      'registerPackage("@brains/site-mylittlephoney", __pkg0)',
+    );
+  });
+
+  test("should include both site and plugin package refs", () => {
+    const yaml = `
+brain: "@brains/rover"
+site: "@brains/site-mylittlephoney"
+plugins:
+  site-builder:
+    themeCSS: "@brains/theme-override"
+`;
+    const code = generateEntrypoint(yaml);
+
+    expect(code).not.toBeNull();
+    expect(code).toContain('import __pkg0 from "@brains/theme-override"');
+    expect(code).toContain('import __pkg1 from "@brains/site-mylittlephoney"');
+  });
+
   test("should import registerPackage from @brains/app", () => {
     const yaml = `
 brain: "@brains/rover"

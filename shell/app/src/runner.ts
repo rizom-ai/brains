@@ -2,11 +2,12 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { handleCLI } from "./cli";
-import { resolve, isScopedPackageRef } from "./brain-resolver";
+import { resolve } from "./brain-resolver";
 import { parseInstanceOverrides } from "./instance-overrides";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 import { registerPackage } from "./package-registry";
+import { collectOverridePackageRefs } from "./override-package-refs";
 import { internal } from "varlock";
 
 /**
@@ -55,27 +56,23 @@ async function loadBrainDefinition(
 }
 
 /**
- * Scan plugin overrides for @-prefixed package references,
- * dynamically import each one, and register in the package registry.
+ * Dynamically import all @-prefixed package references from brain.yaml
+ * overrides and register them in the package registry.
+ *
+ * Covers top-level keys (site) and plugin config values.
  */
 async function registerPackageRefs(
   overrides: InstanceOverrides,
 ): Promise<void> {
-  const plugins = overrides.plugins;
-  if (!plugins) return;
+  const refs = collectOverridePackageRefs(overrides);
 
-  for (const config of Object.values(plugins)) {
-    for (const [key, value] of Object.entries(config)) {
-      if (typeof value === "string" && isScopedPackageRef(value)) {
-        try {
-          const mod = await import(value);
-          registerPackage(value, mod.default);
-        } catch {
-          console.warn(
-            `brain.yaml: failed to import package "${value}" for key "${key}"`,
-          );
-        }
-      }
+  for (const ref of refs) {
+    try {
+      const mod = await import(ref);
+      registerPackage(ref, mod.default);
+    } catch {
+      // TODO: Use a bootstrap logger instead of console (logger isn't available yet)
+      console.error(`❌ brain.yaml: failed to import package "${ref}"`);
     }
   }
 }

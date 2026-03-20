@@ -839,7 +839,7 @@ function createMockSitePackage(
 ): SitePackage {
   return {
     theme: "body { color: pink; }",
-    layout: (() => null) as unknown as SitePackage["layout"],
+    layout: null,
     routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
     entityRouteConfig: { post: { label: "Post" } },
@@ -898,7 +898,7 @@ describe("resolve with site package", () => {
 
   test("should inject layout into site-builder", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const mockLayout = (() => null) as unknown as SitePackage["layout"];
+    const mockLayout = null;
     const site = createMockSitePackage("personal-site", { layout: mockLayout });
 
     const def = defineBrain({
@@ -1036,7 +1036,7 @@ logLevel: debug
     const pluginConfigs: PluginConfig[] = [];
     const site: SitePackage = {
       theme: "",
-      layout: (() => null) as unknown as SitePackage["layout"],
+      layout: null,
       routes: [],
       plugin: (config) => {
         const cfg = config ?? {};

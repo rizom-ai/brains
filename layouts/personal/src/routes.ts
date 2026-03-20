@@ -1,4 +1,6 @@
-export const routes = [
+import type { RouteDefinitionInput } from "@brains/plugins";
+
+export const routes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",
