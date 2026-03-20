@@ -58,12 +58,13 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   constructor(config: Partial<SiteBuilderConfig> = {}) {
-    const layouts = config.layouts ?? {
+    const defaultLayouts: Record<string, LayoutComponent> = {
       default: DefaultLayout,
       minimal: MinimalLayout,
       "cta-footer": CTAFooterLayout,
       "default-cta": DefaultCTALayout,
     };
+    const layouts = { ...defaultLayouts, ...config.layouts };
     super(
       "site-builder",
       packageJson,
