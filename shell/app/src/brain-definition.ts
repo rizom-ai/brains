@@ -13,7 +13,8 @@ export type BrainEnvironment = Record<string, string | undefined>;
 export type PluginConfig = Record<string, unknown>;
 
 /**
- * A capability is a [factory, config] tuple.
+ * A capability is an [id, factory, config] tuple.
+ * The id is used for disable checks and override matching in brain.yaml.
  * The factory is called with the config at resolve time to create a fresh plugin instance.
  *
  * Config can be:
@@ -36,8 +37,10 @@ export type CapabilityEntry = [
 ];
 
 /**
- * An interface entry is a [constructor, envMapper] tuple.
- * The envMapper receives the deployment environment and returns the interface config.
+ * An interface entry is an [id, constructor, envMapper] tuple.
+ * The id is used for disable checks and override matching in brain.yaml.
+ * The envMapper receives the deployment environment and returns the interface config,
+ * or null to skip this interface (e.g. when credentials are missing).
  * The constructor is called with `new` to create a fresh interface instance.
  */
 export type InterfaceConstructor = new (config: PluginConfig) => Plugin;
@@ -85,8 +88,8 @@ export interface BrainContentModel {
  *
  * Key design principles:
  * - No `process.env` — environment is injected at resolve time
- * - Capabilities are [factory, config] tuples, not instantiated plugins
- * - Interfaces are [constructor, envMapper] tuples
+ * - Capabilities are [id, factory, config] tuples, not instantiated plugins
+ * - Interfaces are [id, constructor, envMapper] tuples
  * - Identity, permissions, content model, deployment are pure data
  * - Can be instantiated multiple times with different environments
  */
@@ -106,16 +109,16 @@ export interface BrainDefinition {
   site?: SitePackage;
 
   /**
-   * Capabilities as [factory, config] tuples.
+   * Capabilities as [id, factory, config] tuples.
    * Each resolve() call invokes the factories to create fresh plugin instances.
    * Any plugin factory works — no central registry needed.
    */
   capabilities: CapabilityEntry[];
 
   /**
-   * Interfaces as [constructor, envMapper] tuples.
-   * The envMapper receives the deployment environment and returns interface config.
-   * Interfaces with missing credentials can be skipped by the resolver.
+   * Interfaces as [id, constructor, envMapper] tuples.
+   * The envMapper receives the deployment environment and returns interface config,
+   * or null to skip (e.g. when credentials are missing).
    */
   interfaces: InterfaceEntry[];
 
@@ -158,10 +161,10 @@ export interface BrainDefinition {
  *     values: ["clarity", "accuracy"],
  *   },
  *   capabilities: [
- *     [notePlugin, {}],
+ *     ["note", notePlugin, {}],
  *   ],
  *   interfaces: [
- *     [MCPInterface, (env) => ({ domain: env.DOMAIN })],
+ *     ["mcp", MCPInterface, (env) => ({ domain: env.DOMAIN })],
  *   ],
  * });
  * ```
