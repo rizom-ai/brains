@@ -12,6 +12,7 @@ add:
   - decks
 remove:
   - git-sync
+  - image
 
 # Plugin overrides
 plugins:
