@@ -3,6 +3,15 @@ import type { PermissionConfig } from "@brains/templates";
 import type { DeploymentConfigInput } from "./types";
 import type { SitePackage } from "./site-package";
 
+import { z } from "@brains/utils";
+
+/**
+ * Standard preset names.
+ */
+export const presetNameSchema = z.enum(["minimal", "default", "pro", "eval"]);
+export const PresetNames = presetNameSchema.options;
+export type PresetName = z.infer<typeof presetNameSchema>;
+
 /**
  * Environment record — the deployment-specific variables
  * passed to interface env mappers and the resolver.
@@ -113,6 +122,17 @@ export interface BrainDefinition {
    * or null to skip (e.g. when credentials are missing).
    */
   interfaces: InterfaceEntry[];
+
+  /**
+   * Named presets — curated subsets of capabilities + interfaces.
+   * Each key maps to an array of plugin/interface IDs to enable.
+   * Standard names: "minimal", "default", "pro", "eval".
+   * Custom names are allowed.
+   */
+  presets?: Partial<Record<PresetName, string[]>>;
+
+  /** Default preset name when brain.yaml doesn't specify one. */
+  defaultPreset?: PresetName;
 
   /** Structural permission rules (no credentials) */
   permissions?: PermissionConfig;

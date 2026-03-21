@@ -10,15 +10,10 @@ anchors:
   - "discord:1432013090068627558"
   - "mcp:stdio"
 
-# Disable unused plugins
-disable:
-  - portfolio
+add:
+  - decks
+remove:
   - git-sync
-  - topics
-  - content-pipeline
-  - social-media
-  - newsletter
-  - matrix
 
 # Plugin overrides
 plugins:

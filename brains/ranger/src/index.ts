@@ -39,6 +39,25 @@ export default defineBrain({
   name: "ranger",
   version: "1.0.0",
   site: rangerSite,
+  presets: {
+    default: [
+      "system",
+      "dashboard",
+      "note",
+      "link",
+      "social-media",
+      "products",
+      "wishlist",
+      "analytics",
+      "directory-sync",
+      "git-sync",
+      "site-builder",
+      "mcp",
+      "matrix",
+      "discord",
+      "webserver",
+    ],
+  },
 
   capabilities: [
     ["system", systemPlugin, {}],

@@ -40,10 +40,15 @@ port: 9090 # production server port
 domain: staging.recall.ai # production domain
 database: file:./data/brain.db # database URL
 
-# Disable plugins you don't need for this instance
-disable:
-  - matrix
-  - git-sync
+# Site package override (optional — overrides brain model default)
+site: "@brains/site-yeehaa"
+
+# Preset — selects a curated subset of capabilities + interfaces
+preset: pro # minimal | default | pro | eval
+
+# Fine-tune: add/remove individual plugins on top of the preset
+add: [decks]
+remove: [analytics]
 
 # Per-plugin config overrides (keyed by plugin ID)
 plugins:
@@ -58,12 +63,17 @@ plugins:
 | Field      | Type     | Description                                                 |
 | ---------- | -------- | ----------------------------------------------------------- |
 | `brain`    | string   | **Required.** Package name of the brain model               |
+| `site`     | string   | Site package override (e.g. `@brains/site-yeehaa`)          |
+| `preset`   | string   | Preset name from brain model (`minimal`, `default`, `pro`)  |
+| `add`      | string[] | Plugin IDs to add on top of the preset                      |
+| `remove`   | string[] | Plugin IDs to remove from the preset                        |
 | `name`     | string   | Override the instance name (default: from brain model)      |
 | `logLevel` | enum     | `debug`, `info`, `warn`, `error`                            |
 | `port`     | number   | Production server port (sets `deployment.ports.production`) |
 | `domain`   | string   | Production domain (sets `deployment.domain`)                |
 | `database` | string   | Database URL                                                |
-| `disable`  | string[] | Plugin IDs to skip during startup                           |
+| `anchors`  | string[] | Anchor users (full admin access)                            |
+| `trusted`  | string[] | Trusted users (elevated access)                             |
 | `plugins`  | object   | Per-plugin config overrides (see below)                     |
 
 ### Plugin Overrides

@@ -35,6 +35,22 @@ export default defineBrain({
   name: "relay",
   version: "1.0.0",
   site: rangerSite,
+  presets: {
+    default: [
+      "system",
+      "topics",
+      "summary",
+      "link",
+      "decks",
+      "site-content",
+      "site-builder",
+      "directory-sync",
+      "git-sync",
+      "mcp",
+      "matrix",
+      "webserver",
+    ],
+  },
 
   capabilities: [
     ["system", systemPlugin, {}],

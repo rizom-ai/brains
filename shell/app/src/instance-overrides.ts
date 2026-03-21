@@ -1,4 +1,5 @@
 import { z, fromYaml } from "@brains/utils";
+import { presetNameSchema } from "./brain-definition";
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 const ENV_VAR_PATTERN = /\$\{([^}]+)\}/g;
@@ -30,8 +31,14 @@ const instanceOverridesSchema = z.object({
   /** Database URL */
   database: z.string().optional(),
 
-  /** Plugin IDs to disable for this instance */
-  disable: z.array(z.string()).optional(),
+  /** Preset name — selects a curated subset of capabilities + interfaces */
+  preset: presetNameSchema.optional(),
+
+  /** Plugin/interface IDs to add on top of the preset */
+  add: z.array(z.string()).optional(),
+
+  /** Plugin/interface IDs to remove from the preset */
+  remove: z.array(z.string()).optional(),
 
   /** Anchor users (full admin access) */
   anchors: z.array(z.string()).optional(),

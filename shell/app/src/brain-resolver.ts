@@ -1,11 +1,65 @@
 import type { Plugin } from "@brains/plugins";
-import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
+import type {
+  BrainDefinition,
+  BrainEnvironment,
+  PresetName,
+} from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { SitePackage } from "./site-package";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import { getPackage, hasPackage } from "./package-registry";
+
+/**
+ * Determine which plugin/interface IDs are active.
+ *
+ * Priority:
+ * 1. If presets are defined: use preset (from overrides or defaultPreset),
+ *    then apply add/remove
+ * 2. If no presets: all IDs are active
+ */
+function resolveActiveIds(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): Set<string> | null {
+  const allIds = new Set([
+    ...definition.capabilities.map(([id]) => id),
+    ...definition.interfaces.map(([id]) => id),
+  ]);
+
+  if (!definition.presets) return null;
+
+  const presetName: PresetName =
+    overrides?.preset ?? definition.defaultPreset ?? "default";
+  const preset = definition.presets[presetName];
+
+  if (!preset) {
+    throw new Error(
+      `Unknown preset "${presetName}". Available: ${Object.keys(definition.presets).join(", ")}`,
+    );
+  }
+
+  const activeIds = new Set(preset);
+
+  // Add: union with preset (only IDs that exist in brain definition)
+  if (overrides?.add) {
+    for (const id of overrides.add) {
+      if (allIds.has(id)) {
+        activeIds.add(id);
+      }
+    }
+  }
+
+  // Remove: difference from preset
+  if (overrides?.remove) {
+    for (const id of overrides.remove) {
+      activeIds.delete(id);
+    }
+  }
+
+  return activeIds;
+}
 
 /**
  * Resolve a brain definition + environment into a runnable AppConfig.
@@ -25,7 +79,7 @@ export function resolve(
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): AppConfig {
-  const disableSet = new Set(overrides?.disable ?? []);
+  const activeIds = resolveActiveIds(definition, overrides);
   const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
 
   // Resolve site package: brain.yaml `site` overrides brain definition default
@@ -57,13 +111,15 @@ export function resolve(
     const sitePlugin = site.plugin({
       entityRouteConfig: site.entityRouteConfig,
     });
-    if (!disableSet.has(sitePlugin.id)) {
+    // Register site plugin when site-builder is active (site plugin
+    // is part of the site package, not listed in presets directly)
+    if (!activeIds || activeIds.has("site-builder")) {
       capabilities.push(sitePlugin);
     }
   }
 
   for (const [id, factory, config] of definition.capabilities) {
-    if (disableSet.has(id)) continue;
+    if (activeIds && !activeIds.has(id)) continue;
 
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
@@ -75,7 +131,7 @@ export function resolve(
   // Instantiate interfaces
   const interfaces: Plugin[] = [];
   for (const [id, ctor, envMapper] of definition.interfaces) {
-    if (disableSet.has(id)) continue;
+    if (activeIds && !activeIds.has(id)) continue;
 
     const baseConfig = envMapper(env);
     if (!baseConfig) continue;

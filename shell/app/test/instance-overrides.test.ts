@@ -132,20 +132,6 @@ describe("parseInstanceOverrides", () => {
     expect(result.database).toBe("file:./data/brain.db");
   });
 
-  test("should parse disable list", () => {
-    const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\ndisable:\n  - matrix\n  - git-sync',
-    );
-    expect(result.disable).toEqual(["matrix", "git-sync"]);
-  });
-
-  test("should parse inline disable list", () => {
-    const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\ndisable: [matrix, git-sync]',
-    );
-    expect(result.disable).toEqual(["matrix", "git-sync"]);
-  });
-
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
       'brain: "@brains/relay"\nplugins:\n  webserver:\n    productionPort: 9090',
@@ -190,7 +176,7 @@ logLevel: debug
     expect(result.name).toBeUndefined();
     expect(result.logLevel).toBeUndefined();
     expect(result.port).toBeUndefined();
-    expect(result.disable).toBeUndefined();
+    expect(result.preset).toBeUndefined();
     expect(result.plugins).toBeUndefined();
   });
 
@@ -379,82 +365,6 @@ describe("resolve with instance overrides", () => {
     expect(config.deployment?.ports?.production).toBe(9090);
   });
 
-  test("should disable capabilities by plugin id", () => {
-    const [systemFactory] = createMockFactory("system");
-    const [gitSyncFactory] = createMockFactory("git-sync");
-    const [topicsFactory] = createMockFactory("topics");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["git-sync", gitSyncFactory, {}],
-        ["topics", topicsFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { disable: ["git-sync"] });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("topics");
-    expect(pluginIds).not.toContain("git-sync");
-  });
-
-  test("should disable interfaces by plugin id", () => {
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [],
-      interfaces: [
-        [
-          "mcp",
-          MockMCP as InterfaceConstructor,
-          (): PluginConfig => ({ port: 3333 }),
-        ],
-        [
-          "matrix",
-          MockMatrix as InterfaceConstructor,
-          (): PluginConfig => ({ homeserver: "https://matrix.org" }),
-        ],
-        [
-          "webserver",
-          MockWebserver as InterfaceConstructor,
-          (): PluginConfig => ({}),
-        ],
-      ],
-    });
-
-    const config = resolve(def, {}, { disable: ["matrix"] });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).toContain("mcp");
-    expect(pluginIds).toContain("webserver");
-    expect(pluginIds).not.toContain("matrix");
-  });
-
-  test("should disable both capabilities and interfaces", () => {
-    const [gitSyncFactory] = createMockFactory("git-sync");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [["git-sync", gitSyncFactory, {}]],
-      interfaces: [
-        [
-          "matrix",
-          MockMatrix as InterfaceConstructor,
-          (): PluginConfig => ({}),
-        ],
-      ],
-    });
-
-    const config = resolve(def, {}, { disable: ["git-sync", "matrix"] });
-    expect(config.plugins).toHaveLength(0);
-  });
-
   test("should apply plugin config overrides to capabilities", () => {
     const configs: unknown[] = [];
     const factory: PluginFactory = (config) => {
@@ -601,72 +511,6 @@ describe("resolve with instance overrides", () => {
 
     // system factory should only be called once (no override for it)
     expect(callCount).toBe(1);
-  });
-
-  test("should combine disable and plugin overrides", () => {
-    const [systemFactory] = createMockFactory("system");
-    const configs: unknown[] = [];
-    const gitSyncFactory: PluginFactory = (config) => {
-      configs.push(config);
-      return createMockPlugin("git-sync", config);
-    };
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [
-        ["system", systemFactory, {}],
-        ["git-sync", gitSyncFactory, { autoSync: true }],
-      ],
-      interfaces: [
-        [
-          "matrix",
-          MockMatrix as InterfaceConstructor,
-          (): PluginConfig => ({}),
-        ],
-      ],
-    });
-
-    const config = resolve(
-      def,
-      {},
-      {
-        disable: ["matrix"],
-        plugins: { "git-sync": { autoSync: false } },
-      },
-    );
-
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-    expect(pluginIds).toContain("system");
-    expect(pluginIds).toContain("git-sync");
-    expect(pluginIds).not.toContain("matrix");
-
-    const gitSync = config.plugins?.find((p) => p.id === "git-sync");
-    expect(getConfig(gitSync)).toMatchObject({ autoSync: false });
-  });
-
-  test("should ignore plugin overrides for disabled plugins", () => {
-    const [gitSyncFactory, configs] = createMockFactory("git-sync");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [["git-sync", gitSyncFactory, {}]],
-      interfaces: [],
-    });
-
-    const config = resolve(
-      def,
-      {},
-      {
-        disable: ["git-sync"],
-        plugins: { "git-sync": { autoSync: false } },
-      },
-    );
-
-    expect(config.plugins).toHaveLength(0);
-    // Factory never called — disabled plugins are skipped before construction
-    expect(configs).toHaveLength(0);
   });
 
   test("yaml overrides should take precedence over env for logLevel", () => {
@@ -986,26 +830,6 @@ describe("resolve with site package", () => {
     expect(sbConfig["cms"]).toEqual({ enabled: true });
   });
 
-  test("should not register site plugin when disabled", () => {
-    const [siteBuilderFactory] = createMockFactory("site-builder");
-    const site = createMockSitePackage("personal-site");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      site,
-      capabilities: [["site-builder", siteBuilderFactory, {}]],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {}, { disable: ["personal-site"] });
-    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
-
-    expect(pluginIds).not.toContain("personal-site");
-    // Site-builder should still get the theme/routes (it's the builder, not the site)
-    expect(pluginIds).toContain("site-builder");
-  });
-
   test("should work without any site package", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
 
@@ -1066,5 +890,296 @@ logLevel: debug
     expect(getConfig(sitePlugin)["entityRouteConfig"]).toEqual({
       post: { label: "Article" },
     });
+  });
+});
+
+// --- presets ---
+
+describe("parseInstanceOverrides presets", () => {
+  test("should parse preset field", () => {
+    const yaml = `
+brain: "@brains/rover"
+preset: minimal
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.preset).toBe("minimal");
+  });
+
+  test("should parse add list", () => {
+    const yaml = `
+brain: "@brains/rover"
+preset: minimal
+add:
+  - discord
+  - obsidian-vault
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.add).toEqual(["discord", "obsidian-vault"]);
+  });
+
+  test("should parse remove list", () => {
+    const yaml = `
+brain: "@brains/rover"
+preset: default
+remove:
+  - analytics
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.remove).toEqual(["analytics"]);
+  });
+
+  test("should parse preset with add and remove together", () => {
+    const yaml = `
+brain: "@brains/rover"
+preset: default
+add:
+  - obsidian-vault
+remove:
+  - analytics
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.preset).toBe("default");
+    expect(result.add).toEqual(["obsidian-vault"]);
+    expect(result.remove).toEqual(["analytics"]);
+  });
+});
+
+describe("resolve with presets", () => {
+  test("should enable only preset IDs", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [noteFactory] = createMockFactory("note");
+    const [blogFactory] = createMockFactory("blog");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        minimal: ["system", "note"],
+      },
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["note", noteFactory, {}],
+        ["blog", blogFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "minimal" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("note");
+    expect(pluginIds).not.toContain("blog");
+  });
+
+  test("should use defaultPreset when no preset in overrides", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [noteFactory] = createMockFactory("note");
+    const [blogFactory] = createMockFactory("blog");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      defaultPreset: "minimal",
+      presets: {
+        minimal: ["system", "note"],
+      },
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["note", noteFactory, {}],
+        ["blog", blogFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("note");
+    expect(pluginIds).not.toContain("blog");
+  });
+
+  test("should add IDs on top of preset", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [noteFactory] = createMockFactory("note");
+    const [blogFactory] = createMockFactory("blog");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        minimal: ["system", "note"],
+      },
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["note", noteFactory, {}],
+        ["blog", blogFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "minimal", add: ["blog"] });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("note");
+    expect(pluginIds).toContain("blog");
+  });
+
+  test("should remove IDs from preset", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [noteFactory] = createMockFactory("note");
+    const [blogFactory] = createMockFactory("blog");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        default: ["system", "note", "blog"],
+      },
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["note", noteFactory, {}],
+        ["blog", blogFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "default", remove: ["blog"] });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("note");
+    expect(pluginIds).not.toContain("blog");
+  });
+
+  test("should apply preset to interfaces too", () => {
+    const [systemFactory] = createMockFactory("system");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        minimal: ["system", "mcp"],
+      },
+      capabilities: [["system", systemFactory, {}]],
+      interfaces: [
+        [
+          "mcp",
+          MockMCP as InterfaceConstructor,
+          (): PluginConfig => ({ port: 3333 }),
+        ],
+        [
+          "matrix",
+          MockMatrix as InterfaceConstructor,
+          (): PluginConfig => ({ homeserver: "https://matrix.example.com" }),
+        ],
+      ],
+    });
+
+    const config = resolve(def, {}, { preset: "minimal" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("mcp");
+    expect(pluginIds).not.toContain("matrix");
+  });
+
+  test("should ignore add IDs not in brain definition", () => {
+    const [systemFactory] = createMockFactory("system");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        minimal: ["system"],
+      },
+      capabilities: [["system", systemFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      { preset: "minimal", add: ["nonexistent"] },
+    );
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).not.toContain("nonexistent");
+  });
+
+  test("should register site plugin when site-builder is in preset", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      presets: {
+        default: ["site-builder"],
+      },
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("site-builder");
+    // site plugin is auto-registered alongside site-builder
+    expect(pluginIds).toContain("personal-site");
+  });
+
+  test("should not register site plugin when site-builder is not in preset", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      presets: {
+        minimal: ["system"],
+        default: ["system", "site-builder"],
+      },
+      defaultPreset: "minimal",
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["site-builder", siteBuilderFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "minimal" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).not.toContain("site-builder");
+    expect(pluginIds).not.toContain("personal-site");
+  });
+
+  test("should enable all when no presets defined", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [blogFactory] = createMockFactory("blog");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["blog", blogFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("blog");
   });
 });

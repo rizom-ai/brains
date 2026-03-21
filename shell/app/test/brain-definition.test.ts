@@ -310,15 +310,16 @@ describe("resolve", () => {
     expect(capturedConfig?.["token"]).toBe("tok");
   });
 
-  test("should disable interfaces via disable list", () => {
+  test("should exclude interfaces not in preset", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
+      presets: { minimal: [] },
       capabilities: [],
       interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
     });
 
-    const config = resolve(def, {}, { disable: ["mock-interface"] });
+    const config = resolve(def, {}, { preset: "minimal" });
 
     expect(
       config.plugins?.find((p) => p.id === "mock-interface"),

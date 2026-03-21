@@ -1,5 +1,6 @@
 brain: "@brains/rover"
 site: "@brains/site-yeehaa"
+preset: pro
 
 # Instance settings
 logLevel: debug

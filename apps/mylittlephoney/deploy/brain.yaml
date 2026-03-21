@@ -7,14 +7,8 @@ domain: mylittlephoney.com
 anchors:
   - "discord:1432013090068627558"
 
-# Disable unused plugins
-disable:
-  - portfolio
-  - topics
-  - content-pipeline
-  - social-media
-  - newsletter
-  - matrix
+add:
+  - decks
 
 # Plugin overrides
 plugins:

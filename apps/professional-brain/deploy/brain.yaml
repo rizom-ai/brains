@@ -1,5 +1,6 @@
 brain: "@brains/rover"
 site: "@brains/site-yeehaa"
+preset: pro
 
 # Production instance
 domain: yeehaa.io

@@ -43,10 +43,64 @@ import { join } from "path";
  * discord token, analytics tags) goes in brain.yaml.
  * Only secrets (tokens, API keys) come from .env.
  */
+const minimal = [
+  "system",
+  "note",
+  "link",
+  "wishlist",
+  "directory-sync",
+  "git-sync",
+  "mcp",
+  "a2a",
+];
+
+const standard = [
+  ...minimal,
+  "image",
+  "dashboard",
+  "blog",
+  "decks",
+  "analytics",
+  "obsidian-vault",
+  "site-builder",
+  "discord",
+  "webserver",
+];
+
+const pro = [
+  ...standard,
+  "portfolio",
+  "topics",
+  "content-pipeline",
+  "social-media",
+  "newsletter",
+  "matrix",
+];
+
+const evaluation = [
+  "system",
+  "image",
+  "blog",
+  "decks",
+  "note",
+  "link",
+  "portfolio",
+  "topics",
+  "directory-sync",
+  "site-builder",
+  "mcp",
+];
+
 export default defineBrain({
   name: "rover",
   version: "1.0.0",
   site: defaultSite,
+  presets: {
+    minimal,
+    default: standard,
+    pro,
+    eval: evaluation,
+  },
 
   capabilities: [
     ["system", systemPlugin, {}],
