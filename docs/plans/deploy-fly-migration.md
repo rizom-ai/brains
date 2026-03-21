@@ -1,12 +1,24 @@
-# Plan: Deploy mylittlephoney to Fly.io
+# Plan: Fly.io Migration (post-slimdown)
 
 ## Context
 
-mylittlephoney is a rover brain instance running a personal blog site. Currently only runs locally. Need to deploy to production at mylittlephoney.com. Using Fly.io instead of Hetzner because:
+Future migration target for brain deployments after slimming down the runtime:
+
+- Deprecate Matrix → removes native crypto binary (~100MB)
+- Extract ONNX embeddings to sidecar → drops brain process from 1.85GB to ~1GB
+- After both: 2GB Fly machine viable at ~$15/mo
+
+## Prerequisites
+
+1. **Matrix deprecation** (`docs/plans/chat-interface-sdk.md` phase 1)
+2. **Embedding service extraction** (`docs/plans/embedding-service.md`)
+3. **MLP deployed and stable on Hetzner** (`docs/plans/deploy-mlp-hetzner.md`)
+
+## Why Fly.io (when ready)
 
 - Simpler deploy pipeline (no Terraform, no SSH)
-- Serves as proof of concept for hosted rovers
-- Scale-to-zero potential for future multi-instance hosting
+- Proof of concept for hosted rovers (Machines API)
+- Scale-to-zero potential for multi-instance hosting
 - Built-in SSL, custom domains, persistent volumes
 
 ## CDN: Not needed initially
@@ -81,7 +93,7 @@ primary_region = "ams"  # Amsterdam (close to user)
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "2gb"  # site building + Discord + git ops need headroom
+  memory = "4gb"  # measured: idle 1.85GB, spike 3.65GB (site build + ONNX embeddings)
 ```
 
 **Ports:**
@@ -167,7 +179,7 @@ The deploy brain.yaml needs:
 | CDN          | Bunny CDN            | Not needed           |
 | Monitoring   | Custom scripts       | `fly logs`/dashboard |
 | Volumes      | Server disk          | Fly Volumes          |
-| Cost         | ~€7/mo               | ~$15/mo (2GB + 10GB) |
+| Cost         | ~€7/mo               | ~$29/mo (4GB + 10GB) |
 
 ## Future: hosted rovers
 

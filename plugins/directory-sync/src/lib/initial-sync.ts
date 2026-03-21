@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils";
 import type { DirectorySync } from "./directory-sync";
 import type { DirectorySyncConfig } from "../types";
 import { copySeedContentIfNeeded } from "./seed-content";
+import type { GitSync } from "./git-sync";
 
 /**
  * Wait for a set of job IDs to complete (or time out after 30 s).
@@ -67,9 +68,9 @@ export function setupInitialSync(
   config: DirectorySyncConfig,
   _pluginId: string,
   logger: Logger,
+  gitSync?: GitSync,
 ): void {
   let initialSyncStarted = false;
-  let gitSyncEnabled = false;
 
   const runInitialSync = async (): Promise<void> => {
     if (initialSyncStarted) return;
@@ -83,7 +84,18 @@ export function setupInitialSync(
     }
 
     try {
-      logger.debug("Starting initial bidirectional sync");
+      // If git is configured, pull before importing
+      if (gitSync) {
+        logger.debug("Git enabled — pulling before import");
+        const pullResult = await gitSync.pull();
+        if (pullResult.files.length > 0) {
+          logger.info("Pulled changes from remote", {
+            filesChanged: pullResult.files.length,
+          });
+        }
+      }
+
+      logger.debug("Starting initial sync");
       const syncResult = await directorySync.sync();
       logger.debug("Initial sync completed", {
         imported: syncResult.import.imported,
@@ -121,31 +133,9 @@ export function setupInitialSync(
     }
   };
 
-  context.messaging.subscribe("git:sync:registered", async () => {
-    logger.debug(
-      "git:sync:registered received, will wait for git:pull:completed",
-    );
-    gitSyncEnabled = true;
-    return { success: true };
-  });
-
-  context.messaging.subscribe("git:pull:completed", async () => {
-    logger.debug("git:pull:completed received, starting initial sync");
-    await runInitialSync();
-    return { success: true };
-  });
-
   context.messaging.subscribe("system:plugins:ready", async () => {
-    if (gitSyncEnabled) {
-      logger.debug(
-        "system:plugins:ready received, but git-sync is enabled - waiting for git:pull:completed",
-      );
-    } else {
-      logger.debug(
-        "system:plugins:ready received, no git-sync - starting initial sync immediately",
-      );
-      await runInitialSync();
-    }
+    logger.debug("system:plugins:ready received, starting initial sync");
+    await runInitialSync();
     return { success: true };
   });
 }

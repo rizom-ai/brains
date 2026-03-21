@@ -10,6 +10,8 @@ anchors:
 
 add:
   - decks
+remove:
+  - git-sync
 
 # Plugin overrides
 plugins:

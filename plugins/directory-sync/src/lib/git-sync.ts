@@ -31,6 +31,7 @@ export interface GitSyncOptions {
   dataDir: string;
   repo?: string | undefined;
   gitUrl?: string | undefined;
+  branch?: string | undefined;
   authToken?: string | undefined;
   authorName?: string | undefined;
   authorEmail?: string | undefined;
@@ -46,7 +47,7 @@ export class GitSync {
   private _git: SimpleGit | null = null;
   private readonly logger: Logger;
   private readonly remoteUrl: string;
-  private readonly branch = "main";
+  private readonly branch: string;
   private readonly authorName: string | undefined;
   private readonly authorEmail: string | undefined;
   private readonly authToken: string | undefined;
@@ -58,6 +59,7 @@ export class GitSync {
     this.remoteUrl =
       options.gitUrl ??
       (options.repo ? `https://github.com/${options.repo}.git` : "");
+    this.branch = options.branch ?? "main";
     this.authorName = options.authorName;
     this.authorEmail = options.authorEmail;
     this.authToken = options.authToken;

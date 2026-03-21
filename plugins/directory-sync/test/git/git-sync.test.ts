@@ -28,7 +28,7 @@ describe("GitSync (simplified)", () => {
   });
 
   afterEach(() => {
-    gitSync?.cleanup();
+    gitSync.cleanup();
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }

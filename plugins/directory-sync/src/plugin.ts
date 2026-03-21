@@ -1,6 +1,7 @@
 import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
+import { GitSync } from "./lib/git-sync";
 import { directorySyncConfigSchema, type DirectorySyncConfig } from "./types";
 import { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 import { directorySyncStatusSchema } from "./schemas";
@@ -14,6 +15,7 @@ import packageJson from "../package.json";
 
 export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
+  private gitSync?: GitSync;
 
   constructor(config: Partial<DirectorySyncConfig> = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
@@ -72,6 +74,24 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       setupFileWatcher(context, ds, this.config.syncPath ?? context.dataDir);
     }
 
+    // Initialize git when configured
+    if (this.config.git) {
+      const gitSyncPath = this.config.syncPath ?? context.dataDir;
+      this.gitSync = new GitSync({
+        logger: this.logger.child("GitSync"),
+        dataDir: gitSyncPath,
+        repo: this.config.git.repo,
+        branch: this.config.git.branch,
+        authToken: this.config.git.authToken,
+        authorName: this.config.git.authorName,
+        authorEmail: this.config.git.authorEmail,
+      });
+      await this.gitSync.initialize();
+      this.logger.info("Git integration enabled", {
+        repo: this.config.git.repo,
+      });
+    }
+
     if (this.config.initialSync) {
       setupInitialSync(
         context,
@@ -79,6 +99,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         this.config,
         this.id,
         this.logger,
+        this.gitSync,
       );
     }
 

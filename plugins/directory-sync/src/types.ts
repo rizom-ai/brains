@@ -76,6 +76,7 @@ export const directorySyncConfigSchema = z.object({
   git: z
     .object({
       repo: z.string().describe("GitHub repo (owner/name)"),
+      branch: z.string().default("main").describe("Git branch to sync"),
       authToken: z.string().optional().describe("Auth token for private repos"),
       authorName: z.string().optional().describe("Git commit author name"),
       authorEmail: z.string().optional().describe("Git commit author email"),

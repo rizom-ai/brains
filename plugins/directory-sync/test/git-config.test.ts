@@ -25,6 +25,20 @@ describe("git config block", () => {
     expect(() => directorySyncConfigSchema.parse({ git: {} })).toThrow();
   });
 
+  it("should default branch to main", () => {
+    const result = directorySyncConfigSchema.parse({
+      git: { repo: "test/repo" },
+    });
+    expect(result.git?.branch).toBe("main");
+  });
+
+  it("should allow overriding branch", () => {
+    const result = directorySyncConfigSchema.parse({
+      git: { repo: "test/repo", branch: "master" },
+    });
+    expect(result.git?.branch).toBe("master");
+  });
+
   it("should accept authToken in git config", () => {
     const result = directorySyncConfigSchema.parse({
       git: {

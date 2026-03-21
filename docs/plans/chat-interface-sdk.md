@@ -116,14 +116,16 @@ Webhook adapters (Slack, Teams): use socket mode where available, or mount Chat 
 
 ## Migration Path
 
-1. **Phase 1**: Build `@brains/chat` as new interface alongside existing Matrix/Discord
-2. **Phase 2**: Switch rover to ChatInterface, test feature parity
-3. **Phase 3**: Migrate ranger and relay
-4. **Phase 4**: Deprecate and remove old `@brains/matrix`, `@brains/discord` packages
+1. **Phase 1**: Deprecate `@brains/matrix` — remove from brain models, drop `matrix-sdk-crypto-nodejs` native dependency. This eliminates the Matrix crypto binary from the Docker image and saves ~100MB idle memory. Matrix support returns via Chat SDK's Matrix adapter (Beeper) in phase 2.
+2. **Phase 2**: Build `@brains/chat` as new interface alongside existing Discord
+3. **Phase 3**: Switch rover to ChatInterface with Discord + Matrix adapters, test feature parity
+4. **Phase 4**: Migrate ranger and relay
+5. **Phase 5**: Remove old `@brains/discord` package
 
 Existing `brain.yaml` files only need:
 
-- Replace `matrix:` and `discord:` sections with `chat.adapters.matrix:` and `chat.adapters.discord:`
+- Remove `matrix:` section (deprecated until Chat SDK replaces it)
+- Replace `discord:` section with `chat.adapters.discord:`
 - Permission rules unchanged (interfaceType still resolves to platform name)
 
 ## Key Files
