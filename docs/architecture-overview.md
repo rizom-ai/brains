@@ -15,16 +15,17 @@ The Personal Brain application features a modular, plugin-based architecture bui
 
 ## Workspace Structure
 
-The monorepo is managed by Turborepo with 7 workspace categories:
+The monorepo is managed by Turborepo with 8 workspace categories:
 
 ```
 shell/          Core infrastructure — runtime, services, plugin framework
 shared/         Reusable utilities, themes, UI components
 plugins/        Capabilities — entity types, tools, generation handlers
-layouts/        Brain-specific site compositions — pages, datasources, templates
+layouts/        Page layout components — datasources, templates, page structure
+sites/          Site packages — theme + layout + routes bundles
 interfaces/     Interaction channels — how users talk to a brain
-brains/         Brain definitions — identity, capabilities, content model
-apps/           Deployment instances — environment config + entry point
+brains/         Brain definitions — identity, capabilities, presets, content model
+apps/           Deployment instances — brain.yaml + .env
 ```
 
 ### Shell Packages (Core Infrastructure)
@@ -83,13 +84,25 @@ apps/           Deployment instances — environment config + entry point
 | `plugins/products`         | Product entity management                         |
 | `plugins/site-content`     | AI-generated site section content                 |
 
-### Layout Packages (Site Compositions)
+### Layout Packages
 
-| Package                | Purpose                                                                    |
-| ---------------------- | -------------------------------------------------------------------------- |
-| `layouts/professional` | Professional homepage — composes blog posts, decks, and profile into pages |
+| Package                | Purpose                                 |
+| ---------------------- | --------------------------------------- |
+| `layouts/professional` | Blog + decks + profile editorial layout |
+| `layouts/personal`     | Blog + profile personal layout          |
 
-Layouts are brain-specific packages that arrange content from plugins into pages. They can import from plugins (unlike plugins, which cannot import from other plugins). A layout defines what pages exist, what content appears on each, and how it's structured.
+Layouts arrange content from plugins into pages. They define datasources, templates, and page structure.
+
+### Site Packages
+
+Site packages bundle a theme + layout + routes + site plugin into a single deployable unit. Brain models reference a default site package; instances can override via `site:` in brain.yaml.
+
+| Package                | Theme     | Layout       |
+| ---------------------- | --------- | ------------ |
+| `sites/default`        | default   | default      |
+| `sites/yeehaa`         | brutalist | professional |
+| `sites/ranger`         | default   | default+CTA  |
+| `sites/mylittlephoney` | pink      | personal     |
 
 ### Interface Packages
 
@@ -110,7 +123,7 @@ Layouts are brain-specific packages that arrange content from plugins into pages
 | `brains/relay`  | Team         | Team collaboration                        |
 | `brains/ranger` | Collective   | Collective/organizational knowledge       |
 
-Each brain uses `defineBrain()` to declare identity, capabilities (plugin tuples), interfaces, content model, and permissions. Deployment instances in `apps/` resolve a brain definition with environment variables.
+Each brain uses `defineBrain()` to declare identity, capabilities (`[id, factory, config]` tuples), interfaces (`[id, constructor, envMapper]` tuples), presets, and permissions. Deployment instances in `apps/` resolve a brain definition with environment variables and brain.yaml overrides.
 
 ## Architectural Boundaries
 

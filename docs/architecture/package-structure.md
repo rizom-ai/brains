@@ -2,399 +2,122 @@
 
 ## Overview
 
-The Brains repository uses a 4-directory monorepo structure designed to support modular development with clear separation of concerns between core infrastructure, shared utilities, feature plugins, and user interfaces.
-
-## Directory Organization
+The Brains repository is a monorepo with 8 workspace directories. Each directory has a clear role in the architecture.
 
 ```
 brains/
 ├── shell/              # Core infrastructure & services
-├── shared/             # Shared utilities and base packages
-├── plugins/            # Feature extensions
-├── interfaces/         # User interaction layers
-└── apps/               # Example applications
+├── shared/             # Shared utilities, themes, UI components
+├── plugins/            # Feature extensions (content, publishing, sync)
+├── interfaces/         # User interaction layers (chat, web, MCP)
+├── layouts/            # Page layout components (professional, personal)
+├── sites/              # Site packages (theme + layout + routes bundles)
+├── brains/             # Brain model definitions
+└── apps/               # Deployed brain instances
 ```
 
 ## Shell (Core Infrastructure)
 
-The shell directory contains the core services that power the brain application. These packages were extracted from a monolithic shell to improve maintainability (44% reduction in complexity).
-
-### Core Packages
-
-#### `shell/core`
-
-- **Purpose**: Plugin system and coordination (~1,900 lines)
-- **Responsibilities**:
-  - Plugin lifecycle management
-  - Component initialization
-  - MCP server integration
-  - Configuration management
-- **Key Classes**: Shell, PluginManager, PluginContextFactory
-
-#### `shell/db`
-
-- **Purpose**: Database layer with vector support
-- **Responsibilities**:
-  - SQLite database with libSQL
-  - Vector embeddings (384 dimensions)
-  - Schema migrations with Drizzle
-  - Connection management
-- **Technologies**: libSQL, Drizzle ORM
-
-#### `shell/entity-service`
-
-- **Purpose**: Entity CRUD operations and management
-- **Responsibilities**:
-  - Entity registry and validation
-  - CRUD operations
-  - Vector search capabilities
-  - Entity adapters for serialization
-- **Key Classes**: EntityService, EntityRegistry
-
-#### `shell/messaging-service`
-
-- **Purpose**: Event-driven messaging system
-- **Responsibilities**:
-  - Pub/sub message bus
-  - Event routing
-  - Message validation
-  - Handler registration
-- **Size**: 439 lines
-
-#### `shell/service-registry`
-
-- **Purpose**: Dependency injection and service registration
-- **Responsibilities**:
-  - Service lifecycle management
-  - Dependency resolution
-  - Singleton pattern implementation
-- **Size**: 168 lines
-
-#### `shell/render-service`
-
-- **Purpose**: Route registry and view template management
-- **Responsibilities**:
-  - Route management
-  - View template registration
-  - Output format handling
-  - Renderer coordination
-- **Size**: ~250 lines
-
-#### `shell/ai-service`
-
-- **Purpose**: AI model integration
-- **Responsibilities**:
-  - Anthropic Claude integration
-  - Chat completions
-  - Error handling and retries
-- **Size**: 178 lines
-
-#### `shell/embedding-service`
-
-- **Purpose**: Vector embedding generation
-- **Responsibilities**:
-  - FastEmbed integration
-  - Text-to-vector conversion
-  - Embedding caching
-- **Size**: 181 lines
-
-#### `shell/content-generator`
-
-- **Purpose**: AI-powered content generation
-- **Responsibilities**:
-  - Template-based generation
-  - Prompt management
-  - Content validation
-
-#### `shell/app`
-
-- **Purpose**: Application bootstrapper
-- **Responsibilities**:
-  - Unified app initialization
-  - Configuration helpers
-  - Environment setup
-
-#### `shell/job-queue`
-
-- **Purpose**: Background job processing
-- **Responsibilities**:
-  - Job enqueuing and processing
-  - Batch operations
-  - Progress monitoring
-  - Worker management
-- **Features**: SQLite-based queue, retry logic
-
-## Shared (Utilities and Base Packages)
-
-### Base Packages
-
-#### `shared/content-management`
-
-- **Purpose**: Content operations and management
-- **Exports**:
-  - ContentManager for batch operations
-  - Entity query services
-  - Generation and derivation operations
-
-#### `shared/plugin-utils`
-
-- **Purpose**: Plugin base classes
-- **Exports**:
-  - `BasePlugin` - Standard plugin functionality
-  - `InterfacePlugin` - For non-message interfaces
-  - `MessageInterfacePlugin` - For chat-like interfaces
-- **Key Features**: Lifecycle management, configuration validation
-
-#### `shared/utils`
-
-- **Purpose**: Common utilities
-- **Exports**:
-  - Logger with debug levels
-  - Markdown processing
-  - Permission handling
-  - YAML parsing
-  - Progress tracking
-
-#### `shared/types`
-
-- **Purpose**: Shared TypeScript types
-- **Note**: Recently decoupled - types now live with their packages
-
-#### `shared/test-utils`
-
-- **Purpose**: Testing utilities
-- **Exports**:
-  - Test harness
-  - Mock factories
-  - Plugin testing helpers
-
-#### `shared/message-interface`
-
-- **Purpose**: Base classes for message-based interfaces
-- **Exports**:
-  - MessageInterfacePlugin base class
-  - Command registration system
-  - Message handling utilities
-
-#### `shared/daemon-registry`
-
-- **Purpose**: Daemon process management
-- **Features**: Process tracking, graceful shutdown
-- **Note**: Currently in shared/ but only used by shell/core - candidate for relocation
-
-#### `shared/default-site-content`
-
-- **Purpose**: Default website templates
-- **Includes**:
-  - Hero, Features, CTA, Products sections
-  - Formatters and layouts
-  - Content generation prompts
-
-#### `shared/ui-library`
-
-- **Purpose**: Shared UI components
-- **Features**: Ink-based components for CLI interfaces
-
-## Interfaces (User Interaction Layers)
-
-All interfaces are implemented as plugins extending base classes from `shared/plugin-utils`.
-
-### Interface Packages
-
-#### `interfaces/cli`
-
-- **Type**: MessageInterfacePlugin
-- **Purpose**: Command-line interface
-- **Features**:
-  - Ink-based UI components
-  - Command history
-  - Interactive prompts
-- **Status**: Basic implementation, Ink UI enhancement planned
-
-#### `interfaces/matrix`
-
-- **Type**: MessageInterfacePlugin
-- **Purpose**: Matrix protocol bot
-- **Features**:
-  - Room management
-  - Permission system
-  - Mention detection
-  - Command prefix support
-
-#### `interfaces/mcp`
-
-- **Type**: InterfacePlugin
-- **Purpose**: Model Context Protocol server
-- **Features**:
-  - STDIO and HTTP transports
-  - Tool registration from plugins
-  - Progress notifications
-  - Permission-based filtering
-
-#### `interfaces/webserver`
-
-- **Type**: InterfacePlugin
-- **Purpose**: Static site server
-- **Features**:
-  - Serves generated sites
-  - Preview and production modes
-  - Configurable ports
-
-## Plugins (Feature Extensions)
-
-### Feature Plugins
-
-#### `plugins/directory-sync`
-
-- **Purpose**: File-based entity synchronization
-- **Features**:
-  - Import/export entities
-  - Watch mode
-  - Configurable entity types
-  - Status formatting
-
-#### `plugins/git-sync`
-
-- **Purpose**: Version control integration
-- **Features**:
-  - Auto-commit on changes
-  - Push/pull functionality
-  - Branch management
-  - Status reporting
-
-#### `plugins/site-builder`
-
-- **Purpose**: Static site generation
-- **Features**:
-  - Preact-based rendering
-  - Template system
-  - CSS processing
-  - Route registry and management
-  - Dashboard hydration
-  - Exposes routes via `site-builder:routes:list` messaging
-
-#### `plugins/site-content`
-
-- **Purpose**: AI-generated content for site sections
-- **Features**:
-  - Site content entity type and adapter
-  - Content generation tool with route/section filtering
-  - Orchestrates generation jobs via job queue
-  - Queries routes from site-builder via messaging
-
-## Apps (Example Applications)
-
-Brain applications combine plugins and interfaces to create complete systems.
-
-## Dependency Flow
-
-```
-apps/team-brain
-    ├── interfaces/*    (via plugin registration)
-    ├── plugins/*       (via plugin registration)
-    ├── shell/app       (for initialization)
-    └── shell/core      (for plugin management)
-        └── shell/*     (core services)
-            └── shared/* (utilities)
-```
-
-## Design Principles
-
-1. **Focused Packages**: Each package has a single, clear responsibility
-2. **Clean Dependencies**: Dependencies flow inward, never circular
-3. **Plugin Architecture**: All features implemented as plugins
-4. **Type Safety**: Zod schemas for all data validation
-5. **Testability**: Each package independently testable
-6. **Component Standardization**: Consistent patterns across all components
-
-## Package Standards
-
-### Plugin Interface
-
-All plugins follow this pattern:
-
-```typescript
-export class MyPlugin extends BasePlugin {
-  name = "my-plugin";
-
-  async register(context: PluginContext): Promise<void> {
-    // Register entities, tools, routes, etc.
-  }
-
-  async start(): Promise<void> {
-    // Start any services
-  }
-
-  async stop(): Promise<void> {
-    // Cleanup
-  }
-}
-```
-
-### Service Pattern
-
-Core services use singleton pattern:
-
-```typescript
-export class MyService {
-  private static instance: MyService | null = null;
-
-  static getInstance(): MyService {
-    if (!MyService.instance) {
-      MyService.instance = new MyService();
-    }
-    return MyService.instance;
-  }
-
-  static resetInstance(): void {
-    MyService.instance = null;
-  }
-}
-```
-
-## Building and Distribution
-
-### Development
-
-```bash
-# Install dependencies
-bun install
-
-# Run tests
-bun test
-
-# Type checking
-bun run typecheck
-
-# Linting
-bun run lint
-```
-
-### Production Builds
-
-```bash
-# Build for production
-bun run build
-
-# Create standalone executable
-bun build apps/team-brain/brain.config.ts --compile --outfile=brain
-```
-
-## Benefits of 4-Directory Structure
-
-1. **Clear Organization**: Obvious where each type of code belongs
-2. **Reduced Complexity**: Shell reduced by 44% through extraction
-3. **Independent Development**: Teams can work on different directories
-4. **Easy Plugin Development**: Clear patterns and base classes
-5. **Flexible Deployment**: Choose which plugins to include
-6. **Better Testing**: Focused packages are easier to test
-
-## Migration Status
-
-- ✅ Shell package decomposition complete
-- ✅ 4-directory structure implemented
-- ✅ All interfaces converted to plugins
-- ✅ Types package decoupled
-- ✅ Component Interface Standardization complete
-- 🚧 Cross-package error handling in progress
-- 📋 Entity plugins planned (Link, Article, Task, Profile, Project)
+| Package                      | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `shell/core`                 | Plugin lifecycle, daemon registry, initialization         |
+| `shell/app`                  | Brain resolver, CLI runner, brain.yaml parsing            |
+| `shell/plugins`              | Base plugin classes, context types, test harnesses        |
+| `shell/entity-service`       | Entity CRUD, search, vector embeddings, frontmatter       |
+| `shell/ai-service`           | Agent state machine, conversation routing, tool execution |
+| `shell/content-service`      | Template rendering, content formatting                    |
+| `shell/conversation-service` | Chat history, conversation storage                        |
+| `shell/identity-service`     | Brain character, anchor profile                           |
+| `shell/mcp-service`          | MCP tool + resource registry, permission filtering        |
+| `shell/messaging-service`    | Pub/sub event bus                                         |
+| `shell/job-queue`            | Background job scheduling, progress events                |
+| `shell/templates`            | Template system, permission checks                        |
+
+## Shared
+
+| Package                       | Purpose                                                |
+| ----------------------------- | ------------------------------------------------------ |
+| `shared/utils`                | Zod, slugify, markdown, YAML, logging                  |
+| `shared/ui-library`           | Preact components (Header, Footer, Cards, CTA)         |
+| `shared/theme-base`           | `composeTheme()`, shared CSS utilities, Tailwind setup |
+| `shared/theme-default`        | Rizom default theme (blue/orange)                      |
+| `shared/theme-brutalist`      | CRT/neon green theme                                   |
+| `shared/theme-*`              | Additional themes (editorial, swiss, geometric, etc.)  |
+| `shared/default-site-content` | Default layouts, templates, routes                     |
+| `shared/product-site-content` | Product page layouts and templates                     |
+
+## Plugins
+
+| Package                       | Purpose                              |
+| ----------------------------- | ------------------------------------ |
+| `plugins/system`              | Search, list, status tools           |
+| `plugins/note`                | Knowledge capture (base entity type) |
+| `plugins/blog`                | Essays and articles                  |
+| `plugins/decks`               | Presentations                        |
+| `plugins/link`                | Curated bookmarks                    |
+| `plugins/portfolio`           | Case studies                         |
+| `plugins/products`            | Product listings                     |
+| `plugins/topics`              | AI-powered tagging                   |
+| `plugins/summary`             | AI summaries                         |
+| `plugins/image-plugin`        | Image management                     |
+| `plugins/site-builder-plugin` | SSR static site generation, CMS      |
+| `plugins/site-content`        | Site pages and navigation            |
+| `plugins/content-pipeline`    | Publish orchestration, scheduling    |
+| `plugins/social-media`        | LinkedIn publishing                  |
+| `plugins/newsletter`          | Buttondown integration               |
+| `plugins/analytics`           | Cloudflare analytics                 |
+| `plugins/dashboard`           | Widget system                        |
+| `plugins/wishlist`            | Feature request tracking             |
+| `plugins/directory-sync`      | File import/export                   |
+| `plugins/git-sync`            | Git commit + push                    |
+| `plugins/obsidian-vault`      | Obsidian integration                 |
+
+## Interfaces
+
+| Package                | Purpose                                 |
+| ---------------------- | --------------------------------------- |
+| `interfaces/cli`       | Terminal REPL interface                 |
+| `interfaces/matrix`    | Matrix chat bot                         |
+| `interfaces/discord`   | Discord chat bot                        |
+| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)   |
+| `interfaces/webserver` | Static site preview + production server |
+| `interfaces/a2a`       | Agent-to-Agent protocol                 |
+
+## Layouts
+
+| Package                | Purpose                                           |
+| ---------------------- | ------------------------------------------------- |
+| `layouts/professional` | Blog + decks + profile layout, editorial homepage |
+| `layouts/personal`     | Blog + profile layout, personal homepage          |
+
+## Sites
+
+Site packages bundle a theme + layout + routes + site plugin into a deployable unit.
+
+| Package                | Purpose                               |
+| ---------------------- | ------------------------------------- |
+| `sites/default`        | Default theme + default layout        |
+| `sites/yeehaa`         | Brutalist theme + professional layout |
+| `sites/ranger`         | Default theme + community CTA layout  |
+| `sites/mylittlephoney` | Pink theme + personal layout          |
+
+## Brains
+
+Brain models define what a brain IS — capabilities, interfaces, presets, identity.
+
+| Package         | Purpose                                           |
+| --------------- | ------------------------------------------------- |
+| `brains/rover`  | Professional brain (blog, portfolio, newsletters) |
+| `brains/ranger` | Collective brain (community, products)            |
+| `brains/relay`  | Team brain (topics, summaries, links)             |
+
+## Apps
+
+Deployed instances of brain models with instance-specific `brain.yaml` and `.env`.
+
+| Package                   | Purpose                           |
+| ------------------------- | --------------------------------- |
+| `apps/professional-brain` | Yeehaa's Rover instance           |
+| `apps/collective-brain`   | Rizom's Ranger instance           |
+| `apps/team-brain`         | Rizom's Relay instance            |
+| `apps/mylittlephoney`     | mylittlephoney.com Rover instance |
