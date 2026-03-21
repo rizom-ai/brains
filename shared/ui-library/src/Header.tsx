@@ -1,32 +1,30 @@
 import type { VNode } from "preact";
+import { Logo } from "./Logo";
 import { Button } from "./Button";
 import { LinkButton } from "./LinkButton";
-import type { NavigationItem } from "./NavLinks";
-import { Logo } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
+import { cn } from "./lib/utils";
+import type { NavigationItem } from "@brains/plugins";
 
 /**
- * CTA configuration interface
- */
-export interface CTAConfig {
-  heading: string;
-  buttonText: string;
-  buttonLink: string;
-}
-
-/**
- * Header component props
+ * Compact header component props
  */
 export interface HeaderProps {
   /**
-   * Site title to display in header (shown as text if logo not provided)
+   * Site title to display in header
    */
   title: string;
 
   /**
    * Optional logo to display instead of title text
-   * If true, displays Logo component; if false/undefined, displays title text
    */
   logo?: boolean;
+
+  /**
+   * Optional CSS class for the title/logo text
+   * Overrides the Logo component's default text styling
+   */
+  titleClassName?: string;
 
   /**
    * Primary navigation items
@@ -34,76 +32,70 @@ export interface HeaderProps {
   navigation: NavigationItem[];
 
   /**
-   * Optional CTA configuration (only shown in "cta" variant)
+   * Optional CTA button in the header
    */
-  cta?: CTAConfig;
+  cta?: {
+    buttonText: string;
+    buttonLink: string;
+  };
 
   /**
-   * Header variant
-   * - "default": Simple header with border, no CTA button
-   * - "cta": Full header with background and CTA button
+   * Show theme toggle button in header
    */
-  variant?: "default" | "cta";
+  showThemeToggle?: boolean;
+
+  /**
+   * Optional CSS class for the theme toggle button
+   */
+  themeToggleClassName?: string;
 }
 
 /**
- * Shared header component for site layouts
- * Provides consistent navigation bar across all brains
- *
- * Used by:
- * - DefaultLayout: Simple header with navigation
- * - CTAFooterLayout: Header with CTA button
+ * Compact header — constrained to max-w-layout
+ * Minimal, clean navigation with responsive hamburger menu
  */
 export function Header({
   title,
   logo,
+  titleClassName,
   navigation,
   cta,
-  variant = "default",
+  showThemeToggle = false,
+  themeToggleClassName,
 }: HeaderProps): VNode {
-  // Variant-specific styles
-  const headerClass = "py-4";
-
-  const titleClass =
-    variant === "cta"
-      ? "font-bold text-xl text-nav hover:text-accent transition-colors"
-      : "font-bold text-xl text-theme hover:text-brand transition-colors";
-
-  const navLinkClass =
-    variant === "cta"
-      ? "text-nav hover:text-accent transition-colors text-sm md:text-base"
-      : "text-theme hover:text-brand transition-colors text-sm md:text-base";
-
   const titleElement = logo ? (
-    <a
-      href="/"
-      className="flex items-center"
-      style={{ color: "var(--color-logo)" }}
-    >
-      <Logo variant="full" height={32} />
-    </a>
+    <Logo height={36} />
+  ) : titleClassName ? (
+    <span className={titleClassName}>{title}</span>
   ) : (
-    <a href="/" className={titleClass}>
-      {title}
-    </a>
+    <Logo title={title} height={36} />
   );
 
   return (
-    <header className={headerClass}>
-      <div className="container mx-auto px-6 max-w-layout">
+    <header className="py-4 border-b border-theme">
+      <div className="max-w-layout mx-auto px-6 md:px-8">
         <div className="flex flex-row justify-between items-center">
-          {titleElement}
+          <a
+            href="/"
+            className="text-brand hover:text-brand-dark transition-colors"
+          >
+            {titleElement}
+          </a>
 
           {/* Desktop navigation */}
-          <div className="hidden md:flex items-center gap-3 md:gap-6">
-            <nav className="flex flex-wrap gap-3 md:gap-4">
+          <div className="hidden md:flex items-center gap-6">
+            <nav className="flex gap-6" aria-label="Main navigation">
               {navigation.map((item) => (
-                <a key={item.href} href={item.href} className={navLinkClass}>
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm text-theme hover:text-brand transition-colors"
+                >
                   {item.label}
                 </a>
               ))}
             </nav>
-            {variant === "cta" && cta && (
+            {cta && (
               <LinkButton
                 href={cta.buttonLink}
                 variant="accent"
@@ -114,6 +106,14 @@ export function Header({
                 {cta.buttonText}
               </LinkButton>
             )}
+            {showThemeToggle && (
+              <ThemeToggle
+                size="sm"
+                {...(themeToggleClassName
+                  ? { className: themeToggleClassName }
+                  : {})}
+              />
+            )}
           </div>
 
           {/* Mobile hamburger button */}
@@ -121,7 +121,10 @@ export function Header({
             variant="ghost"
             ssrOnClick="toggleMobileMenu()"
             type="button"
-            className="md:hidden p-2 -mr-2 h-auto text-theme hover:text-brand hover:bg-transparent"
+            className={cn(
+              "md:hidden p-2 h-auto",
+              "text-theme hover:text-brand hover:bg-transparent",
+            )}
             aria-label="Toggle navigation menu"
             aria-expanded="false"
             aria-controls="mobile-menu"
@@ -165,7 +168,7 @@ export function Header({
                 href={item.href}
                 // @ts-expect-error - onclick is valid HTML attribute for SSR
                 onclick="closeMobileMenu()"
-                className="text-theme hover:text-brand transition-colors text-sm py-1"
+                className="text-sm text-theme hover:text-brand transition-colors py-1"
               >
                 {item.label}
               </a>

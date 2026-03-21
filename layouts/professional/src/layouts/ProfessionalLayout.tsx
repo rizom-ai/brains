@@ -1,7 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
 import { Slot } from "@brains/site-builder-plugin";
-import { CompactHeader, Footer } from "@brains/ui-library";
+import { Header, Footer } from "@brains/ui-library";
 
 export interface ProfessionalLayoutProps {
   sections: ComponentChildren[];
@@ -24,7 +24,7 @@ export function ProfessionalLayout({
 }: ProfessionalLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme overflow-x-clip">
-      <CompactHeader
+      <Header
         title={siteInfo.title}
         navigation={siteInfo.navigation.primary}
         {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}

@@ -30,7 +30,6 @@ export function DefaultLayout({
       <Header
         title={siteInfo.title}
         navigation={siteInfo.navigation.primary}
-        variant="default"
         {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
       />
 

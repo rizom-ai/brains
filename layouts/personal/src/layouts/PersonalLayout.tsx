@@ -1,6 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
-import { CompactHeader } from "@brains/ui-library";
+import { Header } from "@brains/ui-library";
 
 export interface PersonalLayoutProps {
   sections: ComponentChildren[];
@@ -28,7 +28,7 @@ export function PersonalLayout({
 
   return (
     <div className="flex flex-col min-h-screen bg-theme">
-      <CompactHeader
+      <Header
         title={siteInfo.title}
         titleClassName="font-heading font-bold text-2xl"
         navigation={siteInfo.navigation.primary}
