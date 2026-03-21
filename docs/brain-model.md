@@ -140,31 +140,28 @@ export default defineBrain({
   },
 
   capabilities: [
-    // [factory, config] tuples
-    // Use static defaults for non-secret config
+    // [id, factory, config] tuples
     // Use env mappers ONLY for actual secrets
-    [systemPlugin, {}],
+    ["system", systemPlugin, {}],
     [
+      "git-sync",
       gitSyncPlugin,
       (env: BrainEnvironment) => ({
-        repo: "my-org/brain-backup", // static default — override in brain.yaml
-        authToken: env["GIT_SYNC_TOKEN"], // secret from .env
+        authToken: env["GIT_SYNC_TOKEN"],
         autoSync: true,
       }),
     ],
   ],
 
   interfaces: [
-    // [constructor, envMapper] tuples
-    // Non-secret config: use static defaults, override in brain.yaml plugins:
-    [MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
-    [WebserverInterface, () => ({})], // domain set via brain.yaml plugins.webserver
+    // [id, constructor, envMapper] tuples
+    ["mcp", MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
+    ["webserver", WebserverInterface, () => ({})],
     [
+      "matrix",
       MatrixInterface,
       (env) => ({
-        homeserver: "https://matrix.example.com", // override in brain.yaml
-        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "", // secret from .env
-        userId: "@bot-dev:example.com", // override in brain.yaml
+        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
       }),
     ],
   ],
