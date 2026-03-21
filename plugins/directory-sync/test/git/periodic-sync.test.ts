@@ -22,7 +22,7 @@ const emptySyncResult: SyncResult = {
 };
 
 describe("setupPeriodicGitSync", () => {
-  let cleanup: () => void;
+  let cleanup: (() => void) | undefined;
 
   afterEach(() => {
     cleanup?.();
@@ -41,6 +41,8 @@ describe("setupPeriodicGitSync", () => {
         pull: pullMock,
         commit: commitMock,
         push: pushMock,
+        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
+        hasLocalChanges: mock(async () => true),
       } as unknown as GitSync,
       { sync: syncMock } as unknown as DirectorySync,
       0.001, // interval in minutes (60ms)
@@ -74,6 +76,8 @@ describe("setupPeriodicGitSync", () => {
         pull: pullMock,
         commit: mock(async () => {}),
         push: mock(async () => {}),
+        hasLocalChanges: mock(async () => false),
+        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
       } as unknown as GitSync,
       { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
       0.001,
@@ -100,6 +104,7 @@ describe("setupPeriodicGitSync", () => {
         commit: commitMock,
         push: pushMock,
         hasLocalChanges: mock(async () => false),
+        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
       } as unknown as GitSync,
       { sync: syncMock } as unknown as DirectorySync,
       0.001,
@@ -132,6 +137,7 @@ describe("setupPeriodicGitSync", () => {
         commit: mock(async () => {}),
         push: mock(async () => {}),
         hasLocalChanges: mock(async () => false),
+        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
       } as unknown as GitSync,
       { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
       0.001, // 60ms interval — faster than the 80ms pull

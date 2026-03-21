@@ -4,13 +4,14 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { GitSync } from "../../src/lib/git-sync";
 
-function createGitMock(): Pick<GitSync, "commit" | "push"> & {
+function createGitMock(): Pick<GitSync, "commit" | "push" | "withLock"> & {
   commit: ReturnType<typeof mock>;
   push: ReturnType<typeof mock>;
 } {
   return {
     commit: mock(async () => {}),
     push: mock(async () => {}),
+    withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
   };
 }
 

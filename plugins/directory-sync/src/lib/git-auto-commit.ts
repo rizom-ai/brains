@@ -16,14 +16,14 @@ export function setupGitAutoCommit(
   logger: Logger,
 ): () => void {
   const debounce = new LeadingTrailingDebounce(() => {
-    void (async (): Promise<void> => {
+    void git.withLock(async () => {
       try {
         await git.commit();
         await git.push();
       } catch (error) {
         logger.error("Git auto-commit failed", { error });
       }
-    })();
+    });
   }, debounceMs);
 
   const events = ["entity:created", "entity:updated", "entity:deleted"];

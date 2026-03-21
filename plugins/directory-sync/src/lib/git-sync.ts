@@ -52,6 +52,27 @@ export class GitSync {
   private readonly authorEmail: string | undefined;
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
+  private lockQueue: Promise<void> = Promise.resolve();
+
+  /**
+   * Serialize git operations — prevents auto-commit and periodic-sync
+   * from racing each other on commit/push/pull.
+   */
+  withLock<T>(fn: () => Promise<T>): Promise<T> {
+    let resolve: (() => void) | undefined;
+    const next = new Promise<void>((r) => {
+      resolve = r;
+    });
+    const prev = this.lockQueue;
+    this.lockQueue = next;
+    return prev.then(async () => {
+      try {
+        return await fn();
+      } finally {
+        resolve?.();
+      }
+    });
+  }
 
   constructor(options: GitSyncOptions) {
     this.logger = options.logger;

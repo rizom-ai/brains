@@ -28,6 +28,7 @@ function createMockGitSync(): GitSync {
     hasRemote: (): boolean => true,
     getStatus: mock(async () => mockStatus),
     cleanup: (): void => {},
+    withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
   } as unknown as GitSync;
 }
 

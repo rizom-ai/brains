@@ -14,9 +14,18 @@ export function createGitTools(
       "Commit and push brain data to git. Use when users want to backup or sync their data.",
       z.object({}),
       async () => {
-        await gitSync.commit();
-        await gitSync.push();
-        return { success: true, message: "Git sync completed", data: {} };
+        try {
+          await gitSync.withLock(async () => {
+            await gitSync.commit();
+            await gitSync.push();
+          });
+          return { success: true, message: "Git sync completed", data: {} };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Git sync failed",
+          };
+        }
       },
     ),
     createTypedTool(
@@ -25,20 +34,27 @@ export function createGitTools(
       "Get git repository status — pending changes, branch, remote.",
       z.object({}),
       async () => {
-        const status = await gitSync.getStatus();
-        return {
-          success: true,
-          data: {
-            isRepo: status.isRepo,
-            hasChanges: status.hasChanges,
-            ahead: status.ahead,
-            behind: status.behind,
-            branch: status.branch,
-            lastCommit: status.lastCommit,
-            remote: status.remote,
-            files: status.files,
-          },
-        };
+        try {
+          const status = await gitSync.getStatus();
+          return {
+            success: true,
+            data: {
+              isRepo: status.isRepo,
+              hasChanges: status.hasChanges,
+              ahead: status.ahead,
+              behind: status.behind,
+              branch: status.branch,
+              lastCommit: status.lastCommit,
+              remote: status.remote,
+              files: status.files,
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Git status failed",
+          };
+        }
       },
       { visibility: "public" },
     ),

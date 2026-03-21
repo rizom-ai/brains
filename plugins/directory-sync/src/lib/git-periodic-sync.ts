@@ -25,26 +25,22 @@ export function setupPeriodicGitSync(
     running = true;
 
     try {
-      const { files } = await gitSync.pull();
+      await gitSync.withLock(async () => {
+        const { files } = await gitSync.pull();
 
-      if (files.length > 0) {
-        logger.info("Periodic sync: pulled changes", {
-          filesChanged: files.length,
-        });
-      }
+        if (files.length > 0) {
+          logger.info("Periodic sync: pulled changes", {
+            filesChanged: files.length,
+          });
+        }
 
-      await directorySync.sync();
+        await directorySync.sync();
 
-      // Only commit+push if there are actual changes
-      const hasLocal =
-        typeof gitSync.hasLocalChanges === "function"
-          ? await gitSync.hasLocalChanges()
-          : true; // fallback: always commit if method missing
-
-      if (files.length > 0 || hasLocal) {
-        await gitSync.commit();
-        await gitSync.push();
-      }
+        if (files.length > 0 || (await gitSync.hasLocalChanges())) {
+          await gitSync.commit();
+          await gitSync.push();
+        }
+      });
     } catch (error) {
       logger.error("Periodic git sync failed", { error });
     } finally {
