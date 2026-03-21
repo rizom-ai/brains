@@ -66,6 +66,21 @@ export const directorySyncConfigSchema = z.object({
     .optional()
     .describe("Delete entities from database when files are deleted")
     .default(true),
+  syncInterval: z
+    .number()
+    .min(1)
+    .optional()
+    .describe("Pull/push interval in minutes (requires git)")
+    .default(2),
+
+  git: z
+    .object({
+      repo: z.string().describe("GitHub repo (owner/name)"),
+      authToken: z.string().optional().describe("Auth token for private repos"),
+      authorName: z.string().optional().describe("Git commit author name"),
+      authorEmail: z.string().optional().describe("Git commit author email"),
+    })
+    .optional(),
 });
 
 export type DirectorySyncConfig = z.infer<typeof directorySyncConfigSchema>;
