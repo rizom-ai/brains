@@ -1,6 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
-import { Header } from "@brains/ui-library";
+import { CompactHeader } from "@brains/ui-library";
 
 export interface PersonalLayoutProps {
   sections: ComponentChildren[];
@@ -14,7 +14,7 @@ export interface PersonalLayoutProps {
 /**
  * Personal site layout — clean, blog-focused.
  *
- * Simple header + content + minimal footer.
+ * Compact header + content + minimal footer.
  * No wave divider, no complex footer — matches the mlp Paper design.
  */
 export function PersonalLayout({
@@ -28,15 +28,18 @@ export function PersonalLayout({
 
   return (
     <div className="flex flex-col min-h-screen bg-theme">
-      <Header
+      <CompactHeader
         title={siteInfo.title}
+        titleClassName="font-heading font-bold text-2xl"
         navigation={siteInfo.navigation.primary}
+        showThemeToggle
+        themeToggleClassName="bg-theme-toggle text-theme-toggle-icon hover:bg-theme-toggle-hover rounded-[10px]"
         {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
       />
 
       <main className="flex-grow flex flex-col">{sections}</main>
 
-      <footer className="flex flex-col md:flex-row justify-between items-center py-8 px-6 md:px-12 bg-theme border-t border-theme">
+      <footer className="flex flex-col md:flex-row justify-between items-center py-8 px-6 md:px-12 bg-white border-t border-theme">
         <div className="flex flex-col gap-1 mb-4 md:mb-0">
           <span className="text-brand font-heading font-bold text-lg">
             {siteInfo.title}
@@ -52,14 +55,16 @@ export function PersonalLayout({
             <a
               key={item.href}
               href={item.href}
-              className="text-theme-muted text-sm hover:text-brand transition-colors"
+              className="text-theme-muted text-[13px] hover:text-brand transition-colors"
             >
               {item.label}
             </a>
           ))}
         </nav>
         {siteInfo.copyright && (
-          <span className="text-theme-light text-xs">{siteInfo.copyright}</span>
+          <span className="text-theme-light text-[11px]">
+            {siteInfo.copyright}
+          </span>
         )}
       </footer>
     </div>

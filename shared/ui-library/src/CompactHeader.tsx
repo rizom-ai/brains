@@ -1,5 +1,8 @@
 import type { VNode } from "preact";
-import { Logo, Button, cn } from "@brains/ui-library";
+import { Logo } from "./Logo";
+import { Button } from "./Button";
+import { ThemeToggle } from "./ThemeToggle";
+import { cn } from "./lib/utils";
 import type { NavigationItem } from "@brains/plugins";
 
 /**
@@ -17,21 +20,47 @@ export interface CompactHeaderProps {
   logo?: boolean;
 
   /**
+   * Optional CSS class for the title/logo text
+   * Overrides the Logo component's default text styling
+   */
+  titleClassName?: string;
+
+  /**
    * Primary navigation items
    */
   navigation: NavigationItem[];
+
+  /**
+   * Show theme toggle button in header
+   */
+  showThemeToggle?: boolean;
+
+  /**
+   * Optional CSS class for the theme toggle button
+   */
+  themeToggleClassName?: string;
 }
 
 /**
- * Compact header for professional site
- * Minimal, clean navigation with tight spacing
- * Includes responsive hamburger menu for mobile
+ * Compact header — constrained to max-w-layout
+ * Minimal, clean navigation with responsive hamburger menu
  */
 export function CompactHeader({
   title,
   logo,
+  titleClassName,
   navigation,
+  showThemeToggle = false,
+  themeToggleClassName,
 }: CompactHeaderProps): VNode {
+  const titleElement = logo ? (
+    <Logo height={36} />
+  ) : titleClassName ? (
+    <span className={titleClassName}>{title}</span>
+  ) : (
+    <Logo title={title} height={36} />
+  );
+
   return (
     <header className="py-4 border-b border-theme">
       <div className="max-w-layout mx-auto px-6 md:px-8">
@@ -40,21 +69,31 @@ export function CompactHeader({
             href="/"
             className="text-brand hover:text-brand-dark transition-colors"
           >
-            <Logo title={logo ? undefined : title} height={36} />
+            {titleElement}
           </a>
 
           {/* Desktop navigation */}
-          <nav className="hidden md:flex gap-6" aria-label="Main navigation">
-            {navigation.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="text-sm text-theme hover:text-brand transition-colors"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+          <div className="hidden md:flex items-center gap-6">
+            <nav className="flex gap-6" aria-label="Main navigation">
+              {navigation.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm text-theme hover:text-brand transition-colors"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+            {showThemeToggle && (
+              <ThemeToggle
+                size="sm"
+                {...(themeToggleClassName
+                  ? { className: themeToggleClassName }
+                  : {})}
+              />
+            )}
+          </div>
 
           {/* Mobile hamburger button */}
           <Button
@@ -77,7 +116,6 @@ export function CompactHeader({
               viewBox="0 0 24 24"
               aria-hidden="true"
             >
-              {/* Hamburger icon */}
               <path
                 className="menu-icon"
                 strokeLinecap="round"
@@ -85,7 +123,6 @@ export function CompactHeader({
                 strokeWidth={2}
                 d="M4 6h16M4 12h16M4 18h16"
               />
-              {/* Close icon (hidden by default) */}
               <path
                 className="close-icon hidden"
                 strokeLinecap="round"

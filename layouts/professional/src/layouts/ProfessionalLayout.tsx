@@ -1,7 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
 import { Slot } from "@brains/site-builder-plugin";
-import { CompactHeader } from "../components/CompactHeader";
+import { CompactHeader } from "@brains/ui-library";
 import { AnimatedWaveDivider } from "@brains/ui-library";
 import { Footer } from "@brains/default-site-content";
 

@@ -44,6 +44,8 @@ export type { FooterContentProps } from "./FooterContent";
 // Header
 export { Header } from "./Header";
 export type { HeaderProps, CTAConfig } from "./Header";
+export { CompactHeader } from "./CompactHeader";
+export type { CompactHeaderProps } from "./CompactHeader";
 export { Logo, logoVariants } from "./Logo";
 export type { LogoProps } from "./Logo";
 

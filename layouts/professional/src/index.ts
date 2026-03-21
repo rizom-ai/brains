@@ -12,4 +12,3 @@ export {
 export { HomepageListDataSource } from "./datasources/homepage-datasource";
 export { AboutDataSource } from "./datasources/about-datasource";
 export { ProfessionalLayout } from "./layouts/ProfessionalLayout";
-export { CompactHeader } from "./components/CompactHeader";

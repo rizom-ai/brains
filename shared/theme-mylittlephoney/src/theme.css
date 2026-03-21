@@ -65,7 +65,7 @@
     /* Text Colors */
     --color-text: var(--palette-berry-wine);
     --color-text-muted: var(--palette-muted-plum);
-    --color-text-light: var(--palette-accent-magenta);
+    --color-text-light: var(--palette-soft-plum);
     --color-text-inverse: var(--palette-white);
     --color-heading: var(--palette-deep-purple);
 
@@ -84,9 +84,9 @@
     --color-gradient-start: var(--palette-white);
     --color-gradient-end: var(--palette-cotton-candy);
     --color-bg-gradient: linear-gradient(
-      180deg,
+      in oklab 180deg,
       var(--palette-white) 0%,
-      var(--palette-blush) 50%,
+      var(--palette-blush) 40%,
       var(--palette-cotton-candy) 100%
     );
 
@@ -198,7 +198,7 @@
     font-weight: 700;
   }
 
-  /* Navigation text - accent in light mode, sparkle gold in dark */
+  /* Navigation text - accent magenta in light mode, sparkle gold in dark */
   .text-nav { color: var(--palette-accent-magenta); }
   [data-theme="dark"] .text-nav { color: var(--palette-accent-sparkle-dark); }
 
@@ -214,9 +214,9 @@
     --color-logo: var(--palette-white);
   }
 
-  /* Header background - white in light, hot pink in dark */
+  /* Header — white bg with lilac border */
   .bg-header { background-color: var(--palette-white); }
-  [data-theme="dark"] .bg-header { background-color: var(--palette-brand-hot-pink); }
+  [data-theme="dark"] .bg-header { background-color: var(--palette-dark-bg-subtle); }
 
   /* Theme toggle background - hot pink in light, sparkle gold in dark */
   .bg-theme-toggle { background-color: var(--palette-brand-hot-pink); }
@@ -363,6 +363,24 @@
   [data-theme="dark"] .prose em {
     color: var(--palette-brand-candy);
   }
+}
+
+/* CTA subtitle text — cotton candy on brand background */
+@layer theme-override {
+  .text-cta-subtitle { color: var(--palette-cotton-candy); }
+  [data-theme="dark"] .text-cta-subtitle { color: var(--palette-text-muted-dark); }
+}
+
+/* Card & Badge utilities */
+@layer theme-override {
+  /* Post card cover gradient placeholder */
+  .card-cover-gradient {
+    background: linear-gradient(in oklab 135deg, var(--palette-brand-hot-pink) 0%, var(--palette-brand-orchid) 100%);
+  }
+
+  /* Tag badge bg — cotton candy in light, dark-bg-muted in dark */
+  .bg-bg-muted { background-color: var(--palette-cotton-candy); }
+  [data-theme="dark"] .bg-bg-muted { background-color: var(--palette-dark-bg-muted); }
 }
 
 /* Hero Background Components */
