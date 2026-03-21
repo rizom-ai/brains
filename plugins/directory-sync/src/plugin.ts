@@ -9,6 +9,7 @@ import { registerDirectorySyncJobHandlers } from "./lib/register-job-handlers";
 import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
 import { setupGitAutoCommit } from "./lib/git-auto-commit";
+import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
 import "./types/job-augmentation";
@@ -99,6 +100,16 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         5000,
         this.logger.child("GitAutoCommit"),
       );
+
+      // Periodic pull+import+push cycle
+      if (this.config.autoSync) {
+        setupPeriodicGitSync(
+          this.gitSync,
+          this.requireDirectorySync(),
+          this.config.syncInterval,
+          this.logger.child("GitPeriodicSync"),
+        );
+      }
     }
 
     if (this.config.initialSync) {
