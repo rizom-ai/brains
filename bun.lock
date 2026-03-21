@@ -675,24 +675,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shared/default-site-content": {
-      "name": "@brains/default-site-content",
-      "version": "0.0.1",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "lucide-preact": "^0.460.0",
-        "preact": "^10.27.2",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "^1.1.14",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "shared/eslint-config": {
       "name": "@brains/eslint-config",
       "version": "0.1.0",
@@ -1317,8 +1299,6 @@
     "@brains/dashboard": ["@brains/dashboard@workspace:plugins/dashboard"],
 
     "@brains/decks": ["@brains/decks@workspace:plugins/decks"],
-
-    "@brains/default-site-content": ["@brains/default-site-content@workspace:shared/default-site-content"],
 
     "@brains/directory-sync": ["@brains/directory-sync@workspace:plugins/directory-sync"],
 

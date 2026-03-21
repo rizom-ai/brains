@@ -1,8 +1,7 @@
 import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
 import { Slot } from "@brains/site-builder-plugin";
-import { CompactHeader } from "@brains/ui-library";
-import { Footer } from "@brains/ui-library";
+import { CompactHeader, Footer } from "@brains/ui-library";
 
 export interface ProfessionalLayoutProps {
   sections: ComponentChildren[];
