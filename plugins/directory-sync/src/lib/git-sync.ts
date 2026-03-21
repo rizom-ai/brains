@@ -197,6 +197,20 @@ export class GitSync {
   }
 
   /**
+   * Check if there are uncommitted local changes.
+   */
+  async hasLocalChanges(): Promise<boolean> {
+    const status = await this.git.status();
+    return (
+      status.modified.length > 0 ||
+      status.not_added.length > 0 ||
+      status.deleted.length > 0 ||
+      status.created.length > 0 ||
+      status.conflicted.length > 0
+    );
+  }
+
+  /**
    * Stage and commit all changes.
    */
   async commit(message?: string): Promise<void> {

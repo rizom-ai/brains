@@ -87,4 +87,60 @@ describe("setupPeriodicGitSync", () => {
 
     expect(pullMock.mock.calls.length).toBe(callsBefore);
   });
+
+  it("should skip commit+push when nothing changed", async () => {
+    const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
+    const syncMock = mock(async (): Promise<SyncResult> => emptySyncResult);
+    const commitMock = mock(async () => {});
+    const pushMock = mock(async () => {});
+
+    cleanup = setupPeriodicGitSync(
+      {
+        pull: pullMock,
+        commit: commitMock,
+        push: pushMock,
+        hasLocalChanges: mock(async () => false),
+      } as unknown as GitSync,
+      { sync: syncMock } as unknown as DirectorySync,
+      0.001,
+      createSilentLogger(),
+    );
+
+    await new Promise((r) => setTimeout(r, 150));
+
+    // Pull ran, but no remote changes + no local changes = skip commit+push
+    expect(pullMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(commitMock).not.toHaveBeenCalled();
+    expect(pushMock).not.toHaveBeenCalled();
+  });
+
+  it("should not overlap cycles", async () => {
+    let concurrentCalls = 0;
+    let maxConcurrent = 0;
+
+    const slowPull = mock(async (): Promise<PullResult> => {
+      concurrentCalls++;
+      maxConcurrent = Math.max(maxConcurrent, concurrentCalls);
+      await new Promise((r) => setTimeout(r, 80));
+      concurrentCalls--;
+      return { files: ["a.md"] };
+    });
+
+    cleanup = setupPeriodicGitSync(
+      {
+        pull: slowPull,
+        commit: mock(async () => {}),
+        push: mock(async () => {}),
+        hasLocalChanges: mock(async () => false),
+      } as unknown as GitSync,
+      { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
+      0.001, // 60ms interval — faster than the 80ms pull
+      createSilentLogger(),
+    );
+
+    await new Promise((r) => setTimeout(r, 300));
+
+    // Should never have more than 1 concurrent cycle
+    expect(maxConcurrent).toBe(1);
+  });
 });

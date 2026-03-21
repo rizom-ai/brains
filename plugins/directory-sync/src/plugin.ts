@@ -12,12 +12,14 @@ import { setupGitAutoCommit } from "./lib/git-auto-commit";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
+import { createGitTools } from "./tools/git-tools";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
 export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
   private directorySync?: DirectorySync;
   private gitSync?: GitSync;
+  private gitCleanups: Array<() => void> = [];
 
   constructor(config: Partial<DirectorySyncConfig> = {}) {
     super("directory-sync", packageJson, config, directorySyncConfigSchema);
@@ -93,21 +95,23 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         repo: this.config.git.repo,
       });
 
-      // Debounced commit+push after entity changes (5s batches rapid writes)
-      setupGitAutoCommit(
-        context.messaging,
-        this.gitSync,
-        5000,
-        this.logger.child("GitAutoCommit"),
+      this.gitCleanups.push(
+        setupGitAutoCommit(
+          context.messaging,
+          this.gitSync,
+          this.config.commitDebounce,
+          this.logger.child("GitAutoCommit"),
+        ),
       );
 
-      // Periodic pull+import+push cycle
       if (this.config.autoSync) {
-        setupPeriodicGitSync(
-          this.gitSync,
-          this.requireDirectorySync(),
-          this.config.syncInterval,
-          this.logger.child("GitPeriodicSync"),
+        this.gitCleanups.push(
+          setupPeriodicGitSync(
+            this.gitSync,
+            this.requireDirectorySync(),
+            this.config.syncInterval,
+            this.logger.child("GitPeriodicSync"),
+          ),
         );
       }
     }
@@ -133,11 +137,22 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
   protected override async getTools(): Promise<PluginTool[]> {
     const directorySync = this.requireDirectorySync();
-    return createDirectorySyncTools(directorySync, this.getContext(), this.id);
+    const tools = createDirectorySyncTools(
+      directorySync,
+      this.getContext(),
+      this.id,
+    );
+    if (this.gitSync) {
+      tools.push(...createGitTools(this.gitSync, this.id));
+    }
+    return tools;
   }
 
   protected override async onShutdown(): Promise<void> {
+    for (const cleanup of this.gitCleanups) cleanup();
+    this.gitCleanups = [];
     this.directorySync?.stopWatching();
+    this.gitSync?.cleanup();
   }
 
   public getDirectorySync(): DirectorySync | undefined {

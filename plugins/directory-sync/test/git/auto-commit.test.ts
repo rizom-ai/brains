@@ -94,7 +94,7 @@ describe("setupGitAutoCommit", () => {
     expect(git.push).toHaveBeenCalledTimes(1);
   });
 
-  it("should not commit before debounce fires", async () => {
+  it("should commit immediately on first event (leading edge)", async () => {
     const { messaging } = createTestMessaging();
     setupGitAutoCommit(
       messaging,
@@ -109,6 +109,62 @@ describe("setupGitAutoCommit", () => {
       entityId: "1",
     });
 
-    expect(git.commit).toHaveBeenCalledTimes(0);
+    // Leading edge fires immediately
+    expect(git.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it("should cancel trailing commit on cleanup", async () => {
+    const { messaging } = createTestMessaging();
+    const cleanup = setupGitAutoCommit(
+      messaging,
+      git as unknown as GitSync,
+      50,
+      createSilentLogger(),
+    );
+
+    // First event → leading commit fires immediately
+    await messaging.send("entity:created", {
+      entity: {},
+      entityType: "post",
+      entityId: "1",
+    });
+    // Second event → schedules trailing commit
+    await messaging.send("entity:updated", {
+      entity: {},
+      entityType: "post",
+      entityId: "2",
+    });
+
+    // Cleanup before trailing fires
+    cleanup();
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Only the leading commit, trailing was cancelled
+    expect(git.commit).toHaveBeenCalledTimes(1);
+  });
+
+  it("should batch rapid events into one commit", async () => {
+    const { messaging } = createTestMessaging();
+    setupGitAutoCommit(
+      messaging,
+      git as unknown as GitSync,
+      50,
+      createSilentLogger(),
+    );
+
+    // Fire 5 events rapidly
+    for (let i = 0; i < 5; i++) {
+      await messaging.send("entity:updated", {
+        entity: {},
+        entityType: "post",
+        entityId: String(i),
+      });
+    }
+
+    await new Promise((r) => setTimeout(r, 100));
+
+    // Should batch into at most 2 commits (leading + trailing)
+    expect(git.commit.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(git.commit.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 });

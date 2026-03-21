@@ -3,8 +3,8 @@ import type { GitSync } from "./git-sync";
 import type { DirectorySync } from "./directory-sync";
 
 /**
- * Start a periodic pull → import → commit → push cycle.
- *
+ * Periodic pull → import → commit → push cycle.
+ * Skips commit+push when nothing changed (no remote files pulled, no local changes).
  * Returns a cleanup function that stops the timer.
  */
 export function setupPeriodicGitSync(
@@ -33,12 +33,18 @@ export function setupPeriodicGitSync(
         });
       }
 
-      // Import all files from disk (pull may have added/changed files)
       await directorySync.sync();
 
-      // Commit + push any local changes
-      await gitSync.commit();
-      await gitSync.push();
+      // Only commit+push if there are actual changes
+      const hasLocal =
+        typeof gitSync.hasLocalChanges === "function"
+          ? await gitSync.hasLocalChanges()
+          : true; // fallback: always commit if method missing
+
+      if (files.length > 0 || hasLocal) {
+        await gitSync.commit();
+        await gitSync.push();
+      }
     } catch (error) {
       logger.error("Periodic git sync failed", { error });
     } finally {

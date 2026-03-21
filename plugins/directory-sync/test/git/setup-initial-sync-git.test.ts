@@ -82,6 +82,7 @@ const baseConfig: DirectorySyncConfig = {
   seedContent: false,
   deleteOnFileRemoval: true,
   syncInterval: 2,
+  commitDebounce: 5000,
 };
 
 describe("setupInitialSync with git", () => {

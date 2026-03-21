@@ -72,6 +72,12 @@ export const directorySyncConfigSchema = z.object({
     .optional()
     .describe("Pull/push interval in minutes (requires git)")
     .default(2),
+  commitDebounce: z
+    .number()
+    .min(100)
+    .optional()
+    .describe("Debounce delay in ms before git commit after entity changes")
+    .default(5000),
 
   git: z
     .object({
