@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -257,7 +258,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/blog": "workspace:*",
-        "@brains/default-site-content": "workspace:*",
         "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
