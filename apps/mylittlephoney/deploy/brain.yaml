@@ -1,4 +1,5 @@
 brain: "@brains/rover"
+site: "@brains/site-mylittlephoney"
 
 # Production instance
 domain: mylittlephoney.com
@@ -12,8 +13,6 @@ add:
 
 # Plugin overrides
 plugins:
-  site-builder:
-    themeCSS: "@brains/theme-mylittlephoney"
   git-sync:
     repo: rizom-ai/mylittlephoney-content
     authorName: mylittlephoney

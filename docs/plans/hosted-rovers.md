@@ -2,27 +2,42 @@
 
 ## Vision
 
-Ranger (the collective brain) provisions and manages hosted Rover instances for users. A user signs up, gets a personal Rover running on Rizom infrastructure, and interacts with it via Discord and A2A.
+Ranger (the collective brain) provisions and manages hosted Rover instances for users. A user signs up, gets a personal Rover running on Rizom infrastructure, and talks to it via Discord — no bot setup, no tokens, no developer portal.
 
 ## Decisions
 
 ### Instance Model
 
 - **One container per rover** on Fly.io (Machines API)
-- Subdomain assigned: `{name}.rizom.ai` — custom domains later
+- Subdomain assigned: `{name}.rover.rizom.ai` — custom domains later
 - Persistent volume per instance (brain-data + SQLite)
 - Auto-stop idle machines for cost savings (Fly native)
 
 ### Preset
 
-- Start with **minimal preset only** (9 plugins: system, note, link, wishlist, directory-sync, git-sync, mcp, discord, a2a)
+- Start with **minimal preset only** (8 plugins: system, note, link, wishlist, directory-sync, git-sync, mcp, a2a)
+- No Discord in the rover itself — ranger handles Discord for hosted rovers
 - Ranger is preset-aware — can offer different presets later
 
 ### Configuration
 
 - Ranger **generates brain.yaml** — user never touches it
 - `preset: minimal` hardcoded initially
-- Ranger writes instance-specific config: subdomain, Discord bot token, git repo, AI endpoint
+- Ranger writes instance-specific config: subdomain, git repo, AI endpoint
+
+### Discord — Shared Bot Gateway
+
+One shared "Rover" Discord bot application (like MEE6/Carl-bot model):
+
+- **One bot, many servers** — users click an invite link to add the Rover bot to their Discord server
+- **Ranger is the gateway** — ranger's Discord bot receives all messages, looks up which rover owns that server, and proxies via A2A
+- **Per-server mapping** — ranger stores: Discord server ID → rover A2A endpoint
+- **Zero setup for users** — no bot tokens, no developer portal, just click "Add Rover"
+- **Two modes**:
+  - **Managed Discord** (default for hosted) — ranger proxies Discord ↔ rover via A2A
+  - **Own Discord** (upgrade/self-hosted) — rover runs its own bot with its own token, full control
+
+This means hosted rovers don't need a Discord plugin. They just need A2A. Messages arrive the same way regardless of source.
 
 ### AI
 
@@ -34,13 +49,6 @@ Ranger (the collective brain) provisions and manages hosted Rover instances for 
 - **Hybrid**: collect basics at signup (name, one-liner bio, email), seed the rover
 - User refines everything else via conversation with their rover
 
-### Discord
-
-- **Own Discord bot per rover**
-- Created programmatically on **Rizom Discord server** initially
-- Each rover gets its own channel
-- "Bring your own server" as later upgrade
-
 ### Git
 
 - **Ranger creates the repo** (GitHub, under rizom-ai org)
@@ -48,19 +56,39 @@ Ranger (the collective brain) provisions and manages hosted Rover instances for 
 
 ### User Access
 
-- User talks to rover **directly** via Discord, A2A, MCP
+- User talks to rover via **Discord** (through ranger's shared bot) or **A2A** (direct)
 - Admin operations (upgrade preset, change config) through ranger
 
 ### Ranger's Role
 
 - Ranger **is a brain** (`@brains/ranger`)
-- Provisioning is a **plugin** (`rover-hosting`) with MCP tools:
-  - `create_rover` — provision container, repo, Discord bot, brain.yaml
-  - `delete_rover` — tear down instance and resources
-  - `upgrade_rover` — redeploy instance with a newer image tag
-  - `list_rovers` — list managed instances
-  - `get_rover_status` — health check
-- Conversational management: "create a rover for jane@example.com" in Ranger Discord
+- Two new plugins:
+  - **`rover-hosting`** — provisioning tools:
+    - `create_rover` — provision container, repo, brain.yaml
+    - `delete_rover` — tear down instance and resources
+    - `upgrade_rover` — redeploy instance with a newer image tag
+    - `list_rovers` — list managed instances
+    - `get_rover_status` — health check
+  - **`rover-gateway`** — Discord ↔ A2A proxy:
+    - Maintains mapping: Discord server → rover A2A endpoint
+    - Intercepts messages meant for rovers (not ranger itself)
+    - Forwards via A2A, posts responses back
+    - `link_server` — associate a Discord server with a rover instance
+    - `unlink_server` — remove association
+- Conversational management: "Hey Ranger, set me up with a rover" in Discord
+
+### Onboarding Flow
+
+```
+1. User talks to Ranger in Discord: "I want a rover"
+2. Ranger collects: name, bio, email
+3. Ranger provisions: Fly container, git repo, brain.yaml with preset: minimal
+4. Ranger seeds identity (anchor profile, brain character, site info)
+5. Ranger sends user the bot invite link: "Add Rover to your server"
+6. User clicks invite → Rover bot joins their Discord server
+7. Ranger maps: user's server ID → rover A2A endpoint
+8. User mentions @Rover in their server → ranger proxies → rover responds
+```
 
 ### Lifecycle
 
@@ -80,7 +108,7 @@ Ranger (the collective brain) provisions and manages hosted Rover instances for 
 ## Prerequisites
 
 1. **Enable-based presets** (`docs/plans/enable-presets.md`) — ranger needs to write `preset: minimal` in brain.yaml
-2. **Chat SDK migration** (`docs/plans/chat-interface-sdk.md`) — if we want programmatic Discord bot provisioning
+2. **A2A protocol** — rovers must accept incoming agent requests for the gateway to work
 
 ## Open Questions (for later)
 
@@ -89,3 +117,5 @@ Ranger (the collective brain) provisions and manages hosted Rover instances for 
 - Backup/restore strategy
 - Monitoring and alerting for managed instances
 - User migration path from hosted to self-hosted (and vice versa)
+- Git repo strategy at scale (per-repo vs monorepo with branches vs self-hosted Gitea)
+- MCP access for hosted rovers (HTTP endpoint needed, minimal preset has no webserver)
