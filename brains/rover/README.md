@@ -111,6 +111,47 @@ Your files sync bidirectionally. Edit in Obsidian, Rover sees it. Add something 
 
 Version control works too. Your brain is just files, so Git works exactly as you'd expect. Track changes, branch experiments, roll back mistakes.
 
+## Presets
+
+Pick a preset in your `brain.yaml` to control what Rover can do:
+
+| Plugin               | minimal | default | pro |
+| -------------------- | ------- | ------- | --- |
+| **system**           | x       | x       | x   |
+| **note**             | x       | x       | x   |
+| **link**             | x       | x       | x   |
+| **wishlist**         | x       | x       | x   |
+| **directory-sync**   | x       | x       | x   |
+| **git-sync**         | x       | x       | x   |
+| **mcp**              | x       | x       | x   |
+| **discord**          | x       | x       | x   |
+| **a2a**              | x       | x       | x   |
+| **image**            |         | x       | x   |
+| **dashboard**        |         | x       | x   |
+| **blog**             |         | x       | x   |
+| **analytics**        |         | x       | x   |
+| **obsidian-vault**   |         | x       | x   |
+| **site-builder**     |         | x       | x   |
+| **webserver**        |         | x       | x   |
+| **decks**            |         |         | x   |
+| **portfolio**        |         |         | x   |
+| **topics**           |         |         | x   |
+| **content-pipeline** |         |         | x   |
+| **social-media**     |         |         | x   |
+| **newsletter**       |         |         | x   |
+| **matrix**           |         |         | x   |
+
+- **minimal** (9) — Headless. Notes, links, wishlist, sync, chat. No website.
+- **default** (16) — Personal site. Blog, images, dashboard, analytics, Obsidian sync.
+- **pro** (23) — Full production. Chat bots, publishing automation, portfolios, newsletters.
+
+Fine-tune with `add` and `remove`:
+
+```yaml
+preset: default
+add: [decks, portfolio]
+```
+
 ## Get Your Own Rover
 
 Want to set up your own brain with Rover? The whole thing is open source.
