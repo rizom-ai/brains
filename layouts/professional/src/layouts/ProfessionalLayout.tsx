@@ -2,8 +2,7 @@ import type { JSX, ComponentChildren } from "preact";
 import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
 import { Slot } from "@brains/site-builder-plugin";
 import { CompactHeader } from "@brains/ui-library";
-import { AnimatedWaveDivider } from "@brains/ui-library";
-import { Footer } from "@brains/default-site-content";
+import { Footer } from "@brains/ui-library";
 
 export interface ProfessionalLayoutProps {
   sections: ComponentChildren[];
@@ -34,7 +33,7 @@ export function ProfessionalLayout({
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
 
-      <AnimatedWaveDivider />
+      <div className="section-divider" />
 
       <Footer
         primaryNavigation={siteInfo.navigation.primary}

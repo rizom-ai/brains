@@ -38,6 +38,7 @@ export { CTASection } from "./CTASection";
 export type { CTASectionProps } from "./CTASection";
 
 // Footer
+export { Footer } from "./Footer";
 export { FooterContent } from "./FooterContent";
 export type { FooterContentProps } from "./FooterContent";
 

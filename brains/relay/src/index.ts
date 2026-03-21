@@ -16,7 +16,7 @@ import { topicsPlugin } from "@brains/topics";
 import { linkPlugin } from "@brains/link";
 import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
-import defaultSite from "@brains/site-default";
+import rangerSite from "@brains/site-ranger";
 
 /**
  * Relay Brain Model
@@ -34,7 +34,7 @@ import defaultSite from "@brains/site-default";
 export default defineBrain({
   name: "relay",
   version: "1.0.0",
-  site: defaultSite,
+  site: rangerSite,
 
   capabilities: [
     ["system", systemPlugin, {}],

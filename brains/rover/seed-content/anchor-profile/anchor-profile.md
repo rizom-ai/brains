@@ -1,31 +1,33 @@
 ---
-name: Your Name
+name: Your Name Here
 description: >-
-  A short bio about yourself — what you do, what you care about,
-  and what you're working on.
-tagline: What you're building
+  Professional cat herder and amateur philosopher. Replace this
+  with something that actually describes you.
+tagline: Building things that matter (or at least that's the plan)
 intro: >-
-  A one-liner that captures your current focus and what makes
-  your work interesting.
+  This is the part where you explain what you do in a way that
+  makes people want to keep reading. No pressure.
 expertise:
-  - Your Field
-  - Another Skill
-  - A Third Area
+  - The thing you're best at
+  - The thing you're pretty good at
+  - The thing you're learning
 currentFocus: >-
-  What you're working on right now and what kind of collaborators
-  or opportunities you're looking for.
+  Whatever's keeping you up at night — in a good way. What you're
+  building, writing, or figuring out right now.
 availability: >-
-  Open to consulting, speaking, collaborations, or whatever
-  applies to you.
+  Open to interesting conversations, collaborations, and
+  opportunities that don't start with "quick call."
 website: https://example.com
 email: hello@example.com
 socialLinks:
   - platform: github
     url: https://github.com/example
-    label: View my code on GitHub
+    label: GitHub
   - platform: linkedin
     url: https://www.linkedin.com/in/example
-    label: Connect on LinkedIn
+    label: LinkedIn
 ---
 
-Tell your story here. How did you get to where you are? What drives your work?
+This is where your story goes. How you got here, what drives you, why anyone should care. Write it like you're talking to someone at a dinner party, not a recruiter.
+
+(Delete this and write your own. Rover won't judge.)

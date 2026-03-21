@@ -1,9 +1,9 @@
 ---
-title: My Site
-description: Personal knowledge base and professional showcase
+title: Your Corner of the Internet
+description: A brain-powered site that grows with you
 themeMode: light
 cta:
-  heading: Let's work together
+  heading: Say hello
   buttonText: Get in Touch
   buttonLink: mailto:hello@example.com
 ---

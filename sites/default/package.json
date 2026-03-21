@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-default",
   "version": "0.1.0",
-  "description": "Default site package — default theme + default layouts",
+  "description": "Default site package — clean professional layout with default theme",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@brains/app": "workspace:*",
-    "@brains/default-site-content": "workspace:*",
+    "@brains/layout-professional": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/theme-default": "workspace:*",
     "preact": "^10.27.2"

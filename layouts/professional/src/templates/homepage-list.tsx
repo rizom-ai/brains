@@ -4,7 +4,6 @@ import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-builder-plugin";
 import {
-  AnimatedWaveDivider,
   ContentSection,
   CTASection,
   type ContentItem,
@@ -92,7 +91,7 @@ export const HomepageListLayout = ({
           </div>
         </header>
 
-        <AnimatedWaveDivider />
+        <div className="section-divider" />
 
         {/* Main Content — Single shared container */}
         <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-24">

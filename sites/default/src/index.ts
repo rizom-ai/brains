@@ -1,31 +1,56 @@
 import type { Plugin } from "@brains/plugins";
 import {
-  defaultSitePlugin,
-  DefaultLayout,
-  MinimalLayout,
+  professionalSitePlugin,
+  ProfessionalLayout,
   routes,
-} from "@brains/default-site-content";
+} from "@brains/layout-professional";
 import themeCSS from "@brains/theme-default";
 import type { SitePackage } from "@brains/app";
 
 /**
- * Default site package — default theme + default layouts.
+ * Rover default site package — clean default theme + professional layout.
  *
- * A clean, minimal visual identity suitable as the baseline
- * for any brain. Bundles the standard default layout, intro/about
- * templates, and the default color scheme.
+ * A neutral professional site identity suitable as the out-of-box
+ * experience for the rover brain model. Uses the default blue/orange
+ * palette without decorative animations or branded styling.
  */
 const site: SitePackage = {
   theme: themeCSS,
   layouts: {
-    default: DefaultLayout,
-    minimal: MinimalLayout,
+    default: ProfessionalLayout,
   },
   routes,
   plugin: (config?: Record<string, unknown>): Plugin =>
-    defaultSitePlugin(config ?? {}),
+    professionalSitePlugin(config ?? {}),
   entityRouteConfig: {
     post: { label: "Post" },
+    deck: { label: "Deck" },
+    project: { label: "Project" },
+    series: {
+      label: "Series",
+      navigation: { slot: "secondary" },
+    },
+    topic: {
+      label: "Topic",
+      navigation: { slot: "secondary" },
+    },
+    link: {
+      label: "Link",
+      navigation: { slot: "secondary" },
+    },
+    base: {
+      label: "Note",
+      navigation: { show: false },
+    },
+    "social-post": {
+      label: "Social Post",
+      pluralName: "social-posts",
+      navigation: { slot: "secondary" },
+    },
+    newsletter: {
+      label: "Newsletter",
+      navigation: { slot: "secondary" },
+    },
   },
 };
 

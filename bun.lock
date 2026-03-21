@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -65,7 +64,6 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/dashboard": "workspace:*",
-        "@brains/default-site-content": "workspace:*",
         "@brains/directory-sync": "workspace:*",
         "@brains/discord": "workspace:*",
         "@brains/git-sync": "workspace:*",
@@ -75,7 +73,7 @@
         "@brains/note": "workspace:*",
         "@brains/products": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
-        "@brains/site-default": "workspace:*",
+        "@brains/site-ranger": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/system": "workspace:*",
         "@brains/webserver": "workspace:*",
@@ -99,7 +97,7 @@
         "@brains/mcp": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
-        "@brains/site-default": "workspace:*",
+        "@brains/site-ranger": "workspace:*",
         "@brains/summary": "workspace:*",
         "@brains/system": "workspace:*",
         "@brains/topics": "workspace:*",
@@ -841,6 +839,19 @@
         "typescript": "^5.3.3",
       },
     },
+    "shared/theme-rizom": {
+      "name": "@brains/theme-rizom",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-base": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/theme-swiss": {
       "name": "@brains/theme-swiss",
       "version": "0.1.0",
@@ -1173,7 +1184,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/app": "workspace:*",
-        "@brains/default-site-content": "workspace:*",
+        "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/theme-default": "workspace:*",
         "preact": "^10.27.2",
@@ -1193,6 +1204,27 @@
         "@brains/layout-personal": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/theme-mylittlephoney": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "sites/ranger": {
+      "name": "@brains/site-ranger",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/site-builder-plugin": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/theme-rizom": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "lucide-preact": "^0.460.0",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1354,6 +1386,8 @@
 
     "@brains/site-mylittlephoney": ["@brains/site-mylittlephoney@workspace:sites/mylittlephoney"],
 
+    "@brains/site-ranger": ["@brains/site-ranger@workspace:sites/ranger"],
+
     "@brains/site-yeehaa": ["@brains/site-yeehaa@workspace:sites/yeehaa"],
 
     "@brains/social-media": ["@brains/social-media@workspace:plugins/social-media"],
@@ -1381,6 +1415,8 @@
     "@brains/theme-mylittlephoney": ["@brains/theme-mylittlephoney@workspace:shared/theme-mylittlephoney"],
 
     "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
+
+    "@brains/theme-rizom": ["@brains/theme-rizom@workspace:shared/theme-rizom"],
 
     "@brains/theme-swiss": ["@brains/theme-swiss@workspace:shared/theme-swiss"],
 

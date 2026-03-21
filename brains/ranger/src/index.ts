@@ -19,42 +19,7 @@ import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
-import defaultSite from "@brains/site-default";
-import {
-  DefaultCTALayout,
-  CTAFooterLayout,
-} from "@brains/default-site-content";
-
-/**
- * Customize routes for collective/community use:
- * - Home page uses CTA footer layout with about template showing HOME entity
- * - Home is hidden from navigation (it's the landing page)
- */
-const routes = defaultSite.routes.map((route) => {
-  if (route.id === "home") {
-    return {
-      ...route,
-      layout: "cta-footer",
-      navigation: {
-        show: false,
-        slot: route.navigation?.slot ?? ("primary" as const),
-        priority: route.navigation?.priority ?? 50,
-        label: route.navigation?.label,
-      },
-      sections: [
-        {
-          id: "main",
-          template: "about",
-          dataQuery: {
-            entityType: "base",
-            query: { id: "HOME" },
-          },
-        },
-      ],
-    };
-  }
-  return route;
-});
+import rangerSite from "@brains/site-ranger";
 
 /**
  * Ranger Brain Model
@@ -73,15 +38,7 @@ const routes = defaultSite.routes.map((route) => {
 export default defineBrain({
   name: "ranger",
   version: "1.0.0",
-  site: {
-    ...defaultSite,
-    routes,
-    layouts: {
-      ...defaultSite.layouts,
-      "default-cta": DefaultCTALayout,
-      "cta-footer": CTAFooterLayout,
-    },
-  },
+  site: rangerSite,
 
   capabilities: [
     ["system", systemPlugin, {}],
@@ -129,28 +86,7 @@ export default defineBrain({
         },
       }),
     ],
-    [
-      "site-builder",
-      siteBuilderPlugin,
-      {
-        entityRouteConfig: {
-          "social-post": {
-            label: "Social Post",
-            navigation: {
-              show: true,
-              slot: "secondary",
-              priority: 40,
-            },
-          },
-          link: {
-            label: "Link",
-            navigation: {
-              slot: "secondary",
-            },
-          },
-        },
-      },
-    ],
+    ["site-builder", siteBuilderPlugin, {}],
   ],
 
   interfaces: [
