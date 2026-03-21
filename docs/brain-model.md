@@ -183,8 +183,8 @@ export default defineBrain({
 
 ### Capabilities vs Interfaces
 
-- **Capabilities** are `[factory, config]` tuples — the factory is called with the config to create a plugin instance.
-- **Interfaces** are `[constructor, envMapper]` tuples — the constructor is called with `new` and the env mapper provides config from environment variables.
+- **Capabilities** are `[id, factory, config]` tuples — the id is used for preset/override matching, the factory is called with the config to create a plugin instance.
+- **Interfaces** are `[id, constructor, envMapper]` tuples — the id is used for preset/override matching, the constructor is called with `new` and the env mapper provides config. Return `null` from the env mapper to skip the interface (e.g. when credentials are missing).
 - Both support env-mapped configs: `(env: BrainEnvironment) => config` for values that come from the deployment environment.
 
 ### Env Mappers — Secrets Only
@@ -193,14 +193,13 @@ Env mapper functions receive a `BrainEnvironment` (a `Record<string, string | un
 
 ```typescript
 // ✅ Good: env mapper only wires the secret
-[gitSyncPlugin, (env: BrainEnvironment) => ({
-  repo: "my-org/brain-backup",       // static default (override in brain.yaml)
+["git-sync", gitSyncPlugin, (env: BrainEnvironment) => ({
   authToken: env["GIT_SYNC_TOKEN"],  // secret from .env
-  autoSync: true,                     // static default
+  autoSync: true,
 })],
 
 // ❌ Bad: using env for non-secret config
-[gitSyncPlugin, (env: BrainEnvironment) => ({
+["git-sync", gitSyncPlugin, (env: BrainEnvironment) => ({
   repo: env["GIT_SYNC_REPO"] || "default/repo",  // not a secret!
   authToken: env["GIT_SYNC_TOKEN"],
 })],
@@ -235,9 +234,10 @@ When `brains` starts:
 1. **Read** `brain.yaml` → parse instance overrides
 2. **Import** the brain package (dynamic `import()`)
 3. **Resolve** `(definition, env, overrides)` → `AppConfig`:
-   - Instantiate capabilities and interfaces from definition tuples
-   - Skip plugins listed in `disable`
-   - Apply `plugins:` config overrides (re-instantiate with merged config)
+   - Resolve preset → compute active plugin IDs (preset + add - remove)
+   - Resolve site package (brain.yaml `site:` overrides brain model default)
+   - Instantiate only active capabilities and interfaces from definition tuples
+   - Apply `plugins:` config overrides (merged with base config)
    - Apply top-level overrides (`name`, `logLevel`, `database`, `domain`, `port`)
    - Extract AI keys from env
 4. **Run** via `handleCLI(config)`
@@ -332,11 +332,4 @@ apps/team-brain/deploy/       # Production deploy artifacts
 │   MATRIX_ACCESS_TOKEN=...   # prod bot token
 ```
 
-The build script (`brain-build`) handles both flows:
-
-- **brain.yaml present**: generates a static entrypoint, bundles with the brain package, copies `brain.yaml` to `dist/`
-- **brain.config.ts present** (legacy): bundles directly as before
-
-## Backward Compatibility
-
-`defineConfig()` still works for brains that haven't migrated. The new system is additive — brain.yaml + `defineBrain()` is the recommended path forward, but existing `brain.config.ts` files continue to work.
+The build script (`brain-build`) generates a static entrypoint from `brain.yaml`, bundles with the brain package, and copies `brain.yaml` to `dist/`.

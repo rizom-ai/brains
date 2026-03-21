@@ -51,6 +51,7 @@ const minimal = [
   "directory-sync",
   "git-sync",
   "mcp",
+  "discord",
   "a2a",
 ];
 
@@ -63,7 +64,6 @@ const standard = [
   "analytics",
   "obsidian-vault",
   "site-builder",
-  "discord",
   "webserver",
 ];
 
