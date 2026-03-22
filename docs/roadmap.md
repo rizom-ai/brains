@@ -29,28 +29,19 @@ Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles f
 ### Other (2026-03)
 
 - A2A interface (Agent Card, JSON-RPC, task manager, client tool)
+- A2A authentication phase 1 (bearer tokens)
 - Agent state machine (xstate conversations with confirmation)
 - Varlock env validation
+- Consistent secret handling (all secrets in brain.yaml)
 - CMS excludes base notes (free-form markdown with `---`)
 - Rover default site + seed content
 - Obsidian bases/fileClasses integration
 - Pre-compiled hydration for site builds
+- mylittlephoney.com deployed to Hetzner
 
 ---
 
 ## In Progress
-
-### Deploy mylittlephoney.com
-
-Deploy to Hetzner using existing pipeline. Only needs `.env.production` + DNS. ([plan](./plans/deploy-mlp-hetzner.md))
-
-### A2A Authentication
-
-Phase 1 (bearer tokens) done. Phase 2 (OAuth) and Phase 3 (mTLS) pending. ([plan](./plans/2026-03-15-a2a-authentication.md))
-
-### Consistent Secret Handling
-
-Move all secrets from env mappers to `brain.yaml` `${...}` interpolation. Brain models become secret-free. Resolver skips plugins gracefully on missing config. ([plan](./plans/consistent-secrets.md))
 
 ### Entity Update & Delete Tools
 
@@ -68,10 +59,6 @@ Lazy loading, WebP conversion + resize with sharp, responsive srcset, fast `/ima
 
 Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. `agent_add`, `agent_list`, `agent_trust`, `agent_remove` tools. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
 
-### Chat SDK Migration
-
-Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix (removes native crypto). Phase 2: build `@brains/chat`. Adds Slack, Teams, Telegram, WhatsApp. ([plan](./plans/chat-interface-sdk.md))
-
 ### rizom.work
 
 New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03-14-rizom-work.md))
@@ -79,6 +66,14 @@ New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03
 ---
 
 ## Planned (Medium-term)
+
+### Chat SDK Migration
+
+Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix (removes native crypto). Phase 2: build `@brains/chat`. Adds Slack, Teams, Telegram, WhatsApp. ([plan](./plans/chat-interface-sdk.md))
+
+### A2A Authentication (Phase 2+)
+
+OAuth 2.0 Client Credentials, then Cloudflare mTLS. ([plan](./plans/2026-03-15-a2a-authentication.md))
 
 ### Hosted Rovers
 
