@@ -43,6 +43,10 @@ Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles f
 
 ## In Progress
 
+### A2A Non-Blocking Messages
+
+Default to async task flow — return "working" immediately, caller polls `tasks/get`. Prevents Caddy timeouts on long agent conversations. Client polls transparently. ([plan](./plans/a2a-async-messaging.md))
+
 ### Entity Update & Delete Tools
 
 Generic `entity_update` (with diff confirmation) and `entity_delete` (with title+preview confirmation) in system plugin. Tests first. ([plan](./plans/entity-update-delete.md))
