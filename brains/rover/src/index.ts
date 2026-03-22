@@ -1,4 +1,4 @@
-import { defineBrain } from "@brains/app";
+import { defineBrain, type PluginConfig } from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
@@ -173,11 +173,11 @@ export default defineBrain({
   ],
 
   interfaces: [
-    ["mcp", MCPInterface, () => ({})],
-    ["matrix", MatrixInterface, () => ({})],
-    ["discord", DiscordInterface, () => ({})],
-    ["webserver", WebserverInterface, () => ({})],
-    ["a2a", A2AInterface, () => ({})],
+    ["mcp", MCPInterface, (): PluginConfig => ({})],
+    ["matrix", MatrixInterface, (): PluginConfig => ({})],
+    ["discord", DiscordInterface, (): PluginConfig => ({})],
+    ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["a2a", A2AInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {
