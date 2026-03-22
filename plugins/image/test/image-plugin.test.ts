@@ -1,21 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { ImagePlugin } from "../src";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 
 describe("ImagePlugin", () => {
+  let harness: PluginTestHarness<ImagePlugin>;
   let plugin: ImagePlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(() => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger, dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness<ImagePlugin>({
+      dataDir: "/tmp/test-datadir",
+    });
     plugin = new ImagePlugin();
-  });
-
-  afterEach(() => {
-    mock.restore();
   });
 
   it("should be instantiable", () => {
@@ -33,18 +31,15 @@ describe("ImagePlugin", () => {
 
   describe("initialization", () => {
     it("should initialize with default config", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
       const config = plugin.getConfig();
       expect(config.defaultAspectRatio).toBe("16:9");
     });
 
     it("should initialize with custom config", async () => {
-      const customPlugin = new ImagePlugin({
-        defaultAspectRatio: "1:1",
-      });
-
-      await customPlugin.register(mockShell);
+      const customPlugin = new ImagePlugin({ defaultAspectRatio: "1:1" });
+      await harness.installPlugin(customPlugin);
 
       const config = customPlugin.getConfig();
       expect(config.defaultAspectRatio).toBe("1:1");
@@ -53,13 +48,12 @@ describe("ImagePlugin", () => {
 
   describe("plugin capabilities", () => {
     it("should register and return capabilities including tools", async () => {
-      const capabilities = await plugin.register(mockShell);
+      const capabilities = await harness.installPlugin(plugin);
 
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
       expect(Array.isArray(capabilities.tools)).toBe(true);
 
-      // Check for expected tool names
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("image_upload");
       expect(toolNames).toContain("image_generate");
@@ -70,14 +64,13 @@ describe("ImagePlugin", () => {
 
   describe("image operations via plugin methods", () => {
     it("should check image generation availability", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
-      // MockShell defaults to canGenerateImages: false
       expect(plugin.canGenerateImages()).toBe(false);
     });
 
     it("should get identity data", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
       const identity = plugin.getIdentityData();
       expect(identity).toBeDefined();
@@ -85,7 +78,7 @@ describe("ImagePlugin", () => {
     });
 
     it("should get profile data", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
       const profile = plugin.getProfileData();
       expect(profile).toBeDefined();

@@ -3,6 +3,7 @@ import { createImageTools } from "../src/tools";
 import type { IImagePlugin } from "../src/types";
 import type { Image } from "@brains/image";
 import type { ToolContext, BaseEntity, EntityAdapter } from "@brains/plugins";
+import { expectSuccess, expectError } from "@brains/plugins/test";
 import { createMockServicePluginContext } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
@@ -108,11 +109,9 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = withImageId.parse(result.data);
-        expect(data.imageId).toBe("test-image");
-      }
+      expectSuccess(result);
+      const data = withImageId.parse(result.data);
+      expect(data.imageId).toBe("test-image");
     });
 
     it("should reject invalid source", async () => {
@@ -130,10 +129,8 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("Invalid source");
-      }
+      expectError(result);
+      expect(result.error).toContain("Invalid source");
     });
   });
 
@@ -170,11 +167,9 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = withJobId.parse(result.data);
-        expect(data.jobId).toBe("gen-job-123");
-      }
+      expectSuccess(result);
+      const data = withJobId.parse(result.data);
+      expect(data.jobId).toBe("gen-job-123");
 
       // Verify job was enqueued with correct data
       expect(context.jobs.enqueue).toHaveBeenCalledWith(
@@ -205,10 +200,8 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("not available");
-      }
+      expectError(result);
+      expect(result.error).toContain("not available");
     });
 
     it("should pass aspectRatio option to job", async () => {
@@ -266,7 +259,7 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
 
       // Verify job was enqueued with target entity info
       expect(context.jobs.enqueue).toHaveBeenCalledWith(
@@ -355,11 +348,9 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = setCoverData.parse(result.data);
-        expect(data.imageId).toBe("hero-image");
-      }
+      expectSuccess(result);
+      const setCoverResult1 = setCoverData.parse(result.data);
+      expect(setCoverResult1.imageId).toBe("hero-image");
     });
 
     it("should remove cover image with null", async () => {
@@ -381,11 +372,9 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = setCoverData.parse(result.data);
-        expect(data.imageId).toBeNull();
-      }
+      expectSuccess(result);
+      const setCoverResult2 = setCoverData.parse(result.data);
+      expect(setCoverResult2.imageId).toBeNull();
     });
 
     it("should fail when entity type doesn't support cover images", async () => {
@@ -406,10 +395,8 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("doesn't support cover images");
-      }
+      expectError(result);
+      expect(result.error).toContain("doesn't support cover images");
     });
 
     it("should fail when entity not found", async () => {
@@ -431,10 +418,8 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("not found");
-      }
+      expectError(result);
+      expect(result.error).toContain("not found");
     });
 
     it("should fail when image not found", async () => {
@@ -457,10 +442,8 @@ describe("Image Tools", () => {
         mockToolContext,
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("Image not found");
-      }
+      expectError(result);
+      expect(result.error).toContain("Image not found");
     });
   });
 });

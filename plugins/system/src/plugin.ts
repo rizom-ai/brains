@@ -1,4 +1,4 @@
-import { CorePlugin, findEntityByIdentifier } from "@brains/plugins";
+import { ServicePlugin, findEntityByIdentifier } from "@brains/plugins";
 import type {
   PluginTool,
   BaseEntity,
@@ -12,7 +12,7 @@ import type {
   JobInfo,
   Conversation,
   Message,
-  CorePluginContext,
+  ServicePluginContext,
 } from "@brains/plugins";
 import {
   systemConfigSchema,
@@ -31,7 +31,7 @@ import packageJson from "../package.json";
  * - Get: Retrieve specific entities by ID
  * - Job Status: Monitor background operations
  */
-export class SystemPlugin extends CorePlugin<SystemConfig> {
+export class SystemPlugin extends ServicePlugin<SystemConfig> {
   // After validation with defaults, config is complete
   declare protected config: SystemConfig;
 
@@ -48,7 +48,7 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
    * before Dashboard and widget messages would be lost.
    */
   protected override async onRegister(
-    context: CorePluginContext,
+    context: ServicePluginContext,
   ): Promise<void> {
     // Subscribe to system:plugins:ready to register widgets AFTER Dashboard is listening
     context.messaging.subscribe("system:plugins:ready", async () => {
@@ -375,6 +375,20 @@ export class SystemPlugin extends CorePlugin<SystemConfig> {
    */
   public getAppInfo(): Promise<AppInfo> {
     return this.getContext().identity.getAppInfo();
+  }
+
+  /**
+   * Update an entity
+   */
+  public async updateEntity(entity: BaseEntity): Promise<void> {
+    await this.getContext().entityService.updateEntity(entity);
+  }
+
+  /**
+   * Delete an entity by type and ID
+   */
+  public async deleteEntity(entityType: string, id: string): Promise<boolean> {
+    return this.getContext().entityService.deleteEntity(entityType, id);
   }
 }
 

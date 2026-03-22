@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { CorePlugin } from "../src/core/core-plugin";
-import { PluginTestHarness } from "../src/test/harness";
 import type { PluginTool, PluginResource } from "../src/interfaces";
-import type { MockShell } from "../src/test/mock-shell";
+import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -89,9 +88,7 @@ describe("PluginManager - Direct Registration", () => {
       setPermissionLevel: mock(() => {}),
     } as unknown as IMCPService;
 
-    // Create mock shell using test harness with dataDir for context
-    const harness = new PluginTestHarness({ dataDir: "/tmp/test-datadir" });
-    mockShell = harness.getShell();
+    mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
 
     // Override the shell's registration methods to use our mocked registries
     mockShell.registerPluginTools = mock(

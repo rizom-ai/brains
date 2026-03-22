@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { NewsletterPlugin } from "../src";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 import type { Newsletter } from "../src/schemas/newsletter";
 
-// Sample newsletter for testing
 const sampleDraftNewsletter: Newsletter = {
   id: "test-newsletter-2024-01-01",
   entityType: "newsletter",
@@ -19,63 +20,39 @@ const sampleDraftNewsletter: Newsletter = {
 };
 
 describe("NewsletterPlugin - Publish Pipeline Integration", () => {
-  let plugin: NewsletterPlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
+  let harness: PluginTestHarness<NewsletterPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({
-      logger,
+    harness = createPluginHarness<NewsletterPlugin>({
       dataDir: "/tmp/test-newsletter",
     });
     receivedMessages = [];
 
-    // Capture publish messages
-    const messageBus = mockShell.getMessageBus();
-    messageBus.subscribe("publish:register", async (msg) => {
-      receivedMessages.push({ type: "publish:register", payload: msg.payload });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:success", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:success",
-        payload: msg.payload,
+    for (const eventType of [
+      "publish:register",
+      "publish:report:success",
+      "publish:report:failure",
+    ]) {
+      harness.subscribe(eventType, async (msg) => {
+        receivedMessages.push({ type: eventType, payload: msg.payload });
+        return { success: true };
       });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:failure", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:failure",
-        payload: msg.payload,
-      });
-      return { success: true };
-    });
-  });
-
-  afterEach(async () => {
-    mock.restore();
+    }
   });
 
   describe("provider registration", () => {
     it("should send publish:register after system:plugins:ready with buttondown provider", async () => {
-      plugin = new NewsletterPlugin({
-        buttondown: {
-          apiKey: "test-api-key",
-          doubleOptIn: false,
-        },
-      });
-      await plugin.register(mockShell);
+      await harness.installPlugin(
+        new NewsletterPlugin({
+          buttondown: { apiKey: "test-api-key", doubleOptIn: false },
+        }),
+      );
 
-      // publish:register is deferred to system:plugins:ready
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
+      await harness.sendMessage(
         "system:plugins:ready",
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
-        undefined,
-        undefined,
         true,
       );
 
@@ -90,16 +67,12 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should send publish:register with internal provider after system:plugins:ready when no buttondown config", async () => {
-      plugin = new NewsletterPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
+      await harness.sendMessage(
         "system:plugins:ready",
         { timestamp: new Date().toISOString(), pluginCount: 1 },
         "shell",
-        undefined,
-        undefined,
         true,
       );
 
@@ -116,29 +89,26 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
 
   describe("publish:execute handler", () => {
     it("should subscribe to publish:execute messages", async () => {
-      plugin = new NewsletterPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      const response = await messageBus.send(
-        "publish:execute",
-        { entityType: "newsletter", entityId: "non-existent" },
-        "test",
+      await harness.sendMessage("publish:execute", {
+        entityType: "newsletter",
+        entityId: "non-existent",
+      });
+
+      const failureMessage = receivedMessages.find(
+        (m) => m.type === "publish:report:failure",
       );
-
-      expect(response).toMatchObject({ success: true });
+      expect(failureMessage).toBeDefined();
     });
 
     it("should report failure when entity not found", async () => {
-      plugin = new NewsletterPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "newsletter", entityId: "non-existent" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "newsletter",
+        entityId: "non-existent",
+      });
 
       const failureMessage = receivedMessages.find(
         (m) => m.type === "publish:report:failure",
@@ -151,17 +121,13 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should skip non-newsletter entity types", async () => {
-      plugin = new NewsletterPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "post", entityId: "post-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "post-1",
+      });
 
-      // No report messages for other entity types
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );
@@ -169,19 +135,15 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should report success when publishing draft newsletter (internal provider)", async () => {
-      plugin = new NewsletterPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      // Add draft newsletter
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(sampleDraftNewsletter);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "newsletter", entityId: "test-newsletter-2024-01-01" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "newsletter",
+        entityId: "test-newsletter-2024-01-01",
+      });
 
       const successMessage = receivedMessages.find(
         (m) => m.type === "publish:report:success",
@@ -192,7 +154,6 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
         entityId: "test-newsletter-2024-01-01",
       });
 
-      // Verify newsletter was updated to sent
       const updatedNewsletter = await entityService.getEntity<Newsletter>(
         "newsletter",
         "test-newsletter-2024-01-01",
@@ -202,10 +163,8 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should skip already published newsletters", async () => {
-      plugin = new NewsletterPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new NewsletterPlugin({}));
 
-      // Add published newsletter
       const publishedNewsletter: Newsletter = {
         ...sampleDraftNewsletter,
         metadata: {
@@ -214,17 +173,14 @@ describe("NewsletterPlugin - Publish Pipeline Integration", () => {
           sentAt: "2024-01-01T00:00:00Z",
         },
       };
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(publishedNewsletter);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "newsletter", entityId: "test-newsletter-2024-01-01" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "newsletter",
+        entityId: "test-newsletter-2024-01-01",
+      });
 
-      // No report messages for already published
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );

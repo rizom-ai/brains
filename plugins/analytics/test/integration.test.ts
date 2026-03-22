@@ -1,8 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
-import type { PluginTool } from "@brains/plugins";
+import type { PluginTool, ToolResponse } from "@brains/plugins";
+import { expectSuccess, expectError } from "@brains/plugins/test";
+import { z } from "@brains/utils";
 import { AnalyticsPlugin } from "../src/index";
+
+const analyticsDataSchema = z.object({
+  range: z.object({ startDate: z.string(), endDate: z.string() }),
+  summary: z.object({ pageviews: z.number(), visitors: z.number() }),
+  topPages: z.array(z.object({ path: z.string(), views: z.number() })),
+  topReferrers: z.array(z.object({ host: z.string(), visits: z.number() })),
+  devices: z.object({
+    desktop: z.number(),
+    mobile: z.number(),
+    tablet: z.number(),
+  }),
+  topCountries: z.array(z.object({ country: z.string(), visits: z.number() })),
+});
 
 const originalFetch = globalThis.fetch;
 
@@ -42,7 +57,7 @@ async function executeTool(
   capabilities: PluginCapabilities,
   toolName: string,
   input: Record<string, unknown>,
-): Promise<{ success: boolean; data?: unknown; error?: string }> {
+): Promise<ToolResponse> {
   const tool = capabilities.tools.find((t) => t.name === toolName) as
     | PluginTool
     | undefined;
@@ -234,16 +249,9 @@ describe("AnalyticsPlugin Integration", () => {
         date: "2025-01-15",
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toBeDefined();
-      const data = result.data as {
-        range: { startDate: string; endDate: string };
-        summary: { pageviews: number; visitors: number };
-        topPages: Array<{ path: string; views: number }>;
-        topReferrers: Array<{ host: string; visits: number }>;
-        devices: { desktop: number; mobile: number; tablet: number };
-        topCountries: Array<{ country: string; visits: number }>;
-      };
+      const data = analyticsDataSchema.parse(result.data);
       expect(data.range.startDate).toBe("2025-01-15");
       expect(data.range.endDate).toBe("2025-01-15");
       expect(data.summary.pageviews).toBe(500);
@@ -264,7 +272,7 @@ describe("AnalyticsPlugin Integration", () => {
         date: "2025-01-15",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toContain("401");
     });
 
@@ -373,13 +381,8 @@ describe("AnalyticsPlugin Integration", () => {
         days: 7,
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      const data = result.data as {
-        range: { startDate: string; endDate: string };
-        summary: { pageviews: number; visitors: number };
-        topPages: Array<{ path: string; views: number }>;
-      };
+      expectSuccess(result);
+      const data = analyticsDataSchema.parse(result.data);
       // Should have a 7-day range
       expect(data.summary.pageviews).toBe(1500);
       expect(data.summary.visitors).toBe(1200);
@@ -425,12 +428,8 @@ describe("AnalyticsPlugin Integration", () => {
         endDate: "2025-01-31",
       });
 
-      expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      const data = result.data as {
-        range: { startDate: string; endDate: string };
-        summary: { pageviews: number; visitors: number };
-      };
+      expectSuccess(result);
+      const data = analyticsDataSchema.parse(result.data);
       expect(data.range.startDate).toBe("2025-01-01");
       expect(data.range.endDate).toBe("2025-01-31");
       expect(data.summary.pageviews).toBe(3000);
@@ -442,7 +441,7 @@ describe("AnalyticsPlugin Integration", () => {
         days: 7,
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toContain("Cannot combine");
     });
 
@@ -452,7 +451,7 @@ describe("AnalyticsPlugin Integration", () => {
         // Missing endDate
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toContain("startDate");
     });
   });

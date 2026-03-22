@@ -1,40 +1,28 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SocialPostDataSource } from "../../src/datasources/social-post-datasource";
 import { createSilentLogger } from "@brains/test-utils";
-import {
-  createMockShell,
-  type MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
-  type Logger,
-} from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { BaseDataSourceContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 
-// Output schema for testing list queries
 const postListSchema = z.object({
   posts: z.array(z.any()),
   totalCount: z.number(),
 });
 
-// Output schema for single post queries
 const singlePostSchema = z.object({
   post: z.any().nullable(),
 });
 
 describe("SocialPostDataSource", () => {
   let dataSource: SocialPostDataSource;
-  let context: ServicePluginContext;
   let mockContext: BaseDataSourceContext;
-  let logger: Logger;
-  let mockShell: MockShell;
 
   beforeEach(() => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger });
-    context = createServicePluginContext(mockShell, "social-media");
+    const harness = createPluginHarness();
+    const context = harness.getServiceContext("social-media");
     mockContext = { entityService: context.entityService };
-    dataSource = new SocialPostDataSource(logger);
+    dataSource = new SocialPostDataSource(createSilentLogger());
   });
 
   describe("instantiation", () => {
@@ -63,8 +51,6 @@ describe("SocialPostDataSource", () => {
     });
 
     it("should accept platform filter in query", async () => {
-      // Test that the query schema accepts platform filter
-      // (actual filtering is done by entity service, not datasource)
       const result = await dataSource.fetch(
         {
           entityType: "social-post",

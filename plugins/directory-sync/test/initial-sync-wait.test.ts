@@ -20,7 +20,7 @@ describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
-    const entityRegistry = harness.getShell().getEntityRegistry();
+    const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,

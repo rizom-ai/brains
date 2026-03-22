@@ -27,13 +27,13 @@ describe("ProductsPlugin", () => {
     });
 
     it("should register product entity type", () => {
-      const entityService = harness.getShell().getEntityService();
+      const entityService = harness.getEntityService();
       const entityTypes = entityService.getEntityTypes();
       expect(entityTypes).toContain("product");
     });
 
     it("should register products-overview entity type", () => {
-      const entityService = harness.getShell().getEntityService();
+      const entityService = harness.getEntityService();
       const entityTypes = entityService.getEntityTypes();
       expect(entityTypes).toContain("products-overview");
     });

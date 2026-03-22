@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { NotePlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("NotePlugin", () => {
@@ -81,7 +81,7 @@ describe("NotePlugin", () => {
         content: "This is test content for the note.",
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("entityId");
       expect(result.data).toHaveProperty("title", "Test Note");
     });
@@ -91,7 +91,7 @@ describe("NotePlugin", () => {
         prompt: "Write a note about TypeScript",
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("jobId");
     });
   });

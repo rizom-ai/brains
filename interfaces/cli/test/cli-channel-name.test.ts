@@ -37,10 +37,7 @@ describe("CLI Interface - Agent Context Integration", () => {
       }),
     };
 
-    // Inject the mock agent service
-    const mockShell = harness.getShell();
-    mockShell.getAgentService = (): IAgentService => mockAgentService;
-
+    harness.setAgentService(mockAgentService);
     await harness.installPlugin(cliInterface);
   });
 

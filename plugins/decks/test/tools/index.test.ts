@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { createGenerateTool } from "../../src/tools";
 import { createMockServicePluginContext } from "@brains/test-utils";
-import { type ServicePluginContext } from "@brains/plugins/test";
+import {
+  type ServicePluginContext,
+  expectSuccess,
+  expectError,
+} from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 
@@ -62,12 +66,10 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const data = jobIdData.parse(result.data);
-          expect(data.jobId).toBe("job-123");
-          expect(result.message).toContain("queued");
-        }
+        expectSuccess(result);
+        const data = jobIdData.parse(result.data);
+        expect(data.jobId).toBe("job-123");
+        expect(result.message).toContain("queued");
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",
@@ -86,11 +88,9 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const data = jobIdData.parse(result.data);
-          expect(data.jobId).toBe("job-123");
-        }
+        expectSuccess(result);
+        const data2 = jobIdData.parse(result.data);
+        expect(data2.jobId).toBe("job-123");
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",
@@ -116,7 +116,7 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
+        expectSuccess(result);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",
@@ -150,11 +150,9 @@ describe("Deck Tools", () => {
       it("should enqueue job with empty input (use defaults)", async () => {
         const result = await generateTool.handler({}, mockToolContext);
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const data = jobIdData.parse(result.data);
-          expect(data.jobId).toBe("job-123");
-        }
+        expectSuccess(result);
+        const data3 = jobIdData.parse(result.data);
+        expect(data3.jobId).toBe("job-123");
       });
     });
 
@@ -169,10 +167,8 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error).toContain("Queue full");
-        }
+        expectError(result);
+        expect(result.error).toContain("Queue full");
       });
 
       it("should handle invalid input types", async () => {
@@ -181,10 +177,8 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(false);
-        if (!result.success) {
-          expect(result.error).toBeDefined();
-        }
+        expectError(result);
+        expect(result.error).toBeDefined();
       });
     });
 
@@ -197,11 +191,9 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-          const data = jobIdData.parse(result.data);
-          expect(data.jobId).toBe("custom-job-id");
-        }
+        expectSuccess(result);
+        const data4 = jobIdData.parse(result.data);
+        expect(data4.jobId).toBe("custom-job-id");
       });
 
       it("should include success message with jobId", async () => {
@@ -210,11 +202,9 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
-        if (result.success) {
-          expect(result.message).toContain("job-123");
-          expect(result.message).toContain("queued");
-        }
+        expectSuccess(result);
+        expect(result.message).toContain("job-123");
+        expect(result.message).toContain("queued");
       });
     });
 
@@ -225,7 +215,7 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
+        expectSuccess(result);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",
@@ -245,7 +235,7 @@ describe("Deck Tools", () => {
           mockToolContext,
         );
 
-        expect(result.success).toBe(true);
+        expectSuccess(result);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
           "generation",

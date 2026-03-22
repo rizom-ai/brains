@@ -66,4 +66,14 @@ export interface ISystemPlugin {
   getIdentityData(): BrainCharacter;
   getProfileData(): AnchorProfile;
   getAppInfo(): Promise<AppInfo>;
+
+  /**
+   * Update an entity
+   */
+  updateEntity(entity: BaseEntity): Promise<void>;
+
+  /**
+   * Delete an entity
+   */
+  deleteEntity(entityType: string, id: string): Promise<boolean>;
 }

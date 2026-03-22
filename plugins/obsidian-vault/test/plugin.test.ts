@@ -1,8 +1,16 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { z } from "@brains/utils";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 
 import { ObsidianVaultPlugin } from "../src/plugin";
+
+const generatedSchema = z.object({ generated: z.array(z.string()) });
+const generatedWithSkippedSchema = z.object({
+  generated: z.array(z.string()),
+  skipped: z.array(z.string()),
+});
+const fileClassesSchema = z.object({ fileClasses: z.array(z.string()) });
+const basesSchema = z.object({ bases: z.array(z.string()) });
 
 const postSchema = z.object({
   title: z.string(),
@@ -58,8 +66,7 @@ describe("ObsidianVaultPlugin", () => {
       logContext: "obsidian-vault-test",
     });
 
-    const shell = harness.getShell();
-    const registry = shell.getEntityRegistry();
+    const registry = harness.getEntityRegistry();
     registry.registerEntityType("post", {} as never, {} as never);
     registry.registerEntityType("base", {} as never, {} as never);
     registry.registerEntityType("site-info", {} as never, {} as never);
@@ -75,7 +82,6 @@ describe("ObsidianVaultPlugin", () => {
       }
       return { getBodyTemplate: (): string => "" } as never;
     };
-    shell.getEntityRegistry = (): typeof registry => registry;
 
     const plugin = new ObsidianVaultPlugin({}, deps);
     await harness.installPlugin(plugin);
@@ -89,9 +95,9 @@ describe("ObsidianVaultPlugin", () => {
 
   it("should generate templates for all entity types", async () => {
     const result = await harness.executeTool("obsidian-vault_sync-templates");
-    expect(result.success).toBe(true);
+    expectSuccess(result);
 
-    const data = result.data as { generated: string[] };
+    const data = generatedSchema.parse(result.data);
     expect(data.generated).toContain("post");
     expect(data.generated).toContain("base");
   });
@@ -130,22 +136,21 @@ describe("ObsidianVaultPlugin", () => {
     const result = await harness.executeTool("obsidian-vault_sync-templates", {
       entityTypes: ["post"],
     });
-    expect(result.success).toBe(true);
+    expectSuccess(result);
 
-    const data = result.data as { generated: string[] };
+    const data = generatedSchema.parse(result.data);
     expect(data.generated).toEqual(["post"]);
     expect(data.generated).not.toContain("base");
   });
 
   it("should skip entity types with no frontmatter schema", async () => {
-    const shell = harness.getShell();
-    const registry = shell.getEntityRegistry();
+    const registry = harness.getEntityRegistry();
     registry.registerEntityType("image", {} as never, {} as never);
 
     const result = await harness.executeTool("obsidian-vault_sync-templates");
-    expect(result.success).toBe(true);
+    expectSuccess(result);
 
-    const data = result.data as { generated: string[]; skipped: string[] };
+    const data = generatedWithSkippedSchema.parse(result.data);
     expect(data.skipped).toContain("image");
     expect(data.generated).not.toContain("image");
   });
@@ -183,9 +188,9 @@ describe("ObsidianVaultPlugin", () => {
 
   it("should return fileClasses in result data", async () => {
     const result = await harness.executeTool("obsidian-vault_sync-templates");
-    expect(result.success).toBe(true);
+    expectSuccess(result);
 
-    const data = result.data as { fileClasses: string[] };
+    const data = fileClassesSchema.parse(result.data);
     expect(data.fileClasses).toContain("post");
     expect(data.fileClasses).toContain("base");
   });
@@ -223,9 +228,9 @@ describe("ObsidianVaultPlugin", () => {
 
   it("should return bases in result data", async () => {
     const result = await harness.executeTool("obsidian-vault_sync-templates");
-    expect(result.success).toBe(true);
+    expectSuccess(result);
 
-    const data = result.data as { bases: string[] };
+    const data = basesSchema.parse(result.data);
     expect(data.bases).toContain("post");
     expect(data.bases).toContain("base");
     expect(data.bases).toContain("Pipeline");
@@ -277,7 +282,8 @@ describe("ObsidianVaultPlugin", () => {
 
   it("should not include singletons in generated list", async () => {
     const result = await harness.executeTool("obsidian-vault_sync-templates");
-    const data = result.data as { generated: string[] };
+    expectSuccess(result);
+    const data = generatedSchema.parse(result.data);
     expect(data.generated).not.toContain("site-info");
   });
 });

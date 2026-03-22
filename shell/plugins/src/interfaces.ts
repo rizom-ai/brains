@@ -21,6 +21,7 @@ export type {
   ToolVisibility,
   ToolContext,
   ToolResponse,
+  ToolConfirmation,
   PluginTool,
   PluginResource,
   ToolInfo,

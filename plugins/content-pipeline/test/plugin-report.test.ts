@@ -1,64 +1,44 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 
 describe("ContentPipelinePlugin - Report Handlers", () => {
+  let harness: PluginTestHarness<ContentPipelinePlugin>;
   let plugin: ContentPipelinePlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(async () => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger, dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
     plugin = new ContentPipelinePlugin({});
-    await plugin.register(mockShell);
-  });
-
-  afterEach(async () => {
-    await plugin.cleanup();
-    mock.restore();
+    await harness.installPlugin(plugin);
   });
 
   describe("publish:report:success handler", () => {
     it("should clear retry info on success report", async () => {
-      const messageBus = mockShell.getMessageBus();
-
-      // First record a failure
       const retryTracker = plugin.getRetryTracker();
       retryTracker.recordFailure("post-1", "Previous error");
       expect(retryTracker.getRetryInfo("post-1")).not.toBeNull();
 
-      // Report success
-      await messageBus.send(
-        PUBLISH_MESSAGES.REPORT_SUCCESS,
-        {
-          entityType: "social-post",
-          entityId: "post-1",
-          result: { id: "platform-123" },
-        },
-        "test",
-      );
+      await harness.sendMessage(PUBLISH_MESSAGES.REPORT_SUCCESS, {
+        entityType: "social-post",
+        entityId: "post-1",
+        result: { id: "platform-123" },
+      });
 
-      // Retry info should be cleared
       expect(retryTracker.getRetryInfo("post-1")).toBeNull();
     });
   });
 
   describe("publish:report:failure handler", () => {
     it("should record failure and track retries", async () => {
-      const messageBus = mockShell.getMessageBus();
-
-      await messageBus.send(
-        PUBLISH_MESSAGES.REPORT_FAILURE,
-        {
-          entityType: "social-post",
-          entityId: "post-1",
-          error: "Network error",
-        },
-        "test",
-      );
+      await harness.sendMessage(PUBLISH_MESSAGES.REPORT_FAILURE, {
+        entityType: "social-post",
+        entityId: "post-1",
+        error: "Network error",
+      });
 
       const retryTracker = plugin.getRetryTracker();
       const retryInfo = retryTracker.getRetryInfo("post-1");
@@ -67,36 +47,26 @@ describe("ContentPipelinePlugin - Report Handlers", () => {
     });
 
     it("should indicate willRetry=false after max retries", async () => {
-      // Create plugin with maxRetries=2
-      const limitedPlugin = new ContentPipelinePlugin({
-        maxRetries: 2,
-      });
-      const limitedShell = createMockShell({
-        logger,
+      const limitedHarness = createPluginHarness<ContentPipelinePlugin>({
         dataDir: "/tmp/test-limited",
       });
-      await limitedPlugin.register(limitedShell);
+      const limitedPlugin = new ContentPipelinePlugin({ maxRetries: 2 });
+      await limitedHarness.installPlugin(limitedPlugin);
 
-      const messageBus = limitedShell.getMessageBus();
+      await limitedHarness.sendMessage(PUBLISH_MESSAGES.REPORT_FAILURE, {
+        entityType: "social-post",
+        entityId: "post-1",
+        error: "Error 1",
+      });
 
-      // First failure
-      await messageBus.send(
-        PUBLISH_MESSAGES.REPORT_FAILURE,
-        { entityType: "social-post", entityId: "post-1", error: "Error 1" },
-        "test",
-      );
-
-      // Second failure (max retries reached)
-      await messageBus.send(
-        PUBLISH_MESSAGES.REPORT_FAILURE,
-        { entityType: "social-post", entityId: "post-1", error: "Error 2" },
-        "test",
-      );
+      await limitedHarness.sendMessage(PUBLISH_MESSAGES.REPORT_FAILURE, {
+        entityType: "social-post",
+        entityId: "post-1",
+        error: "Error 2",
+      });
 
       const retryInfo = limitedPlugin.getRetryTracker().getRetryInfo("post-1");
       expect(retryInfo?.willRetry).toBe(false);
-
-      await limitedPlugin.cleanup();
     });
   });
 });

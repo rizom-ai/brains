@@ -27,6 +27,7 @@ export type {
   PluginResource,
   ToolContext,
   ToolResponse,
+  ToolConfirmation,
   ToolVisibility,
   AppInfo,
   DefaultQueryResponse,

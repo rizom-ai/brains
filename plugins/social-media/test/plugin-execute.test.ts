@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SocialMediaPlugin } from "../src/plugin";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 import type { SocialPost } from "../src/schemas/social-post";
 
-// Sample post for testing
 const samplePost: SocialPost = {
   id: "post-1",
   entityType: "social-post",
@@ -26,50 +27,34 @@ This is a test post for LinkedIn.`,
 };
 
 describe("SocialMediaPlugin - Execute Handler", () => {
-  let plugin: SocialMediaPlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
+  let harness: PluginTestHarness<SocialMediaPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger, dataDir: "/tmp/test-social" });
+    harness = createPluginHarness<SocialMediaPlugin>({
+      dataDir: "/tmp/test-social",
+    });
     receivedMessages = [];
 
-    // Subscribe to report messages to capture them
-    const messageBus = mockShell.getMessageBus();
-    messageBus.subscribe("publish:report:success", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:success",
-        payload: msg.payload,
+    for (const eventType of [
+      "publish:report:success",
+      "publish:report:failure",
+    ]) {
+      harness.subscribe(eventType, async (msg) => {
+        receivedMessages.push({ type: eventType, payload: msg.payload });
+        return { success: true };
       });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:failure", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:failure",
-        payload: msg.payload,
-      });
-      return { success: true };
-    });
+    }
 
-    plugin = new SocialMediaPlugin({});
-    await plugin.register(mockShell);
-  });
-
-  afterEach(async () => {
-    mock.restore();
+    await harness.installPlugin(new SocialMediaPlugin({}));
   });
 
   describe("publish:execute handler", () => {
     it("should report failure when entity not found", async () => {
-      const messageBus = mockShell.getMessageBus();
-
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "social-post", entityId: "non-existent" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "social-post",
+        entityId: "non-existent",
+      });
 
       expect(receivedMessages).toHaveLength(1);
       expect(receivedMessages[0]?.type).toBe("publish:report:failure");
@@ -81,17 +66,13 @@ describe("SocialMediaPlugin - Execute Handler", () => {
     });
 
     it("should report failure when provider not configured", async () => {
-      // Add entity to mock entity service
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(samplePost);
 
-      const messageBus = mockShell.getMessageBus();
-
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "social-post", entityId: "post-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "social-post",
+        entityId: "post-1",
+      });
 
       expect(receivedMessages).toHaveLength(1);
       expect(receivedMessages[0]?.type).toBe("publish:report:failure");
@@ -103,15 +84,11 @@ describe("SocialMediaPlugin - Execute Handler", () => {
     });
 
     it("should skip non-social-post entity types", async () => {
-      const messageBus = mockShell.getMessageBus();
+      await harness.sendMessage("publish:execute", {
+        entityType: "blog-post",
+        entityId: "post-1",
+      });
 
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "blog-post", entityId: "post-1" },
-        "test",
-      );
-
-      // No messages should be sent for non-social-post types
       expect(receivedMessages).toHaveLength(0);
     });
 
@@ -120,78 +97,52 @@ describe("SocialMediaPlugin - Execute Handler", () => {
         ...samplePost,
         metadata: { ...samplePost.metadata, status: "published" },
       };
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(publishedPost);
 
-      const messageBus = mockShell.getMessageBus();
+      await harness.sendMessage("publish:execute", {
+        entityType: "social-post",
+        entityId: "post-1",
+      });
 
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "social-post", entityId: "post-1" },
-        "test",
-      );
-
-      // No messages should be sent for already published posts
       expect(receivedMessages).toHaveLength(0);
     });
   });
 
   describe("with mock provider", () => {
-    let pluginWithProvider: SocialMediaPlugin;
-    let shellWithProvider: MockShell;
+    let providerHarness: PluginTestHarness<SocialMediaPlugin>;
 
     beforeEach(async () => {
-      // Create a new shell with provider
-      shellWithProvider = createMockShell({
-        logger,
+      providerHarness = createPluginHarness<SocialMediaPlugin>({
         dataDir: "/tmp/test-social-provider",
       });
       receivedMessages = [];
 
-      const messageBus = shellWithProvider.getMessageBus();
-      messageBus.subscribe("publish:report:success", async (msg) => {
-        receivedMessages.push({
-          type: "publish:report:success",
-          payload: msg.payload,
+      for (const eventType of [
+        "publish:report:success",
+        "publish:report:failure",
+      ]) {
+        providerHarness.subscribe(eventType, async (msg) => {
+          receivedMessages.push({ type: eventType, payload: msg.payload });
+          return { success: true };
         });
-        return { success: true };
-      });
-      messageBus.subscribe("publish:report:failure", async (msg) => {
-        receivedMessages.push({
-          type: "publish:report:failure",
-          payload: msg.payload,
-        });
-        return { success: true };
-      });
+      }
 
-      // Create plugin with linkedin config (provider will be initialized)
-      pluginWithProvider = new SocialMediaPlugin({
-        linkedin: {
-          accessToken: "test-token",
-        },
-      });
-
-      await pluginWithProvider.register(shellWithProvider);
+      await providerHarness.installPlugin(
+        new SocialMediaPlugin({ linkedin: { accessToken: "test-token" } }),
+      );
     });
 
     it("should report success on successful publish", async () => {
-      // Add entity to mock entity service
-      const entityService = shellWithProvider.getEntityService();
+      const entityService = providerHarness.getEntityService();
       await entityService.createEntity(samplePost);
 
-      const messageBus = shellWithProvider.getMessageBus();
+      await providerHarness.sendMessage("publish:execute", {
+        entityType: "social-post",
+        entityId: "post-1",
+      });
 
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "social-post", entityId: "post-1" },
-        "test",
-      );
-
-      // The LinkedIn provider is a real implementation that will fail
-      // because we don't have valid credentials, so we expect a failure
       expect(receivedMessages).toHaveLength(1);
-      // In real tests with mocked provider, this would be success
-      // Here we just verify the message flow works
       expect(receivedMessages[0]?.type).toBe("publish:report:failure");
     });
   });

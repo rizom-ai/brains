@@ -1,10 +1,26 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { SystemPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectSuccess,
+  expectError,
+} from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTestEntity } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 import { z } from "@brains/utils";
+
+const getEntityResult = z.object({
+  entity: z.object({
+    content: z.string(),
+    metadata: z.record(z.unknown()),
+  }),
+});
+
+const listResult = z.object({
+  entities: z.array(z.record(z.unknown())),
+  count: z.number(),
+});
 
 describe("SystemPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -164,13 +180,13 @@ describe("SystemPlugin", () => {
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("system");
-      expect(plugin.type).toBe("core");
+      expect(plugin.type).toBe("service");
       expect(plugin.version).toBeDefined();
     });
 
     it("should provide all expected tools", () => {
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools.length).toBe(10);
+      expect(capabilities.tools.length).toBe(12);
 
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("system_search");
@@ -251,7 +267,7 @@ describe("SystemPlugin", () => {
         limit: 5,
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("results");
     });
 
@@ -261,7 +277,7 @@ describe("SystemPlugin", () => {
         id: "some-id",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toContain("Unknown entity type");
     });
 
@@ -270,35 +286,35 @@ describe("SystemPlugin", () => {
         entityType: "nonexistent-type",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toContain("Unknown entity type");
     });
 
     it("system_get-identity should return identity data", async () => {
       const result = await harness.executeTool("system_get-identity", {});
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toBeDefined();
     });
 
     it("system_get-profile should return profile data", async () => {
       const result = await harness.executeTool("system_get-profile", {});
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toBeDefined();
     });
 
     it("system_get-status should return app info", async () => {
       const result = await harness.executeTool("system_get-status", {});
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toBeDefined();
     });
 
     it("system_check-job-status should return job summary", async () => {
       const result = await harness.executeTool("system_check-job-status", {});
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("summary");
     });
 
@@ -307,7 +323,7 @@ describe("SystemPlugin", () => {
         conversationId: "nonexistent-id",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toContain("not found");
     });
 
@@ -316,7 +332,7 @@ describe("SystemPlugin", () => {
         limit: 10,
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("conversations");
     });
   });
@@ -344,31 +360,33 @@ describe("SystemPlugin", () => {
     });
 
     it("system_get should strip base64 content from image entities", async () => {
-      harness.getShell().addEntities([mockImageEntity]);
+      await harness.getEntityService().upsertEntity(mockImageEntity);
 
       const result = await harness.executeTool("system_get", {
         entityType: "image",
         id: "test-image",
       });
 
-      expect(result.success).toBe(true);
-      const entity = (result.data as { entity: BaseEntity }).entity;
-      expect(entity.content).not.toContain("base64");
-      expect(entity.content).not.toContain(FAKE_BASE64);
-      expect(entity.metadata).toHaveProperty("title", "Test Image");
+      expectSuccess(result);
+      const data = getEntityResult.parse(result.data);
+      expect(data.entity.content).not.toContain("base64");
+      expect(data.entity.content).not.toContain(FAKE_BASE64);
+      expect(data.entity.metadata).toHaveProperty("title", "Test Image");
     });
 
     it("system_get should preserve content for non-image entities", async () => {
-      harness.getShell().addEntities([mockPostEntity]);
+      await harness.getEntityService().upsertEntity(mockPostEntity);
 
       const result = await harness.executeTool("system_get", {
         entityType: "post",
         id: "test-post",
       });
 
-      expect(result.success).toBe(true);
-      const entity = (result.data as { entity: BaseEntity }).entity;
-      expect(entity.content).toBe("---\ntitle: Test Post\n---\nHello world");
+      expectSuccess(result);
+      const data = getEntityResult.parse(result.data);
+      expect(data.entity.content).toBe(
+        "---\ntitle: Test Post\n---\nHello world",
+      );
     });
   });
 
@@ -386,76 +404,72 @@ describe("SystemPlugin", () => {
     });
 
     it("should not include content field in list results", async () => {
-      harness.getShell().addEntities([mockPostA]);
+      await harness.getEntityService().upsertEntity(mockPostA);
 
       const result = await harness.executeTool("system_list", {
         entityType: "post",
       });
 
-      expect(result.success).toBe(true);
-      const entities = (result.data as { entities: Record<string, unknown>[] })
-        .entities;
-      expect(entities).toHaveLength(1);
-      expect(entities[0]).not.toHaveProperty("content");
+      expectSuccess(result);
+      const data = listResult.parse(result.data);
+      expect(data.entities).toHaveLength(1);
+      expect(data.entities[0]).not.toHaveProperty("content");
     });
 
     it("should not include contentHash field in list results", async () => {
-      harness.getShell().addEntities([mockPostA]);
+      await harness.getEntityService().upsertEntity(mockPostA);
 
       const result = await harness.executeTool("system_list", {
         entityType: "post",
       });
 
-      expect(result.success).toBe(true);
-      const entities = (result.data as { entities: Record<string, unknown>[] })
-        .entities;
-      expect(entities[0]).not.toHaveProperty("contentHash");
+      expectSuccess(result);
+      const data = listResult.parse(result.data);
+      expect(data.entities[0]).not.toHaveProperty("contentHash");
     });
 
     it("should include metadata in list results", async () => {
-      harness.getShell().addEntities([mockPostA]);
+      await harness.getEntityService().upsertEntity(mockPostA);
 
       const result = await harness.executeTool("system_list", {
         entityType: "post",
       });
 
-      expect(result.success).toBe(true);
-      const entities = (result.data as { entities: Record<string, unknown>[] })
-        .entities;
-      expect(entities[0]).toHaveProperty("id", "post-a");
-      expect(entities[0]).toHaveProperty("entityType", "post");
-      expect(entities[0]).toHaveProperty("metadata");
-      const metadata = entities[0]?.["metadata"] as Record<string, unknown>;
+      expectSuccess(result);
+      const data = listResult.parse(result.data);
+      expect(data.entities[0]).toHaveProperty("id", "post-a");
+      expect(data.entities[0]).toHaveProperty("entityType", "post");
+      expect(data.entities[0]).toHaveProperty("metadata");
+      const metadata = z
+        .record(z.unknown())
+        .parse(data.entities[0]?.["metadata"]);
       expect(metadata).toHaveProperty("title", "Post A");
       expect(metadata).toHaveProperty("status", "published");
     });
 
     it("should include dates in list results", async () => {
-      harness.getShell().addEntities([mockPostA]);
+      await harness.getEntityService().upsertEntity(mockPostA);
 
       const result = await harness.executeTool("system_list", {
         entityType: "post",
       });
 
-      expect(result.success).toBe(true);
-      const entities = (result.data as { entities: Record<string, unknown>[] })
-        .entities;
-      expect(entities[0]).toHaveProperty("created");
-      expect(entities[0]).toHaveProperty("updated");
+      expectSuccess(result);
+      const data = listResult.parse(result.data);
+      expect(data.entities[0]).toHaveProperty("created");
+      expect(data.entities[0]).toHaveProperty("updated");
     });
 
     it("should return correct count", async () => {
-      harness.getShell().addEntities([mockPostA, mockPostB]);
+      await harness.getEntityService().upsertEntity(mockPostA);
+      await harness.getEntityService().upsertEntity(mockPostB);
 
       const result = await harness.executeTool("system_list", {
         entityType: "post",
       });
 
-      expect(result.success).toBe(true);
-      const data = result.data as {
-        entities: Record<string, unknown>[];
-        count: number;
-      };
+      expectSuccess(result);
+      const data = listResult.parse(result.data);
       expect(data.count).toBe(2);
       expect(data.entities).toHaveLength(2);
     });

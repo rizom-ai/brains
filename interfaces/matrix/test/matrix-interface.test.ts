@@ -169,15 +169,13 @@ describe("MatrixInterface", () => {
     // Create plugin harness with permission configuration
     harness = createPluginHarness<InstanceType<typeof MatrixInterface>>();
 
-    // Configure mock shell with permissions and agent service
-    const mockShell = harness.getShell();
-    mockShell.getPermissionService = (): PermissionService => {
-      return new PermissionService({
+    harness.setPermissionService(
+      new PermissionService({
         anchors: ["matrix:@admin:example.org"],
         trusted: ["matrix:@trusted:example.org"],
-      });
-    };
-    mockShell.setAgentService(mockAgentService);
+      }),
+    );
+    harness.setAgentService(mockAgentService);
   });
 
   afterEach(() => {
@@ -405,7 +403,7 @@ describe("MatrixInterface", () => {
       });
 
       // Update the mock agent service with the confirmation response
-      harness.getShell().setAgentService(mockAgentService);
+      harness.setAgentService(mockAgentService);
 
       matrixInterface = new MatrixInterface(config);
       mockGetUserId.mockResolvedValue("@bot:example.org");
@@ -600,9 +598,7 @@ describe("MatrixInterface", () => {
       const dmInterface = new MatrixInterface(config);
       mockGetUserId.mockResolvedValue("@bot:example.org");
 
-      // Reconfigure mock shell with agent service
-      const mockShell = harness.getShell();
-      mockShell.setAgentService(mockAgentService);
+      harness.setAgentService(mockAgentService);
 
       await harness.installPlugin(dmInterface);
 
@@ -831,7 +827,7 @@ describe("MatrixInterface", () => {
       // Set up an error-throwing agent service BEFORE installing the plugin
       const errorAgentService = createMockAgentService();
       errorAgentService.chat.mockRejectedValue(new Error("Agent error"));
-      harness.getShell().setAgentService(errorAgentService);
+      harness.setAgentService(errorAgentService);
 
       const matrixInterface = new MatrixInterface(config);
       mockGetUserId.mockResolvedValue("@bot:example.org");

@@ -181,13 +181,13 @@ describe("DiscordInterface", () => {
     mockAgentService = createMockAgentService();
     harness = createPluginHarness<InstanceType<typeof DiscordInterface>>();
 
-    const mockShell = harness.getShell();
-    mockShell.getPermissionService = (): PermissionService =>
+    harness.setPermissionService(
       new PermissionService({
         anchors: ["discord:anchor-user"],
         trusted: ["discord:trusted-user"],
-      });
-    mockShell.setAgentService(mockAgentService);
+      }),
+    );
+    harness.setAgentService(mockAgentService);
 
     discord = new DiscordInterface(
       { botToken: "test-token" },

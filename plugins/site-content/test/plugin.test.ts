@@ -26,7 +26,7 @@ describe("SiteContentPlugin", () => {
     });
 
     it("should register site-content entity type", () => {
-      const entityService = harness.getShell().getEntityService();
+      const entityService = harness.getEntityService();
       const entityTypes = entityService.getEntityTypes();
       expect(entityTypes).toContain("site-content");
     });

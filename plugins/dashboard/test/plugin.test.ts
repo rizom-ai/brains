@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { DashboardPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("DashboardPlugin", () => {
@@ -47,7 +47,7 @@ describe("DashboardPlugin", () => {
 
       // Verify widget is registered by fetching dashboard data
       const result = await harness.executeTool("dashboard_get-data", {});
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("widgets");
       expect(result.data).toHaveProperty([
         "widgets",
@@ -75,7 +75,7 @@ describe("DashboardPlugin", () => {
 
       // Verify widget is unregistered
       const result = await harness.executeTool("dashboard_get-data", {});
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("widgets");
       expect(result.data).not.toHaveProperty([
         "widgets",
@@ -107,7 +107,7 @@ describe("DashboardPlugin", () => {
 
       // Verify widgets are registered
       let result = await harness.executeTool("dashboard_get-data", {});
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty(["widgets", "test-plugin:widget-1"]);
       expect(result.data).toHaveProperty(["widgets", "test-plugin:widget-2"]);
 
@@ -118,7 +118,7 @@ describe("DashboardPlugin", () => {
 
       // Verify all widgets are unregistered
       result = await harness.executeTool("dashboard_get-data", {});
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("widgets", {});
     });
   });
@@ -127,7 +127,7 @@ describe("DashboardPlugin", () => {
     it("should return empty widgets when none registered", async () => {
       const result = await harness.executeTool("dashboard_get-data", {});
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("widgets", {});
     });
 
@@ -145,7 +145,7 @@ describe("DashboardPlugin", () => {
 
       const result = await harness.executeTool("dashboard_get-data", {});
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty(["widgets", "system:stats-widget"]);
       expect(result.data).toHaveProperty(
         ["widgets", "system:stats-widget", "widget", "title"],

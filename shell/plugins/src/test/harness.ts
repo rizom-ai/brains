@@ -1,10 +1,29 @@
-import type { Plugin, PluginCapabilities, PluginType } from "../interfaces";
+import type {
+  Plugin,
+  PluginCapabilities,
+  PluginType,
+  ToolResponse,
+  ToolConfirmation,
+} from "../interfaces";
+import { type z } from "@brains/utils";
+import { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
+
+type ToolSuccess = z.infer<typeof toolSuccessSchema>;
+type ToolError = z.infer<typeof toolErrorSchema>;
 import type { Logger } from "@brains/utils";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
-import type { DataSource } from "@brains/entity-service";
+import type {
+  DataSource,
+  IEntityService,
+  IEntityRegistry,
+} from "@brains/entity-service";
 import { createMockShell, type MockShell } from "./mock-shell";
+import {
+  createServicePluginContext,
+  type ServicePluginContext,
+} from "../service/context";
 
 export interface HarnessOptions {
   logger?: Logger;
@@ -80,10 +99,73 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
-   * Get the mock shell for direct access in tests
+   * Get the entity service for creating/querying test entities
    */
-  getShell(): MockShell {
-    return this.mockShell;
+  getEntityService(): IEntityService {
+    return this.mockShell.getEntityService();
+  }
+
+  /**
+   * Get the entity registry for registering entity types in tests
+   */
+  getEntityRegistry(): IEntityRegistry {
+    return this.mockShell.getEntityRegistry();
+  }
+
+  /**
+   * Create a ServicePluginContext for testing tools/handlers/datasources in isolation
+   */
+  getServiceContext(pluginId: string): ServicePluginContext {
+    return createServicePluginContext(this.mockShell, pluginId);
+  }
+
+  /**
+   * Override the agent service (for interface plugin tests that mock AI responses)
+   */
+  setAgentService(
+    agentService: Parameters<MockShell["setAgentService"]>[0],
+  ): void {
+    this.mockShell.setAgentService(agentService);
+  }
+
+  /**
+   * Get the permission service for reading permission levels
+   */
+  getPermissionService(): ReturnType<MockShell["getPermissionService"]> {
+    return this.mockShell.getPermissionService();
+  }
+
+  /**
+   * Override the permission service (for interface tests that need custom permission config)
+   */
+  setPermissionService(
+    service: ReturnType<MockShell["getPermissionService"]>,
+  ): void {
+    this.mockShell.getPermissionService = () => service;
+  }
+
+  /**
+   * Bulk-add test entities (registers entity types automatically)
+   */
+  addEntities(
+    entities: Array<{
+      id: string;
+      entityType: string;
+      content: string;
+      metadata: Record<string, unknown>;
+      contentHash?: string;
+      created?: string;
+      updated?: string;
+    }>,
+  ): void {
+    this.mockShell.addEntities(
+      entities.map((e) => ({
+        contentHash: "test",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        ...e,
+      })),
+    );
   }
 
   /**
@@ -176,7 +258,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     toolName: string,
     input: Record<string, unknown> = {},
     context?: { interfaceType?: string; userId?: string; channelId?: string },
-  ): Promise<{ success: boolean; data?: unknown; error?: string }> {
+  ): Promise<ToolResponse> {
     if (!this.capabilities) {
       throw new Error("No plugin installed. Call installPlugin() first.");
     }
@@ -235,4 +317,40 @@ export function createPluginHarness<T extends Plugin = Plugin>(
     logContext: "plugin-test",
     ...options,
   });
+}
+
+// ── Test assertion helpers ──
+
+/**
+ * Assert a tool result is the success variant.
+ * Throws if not — narrows the type for subsequent access.
+ */
+export function expectSuccess(
+  result: ToolResponse,
+): asserts result is ToolSuccess {
+  if (!("success" in result) || !result.success) {
+    throw new Error(`Expected tool success but got: ${JSON.stringify(result)}`);
+  }
+}
+
+/**
+ * Assert a tool result is the error variant.
+ * Throws if not — narrows the type for subsequent access.
+ */
+export function expectError(result: ToolResponse): asserts result is ToolError {
+  if (!("success" in result) || result.success !== false) {
+    throw new Error(`Expected tool error but got: ${JSON.stringify(result)}`);
+  }
+}
+
+/**
+ * Assert a tool result is a confirmation request.
+ * Throws if not — narrows the type for subsequent access.
+ */
+export function expectConfirmation(
+  result: ToolResponse,
+): asserts result is ToolConfirmation {
+  if (!("needsConfirmation" in result)) {
+    throw new Error(`Expected confirmation but got: ${JSON.stringify(result)}`);
+  }
 }

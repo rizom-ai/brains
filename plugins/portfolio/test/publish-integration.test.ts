@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { PortfolioPlugin } from "../src/plugin";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 import type { Project } from "../src/schemas/project";
 
-// Sample project for testing
 const sampleDraftProject: Project = {
   id: "project-1",
   entityType: "project",
@@ -43,49 +44,30 @@ This is the outcome.`,
 };
 
 describe("PortfolioPlugin - Publish Pipeline Integration", () => {
-  let plugin: PortfolioPlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
+  let harness: PluginTestHarness<PortfolioPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({
-      logger,
+    harness = createPluginHarness<PortfolioPlugin>({
       dataDir: "/tmp/test-portfolio",
     });
     receivedMessages = [];
 
-    // Capture publish messages
-    const messageBus = mockShell.getMessageBus();
-    messageBus.subscribe("publish:register", async (msg) => {
-      receivedMessages.push({ type: "publish:register", payload: msg.payload });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:success", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:success",
-        payload: msg.payload,
+    for (const eventType of [
+      "publish:register",
+      "publish:report:success",
+      "publish:report:failure",
+    ]) {
+      harness.subscribe(eventType, async (msg) => {
+        receivedMessages.push({ type: eventType, payload: msg.payload });
+        return { success: true };
       });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:failure", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:failure",
-        payload: msg.payload,
-      });
-      return { success: true };
-    });
-  });
-
-  afterEach(async () => {
-    mock.restore();
+    }
   });
 
   describe("provider registration", () => {
     it("should send publish:register message on init with internal provider", async () => {
-      plugin = new PortfolioPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new PortfolioPlugin({}));
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",
@@ -100,29 +82,26 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
 
   describe("publish:execute handler", () => {
     it("should subscribe to publish:execute messages", async () => {
-      plugin = new PortfolioPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new PortfolioPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      const response = await messageBus.send(
-        "publish:execute",
-        { entityType: "project", entityId: "non-existent" },
-        "test",
+      await harness.sendMessage("publish:execute", {
+        entityType: "project",
+        entityId: "non-existent",
+      });
+
+      const failureMessage = receivedMessages.find(
+        (m) => m.type === "publish:report:failure",
       );
-
-      expect(response).toMatchObject({ success: true });
+      expect(failureMessage).toBeDefined();
     });
 
     it("should report failure when entity not found", async () => {
-      plugin = new PortfolioPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new PortfolioPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "project", entityId: "non-existent" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "project",
+        entityId: "non-existent",
+      });
 
       const failureMessage = receivedMessages.find(
         (m) => m.type === "publish:report:failure",
@@ -135,17 +114,13 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should skip non-project entity types", async () => {
-      plugin = new PortfolioPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new PortfolioPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "post", entityId: "post-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "post-1",
+      });
 
-      // No report messages for other entity types
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );
@@ -153,19 +128,15 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should report success when publishing draft project", async () => {
-      plugin = new PortfolioPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new PortfolioPlugin({}));
 
-      // Add draft project
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(sampleDraftProject);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "project", entityId: "project-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "project",
+        entityId: "project-1",
+      });
 
       const successMessage = receivedMessages.find(
         (m) => m.type === "publish:report:success",
@@ -176,7 +147,6 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
         entityId: "project-1",
       });
 
-      // Verify project was updated to published
       const updatedProject = await entityService.getEntity<Project>(
         "project",
         "project-1",
@@ -186,10 +156,8 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should skip already published projects", async () => {
-      plugin = new PortfolioPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new PortfolioPlugin({}));
 
-      // Add published project
       const publishedProject: Project = {
         ...sampleDraftProject,
         content: sampleDraftProject.content.replace(
@@ -202,17 +170,14 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
           publishedAt: "2024-01-01T00:00:00Z",
         },
       };
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(publishedProject);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "project", entityId: "project-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "project",
+        entityId: "project-1",
+      });
 
-      // No report messages for already published
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
       );

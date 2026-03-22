@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { PortfolioPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("PortfolioPlugin", () => {
@@ -67,7 +67,7 @@ describe("PortfolioPlugin", () => {
         year: 2024,
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(result.data).toHaveProperty("jobId");
     });
   });

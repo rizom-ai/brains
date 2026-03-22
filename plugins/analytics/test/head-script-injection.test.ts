@@ -14,19 +14,14 @@ describe("Analytics head script injection", () => {
   });
 
   it("should send head-script registration message when siteTag is configured", async () => {
-    const shell = harness.getShell();
-
-    // Subscribe to the head-script registration message BEFORE installing the plugin
     let receivedPayload: { pluginId: string; script: string } | undefined;
-    shell
-      .getMessageBus()
-      .subscribe(
-        "plugin:site-builder:head-script:register",
-        async (message: { payload: { pluginId: string; script: string } }) => {
-          receivedPayload = message.payload;
-          return { success: true };
-        },
-      );
+    harness.subscribe(
+      "plugin:site-builder:head-script:register",
+      async (message: { payload: { pluginId: string; script: string } }) => {
+        receivedPayload = message.payload;
+        return { success: true };
+      },
+    );
 
     const plugin = new AnalyticsPlugin({
       cloudflare: {
@@ -37,9 +32,7 @@ describe("Analytics head script injection", () => {
     });
 
     await harness.installPlugin(plugin);
-
-    // Analytics defers sending until system:plugins:ready
-    await shell.getMessageBus().send("system:plugins:ready", {}, "system");
+    await harness.sendMessage("system:plugins:ready", {}, "system");
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");
@@ -48,41 +41,31 @@ describe("Analytics head script injection", () => {
   });
 
   it("should NOT send head-script message when cloudflare is not configured", async () => {
-    const shell = harness.getShell();
-
     let receivedPayload: unknown;
-    shell
-      .getMessageBus()
-      .subscribe(
-        "plugin:site-builder:head-script:register",
-        async (message: { payload: unknown }) => {
-          receivedPayload = message.payload;
-          return { success: true };
-        },
-      );
+    harness.subscribe(
+      "plugin:site-builder:head-script:register",
+      async (message: { payload: unknown }) => {
+        receivedPayload = message.payload;
+        return { success: true };
+      },
+    );
 
     const plugin = new AnalyticsPlugin({});
     await harness.installPlugin(plugin);
-
-    // Even after plugins:ready, no message should be sent
-    await shell.getMessageBus().send("system:plugins:ready", {}, "system");
+    await harness.sendMessage("system:plugins:ready", {}, "system");
 
     expect(receivedPayload).toBeUndefined();
   });
 
   it("should NOT send head-script message when siteTag is empty", async () => {
-    const shell = harness.getShell();
-
     let receivedPayload: unknown;
-    shell
-      .getMessageBus()
-      .subscribe(
-        "plugin:site-builder:head-script:register",
-        async (message: { payload: unknown }) => {
-          receivedPayload = message.payload;
-          return { success: true };
-        },
-      );
+    harness.subscribe(
+      "plugin:site-builder:head-script:register",
+      async (message: { payload: unknown }) => {
+        receivedPayload = message.payload;
+        return { success: true };
+      },
+    );
 
     const plugin = new AnalyticsPlugin({
       cloudflare: {
@@ -92,32 +75,26 @@ describe("Analytics head script injection", () => {
       },
     });
 
-    // siteTag is empty string — schema may reject it, or onRegister skips
     try {
       await harness.installPlugin(plugin);
     } catch {
-      // Config validation may reject empty siteTag — that's fine
+      // Config validation may reject empty siteTag
     }
 
-    // Even after plugins:ready, no message should be sent
-    await shell.getMessageBus().send("system:plugins:ready", {}, "system");
+    await harness.sendMessage("system:plugins:ready", {}, "system");
 
     expect(receivedPayload).toBeUndefined();
   });
 
   it("should generate correct Cloudflare beacon script", async () => {
-    const shell = harness.getShell();
-
     let receivedScript: string | undefined;
-    shell
-      .getMessageBus()
-      .subscribe(
-        "plugin:site-builder:head-script:register",
-        async (message: { payload: { script: string } }) => {
-          receivedScript = message.payload.script;
-          return { success: true };
-        },
-      );
+    harness.subscribe(
+      "plugin:site-builder:head-script:register",
+      async (message: { payload: { script: string } }) => {
+        receivedScript = message.payload.script;
+        return { success: true };
+      },
+    );
 
     const plugin = new AnalyticsPlugin({
       cloudflare: {
@@ -128,9 +105,7 @@ describe("Analytics head script injection", () => {
     });
 
     await harness.installPlugin(plugin);
-
-    // Analytics defers sending until system:plugins:ready
-    await shell.getMessageBus().send("system:plugins:ready", {}, "system");
+    await harness.sendMessage("system:plugins:ready", {}, "system");
 
     expect(receivedScript).toBe(
       `<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token":"my-site-tag"}'></script>`,

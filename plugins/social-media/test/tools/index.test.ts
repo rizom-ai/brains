@@ -13,6 +13,7 @@ import {
   type Logger,
 } from "@brains/plugins/test";
 import type { ToolContext } from "@brains/plugins";
+import { expectSuccess, expectError } from "@brains/plugins/test";
 
 const testToolContext: ToolContext = {
   interfaceType: "test",
@@ -58,10 +59,8 @@ describe("Social Media Tools", () => {
     it("should require at least one content source", async () => {
       const tool = createGenerateTool(context, pluginId);
       const result = await tool.handler({}, testToolContext);
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toContain("prompt");
-      }
+      expectError(result);
+      expect(result.error).toContain("prompt");
     });
 
     it("should accept generateImage in input schema", () => {
@@ -97,7 +96,7 @@ describe("Social Media Tools", () => {
         testToolContext,
       );
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(enqueuedJobs.length).toBe(1);
       expect(enqueuedJobs[0]?.data.generateImage).toBe(true);
     });

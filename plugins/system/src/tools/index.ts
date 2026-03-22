@@ -1,7 +1,12 @@
-import type { PluginTool, BaseEntity, ToolResult } from "@brains/plugins";
+import type {
+  PluginTool,
+  BaseEntity,
+  ToolResult,
+  ToolResponse,
+} from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
-import { z } from "@brains/utils";
+import { z, parseMarkdown, generateMarkdown } from "@brains/utils";
 
 /**
  * Strip binary content (e.g., base64 data URLs) from entities before
@@ -21,6 +26,28 @@ function sanitizeEntity<T extends BaseEntity>(entity: T): T {
 // ============================================
 // Input schemas
 // ============================================
+
+const deleteInputSchema = z.object({
+  entityType: z.string().describe("Entity type"),
+  id: z.string().describe("Entity ID"),
+});
+
+const updateInputSchema = z.object({
+  entityType: z.string().describe("Entity type"),
+  id: z.string().describe("Entity ID"),
+  fields: z
+    .record(z.unknown())
+    .optional()
+    .describe("Partial frontmatter fields to update"),
+  content: z.string().optional().describe("Full markdown content replacement"),
+});
+
+const confirmedSchema = z.object({ confirmed: z.literal(true) }).passthrough();
+
+/** Check if this is a confirmed re-invocation from the agent service */
+function isConfirmed(rawInput: unknown): boolean {
+  return confirmedSchema.safeParse(rawInput).success;
+}
 
 const searchInputSchema = z.object({
   query: z.string().describe("Search term"),
@@ -386,5 +413,116 @@ export function createSystemTools(
       },
       { visibility: "public" },
     ),
+    // ── Destructive tools (with confirmation) ──
+    {
+      name: `${pluginId}_delete`,
+      description:
+        "Delete an entity. Requires confirmation — shows title and preview before executing.",
+      inputSchema: deleteInputSchema.shape,
+      handler: async (rawInput: unknown): Promise<ToolResponse> => {
+        const input = deleteInputSchema.parse(rawInput);
+
+        const entity = await plugin.findEntity(input.entityType, input.id);
+        if (!entity) {
+          return {
+            success: false,
+            error: `Entity not found: ${input.entityType}/${input.id}`,
+          };
+        }
+
+        if (isConfirmed(rawInput)) {
+          await plugin.deleteEntity(input.entityType, entity.id);
+          return { success: true, data: { deleted: entity.id } };
+        }
+
+        const titleField = entity.metadata["title"];
+        const title = typeof titleField === "string" ? titleField : entity.id;
+        const preview = entity.content.slice(0, 200);
+
+        return {
+          needsConfirmation: true,
+          toolName: `${pluginId}_delete`,
+          description: `Delete "${title}"?\n\nPreview:\n${preview}`,
+          args: { ...input, id: entity.id, confirmed: true },
+        };
+      },
+      visibility: "trusted",
+    },
+    {
+      name: `${pluginId}_update`,
+      description:
+        "Update an entity's fields or content. Requires confirmation — shows a diff before executing.",
+      inputSchema: updateInputSchema.shape,
+      handler: async (rawInput: unknown): Promise<ToolResponse> => {
+        const input = updateInputSchema.parse(rawInput);
+
+        const entity = await plugin.findEntity(input.entityType, input.id);
+        if (!entity) {
+          return {
+            success: false,
+            error: `Entity not found: ${input.entityType}/${input.id}`,
+          };
+        }
+
+        if (input.content && input.fields) {
+          return {
+            success: false,
+            error: "Provide either 'content' or 'fields', not both",
+          };
+        }
+        if (!input.content && !input.fields) {
+          return {
+            success: false,
+            error:
+              "Provide 'content' (full replacement) or 'fields' (partial update)",
+          };
+        }
+
+        let newContent = entity.content;
+
+        if (input.content) {
+          newContent = input.content;
+        } else if (input.fields) {
+          const { frontmatter, content } = parseMarkdown(entity.content);
+          const merged = { ...frontmatter, ...input.fields };
+          newContent = generateMarkdown(merged, content);
+        }
+
+        if (isConfirmed(rawInput)) {
+          const updated = {
+            ...entity,
+            content: newContent,
+            metadata: input.fields
+              ? { ...entity.metadata, ...input.fields }
+              : entity.metadata,
+          };
+          await plugin.updateEntity(updated);
+          return { success: true, data: { updated: entity.id } };
+        }
+
+        // Build diff description
+        const oldLines = entity.content.split("\n");
+        const newLines = newContent.split("\n");
+        const diffLines: string[] = [];
+        const maxLines = Math.max(oldLines.length, newLines.length);
+        for (let i = 0; i < maxLines; i++) {
+          const oldLine = oldLines[i] ?? "";
+          const newLine = newLines[i] ?? "";
+          if (oldLine !== newLine) {
+            if (oldLine) diffLines.push(`- ${oldLine}`);
+            if (newLine) diffLines.push(`+ ${newLine}`);
+          }
+        }
+        const diff = diffLines.join("\n");
+
+        return {
+          needsConfirmation: true,
+          toolName: `${pluginId}_update`,
+          description: `Update "${typeof entity.metadata["title"] === "string" ? entity.metadata["title"] : entity.id}"?\n\nChanges:\n${diff}`,
+          args: { ...input, id: entity.id, confirmed: true },
+        };
+      },
+      visibility: "trusted",
+    },
   ];
 }

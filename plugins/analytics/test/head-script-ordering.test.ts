@@ -6,10 +6,6 @@ import { AnalyticsPlugin } from "../src/index";
  * Regression test: analytics plugin must inject its head script
  * regardless of plugin registration order.
  *
- * In production, plugin array order determines registration order.
- * If analytics registers BEFORE site-builder, the head-script:register
- * message has no subscriber yet and the script is silently dropped.
- *
  * Fix: analytics defers sending until system:plugins:ready, which fires
  * after ALL plugins have registered their message handlers.
  */
@@ -25,9 +21,6 @@ describe("Analytics head script with plugin ordering", () => {
   });
 
   it("should inject head script when site-builder subscribes AFTER analytics registers", async () => {
-    const shell = harness.getShell();
-
-    // Register analytics (no site-builder subscriber yet)
     const analytics = new AnalyticsPlugin({
       cloudflare: {
         accountId: "abc",
@@ -37,20 +30,17 @@ describe("Analytics head script with plugin ordering", () => {
     });
     await harness.installPlugin(analytics);
 
-    // Now simulate site-builder subscribing (happens when site-builder registers later)
+    // Subscribe AFTER plugin registered (late subscriber)
     let receivedPayload: { pluginId: string; script: string } | undefined;
-    shell
-      .getMessageBus()
-      .subscribe(
-        "plugin:site-builder:head-script:register",
-        async (message: { payload: { pluginId: string; script: string } }) => {
-          receivedPayload = message.payload;
-          return { success: true };
-        },
-      );
+    harness.subscribe(
+      "plugin:site-builder:head-script:register",
+      async (message: { payload: { pluginId: string; script: string } }) => {
+        receivedPayload = message.payload;
+        return { success: true };
+      },
+    );
 
-    // Fire system:plugins:ready — analytics should NOW send its message
-    await shell.getMessageBus().send("system:plugins:ready", {}, "system");
+    await harness.sendMessage("system:plugins:ready", {}, "system");
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");
@@ -59,21 +49,16 @@ describe("Analytics head script with plugin ordering", () => {
   });
 
   it("should inject head script when site-builder subscribes BEFORE analytics registers", async () => {
-    const shell = harness.getShell();
-
-    // Site-builder subscribes first
+    // Subscribe BEFORE plugin registered (early subscriber)
     let receivedPayload: { pluginId: string; script: string } | undefined;
-    shell
-      .getMessageBus()
-      .subscribe(
-        "plugin:site-builder:head-script:register",
-        async (message: { payload: { pluginId: string; script: string } }) => {
-          receivedPayload = message.payload;
-          return { success: true };
-        },
-      );
+    harness.subscribe(
+      "plugin:site-builder:head-script:register",
+      async (message: { payload: { pluginId: string; script: string } }) => {
+        receivedPayload = message.payload;
+        return { success: true };
+      },
+    );
 
-    // Register analytics second
     const analytics = new AnalyticsPlugin({
       cloudflare: {
         accountId: "abc",
@@ -83,8 +68,7 @@ describe("Analytics head script with plugin ordering", () => {
     });
     await harness.installPlugin(analytics);
 
-    // Fire system:plugins:ready
-    await shell.getMessageBus().send("system:plugins:ready", {}, "system");
+    await harness.sendMessage("system:plugins:ready", {}, "system");
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");

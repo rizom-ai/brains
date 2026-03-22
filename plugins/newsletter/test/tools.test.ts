@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectSuccess,
+  expectError,
+} from "@brains/plugins/test";
 import { mockFetch } from "@brains/test-utils";
 import { NewsletterPlugin } from "../src";
 
@@ -48,10 +52,8 @@ describe("Newsletter Tools", () => {
         email: "test@example.com",
       });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("subscriberId", "sub-123");
-      }
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("subscriberId", "sub-123");
     });
 
     it("should include name when provided", async () => {
@@ -107,7 +109,7 @@ describe("Newsletter Tools", () => {
         email: "invalid",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result).toHaveProperty("error");
       expect((result as { error: string }).error).toContain("Invalid email");
     });
@@ -137,10 +139,8 @@ describe("Newsletter Tools", () => {
         email: "existing@example.com",
       });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("message", "already_subscribed");
-      }
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("message", "already_subscribed");
     });
   });
 
@@ -166,7 +166,7 @@ describe("Newsletter Tools", () => {
         email: "test@example.com",
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
   });
 
@@ -208,11 +208,9 @@ describe("Newsletter Tools", () => {
         {},
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("subscribers");
-        expect(result.data).toHaveProperty("count", 2);
-      }
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("subscribers");
+      expect(result.data).toHaveProperty("count", 2);
     });
   });
 
@@ -231,10 +229,8 @@ describe("Newsletter Tools", () => {
         prompt: "Create a newsletter about our latest product updates",
       });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("jobId");
-      }
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("jobId");
     });
 
     it("should queue a generation job with source entity IDs", async () => {
@@ -252,10 +248,8 @@ describe("Newsletter Tools", () => {
         sourceEntityType: "post",
       });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("jobId");
-      }
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("jobId");
     });
 
     it("should queue a generation job with direct content", async () => {
@@ -273,10 +267,8 @@ describe("Newsletter Tools", () => {
         content: "Hello subscribers! Here are this week's highlights...",
       });
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toHaveProperty("jobId");
-      }
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("jobId");
     });
 
     it("should fail when no content source provided", async () => {
@@ -291,7 +283,7 @@ describe("Newsletter Tools", () => {
 
       const result = await harness.executeTool("newsletter_generate", {});
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result).toHaveProperty("error");
     });
 
@@ -310,7 +302,7 @@ describe("Newsletter Tools", () => {
         addToQueue: true,
       });
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
     });
   });
 

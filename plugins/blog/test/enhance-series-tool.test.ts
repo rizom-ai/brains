@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  expectSuccess,
+  expectError,
+} from "@brains/plugins/test";
 import { computeContentHash } from "@brains/utils/hash";
 import { BlogPlugin } from "../src/plugin";
 import type { BlogPost } from "../src/schemas/blog-post";
@@ -53,12 +57,12 @@ Post content here.`;
       seriesId: "non-existent",
     });
 
-    expect(result.success).toBe(false);
+    expectError(result);
     expect(result.error).toContain("Series not found");
   });
 
   it("should return error when series has no posts", async () => {
-    const entityService = harness.getShell().getEntityService();
+    const entityService = harness.getEntityService();
     const series = createMockSeries("Empty Series");
     await entityService.createEntity(series);
 
@@ -66,12 +70,12 @@ Post content here.`;
       seriesId: series.id,
     });
 
-    expect(result.success).toBe(false);
+    expectError(result);
     expect(result.error).toContain("No posts found");
   });
 
   it("should find series by slug without prefix", async () => {
-    const entityService = harness.getShell().getEntityService();
+    const entityService = harness.getEntityService();
 
     await entityService.createEntity(createMockSeries("Test Series"));
     await entityService.createEntity(
@@ -87,11 +91,11 @@ Post content here.`;
       seriesId: "test-series",
     });
 
-    expect(result.success).toBe(true);
+    expectSuccess(result);
   });
 
   it("should succeed with posts in series", async () => {
-    const entityService = harness.getShell().getEntityService();
+    const entityService = harness.getEntityService();
 
     await entityService.createEntity(createMockSeries("AI Learning"));
     await entityService.createEntity(
@@ -115,7 +119,7 @@ Post content here.`;
       seriesId: "ai-learning",
     });
 
-    expect(result.success).toBe(true);
+    expectSuccess(result);
     expect(result.data).toBeDefined();
   });
 });

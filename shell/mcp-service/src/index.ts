@@ -12,5 +12,6 @@ export {
   toolSuccessSchema,
   toolErrorSchema,
   toolConfirmationSchema,
+  type ToolConfirmation,
   ToolContextRoutingSchema,
 } from "./types";

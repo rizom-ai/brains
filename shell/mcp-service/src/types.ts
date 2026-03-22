@@ -59,17 +59,9 @@ export const toolErrorSchema = z.object({
 });
 
 /**
- * Standardized tool response schema
- * All tools should return either a success or error response
- */
-export const toolResponseSchema = z.union([toolSuccessSchema, toolErrorSchema]);
-
-export type ToolResponse = z.infer<typeof toolResponseSchema>;
-
-/**
  * Confirmation response schema
  * Tools return this when a destructive operation needs user approval.
- * Separate from ToolResponse — only the agent service checks for it.
+ * The agent service detects this shape and enters the confirmation flow.
  */
 export const toolConfirmationSchema = z.object({
   needsConfirmation: z.literal(true),
@@ -79,6 +71,18 @@ export const toolConfirmationSchema = z.object({
 });
 
 export type ToolConfirmation = z.infer<typeof toolConfirmationSchema>;
+
+/**
+ * Standardized tool response schema
+ * All tools return one of: success, error, or confirmation request.
+ */
+export const toolResponseSchema = z.union([
+  toolSuccessSchema,
+  toolErrorSchema,
+  toolConfirmationSchema,
+]);
+
+export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
 /**
  * Plugin tool definition

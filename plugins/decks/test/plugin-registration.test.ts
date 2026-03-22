@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { DecksPlugin } from "../src/plugin";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 import type { DeckEntity } from "../src/schemas/deck";
 
 const sampleDraftDeck: DeckEntity = {
@@ -28,45 +30,28 @@ slug: test-deck
 };
 
 describe("DecksPlugin - Publish Pipeline Integration", () => {
-  let plugin: DecksPlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
+  let harness: PluginTestHarness<DecksPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger, dataDir: "/tmp/test-decks" });
+    harness = createPluginHarness<DecksPlugin>({ dataDir: "/tmp/test-decks" });
     receivedMessages = [];
 
-    const messageBus = mockShell.getMessageBus();
-    messageBus.subscribe("publish:register", async (msg) => {
-      receivedMessages.push({ type: "publish:register", payload: msg.payload });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:success", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:success",
-        payload: msg.payload,
+    for (const eventType of [
+      "publish:register",
+      "publish:report:success",
+      "publish:report:failure",
+    ]) {
+      harness.subscribe(eventType, async (msg) => {
+        receivedMessages.push({ type: eventType, payload: msg.payload });
+        return { success: true };
       });
-      return { success: true };
-    });
-    messageBus.subscribe("publish:report:failure", async (msg) => {
-      receivedMessages.push({
-        type: "publish:report:failure",
-        payload: msg.payload,
-      });
-      return { success: true };
-    });
-  });
-
-  afterEach(async () => {
-    mock.restore();
+    }
   });
 
   describe("provider registration", () => {
     it("should send publish:register message on init with internal provider", async () => {
-      plugin = new DecksPlugin();
-      await plugin.register(mockShell);
+      await harness.installPlugin(new DecksPlugin());
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",
@@ -81,29 +66,28 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
 
   describe("publish:execute handler", () => {
     it("should subscribe to publish:execute messages", async () => {
-      plugin = new DecksPlugin();
-      await plugin.register(mockShell);
+      await harness.installPlugin(new DecksPlugin());
 
-      const messageBus = mockShell.getMessageBus();
-      const response = await messageBus.send(
-        "publish:execute",
-        { entityType: "deck", entityId: "non-existent" },
-        "test",
+      // Sending to the channel doesn't throw — the plugin has a handler registered
+      await harness.sendMessage("publish:execute", {
+        entityType: "deck",
+        entityId: "non-existent",
+      });
+
+      // The handler ran — we can verify via the failure message it emits
+      const failureMessage = receivedMessages.find(
+        (m) => m.type === "publish:report:failure",
       );
-
-      expect(response).toMatchObject({ success: true });
+      expect(failureMessage).toBeDefined();
     });
 
     it("should report failure when entity not found", async () => {
-      plugin = new DecksPlugin();
-      await plugin.register(mockShell);
+      await harness.installPlugin(new DecksPlugin());
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "deck", entityId: "non-existent" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "deck",
+        entityId: "non-existent",
+      });
 
       const failureMessage = receivedMessages.find(
         (m) => m.type === "publish:report:failure",
@@ -116,18 +100,15 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should report success when publishing draft deck", async () => {
-      plugin = new DecksPlugin();
-      await plugin.register(mockShell);
+      await harness.installPlugin(new DecksPlugin());
 
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(sampleDraftDeck);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "deck", entityId: "deck-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "deck",
+        entityId: "deck-1",
+      });
 
       const successMessage = receivedMessages.find(
         (m) => m.type === "publish:report:success",

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
@@ -124,12 +124,10 @@ describe("SiteBuilderPlugin", () => {
           userId: "test-user",
         },
       );
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = routesData.parse(result.data);
-        expect(data.routes).toBeDefined();
-        expect(Array.isArray(data.routes)).toBe(true);
-      }
+      expectSuccess(result);
+      const data = routesData.parse(result.data);
+      expect(data.routes).toBeDefined();
+      expect(Array.isArray(data.routes)).toBe(true);
     }
   });
 

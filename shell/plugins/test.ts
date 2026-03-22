@@ -6,6 +6,9 @@ export { createMockShell, type MockShell } from "./src/test/mock-shell";
 export {
   PluginTestHarness,
   createPluginHarness,
+  expectSuccess,
+  expectError,
+  expectConfirmation,
   type HarnessOptions,
 } from "./src/test/harness";
 

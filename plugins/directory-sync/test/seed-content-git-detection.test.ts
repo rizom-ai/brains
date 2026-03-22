@@ -38,7 +38,7 @@ describe("Seed Content Git Detection", () => {
       dataDir: brainDataPath,
     });
 
-    const entityRegistry = harness.getShell().getEntityRegistry();
+    const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
       entityType,
       baseEntitySchema,

@@ -66,8 +66,7 @@ describe("entity:updated subscriber", () => {
       dataDir: syncPath,
     });
 
-    const shell = harness.getShell();
-    const entityRegistry = shell.getEntityRegistry();
+    const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
       "series",
       baseEntitySchema,
@@ -109,7 +108,7 @@ slug: test-series
       });
 
       // Save entity to DB first (subscriber fetches from DB)
-      const entityService = harness.getShell().getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.upsertEntity(entity);
 
       // Create series directory
@@ -156,7 +155,7 @@ Some content here.`;
       });
 
       // Save entity to DB first (subscriber fetches from DB)
-      const entityService = harness.getShell().getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.upsertEntity(entity);
 
       // Create series directory
@@ -213,7 +212,7 @@ slug: test-series
         },
       });
 
-      const entityService = harness.getShell().getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.upsertEntity(currentEntity);
 
       // Create series directory

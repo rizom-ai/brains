@@ -6,28 +6,25 @@ import {
 } from "../../src/handlers/generationHandler";
 import { createSilentLogger } from "@brains/test-utils";
 import {
-  createMockShell,
-  type MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
-  type Logger,
+  createPluginHarness,
+  type PluginTestHarness,
 } from "@brains/plugins/test";
+import type { ServicePluginContext } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
 
 describe("GenerationJobHandler", () => {
   let handler: GenerationJobHandler;
+  let harness: PluginTestHarness;
   let context: ServicePluginContext;
-  let logger: Logger;
-  let mockShell: MockShell;
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;
+
   beforeEach(() => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger });
-    context = createServicePluginContext(mockShell, "social-media");
+    const logger = createSilentLogger();
+    harness = createPluginHarness();
+    context = harness.getServiceContext("social-media");
     handler = new GenerationJobHandler(logger, context);
 
-    // Track progress calls
     progressCalls = [];
     const reporter = ProgressReporter.from(async (notification) => {
       const entry: { progress: number; message?: string } = {
@@ -120,7 +117,7 @@ describe("GenerationJobHandler", () => {
     it("should reject invalid platform", () => {
       const invalidData = {
         prompt: "Test",
-        platform: "twitter", // Not supported yet
+        platform: "twitter",
       };
       const result = handler.validateAndParse(invalidData);
       expect(result).toBeNull();
@@ -132,15 +129,14 @@ describe("GenerationJobHandler", () => {
 
     beforeEach(() => {
       sentMessages = [];
-      const messageBus = mockShell.getMessageBus();
-      messageBus.subscribe("generate:report:success", async (msg) => {
+      harness.subscribe("generate:report:success", async (msg) => {
         sentMessages.push({
           type: "generate:report:success",
           payload: msg.payload,
         });
         return { success: true };
       });
-      messageBus.subscribe("generate:report:failure", async (msg) => {
+      harness.subscribe("generate:report:failure", async (msg) => {
         sentMessages.push({
           type: "generate:report:failure",
           payload: msg.payload,
@@ -150,10 +146,8 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should send generate:report:failure when AI fails to generate title or content", async () => {
-      // Content without title goes through AI — mock AI returns empty object
       const jobData: GenerationJobData = {
         content: "My direct LinkedIn post content",
-        // title intentionally omitted — triggers AI generation
         platform: "linkedin",
       };
 
@@ -187,7 +181,6 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should not create any entity when AI fails to generate title or content", async () => {
-      // Content without title triggers AI, but mock AI returns no title/content
       const jobData: GenerationJobData = {
         content: "Content without title",
         platform: "linkedin",
@@ -259,7 +252,6 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should default to draft status when addToQueue not specified", async () => {
-      // Track created entities to verify status
       let createdStatus: string | undefined;
       const originalCreate = context.entityService.createEntity.bind(
         context.entityService,
@@ -276,7 +268,6 @@ describe("GenerationJobHandler", () => {
         title: "Default Status Post",
         content: "Content without addToQueue specified",
         platform: "linkedin",
-        // addToQueue intentionally not specified - should default to false
       };
 
       const result = await handler.process(
@@ -290,12 +281,12 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should pass content through AI generation when title is not provided", async () => {
-      spyOn(mockShell, "generateContent").mockResolvedValue({
+      spyOn(context.ai, "generate").mockResolvedValue({
         title: "AI Generated Title",
         content: "AI-shaped LinkedIn post content",
       });
-      context = createServicePluginContext(mockShell, "social-media");
-      handler = new GenerationJobHandler(logger, context);
+
+      handler = new GenerationJobHandler(createSilentLogger(), context);
 
       const jobData: GenerationJobData = {
         content: "Raw user content that needs shaping",
@@ -345,7 +336,6 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should queue image generation when generateImage is true", async () => {
-      // Track enqueued jobs with the known image-generate data shape
       interface ImageGenerateJobData {
         prompt: string;
         title: string;
@@ -380,7 +370,6 @@ describe("GenerationJobHandler", () => {
       );
 
       expect(result.success).toBe(true);
-      // Should have queued an image-generate job (fully-qualified for cross-plugin)
       const imageJob = enqueuedJobs.find(
         (j) => j.jobType === "image:image-generate",
       );

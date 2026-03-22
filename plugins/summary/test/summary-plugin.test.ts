@@ -1,21 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { SummaryPlugin } from "../src";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 
 describe("SummaryPlugin", () => {
+  let harness: PluginTestHarness<SummaryPlugin>;
   let plugin: SummaryPlugin;
-  let mockShell: MockShell;
-  let logger: ReturnType<typeof createSilentLogger>;
 
   beforeEach(() => {
-    logger = createSilentLogger();
-    mockShell = createMockShell({ logger, dataDir: "/tmp/test-datadir" });
+    harness = createPluginHarness<SummaryPlugin>({
+      dataDir: "/tmp/test-datadir",
+    });
     plugin = new SummaryPlugin();
-  });
-
-  afterEach(() => {
-    mock.restore();
   });
 
   it("should be instantiable", () => {
@@ -33,7 +31,7 @@ describe("SummaryPlugin", () => {
 
   describe("initialization", () => {
     it("should initialize with default config", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
       const config = plugin.getConfig();
       expect(config.enableAutoSummary).toBe(true);
@@ -43,12 +41,15 @@ describe("SummaryPlugin", () => {
     });
 
     it("should initialize with custom config", async () => {
+      const customHarness = createPluginHarness<SummaryPlugin>({
+        dataDir: "/tmp/test-datadir",
+      });
       const customPlugin = new SummaryPlugin({
         enableAutoSummary: false,
         maxSummaryLength: 1000,
       });
 
-      await customPlugin.register(mockShell);
+      await customHarness.installPlugin(customPlugin);
 
       const config = customPlugin.getConfig();
       expect(config.enableAutoSummary).toBe(false);
@@ -56,23 +57,20 @@ describe("SummaryPlugin", () => {
     });
 
     it("should subscribe to conversation digest events when auto-summary is enabled", async () => {
-      // Just ensure register completes successfully
-      // The actual subscription happens internally via context
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
-      // Verify plugin is configured correctly
       const config = plugin.getConfig();
       expect(config.enableAutoSummary).toBe(true);
     });
 
     it("should not subscribe to events when auto-summary is disabled", async () => {
-      const customPlugin = new SummaryPlugin({
-        enableAutoSummary: false,
+      const customHarness = createPluginHarness<SummaryPlugin>({
+        dataDir: "/tmp/test-datadir",
       });
+      const customPlugin = new SummaryPlugin({ enableAutoSummary: false });
 
-      await customPlugin.register(mockShell);
+      await customHarness.installPlugin(customPlugin);
 
-      // Verify plugin is configured correctly
       const config = customPlugin.getConfig();
       expect(config.enableAutoSummary).toBe(false);
     });
@@ -80,34 +78,28 @@ describe("SummaryPlugin", () => {
 
   describe("digest handling", () => {
     it("should be configured to handle digest events", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
-      // Plugin should be ready to handle digests when configured
       const config = plugin.getConfig();
       expect(config.enableAutoSummary).toBe(true);
-
-      // The actual digest handling is tested via integration tests
-      // or by testing DigestHandler directly
     });
   });
 
   describe("summary operations", () => {
     it("should handle operations after registration", async () => {
-      await plugin.register(mockShell);
+      await harness.installPlugin(plugin);
 
-      // Just verify the plugin can perform operations without errors
-      // The actual functionality is tested via the MockShell's default implementations
       const summary = await plugin.getSummary("test-conv");
-      expect(summary).toBeNull(); // MockShell returns null by default
+      expect(summary).toBeNull();
 
       const deleted = await plugin.deleteSummary("test-conv");
-      expect(deleted).toBe(true); // Delete always succeeds in mock
+      expect(deleted).toBe(true);
 
       const summaries = await plugin.getAllSummaries();
-      expect(summaries).toEqual([]); // MockShell returns empty array by default
+      expect(summaries).toEqual([]);
 
       const exported = await plugin.exportSummary("test-conv");
-      expect(exported).toBeNull(); // No summary exists
+      expect(exported).toBeNull();
 
       const stats = await plugin.getStatistics();
       expect(stats).toEqual({
@@ -120,25 +112,20 @@ describe("SummaryPlugin", () => {
 
   describe("cleanup", () => {
     it("should clean up resources properly", async () => {
-      await plugin.register(mockShell);
-
+      await harness.installPlugin(plugin);
       await plugin.cleanup();
-
-      // Verify cleanup was called (plugin should still be functional but handler reset)
       expect(plugin).toBeDefined();
     });
   });
 
   describe("plugin capabilities", () => {
     it("should register and return capabilities including tools", async () => {
-      const capabilities = await plugin.register(mockShell);
+      const capabilities = await harness.installPlugin(plugin);
 
       expect(capabilities).toBeDefined();
       expect(capabilities.tools).toBeDefined();
       expect(Array.isArray(capabilities.tools)).toBe(true);
 
-      // Check for expected tool names
-      // Note: Only summary_get remains - use system tools for list/export/delete/stats
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("summary_get");
       expect(toolNames).toHaveLength(1);

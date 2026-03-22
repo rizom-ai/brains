@@ -80,8 +80,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should return entities from extractable types", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post"),
       createMockEntity("link-1", "link"),
     ]);
@@ -94,8 +93,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should exclude image entity type", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post"),
       createMockEntity("image-1", "image"),
     ]);
@@ -107,8 +105,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should skip draft entities", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post", "published"),
       createMockEntity("post-2", "post", "draft"),
     ]);
@@ -120,8 +117,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should skip already processed entities by contentHash", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post", "published", "hash-already-processed"),
       createMockEntity("post-2", "post", "published", "hash-new"),
       createMockTopic("topic-1", [
@@ -142,8 +138,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should include already processed entities when force is true", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post", "published", "hash-already-processed"),
       createMockEntity("post-2", "post", "published", "hash-new"),
       createMockTopic("topic-1", [
@@ -163,8 +158,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should filter to specific entity types when provided", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post"),
       createMockEntity("link-1", "link"),
       createMockEntity("deck-1", "deck"),
@@ -181,8 +175,7 @@ describe("TopicsPlugin.getEntitiesToExtract", () => {
   });
 
   it("should apply limit when specified", async () => {
-    const shell = harness.getShell();
-    shell.addEntities([
+    harness.addEntities([
       createMockEntity("post-1", "post"),
       createMockEntity("post-2", "post"),
       createMockEntity("post-3", "post"),

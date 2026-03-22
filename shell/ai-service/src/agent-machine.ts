@@ -4,6 +4,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import {
   toolConfirmationSchema,
   toolResponseSchema,
+  toolSuccessSchema,
 } from "@brains/mcp-service";
 import type {
   AgentResponse,
@@ -278,7 +279,7 @@ export function extractToolResults(
     for (const tr of step.toolResults) {
       if (tr.output === null) continue;
 
-      // Check for confirmation request first (separate from ToolResponse)
+      // Check for confirmation request first
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
       if (confirmationParsed.success) {
         pendingConfirmation = {
@@ -306,9 +307,10 @@ export function extractToolResults(
       }
 
       // Extract data and jobId from success responses
-      if (parsed.data.success && parsed.data.data != null) {
-        toolResult.data = parsed.data.data;
-        const jobIdParsed = jobIdSchema.safeParse(parsed.data.data);
+      const successParsed = toolSuccessSchema.safeParse(parsed.data);
+      if (successParsed.success && successParsed.data.data != null) {
+        toolResult.data = successParsed.data.data;
+        const jobIdParsed = jobIdSchema.safeParse(successParsed.data.data);
         if (jobIdParsed.success) {
           toolResult.jobId = jobIdParsed.data.jobId;
         }

@@ -1,7 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { BlogPlugin } from "../src/plugin";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell, type MockShell } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockPost } from "./fixtures/blog-entities";
 
@@ -13,36 +15,28 @@ const sampleDraftPost = createMockPost(
 );
 
 describe("BlogPlugin - Publish Pipeline Integration", () => {
-  let plugin: BlogPlugin;
-  let mockShell: MockShell;
+  let harness: PluginTestHarness<BlogPlugin>;
   let receivedMessages: Array<{ type: string; payload: unknown }>;
 
   beforeEach(async () => {
-    const logger = createSilentLogger();
-    mockShell = createMockShell({ logger, dataDir: "/tmp/test-blog" });
+    harness = createPluginHarness<BlogPlugin>({ dataDir: "/tmp/test-blog" });
     receivedMessages = [];
 
-    const messageBus = mockShell.getMessageBus();
     for (const eventType of [
       "publish:register",
       "publish:report:success",
       "publish:report:failure",
     ]) {
-      messageBus.subscribe(eventType, async (msg) => {
+      harness.subscribe(eventType, async (msg) => {
         receivedMessages.push({ type: eventType, payload: msg.payload });
         return { success: true };
       });
     }
   });
 
-  afterEach(async () => {
-    mock.restore();
-  });
-
   describe("provider registration", () => {
     it("should send publish:register message on init with internal provider", async () => {
-      plugin = new BlogPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new BlogPlugin({}));
 
       const registerMessage = receivedMessages.find(
         (m) => m.type === "publish:register",
@@ -57,29 +51,26 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
 
   describe("publish:execute handler", () => {
     it("should subscribe to publish:execute messages", async () => {
-      plugin = new BlogPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new BlogPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      const response = await messageBus.send(
-        "publish:execute",
-        { entityType: "post", entityId: "non-existent" },
-        "test",
+      await harness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "non-existent",
+      });
+
+      const failureMessage = receivedMessages.find(
+        (m) => m.type === "publish:report:failure",
       );
-
-      expect(response).toMatchObject({ success: true });
+      expect(failureMessage).toBeDefined();
     });
 
     it("should report failure when entity not found", async () => {
-      plugin = new BlogPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new BlogPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "post", entityId: "non-existent" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "non-existent",
+      });
 
       const failureMessage = receivedMessages.find(
         (m) => m.type === "publish:report:failure",
@@ -92,15 +83,12 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should skip non-post entity types", async () => {
-      plugin = new BlogPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new BlogPlugin({}));
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "social-post", entityId: "post-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "social-post",
+        entityId: "post-1",
+      });
 
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),
@@ -109,18 +97,15 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should report success when publishing draft post", async () => {
-      plugin = new BlogPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new BlogPlugin({}));
 
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(sampleDraftPost);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "post", entityId: "post-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "post-1",
+      });
 
       const successMessage = receivedMessages.find(
         (m) => m.type === "publish:report:success",
@@ -139,8 +124,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
     });
 
     it("should skip already published posts", async () => {
-      plugin = new BlogPlugin({});
-      await plugin.register(mockShell);
+      await harness.installPlugin(new BlogPlugin({}));
 
       const publishedPost = createMockPost(
         "post-1",
@@ -150,15 +134,13 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         { publishedAt: "2025-01-01T00:00:00.000Z" },
       );
 
-      const entityService = mockShell.getEntityService();
+      const entityService = harness.getEntityService();
       await entityService.createEntity(publishedPost);
 
-      const messageBus = mockShell.getMessageBus();
-      await messageBus.send(
-        "publish:execute",
-        { entityType: "post", entityId: "post-1" },
-        "test",
-      );
+      await harness.sendMessage("publish:execute", {
+        entityType: "post",
+        entityId: "post-1",
+      });
 
       const reportMessages = receivedMessages.filter((m) =>
         m.type.startsWith("publish:report"),

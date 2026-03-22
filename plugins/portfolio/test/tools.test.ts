@@ -7,6 +7,7 @@ import type {
 } from "@brains/plugins";
 import { createPortfolioTools } from "../src/tools";
 import { createMockServicePluginContext } from "@brains/test-utils";
+import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils";
 
 // Schemas for parsing tool response data
@@ -161,11 +162,9 @@ describe("Portfolio Tools", () => {
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = jobIdData.parse(result.data);
-        expect(data.jobId).toBe("job-456");
-      }
+      expectSuccess(result);
+      const data = jobIdData.parse(result.data);
+      expect(data.jobId).toBe("job-456");
       expect(context.jobs.enqueue).toHaveBeenCalled();
       expect(context.entityService.search).toHaveBeenCalled();
     });
@@ -176,10 +175,8 @@ describe("Portfolio Tools", () => {
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBeDefined();
-      }
+      expectError(result);
+      expect(result.error).toBeDefined();
     });
 
     it("should require year", async () => {
@@ -188,10 +185,8 @@ describe("Portfolio Tools", () => {
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBeDefined();
-      }
+      expectError(result);
+      expect(result.error).toBeDefined();
     });
 
     it("should accept optional title", async () => {
@@ -200,7 +195,7 @@ describe("Portfolio Tools", () => {
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(true);
+      expectSuccess(result);
       expect(context.jobs.enqueue).toHaveBeenCalledWith(
         "generation",
         expect.objectContaining({ title: "My API Project" }),
@@ -215,11 +210,9 @@ describe("Portfolio Tools", () => {
         createMockToolContext(),
       );
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        const data = createResponseData.parse(result.data);
-        expect(data.relatedEntitiesFound).toBeDefined();
-      }
+      expectSuccess(result);
+      const data = createResponseData.parse(result.data);
+      expect(data.relatedEntitiesFound).toBeDefined();
     });
   });
 

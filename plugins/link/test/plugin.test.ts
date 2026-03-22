@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import type { LinkPlugin } from "../src/index";
 import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectError } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import {
   createMockLinkEntity,
@@ -208,7 +208,7 @@ describe("LinkPlugin with Harness", () => {
         url: "not-a-valid-url",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
     });
 
     it("link_capture should reject invalid domains", async () => {
@@ -216,7 +216,7 @@ describe("LinkPlugin with Harness", () => {
         url: "https://this-domain-definitely-does-not-exist-xyz123.com/page",
       });
 
-      expect(result.success).toBe(false);
+      expectError(result);
       expect(result.error).toBeDefined();
     });
   });

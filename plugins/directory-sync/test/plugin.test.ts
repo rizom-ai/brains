@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { DirectorySyncPlugin } from "../src/plugin";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import { z } from "@brains/utils";
@@ -23,7 +23,7 @@ describe("DirectorySyncPlugin", () => {
 
     harness = createPluginHarness<DirectorySyncPlugin>({ dataDir: syncPath });
 
-    const entityRegistry = harness.getShell().getEntityRegistry();
+    const entityRegistry = harness.getEntityRegistry();
     entityRegistry.registerEntityType(
       "base",
       baseEntitySchema,
@@ -96,12 +96,10 @@ describe("DirectorySyncPlugin", () => {
       // Should either complete immediately if no operations needed
       // or queue a batch job (both return success: true with the new format)
       expect(syncResult).toBeDefined();
-      expect(syncResult.success).toBe(true);
-      if (syncResult.success) {
-        const parsed = syncResponseData.safeParse(syncResult.data);
-        if (parsed.success) {
-          expect(parsed.data.jobId).toBeDefined();
-        }
+      expectSuccess(syncResult);
+      const parsed = syncResponseData.safeParse(syncResult.data);
+      if (parsed.success) {
+        expect(parsed.data.jobId).toBeDefined();
       }
     });
   });

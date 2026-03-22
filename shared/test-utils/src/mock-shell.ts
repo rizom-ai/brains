@@ -143,6 +143,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
     createEntity: async (entity: BaseEntity) => {
+      entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       entities.set(id, { ...entity, id });
       return { entityId: id, jobId: `job-${id}` };
@@ -189,6 +190,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       ({ content: markdown }) as BaseEntity,
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async (entity: BaseEntity) => {
+      entityTypes.add(entity.entityType);
       const exists = entity.id ? entities.has(entity.id) : false;
       if (exists) {
         entities.set(entity.id, entity);

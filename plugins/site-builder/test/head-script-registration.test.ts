@@ -16,28 +16,20 @@ describe("Head script registration", () => {
   });
 
   it("should accept head script registration via message", async () => {
-    const shell = harness.getShell();
-    const messageBus = shell.getMessageBus();
-
-    const response = await messageBus.send(
+    await harness.sendMessage(
       "plugin:site-builder:head-script:register",
       {
         pluginId: "analytics",
         script:
           '<script defer src="https://example.com/beacon.min.js"></script>',
-        position: "end", // end of <head>
+        position: "end",
       },
       "analytics",
     );
-
-    expect(response).toBeDefined();
   });
 
   it("should store multiple registered head scripts", async () => {
-    const shell = harness.getShell();
-    const messageBus = shell.getMessageBus();
-
-    await messageBus.send(
+    await harness.sendMessage(
       "plugin:site-builder:head-script:register",
       {
         pluginId: "analytics",
@@ -46,7 +38,7 @@ describe("Head script registration", () => {
       "analytics",
     );
 
-    await messageBus.send(
+    await harness.sendMessage(
       "plugin:site-builder:head-script:register",
       {
         pluginId: "newsletter",
@@ -55,7 +47,6 @@ describe("Head script registration", () => {
       "newsletter",
     );
 
-    // The registered scripts should be accessible for the build
     const scripts = plugin.getRegisteredHeadScripts();
     expect(scripts).toHaveLength(2);
     expect(scripts[0]).toContain("analytics.js");
@@ -63,10 +54,7 @@ describe("Head script registration", () => {
   });
 
   it("should not duplicate scripts from the same plugin", async () => {
-    const shell = harness.getShell();
-    const messageBus = shell.getMessageBus();
-
-    await messageBus.send(
+    await harness.sendMessage(
       "plugin:site-builder:head-script:register",
       {
         pluginId: "analytics",
@@ -75,8 +63,7 @@ describe("Head script registration", () => {
       "analytics",
     );
 
-    // Re-register from same plugin replaces
-    await messageBus.send(
+    await harness.sendMessage(
       "plugin:site-builder:head-script:register",
       {
         pluginId: "analytics",
