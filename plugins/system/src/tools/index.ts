@@ -6,7 +6,7 @@ import type {
 } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
-import { z, parseMarkdown, generateMarkdown } from "@brains/utils";
+import { z } from "@brains/utils";
 
 /**
  * Strip binary content (e.g., base64 data URLs) from entities before
@@ -501,16 +501,6 @@ export function createSystemTools(
           };
         }
 
-        let newContent = entity.content;
-
-        if (input.content) {
-          newContent = input.content;
-        } else if (input.fields) {
-          const { frontmatter, content } = parseMarkdown(entity.content);
-          const merged = { ...frontmatter, ...input.fields };
-          newContent = generateMarkdown(merged, content);
-        }
-
         if (isConfirmed(rawInput)) {
           const confirmed = parseConfirmed(rawInput);
           if (
@@ -524,13 +514,12 @@ export function createSystemTools(
             };
           }
 
-          const updated = {
-            ...entity,
-            content: newContent,
-            metadata: input.fields
-              ? { ...entity.metadata, ...input.fields }
-              : entity.metadata,
-          };
+          const updated = input.content
+            ? { ...entity, content: input.content }
+            : {
+                ...entity,
+                metadata: { ...entity.metadata, ...input.fields },
+              };
           try {
             await plugin.updateEntity(updated);
           } catch (error) {
@@ -545,25 +534,41 @@ export function createSystemTools(
           return { success: true, data: { updated: entity.id } };
         }
 
-        // Build diff description
-        const oldLines = entity.content.split("\n");
-        const newLines = newContent.split("\n");
-        const diffLines: string[] = [];
-        const maxLines = Math.max(oldLines.length, newLines.length);
-        for (let i = 0; i < maxLines; i++) {
-          const oldLine = oldLines[i] ?? "";
-          const newLine = newLines[i] ?? "";
-          if (oldLine !== newLine) {
-            if (oldLine) diffLines.push(`- ${oldLine}`);
-            if (newLine) diffLines.push(`+ ${newLine}`);
+        // Build description for confirmation prompt
+        const title =
+          typeof entity.metadata["title"] === "string"
+            ? entity.metadata["title"]
+            : entity.id;
+        let diff: string;
+
+        if (input.fields) {
+          // Show field-level changes
+          const changes = Object.entries(input.fields).map(([key, val]) => {
+            const old = entity.metadata[key];
+            return `${key}: ${String(old ?? "(empty)")} → ${String(val)}`;
+          });
+          diff = changes.join("\n");
+        } else {
+          // Show content diff for full replacement
+          const oldLines = entity.content.split("\n");
+          const newLines = (input.content ?? "").split("\n");
+          const diffLines: string[] = [];
+          const maxLines = Math.max(oldLines.length, newLines.length);
+          for (let i = 0; i < maxLines; i++) {
+            const oldLine = oldLines[i] ?? "";
+            const newLine = newLines[i] ?? "";
+            if (oldLine !== newLine) {
+              if (oldLine) diffLines.push(`- ${oldLine}`);
+              if (newLine) diffLines.push(`+ ${newLine}`);
+            }
           }
+          diff = diffLines.join("\n");
         }
-        const diff = diffLines.join("\n");
 
         return {
           needsConfirmation: true,
           toolName: `${pluginId}_update`,
-          description: `Update "${typeof entity.metadata["title"] === "string" ? entity.metadata["title"] : entity.id}"?\n\nChanges:\n${diff}`,
+          description: `Update "${title}"?\n\nChanges:\n${diff}`,
           args: {
             ...input,
             id: entity.id,
