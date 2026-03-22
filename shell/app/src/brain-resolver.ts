@@ -74,6 +74,28 @@ function resolveActiveIds(
  * @param overrides - Instance overrides from brain.yaml (optional)
  * @returns A fully resolved AppConfig ready for handleCLI() or App.create()
  */
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(
+  base: Record<string, unknown>,
+  override: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const baseVal = base[key];
+    const overrideVal = override[key];
+    if (isPlainObject(baseVal) && isPlainObject(overrideVal)) {
+      result[key] = deepMerge(baseVal, overrideVal);
+    } else {
+      result[key] = overrideVal;
+    }
+  }
+  return result;
+}
+
 export function resolve(
   definition: BrainDefinition,
   env: BrainEnvironment,
@@ -124,7 +146,7 @@ export function resolve(
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
     const override = pluginOverrides[id];
-    const merged = override ? { ...baseConfig, ...override } : baseConfig;
+    const merged = override ? deepMerge(baseConfig, override) : baseConfig;
     capabilities.push(factory(merged));
   }
 
@@ -137,7 +159,7 @@ export function resolve(
     if (!baseConfig) continue;
 
     const override = pluginOverrides[id];
-    const merged = override ? { ...baseConfig, ...override } : baseConfig;
+    const merged = override ? deepMerge(baseConfig, override) : baseConfig;
     interfaces.push(new ctor(merged));
   }
 

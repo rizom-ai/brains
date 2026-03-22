@@ -21,8 +21,11 @@ describe("git config block", () => {
     expect(result.git?.authorEmail).toBe("test@example.com");
   });
 
-  it("should require repo when git is provided", () => {
-    expect(() => directorySyncConfigSchema.parse({ git: {} })).toThrow();
+  it("should allow git block with just gitUrl (no repo)", () => {
+    const result = directorySyncConfigSchema.parse({
+      git: { gitUrl: "file:///tmp/local-repo" },
+    });
+    expect(result.git?.gitUrl).toBe("file:///tmp/local-repo");
   });
 
   it("should default branch to main", () => {
@@ -37,6 +40,14 @@ describe("git config block", () => {
       git: { repo: "test/repo", branch: "master" },
     });
     expect(result.git?.branch).toBe("master");
+  });
+
+  it("should accept gitUrl as alternative to repo", () => {
+    const result = directorySyncConfigSchema.parse({
+      git: { gitUrl: "file:///tmp/test-remote" },
+    });
+    expect(result.git?.gitUrl).toBe("file:///tmp/test-remote");
+    expect(result.git?.repo).toBeUndefined();
   });
 
   it("should accept authToken in git config", () => {

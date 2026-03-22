@@ -7,7 +7,7 @@ import { systemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
-import { gitSyncPlugin } from "@brains/git-sync";
+
 import { join } from "path";
 import { WebserverInterface } from "@brains/webserver";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
@@ -45,7 +45,6 @@ export default defineBrain({
       "site-content",
       "site-builder",
       "directory-sync",
-      "git-sync",
       "mcp",
       "matrix",
       "webserver",
@@ -65,16 +64,11 @@ export default defineBrain({
         seedContent: true,
         seedContentPath: join(import.meta.dir, "..", "seed-content"),
         initialSync: true,
+        git: {
+          authorName: "Relay",
+          authorEmail: "relay@rizom.ai",
+        },
       },
-    ],
-    [
-      "git-sync",
-      gitSyncPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        authToken: env["GIT_SYNC_TOKEN"],
-        autoSync: true,
-        autoPush: true,
-      }),
     ],
     ["site-content", siteContentPlugin, undefined],
     ["site-builder", siteBuilderPlugin, {}],

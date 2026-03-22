@@ -11,10 +11,12 @@ anchors:
   - "discord:1442828818493735015"
 
 plugins:
-  git-sync:
-    repo: rizom-ai/professional-brain-content
-    authorName: Yeehaa
-    authorEmail: yeehaa@rizom.ai
+  directory-sync:
+    git:
+      repo: rizom-ai/professional-brain-content
+      authToken: ${GIT_SYNC_TOKEN}
+      authorName: Yeehaa
+      authorEmail: yeehaa@rizom.ai
   matrix:
     userId: "@yeehaa-brain-bot:rizom.ai"
     homeserver: https://matrix.rizom.ai

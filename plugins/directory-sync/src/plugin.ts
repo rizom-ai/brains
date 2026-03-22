@@ -85,6 +85,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         logger: this.logger.child("GitSync"),
         dataDir: gitSyncPath,
         repo: this.config.git.repo,
+        gitUrl: this.config.git.gitUrl,
         branch: this.config.git.branch,
         authToken: this.config.git.authToken,
         authorName: this.config.git.authorName,

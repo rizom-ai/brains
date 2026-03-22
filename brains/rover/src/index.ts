@@ -11,7 +11,6 @@ import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { A2AInterface } from "@brains/a2a";
 import { directorySync } from "@brains/directory-sync";
-import { gitSyncPlugin } from "@brains/git-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
 import { decksPlugin } from "@brains/decks";
@@ -49,7 +48,6 @@ const minimal = [
   "link",
   "wishlist",
   "directory-sync",
-  "git-sync",
   "mcp",
   "discord",
   "a2a",
@@ -164,17 +162,11 @@ export default defineBrain({
         seedContent: true,
         seedContentPath: join(import.meta.dir, "..", "seed-content"),
         initialSync: true,
+        git: {
+          authorName: "Rover",
+          authorEmail: "rover@rizom.ai",
+        },
       },
-    ],
-    [
-      "git-sync",
-      gitSyncPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        authToken: env["GIT_SYNC_TOKEN"],
-        autoSync: true,
-        autoPush: true,
-        syncInterval: 5,
-      }),
     ],
     [
       "analytics",

@@ -402,6 +402,63 @@ describe("resolve with instance overrides", () => {
     });
   });
 
+  test("should deep merge nested plugin config overrides", () => {
+    const configs: unknown[] = [];
+    const factory: PluginFactory = (config) => {
+      configs.push(config);
+      return createMockPlugin("directory-sync", config);
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        [
+          "directory-sync",
+          factory,
+          {
+            seedContent: true,
+            initialSync: true,
+            git: {
+              authorName: "Rover",
+              authorEmail: "rover@rizom.ai",
+            },
+          },
+        ],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        plugins: {
+          "directory-sync": {
+            git: {
+              repo: "rizom-ai/content",
+              authToken: "secret",
+            },
+          },
+        },
+      },
+    );
+
+    const ds = config.plugins?.find((p) => p.id === "directory-sync");
+    const dsConfig = getConfig(ds) as Record<string, unknown>;
+    const git = dsConfig["git"] as Record<string, unknown>;
+
+    // Brain model defaults preserved
+    expect(git["authorName"]).toBe("Rover");
+    expect(git["authorEmail"]).toBe("rover@rizom.ai");
+    // brain.yaml overrides merged in
+    expect(git["repo"]).toBe("rizom-ai/content");
+    expect(git["authToken"]).toBe("secret");
+    // Other top-level config preserved
+    expect(dsConfig["seedContent"]).toBe(true);
+    expect(dsConfig["initialSync"]).toBe(true);
+  });
+
   test("should apply plugin config overrides to interfaces", () => {
     const def = defineBrain({
       name: "test",

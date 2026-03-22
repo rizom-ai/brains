@@ -9,7 +9,7 @@ import { MatrixInterface } from "@brains/matrix";
 import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
-import { gitSyncPlugin } from "@brains/git-sync";
+
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { socialMediaPlugin } from "@brains/social-media";
@@ -50,7 +50,6 @@ export default defineBrain({
       "wishlist",
       "analytics",
       "directory-sync",
-      "git-sync",
       "site-builder",
       "mcp",
       "matrix",
@@ -83,16 +82,11 @@ export default defineBrain({
         seedContent: true,
         seedContentPath: join(import.meta.dir, "..", "seed-content"),
         initialSync: true,
+        git: {
+          authorName: "Ranger",
+          authorEmail: "ranger@rizom.ai",
+        },
       },
-    ],
-    [
-      "git-sync",
-      gitSyncPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        authToken: env["GIT_SYNC_TOKEN"],
-        autoSync: true,
-        autoPush: true,
-      }),
     ],
     [
       "analytics",

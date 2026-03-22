@@ -19,7 +19,6 @@
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
-    "@brains/git-sync": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/matrix": "workspace:*",

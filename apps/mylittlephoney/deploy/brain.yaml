@@ -11,15 +11,16 @@ anchors:
 add:
   - decks
 remove:
-  - git-sync
   - image
 
 # Plugin overrides
 plugins:
-  git-sync:
-    repo: rizom-ai/mylittlephoney-content
-    authorName: mylittlephoney
-    authorEmail: phoney@rizom.ai
+  directory-sync:
+    git:
+      repo: rizom-ai/mylittlephoney-content
+      authToken: ${GIT_SYNC_TOKEN}
+      authorName: mylittlephoney
+      authorEmail: phoney@rizom.ai
   discord: {}
   webserver:
     productionDomain: https://mylittlephoney.com

@@ -12,10 +12,12 @@ anchors:
 
 # Plugin overrides
 plugins:
-  git-sync:
-    repo: rizom-ai/professional-brain-content
-    authorName: Yeehaa
-    authorEmail: yeehaa@rizom.ai
+  directory-sync:
+    git:
+      repo: rizom-ai/professional-brain-content
+      authToken: ${GIT_SYNC_TOKEN}
+      authorName: Yeehaa
+      authorEmail: yeehaa@rizom.ai
   matrix:
     userId: "@rover-local:rizom.ai"
     homeserver: https://matrix.rizom.ai

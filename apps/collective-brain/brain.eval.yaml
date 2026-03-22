@@ -1,17 +1,9 @@
 brain: "@brains/ranger"
 
 # Eval-specific config — safe subset for automated testing
-# No chat interfaces, no git auto-push
-
-disable:
-  - matrix
-  - discord
-  - analytics
-  - dashboard
-  - webserver
+# Ranger only has default preset, so no preset override needed
 
 plugins:
-  git-sync:
-    gitUrl: "file:///tmp/brain-eval-git-remote"
-    autoSync: false
-    autoPush: false
+  directory-sync:
+    git:
+      gitUrl: "file:///tmp/brain-eval-git-remote"

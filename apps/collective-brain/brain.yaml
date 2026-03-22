@@ -12,10 +12,12 @@ trusted:
 
 # Plugin overrides
 plugins:
-  git-sync:
-    repo: rizom-ai/collective-brain-content
-    authorName: Ranger
-    authorEmail: collective@rizom.ai
+  directory-sync:
+    git:
+      repo: rizom-ai/collective-brain-content
+      authToken: ${GIT_SYNC_TOKEN}
+      authorName: Ranger
+      authorEmail: collective@rizom.ai
   matrix:
     userId: "@ranger-local:rizom.ai"
     homeserver: https://matrix.rizom.ai
