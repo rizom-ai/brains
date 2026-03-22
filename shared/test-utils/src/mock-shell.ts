@@ -30,6 +30,7 @@ import type {
   DataSourceRegistry,
   DataSource,
 } from "@brains/entity-service";
+import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
 import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
@@ -150,7 +151,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
     updateEntity: async (entity: BaseEntity) => {
       if (!entity.id) throw new Error("Entity must have an id");
-      entities.set(entity.id, entity);
+      const updated = {
+        ...entity,
+        contentHash: computeContentHash(entity.content),
+      };
+      entities.set(entity.id, updated);
       return { entityId: entity.id, jobId: `job-${entity.id}` };
     },
     deleteEntity: async (_type: string, id: string) => {

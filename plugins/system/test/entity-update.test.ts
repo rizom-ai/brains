@@ -150,7 +150,78 @@ describe("entity_update tool", () => {
     });
   });
 
-  describe("validation", () => {
+  describe("optimistic concurrency", () => {
+    it("should reject update when entity was modified between read and confirm", async () => {
+      const entity = createTestEntity<BaseEntity>("post", {
+        id: "my-post",
+        content:
+          "---\ntitle: Original\nstatus: draft\nslug: my-post\n---\nBody.",
+        metadata: { title: "Original", status: "draft", slug: "my-post" },
+        contentHash: "hash-v1",
+      });
+      await harness.getEntityService().upsertEntity(entity);
+
+      // First call — reads entity, returns confirmation with contentHash in args
+      const confirm = await harness.executeTool("system_update", {
+        entityType: "post",
+        id: "my-post",
+        fields: { title: "New Title" },
+      });
+      expectConfirmation(confirm);
+
+      // Simulate concurrent modification (git-sync, another interface, etc.)
+      const modified = {
+        ...entity,
+        content:
+          "---\ntitle: Original\nstatus: draft\nslug: my-post\n---\nModified body.",
+        contentHash: "hash-v2",
+      };
+      await harness.getEntityService().updateEntity(modified);
+
+      // Confirmed call — should detect stale contentHash and reject
+      const result = await harness.executeTool("system_update", {
+        ...(confirm.args as Record<string, unknown>),
+      });
+
+      expectError(result);
+      expect(result.error).toContain("modified");
+    });
+  });
+
+  describe("entity service validation", () => {
+    it("should return error when entity service rejects the update", async () => {
+      const entity = createTestEntity<BaseEntity>("post", {
+        id: "my-post",
+        content:
+          "---\ntitle: My Post\nstatus: draft\nslug: my-post\n---\nBody.",
+        metadata: { title: "My Post", status: "draft", slug: "my-post" },
+      });
+      await harness.getEntityService().upsertEntity(entity);
+
+      // Make updateEntity throw (simulates schema validation failure)
+      const origUpdate = harness
+        .getEntityService()
+        .updateEntity.bind(harness.getEntityService());
+      harness.getEntityService().updateEntity = async () => {
+        throw new Error("Validation failed: invalid status value");
+      };
+
+      const result = await harness.executeTool("system_update", {
+        entityType: "post",
+        id: "my-post",
+        fields: { status: "banana" },
+        confirmed: true,
+      });
+
+      expectError(result);
+      expect(result.error).toContain("Validation failed");
+
+      // Restore
+      harness.getEntityService().updateEntity = origUpdate;
+    });
+  });
+
+  describe("error handling", () => {
     it("should return error for nonexistent entity", async () => {
       const result = await harness.executeTool("system_update", {
         entityType: "post",

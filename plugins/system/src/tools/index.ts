@@ -42,11 +42,24 @@ const updateInputSchema = z.object({
   content: z.string().optional().describe("Full markdown content replacement"),
 });
 
-const confirmedSchema = z.object({ confirmed: z.literal(true) }).passthrough();
+const confirmedSchema = z
+  .object({
+    confirmed: z.literal(true),
+    contentHash: z.string().optional(),
+  })
+  .passthrough();
 
 /** Check if this is a confirmed re-invocation from the agent service */
 function isConfirmed(rawInput: unknown): boolean {
   return confirmedSchema.safeParse(rawInput).success;
+}
+
+type ConfirmedArgs = z.infer<typeof confirmedSchema>;
+
+/** Parse the confirmed args, including contentHash for optimistic concurrency */
+function parseConfirmed(rawInput: unknown): ConfirmedArgs | undefined {
+  const parsed = confirmedSchema.safeParse(rawInput);
+  return parsed.success ? parsed.data : undefined;
 }
 
 const searchInputSchema = z.object({
@@ -431,7 +444,17 @@ export function createSystemTools(
         }
 
         if (isConfirmed(rawInput)) {
-          await plugin.deleteEntity(input.entityType, entity.id);
+          try {
+            await plugin.deleteEntity(input.entityType, entity.id);
+          } catch (error) {
+            return {
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to delete entity",
+            };
+          }
           return { success: true, data: { deleted: entity.id } };
         }
 
@@ -489,6 +512,18 @@ export function createSystemTools(
         }
 
         if (isConfirmed(rawInput)) {
+          const confirmed = parseConfirmed(rawInput);
+          if (
+            confirmed?.contentHash &&
+            entity.contentHash !== confirmed.contentHash
+          ) {
+            return {
+              success: false,
+              error:
+                "Entity was modified since you reviewed the changes. Please try again.",
+            };
+          }
+
           const updated = {
             ...entity,
             content: newContent,
@@ -496,7 +531,17 @@ export function createSystemTools(
               ? { ...entity.metadata, ...input.fields }
               : entity.metadata,
           };
-          await plugin.updateEntity(updated);
+          try {
+            await plugin.updateEntity(updated);
+          } catch (error) {
+            return {
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to update entity",
+            };
+          }
           return { success: true, data: { updated: entity.id } };
         }
 
@@ -519,7 +564,12 @@ export function createSystemTools(
           needsConfirmation: true,
           toolName: `${pluginId}_update`,
           description: `Update "${typeof entity.metadata["title"] === "string" ? entity.metadata["title"] : entity.id}"?\n\nChanges:\n${diff}`,
-          args: { ...input, id: entity.id, confirmed: true },
+          args: {
+            ...input,
+            id: entity.id,
+            confirmed: true,
+            contentHash: entity.contentHash,
+          },
         };
       },
       visibility: "trusted",
