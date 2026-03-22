@@ -30,6 +30,10 @@ export const CoverImage = ({
       <img
         src={src}
         alt={alt}
+        width={width}
+        height={height}
+        loading="lazy"
+        decoding="async"
         style={{ aspectRatio: `${width}/${height}` }}
         className="w-full h-auto rounded-lg"
       />

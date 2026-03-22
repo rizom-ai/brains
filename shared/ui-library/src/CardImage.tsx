@@ -51,6 +51,8 @@ export const CardImage = ({
     <img
       src={src}
       alt={alt}
+      loading="lazy"
+      decoding="async"
       className={cn(cardImageVariants({ size }), className)}
     />
   );
