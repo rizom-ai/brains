@@ -115,7 +115,7 @@ describe("StreamableHTTPServer", () => {
 
   describe("Server Lifecycle", () => {
     test("should create server with default config", () => {
-      server = new StreamableHTTPServer();
+      server = new StreamableHTTPServer({ auth: { disabled: true } });
       expect(server).toBeDefined();
       expect(server.isRunning()).toBe(false);
     });
@@ -125,6 +125,7 @@ describe("StreamableHTTPServer", () => {
         port: 0,
         host: "127.0.0.1",
         logger: mockLogger,
+        auth: { disabled: true },
       });
       expect(server).toBeDefined();
       expect(server.isRunning()).toBe(false);
@@ -134,6 +135,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
 
       await server.start();
@@ -148,6 +150,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
 
       await server.start();
@@ -164,6 +167,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
 
       await server.start();
@@ -176,6 +180,7 @@ describe("StreamableHTTPServer", () => {
       const server1 = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server1.start();
       const boundPort = server1.getPort();
@@ -184,6 +189,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: boundPort,
         logger: mockLogger,
+        auth: { disabled: true },
       });
 
       // eslint-disable-next-line @typescript-eslint/await-thenable
@@ -202,6 +208,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server.start();
     });
@@ -241,6 +248,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server.start();
 
@@ -287,6 +295,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server.start();
       port = server.getPort();
@@ -389,6 +398,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server.start();
       const port = server.getPort();
@@ -406,6 +416,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server.start();
       const port = server.getPort();
@@ -422,7 +433,7 @@ describe("StreamableHTTPServer", () => {
 
   describe("Express App Access", () => {
     test("should provide access to Express app", () => {
-      server = new StreamableHTTPServer();
+      server = new StreamableHTTPServer({ auth: { disabled: true } });
       const app = server.getApp();
 
       expect(app).toBeDefined();
@@ -436,6 +447,7 @@ describe("StreamableHTTPServer", () => {
       server = new StreamableHTTPServer({
         port: 0,
         logger: mockLogger,
+        auth: { disabled: true },
       });
       await server.start();
       const port = server.getPort();
@@ -484,8 +496,7 @@ describe("StreamableHTTPServer", () => {
           port: 0,
           logger: mockLogger,
           auth: {
-            enabled: false,
-            token: testToken,
+            disabled: true,
           },
         });
         await server.start();
@@ -529,7 +540,6 @@ describe("StreamableHTTPServer", () => {
           port: 0,
           logger: mockLogger,
           auth: {
-            enabled: true,
             token: testToken,
           },
         });
@@ -644,34 +654,27 @@ describe("StreamableHTTPServer", () => {
       });
     });
 
-    describe("with authentication enabled but no token configured", () => {
-      let port: number;
-
-      beforeEach(async () => {
-        server = new StreamableHTTPServer({
-          port: 0,
-          logger: mockLogger,
-          auth: {
-            enabled: true,
-            // No token provided
-          },
-        });
-        await server.start();
-        port = server.getPort();
+    describe("with no token and auth not disabled", () => {
+      test("should throw on construction", () => {
+        expect(
+          () =>
+            new StreamableHTTPServer({
+              port: 0,
+              logger: mockLogger,
+              // No auth config — defaults to auth required
+            }),
+        ).toThrow("MCP HTTP transport requires an auth token");
       });
 
-      test("should log warning and allow all requests", async () => {
-        expect(mockLogger.warn).toHaveBeenCalledWith(
-          "Authentication enabled but no token provided!",
-        );
-
-        const response = await makeRequest("POST", "/mcp", {
-          port,
-          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
-        });
-
-        // Should not require auth since no token is configured
-        expect(response.status).not.toBe(401);
+      test("should throw with empty auth config", () => {
+        expect(
+          () =>
+            new StreamableHTTPServer({
+              port: 0,
+              logger: mockLogger,
+              auth: {},
+            }),
+        ).toThrow("MCP HTTP transport requires an auth token");
       });
     });
   });

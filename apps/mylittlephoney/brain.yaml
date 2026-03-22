@@ -19,13 +19,26 @@ remove:
 plugins:
   directory-sync:
     git:
-      repo: rizom-ai/mylittlephoney-content
+      repo: rizom-ai/phoney-brain-content
       authToken: ${GIT_SYNC_TOKEN}
       authorName: mylittlephoney
       authorEmail: phoney@rizom.ai
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
+  a2a:
+    organization: rizom.ai
+    trustedTokens:
+      ${A2A_TOKEN_YEEHAA}: yeehaa
+    outboundTokens:
+      yeehaa.io: ${A2A_OUTBOUND_TOKEN_YEEHAA}
   discord:
     botToken: ${DISCORD_BOT_TOKEN}
   webserver:
     productionDomain: https://mylittlephoney.com
+
+permissions:
+  rules:
+    - pattern: "a2a:yeehaa"
+      level: trusted
+    - pattern: "a2a:*"
+      level: public

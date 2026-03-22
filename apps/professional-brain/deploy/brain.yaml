@@ -24,6 +24,12 @@ plugins:
     userId: "@yeehaa-brain-bot:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Rover
+  a2a:
+    domain: yeehaa.io
+    trustedTokens:
+      ${A2A_TOKEN_PHONEY}: mylittlephoney
+    outboundTokens:
+      mylittlephoney.com: ${A2A_OUTBOUND_TOKEN_PHONEY}
   discord:
     botToken: ${DISCORD_BOT_TOKEN}
   social-media:
@@ -40,3 +46,10 @@ plugins:
   webserver:
     productionDomain: https://yeehaa.io
     previewDomain: https://preview.yeehaa.io
+
+permissions:
+  rules:
+    - pattern: "a2a:mylittlephoney"
+      level: trusted
+    - pattern: "a2a:*"
+      level: public

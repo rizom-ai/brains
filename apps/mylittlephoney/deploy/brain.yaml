@@ -17,7 +17,7 @@ remove:
 plugins:
   directory-sync:
     git:
-      repo: rizom-ai/mylittlephoney-content
+      repo: rizom-ai/phoney-brain-content
       authToken: ${GIT_SYNC_TOKEN}
       authorName: mylittlephoney
       authorEmail: phoney@rizom.ai
@@ -28,6 +28,7 @@ plugins:
   webserver:
     productionDomain: https://mylittlephoney.com
   a2a:
+    domain: mylittlephoney.com
     organization: rizom.ai
     trustedTokens:
       ${A2A_TOKEN_YEEHAA}: yeehaa

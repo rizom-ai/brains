@@ -23,6 +23,7 @@ const brainYamlPath = join(cwd, brainYamlArg ?? "brain.yaml");
 const brainConfigPath = join(cwd, "brain.config.ts");
 let entrypoint: string;
 let generatedEntrypoint = false;
+let brainPackage: string | undefined;
 
 if (existsSync(brainYamlPath)) {
   // New brain.yaml flow — generate a static entrypoint
@@ -35,11 +36,13 @@ if (existsSync(brainYamlPath)) {
 
   // Extract brain package name for logging
   const brainMatch = yamlContent.match(/^brain:\s*["']?([^"'\n]+)["']?/m);
-  const brainPackage = brainMatch?.[1]?.trim() ?? "unknown";
+  brainPackage = brainMatch?.[1]?.trim();
   entrypoint = join(cwd, ".brain-entrypoint.ts");
   writeFileSync(entrypoint, generatedCode);
   generatedEntrypoint = true;
-  console.log(`Building ${appName} (brain.yaml → ${brainPackage})...`);
+  console.log(
+    `Building ${appName} (brain.yaml → ${brainPackage ?? "unknown"})...`,
+  );
 } else if (existsSync(brainConfigPath)) {
   // Legacy brain.config.ts flow
   entrypoint = brainConfigPath;
@@ -124,11 +127,24 @@ if (existsSync(brainYamlPath)) {
   console.log("Copied brain.yaml");
 }
 
-// Copy seed-content if it exists (check brain package too)
-const seedContentPath = join(cwd, "seed-content");
+// Copy seed-content: prefer app-level, fall back to brain model package
+let seedContentPath = join(cwd, "seed-content");
+if (!existsSync(seedContentPath) && brainPackage) {
+  try {
+    const brainPkgDir = dirname(
+      require.resolve(`${brainPackage}/package.json`),
+    );
+    const brainSeedPath = join(brainPkgDir, "seed-content");
+    if (existsSync(brainSeedPath)) {
+      seedContentPath = brainSeedPath;
+    }
+  } catch {
+    // Brain package not resolvable — skip
+  }
+}
 if (existsSync(seedContentPath)) {
   cpSync(seedContentPath, join(distDir, "seed-content"), { recursive: true });
-  console.log("Copied seed-content");
+  console.log(`Copied seed-content from ${seedContentPath}`);
 }
 
 const outputName = existsSync(brainYamlPath)

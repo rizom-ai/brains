@@ -198,16 +198,11 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       await this.stdioServer.start();
       this.logger.debug("MCP STDIO transport started");
     } else {
-      // HTTP transport - auth is enabled if token is provided
+      // HTTP transport — auth required unless token is absent
       this.httpServer = StreamableHTTPServer.createFresh({
         port: this.config.httpPort,
         logger: this.logger,
-        ...(this.config.authToken && {
-          auth: {
-            enabled: true,
-            token: this.config.authToken,
-          },
-        }),
+        auth: { token: this.config.authToken },
       });
 
       // Connect MCP server from service to HTTP transport

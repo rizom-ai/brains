@@ -74,6 +74,9 @@ export abstract class InterfacePlugin<
       await this.registerDaemon(context);
     }
 
+    // Set up message handlers for tool/resource execution
+    this.setupMessageHandlers(context);
+
     // Call lifecycle hook with typed context
     await this.onRegister(context);
 

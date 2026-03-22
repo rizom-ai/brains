@@ -190,8 +190,11 @@ deploy_app_files() {
         # Create Caddyfile from template
         log_info "Creating Caddyfile from template..."
 
-        # Check if preview is configured in env file
+        # Preview domain: explicit env var, or default to preview.$DOMAIN
         PREVIEW_DOMAIN=$(grep -E "^PREVIEW_DOMAIN=" "$ENV_FILE" | cut -d '=' -f2 | tr -d '"' | tr -d "'" || echo "")
+        if [ -z "$PREVIEW_DOMAIN" ] && [ -n "$DOMAIN" ]; then
+            PREVIEW_DOMAIN="preview.$DOMAIN"
+        fi
 
         CADDY_TEMPLATE="$TEMPLATE_DIR/Caddyfile.template"
         PREVIEW_TEMPLATE="$TEMPLATE_DIR/Caddyfile-preview.template"

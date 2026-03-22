@@ -17,7 +17,7 @@ import type { Logger } from "@brains/utils";
 import type { IAgentService } from "@brains/plugins";
 
 export interface AuthConfig {
-  enabled: boolean;
+  disabled?: boolean;
   token?: string | undefined;
 }
 
@@ -53,11 +53,15 @@ export class StreamableHTTPServer {
       ? adaptLogger(this.config.logger)
       : createConsoleLogger();
 
-    // Initialize auth configuration
-    this.authConfig = config.auth ?? { enabled: false };
+    // Auth is required by default for HTTP transport.
+    // Must be explicitly disabled with { disabled: true } for local dev.
+    this.authConfig = config.auth ?? {};
 
-    if (this.authConfig.enabled && !this.authConfig.token) {
-      this.logger.warn("Authentication enabled but no token provided!");
+    if (!this.authConfig.disabled && !this.authConfig.token) {
+      throw new Error(
+        "MCP HTTP transport requires an auth token. " +
+          "Set MCP_AUTH_TOKEN in your environment, or pass auth: { disabled: true } for local dev.",
+      );
     }
 
     this.app = express();
@@ -104,8 +108,8 @@ export class StreamableHTTPServer {
       return next();
     }
 
-    // Check if auth is enabled
-    if (!this.authConfig.enabled || !this.authConfig.token) {
+    // Skip auth if explicitly disabled
+    if (this.authConfig.disabled || !this.authConfig.token) {
       return next();
     }
 

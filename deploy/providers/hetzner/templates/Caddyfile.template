@@ -22,6 +22,22 @@ http://{{domain}} {
         }
     }
 
+    # A2A endpoints
+    handle /.well-known/agent-card.json {
+        reverse_proxy personal-brain:3334
+    }
+
+    handle /a2a {
+        reverse_proxy personal-brain:3334
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization"
+        }
+    }
+
     # Production site (catch-all)
     handle {
         reverse_proxy personal-brain:8080
@@ -45,6 +61,22 @@ http://{{domain}} {
             Access-Control-Allow-Origin "*"
             Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
             Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+        }
+    }
+
+    # A2A endpoints
+    handle /.well-known/agent-card.json {
+        reverse_proxy personal-brain:3334
+    }
+
+    handle /a2a {
+        reverse_proxy personal-brain:3334
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization"
         }
     }
 
