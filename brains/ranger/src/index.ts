@@ -1,8 +1,4 @@
-import {
-  defineBrain,
-  type BrainEnvironment,
-  type PluginConfig,
-} from "@brains/app";
+import { defineBrain } from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
@@ -63,16 +59,7 @@ export default defineBrain({
     ["dashboard", dashboardPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
-    [
-      "social-media",
-      socialMediaPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        linkedin: {
-          accessToken: env["LINKEDIN_ACCESS_TOKEN"],
-          organizationId: env["LINKEDIN_ORGANIZATION_ID"],
-        },
-      }),
-    ],
+    ["social-media", socialMediaPlugin, {}],
     ["products", productsPlugin, undefined],
     ["wishlist", wishlistPlugin, {}],
     [
@@ -88,45 +75,15 @@ export default defineBrain({
         },
       },
     ],
-    [
-      "analytics",
-      analyticsPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        cloudflare: {
-          accountId: env["CLOUDFLARE_ACCOUNT_ID"] ?? "",
-          apiToken: env["CLOUDFLARE_API_TOKEN"] ?? "",
-          siteTag: env["CLOUDFLARE_ANALYTICS_SITE_TAG"] ?? "",
-        },
-      }),
-    ],
+    ["analytics", analyticsPlugin, {}],
     ["site-builder", siteBuilderPlugin, {}],
   ],
 
   interfaces: [
-    [
-      "mcp",
-      MCPInterface,
-      (env: BrainEnvironment): PluginConfig => ({
-        authToken: env["MCP_AUTH_TOKEN"],
-      }),
-    ],
-    [
-      "matrix",
-      MatrixInterface,
-      (env: BrainEnvironment): PluginConfig | null =>
-        env["MATRIX_ACCESS_TOKEN"]
-          ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
-          : null,
-    ],
-    [
-      "discord",
-      DiscordInterface,
-      (env: BrainEnvironment): PluginConfig | null =>
-        env["DISCORD_BOT_TOKEN"]
-          ? { botToken: env["DISCORD_BOT_TOKEN"], captureUrls: true }
-          : null,
-    ],
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["mcp", MCPInterface, () => ({})],
+    ["matrix", MatrixInterface, () => ({})],
+    ["discord", DiscordInterface, () => ({ captureUrls: true })],
+    ["webserver", WebserverInterface, () => ({})],
   ],
 
   permissions: {

@@ -1,8 +1,4 @@
-import {
-  defineBrain,
-  type BrainEnvironment,
-  type PluginConfig,
-} from "@brains/app";
+import { defineBrain } from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
@@ -75,22 +71,9 @@ export default defineBrain({
   ],
 
   interfaces: [
-    [
-      "mcp",
-      MCPInterface,
-      (env: BrainEnvironment): PluginConfig => ({
-        authToken: env["MCP_AUTH_TOKEN"],
-      }),
-    ],
-    [
-      "matrix",
-      MatrixInterface,
-      (env: BrainEnvironment): PluginConfig | null =>
-        env["MATRIX_ACCESS_TOKEN"]
-          ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
-          : null,
-    ],
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
+    ["mcp", MCPInterface, () => ({})],
+    ["matrix", MatrixInterface, () => ({})],
+    ["webserver", WebserverInterface, () => ({})],
   ],
 
   permissions: {

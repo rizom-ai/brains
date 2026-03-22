@@ -18,10 +18,26 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
       authorName: Yeehaa
       authorEmail: yeehaa@rizom.ai
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
   matrix:
+    accessToken: ${MATRIX_ACCESS_TOKEN}
     userId: "@rover-local:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Rover
+  discord:
+    botToken: ${DISCORD_BOT_TOKEN}
+  social-media:
+    linkedin:
+      accessToken: ${LINKEDIN_ACCESS_TOKEN}
+  newsletter:
+    buttondown:
+      apiKey: ${BUTTONDOWN_API_KEY}
+  analytics:
+    cloudflare:
+      accountId: ${CLOUDFLARE_ACCOUNT_ID}
+      apiToken: ${CLOUDFLARE_API_TOKEN}
+      siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
   webserver:
     productionDomain: https://yeehaa.io
     previewDomain: https://preview.yeehaa.io

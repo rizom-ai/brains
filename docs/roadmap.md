@@ -1,140 +1,128 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-15
+Last Updated: 2026-03-22
 
 ---
 
-## Professional-Brain v1.0 ✅
+## Completed
 
-**Goal**: Launch yeehaa.io with complete content and working features.
+### Professional-Brain v1.0 (2026-01)
 
-**Status**: Complete. All features shipped, content finalized.
+Site builder, blog (17 essays, 3 series), decks, portfolio (8 case studies), topics, links, notes, social media, newsletter, analytics, dashboard, Matrix/Discord/MCP interfaces, git sync, CMS, Hetzner deploy, 7 themes.
 
-### What's Shipped
+### Codebase Refactor (2026-02 — 2026-03)
 
-- Site builder with Preact SSR and Tailwind CSS v4
-- Blog with 17 essays, 3 series, RSS feeds
-- Decks with cover images
-- Portfolio with 8 case studies
-- Topics (AI-powered tagging)
-- Links and Notes
-- Social media plugin (LinkedIn generation, auto-generate on publish)
-- Newsletter plugin (generation, signup, Buttondown integration)
-- Analytics plugin (Cloudflare)
-- Dashboard plugin (widget system)
-- Matrix bot interface
-- Discord bot interface
-- MCP interface (stdio + HTTP)
-- Git sync and directory sync
-- Sveltia CMS at `/admin/`
-- Hetzner deployment with Docker
-- Multi-theme support (brutalist, default, editorial, geometric, neo-retro, swiss, yeehaa)
+Brain model/instance split (`defineBrain()` + `brain.yaml`), layouts workspace, BaseGenerationJobHandler, BaseEntityDataSource, EntityMutations extraction, theme-base, barrel export cleanup, lint cleanup. ~2,860 lines eliminated.
 
----
+### Site Packages (2026-03)
 
-## Codebase Refactor ✅
+Extracted theme + layout + routes into reusable packages: site-default, site-yeehaa, site-ranger, site-mylittlephoney. Brain models reference a default site; instances override via `brain.yaml`.
 
-**Goal**: Reduce duplication, improve architecture, establish patterns for growth.
+### Enable-Based Presets (2026-03)
 
-**Status**: Complete (2026-03-14). 12 of 15 items done, 1 skipped, 2 deferred.
+Replaced `disable: [list]` with `preset: minimal | default | pro` + `add`/`remove`. Brain models define curated plugin subsets. Implemented for rover, ranger, relay.
 
-### What's Done
+### Git-Sync Merge (2026-03)
 
-- Brain model / instance split (`defineBrain()` + `resolve()` + `brains/` workspace)
-- `layouts/` workspace for site composition layers
-- `BaseGenerationJobHandler` — 6 handlers converted, 781 lines eliminated
-- `BaseEntityDataSource` — 7 datasources converted, 389 lines eliminated
-- `EntityMutations` extraction — EntityService 677→260 lines
-- `@brains/theme-base` with `composeTheme()` — 1689 lines eliminated across 7 themes
-- Barrel export cleanup — 50% reduction (229→~115 exports)
-- Cross-plugin dependencies resolved
-- Lazy interface loading — skip unconfigured Matrix/Discord
-- Lint warnings eliminated (0 warnings across 56 tasks)
-- **Total: ~2,860 lines eliminated**
+Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles file sync + git ops. Serialized with `withLock()`, `LeadingTrailingDebounce`, filesystem cache. ([plan](./plans/merge-git-into-directory-sync.md))
 
-### Deferred
+### Other (2026-03)
 
-- MockShell cleanup ([plan](./plans/2026-03-14-mockshell-cleanup.md)) — do when `IShell` interface next changes
-- Matrix interface monolith — do when Matrix needs feature work
-
----
-
-## Current Focus: Production Polish
-
-- Performance optimization
-- Mobile responsiveness review
-- SEO improvements
-- Accessibility audit
-- Sveltia CMS: Cloudflare Workers OAuth for multi-user GitHub auth
-
----
-
-## Completed (2026-03)
-
-- ✅ A2A interface — Agent Card, JSON-RPC handler, task manager, client tool, TTL eviction
-- ✅ Agent state machine — xstate-based conversation flow with confirmation support
-- ✅ Varlock env validation — `.env.schema` for brain models, startup validation
-- ✅ Tool listing via InterfacePluginContext — `context.tools.listForPermissionLevel()`
-- ✅ Codebase refactor (see above)
-- ✅ Series metadata + cover images for 3 blog series
-- ✅ Architecture docs rewrite
-- ✅ Deck/Post schema consistency
-- ✅ Obsidian content creation frontend: template sync, body templates, Metadata Menu fileClasses
-- ✅ Bases integration: per-entity views, Pipeline, Settings for singletons
-- ✅ Sync improvements: disk edits win, canonical hash eliminates re-import cycle
-- ✅ External routes: navigation-only links excluded from site builds
-- ✅ Wishlist plugin added to professional brain
-- ✅ Pipeline widget mobile overflow fix
-- ✅ Dashboard auto-discovered URLs
-- ✅ Pre-compiled hydration for faster site builds
-- ✅ MCP multi-session support fix
-- ✅ ESLint centralized configuration
-- ✅ Interactive pipeline widget on dashboard
-
-## Completed (2026-02)
-
-- ✅ Discord bot interface with threads, attachments, message chunking, constructor DI
-- ✅ Interface test cleanup: removed type casts and global mocks from Discord + Matrix tests
-- ✅ File upload support for chat interfaces
-- ✅ Note plugin: slugified IDs, frontmatter-aware content handling
-- ✅ Extract site-content plugin from site-builder
-- ✅ BaseEntityAdapter abstract class — migrated all 10 adapters
-- ✅ Route types moved to `@brains/plugins`
-- ✅ LinkedIn organization posting support
-- ✅ Professional site layout improvements
-- ✅ 5 theme variations (brutalist, editorial, geometric, neo-retro, swiss)
-- ✅ Content finalization: portfolio voice/backstory cleanup
-- ✅ Image generation: GPT Image 1.5 + Gemini multi-provider
-- ✅ CoverImage component with aspect-ratio-aware rendering
-- ✅ Git sync: event-driven commit/push, subprocess optimization
-- ✅ Sveltia CMS at `/admin/` with autoSync
-- ✅ Frontmatter schema normalization
-- ✅ Job monitoring memory leak fix
-
-## Completed (2026-01)
-
-- ✅ Dashboard plugin with extensible widgets
-- ✅ Social media auto-generate on blog publish
-- ✅ Newsletter plugin (Buttondown integration)
-- ✅ Newsletter generation tool (AI-powered, job-based)
-- ✅ Publish pipeline (queue, schedule, execute)
-- ✅ Deploy script consolidation
-- ✅ Docker build optimization
-- ✅ Image plugin (cover images, alt text)
-- ✅ AI SDK v6 stabilization
-- ✅ Generation scheduling (newsletters, social posts)
+- A2A interface (Agent Card, JSON-RPC, task manager, client tool)
+- Agent state machine (xstate conversations with confirmation)
+- Varlock env validation
+- CMS excludes base notes (free-form markdown with `---`)
+- Rover default site + seed content
+- Obsidian bases/fileClasses integration
+- Pre-compiled hydration for site builds
 
 ---
 
 ## In Progress
 
-- **A2A authentication**: Bearer tokens → OAuth → Cloudflare mTLS ([plan](./plans/2026-03-15-a2a-authentication.md))
-- **mylittlephoney.com**: New rover instance with Discord, Instagram/Threads, custom theme ([plan](./plans/2026-03-14-mylittlephoney.md))
-- **rizom.work**: New relay instance with Discord, rizom theme variations ([plan](./plans/2026-03-14-rizom-work.md))
-- **Infrastructure**: Cloudflare CDN, varlock env management, A2A protocol ([plan](./plans/2026-03-14-infrastructure.md))
+### Deploy mylittlephoney.com
 
-## Future Considerations
+Deploy to Hetzner using existing pipeline. Only needs `.env.production` + DNS. ([plan](./plans/deploy-mlp-hetzner.md))
 
-- **Web UI**: Browser interface beyond static site
-- **Obsidian Community Plugin**: Chat, publish, generate from inside Obsidian via MCP HTTP
-- **Additional Interfaces**: Slack, WhatsApp, Telegram
+### A2A Authentication
+
+Phase 1 (bearer tokens) done. Phase 2 (OAuth) and Phase 3 (mTLS) pending. ([plan](./plans/2026-03-15-a2a-authentication.md))
+
+### Consistent Secret Handling
+
+Move all secrets from env mappers to `brain.yaml` `${...}` interpolation. Brain models become secret-free. Resolver skips plugins gracefully on missing config. ([plan](./plans/consistent-secrets.md))
+
+### Entity Update & Delete Tools
+
+Generic `entity_update` (with diff confirmation) and `entity_delete` (with title+preview confirmation) in system plugin. Tests first. ([plan](./plans/entity-update-delete.md))
+
+---
+
+## Planned (Short-term)
+
+### Image Performance
+
+Lazy loading, WebP conversion + resize with sharp, responsive srcset, fast `/images/*` serving path. Filesystem cache skips unchanged images. ([plan](./plans/image-performance.md))
+
+### Agent Directory
+
+Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. `agent_add`, `agent_list`, `agent_trust`, `agent_remove` tools. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
+
+### Chat SDK Migration
+
+Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix (removes native crypto). Phase 2: build `@brains/chat`. Adds Slack, Teams, Telegram, WhatsApp. ([plan](./plans/chat-interface-sdk.md))
+
+### rizom.work
+
+New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03-14-rizom-work.md))
+
+---
+
+## Planned (Medium-term)
+
+### Hosted Rovers
+
+Ranger provisions rover instances on Fly.io. Shared Discord bot gateway. Subdomain `{name}.rover.rizom.ai`. Minimal preset, A2A only. Hybrid identity setup at signup. ([plan](./plans/hosted-rovers.md))
+
+### Media Sidecar
+
+Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain drops to ~1GB. Enables 2GB Fly machines. ([plan](./plans/embedding-service.md))
+
+### Fly.io Migration
+
+Move deployments from Hetzner to Fly after runtime slimdown. Prerequisite: media sidecar + Matrix deprecation. ([plan](./plans/deploy-fly-migration.md))
+
+---
+
+## Planned (Long-term)
+
+### Standalone Binary
+
+`bun build --compile` produces single executable per platform. Requires: no native deps (media sidecar extracted), no Matrix crypto. `./rover` + `brain.yaml` = running brain. ([plan](./plans/standalone-binary.md))
+
+### Ranger as Agent Registry
+
+Central discovery: brains search ranger for agents by capability. Builds on agent directory plugin + hosted rovers.
+
+### Web UI
+
+Browser interface beyond static site.
+
+### Obsidian Community Plugin
+
+Chat, publish, generate from inside Obsidian via MCP HTTP.
+
+---
+
+## Dependency Graph
+
+```
+consistent-secrets ──────────────────────┐
+                                         ▼
+entity-update-delete                hosted-rovers
+                                     ▲        ▲
+deploy-mlp-hetzner              agent-dir  chat-sdk ──→ fly-migration
+                                              ▲              ▲
+image-performance ──→ media-sidecar ──────────┘              │
+                                                    standalone-binary
+```

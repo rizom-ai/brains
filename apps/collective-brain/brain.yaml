@@ -18,9 +18,23 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
       authorName: Ranger
       authorEmail: collective@rizom.ai
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
   matrix:
+    accessToken: ${MATRIX_ACCESS_TOKEN}
     userId: "@ranger-local:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Ranger
+  discord:
+    botToken: ${DISCORD_BOT_TOKEN}
+  social-media:
+    linkedin:
+      accessToken: ${LINKEDIN_ACCESS_TOKEN}
+      organizationId: ${LINKEDIN_ORGANIZATION_ID}
+  analytics:
+    cloudflare:
+      accountId: ${CLOUDFLARE_ACCOUNT_ID}
+      apiToken: ${CLOUDFLARE_API_TOKEN}
+      siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
   webserver:
     previewDomain: https://preview.rizom.ai

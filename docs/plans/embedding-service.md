@@ -1,43 +1,75 @@
-# Plan: Embedding Service Extraction
+# Plan: Media Sidecar (Embeddings + Image Processing)
 
 ## Context
 
-The ONNX embedding model (FastEmbed, AllMiniLML6V2, 87MB) loads in-process, contributing to a 3.65GB memory spike during site build + embedding generation. This makes 2GB Fly machines unviable.
+Two native dependencies make the brain process heavy and block the standalone binary goal:
+
+1. **ONNX** (FastEmbed, AllMiniLML6V2, 87MB model) — local vector embeddings. Contributes to 3.65GB memory spike.
+2. **Sharp** (libvips, ~25MB binary) — build-time image optimization (WebP conversion + resize). Added by the image performance plan.
+
+Both are native C/C++ binaries that can't be bundled into `bun build --compile`.
 
 ## Approach
 
-Extract embedding generation into a separate sidecar process. The brain calls it over localhost HTTP instead of loading ONNX in-process.
+Extract both into a single **media sidecar** process. The brain calls it over localhost HTTP. One sidecar, two endpoints.
 
 ### Architecture
 
 ```
 Docker container
-  ├── Brain process (~1-1.5GB)
-  │   └── ApiEmbeddingService → http://localhost:9999/embed
-  └── Embedding server (~500MB)
-      └── FastEmbed + ONNX model
+  ├── Brain process (~1GB, no native deps)
+  │   ├── HttpEmbeddingService → http://localhost:9999/embed
+  │   └── HttpImageService    → http://localhost:9999/image/optimize
+  └── Media sidecar (~500MB)
+      ├── FastEmbed + ONNX model  → POST /embed
+      └── Sharp                    → POST /image/optimize
 ```
 
 ### Benefits
 
-- Brain process stays lightweight — no ONNX runtime in memory
-- Embedding server can lazy-start (only when embeddings needed)
-- For hosted minimal rovers: don't start the server at all
-- Future: shared embedding server across multiple rovers
+- Brain process has zero native dependencies — enables standalone binary
+- Sidecar can lazy-start (only when needed)
+- For hosted minimal rovers: don't start the sidecar at all (no embeddings, no site build)
+- Single process to manage, not two separate sidecars
 - Keeps fully-local path (no external API dependency)
+- Future: shared sidecar across multiple hosted rovers
+
+### Endpoints
+
+**`POST /embed`**
+
+- Input: `{ text: string }` or `{ texts: string[] }`
+- Output: `{ embedding: number[] }` or `{ embeddings: number[][] }`
+- Backend: FastEmbed ONNX
+
+**`POST /image/optimize`**
+
+- Input: image binary (PNG/JPEG/WebP)
+- Query params: `?format=webp&quality=80&width=960`
+- Output: optimized image binary
+- Backend: Sharp
 
 ### Implementation
 
 1. `IEmbeddingService` interface already exists (`shell/entity-service/src/embedding-types.ts`)
-2. Create `HttpEmbeddingService` — calls `localhost:9999/embed` over HTTP
-3. Create standalone embedding server (simple Bun/Hono app wrapping FastEmbed)
-4. Make embedding backend configurable: `local-sidecar` (default) / `api` (OpenAI/Anthropic) / `in-process` (current, for dev)
-5. Update Dockerfile to run both processes (or use a process manager)
+2. Create `HttpEmbeddingService` — calls sidecar `/embed` endpoint
+3. Create image optimization HTTP client for site-builder's image extractor
+4. Create standalone sidecar app (simple Bun/Hono wrapping FastEmbed + Sharp)
+5. Make backends configurable: `sidecar` (default) / `api` (OpenAI/Cloudflare) / `in-process` (dev)
+6. Update Dockerfile to run both processes
+
+### Phases
+
+**Phase 1** (now): Sharp in-process for image optimization (see image performance plan). Works today.
+
+**Phase 2** (Fly migration prep): Extract Sharp + ONNX into media sidecar. Brain process drops to ~1GB. Enables 2GB Fly machines.
+
+**Phase 3** (standalone binary): Brain builds with `bun build --compile`. Sidecar ships as separate binary or optional Docker companion.
 
 ### Memory impact (measured)
 
-| Config               | Idle                        | Spike      |
-| -------------------- | --------------------------- | ---------- |
-| Current (in-process) | 1.85GB                      | 3.65GB     |
-| Sidecar (estimated)  | 1.0GB brain + 500MB sidecar | ~2GB total |
-| API only (no local)  | 1.0GB                       | ~1.5GB     |
+| Config                   | Idle                        | Spike      |
+| ------------------------ | --------------------------- | ---------- |
+| Current (all in-process) | 1.85GB                      | 3.65GB     |
+| With sidecar (estimated) | 1.0GB brain + 500MB sidecar | ~2GB total |
+| API only (no local)      | 1.0GB                       | ~1.5GB     |

@@ -7,6 +7,7 @@ import {
 } from "../src/brain-definition";
 import { resolve } from "../src/brain-resolver";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
+import { z } from "@brains/utils";
 
 // Minimal mock plugin factory
 function createMockPluginFactory(
@@ -324,6 +325,120 @@ describe("resolve", () => {
     expect(
       config.plugins?.find((p) => p.id === "mock-interface"),
     ).toBeUndefined();
+  });
+
+  test("should skip interface when env mapper returns null", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [
+        [
+          "mock-interface",
+          MockInterface,
+          (_env: BrainEnvironment): PluginConfig | null => null,
+        ],
+      ],
+    });
+
+    const config = resolve(def, {});
+
+    expect(
+      config.plugins?.find((p) => p.id === "mock-interface"),
+    ).toBeUndefined();
+  });
+
+  test("should skip interface gracefully when config fails Zod validation", () => {
+    const requiredTokenSchema = z.object({
+      botToken: z.string().min(1),
+    });
+
+    class ValidatingInterface extends MockInterface {
+      override readonly id = "validating";
+      override readonly packageName = "validating";
+      constructor(config: PluginConfig) {
+        requiredTokenSchema.parse(config); // throws ZodError
+        super(config);
+      }
+    }
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [
+        [
+          "validating",
+          ValidatingInterface,
+          (): PluginConfig => ({}), // no botToken — ZodError
+        ],
+      ],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.plugins?.find((p) => p.id === "validating")).toBeUndefined();
+    expect(config.plugins).toBeDefined();
+  });
+
+  test("should rethrow non-Zod errors from interface constructor", () => {
+    class BuggyInterface extends MockInterface {
+      override readonly id = "buggy";
+      constructor(config: PluginConfig) {
+        super(config);
+        throw new TypeError("unexpected null reference");
+      }
+    }
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [["buggy", BuggyInterface, (): PluginConfig => ({})]],
+    });
+
+    expect(() => resolve(def, {})).toThrow("unexpected null reference");
+  });
+
+  test("should skip capability gracefully when config fails Zod validation", () => {
+    const requiredKeySchema = z.object({
+      apiKey: z.string().min(1),
+    });
+
+    const validatingFactory: PluginFactory = (config) => {
+      requiredKeySchema.parse(config); // throws ZodError
+      return createMockPluginFactory("needs-key")(config);
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["needs-key", validatingFactory, {}],
+        ["good-plugin", createMockPluginFactory("good-plugin"), { ok: true }],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.plugins?.find((p) => p.id === "needs-key")).toBeUndefined();
+    expect(config.plugins?.find((p) => p.id === "good-plugin")).toBeDefined();
+  });
+
+  test("should rethrow non-Zod errors from capability factory", () => {
+    const buggyFactory: PluginFactory = () => {
+      throw new RangeError("stack overflow");
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["buggy", buggyFactory, {}]],
+      interfaces: [],
+    });
+
+    expect(() => resolve(def, {})).toThrow("stack overflow");
   });
 
   test("should pass through permissions and deployment", () => {

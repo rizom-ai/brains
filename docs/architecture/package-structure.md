@@ -68,8 +68,7 @@ brains/
 | `plugins/analytics`           | Cloudflare analytics                 |
 | `plugins/dashboard`           | Widget system                        |
 | `plugins/wishlist`            | Feature request tracking             |
-| `plugins/directory-sync`      | File import/export                   |
-| `plugins/git-sync`            | Git commit + push                    |
+| `plugins/directory-sync`      | File + git sync                      |
 | `plugins/obsidian-vault`      | Obsidian integration                 |
 
 ## Interfaces

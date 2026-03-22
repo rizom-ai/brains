@@ -15,7 +15,10 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
       authorName: Relay
       authorEmail: yeehaa@rizom.ai
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
   matrix:
+    accessToken: ${MATRIX_ACCESS_TOKEN}
     userId: "@teambot-dev:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Relay

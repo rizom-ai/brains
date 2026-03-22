@@ -238,9 +238,8 @@ const nodes = [
   { id:'social',       label:'Social Media',     subtitle:'plugins/social-media',     desc:'LinkedIn + scheduling', x:1190, y:450, w:180, h:H, group:'publishing' },
 
   // ─ Sync & Storage ─
-  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', desc:'File import/export',    x:36,  y:576, w:130, h:H, group:'sync' },
-  { id:'git-sync', label:'Git Sync',       subtitle:'plugins/git-sync',      desc:'Git commit + push',     x:182, y:576, w:130, h:H, group:'sync' },
-  { id:'obsidian', label:'Obsidian Vault', subtitle:'plugins/obsidian-vault', desc:'Obsidian integration',  x:328, y:576, w:130, h:H, group:'sync' },
+  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', desc:'File + git sync',       x:36,  y:576, w:180, h:H, group:'sync' },
+  { id:'obsidian', label:'Obsidian Vault', subtitle:'plugins/obsidian-vault', desc:'Obsidian integration',  x:232, y:576, w:180, h:H, group:'sync' },
 
   // ─ Shared ─
   { id:'utils',      label:'Utils',      subtitle:'shared/utils',      desc:'Zod, slugify, helpers', x:506, y:576, w:120, h:H, group:'shared' },
@@ -330,7 +329,7 @@ const connections = [
   // Sync → Shell
   { from:'dir-sync', to:'entity-svc', type:'data-flow', label:'import/export' },
   { from:'dir-sync', to:'job-queue',  type:'data-flow' },
-  { from:'git-sync', to:'job-queue',  type:'data-flow', label:'enqueue' },
+  { from:'dir-sync', to:'job-queue',  type:'data-flow', label:'enqueue' },
   { from:'obsidian', to:'entity-svc', type:'data-flow', label:'schemas' },
 
   // System → Shell
@@ -348,7 +347,7 @@ const connections = [
 
   // Messaging → subscribers
   { from:'messaging', to:'dir-sync',     type:'event', label:'entity:*' },
-  { from:'messaging', to:'git-sync',     type:'event', label:'sync:*' },
+  { from:'messaging', to:'dir-sync',      type:'event', label:'entity:*' },
   { from:'messaging', to:'site-builder', type:'event', label:'sync:*' },
   { from:'messaging', to:'obsidian',     type:'event', label:'plugins:ready' },
   { from:'messaging', to:'content-pipe', type:'event', label:'entity:*' },
@@ -362,7 +361,6 @@ const connections = [
   { from:'social', to:'blog', type:'event', label:'entity:updated' },
 
   // Dependencies
-  { from:'git-sync',     to:'dir-sync',    type:'dependency' },
   { from:'site-builder', to:'ui-lib',      type:'dependency' },
   { from:'site-builder', to:'theme-base',  type:'dependency' },
   { from:'pro-layout',   to:'blog',        type:'dependency', label:'schemas' },

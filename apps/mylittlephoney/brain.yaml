@@ -23,6 +23,9 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
       authorName: mylittlephoney
       authorEmail: phoney@rizom.ai
-  discord: {}
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
+  discord:
+    botToken: ${DISCORD_BOT_TOKEN}
   webserver:
     productionDomain: https://mylittlephoney.com

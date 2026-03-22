@@ -1,8 +1,4 @@
-import {
-  defineBrain,
-  type BrainEnvironment,
-  type PluginConfig,
-} from "@brains/app";
+import { defineBrain } from "@brains/app";
 import { systemPlugin } from "@brains/system";
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
@@ -138,20 +134,18 @@ export default defineBrain({
     [
       "social-media",
       socialMediaPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        linkedin: { accessToken: env["LINKEDIN_ACCESS_TOKEN"] },
+      {
         autoGenerateOnBlogPublish: true,
-      }),
+      },
     ],
     [
       "newsletter",
       createNewsletterPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
+      {
         buttondown: {
-          apiKey: env["BUTTONDOWN_API_KEY"] ?? "",
           doubleOptIn: true,
         },
-      }),
+      },
     ],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["wishlist", wishlistPlugin, {}],
@@ -168,17 +162,7 @@ export default defineBrain({
         },
       },
     ],
-    [
-      "analytics",
-      analyticsPlugin,
-      (env: BrainEnvironment): PluginConfig => ({
-        cloudflare: {
-          accountId: env["CLOUDFLARE_ACCOUNT_ID"] ?? "",
-          apiToken: env["CLOUDFLARE_API_TOKEN"] ?? "",
-          siteTag: env["CLOUDFLARE_ANALYTICS_SITE_TAG"] ?? "",
-        },
-      }),
-    ],
+    ["analytics", analyticsPlugin, {}],
     [
       "site-builder",
       siteBuilderPlugin,
@@ -189,31 +173,11 @@ export default defineBrain({
   ],
 
   interfaces: [
-    [
-      "mcp",
-      MCPInterface,
-      (env: BrainEnvironment): PluginConfig => ({
-        authToken: env["MCP_AUTH_TOKEN"],
-      }),
-    ],
-    [
-      "matrix",
-      MatrixInterface,
-      (env: BrainEnvironment): PluginConfig | null =>
-        env["MATRIX_ACCESS_TOKEN"]
-          ? { accessToken: env["MATRIX_ACCESS_TOKEN"] }
-          : null,
-    ],
-    [
-      "discord",
-      DiscordInterface,
-      (env: BrainEnvironment): PluginConfig | null =>
-        env["DISCORD_BOT_TOKEN"]
-          ? { botToken: env["DISCORD_BOT_TOKEN"] }
-          : null,
-    ],
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
-    ["a2a", A2AInterface, (): PluginConfig => ({})],
+    ["mcp", MCPInterface, () => ({})],
+    ["matrix", MatrixInterface, () => ({})],
+    ["discord", DiscordInterface, () => ({})],
+    ["webserver", WebserverInterface, () => ({})],
+    ["a2a", A2AInterface, () => ({})],
   ],
 
   permissions: {

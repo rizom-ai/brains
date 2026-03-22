@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
+import { Logger } from "@brains/utils";
 import { parseInstanceOverrides } from "./instance-overrides";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
@@ -112,7 +113,8 @@ async function main(): Promise<void> {
   // Pre-register @-prefixed package references from plugin overrides
   await registerPackageRefs(overrides);
 
-  const config = resolve(definition, process.env, overrides);
+  const logger = Logger.getInstance();
+  const config = resolve(definition, process.env, overrides, logger);
   await handleCLI(config);
 }
 

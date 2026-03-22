@@ -1,4 +1,5 @@
 import type { Plugin } from "@brains/plugins";
+import { ZodError, type Logger } from "@brains/utils";
 import type {
   BrainDefinition,
   BrainEnvironment,
@@ -100,6 +101,7 @@ export function resolve(
   definition: BrainDefinition,
   env: BrainEnvironment,
   overrides?: Omit<InstanceOverrides, "brain">,
+  logger?: Logger,
 ): AppConfig {
   const activeIds = resolveActiveIds(definition, overrides);
   const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
@@ -113,15 +115,15 @@ export function resolve(
   // If a site package is present, inject its config into site-builder overrides
   if (site) {
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
-    pluginOverrides["site-builder"] = {
-      // Site package provides defaults
-      themeCSS: site.theme,
-      routes: site.routes,
-      entityRouteConfig: site.entityRouteConfig,
-      layouts: site.layouts,
-      // Explicit brain.yaml site-builder overrides win
-      ...siteBuilderExplicit,
-    };
+    pluginOverrides["site-builder"] = deepMerge(
+      {
+        themeCSS: site.theme,
+        routes: site.routes,
+        entityRouteConfig: site.entityRouteConfig,
+        layouts: site.layouts,
+      },
+      siteBuilderExplicit,
+    );
   }
 
   // Instantiate capabilities — each plugin gets only its own
@@ -147,7 +149,15 @@ export function resolve(
       typeof config === "function" ? config(env) : (config ?? {});
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(baseConfig, override) : baseConfig;
-    capabilities.push(factory(merged));
+    try {
+      capabilities.push(factory(merged));
+    } catch (error) {
+      if (error instanceof ZodError) {
+        logger?.warn(`Skipping capability "${id}": missing required config`);
+      } else {
+        throw error;
+      }
+    }
   }
 
   // Instantiate interfaces
@@ -160,7 +170,15 @@ export function resolve(
 
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(baseConfig, override) : baseConfig;
-    interfaces.push(new ctor(merged));
+    try {
+      interfaces.push(new ctor(merged));
+    } catch (error) {
+      if (error instanceof ZodError) {
+        logger?.warn(`Skipping interface "${id}": missing required config`);
+      } else {
+        throw error;
+      }
+    }
   }
 
   // Map identity to the format AppConfig expects
