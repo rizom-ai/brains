@@ -96,17 +96,17 @@ New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03
 
 OAuth 2.0 Client Credentials, then Cloudflare mTLS. ([plan](./plans/2026-03-15-a2a-authentication.md))
 
-### Hosted Rovers (Fly.io)
-
-Ranger provisions rover instances via Fly Machines API. Core brains stay on Hetzner with Kamal. Rovers are minimal (1GB, A2A + MCP only). Shared Discord bot gateway. Subdomain `{name}.rover.rizom.ai`. Prerequisite: media sidecar + chat-sdk + agent directory. ([plan](./plans/hosted-rovers.md))
-
 ### Kamal Deploy (Core Brains)
 
-Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, `kamal deploy` instead of rsync. Same cost (~$20/month for 3 instances). ([plan](./plans/deploy-fly-migration.md))
+Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, DNS + CDN automation via Cloudflare/Route 53 hooks. One command: `kamal deploy`. Same cost (~$20/month for 3 instances). ([plan](./plans/deploy-kamal.md))
+
+### Hosted Rovers
+
+Ranger provisions, cluster service runs. Cluster is a lightweight A2A service (not a brain) that spawns rover child processes with on-demand start/stop. Turso (libSQL) for per-rover databases. Shared Discord bot gateway. 1,000 users for ~$50/month. ([plan](./plans/hosted-rovers.md))
 
 ### Media Sidecar
 
-Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain drops to ~1GB. Enables 1GB Fly machines for hosted rovers. ([plan](./plans/embedding-service.md))
+Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain drops to ~1GB. Enables affordable per-rover hosting. ([plan](./plans/embedding-service.md))
 
 ---
 
@@ -144,8 +144,9 @@ Topics and summary don't fit cleanly into EntityPlugin. Their tools derive entit
 unified-entity-tools ──→ entity-plugin ──→ eval-overhaul
 
 a2a-async ──→ agent-directory ──┐
-                                ├──→ hosted-rovers (Fly.io)
+                                ├──→ hosted-rovers
 chat-sdk + media-sidecar ──────┘
+       + kamal-deploy ─────────┘
                 ▲
        standalone-binary
 

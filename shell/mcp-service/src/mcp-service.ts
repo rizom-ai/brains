@@ -2,8 +2,15 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import type { PluginTool, PluginResource } from "./types";
+import type {
+  PluginTool,
+  PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
+} from "./types";
 import type { IMCPService } from "./types";
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "@brains/utils";
 
 /**
  * MCP Service for managing tool and resource registration
@@ -304,6 +311,70 @@ export class MCPService implements IMCPService {
     // Track the resource
     this.registeredResources.set(resource.uri, { pluginId, resource });
     this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
+  }
+
+  /**
+   * Register a resource template with parameterized URI
+   */
+  public registerResourceTemplate(
+    pluginId: string,
+    template: PluginResourceTemplate,
+  ): void {
+    const listFn = template.list;
+    const sdkTemplate = new ResourceTemplate(template.uriTemplate, {
+      list: listFn
+        ? async (): Promise<{
+            resources: Array<{ uri: string; name: string }>;
+          }> => ({
+            resources: (await listFn()).map((r) => ({
+              uri: r.uri,
+              name: r.name,
+            })),
+          })
+        : undefined,
+    });
+
+    this.mcpServer.registerResource(
+      template.name,
+      sdkTemplate,
+      { description: template.description, mimeType: template.mimeType },
+      async (_uri, vars) => {
+        // SDK Variables can be string | string[] — flatten to string for our handler
+        const flatVars: Record<string, string> = {};
+        for (const [k, v] of Object.entries(vars)) {
+          flatVars[k] = Array.isArray(v) ? (v[0] ?? "") : v;
+        }
+        return template.handler(flatVars);
+      },
+    );
+
+    this.logger.debug(
+      `Registered resource template ${template.uriTemplate} from ${pluginId}`,
+    );
+  }
+
+  /**
+   * Register an MCP prompt
+   */
+  public registerPrompt(pluginId: string, prompt: PluginPrompt): void {
+    // Convert args to Zod schemas for the SDK
+    const argsSchema = Object.fromEntries(
+      Object.entries(prompt.args).map(([key, arg]) => [
+        key,
+        arg.required
+          ? z.string().describe(arg.description)
+          : z.string().optional().describe(arg.description),
+      ]),
+    );
+
+    this.mcpServer.prompt(
+      prompt.name,
+      prompt.description ?? `Prompt from ${pluginId}`,
+      argsSchema,
+      async (args) => prompt.handler(args as Record<string, string>),
+    );
+
+    this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
   }
 
   /**

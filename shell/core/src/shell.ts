@@ -7,6 +7,8 @@ import type {
   IShell,
   Plugin,
   PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
   PluginTool,
   QueryContext,
   RegisteredApiRoute,
@@ -409,6 +411,17 @@ export class Shell implements IShell {
         );
       }
     }
+  }
+
+  public registerPluginResourceTemplate(
+    pluginId: string,
+    template: PluginResourceTemplate,
+  ): void {
+    this.services.mcpService.registerResourceTemplate(pluginId, template);
+  }
+
+  public registerPluginPrompt(pluginId: string, prompt: PluginPrompt): void {
+    this.services.mcpService.registerPrompt(pluginId, prompt);
   }
 
   public registerPluginInstructions(

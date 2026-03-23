@@ -115,6 +115,37 @@ export interface PluginResource {
 }
 
 /**
+ * A parameterized resource with URI template (e.g. "entity://{type}/{id}")
+ */
+export interface PluginResourceTemplate {
+  name: string;
+  uriTemplate: string;
+  description?: string;
+  mimeType?: string;
+  /** List all concrete resources matching this template (for resources/list) */
+  list?: () => Promise<Array<{ uri: string; name: string }>>;
+  /** Read a single resource by resolved template variables */
+  handler: (vars: Record<string, string>) => Promise<{
+    contents: Array<{ text: string; uri: string; mimeType?: string }>;
+  }>;
+}
+
+/**
+ * An MCP prompt — parameterized message template for client prompt pickers
+ */
+export interface PluginPrompt {
+  name: string;
+  description?: string;
+  args: Record<string, { description: string; required?: boolean }>;
+  handler: (args: Record<string, string>) => Promise<{
+    messages: Array<{
+      role: "user" | "assistant";
+      content: { type: "text"; text: string };
+    }>;
+  }>;
+}
+
+/**
  * Minimal interface exposed to transport layers
  * Only provides what's needed to connect transports to the MCP server
  */
@@ -151,6 +182,19 @@ export interface IMCPService extends IMCPTransport {
    * Register a resource with the MCP server
    */
   registerResource(pluginId: string, resource: PluginResource): void;
+
+  /**
+   * Register a resource template with parameterized URI
+   */
+  registerResourceTemplate(
+    pluginId: string,
+    template: PluginResourceTemplate,
+  ): void;
+
+  /**
+   * Register an MCP prompt
+   */
+  registerPrompt(pluginId: string, prompt: PluginPrompt): void;
 
   /**
    * List all registered tools

@@ -221,6 +221,16 @@ export function createMockServicePluginContext(
       getPackageName: mock(() => undefined),
     },
 
+    // MCP resources namespace
+    resources: {
+      registerTemplate: mock(() => {}),
+    },
+
+    // MCP prompts namespace
+    prompts: {
+      register: mock(() => {}),
+    },
+
     // Eval namespace
     eval: {
       registerHandler: mock(() => {}),

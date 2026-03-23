@@ -3,6 +3,8 @@ import type {
   Plugin,
   PluginTool,
   PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
   ContentGenerationConfig,
   QueryContext,
   DefaultQueryResponse,
@@ -461,6 +463,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _pluginId: string,
       _resources: PluginResource[],
     ) => {},
+    registerPluginResourceTemplate: (
+      _pluginId: string,
+      _template: PluginResourceTemplate,
+    ) => {},
+    registerPluginPrompt: (_pluginId: string, _prompt: PluginPrompt) => {},
     registerPluginInstructions: (
       _pluginId: string,
       _instructions: string,

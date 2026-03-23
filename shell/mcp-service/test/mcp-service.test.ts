@@ -3,7 +3,12 @@ import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
-import type { PluginTool, PluginResource } from "../src/types";
+import type {
+  PluginTool,
+  PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
+} from "../src/types";
 
 describe("MCPService", () => {
   let mcpService: MCPService;
@@ -333,6 +338,105 @@ describe("MCPService", () => {
       const publicUserToolsAgain =
         mcpService.listToolsForPermissionLevel("public");
       expect(publicUserToolsAgain.length).toBe(1);
+    });
+  });
+
+  describe("resource template registration", () => {
+    it("should register a resource template without throwing", () => {
+      const template: PluginResourceTemplate = {
+        name: "entity-list",
+        uriTemplate: "entity://{type}",
+        description: "List entities by type",
+        mimeType: "application/json",
+        handler: async ({ type }) => ({
+          contents: [
+            {
+              uri: `entity://${type}`,
+              mimeType: "application/json",
+              text: JSON.stringify([]),
+            },
+          ],
+        }),
+      };
+
+      expect(() =>
+        mcpService.registerResourceTemplate("system", template),
+      ).not.toThrow();
+    });
+
+    it("should register a resource template with list callback", () => {
+      const template: PluginResourceTemplate = {
+        name: "entity-detail",
+        uriTemplate: "entity://{type}/{id}",
+        description: "Read entity by type and ID",
+        mimeType: "text/markdown",
+        list: async () => [
+          { uri: "entity://post/hello-world", name: "Hello World" },
+          { uri: "entity://post/second-post", name: "Second Post" },
+        ],
+        handler: async ({ type, id }) => ({
+          contents: [
+            {
+              uri: `entity://${type}/${id}`,
+              mimeType: "text/markdown",
+              text: `# ${id}`,
+            },
+          ],
+        }),
+      };
+
+      expect(() =>
+        mcpService.registerResourceTemplate("system", template),
+      ).not.toThrow();
+    });
+  });
+
+  describe("prompt registration", () => {
+    it("should register a prompt without throwing", () => {
+      const prompt: PluginPrompt = {
+        name: "create",
+        description: "Create new content",
+        args: {
+          type: { description: "Entity type", required: true },
+          topic: { description: "Topic or title" },
+        },
+        handler: async ({ type, topic }) => ({
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `Create a new ${type} about: ${topic ?? "anything"}`,
+              },
+            },
+          ],
+        }),
+      };
+
+      expect(() => mcpService.registerPrompt("system", prompt)).not.toThrow();
+    });
+
+    it("should register a prompt with only required args", () => {
+      const prompt: PluginPrompt = {
+        name: "brainstorm",
+        description: "Brainstorm ideas",
+        args: {
+          topic: { description: "Topic to brainstorm about", required: true },
+        },
+        handler: async ({ topic }) => ({
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `Let's brainstorm about: ${topic}`,
+              },
+            },
+          ],
+        }),
+      };
+
+      expect(() => mcpService.registerPrompt("system", prompt)).not.toThrow();
     });
   });
 });

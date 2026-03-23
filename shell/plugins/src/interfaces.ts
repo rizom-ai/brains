@@ -16,7 +16,13 @@ import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
-import type { PluginTool, PluginResource, ToolInfo } from "@brains/mcp-service";
+import type {
+  PluginTool,
+  PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
+  ToolInfo,
+} from "@brains/mcp-service";
 export type {
   ToolVisibility,
   ToolContext,
@@ -24,6 +30,8 @@ export type {
   ToolConfirmation,
   PluginTool,
   PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
   ToolInfo,
 } from "@brains/mcp-service";
 export {
@@ -167,6 +175,11 @@ export interface IShell {
   // Plugin capability registration
   registerPluginTools(pluginId: string, tools: PluginTool[]): void;
   registerPluginResources(pluginId: string, resources: PluginResource[]): void;
+  registerPluginResourceTemplate(
+    pluginId: string,
+    template: PluginResourceTemplate,
+  ): void;
+  registerPluginPrompt(pluginId: string, prompt: PluginPrompt): void;
   registerPluginInstructions(pluginId: string, instructions: string): void;
 
   // Plugin information

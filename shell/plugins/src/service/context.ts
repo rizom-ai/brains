@@ -8,6 +8,8 @@ import type {
   IShell,
   ContentGenerationConfig,
   EvalHandler,
+  PluginResourceTemplate,
+  PluginPrompt,
 } from "../interfaces";
 import type {
   ImageGenerationOptions,
@@ -241,6 +243,26 @@ export interface ServicePluginContext extends CorePluginContext {
   readonly dataDir: string;
 
   // ============================================================================
+  // MCP Resources & Prompts
+  // ============================================================================
+
+  /**
+   * Resources namespace for MCP resource registration
+   * - `resources.registerTemplate()` - Register a parameterized resource template
+   */
+  readonly resources: {
+    registerTemplate: (template: PluginResourceTemplate) => void;
+  };
+
+  /**
+   * Prompts namespace for MCP prompt registration
+   * - `prompts.register()` - Register an MCP prompt
+   */
+  readonly prompts: {
+    register: (prompt: PluginPrompt) => void;
+  };
+
+  // ============================================================================
   // Evaluation
   // ============================================================================
 
@@ -434,6 +456,20 @@ export function createServicePluginContext(
 
     // Data directory
     dataDir: shell.getDataDir(),
+
+    // MCP resources namespace
+    resources: {
+      registerTemplate: (template: PluginResourceTemplate): void => {
+        shell.registerPluginResourceTemplate(pluginId, template);
+      },
+    },
+
+    // MCP prompts namespace
+    prompts: {
+      register: (prompt: PluginPrompt): void => {
+        shell.registerPluginPrompt(pluginId, prompt);
+      },
+    },
 
     // Eval namespace - automatically scopes to this plugin
     eval: {

@@ -6,6 +6,8 @@ export type {
   ToolResponse,
   PluginTool,
   PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
 } from "./types";
 export {
   toolResponseSchema,

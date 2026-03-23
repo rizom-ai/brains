@@ -25,6 +25,8 @@ export type {
   PluginCapabilities,
   PluginTool,
   PluginResource,
+  PluginResourceTemplate,
+  PluginPrompt,
   ToolContext,
   ToolResponse,
   ToolConfirmation,
