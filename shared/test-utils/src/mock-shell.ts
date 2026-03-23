@@ -62,6 +62,8 @@ export interface MockShellOptions {
   logger?: Logger;
   agentService?: IAgentService;
   dataDir?: string;
+  /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
+  domain?: string;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -388,6 +390,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       name: "Test Owner",
       description: "Test profile for unit tests",
     }),
+    getDomain: (): string | undefined => options.domain,
 
     // Data directory
     getDataDir: () => options.dataDir ?? "/tmp/mock-shell-test-data",

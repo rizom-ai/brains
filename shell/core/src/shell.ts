@@ -495,6 +495,10 @@ export class Shell implements IShell {
     return this.services.profileService.getProfile();
   }
 
+  public getDomain(): string | undefined {
+    return this.config.siteBaseUrl;
+  }
+
   public getDataDir(): string {
     return this.config.dataDir;
   }

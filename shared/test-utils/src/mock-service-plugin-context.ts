@@ -162,6 +162,9 @@ export function createMockServicePluginContext(
           plugins: [],
         }),
       ),
+      getDomain: mock(() => undefined),
+      getSiteUrl: mock(() => undefined),
+      getPreviewUrl: mock(() => undefined),
     },
 
     // Conversations namespace (read-only)

@@ -133,6 +133,9 @@ export interface IShell {
   getIdentity(): BrainCharacter;
   getProfile(): AnchorProfile;
 
+  // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
+  getDomain(): string | undefined;
+
   // Data directory - where plugins should store entity files
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;

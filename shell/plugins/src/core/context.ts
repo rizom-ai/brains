@@ -31,8 +31,10 @@ import type { EnqueueJobFn } from "../shared/job-helpers";
  * Extended jobs namespace with write operations
  * Used by both ServicePluginContext and InterfacePluginContext
  */
-export interface IJobsWriteNamespace
-  extends Omit<IJobsNamespace, "enqueueBatch"> {
+export interface IJobsWriteNamespace extends Omit<
+  IJobsNamespace,
+  "enqueueBatch"
+> {
   /**
    * Enqueue a job for background processing
    * @param type - Job type (will be auto-scoped with plugin ID for service plugins)
@@ -151,6 +153,15 @@ export interface IIdentityNamespace {
 
   /** Get app metadata (version, model, plugins) */
   getAppInfo: () => Promise<AppInfo>;
+
+  /** Get the raw domain string (e.g. "yeehaa.io"), undefined for local dev */
+  getDomain: () => string | undefined;
+
+  /** Get the production site URL (e.g. "https://yeehaa.io"), undefined if no domain */
+  getSiteUrl: () => string | undefined;
+
+  /** Get the preview site URL (e.g. "https://preview.yeehaa.io"), undefined if no domain */
+  getPreviewUrl: () => string | undefined;
 }
 
 /**
@@ -300,6 +311,15 @@ export function createCorePluginContext(
       get: () => shell.getIdentity(),
       getProfile: () => shell.getProfile(),
       getAppInfo: () => shell.getAppInfo(),
+      getDomain: () => shell.getDomain(),
+      getSiteUrl: () => {
+        const domain = shell.getDomain();
+        return domain ? `https://${domain}` : undefined;
+      },
+      getPreviewUrl: () => {
+        const domain = shell.getDomain();
+        return domain ? `https://preview.${domain}` : undefined;
+      },
     },
 
     // Messaging namespace
