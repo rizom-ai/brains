@@ -165,6 +165,7 @@ build_binary() {
         --external=@libsql/client \
         --external=libsql \
         --external=@matrix-org/matrix-sdk-crypto-nodejs \
+        --external=sharp \
         --outfile "$TEMP_BINARY"
     
     if [ ! -f "$TEMP_BINARY" ]; then

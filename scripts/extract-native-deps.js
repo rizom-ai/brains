@@ -1,49 +1,47 @@
 #!/usr/bin/env bun
 // Script to extract versions of native dependencies from node_modules
 
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync } from "fs";
+import { join } from "path";
 
 // List of native modules we need to mark as external
 const NATIVE_MODULES = [
-  '@libsql/client',
-  'libsql', 
-  '@matrix-org/matrix-sdk-crypto-nodejs'
+  "@libsql/client",
+  "libsql",
+  "@matrix-org/matrix-sdk-crypto-nodejs",
+  "sharp",
 ];
 
 // Additional dependencies needed for migrations and other functionality
-const ADDITIONAL_DEPS = [
-  'drizzle-orm',
-  'drizzle-kit'
-];
+const ADDITIONAL_DEPS = ["drizzle-orm", "drizzle-kit"];
 
 function findNodeModules() {
   // Check common locations
   const locations = [
-    join(process.cwd(), 'node_modules'),
-    join(process.cwd(), '../../node_modules'),
-    join(process.cwd(), '../../../node_modules')
+    join(process.cwd(), "node_modules"),
+    join(process.cwd(), "../../node_modules"),
+    join(process.cwd(), "../../../node_modules"),
   ];
-  
+
   for (const loc of locations) {
     if (existsSync(loc)) {
       return loc;
     }
   }
-  
-  throw new Error('Could not find node_modules directory');
+
+  throw new Error("Could not find node_modules directory");
 }
 
 function getPackageVersion(nodeModulesPath, packageName) {
-  const packageJsonPath = join(nodeModulesPath, packageName, 'package.json');
-  
+  const packageJsonPath = join(nodeModulesPath, packageName, "package.json");
+
   if (!existsSync(packageJsonPath)) {
     console.warn(`Warning: ${packageName} not found in node_modules`);
     return null;
   }
-  
+
   try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
     return packageJson.version;
   } catch (error) {
     console.error(`Error reading ${packageName}/package.json:`, error.message);
@@ -56,9 +54,9 @@ function generateMinimalPackageJson(appName, appVersion, verbose = false) {
   if (verbose) {
     console.log(`Found node_modules at: ${nodeModulesPath}`);
   }
-  
+
   const dependencies = {};
-  
+
   // Add native modules
   for (const moduleName of NATIVE_MODULES) {
     const version = getPackageVersion(nodeModulesPath, moduleName);
@@ -69,7 +67,7 @@ function generateMinimalPackageJson(appName, appVersion, verbose = false) {
       }
     }
   }
-  
+
   // Add additional dependencies
   for (const moduleName of ADDITIONAL_DEPS) {
     const version = getPackageVersion(nodeModulesPath, moduleName);
@@ -80,26 +78,26 @@ function generateMinimalPackageJson(appName, appVersion, verbose = false) {
       }
     }
   }
-  
+
   return {
     name: appName,
     version: appVersion,
-    type: 'module',
-    dependencies
+    type: "module",
+    dependencies,
   };
 }
 
 // Main execution
 if (import.meta.main) {
-  const appName = process.argv[2] || 'personal-brain';
-  const appVersion = process.argv[3] || '0.1.0';
-  
+  const appName = process.argv[2] || "personal-brain";
+  const appVersion = process.argv[3] || "0.1.0";
+
   try {
     const packageJson = generateMinimalPackageJson(appName, appVersion);
     // Output only the JSON for easier parsing
     console.log(JSON.stringify(packageJson, null, 2));
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error("Error:", error.message);
     process.exit(1);
   }
 }
