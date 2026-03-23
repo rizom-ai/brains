@@ -21,5 +21,4 @@ plugins:
     userId: "@teambot:rizom.ai"
     homeserver: https://matrix.rizom.ai
     deviceDisplayName: Relay
-  webserver:
-    productionDomain: https://recall.rizom.ai
+

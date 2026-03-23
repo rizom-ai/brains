@@ -43,10 +43,6 @@ plugins:
       accountId: ${CLOUDFLARE_ACCOUNT_ID}
       apiToken: ${CLOUDFLARE_API_TOKEN}
       siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
-  webserver:
-    productionDomain: https://yeehaa.io
-    previewDomain: https://preview.yeehaa.io
-
 permissions:
   rules:
     - pattern: "a2a:mylittlephoney"

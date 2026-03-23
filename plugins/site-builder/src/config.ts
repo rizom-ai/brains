@@ -55,18 +55,6 @@ export const siteBuilderConfigSchema = z.object({
       "Shared directory for optimized images (used by both preview and production)",
     )
     .default("./dist/images"),
-  previewUrl: z
-    .string()
-    .optional()
-    .describe(
-      "Base URL for preview/staging environment (e.g., https://preview.example.com)",
-    ),
-  productionUrl: z
-    .string()
-    .optional()
-    .describe(
-      "Base URL for production environment (e.g., https://example.com)",
-    ),
   workingDir: z
     .string()
     .optional()
@@ -153,13 +141,7 @@ export const siteBuilderConfigSchema = z.object({
       "Custom route configuration for entity types (overrides auto-generated paths and labels)",
     ),
   cms: z
-    .object({
-      baseUrl: z
-        .string()
-        .url()
-        .optional()
-        .describe("OAuth proxy URL for GitHub auth"),
-    })
+    .object({})
     .optional()
     .describe(
       "Sveltia CMS configuration (enables /admin/ CMS, requires git-sync plugin)",

@@ -33,9 +33,6 @@ plugins:
       yeehaa.io: ${A2A_OUTBOUND_TOKEN_YEEHAA}
   discord:
     botToken: ${DISCORD_BOT_TOKEN}
-  webserver:
-    productionDomain: https://mylittlephoney.com
-
 permissions:
   rules:
     - pattern: "a2a:yeehaa"

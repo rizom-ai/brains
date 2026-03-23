@@ -25,10 +25,7 @@ plugins:
     authToken: ${MCP_AUTH_TOKEN}
   discord:
     botToken: ${DISCORD_BOT_TOKEN}
-  webserver:
-    productionDomain: https://mylittlephoney.com
   a2a:
-    domain: mylittlephoney.com
     organization: rizom.ai
     trustedTokens:
       ${A2A_TOKEN_YEEHAA}: yeehaa

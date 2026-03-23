@@ -8,7 +8,6 @@ export const a2aConfigSchema = z.object({
   port: z.number().default(3334),
 
   /** Domain this brain is served at (used in Agent Card URL) */
-  domain: z.string().optional(),
 
   /** Organization name for the Agent Card provider field */
   organization: z.string().optional(),

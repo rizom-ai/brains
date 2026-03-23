@@ -35,6 +35,4 @@ plugins:
       accountId: ${CLOUDFLARE_ACCOUNT_ID}
       apiToken: ${CLOUDFLARE_API_TOKEN}
       siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
-  webserver:
-    productionDomain: https://rizom.ai
-    previewDomain: https://preview.rizom.ai
+
