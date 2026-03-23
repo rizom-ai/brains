@@ -80,6 +80,10 @@ Entity resources with URI templates (`entity://{type}/{id}`) make the brain brow
 
 Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
 
+### Chat SDK Migration
+
+Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix (removes native crypto). Phase 2: build `@brains/chat`. Adds Slack, Teams, Telegram, WhatsApp. ([plan](./plans/chat-interface-sdk.md))
+
 ### rizom.work
 
 New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03-14-rizom-work.md))
@@ -87,10 +91,6 @@ New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03
 ---
 
 ## Planned (Medium-term)
-
-### Chat SDK Migration
-
-Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix (removes native crypto). Phase 2: build `@brains/chat`. Adds Slack, Teams, Telegram, WhatsApp. ([plan](./plans/chat-interface-sdk.md))
 
 ### A2A Authentication (Phase 2+)
 
@@ -106,7 +106,7 @@ Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain dr
 
 ### Fly.io Migration
 
-Move deployments from Hetzner to Fly after runtime slimdown. Prerequisite: media sidecar + Matrix deprecation. ([plan](./plans/deploy-fly-migration.md))
+Move deployments from Hetzner to Fly after runtime slimdown. Prerequisite: chat-sdk (drop Matrix) + media sidecar (shrink runtime). ([plan](./plans/deploy-fly-migration.md))
 
 ---
 
@@ -144,10 +144,12 @@ Topics and summary don't fit cleanly into EntityPlugin. Their tools derive entit
 unified-entity-tools ──→ entity-plugin ──→ eval-overhaul
 
 a2a-async ──→ agent-directory ──→ hosted-rovers
-                                      ▲
-image-perf ──→ media-sidecar ──→ chat-sdk ──→ fly-migration
-                                                    ▲
-                                           standalone-binary
+
+                          chat-sdk ──→ fly-migration
+                                            ▲
+image-perf ──→ media-sidecar ──────────────┘
+                                            ▲
+                                   standalone-binary
 
 mcp-resources-prompts (independent)
 ```
