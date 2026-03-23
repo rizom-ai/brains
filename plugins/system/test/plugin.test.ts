@@ -186,7 +186,7 @@ describe("SystemPlugin", () => {
 
     it("should provide all expected tools", () => {
       expect(capabilities.tools).toBeDefined();
-      expect(capabilities.tools.length).toBe(12);
+      expect(capabilities.tools.length).toBe(13);
 
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("system_search");

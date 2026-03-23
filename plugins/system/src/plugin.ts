@@ -13,6 +13,8 @@ import type {
   Conversation,
   Message,
   ServicePluginContext,
+  ToolContext,
+  JobOptions,
 } from "@brains/plugins";
 import {
   systemConfigSchema,
@@ -389,6 +391,27 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
    */
   public async deleteEntity(entityType: string, id: string): Promise<boolean> {
     return this.getContext().entityService.deleteEntity(entityType, id);
+  }
+
+  /**
+   * Create an entity
+   */
+  public async createEntity(
+    entity: BaseEntity,
+  ): Promise<{ entityId: string; jobId: string }> {
+    return this.getContext().entityService.createEntity(entity);
+  }
+
+  /**
+   * Enqueue a generation job
+   */
+  public override async enqueueJob(
+    type: string,
+    data: unknown,
+    toolContext: ToolContext | null = null,
+    options?: JobOptions,
+  ): Promise<string> {
+    return this.getContext().jobs.enqueue(type, data, toolContext, options);
   }
 }
 

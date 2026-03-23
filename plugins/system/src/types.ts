@@ -68,6 +68,13 @@ export interface ISystemPlugin {
   getAppInfo(): Promise<AppInfo>;
 
   /**
+   * Create an entity
+   */
+  createEntity(
+    entity: BaseEntity,
+  ): Promise<{ entityId: string; jobId: string }>;
+
+  /**
    * Update an entity
    */
   updateEntity(entity: BaseEntity): Promise<void>;
@@ -76,4 +83,9 @@ export interface ISystemPlugin {
    * Delete an entity
    */
   deleteEntity(entityType: string, id: string): Promise<boolean>;
+
+  /**
+   * Enqueue a job (for generation)
+   */
+  enqueueJob(type: string, data: unknown): Promise<string>;
 }

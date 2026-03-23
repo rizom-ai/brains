@@ -6,7 +6,7 @@ import type {
 } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import type { ISystemPlugin } from "../types";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 
 /**
  * Strip binary content (e.g., base64 data URLs) from entities before
@@ -40,6 +40,23 @@ const updateInputSchema = z.object({
     .optional()
     .describe("Partial frontmatter fields to update"),
   content: z.string().optional().describe("Full markdown content replacement"),
+});
+
+const createInputSchema = z.object({
+  entityType: z.string().describe("Entity type to create"),
+  title: z.string().optional().describe("Title for the entity"),
+  prompt: z
+    .string()
+    .optional()
+    .describe("Prompt for AI generation — triggers async generation"),
+  content: z
+    .string()
+    .optional()
+    .describe("Direct content to store — triggers sync creation"),
+  options: z
+    .record(z.unknown())
+    .optional()
+    .describe("Passthrough options for the generation handler"),
 });
 
 const confirmedSchema = z
@@ -426,6 +443,93 @@ export function createSystemTools(
       },
       { visibility: "public" },
     ),
+    // ── Create tool ──
+    {
+      name: `${pluginId}_create`,
+      description:
+        "Create a new entity. Provide content for direct creation, or a prompt for AI generation.",
+      inputSchema: createInputSchema.shape,
+      handler: async (rawInput: unknown): Promise<ToolResponse> => {
+        const parsed = createInputSchema.safeParse(rawInput);
+        if (!parsed.success) {
+          return {
+            success: false,
+            error: `Invalid input: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        const input = parsed.data;
+        if (!input.content && !input.prompt) {
+          return {
+            success: false,
+            error:
+              "Provide 'content' (direct create) or 'prompt' (AI generation), or both.",
+          };
+        }
+
+        // If prompt is provided, queue a generation job (async)
+        if (input.prompt) {
+          const jobType = `${input.entityType}:generation`;
+          const jobData = {
+            prompt: input.prompt,
+            title: input.title,
+            content: input.content,
+            ...input.options,
+          };
+          try {
+            const jobId = await plugin.enqueueJob(jobType, jobData);
+            return {
+              success: true,
+              data: {
+                status: "generating",
+                jobId,
+              },
+            };
+          } catch (error) {
+            return {
+              success: false,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to queue generation job",
+            };
+          }
+        }
+
+        // Direct create (sync) — content is provided
+        const id = slugify(input.title ?? `${input.entityType}-${Date.now()}`);
+        const now = new Date().toISOString();
+        const content = input.content ?? "";
+        const entity: BaseEntity = {
+          id,
+          entityType: input.entityType,
+          content,
+          contentHash: "",
+          metadata: { title: input.title ?? id },
+          created: now,
+          updated: now,
+        };
+
+        try {
+          const result = await plugin.createEntity(entity);
+          return {
+            success: true,
+            data: {
+              entityId: result.entityId,
+              status: "created",
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to create entity",
+          };
+        }
+      },
+      visibility: "trusted",
+    },
     // ── Destructive tools (with confirmation) ──
     {
       name: `${pluginId}_delete`,
