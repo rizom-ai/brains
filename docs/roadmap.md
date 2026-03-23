@@ -48,6 +48,10 @@ Lazy loading + decode hints on image components. Sharp-based WebP conversion + r
 - mylittlephoney.com deployed to Hetzner
 - MockShell migration (test harness replaces direct shell access)
 
+### Unified Domain Config (2026-03)
+
+Single top-level `domain` in brain.yaml replaces per-plugin URL duplication. Identity service derives productionUrl, previewUrl, A2A endpoint, CMS base_url. Removed webserver.productionDomain, site-builder.productionUrl, a2a.domain.
+
 ---
 
 ## In Progress
@@ -64,13 +68,13 @@ Default to async task flow — return "working" immediately, caller polls `tasks
 
 New base class for content plugins that define entity types but expose no tools. Declarative registration of schema, adapter, handler, templates, datasources. Migrates 8 plugins (blog, decks, note, link, portfolio, social-media, wishlist, products). Blog's `enhance-series` tool becomes a `series:generation` handler. Packages stay in `plugins/`. ([plan](./plans/entity-plugin.md))
 
-### Unified Domain Config
-
-Single top-level `domain` in brain.yaml replaces per-plugin URL duplication (webserver.productionDomain, site-builder.productionUrl, a2a.domain). Identity service derives all URLs. ([plan](./plans/unified-domain-config.md))
-
 ### Eval Overhaul
 
-Replace `preset: eval` with `mode: eval` that layers on any preset. Move 84% of evals from app level to brain model level (`brains/rover/test-cases/`). ([plan](./plans/eval-overhaul.md))
+Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
+
+### MCP Resources & Prompts
+
+Entity resources with URI templates (`entity://{type}/{id}`) make the brain browsable in MCP clients. Workflow prompts (create, generate, review, publish, brainstorm) surface in client prompt pickers. Sampling deferred. ([plan](./plans/mcp-resources-prompts.md))
 
 ### Agent Directory
 
@@ -138,11 +142,12 @@ Topics and summary don't fit cleanly into EntityPlugin. Their tools derive entit
 
 ```
 unified-entity-tools ──→ entity-plugin ──→ eval-overhaul
-                     ──→ unified-domain-config
 
 a2a-async ──→ agent-directory ──→ hosted-rovers
                                       ▲
 image-perf ──→ media-sidecar ──→ chat-sdk ──→ fly-migration
                                                     ▲
                                            standalone-binary
+
+mcp-resources-prompts (independent)
 ```
