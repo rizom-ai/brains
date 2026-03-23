@@ -32,9 +32,6 @@ export { ProjectAdapter, projectAdapter } from "./adapters/project-adapter";
 // DataSource
 export { ProjectDataSource } from "./datasources/project-datasource";
 
-// Tools
-export { createPortfolioTools } from "./tools";
-
 // Templates
 export { ProjectListTemplate } from "./templates/project-list";
 export { ProjectDetailTemplate } from "./templates/project-detail";

@@ -3,7 +3,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { socialPostSchema } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";
-import { createGenerateTool } from "./tools/generate";
+// social-media_generate removed — entity creation via system_create
 import type { SocialMediaConfig, SocialMediaConfigInput } from "./config";
 import { socialMediaConfigSchema } from "./config";
 import { GenerationJobHandler } from "./handlers/generationHandler";
@@ -89,7 +89,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       throw new Error("Plugin context not initialized");
     }
 
-    return [createGenerateTool(this.pluginContext, this.id)];
+    return [];
   }
 }
 

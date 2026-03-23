@@ -23,13 +23,6 @@ export {
   type NoteConfigInput,
 } from "./config";
 
-// Tool exports
-export {
-  createNoteTools,
-  createInputSchema,
-  generateInputSchema,
-} from "./tools";
-
 // Handler exports
 export {
   NoteGenerationJobHandler,

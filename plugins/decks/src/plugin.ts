@@ -11,14 +11,13 @@ import { deckGenerationTemplate } from "./templates/generation-template";
 import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
-import { createDeckTools } from "./tools";
+// deck_generate removed — entity creation via system_create
 import type { DeckEntity } from "./schemas/deck";
 import packageJson from "../package.json";
 
 const decksConfigSchema = z.object({});
 
 export class DecksPlugin extends ServicePlugin<Record<string, never>> {
-  private pluginContext?: ServicePluginContext;
   private adapter = deckAdapter;
 
   constructor() {
@@ -26,7 +25,6 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   }
 
   override async onRegister(context: ServicePluginContext): Promise<void> {
-    this.pluginContext = context;
     await super.onRegister(context);
 
     context.entities.register(
@@ -184,10 +182,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.pluginContext) {
-      throw new Error("Plugin context not initialized");
-    }
-    return createDeckTools(this.pluginContext, this.id);
+    return [];
   }
 
   protected override async onShutdown(): Promise<void> {

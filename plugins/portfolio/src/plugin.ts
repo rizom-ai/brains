@@ -24,7 +24,7 @@ import {
   type Project,
 } from "./schemas/project";
 import { projectAdapter } from "./adapters/project-adapter";
-import { createPortfolioTools } from "./tools";
+// portfolio_create removed — entity creation via system_create
 import type { PortfolioConfig, PortfolioConfigInput } from "./config";
 import { portfolioConfigSchema } from "./config";
 import {
@@ -45,8 +45,6 @@ import packageJson from "../package.json";
  * Provides portfolio project management with AI-powered case study generation
  */
 export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
-  private pluginContext?: ServicePluginContext;
-
   constructor(config: PortfolioConfigInput) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
   }
@@ -57,8 +55,6 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    this.pluginContext = context;
-
     // Register project entity type
     context.entities.register(
       projectAdapter.entityType,
@@ -282,11 +278,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
    * Get the tools provided by this plugin
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.pluginContext) {
-      throw new Error("Plugin context not initialized");
-    }
-
-    return createPortfolioTools(this.id, this.pluginContext);
+    return [];
   }
 
   /**

@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { PortfolioPlugin } from "../src/plugin";
-import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 
 describe("PortfolioPlugin", () => {
@@ -26,49 +26,12 @@ describe("PortfolioPlugin", () => {
       expect(plugin.version).toBeDefined();
     });
 
-    it("should provide portfolio_create tool", () => {
-      const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("portfolio_create");
+    it("should not provide tools (entity creation via system_create)", () => {
+      expect(capabilities.tools).toHaveLength(0);
     });
 
     it("should not provide any resources", () => {
       expect(capabilities.resources).toEqual([]);
-    });
-  });
-
-  describe("Tool Schemas", () => {
-    it("portfolio_create should require topic and year", () => {
-      const createTool = capabilities.tools.find(
-        (t) => t.name === "portfolio_create",
-      );
-      expect(createTool).toBeDefined();
-      if (!createTool) throw new Error("createTool not found");
-      expect(createTool.inputSchema["topic"]).toBeDefined();
-      expect(createTool.inputSchema["year"]).toBeDefined();
-    });
-
-    it("portfolio_create should have optional title", () => {
-      const createTool = capabilities.tools.find(
-        (t) => t.name === "portfolio_create",
-      );
-      expect(createTool).toBeDefined();
-      if (!createTool) throw new Error("createTool not found");
-      const titleSchema = createTool.inputSchema["title"];
-      expect(titleSchema).toBeDefined();
-      if (!titleSchema) throw new Error("titleSchema not found");
-      expect(titleSchema._def.typeName).toBe("ZodOptional");
-    });
-  });
-
-  describe("Tool Execution", () => {
-    it("portfolio_create should queue a job", async () => {
-      const result = await harness.executeTool("portfolio_create", {
-        topic: "Test Project",
-        year: 2024,
-      });
-
-      expectSuccess(result);
-      expect(result.data).toHaveProperty("jobId");
     });
   });
 });

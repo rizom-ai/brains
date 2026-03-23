@@ -8,7 +8,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { noteSchema } from "./schemas/note";
 import { noteAdapter } from "./adapters/note-adapter";
-import { createNoteTools } from "./tools";
+// Tools removed — entity creation now handled by system_create
 import type { NoteConfig, NoteConfigInput } from "./config";
 import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
@@ -20,7 +20,7 @@ import packageJson from "../package.json";
  * Provides personal knowledge capture with markdown-first workflow
  */
 export class NotePlugin extends ServicePlugin<NoteConfig> {
-  private pluginContext?: ServicePluginContext;
+  // Context stored for handler access
 
   constructor(config: NoteConfigInput) {
     super("note", packageJson, config, noteConfigSchema);
@@ -32,7 +32,7 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    this.pluginContext = context;
+    // context used by handlers registered below
 
     // Register base entity type (notes are base entities)
     context.entities.register(noteAdapter.entityType, noteSchema, noteAdapter);
@@ -84,11 +84,7 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
    * Get the tools provided by this plugin
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.pluginContext) {
-      throw new Error("Plugin context not initialized");
-    }
-
-    return createNoteTools(this.id, this.pluginContext);
+    return [];
   }
 
   /**

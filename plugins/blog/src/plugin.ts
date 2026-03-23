@@ -4,7 +4,7 @@ import { blogPostSchema } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { seriesSchema } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
-import { createGenerateTool } from "./tools/generate";
+// blog_generate removed — entity creation via system_create
 import { createEnhanceSeriesToolFactory } from "./tools/enhance-series";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
@@ -93,10 +93,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       throw new Error("Plugin context not initialized");
     }
 
-    return [
-      createGenerateTool(this.pluginContext, this.id),
-      createEnhanceSeriesToolFactory(this.pluginContext, this.id),
-    ];
+    return [createEnhanceSeriesToolFactory(this.pluginContext, this.id)];
   }
 }
 
