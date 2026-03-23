@@ -13,7 +13,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: social-media_generate
+    - toolName: system_create
       argsContain:
         platform: linkedin
       shouldBeCalled: true

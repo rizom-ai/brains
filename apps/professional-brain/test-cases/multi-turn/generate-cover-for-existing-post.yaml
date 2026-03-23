@@ -12,7 +12,7 @@ turns:
   - userMessage: "Generate a LinkedIn post about the future of AI"
     successCriteria:
       expectedTools:
-        - toolName: social-media_generate
+        - toolName: system_create
           shouldBeCalled: true
   - userMessage: "Now add a cover image to that post by generating one with image_generate"
     successCriteria:

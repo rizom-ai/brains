@@ -1,0 +1,26 @@
+id: tool-invocation-system-update
+name: Entity Update via system_update
+description: Verifies that the agent uses system_update to modify entity fields
+type: tool_invocation
+tags:
+  - core
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: "Change the title of my post 'hello-world' to 'Hello Universe'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_update
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

@@ -1,6 +1,6 @@
 id: tool-invocation-blog-generate
-name: Blog Generate Tool Invocation
-description: Verifies that the agent actually calls the blog_generate tool instead of fabricating job IDs
+name: Blog Post Creation via system_create
+description: Verifies that the agent uses system_create with entityType post instead of old blog_generate tool
 type: tool_invocation
 tags:
   - core
@@ -12,7 +12,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: blog_generate
+    - toolName: system_create
       shouldBeCalled: true
   toolCountRange:
     min: 1
@@ -20,6 +20,7 @@ successCriteria:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
+    - "blog_generate"
   minAccuracyScore: 3
 
 efficiency:

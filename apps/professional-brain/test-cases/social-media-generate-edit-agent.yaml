@@ -12,7 +12,7 @@ turns:
   - userMessage: "Create a LinkedIn post about the future of work and decentralized organizations"
     successCriteria:
       expectedTools:
-        - toolName: social-media_generate
+        - toolName: system_create
           shouldBeCalled: true
 
   - userMessage: "Make it shorter and more punchy, remove any hashtags"
@@ -20,7 +20,7 @@ turns:
 successCriteria:
   # First turn must generate
   expectedTools:
-    - toolName: social-media_generate
+    - toolName: system_create
       shouldBeCalled: true
   # Agent should respond with confirmation of changes
   responseContains:

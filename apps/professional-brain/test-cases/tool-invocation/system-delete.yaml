@@ -1,0 +1,26 @@
+id: tool-invocation-system-delete
+name: Entity Delete via system_delete
+description: Verifies that the agent uses system_delete and shows confirmation before deleting
+type: tool_invocation
+tags:
+  - core
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: "Delete the note called 'old-notes'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_delete
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

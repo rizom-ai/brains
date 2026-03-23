@@ -1,0 +1,26 @@
+id: tool-invocation-system-create-note
+name: Direct Note Creation via system_create
+description: Verifies that the agent uses system_create with content for direct note creation
+type: tool_invocation
+tags:
+  - core
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: "Save this as a note: The quick brown fox jumps over the lazy dog."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I cannot"
+    - "note_create"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000
