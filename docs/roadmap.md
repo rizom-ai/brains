@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-22
+Last Updated: 2026-03-23
 
 ---
 
@@ -26,6 +26,14 @@ Replaced `disable: [list]` with `preset: minimal | default | pro` + `add`/`remov
 
 Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles file sync + git ops. Serialized with `withLock()`, `LeadingTrailingDebounce`, filesystem cache. ([plan](./plans/merge-git-into-directory-sync.md))
 
+### Unified Entity Tools (2026-03)
+
+Consolidated create/generate tools into `system_create` with prompt-driven routing. Plugin handlers own domain logic (series, dedup, URL capture). Standardized job types as `{entityType}:generation`. Removed ~8 plugin-specific tools, added `system_update` and `system_delete` with confirmation flows.
+
+### Image Performance (2026-03)
+
+Lazy loading + decode hints on image components. Sharp-based WebP conversion + responsive variants at build time. Shared images directory with filesystem cache. Custom image renderer in markdown pipeline.
+
 ### Other (2026-03)
 
 - A2A interface (Agent Card, JSON-RPC, task manager, client tool)
@@ -38,6 +46,7 @@ Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles f
 - Obsidian bases/fileClasses integration
 - Pre-compiled hydration for site builds
 - mylittlephoney.com deployed to Hetzner
+- MockShell migration (test harness replaces direct shell access)
 
 ---
 
@@ -47,21 +56,29 @@ Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles f
 
 Default to async task flow — return "working" immediately, caller polls `tasks/get`. Prevents Caddy timeouts on long agent conversations. Client polls transparently. ([plan](./plans/a2a-async-messaging.md))
 
-### Entity Update & Delete Tools
+### EntityPlugin — Third Plugin Type
 
-Generic `entity_update` (with diff confirmation) and `entity_delete` (with title+preview confirmation) in system plugin. Tests first. ([plan](./plans/entity-update-delete.md))
+New base class for content plugins that define entity types but expose no tools. Separate `entities/` workspace directory. Declarative registration of schema, adapter, handler, templates, datasources. ([plan](./plans/entity-plugin.md))
 
 ---
 
 ## Planned (Short-term)
 
-### Image Performance
+### Simplify Series
 
-Lazy loading, WebP conversion + resize with sharp, responsive srcset, fast `/images/*` serving path. Filesystem cache skips unchanged images. ([plan](./plans/image-performance.md))
+Replace series entity with computed view from blog posts. First post provides cover image + excerpt. Eliminates series schema, adapter, manager, subscriptions. ([plan](./plans/simplify-series.md))
+
+### Eval Restructure
+
+Move 84% of evals from app level to brain model level. Generic tool/agent tests go to `brains/rover/test-cases/`. Instance-specific voice/context tests stay per-app. ([plan](./plans/eval-restructure.md))
+
+### Eval Mode
+
+Replace `preset: eval` with `mode: eval` that layers on any preset. Brain model defines `evalDisable` list — plugins with external side effects. ([plan](./plans/eval-mode.md))
 
 ### Agent Directory
 
-Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. `agent_add`, `agent_list`, `agent_trust`, `agent_remove` tools. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
+Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
 
 ### rizom.work
 
@@ -116,12 +133,12 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-consistent-secrets ──────────────────────┐
-                                         ▼
-entity-update-delete                hosted-rovers
-                                     ▲        ▲
-deploy-mlp-hetzner              agent-dir  chat-sdk ──→ fly-migration
-                                              ▲              ▲
-image-performance ──→ media-sidecar ──────────┘              │
-                                                    standalone-binary
+unified-entity-tools ──→ entity-plugin ──→ eval-restructure
+                                      ──→ simplify-series
+
+a2a-async ──→ agent-directory ──→ hosted-rovers
+                                      ▲
+image-perf ──→ media-sidecar ──→ chat-sdk ──→ fly-migration
+                                                    ▲
+                                           standalone-binary
 ```

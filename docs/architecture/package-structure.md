@@ -2,13 +2,14 @@
 
 ## Overview
 
-The Brains repository is a monorepo with 8 workspace directories. Each directory has a clear role in the architecture.
+The Brains repository is a monorepo with 9 workspace directories. Each directory has a clear role in the architecture.
 
 ```
 brains/
 ├── shell/              # Core infrastructure & services
 ├── shared/             # Shared utilities, themes, UI components
-├── plugins/            # Feature extensions (content, publishing, sync)
+├── entities/           # Content type definitions (entity plugins)
+├── plugins/            # Feature plugins with tools (service + core plugins)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
 ├── layouts/            # Page layout components (professional, personal)
 ├── sites/              # Site packages (theme + layout + routes bundles)
@@ -46,30 +47,39 @@ brains/
 | `shared/default-site-content` | Default layouts, templates, routes                     |
 | `shared/product-site-content` | Product page layouts and templates                     |
 
-## Plugins
+## Entities (EntityPlugin — content type definitions)
 
-| Package                       | Purpose                              |
-| ----------------------------- | ------------------------------------ |
-| `plugins/system`              | Search, list, status tools           |
-| `plugins/note`                | Knowledge capture (base entity type) |
-| `plugins/blog`                | Essays and articles                  |
-| `plugins/decks`               | Presentations                        |
-| `plugins/link`                | Curated bookmarks                    |
-| `plugins/portfolio`           | Case studies                         |
-| `plugins/products`            | Product listings                     |
-| `plugins/topics`              | AI-powered tagging                   |
-| `plugins/summary`             | AI summaries                         |
-| `plugins/image-plugin`        | Image management                     |
-| `plugins/site-builder-plugin` | SSR static site generation, CMS      |
-| `plugins/site-content`        | Site pages and navigation            |
-| `plugins/content-pipeline`    | Publish orchestration, scheduling    |
-| `plugins/social-media`        | LinkedIn publishing                  |
-| `plugins/newsletter`          | Buttondown integration               |
-| `plugins/analytics`           | Cloudflare analytics                 |
-| `plugins/dashboard`           | Widget system                        |
-| `plugins/wishlist`            | Feature request tracking             |
-| `plugins/directory-sync`      | File + git sync                      |
-| `plugins/obsidian-vault`      | Obsidian integration                 |
+Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`.
+
+| Package                 | Purpose                              |
+| ----------------------- | ------------------------------------ |
+| `entities/note`         | Knowledge capture (base entity type) |
+| `entities/blog`         | Essays and articles                  |
+| `entities/decks`        | Presentations                        |
+| `entities/link`         | Curated bookmarks + URL capture      |
+| `entities/portfolio`    | Case studies                         |
+| `entities/products`     | Product listings                     |
+| `entities/topics`       | AI-powered tagging                   |
+| `entities/summary`      | AI summaries                         |
+| `entities/social-media` | Social media posts                   |
+| `entities/wishlist`     | Feature request tracking             |
+
+## Plugins (ServicePlugin/CorePlugin — tools + infrastructure)
+
+Plugins that provide MCP tools, orchestration, or infrastructure operations.
+
+| Package                       | Purpose                             |
+| ----------------------------- | ----------------------------------- |
+| `plugins/system`              | Entity CRUD tools + search + status |
+| `plugins/image-plugin`        | Image upload, generate, set-cover   |
+| `plugins/site-builder-plugin` | SSR static site generation, CMS     |
+| `plugins/site-content`        | Site pages and navigation           |
+| `plugins/content-pipeline`    | Publish orchestration, scheduling   |
+| `plugins/newsletter`          | Buttondown subscriber management    |
+| `plugins/analytics`           | Cloudflare analytics + query tool   |
+| `plugins/dashboard`           | Widget system                       |
+| `plugins/directory-sync`      | File + git sync                     |
+| `plugins/obsidian-vault`      | Obsidian integration                |
 
 ## Interfaces
 

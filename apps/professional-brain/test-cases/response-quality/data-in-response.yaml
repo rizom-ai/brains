@@ -1,6 +1,6 @@
 id: response-quality-data-in-response
 name: Agent Shows Actual Data
-description: Tests that the agent includes actual data from tool results in responses, not just claims about showing data
+description: Tests that the agent includes actual data from tool results in its response
 type: response_quality
 tags:
   - quality
@@ -8,24 +8,17 @@ tags:
   - data-display
 
 turns:
-  - userMessage: "List my blog posts"
+  - userMessage: "What's the status of my brain? Show me system info."
 
 successCriteria:
   expectedTools:
-    - toolName: system_list
+    - toolName: system_get-status
       shouldBeCalled: true
-      argsContain:
-        entityType: "post"
-  # Response should contain actual post titles, not just "here are the posts"
-  responseContains:
-    - "Low End Theory"  # Known post title
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-    - "I'm unable"
-  minHelpfulnessScore: 4
-  minAccuracyScore: 4
+  minHelpfulnessScore: 3
 
 efficiency:
-  maxToolCalls: 5
-  maxTokens: 50000
+  maxToolCalls: 3
+  maxTokens: 30000

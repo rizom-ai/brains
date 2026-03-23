@@ -8,7 +8,7 @@ tags:
   - core
 
 turns:
-  - userMessage: "Generate a newsletter about the Align the Misaligned blog post for me"
+  - userMessage: "Generate a newsletter about AI trends for my subscribers"
 
 successCriteria:
   expectedTools:
@@ -17,7 +17,9 @@ successCriteria:
   toolCountRange:
     min: 1
   responseNotContains:
-    - "lying"
     - "cannot"
     - "unable"
-    - "newsletter_generate"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

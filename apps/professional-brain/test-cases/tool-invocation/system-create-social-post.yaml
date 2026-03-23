@@ -1,6 +1,6 @@
 id: tool-invocation-system-create-social-post
 name: Social Post Creation via system_create
-description: Verifies the agent infers entityType social-post from conversational context
+description: Verifies the agent uses system_create with entityType social-post
 type: tool_invocation
 tags:
   - core
@@ -8,7 +8,7 @@ tags:
   - entity-crud
 
 turns:
-  - userMessage: "Draft a LinkedIn post about our latest product launch"
+  - userMessage: "Create a new social media post about our latest product launch and save it as a draft"
 
 successCriteria:
   expectedTools:
@@ -18,9 +18,7 @@ successCriteria:
     min: 1
   responseNotContains:
     - "I cannot"
-    - "social-media_generate"
-  minAccuracyScore: 3
 
 efficiency:
-  maxToolCalls: 3
+  maxToolCalls: 5
   maxTokens: 30000

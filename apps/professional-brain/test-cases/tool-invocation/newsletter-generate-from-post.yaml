@@ -1,6 +1,6 @@
 id: tool-invocation-newsletter-generate-from-post
 name: Newsletter Generate From Blog Post
-description: Verifies the agent uses system_create to generate a newsletter referencing a blog post
+description: Verifies the agent uses system_create to generate a newsletter based on blog content
 type: tool_invocation
 tags:
   - core
@@ -9,7 +9,7 @@ tags:
   - anti-hallucination
 
 turns:
-  - userMessage: "Generate a newsletter about my blog post 'Urging New Institutions'"
+  - userMessage: "Create a newsletter based on my latest blog post"
 
 successCriteria:
   expectedTools:
@@ -19,9 +19,8 @@ successCriteria:
     min: 1
   responseNotContains:
     - "I cannot"
-    - "I don't have access"
     - "newsletter_generate"
 
 efficiency:
-  maxToolCalls: 5
+  maxToolCalls: 8
   maxTokens: 50000

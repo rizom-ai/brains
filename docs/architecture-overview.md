@@ -15,12 +15,13 @@ The Personal Brain application features a modular, plugin-based architecture bui
 
 ## Workspace Structure
 
-The monorepo is managed by Turborepo with 8 workspace categories:
+The monorepo is managed by Turborepo with 9 workspace categories:
 
 ```
 shell/          Core infrastructure — runtime, services, plugin framework
 shared/         Reusable utilities, themes, UI components
-plugins/        Capabilities — entity types, tools, generation handlers
+entities/       Content type definitions — schema, adapter, generation handler
+plugins/        Feature plugins with tools — CRUD, orchestration, infrastructure
 layouts/        Page layout components — datasources, templates, page structure
 sites/          Site packages — theme + layout + routes bundles
 interfaces/     Interaction channels — how users talk to a brain

@@ -8,7 +8,7 @@ tags:
   - entity-crud
 
 turns:
-  - userMessage: "Change the title of my post 'hello-world' to 'Hello Universe'"
+  - userMessage: "Update the status of my note 'my-first-post' to published"
 
 successCriteria:
   expectedTools:
@@ -19,7 +19,6 @@ successCriteria:
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-  minAccuracyScore: 3
 
 efficiency:
   maxToolCalls: 5

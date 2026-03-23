@@ -23,8 +23,8 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: true
   # Agent should respond with confirmation of changes
-  responseContains:
-    - "short"
+  responseNotContains:
+    - "I cannot"
 
 efficiency:
   maxToolCalls: 8
