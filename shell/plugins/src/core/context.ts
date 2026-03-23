@@ -153,15 +153,6 @@ export interface IIdentityNamespace {
 
   /** Get app metadata (version, model, plugins) */
   getAppInfo: () => Promise<AppInfo>;
-
-  /** Get the raw domain string (e.g. "yeehaa.io"), undefined for local dev */
-  getDomain: () => string | undefined;
-
-  /** Get the production site URL (e.g. "https://yeehaa.io"), undefined if no domain */
-  getSiteUrl: () => string | undefined;
-
-  /** Get the preview site URL (e.g. "https://preview.yeehaa.io"), undefined if no domain */
-  getPreviewUrl: () => string | undefined;
 }
 
 /**
@@ -204,6 +195,15 @@ export interface CorePluginContext {
 
   /** Data directory for storing entity files */
   readonly dataDir: string;
+
+  /** Bare domain string (e.g. "yeehaa.io"), undefined for local dev */
+  readonly domain: string | undefined;
+
+  /** Production site URL derived from domain (e.g. "https://yeehaa.io"), undefined if no domain */
+  readonly siteUrl: string | undefined;
+
+  /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io"), undefined if no domain */
+  readonly previewUrl: string | undefined;
 
   // ============================================================================
   // Entity Service (Read-Only)
@@ -311,16 +311,14 @@ export function createCorePluginContext(
       get: () => shell.getIdentity(),
       getProfile: () => shell.getProfile(),
       getAppInfo: () => shell.getAppInfo(),
-      getDomain: () => shell.getDomain(),
-      getSiteUrl: () => {
-        const domain = shell.getDomain();
-        return domain ? `https://${domain}` : undefined;
-      },
-      getPreviewUrl: () => {
-        const domain = shell.getDomain();
-        return domain ? `https://preview.${domain}` : undefined;
-      },
     },
+
+    // Domain — derived from top-level domain config
+    domain: shell.getDomain(),
+    siteUrl: shell.getDomain() ? `https://${shell.getDomain()}` : undefined,
+    previewUrl: shell.getDomain()
+      ? `https://preview.${shell.getDomain()}`
+      : undefined,
 
     // Messaging namespace
     messaging: {

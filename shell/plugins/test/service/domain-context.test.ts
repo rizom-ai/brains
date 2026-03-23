@@ -7,100 +7,94 @@ import { createSilentLogger } from "@brains/test-utils";
 describe("Domain URL context", () => {
   const logger = createSilentLogger();
 
-  describe("CorePluginContext identity.getSiteUrl()", () => {
-    it("should return https URL when domain is set", () => {
-      const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createCorePluginContext(shell, "test-plugin");
-
-      expect(context.identity.getSiteUrl()).toBe("https://yeehaa.io");
-    });
-
-    it("should return undefined when no domain is set", () => {
-      const shell = createMockShell({ logger });
-      const context = createCorePluginContext(shell, "test-plugin");
-
-      expect(context.identity.getSiteUrl()).toBeUndefined();
-    });
-
-    it("should handle subdomain domains", () => {
-      const shell = createMockShell({
-        logger,
-        domain: "recall.rizom.ai",
-      });
-      const context = createCorePluginContext(shell, "test-plugin");
-
-      expect(context.identity.getSiteUrl()).toBe("https://recall.rizom.ai");
-    });
-  });
-
-  describe("CorePluginContext identity.getPreviewUrl()", () => {
-    it("should return preview subdomain URL when domain is set", () => {
-      const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createCorePluginContext(shell, "test-plugin");
-
-      expect(context.identity.getPreviewUrl()).toBe(
-        "https://preview.yeehaa.io",
-      );
-    });
-
-    it("should return undefined when no domain is set", () => {
-      const shell = createMockShell({ logger });
-      const context = createCorePluginContext(shell, "test-plugin");
-
-      expect(context.identity.getPreviewUrl()).toBeUndefined();
-    });
-
-    it("should handle subdomain domains", () => {
-      const shell = createMockShell({
-        logger,
-        domain: "recall.rizom.ai",
-      });
-      const context = createCorePluginContext(shell, "test-plugin");
-
-      expect(context.identity.getPreviewUrl()).toBe(
-        "https://preview.recall.rizom.ai",
-      );
-    });
-  });
-
-  describe("CorePluginContext identity.getDomain()", () => {
+  describe("context.domain", () => {
     it("should return the raw domain string", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
       const context = createCorePluginContext(shell, "test-plugin");
 
-      expect(context.identity.getDomain()).toBe("yeehaa.io");
+      expect(context.domain).toBe("yeehaa.io");
     });
 
     it("should return undefined when no domain is set", () => {
       const shell = createMockShell({ logger });
       const context = createCorePluginContext(shell, "test-plugin");
 
-      expect(context.identity.getDomain()).toBeUndefined();
+      expect(context.domain).toBeUndefined();
     });
   });
 
-  describe("ServicePluginContext inherits domain methods", () => {
-    it("should expose getSiteUrl via service context", () => {
+  describe("context.siteUrl", () => {
+    it("should return https URL when domain is set", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createServicePluginContext(shell, "test-plugin");
+      const context = createCorePluginContext(shell, "test-plugin");
 
-      expect(context.identity.getSiteUrl()).toBe("https://yeehaa.io");
+      expect(context.siteUrl).toBe("https://yeehaa.io");
     });
 
-    it("should expose getPreviewUrl via service context", () => {
-      const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createServicePluginContext(shell, "test-plugin");
+    it("should return undefined when no domain is set", () => {
+      const shell = createMockShell({ logger });
+      const context = createCorePluginContext(shell, "test-plugin");
 
-      expect(context.identity.getPreviewUrl()).toBe(
-        "https://preview.yeehaa.io",
-      );
+      expect(context.siteUrl).toBeUndefined();
     });
 
-    it("should expose getDomain via service context", () => {
+    it("should handle subdomain domains", () => {
+      const shell = createMockShell({
+        logger,
+        domain: "recall.rizom.ai",
+      });
+      const context = createCorePluginContext(shell, "test-plugin");
+
+      expect(context.siteUrl).toBe("https://recall.rizom.ai");
+    });
+  });
+
+  describe("context.previewUrl", () => {
+    it("should return preview subdomain URL when domain is set", () => {
+      const shell = createMockShell({ logger, domain: "yeehaa.io" });
+      const context = createCorePluginContext(shell, "test-plugin");
+
+      expect(context.previewUrl).toBe("https://preview.yeehaa.io");
+    });
+
+    it("should return undefined when no domain is set", () => {
+      const shell = createMockShell({ logger });
+      const context = createCorePluginContext(shell, "test-plugin");
+
+      expect(context.previewUrl).toBeUndefined();
+    });
+
+    it("should handle subdomain domains", () => {
+      const shell = createMockShell({
+        logger,
+        domain: "recall.rizom.ai",
+      });
+      const context = createCorePluginContext(shell, "test-plugin");
+
+      expect(context.previewUrl).toBe("https://preview.recall.rizom.ai");
+    });
+  });
+
+  describe("ServicePluginContext inherits domain properties", () => {
+    it("should expose domain via service context", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
       const context = createServicePluginContext(shell, "test-plugin");
 
-      expect(context.identity.getDomain()).toBe("yeehaa.io");
+      expect(context.domain).toBe("yeehaa.io");
+    });
+
+    it("should expose siteUrl via service context", () => {
+      const shell = createMockShell({ logger, domain: "yeehaa.io" });
+      const context = createServicePluginContext(shell, "test-plugin");
+
+      expect(context.siteUrl).toBe("https://yeehaa.io");
+    });
+
+    it("should expose previewUrl via service context", () => {
+      const shell = createMockShell({ logger, domain: "yeehaa.io" });
+      const context = createServicePluginContext(shell, "test-plugin");
+
+      expect(context.previewUrl).toBe("https://preview.yeehaa.io");
     });
   });
 });

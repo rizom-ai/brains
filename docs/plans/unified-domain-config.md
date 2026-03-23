@@ -76,11 +76,11 @@ Brain resolver populates a shared `siteUrl` and `previewUrl` on the resolved con
 const url = this.config.productionUrl;
 
 // After
-const url = context.identity.getSiteUrl(); // https://yeehaa.io
-const preview = context.identity.getPreviewUrl(); // https://preview.yeehaa.io
+const url = context.siteUrl; // https://yeehaa.io
+const preview = context.previewUrl; // https://preview.yeehaa.io
 ```
 
-Identity service already provides brain character and profile — site URLs are a natural fit.
+Domain properties live on the context root level (like `dataDir`) — they're deployment concerns, not identity.
 
 ### Local development (no domain)
 
@@ -89,31 +89,38 @@ When `domain` is not set, URLs fall back to `http://localhost:{port}`. This is t
 ## Steps
 
 1. Add `domain: z.string().optional()` to instance overrides schema
-2. Add `getSiteUrl()` and `getPreviewUrl()` to identity service (derives from domain)
-3. Update site-builder to read URLs from identity instead of its own config
-4. Update webserver to read domain from identity instead of its own config
-5. Update A2A to read domain from identity instead of its own config
-6. Update CMS config generation to derive `base_url` from identity
+2. Add `domain`, `siteUrl`, `previewUrl` as top-level context properties (derives from domain)
+3. Update site-builder to read URLs from context instead of its own config
+4. Update webserver to read domain from context instead of its own config
+5. Update A2A to read domain from context instead of its own config
+6. Update CMS config generation to derive `base_url` from context
 7. Remove deprecated config fields from plugin schemas (keep parsing but warn)
 8. Update all brain.yaml files: collapse domain configs into top-level `domain`
 9. Update deploy/brain.yaml files
+10. Remove orphaned `DOMAIN` and `PREVIEW_DOMAIN` from `.env` files
 
 ## Key files
 
 | File                                                       | Change                                                |
 | ---------------------------------------------------------- | ----------------------------------------------------- |
-| `shell/app/src/instance-overrides.ts`                      | Add `domain` field                                    |
-| `shell/identity-service/src/*`                             | Add `getSiteUrl()`, `getPreviewUrl()`                 |
+| `shell/app/src/instance-overrides.ts`                      | ✅ Already has `domain` field                         |
+| `shell/plugins/src/core/context.ts`                        | ✅ `domain`, `siteUrl`, `previewUrl` on context       |
+| `shell/core/src/shell.ts`                                  | ✅ `getDomain()` reads `siteBaseUrl`                  |
+| `shell/plugins/src/interfaces.ts`                          | ✅ `getDomain()` on IShell                            |
 | `plugins/site-builder/src/config.ts`                       | Deprecate `productionUrl`, `previewUrl`               |
-| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | Read URL from identity                                |
-| `plugins/site-builder/src/lib/cms-config.ts`               | Derive `base_url` from identity                       |
+| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | Read URL from context                                 |
+| `plugins/site-builder/src/lib/cms-config.ts`               | Derive `base_url` from context                        |
 | `interfaces/webserver/src/config.ts`                       | Deprecate `productionDomain`, `previewDomain`         |
-| `interfaces/webserver/src/webserver-interface.ts`          | Read from identity                                    |
+| `interfaces/webserver/src/webserver-interface.ts`          | Read from context                                     |
 | `interfaces/a2a/src/config.ts`                             | Deprecate `domain`                                    |
-| `interfaces/a2a/src/agent-card.ts`                         | Read from identity                                    |
+| `interfaces/a2a/src/agent-card.ts`                         | Read from context                                     |
 | `plugins/blog/src/lib/rss-handler.ts`                      | Already uses message payload — no change              |
 | `apps/*/brain.yaml`                                        | Collapse to top-level `domain`                        |
 | `apps/*/deploy/brain.yaml`                                 | Already has `domain` — remove plugin-level duplicates |
+
+## Tech debt
+
+- `identity.getAppInfo()` should move to top-level `context.appInfo` for consistency (only 1 caller: system plugin)
 
 ## Verification
 

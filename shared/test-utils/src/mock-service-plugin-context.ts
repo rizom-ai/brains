@@ -162,10 +162,12 @@ export function createMockServicePluginContext(
           plugins: [],
         }),
       ),
-      getDomain: mock(() => undefined),
-      getSiteUrl: mock(() => undefined),
-      getPreviewUrl: mock(() => undefined),
     },
+
+    // Domain (top-level, like dataDir)
+    domain: undefined,
+    siteUrl: undefined,
+    previewUrl: undefined,
 
     // Conversations namespace (read-only)
     conversations: {
