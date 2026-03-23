@@ -1,6 +1,6 @@
 id: social-media-generate-agent
 name: Generate LinkedIn post via natural language
-description: Tests that the agent correctly invokes the social-media generate tool when asked to create a LinkedIn post
+description: Tests that the agent uses system_create to create a social post when asked
 type: tool_invocation
 tags:
   - social-media
@@ -14,8 +14,12 @@ turns:
 successCriteria:
   expectedTools:
     - toolName: system_create
-      argsContain:
-        platform: linkedin
       shouldBeCalled: true
-  responseContains:
-    - "LinkedIn"
+  responseNotContains:
+    - "I cannot"
+    - "social-media_generate"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

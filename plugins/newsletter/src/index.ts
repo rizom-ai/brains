@@ -95,7 +95,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
     }
 
     context.jobs.registerHandler(
-      "newsletter-generation",
+      "newsletter:generation",
       new GenerationJobHandler(this.logger, context, this.config),
     );
 
@@ -298,7 +298,7 @@ export class NewsletterPlugin extends ServicePlugin<NewsletterConfig> {
           }
 
           const jobId = await context.jobs.enqueue(
-            "newsletter-generation",
+            "newsletter:generation",
             {
               sourceEntityIds: recentPosts.map((p) => p.id),
               sourceEntityType: "post",

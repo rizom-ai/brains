@@ -52,7 +52,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
   ) {
     super(logger, context, {
       schema: generationJobSchema,
-      jobTypeName: "newsletter-generation",
+      jobTypeName: "newsletter:generation",
       entityType: "newsletter",
     });
   }

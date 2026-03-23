@@ -71,18 +71,25 @@ const pro = [
   "matrix",
 ];
 
+// Eval = all capabilities, no interfaces (no daemons/servers)
 const evaluation = [
   "system",
   "image",
+  "dashboard",
   "blog",
   "decks",
   "note",
   "link",
+  "wishlist",
   "portfolio",
   "topics",
+  "content-pipeline",
+  "social-media",
+  "newsletter",
+  "analytics",
+  "obsidian-vault",
   "directory-sync",
   "site-builder",
-  "mcp",
 ];
 
 export default defineBrain({
