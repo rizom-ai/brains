@@ -48,7 +48,7 @@ export interface LinkCaptureJobHandlerOptions {
  * Job handler for link capture with AI extraction
  */
 export class LinkCaptureJobHandler extends BaseJobHandler<
-  "capture",
+  "link:generation",
   LinkCaptureJobData,
   LinkCaptureResult
 > {

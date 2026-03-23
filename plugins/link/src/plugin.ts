@@ -3,7 +3,6 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { linkConfigSchema, linkSchema, type LinkConfig } from "./schemas/link";
 import { LinkAdapter } from "./adapters/link-adapter";
-import { createLinkTools } from "./tools/index";
 import {
   linkExtractionTemplate,
   type LinkExtractionResult,
@@ -63,7 +62,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
         ? { jinaApiKey: this.config.jinaApiKey }
         : undefined,
     );
-    context.jobs.registerHandler("capture", linkCaptureHandler);
+    context.jobs.registerHandler("link:generation", linkCaptureHandler);
 
     // Register eval handler for testing extraction quality
     context.eval.registerHandler("extractContent", async (input: unknown) => {
@@ -101,7 +100,7 @@ export class LinkPlugin extends ServicePlugin<LinkConfig> {
    * Get plugin tools
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    return createLinkTools(this.id, this.getContext());
+    return [];
   }
 }
 
