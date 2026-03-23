@@ -2,14 +2,12 @@ import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
 import type { z } from "@brains/utils";
-import { markdownToHtml } from "@brains/utils";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 
 const adapter = new AnchorProfileAdapter();
 
 interface AboutDataSourceOutput {
   profile: PersonalProfile;
-  storyHtml: string | undefined;
 }
 
 /**
@@ -28,10 +26,7 @@ export class AboutDataSource implements DataSource {
     const content = await fetchAnchorProfile(context.entityService);
     const profile = adapter.parseProfileBody(content, personalProfileSchema);
 
-    const data: AboutDataSourceOutput = {
-      profile,
-      storyHtml: profile.story ? markdownToHtml(profile.story) : undefined,
-    };
+    const data: AboutDataSourceOutput = { profile };
     return outputSchema.parse(data);
   }
 }

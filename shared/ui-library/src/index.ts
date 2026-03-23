@@ -125,6 +125,16 @@ export type {
   HeadCollectorInterface,
 } from "./Head";
 
+// Image-aware markdown rendering
+export {
+  ImageRendererProvider,
+  useImageRenderer,
+  useMarkdownToHtml,
+} from "./ImageRendererProvider";
+export type { ImageRendererProviderProps } from "./ImageRendererProvider";
+export { MarkdownContent } from "./MarkdownContent";
+export type { MarkdownContentProps } from "./MarkdownContent";
+
 // Pagination
 export { Pagination } from "./Pagination";
 export type { PaginationProps } from "./Pagination";

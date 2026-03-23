@@ -1,16 +1,12 @@
 import type { JSX } from "preact";
 import type { PersonalProfile } from "../schemas";
-import { Head, ProseContent, LinkButton } from "@brains/ui-library";
+import { Head, MarkdownContent, LinkButton } from "@brains/ui-library";
 
 export interface AboutPageData {
   profile: PersonalProfile;
-  storyHtml?: string | undefined;
 }
 
-export const AboutPageLayout = ({
-  profile,
-  storyHtml,
-}: AboutPageData): JSX.Element => {
+export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
   const title = `About ${profile.name}`;
   const description = profile.description ?? profile.intro ?? "About page";
 
@@ -33,10 +29,10 @@ export const AboutPageLayout = ({
         </section>
 
         {/* Story */}
-        {storyHtml && (
+        {profile.story && (
           <section className="py-[60px] px-6 md:px-12 bg-theme">
             <div className="max-w-3xl mx-auto">
-              <ProseContent html={storyHtml} />
+              <MarkdownContent markdown={profile.story} />
             </div>
           </section>
         )}

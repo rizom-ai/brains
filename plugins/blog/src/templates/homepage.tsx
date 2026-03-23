@@ -1,9 +1,8 @@
 import type { JSX } from "preact";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
-import { markdownToHtml } from "@brains/utils";
 import { BlogPostTemplate } from "./blog-post";
-import { Head } from "@brains/ui-library";
+import { Head, useMarkdownToHtml } from "@brains/ui-library";
 import { templateBlogPostSchema } from "../schemas/blog-post";
 
 /**
@@ -44,7 +43,8 @@ export const HomepageTemplate = (props: HomepageContent): JSX.Element => {
   }
 
   // Render markdown content
-  const htmlContent = markdownToHtml(props.content);
+  const toHtml = useMarkdownToHtml();
+  const htmlContent = toHtml(props.content);
 
   return (
     <>

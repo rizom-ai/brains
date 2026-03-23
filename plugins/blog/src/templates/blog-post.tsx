@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
-import { markdownToHtml, calculateReadingTime } from "@brains/utils";
+import { calculateReadingTime } from "@brains/utils";
 import {
-  ProseContent,
+  MarkdownContent,
   Head,
   Breadcrumb,
   CoverImage,
@@ -28,7 +28,6 @@ export const BlogPostTemplate = ({
   nextPost,
   seriesPosts,
 }: BlogPostProps): JSX.Element => {
-  const htmlContent = markdownToHtml(post.body);
   const readingTime = calculateReadingTime(post.body);
   const hasSeries = Boolean(post.frontmatter.seriesName && seriesPosts);
 
@@ -97,7 +96,7 @@ export const BlogPostTemplate = ({
               <SeriesCollapsible currentPost={post} seriesPosts={seriesPosts} />
 
               {/* Post Content */}
-              <ProseContent html={htmlContent} />
+              <MarkdownContent markdown={post.body} />
 
               {/* Prev/Next Navigation */}
               <PostNavigation prevPost={prevPost} nextPost={nextPost} />

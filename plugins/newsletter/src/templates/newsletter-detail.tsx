@@ -1,11 +1,10 @@
 import type { JSX } from "preact";
 import { z } from "@brains/utils";
-import { markdownToHtml } from "@brains/utils";
 import { createTemplate } from "@brains/plugins";
 import {
   Head,
   Breadcrumb,
-  ProseContent,
+  MarkdownContent,
   formatDate,
   StatusBadge,
   Card,
@@ -66,8 +65,6 @@ export const NewsletterDetailTemplate = ({
   prevNewsletter,
   nextNewsletter,
 }: NewsletterDetailProps): JSX.Element => {
-  const htmlContent = markdownToHtml(content);
-
   // Build breadcrumb items
   const breadcrumbItems: BreadcrumbItem[] = [
     { label: "Home", href: "/" },
@@ -128,7 +125,7 @@ export const NewsletterDetailTemplate = ({
             )}
 
             {/* Newsletter Content */}
-            <ProseContent html={htmlContent} />
+            <MarkdownContent markdown={content} />
 
             {/* Prev/Next Navigation */}
             {(prevNewsletter || nextNewsletter) && (

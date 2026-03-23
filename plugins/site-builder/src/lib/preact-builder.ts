@@ -11,7 +11,11 @@ import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
 import { HeadCollector } from "./head-collector";
-import { HeadProvider, type HeadProps } from "@brains/ui-library";
+import {
+  HeadProvider,
+  ImageRendererProvider,
+  type HeadProps,
+} from "@brains/ui-library";
 import type { ComponentChildren } from "preact";
 import { join } from "path";
 import { promises as fs } from "fs";
@@ -20,9 +24,7 @@ import type { CSSProcessor } from "../css/css-processor";
 import { TailwindCSSProcessor } from "../css/css-processor";
 import { createHTMLShell } from "./html-generator";
 import { z } from "@brains/utils";
-import { ImageExtractor } from "./image-extractor";
-import { ImageReferenceResolver } from "./image-reference-resolver";
-import { createHash } from "crypto";
+
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
 
@@ -60,10 +62,6 @@ export class PreactBuilder implements StaticSiteBuilder {
       onProgress(`Building route: ${route.path}`);
       await this.buildRoute(route, context, siteInfo);
     }
-
-    // Extract images from entity://image references to static files
-    onProgress("Extracting images to static files");
-    await this.extractAndResolveImages(context);
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress("Processing Tailwind CSS");
@@ -146,13 +144,20 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Create head collector for SSR
     const headCollector = new HeadCollector(context.siteConfig.title);
 
+    // Get image renderer for markdown content (if ImageBuildService is available)
+    const imageRenderer =
+      context.imageBuildService?.createImageRenderer() ?? null;
+
     let layoutHtml: string;
 
     if (isFullscreen) {
       // Fullscreen: render sections directly, no page layout shell
       const wrapper = h(HeadProvider, {
         headCollector,
-        children: h("div", null, ...sectionComponents),
+        children: h(ImageRendererProvider, {
+          imageRenderer,
+          children: h("div", null, ...sectionComponents),
+        }),
       });
       layoutHtml = render(wrapper);
     } else {
@@ -176,7 +181,10 @@ export class PreactBuilder implements StaticSiteBuilder {
 
       const layoutWithProvider = h(HeadProvider, {
         headCollector,
-        children: h(LayoutComponent, layoutProps),
+        children: h(ImageRendererProvider, {
+          imageRenderer,
+          children: h(LayoutComponent, layoutProps),
+        }),
       });
       layoutHtml = render(layoutWithProvider);
     }
@@ -386,154 +394,6 @@ export class PreactBuilder implements StaticSiteBuilder {
         await fs.copyFile(srcPath, destPath);
       }
     }
-  }
-
-  /**
-   * Extract images from entity://image references and data URLs, resolve them in HTML files.
-   * This converts inline references to static file URLs for production builds.
-   */
-  private async extractAndResolveImages(context: BuildContext): Promise<void> {
-    this.logger.debug("Extracting and resolving image references");
-
-    // Collect all HTML files
-    const htmlFiles = await this.collectHtmlFiles(this.outputDir);
-
-    if (htmlFiles.length === 0) {
-      this.logger.debug("No HTML files found to process");
-      return;
-    }
-
-    // Read all HTML content
-    const htmlContents: string[] = [];
-    for (const filePath of htmlFiles) {
-      const content = await fs.readFile(filePath, "utf-8");
-      htmlContents.push(content);
-    }
-
-    const extractor = new ImageExtractor(
-      this.outputDir,
-      context.pluginContext.entityService,
-      this.logger,
-    );
-
-    // Extract entity://image references to static files
-    const entityImageMap = await extractor.extractFromContent(htmlContents);
-
-    // Extract inline data URLs to static files
-    const dataUrlImageMap =
-      await extractor.extractDataUrlsFromContent(htmlContents);
-
-    const totalExtracted =
-      Object.keys(entityImageMap).length + Object.keys(dataUrlImageMap).length;
-
-    if (totalExtracted === 0) {
-      this.logger.debug("No images found to extract");
-      return;
-    }
-
-    this.logger.debug(`Extracted ${totalExtracted} images to static files`);
-
-    // Process each HTML file
-    for (const filePath of htmlFiles) {
-      let content = await fs.readFile(filePath, "utf-8");
-      let modified = false;
-
-      // Replace entity://image references with static URLs
-      if (Object.keys(entityImageMap).length > 0) {
-        const resolver = ImageReferenceResolver.static(
-          entityImageMap,
-          this.logger,
-        );
-        const result = await resolver.resolve(content);
-        if (result.resolvedCount > 0) {
-          content = result.content;
-          modified = true;
-          this.logger.debug(
-            `Resolved ${result.resolvedCount} entity://image refs in ${filePath}`,
-          );
-        }
-      }
-
-      // Replace data URLs with static URLs
-      if (Object.keys(dataUrlImageMap).length > 0) {
-        const dataUrlResult = this.replaceDataUrls(content, dataUrlImageMap);
-        if (dataUrlResult.replacedCount > 0) {
-          content = dataUrlResult.content;
-          modified = true;
-          this.logger.debug(
-            `Replaced ${dataUrlResult.replacedCount} data URLs in ${filePath}`,
-          );
-        }
-      }
-
-      if (modified) {
-        await fs.writeFile(filePath, content, "utf-8");
-      }
-    }
-  }
-
-  /**
-   * Replace data URLs in content with static file URLs
-   */
-  private replaceDataUrls(
-    content: string,
-    imageMap: { [hash: string]: string },
-  ): { content: string; replacedCount: number } {
-    let modifiedContent = content;
-    let replacedCount = 0;
-
-    // For each hash in the map, find the corresponding data URL and replace it
-    for (const [hash, staticUrl] of Object.entries(imageMap)) {
-      // Find data URLs that hash to this value
-      const dataUrlRegex = /src=(["'])(data:image\/[^"']+)\1/g;
-      modifiedContent = modifiedContent.replace(
-        dataUrlRegex,
-        (match, quote, dataUrl) => {
-          // Check if this data URL hashes to the current hash
-          const urlHash = this.hashDataUrl(dataUrl);
-          if (urlHash === hash) {
-            replacedCount++;
-            return `src=${quote}${staticUrl}${quote}`;
-          }
-          return match;
-        },
-      );
-    }
-
-    return { content: modifiedContent, replacedCount };
-  }
-
-  /**
-   * Generate hash from data URL (same as ImageExtractor)
-   */
-  private hashDataUrl(dataUrl: string): string {
-    return createHash("sha256").update(dataUrl).digest("hex").slice(0, 16);
-  }
-
-  /**
-   * Recursively collect all HTML files from a directory
-   */
-  private async collectHtmlFiles(dir: string): Promise<string[]> {
-    const htmlFiles: string[] = [];
-
-    try {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-          const subFiles = await this.collectHtmlFiles(fullPath);
-          htmlFiles.push(...subFiles);
-        } else if (entry.name.endsWith(".html")) {
-          htmlFiles.push(fullPath);
-        }
-      }
-    } catch {
-      // Directory doesn't exist yet, return empty
-    }
-
-    return htmlFiles;
   }
 }
 

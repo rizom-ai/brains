@@ -7,9 +7,8 @@ import {
   StatusBadge,
   Card,
   TagsList,
-  ProseContent,
+  MarkdownContent,
 } from "@brains/ui-library";
-import { markdownToHtml } from "@brains/utils";
 
 export interface ProductsPageProps {
   overview: OverviewWithData;
@@ -148,8 +147,8 @@ export const ProductsPageTemplate = ({
           <h2 className="text-sm tracking-widest uppercase text-theme-muted mb-10">
             {labels["vision"]}
           </h2>
-          <ProseContent
-            html={markdownToHtml(body.vision.replace(/\n/g, "\n\n"))}
+          <MarkdownContent
+            markdown={body.vision.replace(/\n/g, "\n\n")}
             className="prose-p:text-2xl prose-p:md:text-3xl prose-p:lg:text-4xl prose-p:leading-relaxed prose-p:text-heading prose-p:font-light"
           />
         </div>

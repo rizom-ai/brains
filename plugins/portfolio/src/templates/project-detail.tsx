@@ -1,6 +1,5 @@
 import type { JSX } from "preact";
-import { Head, ProseContent, Card, CoverImage } from "@brains/ui-library";
-import { markdownToHtml } from "@brains/utils";
+import { Head, MarkdownContent, Card, CoverImage } from "@brains/ui-library";
 import type { EnrichedProject } from "../schemas/project";
 
 export interface ProjectDetailProps {
@@ -67,12 +66,10 @@ const CaseStudySection = ({
 }): JSX.Element | null => {
   if (!content) return null;
 
-  const htmlContent = markdownToHtml(content);
-
   return (
     <section className="mb-12">
       <h2 className="text-2xl font-bold text-heading mb-4">{title}</h2>
-      <ProseContent html={htmlContent} />
+      <MarkdownContent markdown={content} />
     </section>
   );
 };

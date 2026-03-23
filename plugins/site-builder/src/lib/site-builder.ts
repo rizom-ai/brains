@@ -189,6 +189,11 @@ export class SiteBuilder implements ISiteBuilder {
         outputDir: parsedOptions.outputDir,
       });
 
+      // Clean stale build artifacts (preserves images/ for sharp cache)
+      if (parsedOptions.cleanBeforeBuild) {
+        await staticSiteBuilder.clean();
+      }
+
       // Get all registered routes (now includes dynamically generated ones)
       const routes = this.routeRegistry.list();
       if (routes.length === 0) {

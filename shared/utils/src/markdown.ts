@@ -138,15 +138,13 @@ export interface MarkdownToHtmlOptions {
  * @returns HTML string
  */
 const defaultMarked = new Marked({ gfm: true, breaks: true });
+const rendererCache = new WeakMap<ImageRenderer, Marked>();
 
-export function markdownToHtml(
-  markdown: string,
-  options?: MarkdownToHtmlOptions,
-): string {
-  let instance = defaultMarked;
+function getMarkedInstance(imageRenderer?: ImageRenderer): Marked {
+  if (!imageRenderer) return defaultMarked;
 
-  if (options?.imageRenderer) {
-    const imageRenderer = options.imageRenderer;
+  let instance = rendererCache.get(imageRenderer);
+  if (!instance) {
     instance = new Marked({ gfm: true, breaks: true });
     instance.use({
       renderer: {
@@ -159,7 +157,16 @@ export function markdownToHtml(
         },
       },
     });
+    rendererCache.set(imageRenderer, instance);
   }
+  return instance;
+}
+
+export function markdownToHtml(
+  markdown: string,
+  options?: MarkdownToHtmlOptions,
+): string {
+  const instance = getMarkedInstance(options?.imageRenderer);
 
   let html = instance.parse(markdown) as string;
 

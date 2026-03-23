@@ -2,11 +2,10 @@ import type { JSX } from "preact";
 import type { ProfessionalProfile } from "../schemas";
 import {
   Head,
-  ProseContent,
+  MarkdownContent,
   tagVariants,
   LinkButton,
 } from "@brains/ui-library";
-import { markdownToHtml } from "@brains/utils";
 
 /**
  * About page data structure
@@ -54,7 +53,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
           {/* Zone 1: Story — Full-width prose, no section heading */}
           {profile.story && (
             <section className="content-section-reveal mb-20 md:mb-28">
-              <ProseContent html={markdownToHtml(profile.story)} />
+              <MarkdownContent markdown={profile.story} />
             </section>
           )}
 
