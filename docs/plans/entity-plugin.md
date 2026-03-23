@@ -2,7 +2,7 @@
 
 ## Context
 
-After moving create/generate tools to `system_create`, most content plugins now register an entity type, an adapter, maybe a generation handler, and return zero tools. They use ServicePlugin but don't need its full power (tools, job queue access, complex context). A simpler base class captures this pattern.
+After moving create/generate tools to `system_create`, most content plugins now register an entity type, an adapter, maybe a generation handler, and return zero tools. They use ServicePlugin but don't need its full power (tools, MCP registration, views). A simpler base class captures this pattern.
 
 ## The three plugin types
 
@@ -49,11 +49,12 @@ export class BlogPlugin extends EntityPlugin<BlogConfig> {
 - `context.jobs.registerHandler("{entityType}:generation", handler)` — if `createGenerationHandler` is defined
 - Template registration — if `getTemplates` is defined
 - DataSource registration — if `getDataSources` is defined
+- Eval handler registration — if `createEvalHandler` is defined
 - `getTools()` returns `[]` — EntityPlugins don't expose tools
 
 ## EntityPluginContext (subset of ServicePluginContext)
 
-Only what entity management needs:
+What entity management needs:
 
 - `entityService` — read/write entities
 - `logger` — logging
@@ -63,27 +64,29 @@ Only what entity management needs:
 - `templates` — register templates
 - `identity` — brain character + profile access
 - `entities` — register entity types
+- `eval` — register eval handlers
+- `conversations` — conversation access (for handlers like link capture)
 
 Does NOT include:
 
 - `views` — no route management
-- `eval` — no eval handlers (move to separate concern)
+- `plugins` — no plugin introspection
 - MCP tool/resource registration — EntityPlugins don't expose tools
+
+The context type is intentionally separate from ServicePluginContext. Even though the diff is small today, it communicates the right constraint to plugin authors and provides a stable contract as the two contexts evolve independently.
 
 ## Which plugins become EntityPlugin
 
-| Plugin       | Currently               | Becomes             | Why                                        |
-| ------------ | ----------------------- | ------------------- | ------------------------------------------ |
-| blog         | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler + templates + datasources |
-| decks        | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler + templates               |
-| note         | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler                           |
-| link         | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler                           |
-| portfolio    | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler + datasources             |
-| social-media | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler + templates + datasources |
-| wishlist     | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler                           |
-| topics       | ServicePlugin (0 tools) | EntityPlugin        | Entity + handler                           |
-| summary      | ServicePlugin (1 tool)  | Stays ServicePlugin | Has summary_get tool                       |
-| products     | ServicePlugin           | EntityPlugin        | Entity only (no handler)                   |
+| Plugin       | Currently               | Becomes      | Why                                                          |
+| ------------ | ----------------------- | ------------ | ------------------------------------------------------------ |
+| blog         | ServicePlugin (1 tool)  | EntityPlugin | enhance-series becomes series:generation handler, 0 tools    |
+| decks        | ServicePlugin (0 tools) | EntityPlugin | Entity + handler + templates                                 |
+| note         | ServicePlugin (0 tools) | EntityPlugin | Entity + handler                                             |
+| link         | ServicePlugin (0 tools) | EntityPlugin | Entity + handler (handler uses conversations + createEntity) |
+| portfolio    | ServicePlugin (0 tools) | EntityPlugin | Entity + handler + datasources                               |
+| social-media | ServicePlugin (0 tools) | EntityPlugin | Entity + handler + templates + datasources                   |
+| wishlist     | ServicePlugin (0 tools) | EntityPlugin | Entity + handler                                             |
+| products     | ServicePlugin           | EntityPlugin | Entity only (no handler)                                     |
 
 ## Which plugins stay ServicePlugin
 
@@ -95,6 +98,12 @@ Does NOT include:
 | directory-sync   | Infrastructure tools (sync, git_sync, git_status)           |
 | site-builder     | Build tools + complex config                                |
 | image            | Image tools (upload, generate, set-cover)                   |
+| topics           | Has topics_batch-extract tool (see open question below)     |
+| summary          | Has summary_get tool                                        |
+
+## Open question: derived entity pattern
+
+Topics and summary don't fit cleanly into EntityPlugin or the existing tool model. Their tools don't create _one_ entity from user input — they _derive_ entities from other entities (topics from posts, summaries from content). This "derive entities from other entities" pattern is distinct from creation (system_create), orchestration (pipeline), and building (site-builder). There may be a missing abstraction here. For now, topics and summary stay ServicePlugin. Revisit once EntityPlugin is in place and the pattern becomes clearer.
 
 ## Which plugins stay CorePlugin
 
@@ -103,36 +112,18 @@ Does NOT include:
 | dashboard | Widget registration, no entities   |
 | analytics | Query tool + head script injection |
 
-## Directory structure
+## Blog: enhance-series migration
 
-Entity plugins move to their own workspace: `entities/`
+`blog_enhance-series` generates an AI description for a series entity. This is a generation handler, not a tool:
 
-```
-entities/           # Content type definitions
-  blog/
-  decks/
-  note/
-  link/
-  portfolio/
-  social-media/
-  wishlist/
-  topics/
-  summary/
-  products/
+- Register as `series:generation` handler
+- Triggered via `system_create` with `entityType: "series"` and a prompt
+- Handler fetches series posts, generates description, updates entity
+- Blog plugin drops to 0 tools → becomes EntityPlugin
 
-plugins/            # Things that provide tools
-  system/
-  content-pipeline/
-  newsletter/
-  directory-sync/
-  site-builder/
-  image/
-  analytics/
-  dashboard/
-  obsidian-vault/
-```
+## Packages stay in plugins/
 
-Root `package.json` workspaces adds `"entities/*"`.
+No directory rename. The base class lives in `shell/plugins/src/entity/` and plugins stay in `plugins/`. The `entities/` workspace directory is deferred — the naming can change later without touching the base class or plugin code.
 
 ## Steps
 
@@ -140,42 +131,38 @@ Root `package.json` workspaces adds `"entities/*"`.
 
 - `shell/plugins/src/entity/entity-plugin.ts`
 - Extends BasePlugin with entity-specific lifecycle
-- Auto-registers entity type, adapter, handler, templates, datasources
+- Auto-registers entity type, adapter, handler, templates, datasources, eval handlers
 - Returns empty tools array
+- Export from `@brains/plugins`
 
 ### Step 2: Create EntityPluginContext
 
 - Subset of ServicePluginContext
-- Contains only what entity management needs
+- Includes: entityService, logger, messaging, ai, jobs, templates, identity, entities, eval, conversations
+- Excludes: views, plugins, MCP tool/resource registration
 
-### Step 3: Add `entities/*` workspace
+### Step 3: Migrate blog plugin (reference implementation)
 
-- Update root `package.json` workspaces
-- Update turborepo config if needed
-
-### Step 4: Migrate blog plugin (reference implementation)
-
-- Move `plugins/blog/` → `entities/blog/`
+- Convert `blog_enhance-series` tool → `series:generation` handler
 - Change `extends ServicePlugin` to `extends EntityPlugin`
 - Remove manual `onRegister` boilerplate
 - Declare entity type, schema, adapter as class properties
 - Override `createGenerationHandler` for blog generation
-- Update all imports across the codebase
+- Update tests
 
-### Step 5: Migrate remaining plugins
+### Step 4: Migrate remaining plugins
 
-- Move + convert: decks, note, link, portfolio, social-media, wishlist, topics, products, summary
+- Convert: decks, note, link, portfolio, social-media, wishlist, products
 - One commit per plugin
 - Update brain model imports (`brains/rover/src/index.ts`, etc.)
 
-### Step 6: Update test harness
+### Step 5: Update test harness
 
 - Add `createEntityPluginHarness` or update existing harness to detect EntityPlugin
 
-### Step 7: Update docs
+### Step 6: Update docs
 
-- `docs/architecture/package-structure.md` — add entities section
-- `docs/codebase-map.html` — add entities group
+- `docs/architecture-overview.md` — update plugin types table
 - `CLAUDE.md` — update plugin patterns
 
 ## Verification
@@ -185,3 +172,4 @@ Root `package.json` workspaces adds `"entities/*"`.
 3. Each migrated plugin still registers entities, handlers, templates, datasources
 4. `system_create` still routes to correct handlers
 5. Site builds still work (templates + datasources still registered)
+6. `blog_enhance-series` removed, `series:generation` handler works via `system_create`

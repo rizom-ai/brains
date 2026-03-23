@@ -56,25 +56,21 @@ Lazy loading + decode hints on image components. Sharp-based WebP conversion + r
 
 Default to async task flow — return "working" immediately, caller polls `tasks/get`. Prevents Caddy timeouts on long agent conversations. Client polls transparently. ([plan](./plans/a2a-async-messaging.md))
 
-### EntityPlugin — Third Plugin Type
-
-New base class for content plugins that define entity types but expose no tools. Separate `entities/` workspace directory. Declarative registration of schema, adapter, handler, templates, datasources. ([plan](./plans/entity-plugin.md))
-
 ---
 
 ## Planned (Short-term)
 
-### Simplify Series
+### EntityPlugin — Third Plugin Type
 
-Replace series entity with computed view from blog posts. First post provides cover image + excerpt. Eliminates series schema, adapter, manager, subscriptions. ([plan](./plans/simplify-series.md))
+New base class for content plugins that define entity types but expose no tools. Declarative registration of schema, adapter, handler, templates, datasources. Migrates 8 plugins (blog, decks, note, link, portfolio, social-media, wishlist, products). Blog's `enhance-series` tool becomes a `series:generation` handler. Packages stay in `plugins/`. ([plan](./plans/entity-plugin.md))
 
-### Eval Restructure
+### Unified Domain Config
 
-Move 84% of evals from app level to brain model level. Generic tool/agent tests go to `brains/rover/test-cases/`. Instance-specific voice/context tests stay per-app. ([plan](./plans/eval-restructure.md))
+Single top-level `domain` in brain.yaml replaces per-plugin URL duplication (webserver.productionDomain, site-builder.productionUrl, a2a.domain). Identity service derives all URLs. ([plan](./plans/unified-domain-config.md))
 
-### Eval Mode
+### Eval Overhaul
 
-Replace `preset: eval` with `mode: eval` that layers on any preset. Brain model defines `evalDisable` list — plugins with external side effects. ([plan](./plans/eval-mode.md))
+Replace `preset: eval` with `mode: eval` that layers on any preset. Move 84% of evals from app level to brain model level (`brains/rover/test-cases/`). ([plan](./plans/eval-overhaul.md))
 
 ### Agent Directory
 
@@ -130,11 +126,19 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ---
 
+## Open Questions
+
+### Derived Entity Pattern
+
+Topics and summary don't fit cleanly into EntityPlugin. Their tools derive entities from other entities (topics from posts, summaries from content) — a pattern distinct from creation, orchestration, and building. Missing abstraction to be revisited after EntityPlugin lands.
+
+---
+
 ## Dependency Graph
 
 ```
-unified-entity-tools ──→ entity-plugin ──→ eval-restructure
-                                      ──→ simplify-series
+unified-entity-tools ──→ entity-plugin ──→ eval-overhaul
+                     ──→ unified-domain-config
 
 a2a-async ──→ agent-directory ──→ hosted-rovers
                                       ▲

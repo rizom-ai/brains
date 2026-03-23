@@ -23,6 +23,10 @@ const site: SitePackage = {
     personalSitePlugin(config ?? {}),
   entityRouteConfig: {
     post: { label: "Post" },
+    series: {
+      label: "Series",
+      navigation: { show: false },
+    },
   },
 };
 
