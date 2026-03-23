@@ -21,7 +21,11 @@ export {
   getCoverImageId,
   setCoverImageId,
 } from "./markdown";
-export type { ExtractedImage } from "./markdown";
+export type {
+  ExtractedImage,
+  ImageRenderer,
+  MarkdownToHtmlOptions,
+} from "./markdown";
 
 // Progress utilities
 export { ProgressReporter } from "./progress";

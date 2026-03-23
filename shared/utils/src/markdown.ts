@@ -1,5 +1,5 @@
 import matter from "gray-matter";
-import { marked } from "marked";
+import { Marked } from "marked";
 import { remark } from "remark";
 import { toString } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
@@ -113,18 +113,53 @@ export function generateMarkdown(
 }
 
 /**
- * Convert markdown to HTML
- * Uses marked for conversion with sensible defaults
+ * Custom image renderer function.
+ * Return a string to override the default rendering, or undefined to use the default.
  */
-export function markdownToHtml(markdown: string): string {
-  // Configure marked with sensible defaults if not already configured
-  marked.setOptions({
-    gfm: true, // GitHub Flavored Markdown
-    breaks: true, // Convert line breaks to <br>
-    pedantic: false, // Don't conform to original markdown.pl
+export type ImageRenderer = (
+  href: string,
+  title: string | null,
+  text: string,
+) => string | undefined;
+
+export interface MarkdownToHtmlOptions {
+  /** Custom image renderer for optimized/responsive images */
+  imageRenderer?: ImageRenderer;
+}
+
+/**
+ * Convert markdown to HTML
+ * Uses marked for conversion with sensible defaults.
+ *
+ * @param markdown The markdown content to convert
+ * @param options Optional configuration (e.g. custom image renderer)
+ * @returns HTML string
+ */
+export function markdownToHtml(
+  markdown: string,
+  options?: MarkdownToHtmlOptions,
+): string {
+  const instance = new Marked({
+    gfm: true,
+    breaks: true,
   });
 
-  let html = marked(markdown) as string;
+  if (options?.imageRenderer) {
+    const imageRenderer = options.imageRenderer;
+    instance.use({
+      renderer: {
+        image(href: string, title: string | null, text: string): string {
+          const custom = imageRenderer(href, title, text);
+          if (custom !== undefined) return custom;
+          // Default rendering
+          const titleAttr = title ? ` title="${title}"` : "";
+          return `<img src="${href}" alt="${text}"${titleAttr}>`;
+        },
+      },
+    });
+  }
+
+  let html = instance.parse(markdown) as string;
 
   // Post-process: wrap attribution lines after blockquotes in <cite>
   // Matches </blockquote> followed by <p> starting with emdash (—) or double hyphen (--)
