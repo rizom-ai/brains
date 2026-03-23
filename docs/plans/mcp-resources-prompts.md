@@ -7,7 +7,7 @@ The brain exposes all functionality as MCP tools, but tools are the only MCP pri
 **Current state:**
 
 - Tools: 20+ registered, permission-controlled, fully integrated
-- Resources: only `entity://types` (static list in MCP interface — wrong place)
+- Resources: `brain://identity`, `brain://profile`, `entity://types` (in system plugin)
 - Prompts: none
 - Sampling: not supported by Claude Desktop yet — deferred
 
@@ -23,104 +23,274 @@ The brain exposes all functionality as MCP tools, but tools are the only MCP pri
 
 Resources are registered by the plugin that owns the data, not by the MCP transport:
 
-| URI pattern            | Owner         | Description                 | Returns                                         |
-| ---------------------- | ------------- | --------------------------- | ----------------------------------------------- |
-| `brain://identity`     | system plugin | Brain character             | JSON: name, role, purpose, values               |
-| `brain://profile`      | system plugin | Anchor profile              | JSON: name, bio, expertise                      |
-| `entity://types`       | system plugin | All registered entity types | Text: newline-separated type names              |
-| `entity://{type}`      | system plugin | List entities of a type     | JSON: array of `{ id, title, status, updated }` |
-| `entity://{type}/{id}` | system plugin | Read a single entity        | Markdown: full entity content with frontmatter  |
-| `brain://site`         | site-builder  | Site metadata               | JSON: title, description, domain, URLs          |
+| URI pattern            | Owner        | Description                 | Returns                                         | Status |
+| ---------------------- | ------------ | --------------------------- | ----------------------------------------------- | ------ |
+| `brain://identity`     | system       | Brain character             | JSON: name, role, purpose, values               | ✅     |
+| `brain://profile`      | system       | Anchor profile              | JSON: name, bio, expertise                      | ✅     |
+| `entity://types`       | system       | All registered entity types | Text: newline-separated type names              | ✅     |
+| `entity://{type}`      | system       | List entities of a type     | JSON: array of `{ id, title, status, updated }` |        |
+| `entity://{type}/{id}` | system       | Read a single entity        | Markdown: full entity content with frontmatter  |        |
+| `brain://site`         | site-builder | Site metadata               | JSON: title, description, domain, URLs          |        |
 
 ### URI templates
 
-The MCP SDK supports `resource()` with a `ResourceTemplate` for parameterized URIs. The `{type}` and `{id}` segments are resolved at read time:
+The MCP SDK supports `resource()` with a `ResourceTemplate` for parameterized URIs. The `{type}` and `{id}` segments are resolved at read time.
+
+Resource templates need a new registration path through the plugin system. Currently `PluginResource` has a fixed `uri: string`. Templates need:
+
+1. A `PluginResourceTemplate` type with `uriTemplate` instead of `uri`
+2. A `registerResourceTemplate()` method on MCPService
+3. Plugin capabilities extended to include `resourceTemplates`
 
 ```typescript
-server.resource(
-  "entity",
-  new ResourceTemplate("entity://{type}/{id}", { list: undefined }),
-  async (uri, { type, id }) => {
-    const entity = await entityService.getEntity(type, id);
+// New type in mcp-service/types.ts
+export interface PluginResourceTemplate {
+  name: string;
+  uriTemplate: string;
+  description?: string;
+  mimeType?: string;
+  /** List all concrete resources matching this template */
+  list?: () => Promise<Array<{ uri: string; name: string }>>;
+  /** Read a single resource by resolved variables */
+  handler: (vars: Record<string, string>) => Promise<{
+    contents: Array<{ text: string; uri: string; mimeType?: string }>;
+  }>;
+}
+```
+
+```typescript
+// Registration in MCPService wraps the SDK's ResourceTemplate
+import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+public registerResourceTemplate(
+  pluginId: string,
+  template: PluginResourceTemplate,
+): void {
+  const sdkTemplate = new ResourceTemplate(template.uriTemplate, {
+    list: template.list
+      ? async () => (await template.list!()).map(r => ({ uri: new URL(r.uri), name: r.name }))
+      : undefined,
+  });
+
+  this.mcpServer.resource(
+    template.name,
+    sdkTemplate,
+    async (uri, vars) => template.handler(vars),
+  );
+}
+```
+
+### How entity list/detail resources work
+
+The system plugin registers two resource templates during `onRegister`:
+
+```typescript
+// entity://{type} — list entities
+context.resources.registerTemplate({
+  name: "entity-list",
+  uriTemplate: "entity://{type}",
+  description: "List entities of a given type",
+  mimeType: "application/json",
+  list: async () => {
+    // Return one entry per registered entity type
+    const types = context.entityService.getEntityTypes();
+    return types.map((t) => ({ uri: `entity://${t}`, name: `${t} entities` }));
+  },
+  handler: async (vars) => {
+    const entities = await context.entityService.listEntities(vars.type);
+    const items = entities.map((e) => ({
+      id: e.id,
+      entityType: e.entityType,
+      title: e.metadata.title,
+      status: e.metadata.status,
+      updated: e.updated,
+    }));
     return {
       contents: [
         {
-          uri: uri.href,
+          uri: `entity://${vars.type}`,
+          mimeType: "application/json",
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
+    };
+  },
+});
+
+// entity://{type}/{id} — read single entity
+context.resources.registerTemplate({
+  name: "entity-detail",
+  uriTemplate: "entity://{type}/{id}",
+  description: "Read a single entity by type and ID",
+  mimeType: "text/markdown",
+  handler: async (vars) => {
+    const entity = await context.entityService.getEntity(vars.type, vars.id);
+    if (!entity) throw new Error(`Entity not found: ${vars.type}/${vars.id}`);
+    return {
+      contents: [
+        {
+          uri: `entity://${vars.type}/${vars.id}`,
           mimeType: "text/markdown",
           text: entity.content,
         },
       ],
     };
   },
-);
+});
+```
+
+### brain://site resource (site-builder)
+
+Site-builder registers a fixed resource for site metadata during `onRegister`:
+
+```typescript
+// In site-builder plugin
+{
+  uri: "brain://site",
+  name: "Site Info",
+  description: "Site metadata — title, description, domain, URLs",
+  mimeType: "application/json",
+  handler: async () => {
+    const siteInfo = await this.siteInfoService.getSiteInfo();
+    return {
+      contents: [{
+        uri: "brain://site",
+        mimeType: "application/json",
+        text: JSON.stringify({
+          ...siteInfo,
+          domain: context.domain,
+          siteUrl: context.siteUrl,
+          previewUrl: context.previewUrl,
+        }, null, 2),
+      }],
+    };
+  },
+}
 ```
 
 ### Permission model
 
 Resources inherit the same permission model as tools:
 
-- `brain://identity` — public (this is what the brain shares with everyone)
+- `brain://identity` — public
 - `brain://profile` — public
+- `brain://site` — public
 - `entity://types` — public
 - `entity://{type}` — trusted (list entities)
 - `entity://{type}/{id}` — trusted (read entity content)
-- `brain://site` — public
 
-Published content could be public; draft content requires trusted. For simplicity, start with trusted for all entity reads.
+For simplicity, start with trusted for all entity reads. Published content could be public later.
 
 ### Steps
 
-1. Move `entity://types` from MCP interface to system plugin
-2. Add `brain://identity` and `brain://profile` resources to system plugin
-3. Add `registerResourceTemplate()` to MCPService (wraps SDK method)
-4. Register `entity://{type}` resource template in system plugin — lists entities with metadata
-5. Register `entity://{type}/{id}` resource template in system plugin — returns full markdown content
-6. Add `brain://site` resource to site-builder plugin
-7. Tests for all resources
+1. ✅ Move `entity://types` from MCP interface to system plugin
+2. ✅ Add `brain://identity` and `brain://profile` resources to system plugin
+3. Add `PluginResourceTemplate` type to `mcp-service/types.ts`
+4. Add `registerResourceTemplate()` to MCPService
+5. Add `resources.registerTemplate()` to plugin context
+6. Register `entity://{type}` resource template in system plugin
+7. Register `entity://{type}/{id}` resource template in system plugin
+8. Add `brain://site` resource to site-builder plugin
+9. Tests for all new resources
 
-## Phase 2: Prompts for Common Workflows
+## Phase 2: Prompts
 
 ### What we expose
 
-| Prompt name  | Arguments                             | Owner         | Description                                               |
-| ------------ | ------------------------------------- | ------------- | --------------------------------------------------------- |
-| `create`     | `type` (required), `topic` (optional) | system plugin | Create new content — routes to system_create              |
-| `generate`   | `type` (required), `topic` (required) | system plugin | AI-generate content — routes to system_create with prompt |
-| `review`     | `type` (required), `id` (required)    | system plugin | Load entity and ask for feedback/improvements             |
-| `publish`    | `type` (required), `id` (required)    | system plugin | Guided publishing — preview, confirm, publish             |
-| `brainstorm` | `topic` (required)                    | system plugin | Ideation session with brain context and expertise         |
+| Prompt name  | Arguments                             | Owner  | Description                                               |
+| ------------ | ------------------------------------- | ------ | --------------------------------------------------------- |
+| `create`     | `type` (required), `topic` (optional) | system | Create new content — routes to system_create              |
+| `generate`   | `type` (required), `topic` (required) | system | AI-generate content — routes to system_create with prompt |
+| `review`     | `type` (required), `id` (required)    | system | Load entity and ask for feedback/improvements             |
+| `publish`    | `type` (required), `id` (required)    | system | Guided publishing — preview, confirm, publish             |
+| `brainstorm` | `topic` (required)                    | system | Ideation session with brain context and expertise         |
 
 ### How prompts work in MCP
 
 Prompts are parameterized message templates that clients discover via `prompts/list` and invoke via `prompts/get`. The server returns a list of messages (system + user) that the client uses to start a conversation.
 
+### New types
+
 ```typescript
-server.prompt(
-  "create",
-  "Create new content",
-  {
-    type: z.string().describe("Entity type (post, deck, note, link, etc.)"),
-    topic: z.string().optional().describe("Topic or title"),
+// In mcp-service/types.ts
+export interface PluginPrompt {
+  name: string;
+  description?: string;
+  args: Record<string, { description: string; required?: boolean }>;
+  handler: (args: Record<string, string>) => Promise<{
+    messages: Array<{
+      role: "user" | "assistant";
+      content: { type: "text"; text: string };
+    }>;
+  }>;
+}
+```
+
+### Registration flow
+
+```typescript
+// MCPService.registerPrompt() wraps the SDK
+public registerPrompt(pluginId: string, prompt: PluginPrompt): void {
+  this.mcpServer.prompt(
+    prompt.name,
+    prompt.description ?? `Prompt from ${pluginId}`,
+    // Convert args to Zod schemas for the SDK
+    Object.fromEntries(
+      Object.entries(prompt.args).map(([key, arg]) => [
+        key,
+        arg.required ? z.string().describe(arg.description) : z.string().optional().describe(arg.description),
+      ])
+    ),
+    async (args) => prompt.handler(args),
+  );
+}
+```
+
+### System plugin prompt implementations
+
+```typescript
+// create — start content creation
+{
+  name: "create",
+  description: "Create new content of any type",
+  args: {
+    type: { description: "Entity type (post, deck, note, project, etc.)", required: true },
+    topic: { description: "Topic or title for the content" },
   },
-  async ({ type, topic }) => ({
-    messages: [
-      {
-        role: "user",
-        content: {
-          type: "text",
-          text: topic
-            ? `Create a new ${type} about: ${topic}`
-            : `Create a new ${type}. Ask me what it should be about.`,
-        },
+  handler: async ({ type, topic }) => ({
+    messages: [{
+      role: "user",
+      content: { type: "text",
+        text: topic
+          ? `Create a new ${type} about: ${topic}`
+          : `Create a new ${type}. Ask me what it should be about.`,
       },
-    ],
+    }],
   }),
-);
+}
+
+// review — load entity and get feedback
+{
+  name: "review",
+  description: "Review and improve existing content",
+  args: {
+    type: { description: "Entity type", required: true },
+    id: { description: "Entity ID or slug", required: true },
+  },
+  handler: async ({ type, id }) => ({
+    messages: [{
+      role: "user",
+      content: { type: "text",
+        text: `Review my ${type} "${id}". Read it first, then give me specific feedback on structure, clarity, and impact. Suggest concrete improvements.`,
+      },
+    }],
+  }),
+}
 ```
 
 ### Plugin-contributed prompts (future)
 
-Plugins can register prompts for their domain-specific workflows:
+Plugins can register prompts for domain-specific workflows:
 
 | Plugin       | Prompt               | Arguments             | Description                            |
 | ------------ | -------------------- | --------------------- | -------------------------------------- |
@@ -129,35 +299,33 @@ Plugins can register prompts for their domain-specific workflows:
 | newsletter   | `compose-newsletter` | `theme?`              | Newsletter from recent content         |
 | site-builder | `build-site`         | `environment?`        | Build and preview the site             |
 
-These are optional enhancements — the generic `create` and `generate` prompts cover most cases.
+These are optional enhancements — the generic prompts cover most cases.
 
 ### Steps
 
-1. Add `registerPrompt()` to MCPService (wraps SDK method)
-2. Add prompt registration to plugin context
-3. Register generic prompts in system plugin: create, generate, review, publish, brainstorm
-4. Tests
+1. Add `PluginPrompt` type to `mcp-service/types.ts`
+2. Add `registerPrompt()` to MCPService
+3. Add `prompts.register()` to plugin context
+4. Register generic prompts in system plugin: create, generate, review, publish, brainstorm
+5. Tests
 
 ## Phase 3: Sampling (Future)
 
-Deferred until Claude Desktop supports it. When available, sampling enables:
-
-- **Hosted rovers without API keys** — use the client's LLM for generation
-- **Model-agnostic generation** — client picks the model
-- **Human-in-the-loop** — client reviews prompts before execution
-
-No implementation work needed now.
+Deferred until Claude Desktop supports it. No implementation work needed now.
 
 ## Key files
 
-| File                                   | Change                                                    |
-| -------------------------------------- | --------------------------------------------------------- |
-| `shell/mcp-service/src/mcp-service.ts` | Add `registerResourceTemplate()`, `registerPrompt()`      |
-| `shell/mcp-service/src/types.ts`       | Add `PluginResourceTemplate`, `PluginPrompt` interfaces   |
-| `interfaces/mcp/src/mcp-interface.ts`  | Remove `entity://types` resource (moves to system plugin) |
-| `plugins/system/src/plugin.ts`         | Register resources + prompts                              |
-| `plugins/site-builder/src/plugin.ts`   | Register `brain://site` resource                          |
-| `shell/plugins/src/service/context.ts` | Expose prompt registration on plugin context              |
+| File                                    | Change                                                     | Status |
+| --------------------------------------- | ---------------------------------------------------------- | ------ |
+| `interfaces/mcp/src/mcp-interface.ts`   | ✅ Removed `entity://types` (moved to system plugin)       | ✅     |
+| `plugins/system/src/plugin.ts`          | ✅ `brain://identity`, `brain://profile`, `entity://types` | ✅     |
+| `plugins/system/test/resources.test.ts` | ✅ Tests for static resources                              | ✅     |
+| `shell/mcp-service/src/types.ts`        | Add `PluginResourceTemplate`, `PluginPrompt`               |        |
+| `shell/mcp-service/src/mcp-service.ts`  | Add `registerResourceTemplate()`, `registerPrompt()`       |        |
+| `shell/plugins/src/service/context.ts`  | Add `resources.registerTemplate()`, `prompts.register()`   |        |
+| `shell/plugins/src/interfaces.ts`       | Add template/prompt registration to IShell                 |        |
+| `plugins/system/src/plugin.ts`          | Add entity resource templates + prompts                    |        |
+| `plugins/site-builder/src/plugin.ts`    | Add `brain://site` resource                                |        |
 
 ## Verification
 

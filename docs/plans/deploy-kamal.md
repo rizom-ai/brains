@@ -74,6 +74,17 @@ healthcheck:
 - Caddyfile templates — kamal-proxy handles SSL
 - Cloudflare Terraform — DNS is manual (one-time)
 
+## CDN: Cloudflare in front of all sites
+
+Every brain instance goes behind Cloudflare (free tier). Standard setup for all deployments, not optional.
+
+- Point DNS through Cloudflare for each domain
+- Cloudflare handles CDN caching, DDoS protection, edge SSL
+- kamal-proxy still handles origin SSL (Cloudflare → origin uses Full SSL mode)
+- Static assets (HTML, CSS, JS, images) cached at edge
+- API routes (`/mcp`, `/a2a`, `/api/*`) bypass cache via page rules
+- Replaces Bunny CDN (simpler, free, better DDoS protection)
+
 ## Health endpoint
 
 Kamal needs a health check endpoint. The webserver plugin needs to expose `/health` returning 200 when the brain is initialized. This is also useful for monitoring.
@@ -85,9 +96,10 @@ Kamal needs a health check endpoint. The webserver plugin needs to expose `/heal
 3. Set secrets: `kamal env push`
 4. First deploy: `kamal setup` (installs kamal-proxy on server)
 5. Subsequent deploys: `kamal deploy`
-6. Verify all 3 instances work
-7. Delete Terraform config, old deploy scripts, Caddyfile templates
-8. Update CI/CD to use `kamal deploy`
+6. Set up Cloudflare for each domain (DNS, SSL mode, cache rules)
+7. Verify all 3 instances work
+8. Delete Terraform config, old deploy scripts, Caddyfile templates
+9. Update CI/CD to use `kamal deploy`
 
 ## Key files
 
