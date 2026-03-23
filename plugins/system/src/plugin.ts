@@ -1,6 +1,7 @@
 import { ServicePlugin, findEntityByIdentifier } from "@brains/plugins";
 import type {
   PluginTool,
+  PluginResource,
   BaseEntity,
   DefaultQueryResponse,
   SearchResult,
@@ -187,6 +188,65 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
    */
   protected override async getTools(): Promise<PluginTool[]> {
     return createSystemTools(this, this.id);
+  }
+
+  /**
+   * MCP resources — browsable data for MCP clients
+   */
+  protected override async getResources(): Promise<PluginResource[]> {
+    return [
+      {
+        uri: "entity://types",
+        name: "Entity Types",
+        description: "List of registered entity types",
+        mimeType: "text/plain",
+        handler: async () => ({
+          contents: [
+            {
+              uri: "entity://types",
+              mimeType: "text/plain",
+              text: this.getEntityTypes().join("\n"),
+            },
+          ],
+        }),
+      },
+      {
+        uri: "brain://identity",
+        name: "Brain Identity",
+        description: "Brain character — name, role, purpose, values",
+        mimeType: "application/json",
+        handler: async () => {
+          const identity = this.getIdentityData();
+          return {
+            contents: [
+              {
+                uri: "brain://identity",
+                mimeType: "application/json",
+                text: JSON.stringify(identity, null, 2),
+              },
+            ],
+          };
+        },
+      },
+      {
+        uri: "brain://profile",
+        name: "Anchor Profile",
+        description: "Brain owner profile — name, bio, expertise",
+        mimeType: "application/json",
+        handler: async () => {
+          const profile = this.getProfileData();
+          return {
+            contents: [
+              {
+                uri: "brain://profile",
+                mimeType: "application/json",
+                text: JSON.stringify(profile, null, 2),
+              },
+            ],
+          };
+        },
+      },
+    ];
   }
 
   protected override async getInstructions(): Promise<string> {

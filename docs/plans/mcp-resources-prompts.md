@@ -7,7 +7,7 @@ The brain exposes all functionality as MCP tools, but tools are the only MCP pri
 **Current state:**
 
 - Tools: 20+ registered, permission-controlled, fully integrated
-- Resources: only `entity://types` (static list of entity type names)
+- Resources: only `entity://types` (static list in MCP interface — wrong place)
 - Prompts: none
 - Sampling: not supported by Claude Desktop yet — deferred
 
@@ -17,26 +17,29 @@ The brain exposes all functionality as MCP tools, but tools are the only MCP pri
 - Prompts make the brain **accessible** — users discover workflows in the client's prompt picker instead of typing from scratch
 - Both reduce friction for non-technical users and MCP clients that surface these in their UI
 
-## Phase 1: Entity Resources with URI Templates
+## Phase 1: Resources
 
-### What we expose
+### Resource ownership
 
-| URI pattern            | Description                          | Returns                                         |
-| ---------------------- | ------------------------------------ | ----------------------------------------------- |
-| `brain://profile`      | Brain identity + anchor profile      | JSON: name, tagline, bio, expertise             |
-| `brain://site`         | Site info                            | JSON: title, description, navigation, URLs      |
-| `entity://types`       | All registered entity types (exists) | Text: newline-separated type names              |
-| `entity://{type}`      | List entities of a type              | JSON: array of `{ id, title, status, updated }` |
-| `entity://{type}/{id}` | Read a single entity                 | Markdown: full entity content with frontmatter  |
+Resources are registered by the plugin that owns the data, not by the MCP transport:
+
+| URI pattern            | Owner         | Description                 | Returns                                         |
+| ---------------------- | ------------- | --------------------------- | ----------------------------------------------- |
+| `brain://identity`     | system plugin | Brain character             | JSON: name, role, purpose, values               |
+| `brain://profile`      | system plugin | Anchor profile              | JSON: name, bio, expertise                      |
+| `entity://types`       | system plugin | All registered entity types | Text: newline-separated type names              |
+| `entity://{type}`      | system plugin | List entities of a type     | JSON: array of `{ id, title, status, updated }` |
+| `entity://{type}/{id}` | system plugin | Read a single entity        | Markdown: full entity content with frontmatter  |
+| `brain://site`         | site-builder  | Site metadata               | JSON: title, description, domain, URLs          |
 
 ### URI templates
 
-The MCP SDK supports `registerResourceTemplate()` for parameterized URIs. The `{type}` and `{id}` segments are resolved at read time:
+The MCP SDK supports `resource()` with a `ResourceTemplate` for parameterized URIs. The `{type}` and `{id}` segments are resolved at read time:
 
 ```typescript
-server.resourceTemplate(
-  "entity://{type}/{id}",
-  "Read an entity by type and ID",
+server.resource(
+  "entity",
+  new ResourceTemplate("entity://{type}/{id}", { list: undefined }),
   async (uri, { type, id }) => {
     const entity = await entityService.getEntity(type, id);
     return {
@@ -52,44 +55,40 @@ server.resourceTemplate(
 );
 ```
 
-### Where resources are registered
-
-Resources are a brain-level concern, not a plugin concern. The identity service owns `brain://` resources. The entity service owns `entity://` resources. Both register through `MCPService.registerResource()` / `registerResourceTemplate()`.
-
-Registration happens in the MCP interface plugin during initialization, same as the existing `entity://types` resource.
-
 ### Permission model
 
 Resources inherit the same permission model as tools:
 
-- `brain://profile` — public (this is what the brain shares with everyone)
-- `brain://site` — public
+- `brain://identity` — public (this is what the brain shares with everyone)
+- `brain://profile` — public
 - `entity://types` — public
 - `entity://{type}` — trusted (list entities)
 - `entity://{type}/{id}` — trusted (read entity content)
+- `brain://site` — public
 
 Published content could be public; draft content requires trusted. For simplicity, start with trusted for all entity reads.
 
 ### Steps
 
-1. Add `registerResourceTemplate()` to MCPService (wraps SDK method)
-2. Register `brain://profile` and `brain://site` resources in MCP interface
-3. Register `entity://{type}` resource template — lists entities with metadata
-4. Register `entity://{type}/{id}` resource template — returns full markdown content
-5. Add permission checking to resource reads
-6. Tests
+1. Move `entity://types` from MCP interface to system plugin
+2. Add `brain://identity` and `brain://profile` resources to system plugin
+3. Add `registerResourceTemplate()` to MCPService (wraps SDK method)
+4. Register `entity://{type}` resource template in system plugin — lists entities with metadata
+5. Register `entity://{type}/{id}` resource template in system plugin — returns full markdown content
+6. Add `brain://site` resource to site-builder plugin
+7. Tests for all resources
 
 ## Phase 2: Prompts for Common Workflows
 
 ### What we expose
 
-| Prompt name  | Arguments                             | Description                                               |
-| ------------ | ------------------------------------- | --------------------------------------------------------- |
-| `create`     | `type` (required), `topic` (optional) | Create new content — routes to system_create              |
-| `generate`   | `type` (required), `topic` (required) | AI-generate content — routes to system_create with prompt |
-| `review`     | `type` (required), `id` (required)    | Load entity and ask for feedback/improvements             |
-| `publish`    | `type` (required), `id` (required)    | Guided publishing — preview, confirm, publish             |
-| `brainstorm` | `topic` (required)                    | Ideation session with brain context and expertise         |
+| Prompt name  | Arguments                             | Owner         | Description                                               |
+| ------------ | ------------------------------------- | ------------- | --------------------------------------------------------- |
+| `create`     | `type` (required), `topic` (optional) | system plugin | Create new content — routes to system_create              |
+| `generate`   | `type` (required), `topic` (required) | system plugin | AI-generate content — routes to system_create with prompt |
+| `review`     | `type` (required), `id` (required)    | system plugin | Load entity and ask for feedback/improvements             |
+| `publish`    | `type` (required), `id` (required)    | system plugin | Guided publishing — preview, confirm, publish             |
+| `brainstorm` | `topic` (required)                    | system plugin | Ideation session with brain context and expertise         |
 
 ### How prompts work in MCP
 
@@ -100,11 +99,8 @@ server.prompt(
   "create",
   "Create new content",
   {
-    type: {
-      description: "Entity type (post, deck, note, link, etc.)",
-      required: true,
-    },
-    topic: { description: "Topic or title", required: false },
+    type: z.string().describe("Entity type (post, deck, note, link, etc.)"),
+    topic: z.string().optional().describe("Topic or title"),
   },
   async ({ type, topic }) => ({
     messages: [
@@ -122,11 +118,7 @@ server.prompt(
 );
 ```
 
-### Prompt registration
-
-Prompts are registered by plugins through MCPService, similar to tools. The system plugin registers `create`, `generate`, `publish`. Brain-level prompts like `brainstorm` are registered by the MCP interface using the brain's identity context.
-
-### Plugin-contributed prompts
+### Plugin-contributed prompts (future)
 
 Plugins can register prompts for their domain-specific workflows:
 
@@ -142,10 +134,9 @@ These are optional enhancements — the generic `create` and `generate` prompts 
 ### Steps
 
 1. Add `registerPrompt()` to MCPService (wraps SDK method)
-2. Register generic prompts: create, generate, review, publish, brainstorm
-3. Add plugin prompt registration to plugin context
-4. Register plugin-specific prompts in blog, social-media, newsletter
-5. Tests
+2. Add prompt registration to plugin context
+3. Register generic prompts in system plugin: create, generate, review, publish, brainstorm
+4. Tests
 
 ## Phase 3: Sampling (Future)
 
@@ -155,19 +146,18 @@ Deferred until Claude Desktop supports it. When available, sampling enables:
 - **Model-agnostic generation** — client picks the model
 - **Human-in-the-loop** — client reviews prompts before execution
 
-No implementation work needed now. The brain's AI service handles all generation internally. Sampling becomes valuable when hosted rovers exist and clients support it.
+No implementation work needed now.
 
 ## Key files
 
-| File                                   | Change                                                  |
-| -------------------------------------- | ------------------------------------------------------- |
-| `shell/mcp-service/src/mcp-service.ts` | Add `registerResourceTemplate()`, `registerPrompt()`    |
-| `shell/mcp-service/src/types.ts`       | Add `PluginResourceTemplate`, `PluginPrompt` interfaces |
-| `interfaces/mcp/src/mcp-interface.ts`  | Register brain resources and generic prompts            |
-| `shell/plugins/src/service/context.ts` | Expose prompt registration on plugin context            |
-| `plugins/system/src/plugin.ts`         | Register create/generate/review/publish prompts         |
-| `plugins/blog/src/plugin.ts`           | Register write-essay prompt (optional)                  |
-| `plugins/social-media/src/plugin.ts`   | Register share prompt (optional)                        |
+| File                                   | Change                                                    |
+| -------------------------------------- | --------------------------------------------------------- |
+| `shell/mcp-service/src/mcp-service.ts` | Add `registerResourceTemplate()`, `registerPrompt()`      |
+| `shell/mcp-service/src/types.ts`       | Add `PluginResourceTemplate`, `PluginPrompt` interfaces   |
+| `interfaces/mcp/src/mcp-interface.ts`  | Remove `entity://types` resource (moves to system plugin) |
+| `plugins/system/src/plugin.ts`         | Register resources + prompts                              |
+| `plugins/site-builder/src/plugin.ts`   | Register `brain://site` resource                          |
+| `shell/plugins/src/service/context.ts` | Expose prompt registration on plugin context              |
 
 ## Verification
 

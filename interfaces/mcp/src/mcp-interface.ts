@@ -49,32 +49,11 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   }
 
   /**
-   * Override getResources to provide MCP-specific resources
+   * MCP interface provides no resources — they are registered by plugins
+   * (system plugin provides entity://types, brain://identity, brain://profile)
    */
   protected override async getResources(): Promise<PluginResource[]> {
-    return [
-      {
-        uri: "entity://types",
-        name: "Entity Types",
-        description: "List of supported entity types",
-        mimeType: "text/plain",
-        handler: async (): Promise<{
-          contents: Array<{ text: string; uri: string; mimeType?: string }>;
-        }> => {
-          const entityTypes =
-            this.context?.entityService.getEntityTypes() ?? [];
-          return {
-            contents: [
-              {
-                uri: "entity://types",
-                mimeType: "text/plain",
-                text: entityTypes.join("\n"),
-              },
-            ],
-          };
-        },
-      },
-    ];
+    return [];
   }
 
   /**

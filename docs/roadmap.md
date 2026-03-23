@@ -96,17 +96,17 @@ New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03
 
 OAuth 2.0 Client Credentials, then Cloudflare mTLS. ([plan](./plans/2026-03-15-a2a-authentication.md))
 
-### Hosted Rovers
+### Hosted Rovers (Fly.io)
 
-Ranger provisions rover instances on Fly.io. Shared Discord bot gateway. Subdomain `{name}.rover.rizom.ai`. Minimal preset, A2A only. Hybrid identity setup at signup. ([plan](./plans/hosted-rovers.md))
+Ranger provisions rover instances via Fly Machines API. Core brains stay on Hetzner with Kamal. Rovers are minimal (1GB, A2A + MCP only). Shared Discord bot gateway. Subdomain `{name}.rover.rizom.ai`. Prerequisite: media sidecar + chat-sdk + agent directory. ([plan](./plans/hosted-rovers.md))
+
+### Kamal Deploy (Core Brains)
+
+Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, `kamal deploy` instead of rsync. Same cost (~$20/month for 3 instances). ([plan](./plans/deploy-fly-migration.md))
 
 ### Media Sidecar
 
-Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain drops to ~1GB. Enables 2GB Fly machines. ([plan](./plans/embedding-service.md))
-
-### Fly.io Migration
-
-Move deployments from Hetzner to Fly after runtime slimdown. Prerequisite: chat-sdk (drop Matrix) + media sidecar (shrink runtime). ([plan](./plans/deploy-fly-migration.md))
+Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain drops to ~1GB. Enables 1GB Fly machines for hosted rovers. ([plan](./plans/embedding-service.md))
 
 ---
 
@@ -143,13 +143,12 @@ Topics and summary don't fit cleanly into EntityPlugin. Their tools derive entit
 ```
 unified-entity-tools ──→ entity-plugin ──→ eval-overhaul
 
-a2a-async ──→ agent-directory ──→ hosted-rovers
+a2a-async ──→ agent-directory ──┐
+                                ├──→ hosted-rovers (Fly.io)
+chat-sdk + media-sidecar ──────┘
+                ▲
+       standalone-binary
 
-                          chat-sdk ──→ fly-migration
-                                            ▲
-image-perf ──→ media-sidecar ──────────────┘
-                                            ▲
-                                   standalone-binary
-
+kamal-deploy (independent)
 mcp-resources-prompts (independent)
 ```

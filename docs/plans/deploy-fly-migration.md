@@ -1,218 +1,179 @@
-# Plan: Fly.io Migration (post-slimdown)
+# Plan: Deployment — Kamal on Hetzner + Fly.io for Hosted Rovers
 
 ## Context
 
-Future migration target for brain deployments after slimming down the runtime:
+Current deploy pipeline is over-engineered: Terraform provisions Hetzner VPS, SSH + rsync deploys Docker Compose + Caddyfile, Cloudflare Terraform for DNS. This works but is fragile and manual.
 
-- Deprecate Matrix → removes native crypto binary (~100MB)
-- Extract ONNX embeddings to sidecar → drops brain process from 1.85GB to ~1GB
-- After both: 2GB Fly machine viable at ~$15/mo
+The original plan was to migrate everything to Fly.io. But Fly is 4x the cost (~$77/month for 3 instances vs ~$20 on Hetzner) for a workload that doesn't need multi-region or auto-scaling. The real problems are:
 
-## Prerequisites
+1. **Deploy DX is painful** — Terraform + SSH + rsync + Caddy management
+2. **Hosted rovers need programmatic provisioning** — can't spin up VPS instances via API ergonomically
 
-1. **Matrix deprecation** (`docs/plans/chat-interface-sdk.md` phase 1)
-2. **Embedding service extraction** (`docs/plans/embedding-service.md`)
-3. **MLP deployed and stable on Hetzner** (`docs/plans/deploy-mlp-hetzner.md`)
+These are two different problems with two different solutions.
 
-## Why Fly.io (when ready)
+## Design: Hybrid Approach
 
-- Simpler deploy pipeline (no Terraform, no SSH)
-- Proof of concept for hosted rovers (Machines API)
-- Scale-to-zero potential for multi-instance hosting
-- Built-in SSL, custom domains, persistent volumes
+**Core brains (yeehaa.io, rizom.ai, mylittlephoney.com)** → Hetzner + Kamal. Same cost, dramatically better DX.
 
-## CDN: Not needed initially
+**Hosted rovers ({name}.rover.rizom.ai)** → Fly.io Machines API. Programmatic provisioning, per-instance billing, scale-to-zero potential.
 
-Fly.io serves from edge locations with built-in SSL. The brain serves its own static site via the webserver plugin. For a personal blog with modest traffic, Fly's built-in serving is sufficient.
+### Cost comparison
 
-**Drop Bunny CDN** for this deploy. The site-builder generates static HTML to `dist/site-production/`, and the webserver plugin serves it directly. No CDN layer needed.
+| Setup                              | Monthly | Notes                  |
+| ---------------------------------- | ------- | ---------------------- |
+| Current (3x Hetzner CX33)          | ~$20    | Post-April 2026: ~$25  |
+| Hybrid: 3x Hetzner + Kamal         | ~$20    | Same cost, better DX   |
+| All Fly.io (3x 4GB)                | ~$77    | 4x more for no benefit |
+| Hybrid + 5 hosted rovers (Fly 1GB) | ~$50    | $20 Hetzner + $30 Fly  |
 
-If traffic grows, Cloudflare can be added later as a reverse proxy (free tier) — just point DNS through Cloudflare. No code changes required.
+## Phase 1: Kamal on Hetzner (core brains)
 
-## Architecture
+### What Kamal replaces
 
-```
-mylittlephoney.com          → Fly.io (TLS) → :8080 production site + /mcp + /a2a
-preview.mylittlephoney.com  → Fly.io (TLS) → :4321 preview site + CMS
+| Concern       | Current                                      | Kamal                          |
+| ------------- | -------------------------------------------- | ------------------------------ |
+| Provisioning  | Terraform                                    | Manual VPS creation (one-time) |
+| Deploy        | SSH + rsync + docker-compose up              | `kamal deploy`                 |
+| SSL           | Caddy + Let's Encrypt                        | kamal-proxy + Let's Encrypt    |
+| Zero-downtime | No (compose down/up)                         | Yes (container swap)           |
+| Rollback      | Rebuild and redeploy                         | `kamal rollback` (instant)     |
+| Config        | Terraform .tf + compose template + Caddyfile | Single `deploy.yml`            |
+| DNS           | Cloudflare Terraform                         | Manual (one-time per domain)   |
 
-Fly.io Machine
-  ├── Bun process (brain runtime)
-  ├── Webserver: production (:8080) + preview (:4321)
-  │   ├── Static site (catch-all)
-  │   ├── /mcp* → MCP HTTP (mounted as API route)
-  │   └── /a2a* → A2A (mounted as API route)
-  ├── Discord bot (direct connection, no port)
-  ├── SQLite on persistent volume
-  └── brain-data/ on persistent volume
-```
+### deploy.yml (per app)
 
-Single Fly Machine with a persistent volume. The brain process handles everything: Discord bot, site building, content sync. No Caddy needed — the webserver plugin serves the site and mounts MCP/A2A as path-based API routes on the same ports. Fly handles TLS.
+```yaml
+service: yeehaa-brain
+image: ghcr.io/rizom-ai/brains
 
-## Steps
+servers:
+  web:
+    hosts:
+      - 1.2.3.4
+    options:
+      memory: 4g
 
-### Step 1: Create fly.toml
+proxy:
+  ssl: true
+  host: yeehaa.io
+  app_port: 8080
 
-```toml
-app = "mylittlephoney"
-primary_region = "ams"  # Amsterdam (close to user)
+registry:
+  server: ghcr.io
+  username: rizom-ai
+  password:
+    - KAMAL_REGISTRY_PASSWORD
 
-[build]
-  dockerfile = "../../deploy/docker/Dockerfile.prod"
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - ANTHROPIC_API_KEY
+    - DISCORD_BOT_TOKEN
+    - GIT_SYNC_TOKEN
 
-[env]
-  NODE_ENV = "production"
+volumes:
+  - /opt/brain-data:/app/brain-data
 
-# Production site (mylittlephoney.com)
-# Serves: static site + /mcp* + /a2a* (all path-mounted on same port)
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-  auto_stop_machines = false  # Brain must stay running (Discord bot)
-  auto_start_machines = true
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-  [[services.tcp_checks]]
-    interval = "30s"
-    timeout = "5s"
-
-# Preview site + CMS (preview.mylittlephoney.com)
-[[services]]
-  internal_port = 4321
-  protocol = "tcp"
-  [[services.ports]]
-    port = 4321
-    handlers = ["tls", "http"]
-
-[mounts]
-  source = "brain_data"
-  destination = "/app/brain-data"
-
-[[vm]]
-  size = "shared-cpu-1x"
-  memory = "4gb"  # measured: idle 1.85GB, spike 3.65GB (site build + ONNX embeddings)
+healthcheck:
+  path: /health
+  port: 8080
 ```
 
-**Ports:**
+### What stays from current infra
 
-| Internal | External | Domain                       | Serves                            |
-| -------- | -------- | ---------------------------- | --------------------------------- |
-| 8080     | 443/80   | `mylittlephoney.com`         | Production site + `/mcp` + `/a2a` |
-| 4321     | 4321     | `preview.mylittlephoney.com` | Preview site + CMS                |
-
-No Caddy needed. MCP and A2A don't need separate ports — the webserver mounts them as API routes via `context.apiRoutes`.
-
-Requires dedicated IPv4 for multiple services: `fly ips allocate-v4`
-
-### Step 2: Build script for Fly
-
-Create `deploy/providers/fly/deploy.sh`:
-
-1. Run `brains build` from `apps/mylittlephoney` (produces `dist/`)
-2. Copy `deploy/brain.yaml` → `dist/brain.yaml`
-3. Build Docker image using existing `Dockerfile.prod`
-4. `fly deploy`
-
-Note: seed content is bundled inside the brain package (`brains/rover/seed-content/`). The `import.meta.dir` path in the directory-sync config resolves correctly in the bundle because `brains build` preserves the directory structure.
-
-### Step 3: Set secrets on Fly
-
-```bash
-fly secrets set \
-  DISCORD_BOT_TOKEN=xxx \
-  GIT_SYNC_TOKEN=xxx \
-  ANTHROPIC_API_KEY=xxx \
-  OPENAI_API_KEY=xxx
-```
-
-### Step 4: DNS
-
-Point both domains to Fly:
-
-- `mylittlephoney.com` → CNAME to `mylittlephoney.fly.dev`
-- `preview.mylittlephoney.com` → CNAME to `mylittlephoney.fly.dev`
-- Add both as custom domains in Fly dashboard: `fly certs add mylittlephoney.com` + `fly certs add preview.mylittlephoney.com`
-- Fly handles SSL certificates automatically
-
-### Step 5: Persistent volume
-
-```bash
-fly volumes create brain_data --region ams --size 10
-```
-
-10GB — stores SQLite database, brain-data markdown files, images (~175MB), and git history (~366MB and growing). Survives deploys. $1.50/month.
-
-### Step 6: Deploy
-
-```bash
-cd apps/mylittlephoney
-fly deploy
-```
-
-## brain.yaml changes
-
-The deploy brain.yaml needs:
-
-- ✅ `site: "@brains/site-mylittlephoney"` (already fixed)
-- ✅ `add: [decks]` (already set)
-- Remove `domain` field (Fly handles this via fly.toml)
-- Remove CDN/DNS deployment config from rover brain definition for this instance
-
-## What stays from current infra
-
+- **Hetzner VPS instances** — keep existing servers
 - **Dockerfile.prod** — reuse as-is
-- **build-release.sh / brains build** — reuse for bundling
-- **git-sync** — still pushes content to GitHub repo
-- **Discord bot** — runs inside the Fly Machine
+- **brains build** — reuse for bundling
+- **git-sync** — still pushes to GitHub
+- **Discord bot** — runs inside container
 
-## What changes vs Hetzner
+### What gets deleted
 
-| Concern      | Hetzner              | Fly.io               |
-| ------------ | -------------------- | -------------------- |
-| Provisioning | Terraform            | `fly launch`         |
-| Deploy       | SSH + rsync          | `fly deploy`         |
-| SSL          | Caddy/Let's Encrypt  | Automatic            |
-| DNS          | Cloudflare Terraform | Manual or Fly DNS    |
-| CDN          | Bunny CDN            | Not needed           |
-| Monitoring   | Custom scripts       | `fly logs`/dashboard |
-| Volumes      | Server disk          | Fly Volumes          |
-| Cost         | ~€7/mo               | ~$29/mo (4GB + 10GB) |
+- `deploy/providers/hetzner/terraform/` — all Terraform config
+- `deploy/providers/hetzner/deploy.sh` — replaced by `kamal deploy`
+- `deploy/providers/hetzner/deploy-app.sh` — same
+- Caddyfile templates — kamal-proxy handles SSL
+- Cloudflare Terraform — DNS is manual (one-time)
 
-## Future: hosted rovers
+### Steps
 
-This deploy is the proof of concept for hosted rovers (see `docs/plans/hosted-rovers.md`). Key differences for hosted:
+1. Install Kamal (`gem install kamal` or use Docker image)
+2. Create `deploy.yml` for each app (yeehaa, rizom, mylittlephoney)
+3. Set secrets: `kamal env push`
+4. First deploy: `kamal setup` (installs kamal-proxy on server)
+5. Subsequent deploys: `kamal deploy`
+6. Verify all 3 instances work
+7. Delete Terraform config, old deploy scripts, Caddyfile templates
+8. Update CI/CD to use `kamal deploy`
 
-- Ranger provisions via Fly Machines API (no manual `fly deploy`)
-- Minimal preset (no Discord, no webserver — rover uses A2A, ranger handles Discord as shared gateway)
-- Ranger generates brain.yaml per instance
-- Each rover gets its own volume + secrets
-- Subdomain `{name}.rover.rizom.ai` instead of custom domain
+### Health endpoint
+
+Kamal needs a health check endpoint. The webserver plugin needs to expose `/health` returning 200 when the brain is initialized. This is also useful for monitoring.
+
+## Phase 2: Fly.io for Hosted Rovers
+
+Only when hosted rovers are ready (after agent directory, presets, etc.). Ranger provisions rover instances via the Fly Machines API.
+
+### Why Fly for rovers specifically
+
+- **Machines API** — programmatic create/start/stop/destroy
+- **Per-second billing** — rovers that are mostly idle pay less
+- **Minimal overhead** — no Terraform, no SSH, no server management
+- **Subdomain routing** — `{name}.rover.rizom.ai` via Fly certificates
+
+### Rover machine spec
+
+```
+shared-cpu-1x, 1GB RAM (after media sidecar extraction)
+1GB persistent volume
+A2A + MCP only (no webserver, no Discord — ranger proxies)
+Minimal preset
+~$7.50/month per rover (always-on) or less with auto-stop
+```
+
+### Prerequisites
+
+1. Media sidecar extraction (brain drops to ~1GB)
+2. Chat SDK migration (drop Matrix native crypto)
+3. Agent directory (rover discovery)
+4. Hosted rovers plan implementation
+
+### Key difference from core brains
+
+| Concern      | Core brains (Kamal)          | Hosted rovers (Fly)         |
+| ------------ | ---------------------------- | --------------------------- |
+| Provisioning | Manual (one-time)            | Machines API (programmatic) |
+| Lifecycle    | Always-on                    | Can auto-stop when idle     |
+| Memory       | 4GB (full brain)             | 1GB (minimal, no ONNX)      |
+| Interfaces   | All (Discord, web, MCP, A2A) | A2A + MCP only              |
+| Cost         | ~$7/instance/month           | ~$7.50/instance/month       |
+| Who manages  | Developer (you)              | Ranger (automated)          |
 
 ## Key files
 
-| File                                    | Action |
-| --------------------------------------- | ------ |
-| `apps/mylittlephoney/fly.toml`          | Create |
-| `deploy/providers/fly/deploy.sh`        | Create |
-| `apps/mylittlephoney/deploy/brain.yaml` | Done   |
-
-## TODOs discovered during review
-
-- **Health endpoint**: webserver doesn't expose `/health` yet. Using TCP check for now. Add an HTTP health endpoint that returns 200 when the brain is initialized.
-- **Preview port routing**: Fly routes by port, but preview is on 4321 (non-standard). Verify Fly handles TLS termination + routing to non-443 internal ports correctly with the `[[services]]` config.
-- **Verify `import.meta.dir` in bundle**: the directory-sync seed content path uses `join(import.meta.dir, "..", "seed-content")`. Confirm this resolves correctly inside the Docker image after `brains build`.
+| File                              | Action                       |
+| --------------------------------- | ---------------------------- |
+| `deploy/kamal/yeehaa.yml`         | Create — Kamal deploy config |
+| `deploy/kamal/rizom.yml`          | Create                       |
+| `deploy/kamal/mylittlephoney.yml` | Create                       |
+| `deploy/providers/hetzner/`       | Delete after migration       |
+| `interfaces/webserver/src/`       | Add `/health` endpoint       |
 
 ## Verification
 
-1. `brains build` succeeds from `apps/mylittlephoney`
-2. Docker image builds locally
-3. `fly deploy` succeeds
-4. Production site accessible at `mylittlephoney.com`
-5. Preview site accessible at `preview.mylittlephoney.com`
-6. MCP endpoint responds at `mylittlephoney.com/mcp`
-7. A2A endpoint responds at `mylittlephoney.com/a2a`
-8. Discord bot responds
-9. Content syncs to GitHub
+### Phase 1
+
+1. `kamal setup` succeeds on each Hetzner server
+2. `kamal deploy` deploys new image with zero downtime
+3. All 3 sites accessible with SSL
+4. MCP, A2A, Discord, git-sync all work
+5. `kamal rollback` reverts to previous version
+6. Old Terraform/Caddy config deleted
+
+### Phase 2
+
+7. Ranger creates rover instance via Machines API
+8. Rover responds on `{name}.rover.rizom.ai`
+9. Rover auto-stops after inactivity, wakes on A2A request
+10. Ranger can destroy rover instance
