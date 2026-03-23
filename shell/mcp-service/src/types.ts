@@ -115,17 +115,31 @@ export interface PluginResource {
 }
 
 /**
+ * Variables extracted from a URI template.
+ * Generic parameter ensures handlers receive typed vars, not loose index signatures.
+ */
+export type ResourceVars<K extends string = string> = { [P in K]: string };
+
+/**
  * A parameterized resource with URI template (e.g. "entity://{type}/{id}")
  */
-export interface PluginResourceTemplate {
+export interface PluginResourceTemplate<K extends string = string> {
   name: string;
   uriTemplate: string;
   description?: string;
   mimeType?: string;
   /** List all concrete resources matching this template (for resources/list) */
   list?: () => Promise<Array<{ uri: string; name: string }>>;
+  /** Autocomplete values for template variables (populates client selectors) */
+  complete?: Record<
+    K,
+    (
+      value: string,
+      context?: { arguments?: Partial<ResourceVars<K>> },
+    ) => string[] | Promise<string[]>
+  >;
   /** Read a single resource by resolved template variables */
-  handler: (vars: Record<string, string>) => Promise<{
+  handler: (vars: ResourceVars<K>) => Promise<{
     contents: Array<{ text: string; uri: string; mimeType?: string }>;
   }>;
 }
@@ -186,9 +200,9 @@ export interface IMCPService extends IMCPTransport {
   /**
    * Register a resource template with parameterized URI
    */
-  registerResourceTemplate(
+  registerResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate,
+    template: PluginResourceTemplate<K>,
   ): void;
 
   /**

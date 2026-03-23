@@ -8,7 +8,7 @@ A user signs up, gets a personal Rover running on Rizom infrastructure, and talk
 
 ```
 Ranger (brain) — onboarding, directory, Discord gateway
-  ↓ "run rover X on cluster Y" (A2A)
+  ↓ POST /rovers (HTTP)
 Cluster (service) — spawns/monitors/scales rover processes
   ↓ Bun.spawn()
 Rover (brain) — running, handling conversations
@@ -149,10 +149,10 @@ Ranger (`@brains/ranger`) handles the user-facing side:
 - **`rover-provisioning`** plugin — high-level lifecycle:
   - `create_rover` — create Turso DB, git repo, brain.yaml, assign to cluster
   - `delete_rover` — tell cluster to stop, delete DB and repo
-  - `list_rovers` — list all rovers with status (queries clusters via A2A)
-  - `get_rover_status` — health check (queries cluster via A2A)
+  - `list_rovers` — list all rovers with status (queries clusters via HTTP)
+  - `get_rover_status` — health check (queries cluster via HTTP)
 - **`rover-gateway`** plugin — Discord ↔ A2A proxy:
-  - Maintains mapping: Discord server → rover name → cluster endpoint
+  - Maintains mapping: Discord server → rover name → cluster host
   - Intercepts messages meant for rovers (not ranger itself)
   - Forwards via A2A, posts responses back
   - `link_server` — associate a Discord server with a rover instance
@@ -188,13 +188,13 @@ Cluster (`services/cluster`) is a lightweight HTTP service that handles infrastr
 1. User talks to Ranger in Discord: "I want a rover"
 2. Ranger collects: name, bio, email
 3. Ranger provisions: Turso database, git repo, brain.yaml with preset: minimal
-4. Ranger picks a cluster (least loaded) and sends: "run rover X" via A2A
+4. Ranger picks a cluster (least loaded) and calls: POST /rovers
 5. Cluster spawns rover process
 6. Ranger seeds identity (anchor profile, brain character, site info) via A2A to rover
 7. Ranger sends user the bot invite link: "Add Rover to your server"
 8. User clicks invite → Rover bot joins their Discord server
-9. Ranger maps: user's server ID → rover name → cluster endpoint
-10. User mentions @Rover in their server → ranger proxies → cluster → rover responds
+9. Ranger maps: user's server ID → rover name → cluster host
+10. User mentions @Rover in their server → ranger proxies via A2A to rover
 ```
 
 ## Scaling
@@ -210,8 +210,8 @@ Add more VPS instances, each running a cluster. Ranger load-balances across clus
 ```
 Ranger (host A)
   ├── Cluster-1 (host A, local) — 30 active rovers
-  ├── Cluster-2 (host B, A2A) — 25 active rovers
-  └── Cluster-3 (host C, A2A) — 40 active rovers
+  ├── Cluster-2 (host B, HTTP) — 25 active rovers
+  └── Cluster-3 (host C, HTTP) — 40 active rovers
 ```
 
 Ranger picks cluster for new rovers based on reported capacity. Rover migration between clusters = stop on old, start on new (Turso DB is cloud-hosted, no data to move).
@@ -241,7 +241,7 @@ Each rover subdomain goes through Cloudflare (same as core brains):
 5. **Agent directory** — rover discovery by name
 6. **Kamal deploy** — core brains on Kamal first, shared DNS/CDN automation patterns
 7. **Turso integration** — libSQL driver as alternative to local SQLite in entity-service
-8. **Cluster service** — lightweight A2A service in `services/cluster` for process management
+8. **Cluster service** — lightweight HTTP service in `services/cluster` for process management
 
 ## Open Questions (for later)
 

@@ -413,9 +413,9 @@ export class Shell implements IShell {
     }
   }
 
-  public registerPluginResourceTemplate(
+  public registerPluginResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate,
+    template: PluginResourceTemplate<K>,
   ): void {
     this.services.mcpService.registerResourceTemplate(pluginId, template);
   }

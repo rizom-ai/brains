@@ -75,6 +75,9 @@ export {
   type MockBatchJobManagerReturns,
 } from "./mock-batch-job-manager";
 
+// Message sender mocks
+export { createMockMessageSender } from "./mock-message-sender";
+
 // Fetch mocks
 export { mockFetch, type FetchHandler } from "./mock-fetch";
 

@@ -115,6 +115,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
+   * Get the underlying mock shell for direct access in tests
+   */
+  getMockShell(): MockShell {
+    return this.mockShell;
+  }
+
+  /**
    * Get the entity registry for registering entity types in tests
    */
   getEntityRegistry(): IEntityRegistry {

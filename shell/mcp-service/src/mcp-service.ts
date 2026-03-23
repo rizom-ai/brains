@@ -31,6 +31,10 @@ export class MCPService implements IMCPService {
     string,
     { pluginId: string; resource: PluginResource }
   >();
+  private registeredTemplates: Array<{
+    pluginId: string;
+    template: PluginResourceTemplate;
+  }> = [];
 
   // Track plugin instructions for agent system prompt
   private pluginInstructions = new Map<string, string>();
@@ -99,67 +103,16 @@ export class MCPService implements IMCPService {
       version: "1.0.0",
     });
 
-    // Re-register all tools
     for (const [, { pluginId, tool }] of this.registeredTools) {
-      server.tool(
-        tool.name,
-        tool.description,
-        tool.inputSchema,
-        async (params, extra) => {
-          const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
-          const userId = extra._meta?.["userId"] ?? "mcp-user";
-          const channelId = extra._meta?.["channelId"];
-          const progressToken = extra._meta?.progressToken;
-
-          const response = await this.messageBus.send(
-            `plugin:${pluginId}:tool:execute`,
-            {
-              toolName: tool.name,
-              args: params,
-              progressToken,
-              hasProgress: progressToken !== undefined,
-              interfaceType,
-              userId,
-              channelId,
-            },
-            "MCPService",
-          );
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: this.serializeResponse(response),
-              },
-            ],
-          };
-        },
-      );
+      this.registerToolOnServer(server, pluginId, tool);
     }
 
-    // Re-register all resources
     for (const [, { pluginId, resource }] of this.registeredResources) {
-      server.resource(
-        resource.uri,
-        resource.description ?? `Resource from ${pluginId}`,
-        async () => {
-          const response = await this.messageBus.send(
-            `plugin:${pluginId}:resource:get`,
-            { resourceUri: resource.uri },
-            "MCPService",
-          );
+      this.registerResourceOnServer(server, pluginId, resource);
+    }
 
-          return {
-            contents: [
-              {
-                uri: resource.uri,
-                mimeType: resource.mimeType ?? "text/plain",
-                text: this.serializeResponse(response),
-              },
-            ],
-          };
-        },
-      );
+    for (const { template } of this.registeredTemplates) {
+      this.registerResourceTemplateOnServer(server, template);
     }
 
     return server;
@@ -203,13 +156,45 @@ export class MCPService implements IMCPService {
       return;
     }
 
-    // Register the tool with MCP server
-    this.mcpServer.tool(
+    this.registerToolOnServer(this.mcpServer, pluginId, tool);
+    this.registeredTools.set(tool.name, { pluginId, tool });
+    this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
+  }
+
+  /**
+   * Register a resource with the MCP server
+   */
+  public registerResource(pluginId: string, resource: PluginResource): void {
+    // Resources don't have visibility, default to anchor permission
+    const resourceVisibility: UserPermissionLevel = "anchor";
+
+    if (
+      !PermissionService.hasPermission(this.permissionLevel, resourceVisibility)
+    ) {
+      this.logger.debug(
+        `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
+      );
+      return;
+    }
+
+    this.registerResourceOnServer(this.mcpServer, pluginId, resource);
+    this.registeredResources.set(resource.uri, { pluginId, resource });
+    this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
+  }
+
+  /**
+   * Register a tool on a specific MCP server instance
+   */
+  private registerToolOnServer(
+    server: McpServer,
+    pluginId: string,
+    tool: PluginTool,
+  ): void {
+    server.tool(
       tool.name,
       tool.description,
       tool.inputSchema,
       async (params, extra) => {
-        // Extract context from MCP client metadata
         const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
         const userId = extra._meta?.["userId"] ?? "mcp-user";
         const channelId = extra._meta?.["channelId"];
@@ -225,7 +210,6 @@ export class MCPService implements IMCPService {
         });
 
         try {
-          // Execute tool through message bus using plugin-specific message type
           const response = await this.messageBus.send(
             `plugin:${pluginId}:tool:execute`,
             {
@@ -233,7 +217,6 @@ export class MCPService implements IMCPService {
               args: params,
               progressToken,
               hasProgress: progressToken !== undefined,
-              // Pass through context from MCP client with defaults
               interfaceType,
               userId,
               channelId,
@@ -255,72 +238,45 @@ export class MCPService implements IMCPService {
         }
       },
     );
-
-    // Track the tool
-    this.registeredTools.set(tool.name, { pluginId, tool });
-    this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
   }
 
   /**
-   * Register a resource with the MCP server
+   * Register a resource on a specific MCP server instance
    */
-  public registerResource(pluginId: string, resource: PluginResource): void {
-    // Resources don't have visibility, default to anchor permission
-    const resourceVisibility: UserPermissionLevel = "anchor";
-
-    if (
-      !PermissionService.hasPermission(this.permissionLevel, resourceVisibility)
-    ) {
-      this.logger.debug(
-        `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
-      );
-      return;
-    }
-
-    // Register the resource with MCP server
-    this.mcpServer.resource(
+  private registerResourceOnServer(
+    server: McpServer,
+    _pluginId: string,
+    resource: PluginResource,
+  ): void {
+    server.resource(
+      resource.name,
       resource.uri,
-      resource.description ?? `Resource from ${pluginId}`,
-      async () => {
-        try {
-          // Get resource through message bus using plugin-specific message type
-          const response = await this.messageBus.send(
-            `plugin:${pluginId}:resource:get`,
-            {
-              resourceUri: resource.uri,
-            },
-            "MCPService",
-          );
-
-          return {
-            contents: [
-              {
-                uri: resource.uri,
-                mimeType: resource.mimeType ?? "text/plain",
-                text: this.serializeResponse(response),
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error(`Resource fetch error for ${resource.uri}`, error);
-          throw error;
-        }
-      },
+      { description: resource.description, mimeType: resource.mimeType },
+      async () => resource.handler(),
     );
-
-    // Track the resource
-    this.registeredResources.set(resource.uri, { pluginId, resource });
-    this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
   }
 
   /**
    * Register a resource template with parameterized URI
    */
-  public registerResourceTemplate(
+  public registerResourceTemplate<K extends string = string>(
     pluginId: string,
+    template: PluginResourceTemplate<K>,
+  ): void {
+    this.registerResourceTemplateOnServer(this.mcpServer, template);
+
+    this.registeredTemplates.push({ pluginId, template });
+    this.logger.debug(
+      `Registered resource template ${template.uriTemplate} from ${pluginId}`,
+    );
+  }
+
+  private registerResourceTemplateOnServer(
+    server: McpServer,
     template: PluginResourceTemplate,
   ): void {
     const listFn = template.list;
+
     const sdkTemplate = new ResourceTemplate(template.uriTemplate, {
       list: listFn
         ? async (): Promise<{
@@ -332,24 +288,26 @@ export class MCPService implements IMCPService {
             })),
           })
         : undefined,
+      ...(template.complete && {
+        complete: Object.fromEntries(
+          Object.entries(template.complete)
+            .filter((e): e is [string, NonNullable<(typeof e)[1]>] => !!e[1])
+            .map(([k, fn]) => [k, (v: string) => fn(v)]),
+        ),
+      }),
     });
 
-    this.mcpServer.registerResource(
+    server.registerResource(
       template.name,
       sdkTemplate,
       { description: template.description, mimeType: template.mimeType },
       async (_uri, vars) => {
-        // SDK Variables can be string | string[] — flatten to string for our handler
         const flatVars: Record<string, string> = {};
         for (const [k, v] of Object.entries(vars)) {
           flatVars[k] = Array.isArray(v) ? (v[0] ?? "") : v;
         }
         return template.handler(flatVars);
       },
-    );
-
-    this.logger.debug(
-      `Registered resource template ${template.uriTemplate} from ${pluginId}`,
     );
   }
 

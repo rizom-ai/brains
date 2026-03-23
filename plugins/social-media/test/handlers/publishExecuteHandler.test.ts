@@ -5,19 +5,7 @@ import {
   type PublishExecuteHandlerConfig,
 } from "../../src/handlers/publishExecuteHandler";
 import type { SocialPost } from "../../src/schemas/social-post";
-import { createMockLogger } from "@brains/test-utils";
-
-function createMockMessageSender(): {
-  sendMessage: ReturnType<typeof mock>;
-  _sentMessages: Array<{ type: string; payload: unknown }>;
-} {
-  const sentMessages: Array<{ type: string; payload: unknown }> = [];
-  const sendFn = mock(async (type: string, payload: unknown) => {
-    sentMessages.push({ type, payload });
-    return { success: true };
-  });
-  return { sendMessage: sendFn, _sentMessages: sentMessages };
-}
+import { createMockLogger, createMockMessageSender } from "@brains/test-utils";
 
 function createMockEntityService(): {
   getEntity: ReturnType<typeof mock>;

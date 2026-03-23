@@ -251,7 +251,9 @@ export interface ServicePluginContext extends CorePluginContext {
    * - `resources.registerTemplate()` - Register a parameterized resource template
    */
   readonly resources: {
-    registerTemplate: (template: PluginResourceTemplate) => void;
+    registerTemplate: <K extends string = string>(
+      template: PluginResourceTemplate<K>,
+    ) => void;
   };
 
   /**

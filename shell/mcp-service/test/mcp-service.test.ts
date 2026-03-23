@@ -341,6 +341,60 @@ describe("MCPService", () => {
     });
   });
 
+  describe("resource handler passthrough (no double-wrapping)", () => {
+    it("should pass handler result directly to SDK without re-wrapping", () => {
+      const resource: PluginResource = {
+        name: "test-resource",
+        uri: "test://resource",
+        description: "Test resource",
+        mimeType: "application/json",
+        handler: async () => ({
+          contents: [
+            {
+              text: '{"hello":"world"}',
+              uri: "test://resource",
+              mimeType: "application/json",
+            },
+          ],
+        }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+
+      // Should not throw (URI is valid, description is not used as URI)
+      expect(() =>
+        mcpService.registerResource("test-plugin", resource),
+      ).not.toThrow();
+    });
+
+    it("should not double-wrap contents in serialized JSON", async () => {
+      const resource: PluginResource = {
+        name: "entity-types",
+        uri: "entity://types",
+        description: "List of entity types",
+        mimeType: "text/plain",
+        handler: async () => ({
+          contents: [
+            {
+              text: "post\ndeck\nnote",
+              uri: "entity://types",
+              mimeType: "text/plain",
+            },
+          ],
+        }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerResource("system", resource);
+
+      // Verify handler returns raw text, not JSON-wrapped text
+      const result = await resource.handler();
+      const text = result.contents[0]?.text ?? "";
+      expect(text).toBe("post\ndeck\nnote");
+      expect(text).not.toContain("contents");
+    });
+  });
+
   describe("resource template registration", () => {
     it("should register a resource template without throwing", () => {
       const template: PluginResourceTemplate = {

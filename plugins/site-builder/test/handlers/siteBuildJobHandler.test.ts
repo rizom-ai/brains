@@ -3,9 +3,11 @@ import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
 import { UISlotRegistry } from "../../src/lib/ui-slot-registry";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockMessageSender,
+} from "@brains/test-utils";
 import { ProgressReporter } from "@brains/utils";
-import type { MessageSender } from "@brains/plugins";
 
 describe("SiteBuildJobHandler", () => {
   let handler: SiteBuildJobHandler;
@@ -23,26 +25,19 @@ describe("SiteBuildJobHandler", () => {
       ),
     };
 
-    const mockSendMessage: MessageSender = mock(
-      (_type: string, _payload: unknown, _options?: unknown) =>
-        Promise.resolve({ success: true }),
-    );
+    const { sendMessage } = createMockMessageSender();
 
     const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
       title: "Test Site",
       description: "Test Description",
     };
 
-    handler = new SiteBuildJobHandler(
-      createSilentLogger("test"),
-      mockSendMessage,
-      {
-        siteBuilder: mockSiteBuilder,
-        layouts: {},
-        defaultSiteConfig,
-        sharedImagesDir: "./dist/images",
-      },
-    );
+    handler = new SiteBuildJobHandler(createSilentLogger("test"), sendMessage, {
+      siteBuilder: mockSiteBuilder,
+      layouts: {},
+      defaultSiteConfig,
+      sharedImagesDir: "./dist/images",
+    });
   });
 
   describe("validateAndParse", () => {
@@ -132,10 +127,7 @@ describe("SiteBuildJobHandler", () => {
         },
       };
 
-      const mockSendMessage: MessageSender = mock(
-        (_type: string, _payload: unknown, _options?: unknown) =>
-          Promise.resolve({ success: true }),
-      );
+      const { sendMessage: slotsSendMessage } = createMockMessageSender();
       const defaultSiteConfig: SiteBuilderConfig["siteInfo"] = {
         title: "Test Site",
         description: "Test Description",
@@ -143,7 +135,7 @@ describe("SiteBuildJobHandler", () => {
 
       const handlerWithSlots = new SiteBuildJobHandler(
         createSilentLogger("test"),
-        mockSendMessage,
+        slotsSendMessage,
         {
           siteBuilder: mockSiteBuilderWithSlots,
           layouts: {},

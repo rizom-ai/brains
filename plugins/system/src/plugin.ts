@@ -181,6 +181,102 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
       this.logger.debug("System plugin registered dashboard widgets");
       return { success: true };
     });
+
+    // Register entity resource templates for MCP browsing
+    context.resources.registerTemplate<"type">({
+      name: "entity-list",
+      uriTemplate: "entity://{type}",
+      description: "List entities of a given type",
+      mimeType: "application/json",
+      list: async () => {
+        const types = context.entityService.getEntityTypes();
+        return types.map((t) => ({
+          uri: `entity://${t}`,
+          name: `${t} entities`,
+        }));
+      },
+      complete: {
+        type: async () => context.entityService.getEntityTypes(),
+      },
+      handler: async ({ type }) => {
+        const availableTypes = context.entityService.getEntityTypes();
+        if (!availableTypes.includes(type)) {
+          throw new Error(
+            `Unknown entity type: ${type}. Available: ${availableTypes.join(", ")}`,
+          );
+        }
+        const entities = await context.entityService.listEntities(type);
+        const items = entities.map((e) => ({
+          id: e.id,
+          entityType: e.entityType,
+          ...e.metadata,
+          updated: e.updated,
+        }));
+        return {
+          contents: [
+            {
+              uri: `entity://${type}`,
+              mimeType: "application/json",
+              text: JSON.stringify(items, null, 2),
+            },
+          ],
+        };
+      },
+    });
+
+    context.resources.registerTemplate<"type" | "id">({
+      name: "entity-detail",
+      uriTemplate: "entity://{type}/{id}",
+      description: "Read a single entity by type and ID",
+      mimeType: "text/markdown",
+      list: async () => {
+        const types = context.entityService.getEntityTypes();
+        const entries: Array<{ uri: string; name: string }> = [];
+        for (const t of types) {
+          const entities = await context.entityService.listEntities(t);
+          for (const e of entities) {
+            entries.push({
+              uri: `entity://${t}/${e.id}`,
+              name: `${t}/${e.id}`,
+            });
+          }
+        }
+        return entries;
+      },
+      complete: (() => {
+        let lastType: string | undefined;
+        return {
+          type: async (value) => {
+            const types = context.entityService.getEntityTypes();
+            const matches = value
+              ? types.filter((t) => t.startsWith(value))
+              : types;
+            if (matches.length === 1 && matches[0]) lastType = matches[0];
+            return matches;
+          },
+          id: async () => {
+            if (!lastType) return [];
+            const entities = await context.entityService.listEntities(lastType);
+            return entities.map((e) => e.id);
+          },
+        };
+      })(),
+      handler: async ({ type, id }) => {
+        const entity = await context.entityService.getEntity(type, id);
+        if (!entity) {
+          throw new Error(`Entity not found: ${type}/${id}`);
+        }
+        return {
+          contents: [
+            {
+              uri: `entity://${type}/${id}`,
+              mimeType: "text/markdown",
+              text: entity.content,
+            },
+          ],
+        };
+      },
+    });
   }
 
   /**

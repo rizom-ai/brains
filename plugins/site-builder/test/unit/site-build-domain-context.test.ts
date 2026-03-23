@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, beforeEach, mock } from "bun:test";
 import {
   SiteBuildJobHandler,
   type SiteBuildJobHandlerConfig,
@@ -8,6 +8,7 @@ import type { ProgressReporter } from "@brains/utils";
 import {
   createSilentLogger,
   createMockProgressReporter,
+  createMockMessageSender,
 } from "@brains/test-utils";
 
 /**
@@ -38,10 +39,7 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
     handler: SiteBuildJobHandler;
     sendMessage: ReturnType<typeof mock>;
   } {
-    const sendMessage = mock(
-      (_type: string, _payload: unknown, _options?: unknown) =>
-        Promise.resolve({ success: true }),
-    );
+    const { sendMessage } = createMockMessageSender();
     const handler = new SiteBuildJobHandler(createSilentLogger(), sendMessage, {
       siteBuilder: mockSiteBuilder,
       layouts: {},

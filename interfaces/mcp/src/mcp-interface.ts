@@ -31,6 +31,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private mcpTransport: IMCPTransport | undefined;
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
+  private domain: string | undefined;
 
   constructor(config: Partial<MCPConfig> = {}) {
     // Default authToken from environment if not provided
@@ -62,6 +63,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
+    this.domain = context.domain;
+
     this.logger.debug(
       `MCP interface initialized with ${this.config.transport} transport`,
     );
@@ -87,8 +90,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         let message = "MCP server not running";
         if (isRunning) {
           if (this.config.transport === "http") {
-            const apiUrl = this.config.domain
-              ? `https://${this.config.domain}/mcp`
+            const apiUrl = this.domain
+              ? `https://${this.domain}/mcp`
               : `http://localhost:${this.config.httpPort}/mcp`;
             message = `MCP HTTP: ${apiUrl}`;
           } else {
@@ -104,8 +107,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
             transport: this.config.transport,
             url:
               this.config.transport === "http"
-                ? this.config.domain
-                  ? `https://${this.config.domain}/mcp`
+                ? this.domain
+                  ? `https://${this.domain}/mcp`
                   : `http://localhost:${this.config.httpPort}/mcp`
                 : undefined,
             running: isRunning,

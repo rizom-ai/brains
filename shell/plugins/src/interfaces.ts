@@ -175,9 +175,9 @@ export interface IShell {
   // Plugin capability registration
   registerPluginTools(pluginId: string, tools: PluginTool[]): void;
   registerPluginResources(pluginId: string, resources: PluginResource[]): void;
-  registerPluginResourceTemplate(
+  registerPluginResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate,
+    template: PluginResourceTemplate<K>,
   ): void;
   registerPluginPrompt(pluginId: string, prompt: PluginPrompt): void;
   registerPluginInstructions(pluginId: string, instructions: string): void;
