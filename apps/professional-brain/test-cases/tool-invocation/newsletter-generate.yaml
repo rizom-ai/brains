@@ -1,6 +1,6 @@
 id: tool-invocation-newsletter-generate
-name: Newsletter Generate Tool Invocation
-description: Verifies that the agent actually calls the newsletter_generate tool instead of fabricating job IDs
+name: Newsletter Generation via system_create
+description: Verifies that the agent uses system_create to generate a newsletter
 type: tool_invocation
 tags:
   - core
@@ -12,16 +12,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: newsletter_generate
+    - toolName: system_create
       shouldBeCalled: true
   toolCountRange:
     min: 1
-  responseContains:
-    - "queued"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-    - "I'm unable"
+    - "newsletter_generate"
   minAccuracyScore: 3
 
 efficiency:

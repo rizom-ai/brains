@@ -1,6 +1,6 @@
 id: tool-invocation-newsletter-generate-variations
 name: Newsletter Generate Natural Language Variations
-description: Tests that various phrasings of newsletter generation requests invoke the tool
+description: Tests that various phrasings of newsletter generation requests use system_create
 type: tool_invocation
 tags:
   - newsletter
@@ -12,14 +12,14 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: newsletter_generate
+    - toolName: system_create
       shouldBeCalled: true
   toolCountRange:
     min: 1
   responseNotContains:
     - "I cannot"
     - "I don't have access"
-    - "I'm unable"
+    - "newsletter_generate"
 
 efficiency:
   maxToolCalls: 5

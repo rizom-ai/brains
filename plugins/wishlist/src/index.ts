@@ -7,7 +7,7 @@ import {
   type WishEntity,
 } from "./schemas/wish";
 import { WishAdapter } from "./adapters/wish-adapter";
-import { createWishlistTools } from "./tools/index";
+import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
 
@@ -60,20 +60,26 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
       return { success: true };
     });
 
+    // Register wish:create handler for semantic dedup via system_create
+    const handler = new WishCreateHandler(this.logger, context);
+    context.jobs.registerHandler("wish:create", {
+      process: handler.process.bind(handler),
+      validateAndParse: (data: unknown) => data,
+    });
+
     this.logger.debug("Wishlist plugin registered");
   }
 
   protected override async getTools(): Promise<PluginTool[]> {
-    return createWishlistTools(this.id, this.getContext());
+    return [];
   }
 
   protected override async getInstructions(): Promise<string> {
     return (
-      "**CRITICAL — Unfulfilled requests**: ALWAYS call `wishlist_add` BEFORE responding " +
-      "when you cannot fulfill a user's request. This applies to ALL unfulfillable requests: " +
-      'physical actions ("water my plants", "clean my house"), missing integrations ' +
-      '("send an email", "post to Instagram"), and any capability you lack. ' +
-      "Do NOT just explain you can't do it — call `wishlist_add` first, THEN respond. " +
+      "**CRITICAL — Unfulfilled requests**: ALWAYS call `system_create` with entityType " +
+      '"wish" BEFORE responding when you cannot fulfill a user\'s request. This applies to ' +
+      "ALL unfulfillable requests: physical actions, missing integrations, and any capability " +
+      "you lack. Do NOT just explain you can't do it — create the wish first, THEN respond. " +
       "In your response, tell the user their request has been added to the wishlist."
     );
   }
