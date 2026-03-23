@@ -184,6 +184,16 @@ export function Header({
                 {cta.buttonText}
               </LinkButton>
             )}
+            {showThemeToggle && (
+              <div className="pt-2 mt-2 border-t border-theme">
+                <ThemeToggle
+                  size="sm"
+                  {...(themeToggleClassName
+                    ? { className: themeToggleClassName }
+                    : {})}
+                />
+              </div>
+            )}
           </div>
         </nav>
       </div>

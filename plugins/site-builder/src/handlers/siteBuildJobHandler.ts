@@ -1,5 +1,5 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
+import type { MessageSender } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type {
@@ -14,6 +14,18 @@ import {
 } from "../types/job-types";
 import { EntityUrlGenerator } from "@brains/utils";
 
+export interface SiteBuildJobHandlerConfig {
+  siteBuilder: ISiteBuilder;
+  layouts: Record<string, LayoutComponent>;
+  defaultSiteConfig: SiteBuilderConfig["siteInfo"];
+  sharedImagesDir: string;
+  siteUrl?: string | undefined;
+  previewUrl?: string | undefined;
+  themeCSS?: string | undefined;
+  slots?: LayoutSlots | undefined;
+  getHeadScripts?: (() => string[]) | undefined;
+}
+
 /**
  * Job handler for site building operations
  */
@@ -24,16 +36,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 > {
   constructor(
     logger: Logger,
-    private siteBuilder: ISiteBuilder,
-    private layouts: Record<string, LayoutComponent>,
-    private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
-    private context: ServicePluginContext,
-    private sharedImagesDir: string,
-    private themeCSS?: string,
-    private previewUrl?: string,
-    private productionUrl?: string,
-    private slots?: LayoutSlots,
-    private getHeadScripts?: () => string[],
+    private sendMessage: MessageSender,
+    private cfg: SiteBuildJobHandlerConfig,
   ) {
     super(logger, {
       schema: siteBuildJobSchema,
@@ -64,28 +68,25 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         message: `Starting site build for ${environment} environment`,
       });
 
-      // Use the injected site builder instance
-      const siteBuilder = this.siteBuilder;
-
       // Create a sub-reporter that maps build progress to job progress
       const buildProgressReporter = progressReporter.createSub({
         scale: { start: 10, end: 90 },
       });
 
       // Perform the build
-      const result = await siteBuilder.build(
+      const result = await this.cfg.siteBuilder.build(
         {
           outputDir: data.outputDir,
           workingDir: data.workingDir,
-          sharedImagesDir: this.sharedImagesDir,
+          sharedImagesDir: this.cfg.sharedImagesDir,
           enableContentGeneration,
           environment,
           cleanBeforeBuild: true,
-          siteConfig: data.siteConfig ?? this.defaultSiteConfig,
-          layouts: this.layouts,
-          themeCSS: this.themeCSS,
-          slots: this.slots,
-          headScripts: this.getHeadScripts?.(),
+          siteConfig: data.siteConfig ?? this.cfg.defaultSiteConfig,
+          layouts: this.cfg.layouts,
+          themeCSS: this.cfg.themeCSS,
+          slots: this.cfg.slots,
+          headScripts: this.cfg.getHeadScripts?.(),
         },
         buildProgressReporter.toCallback(),
       );
@@ -111,26 +112,19 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         );
 
         // Select environment-specific URL from config
-        const configUrl =
+        const url =
           environment === "preview"
-            ? (this.previewUrl ?? this.productionUrl)
-            : this.productionUrl;
+            ? (this.cfg.previewUrl ?? this.cfg.siteUrl)
+            : this.cfg.siteUrl;
 
-        // Build full URL from domain (add https:// if not present)
-        const url = configUrl
-          ? configUrl.startsWith("http://") || configUrl.startsWith("https://")
-            ? configUrl
-            : `https://${configUrl}`
-          : undefined;
-
-        await this.context.messaging.send(
+        await this.sendMessage(
           "site:build:completed",
           {
             outputDir: data.outputDir,
             environment,
             routesBuilt: result.routesBuilt,
             siteConfig: {
-              ...(data.siteConfig ?? this.defaultSiteConfig),
+              ...(data.siteConfig ?? this.cfg.defaultSiteConfig),
               url,
             },
             generateEntityUrl: (entityType: string, slug: string) =>

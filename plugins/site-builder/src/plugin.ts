@@ -168,16 +168,18 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       "site-build",
       new SiteBuildJobHandler(
         this.logger.child("SiteBuildJobHandler"),
-        this.siteBuilder,
-        this.layouts,
-        this.config.siteInfo,
-        context,
-        this.config.sharedImagesDir,
-        this.config.themeCSS,
-        this.config.previewUrl,
-        this.config.productionUrl,
-        this._slotRegistry,
-        () => this.getRegisteredHeadScripts(),
+        context.messaging.send,
+        {
+          siteBuilder: this.siteBuilder,
+          layouts: this.layouts,
+          defaultSiteConfig: this.config.siteInfo,
+          sharedImagesDir: this.config.sharedImagesDir,
+          siteUrl: context.siteUrl,
+          previewUrl: context.previewUrl,
+          themeCSS: this.config.themeCSS,
+          slots: this._slotRegistry,
+          getHeadScripts: () => this.getRegisteredHeadScripts(),
+        },
       ),
     );
 
